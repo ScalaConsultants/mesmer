@@ -1,7 +1,5 @@
 package io.scalac.domain
-import zio._
-import scala.concurrent.Future
-import scala.concurrent.ExecutionContext
+import scala.concurrent.{ExecutionContext, Future}
 
 trait AccountRepository {
     def getAccount(id: AccountId): Future[Option[Account]]

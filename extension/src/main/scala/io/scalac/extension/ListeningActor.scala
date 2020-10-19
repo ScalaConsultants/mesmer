@@ -1,21 +1,9 @@
 package io.scalac.extension
 
-import io.scalac.serialization.SerializableMessage
-import akka.actor.typed.scaladsl.Behaviors
 import akka.actor.typed.Behavior
-import akka.cluster.typed.Cluster
-import akka.cluster.typed.Subscribe
-import akka.cluster.ClusterEvent.ClusterDomainEvent
-import akka.cluster.ClusterEvent.MemberJoined
-import akka.cluster.ClusterEvent.MemberUp
-import akka.cluster.ClusterEvent.MemberDowned
-import akka.cluster.ClusterEvent.MemberLeft
-import akka.cluster.ClusterEvent.MemberExited
-import akka.cluster.ClusterEvent.UnreachableMember
-import akka.cluster.ClusterEvent.ReachableMember
-import akka.cluster.ClusterEvent.MemberEvent
-import akka.cluster.ClusterEvent.MemberRemoved
-import akka.cluster.ClusterEvent.MemberWeaklyUp
+import akka.actor.typed.scaladsl.Behaviors
+import akka.cluster.ClusterEvent._
+import akka.cluster.typed.{Cluster, Subscribe}
 
 object ListeningActor {
 

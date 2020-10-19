@@ -1,8 +1,8 @@
 package io.scalac.infrastructure
 
+import java.{util => ju}
+
 import io.scalac.domain.Account
-import io.scalac.domain.AccountId
-import java.{ util => ju }
 
 trait AccountsTable {
   self: Profile =>

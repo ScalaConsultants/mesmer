@@ -1,11 +1,10 @@
 package io.scalac.infrastructure
 
-import io.scalac.domain.{ Account, AccountId, AccountRepository }
-
-import scala.concurrent.Future
+import io.scalac.domain.{Account, AccountId, AccountRepository}
 import slick.jdbc.PostgresProfile
 import slick.jdbc.PostgresProfile.api._
-import scala.concurrent.ExecutionContext
+
+import scala.concurrent.{ExecutionContext, Future}
 import scala.language.postfixOps
 
 class PostgresAccountRepository(db: Database) extends AccountsTable with Profile with AccountRepository {

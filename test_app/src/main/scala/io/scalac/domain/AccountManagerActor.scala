@@ -1,16 +1,12 @@
 package io.scalac.domain
-import io.scalac.serialization.SerializableMessage
-import akka.actor.typed.Behavior
-import akka.actor.typed.ActorRef
-import akka.actor.typed.scaladsl.Behaviors
-import io.scalac.domain.AccountManagerActor.Command.CreateAccount
-import io.scalac.domain.AccountRepository
-import java.{util => ju}
-import scala.util.Success
-import scala.util.Failure
-import akka.pattern.StatusReply
-
 import java.io.IOException
+import java.{util => ju}
+
+import akka.actor.typed.{ActorRef, Behavior}
+import akka.actor.typed.scaladsl.Behaviors
+import io.scalac.serialization.SerializableMessage
+
+import scala.util.{Failure, Success}
 
 object AccountManagerActor {
 
@@ -39,8 +35,7 @@ object AccountManagerActor {
     def apply(repository: AccountRepository): Behavior[Command] = Behaviors.setup(context => {
         import AccountManagerActor.Command._
         import AccountManagerActor.Event._
-        import context.executionContext
-        import context.log
+        import context.{executionContext, log}
         Behaviors.receiveMessage {
             case CreateAccount(replyTo) => {
                 log.info("Got create account message")

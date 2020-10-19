@@ -1,16 +1,13 @@
 package io.scalac.domain
 
-import akka.actor.typed.Behavior._
-import io.scalac.serialization.SerializableMessage
-import akka.actor.typed.ActorRef
-import akka.actor.typed.Behavior
-import akka.actor.typed.scaladsl.Behaviors
-import java.{ util => ju }
-import io.scalac.domain.AccountActor.Command.GetBalance
-import cats.syntax.representable
-import scala.util.{ Failure, Success }
-import akka.actor.typed.delivery.ConsumerController.Start
 import java.io.IOException
+import java.{util => ju}
+
+import akka.actor.typed.{ActorRef, Behavior}
+import akka.actor.typed.scaladsl.Behaviors
+import io.scalac.serialization.SerializableMessage
+
+import scala.util.{Failure, Success}
 
 object AccountActor {
 
@@ -41,8 +38,7 @@ object AccountActor {
   def apply(repository: AccountRepository, uuid: ju.UUID): Behavior[Command] = Behaviors.setup { context =>
     import Command._
     import Event._
-    import context.log
-    import context.executionContext
+    import context.{executionContext, log}
 
     context.pipeToSelf(repository.getOrCreateAccount(uuid)) {
       case Success(account) => Started(account.balance)
