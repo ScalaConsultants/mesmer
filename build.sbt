@@ -7,7 +7,7 @@ ThisBuild / organizationName := "example"
 
 lazy val root = (project in file("."))
   .settings(
-    name := "akka-monitoring-test-app",
+    name := "akka-monitoring",
   ).aggregate(extension, testApp)
 
 lazy val extension = (project in file("extension"))
@@ -17,7 +17,7 @@ lazy val extension = (project in file("extension"))
   )
 lazy val testApp = (project in file("test_app"))
   .settings(
-    name := "akka-monitoring-extension",
+    name := "akka-monitoring-test-app",
     libraryDependencies ++= akka ++ zio ++ circe ++ circeAkka ++ postgresDriver ++ slick ++ logback
   ).dependsOn(extension)
 
