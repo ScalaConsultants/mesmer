@@ -18,7 +18,7 @@ lazy val root = (project in file("."))
 lazy val extension = (project in file("extension"))
   .settings(
     name := "akka-monitoring-extension",
-    libraryDependencies ++= akka
+    libraryDependencies ++= akka ++ openTelemetry
   )
 lazy val testApp = (project in file("test_app"))
   .settings(
