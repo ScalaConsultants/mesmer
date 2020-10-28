@@ -9,8 +9,12 @@ import akka.actor.typed.{
 }
 import akka.actor.typed.scaladsl.Behaviors
 import akka.cluster.typed.{Cluster, ClusterSingleton, SingletonActor}
-import com.typesafe.config.Config
+import com.typesafe.config.{Config, ConfigException}
 import io.opentelemetry.metrics.LongUpDownCounter
+
+import scala.reflect.{ClassTag, classTag}
+import scala.util.Try
+import scala.collection.JavaConverters._
 
 case class ClusterMonitoringConfig(boot: BootSettings, regions: List[String])
 
@@ -18,14 +22,37 @@ case class BootSettings(bootMemberEvent: Boolean,
                         bootReachabilityEvents: Boolean)
 
 object ClusterMonitoringConfig {
-  def apply(config: Config): ClusterMonitoringConfig =
-    ClusterMonitoringConfig(BootSettings(true, true), Nil)
+
+  import config.ConfigurationUtils._
+
+  def apply(config: Config): ClusterMonitoringConfig = {
+
+    config
+      .tryValue("io.scalac.akka-cluster-monitoring")(_.getConfig)
+      .map { monitoringConfig =>
+        val bootMember =
+          monitoringConfig.tryValue("boot.member")(_.getBoolean).getOrElse(true)
+
+        val bootReachability =
+          config.tryValue("boot.reachability")(_.getBoolean).getOrElse(true)
+
+        val initRegions = monitoringConfig
+          .tryValue("shard-regions")(config => path => config.getStringList(path).asScala.toList)
+          .getOrElse(Nil)
+
+        ClusterMonitoringConfig(
+          BootSettings(bootMember, bootReachability),
+          initRegions
+        )
+      }
+      .getOrElse(ClusterMonitoringConfig(BootSettings(true, true), Nil))
+  }
+
 }
 
 object ClusterMonitoring extends ExtensionId[ClusterMonitoring] {
   override def createExtension(system: ActorSystem[_]): ClusterMonitoring = {
     val monitor = new ClusterMonitoring(system)
-//    monitor.startMonitor()
     monitor
   }
 }
