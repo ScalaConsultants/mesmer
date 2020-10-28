@@ -5,18 +5,18 @@ import akka.actor.typed.scaladsl.Behaviors
 import akka.cluster.ClusterEvent._
 import akka.cluster.typed.{Cluster, Subscribe}
 import akka.http.scaladsl.Http
-import akka.http.scaladsl.client._
-import akka.http.scaladsl.model._
-import akka.http.scaladsl.model.RequestEntity
-import akka.http.scaladsl.model.headers.HttpEncodings.gzip
-import akka.http.scaladsl.model.headers.{`Content-Encoding`, RawHeader}
 import akka.http.scaladsl.coding.Gzip
+import akka.http.scaladsl.model._
+import akka.http.scaladsl.model.headers.HttpEncodings.gzip
+import akka.http.scaladsl.model.headers.{RawHeader, `Content-Encoding`}
 import akka.util.ByteString
-import scala.util.{Success, Failure}
+
+import scala.util.{Failure, Success}
+
 
 object ListeningActor {
 
-  trait Command
+  sealed trait Command
 
   final case class ClusterChanged(status: String, node: String) extends Command
 
@@ -35,26 +35,6 @@ object ListeningActor {
     val vendorUrl: Uri = Uri(
       s"https://insights-collector.eu01.nr-data.net/v1/accounts/${accountId}/events"
     )
-//    val vendorUrl: Uri = Uri.from(scheme = "http", host = "localhost", port = 9000)
-
-    val memberEventAdapter = context.messageAdapter[MemberEvent]({
-      case MemberJoined(member) =>
-        ClusterChanged("join", member.uniqueAddress.toString)
-      case MemberUp(member) =>
-        ClusterChanged("up", member.uniqueAddress.toString)
-      case MemberDowned(member) =>
-        ClusterChanged("down", member.uniqueAddress.toString)
-      case MemberLeft(member) =>
-        ClusterChanged("left", member.uniqueAddress.toString)
-      case MemberExited(member) =>
-        ClusterChanged("exited", member.uniqueAddress.toString)
-      case MemberRemoved(member, previousStatus) =>
-        ClusterChanged("removed", member.uniqueAddress.toString)
-      case MemberWeaklyUp(member) =>
-        ClusterChanged("weakly_up", member.uniqueAddress.toString)
-      case memberEvent =>
-        ClusterChanged("unhandled", memberEvent.member.uniqueAddress.toString)
-    })
 
     val reachabilityAdapter = context.messageAdapter[ReachabilityEvent] {
       case UnreachableMember(member) =>
@@ -69,11 +49,6 @@ object ListeningActor {
       val payload = Gzip.encode(ByteString(rawJson))
       HttpEntity(ContentTypes.`application/json`, payload)
     }
-
-    Cluster(context.system).subscriptions ! Subscribe(
-      memberEventAdapter,
-      classOf[MemberEvent]
-    )
 
     Cluster(context.system).subscriptions ! Subscribe(
       reachabilityAdapter,

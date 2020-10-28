@@ -53,6 +53,7 @@ object Boot extends App with FailFastCirceSupport with JsonCodecs {
       )
     })
 
+
   val accountRoutes = new AccountRoutes(accountsShards)
 
   val binding =
