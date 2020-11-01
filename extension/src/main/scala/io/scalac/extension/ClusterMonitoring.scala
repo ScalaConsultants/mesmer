@@ -1,5 +1,6 @@
 package io.scalac.extension
 
+import akka.actor.CoordinatedShutdown
 import akka.actor.typed.scaladsl.Behaviors
 import akka.actor.typed.{
   ActorSystem,
@@ -9,6 +10,7 @@ import akka.actor.typed.{
 }
 import akka.cluster.typed.{ClusterSingleton, SingletonActor}
 import io.scalac.extension.config.ClusterMonitoringConfig
+import io.scalac.extension.upstream.NewRelicEventStream
 
 object ClusterMonitoring extends ExtensionId[ClusterMonitoring] {
   override def createExtension(system: ActorSystem[_]): ClusterMonitoring = {
@@ -47,14 +49,31 @@ class ClusterMonitoring(private val system: ActorSystem[_],
 
     log.info("Starting reachability monitor")
 
-    ClusterSingleton(system)
-      .init(
-        SingletonActor(
-          Behaviors
-            .supervise(ListeningActor())
-            .onFailure[Exception](SupervisorStrategy.restart),
-          "MemberMonitoringActor"
-        )
+    NewRelicEventStream.NewRelicConfig
+      .fromConfig(system.settings.config)
+      .fold(
+        errorMessage =>
+          system.log
+            .error(s"Couldn't start reachability monitor -> ${errorMessage}"),
+        config => {
+          implicit val classicSystem = system.classicSystem
+          val newRelicEventStream = new NewRelicEventStream(config)
+
+          ClusterSingleton(system)
+            .init(
+              SingletonActor(
+                Behaviors
+                  .supervise(ListeningActor(newRelicEventStream))
+                  .onFailure[Exception](SupervisorStrategy.restart),
+                "MemberMonitoringActor"
+              )
+            )
+
+          CoordinatedShutdown(classicSystem).addTask(
+            CoordinatedShutdown.PhaseBeforeActorSystemTerminate,
+            "closeNewRelicEventStream"
+          )(() => newRelicEventStream.shutdown())
+        }
       )
   }
 }
