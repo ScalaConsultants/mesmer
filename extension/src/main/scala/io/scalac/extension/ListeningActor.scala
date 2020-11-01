@@ -10,6 +10,8 @@ import akka.http.scaladsl.model._
 import akka.http.scaladsl.model.headers.HttpEncodings.gzip
 import akka.http.scaladsl.model.headers.{RawHeader, `Content-Encoding`}
 import akka.util.ByteString
+import io.opentelemetry.OpenTelemetry
+import io.opentelemetry.metrics.Meter
 
 import scala.util.{Failure, Success}
 
@@ -27,6 +29,7 @@ object ListeningActor {
   private final case class PushFailed(exception: Throwable) extends Command
 
   def apply(): Behavior[Command] = Behaviors.setup { context =>
+
     implicit val system = context.system.classicSystem
     val config = context.system.settings.config.getConfig("newrelic")
 
