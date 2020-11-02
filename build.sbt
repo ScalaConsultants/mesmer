@@ -25,6 +25,7 @@ lazy val testApp = (project in file("test_app"))
     name := "akka-monitoring-test-app",
     libraryDependencies ++= akka ++ zio ++ circe ++ circeAkka ++ postgresDriver ++ slick ++ logback ++ newRelicSdk ,
     assemblyMergeStrategy in assembly := {
+      case PathList("META-INF", "services", _ @ _*) => MergeStrategy.concat
       case PathList("META-INF", xs @ _*) => MergeStrategy.discard
       case PathList("reference.conf") => MergeStrategy.concat
       case PathList("jackson-annotations-2.10.3.jar", _ @ _*) => MergeStrategy.last

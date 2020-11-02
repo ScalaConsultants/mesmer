@@ -7,12 +7,19 @@ import java.{util => ju}
 import akka.actor.typed.ActorSystem
 import akka.actor.typed.scaladsl.Behaviors
 import akka.actor.typed.scaladsl.adapter._
-import akka.cluster.sharding.typed.scaladsl.{ClusterSharding, Entity, EntityTypeKey}
+import akka.cluster.sharding.typed.scaladsl.{
+  ClusterSharding,
+  Entity,
+  EntityTypeKey
+}
 import akka.http.scaladsl.Http
 import akka.stream.ActorMaterializer
 import akka.util.Timeout
 import com.newrelic.telemetry.Attributes
-import com.newrelic.telemetry.opentelemetry.`export`.{NewRelicExporters, NewRelicMetricExporter}
+import com.newrelic.telemetry.opentelemetry.`export`.{
+  NewRelicExporters,
+  NewRelicMetricExporter
+}
 import com.typesafe.config.{ConfigFactory, ConfigValueFactory}
 import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport
 import io.opentelemetry.sdk.OpenTelemetrySdk
@@ -20,6 +27,7 @@ import io.opentelemetry.sdk.metrics.`export`.IntervalMetricReader
 import io.scalac.api.AccountRoutes
 import io.scalac.domain.{AccountActor, JsonCodecs}
 import io.scalac.infrastructure.PostgresAccountRepository
+import org.slf4j.LoggerFactory
 import slick.jdbc.PostgresProfile.api.Database
 
 import scala.collection.JavaConverters._
@@ -28,6 +36,8 @@ import scala.io.StdIn
 import scala.language.postfixOps
 
 object Boot extends App with FailFastCirceSupport with JsonCodecs {
+
+  val logger = LoggerFactory.getLogger(Boot.getClass)
 
   val config = ConfigFactory
     .load()
@@ -47,11 +57,6 @@ object Boot extends App with FailFastCirceSupport with JsonCodecs {
 
   val apiKey = config.getString("newrelic.api_key")
 
-//  val newRelicConfiguration = new NewRelicExporters.Configuration(apiKey, "test_app")
-//    .enableAuditLogging()
-//    .collectionIntervalSeconds(5)
-//
-//  NewRelicExporters.start(newRelicConfiguration)
   val newRelicExporter = NewRelicMetricExporter
     .newBuilder()
     .apiKey(apiKey)
@@ -91,11 +96,11 @@ object Boot extends App with FailFastCirceSupport with JsonCodecs {
       implicit val classicSystem = system.toClassic
       implicit val materializer = ActorMaterializer()
 
-      Http().bindAndHandle(
-        accountRoutes.routes,
-        config.getString("app.host"),
-        config.getInt("app.port")
-      )
+      val host = config.getString("app.host")
+
+      val port = config.getInt("app.port")
+      logger.info(s"Starting http server at $host:$port")
+      Http().bindAndHandle(accountRoutes.routes, host, port)
     })
 
   StdIn.readLine()
