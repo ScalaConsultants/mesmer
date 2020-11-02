@@ -7,7 +7,10 @@ import slick.jdbc.PostgresProfile.api._
 import scala.concurrent.{ExecutionContext, Future}
 import scala.language.postfixOps
 
-class PostgresAccountRepository(db: Database) extends AccountsTable with Profile with AccountRepository {
+class PostgresAccountRepository(db: Database)
+    extends AccountsTable
+    with Profile
+    with AccountRepository {
 
   type P = PostgresProfile
   override lazy val profile: PostgresProfile = PostgresProfile
@@ -22,19 +25,24 @@ class PostgresAccountRepository(db: Database) extends AccountsTable with Profile
     db.run(query)
   }
 
-  override def getOrCreateAccount(id: AccountId, defaultBalance: Double)(implicit ec: ExecutionContext): Future[Account] = {
-      val query = accountTable
+  override def getOrCreateAccount(id: AccountId, defaultBalance: Double)(
+    implicit ec: ExecutionContext
+  ): Future[Account] = {
+    val query = accountTable
       .filter(_.id === id.toString().toLowerCase)
       .result
       .headOption
       .flatMap {
-          case Some(value) => DBIO.successful(value)
-          case None => (accountTable returning accountTable) += Account(id, defaultBalance)
+        case Some(value) => DBIO.successful(value)
+        case None =>
+          (accountTable returning accountTable) += Account(id, defaultBalance)
       }
-      db.run(query)
+    db.run(query)
   }
 
-  override def update(account: Account)(implicit ec: ExecutionContext): Future[Double] = {
+  override def update(
+    account: Account
+  )(implicit ec: ExecutionContext): Future[Double] = {
     val query = accountTable
       .filter(_.id === account.id.toString().toLowerCase)
       .map(_.balance)
@@ -44,9 +52,12 @@ class PostgresAccountRepository(db: Database) extends AccountsTable with Profile
     db.run(query)
   }
 
-  def createTableIfNotExists: Future[Unit] = db.run(accountTable.schema.createIfNotExists)
+  def createTableIfNotExists: Future[Unit] =
+    db.run(accountTable.schema.createIfNotExists)
 
-  override def insert(account: Account)(implicit ec: ExecutionContext): Future[Double] = {
+  override def insert(
+    account: Account
+  )(implicit ec: ExecutionContext): Future[Double] = {
     val query = (accountTable returning accountTable.map(_.balance)) += account
     db.run(query)
   }

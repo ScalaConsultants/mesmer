@@ -1,7 +1,7 @@
 package io.scalac.extension
 
-import akka.actor.typed.{Behavior, SpawnProtocol}
 import akka.actor.typed.scaladsl.Behaviors
+import akka.actor.typed.{Behavior, SpawnProtocol}
 import akka.cluster.ClusterEvent.MemberEvent
 import akka.cluster.sharding.ShardRegion.ClusterShardingStats
 import akka.cluster.sharding.typed.GetClusterShardingStats
@@ -54,9 +54,10 @@ object LocalSystemListener {
 
       val selfAddress = cluster.selfMember.uniqueAddress
 
-      val boundShardsRecorder = shardsRecorder.bind(Labels.of("node", selfAddress.toString))
-      val boundEntitiesRecorder = entitiesRecorder.bind(Labels.of("node", selfAddress.toString))
-
+      val boundShardsRecorder =
+        shardsRecorder.bind(Labels.of("node", selfAddress.toString))
+      val boundEntitiesRecorder =
+        entitiesRecorder.bind(Labels.of("node", selfAddress.toString))
 
       val memberStateAdapter =
         ctx.messageAdapter[MemberEvent](ClusterMemberEvent.apply)
@@ -94,22 +95,26 @@ object LocalSystemListener {
             Behaviors.same
           }
           case ClusterShardingStatsReceived(stats) => {
-            stats.regions.find {
-              case(address, _) => address == selfAddress.address
-            }.fold {
-              ctx.log.warn(s"No information on shards for node ${selfAddress.address}")
-            } {
-              case (_, shardsStats) => {
-                val entities = shardsStats.stats.values.sum
-                val shards = shardsStats.stats.size
-
-                ctx.log.trace("Recorded amount of entitites {}", entities)
-                boundEntitiesRecorder.record(entities)
-                ctx.log.trace("Recorded amount of shards {}", shards)
-                boundShardsRecorder.record(shards)
+            stats.regions
+              .find {
+                case (address, _) => address == selfAddress.address
               }
+              .fold {
+                ctx.log.warn(
+                  s"No information on shards for node ${selfAddress.address}"
+                )
+              } {
+                case (_, shardsStats) => {
+                  val entities = shardsStats.stats.values.sum
+                  val shards = shardsStats.stats.size
 
-            }
+                  ctx.log.trace("Recorded amount of entitites {}", entities)
+                  boundEntitiesRecorder.record(entities)
+                  ctx.log.trace("Recorded amount of shards {}", shards)
+                  boundShardsRecorder.record(shards)
+                }
+
+              }
             Behaviors.same
           }
           case GetClusterShardingStatsInternal(region) => {

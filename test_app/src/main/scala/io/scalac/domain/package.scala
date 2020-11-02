@@ -5,7 +5,7 @@ import java.{util => ju}
 package object domain {
   type AccountId = ju.UUID
 
-  object  AccountId {
+  object AccountId {
     def apply(): AccountId = ju.UUID.randomUUID()
   }
 

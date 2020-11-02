@@ -7,7 +7,8 @@ import scala.util.Try
 
 object ConfigurationUtils {
 
-  private[extension] implicit class ConfigOps(val value: Config) extends AnyVal {
+  private[extension] implicit class ConfigOps(val value: Config)
+      extends AnyVal {
     def tryValue[T: ClassTag](
       path: String
     )(extractor: Config => String => T): Either[String, T] = {

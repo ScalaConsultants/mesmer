@@ -2,6 +2,7 @@ package io.scalac.extension.config
 
 import com.typesafe.config.Config
 import io.scalac.extension.config
+
 import scala.collection.JavaConverters._
 
 case class ClusterMonitoringConfig(boot: BootSettings, regions: List[String])
@@ -25,7 +26,9 @@ object ClusterMonitoringConfig {
           config.tryValue("boot.reachability")(_.getBoolean).getOrElse(true)
 
         val initRegions = monitoringConfig
-          .tryValue("shard-regions")(config => path => config.getStringList(path).asScala.toList)
+          .tryValue("shard-regions")(
+            config => path => config.getStringList(path).asScala.toList
+          )
           .getOrElse(Nil)
 
         ClusterMonitoringConfig(

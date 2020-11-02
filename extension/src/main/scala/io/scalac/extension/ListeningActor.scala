@@ -5,7 +5,6 @@ import akka.actor.typed.scaladsl.Behaviors
 import akka.cluster.ClusterEvent._
 import akka.cluster.UniqueAddress
 import akka.cluster.typed.{Cluster, Subscribe}
-import io.scalac.extension.model.Event
 import io.scalac.extension.model.Event.ClusterChangedEvent
 import io.scalac.extension.upstream.EventStream
 
@@ -21,14 +20,15 @@ object ListeningActor {
 
     private[extension] final case object PushSuccessful extends Command
 
-    private[extension] final case class PushRejected(code: Int)
-        extends Command
+    private[extension] final case class PushRejected(code: Int) extends Command
 
     private[extension] final case class PushFailed(exception: Throwable)
         extends Command
   }
 
-  def apply(eventStream: EventStream[ClusterChangedEvent])(): Behavior[Command] =
+  def apply(
+    eventStream: EventStream[ClusterChangedEvent]
+  )(): Behavior[Command] =
     Behaviors.setup { context =>
       import Command._
 
