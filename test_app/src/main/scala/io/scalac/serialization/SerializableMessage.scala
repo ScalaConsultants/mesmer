@@ -1,3 +1,3 @@
 package io.scalac.serialization
 
-trait SerializableMessage 
+trait SerializableMessage
