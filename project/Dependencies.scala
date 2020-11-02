@@ -40,12 +40,12 @@ object Dependencies {
 
   val logback = Seq("ch.qos.logback" % "logback-classic" % LogbackVersion)
 
-  val openTelemetryApi = Seq("io.opentelemetry" % "opentelemetry-api" % "0.8.0")
+  val openTelemetryApi = Seq("io.opentelemetry" % "opentelemetry-api" % "0.9.1")
 
-  val openTelemetrySdk = Seq("io.opentelemetry" % "opentelemetry-sdk" % "0.8.0")
+  val openTelemetrySdk = Seq("io.opentelemetry" % "opentelemetry-sdk" % "0.9.1")
 
   val newRelicSdk = Seq(
-    "com.newrelic.telemetry" % "opentelemetry-exporters-newrelic" % "0.8.1",
+    "com.newrelic.telemetry" % "opentelemetry-exporters-newrelic" % "0.9.0",
     "com.newrelic.telemetry" % "telemetry" % "0.9.0",
     "com.newrelic.telemetry" % "telemetry-http-okhttp" % "0.9.0"
   )

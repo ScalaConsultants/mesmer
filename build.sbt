@@ -23,7 +23,7 @@ lazy val extension = (project in file("extension"))
 lazy val testApp = (project in file("test_app"))
   .settings(
     name := "akka-monitoring-test-app",
-    libraryDependencies ++= akka ++ zio ++ circe ++ circeAkka ++ postgresDriver ++ slick ++ logback ++ newRelicSdk ++ openTelemetrySdk,
+    libraryDependencies ++= akka ++ zio ++ circe ++ circeAkka ++ postgresDriver ++ slick ++ logback ++ newRelicSdk ,
     assemblyMergeStrategy in assembly := {
       case PathList("META-INF", xs @ _*) => MergeStrategy.discard
       case PathList("reference.conf") => MergeStrategy.concat
@@ -39,7 +39,6 @@ lazy val testApp = (project in file("test_app"))
 
     },
     assembly / mainClass := Some("io.scalac.Boot"),
-    assembly / assemblyJarName := "test_app.jar"
+    assembly / assemblyJarName := "test_app.jar",
+    resolvers += "Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots"
   ).dependsOn(extension)
-
-// See https://www.scala-sbt.org/1.x/docs/Using-Sonatype.html for instructions on how to publish to Sonatype.
