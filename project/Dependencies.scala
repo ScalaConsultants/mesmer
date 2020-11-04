@@ -18,6 +18,12 @@ object Dependencies {
     "com.typesafe.akka" %% "akka-cluster-sharding-typed" % AkkaVersion
   )
 
+  val akkaPersistance = Seq(
+    "com.typesafe.akka" %% "akka-persistence-typed" % AkkaVersion,
+    "com.lightbend.akka" %% "akka-persistence-jdbc" % "4.0.0",
+    "com.typesafe.akka" %% "akka-persistence-query" % AkkaVersion
+  )
+
   val zio = Seq(
     "dev.zio" %% "zio" % ZioVersion,
     "dev.zio" %% "zio-streams" % ZioVersion
@@ -49,5 +55,4 @@ object Dependencies {
     "com.newrelic.telemetry" % "telemetry" % "0.9.0",
     "com.newrelic.telemetry" % "telemetry-http-okhttp" % "0.9.0"
   )
-
 }

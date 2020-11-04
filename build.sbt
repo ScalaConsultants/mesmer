@@ -16,6 +16,7 @@ lazy val root = (project in file("."))
   ).aggregate(extension, testApp)
 
 lazy val extension = (project in file("extension"))
+  .configs()
   .settings(
     name := "akka-monitoring-extension",
     libraryDependencies ++= akka ++ openTelemetryApi
@@ -23,7 +24,7 @@ lazy val extension = (project in file("extension"))
 lazy val testApp = (project in file("test_app"))
   .settings(
     name := "akka-monitoring-test-app",
-    libraryDependencies ++= akka ++ zio ++ circe ++ circeAkka ++ postgresDriver ++ slick ++ logback ++ newRelicSdk ,
+    libraryDependencies ++= akka ++ zio ++ circe ++ circeAkka ++ postgresDriver ++ akkaPersistance ++ slick ++ logback ++ newRelicSdk,
     assemblyMergeStrategy in assembly := {
       case PathList("META-INF", "services", _ @ _*) => MergeStrategy.concat
       case PathList("META-INF", xs @ _*) => MergeStrategy.discard
