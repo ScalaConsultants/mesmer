@@ -15,6 +15,8 @@ import io.scalac.extension.upstream.{
   OpenTelemetryClusterMetricsMonitor
 }
 
+import scala.concurrent.duration._
+
 object ClusterMonitoring extends ExtensionId[ClusterMonitoring] {
   override def createExtension(system: ActorSystem[_]): ClusterMonitoring = {
     val config = ClusterMonitoringConfig.apply(system.settings.config)
@@ -55,7 +57,11 @@ class ClusterMonitoring(private val system: ActorSystem[_],
       Behaviors
         .supervise(
           ClusterSelfNodeMetricGatherer
-            .apply(openTelemetryClusterMetricsMonitor, config.regions)
+            .apply(
+              openTelemetryClusterMetricsMonitor,
+              config.regions,
+              delayedInit = Some(10.seconds)
+            )
         )
         .onFailure[Exception](SupervisorStrategy.restart),
       "localSystemMemberMonitor"
