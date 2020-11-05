@@ -10,6 +10,8 @@ import akka.cluster.typed.{Cluster, Subscribe}
 import akka.util.Timeout
 import io.opentelemetry.OpenTelemetry
 import io.opentelemetry.common.Labels
+import io.scalac.extension.upstream.ClusterMetricsMonitor
+import io.scalac.extension.model._
 
 import scala.concurrent.duration._
 import scala.language.postfixOps
@@ -28,36 +30,19 @@ object LocalSystemListener {
   private case class GetClusterShardingStatsInternal(regions: String)
       extends Command
 
-  def apply(initRegions: List[String],
+  def apply(clusterMetricsMonitor: ClusterMetricsMonitor,
+            initRegions: List[String],
             pingOffset: FiniteDuration = 5.seconds): Behavior[Command] =
     Behaviors.setup(ctx => {
       implicit val dispatcher = ctx.system
       implicit val timeout: Timeout = 5 seconds
-
-      val meter = OpenTelemetry.getMeter("io.scalac.shard-monitoring")
-
-      val shardsRecorder = meter
-        .longValueRecorderBuilder("shards")
-        .setDescription("Amount of shards on a node")
-        .build()
-
-      val entitiesRecorder = meter
-        .longValueRecorderBuilder("entities")
-        .setDescription("Amount of entities")
-        .build()
-
-      SpawnProtocol
 
       val cluster = Cluster(ctx.system)
 
       val sharding = ClusterSharding(ctx.system)
 
       val selfAddress = cluster.selfMember.uniqueAddress
-
-      val boundShardsRecorder =
-        shardsRecorder.bind(Labels.of("node", selfAddress.toString))
-      val boundEntitiesRecorder =
-        entitiesRecorder.bind(Labels.of("node", selfAddress.toString))
+      val boundMonitor = clusterMetricsMonitor.bind(selfAddress.toNode)
 
       val memberStateAdapter =
         ctx.messageAdapter[MemberEvent](ClusterMemberEvent.apply)
@@ -109,9 +94,9 @@ object LocalSystemListener {
                   val shards = shardsStats.stats.size
 
                   ctx.log.trace("Recorded amount of entitites {}", entities)
-                  boundEntitiesRecorder.record(entities)
+                  boundMonitor.entityPerRegion.setValue(entities)
                   ctx.log.trace("Recorded amount of shards {}", shards)
-                  boundShardsRecorder.record(shards)
+                  boundMonitor.shardPerRegions.setValue(shards)
                 }
 
               }

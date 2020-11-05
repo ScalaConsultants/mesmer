@@ -8,6 +8,7 @@ import akka.cluster.typed.{Cluster, Subscribe}
 import io.scalac.extension.model.Event.ClusterChangedEvent
 import io.scalac.extension.upstream.EventStream
 
+import scala.concurrent.duration.FiniteDuration
 import scala.util.{Failure, Success}
 
 object ListeningActor {
@@ -24,10 +25,11 @@ object ListeningActor {
 
     private[extension] final case class PushFailed(exception: Throwable)
         extends Command
+    private[extension] final case class Init()
   }
 
   def apply(
-    eventStream: EventStream[ClusterChangedEvent]
+    eventStream: EventStream[ClusterChangedEvent], delayStart: Option[FiniteDuration] = None
   )(): Behavior[Command] =
     Behaviors.setup { context =>
       import Command._
