@@ -60,7 +60,7 @@ class ClusterMonitoring(private val system: ActorSystem[_],
             .apply(
               openTelemetryClusterMetricsMonitor,
               config.regions,
-              delayedInit = Some(10.seconds)
+              initTimeout = Some(60.seconds)
             )
         )
         .onFailure[Exception](SupervisorStrategy.restart),
