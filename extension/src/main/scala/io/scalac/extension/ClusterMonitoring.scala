@@ -54,7 +54,7 @@ class ClusterMonitoring(private val system: ActorSystem[_],
     system.systemActorOf(
       Behaviors
         .supervise(
-          LocalSystemListener
+          ClusterSelfNodeMetricGatherer
             .apply(openTelemetryClusterMetricsMonitor, config.regions)
         )
         .onFailure[Exception](SupervisorStrategy.restart),

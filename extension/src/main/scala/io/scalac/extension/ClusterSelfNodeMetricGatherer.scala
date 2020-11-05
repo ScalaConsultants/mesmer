@@ -16,7 +16,7 @@ import io.scalac.extension.model._
 import scala.concurrent.duration._
 import scala.language.postfixOps
 
-object LocalSystemListener {
+object ClusterSelfNodeMetricGatherer {
 
   sealed trait Command extends SerializableMessage
 
@@ -114,5 +114,4 @@ object LocalSystemListener {
       })
 
     })
-
 }
