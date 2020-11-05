@@ -22,9 +22,9 @@ class AccountRoutes(
   val routes: Route = pathPrefix("api" / "v1" / "account" / JavaUUID) { uuid =>
     (pathPrefix("balance") & pathEndOrSingleSlash & get) {
       import AccountActor.Command._
-      import AccountActor.Event._
+      import AccountActor.Reply._
       onComplete(
-        shardedRef.ask[AccountActor.Event](
+        shardedRef.ask[AccountActor.Reply](
           ref => ShardingEnvelope(uuid.toString(), GetBalance(ref))
         )
       ) {
@@ -36,9 +36,9 @@ class AccountRoutes(
       amount =>
         (put | post) {
           import AccountActor.Command._
-          import AccountActor.Event._
+          import AccountActor.Reply._
           onComplete(
-            shardedRef.ask[AccountActor.Event](
+            shardedRef.ask[AccountActor.Reply](
               ref => ShardingEnvelope(uuid.toString(), Withdraw(ref, amount))
             )
           ) {
@@ -56,9 +56,9 @@ class AccountRoutes(
       amount =>
         (put | post) {
           import AccountActor.Command._
-          import AccountActor.Event._
+          import AccountActor.Reply._
           onComplete(
-            shardedRef.ask[AccountActor.Event](
+            shardedRef.ask[AccountActor.Reply](
               ref => ShardingEnvelope(uuid.toString(), Deposit(ref, amount))
             )
           ) {
