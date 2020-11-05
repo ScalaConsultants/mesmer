@@ -13,7 +13,7 @@ ThisBuild / assembly / assemblyMergeStrategy := {
 lazy val root = (project in file("."))
   .settings(
     name := "akka-monitoring",
-  ).aggregate(extension, testApp)
+  ).aggregate(extension, agent, testApp)
 
 lazy val extension = (project in file("extension"))
   .configs()
@@ -21,6 +21,13 @@ lazy val extension = (project in file("extension"))
     name := "akka-monitoring-extension",
     libraryDependencies ++= akka ++ openTelemetryApi
   )
+
+lazy val agent = (project in file("agent"))
+  .settings(
+    name := "akka-monitoring-agent",
+    libraryDependencies ++= akka ++ byteBuddy
+  )
+
 lazy val testApp = (project in file("test_app"))
   .settings(
     name := "akka-monitoring-test-app",
@@ -43,4 +50,4 @@ lazy val testApp = (project in file("test_app"))
     assembly / mainClass := Some("io.scalac.Boot"),
     assembly / assemblyJarName := "test_app.jar",
     resolvers += "Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots"
-  ).dependsOn(extension)
+  ).dependsOn(extension, agent)

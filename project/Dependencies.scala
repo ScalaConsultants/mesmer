@@ -13,6 +13,7 @@ object Dependencies {
     "com.typesafe.akka" %% "akka-http" % AkkaHttpVersion,
     "com.typesafe.akka" %% "akka-stream" % AkkaVersion,
     "com.typesafe.akka" %% "akka-cluster-typed" % AkkaVersion,
+    "com.typesafe.akka" %% "akka-persistence-typed" % AkkaVersion,
     "com.typesafe.akka" %% "akka-actor-typed" % AkkaVersion,
     "com.typesafe.akka" %% "akka-serialization-jackson" % AkkaVersion,
     "com.typesafe.akka" %% "akka-cluster-sharding-typed" % AkkaVersion
@@ -22,6 +23,11 @@ object Dependencies {
     "com.typesafe.akka" %% "akka-persistence-typed" % AkkaVersion,
     "com.lightbend.akka" %% "akka-persistence-jdbc" % "4.0.0",
     "com.typesafe.akka" %% "akka-persistence-query" % AkkaVersion
+  )
+
+  val byteBuddy = Seq(
+    "net.bytebuddy" % "byte-buddy" % "1.10.18",
+    "net.bytebuddy" % "byte-buddy-agent" % "1.10.18"
   )
 
   val zio = Seq(
