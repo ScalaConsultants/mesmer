@@ -38,7 +38,7 @@ import scala.language.postfixOps
 
 object Boot extends App with FailFastCirceSupport with JsonCodecs {
 
-  AkkaPersistenceAgent.run()
+  AkkaPersistenceAgent.install()
 
   val logger = LoggerFactory.getLogger(Boot.getClass)
 
