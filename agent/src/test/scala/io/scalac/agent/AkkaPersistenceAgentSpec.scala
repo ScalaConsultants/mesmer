@@ -7,6 +7,7 @@ import akka.actor.typed.scaladsl.AskPattern._
 import akka.actor.typed.scaladsl.Behaviors
 import akka.util.Timeout
 import io.scalac.agent.DummyEventsourcedActor.Command
+import net.bytebuddy.agent.ByteBuddyAgent
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
@@ -29,8 +30,8 @@ class AkkaPersistenceAgentSpec
     PatienceConfig(scaled(Span(1, Minute)), scaled(Span(1, Second)))
 
   "AkkaPersistenceAgent" should "intercept recovery time and store it in the agent state" in {
-    val id = UUID.randomUUID()
-    val actor  = actorSystem.systemActorOf(DummyEventsourcedActor(id), id.toString)
+    val id    = UUID.randomUUID()
+    val actor = actorSystem.systemActorOf(DummyEventsourcedActor(id), id.toString)
     actor.ask(Command).futureValue
 
     val measurement = Try(AkkaPersistenceAgentState.recoveryMeasurements.get(s"/system/$id")).toOption
@@ -39,7 +40,8 @@ class AkkaPersistenceAgentSpec
 
   override protected def beforeAll(): Unit = {
     super.beforeAll()
-    AkkaPersistenceAgent.install()
+    val agent = ByteBuddyAgent.install()
+    AkkaPersistenceAgent.install(agent)
   }
 
   override protected def afterAll(): Unit = {

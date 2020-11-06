@@ -16,9 +16,8 @@ object RecoveryStartedInterceptor {
     @Advice.This thiz: Object
   ): Unit = {
     System.out.println("Recovery startup intercepted. Method: " + method + ", This: " + thiz)
-    val a = parameters(0).asInstanceOf[ActorContext[_]]
-    val p = a.self.path.toStringWithoutAddress
-    System.out.println("Recovery startup actor path: " + p)
-    AkkaPersistenceAgentState.recoveryStarted.put(p, System.currentTimeMillis())
+    val actorPath = parameters(0).asInstanceOf[ActorContext[_]].self.path.toStringWithoutAddress
+    System.out.println("Recovery startup actor path: " + actorPath)
+    AkkaPersistenceAgentState.recoveryStarted.put(actorPath, System.currentTimeMillis())
   }
 }

@@ -1,7 +1,8 @@
 package io.scalac.agent
 
+import java.lang.instrument.Instrumentation
+
 import net.bytebuddy.ByteBuddy
-import net.bytebuddy.agent.ByteBuddyAgent
 import net.bytebuddy.agent.builder.AgentBuilder
 import net.bytebuddy.asm.Advice
 import net.bytebuddy.description.`type`.TypeDescription
@@ -12,40 +13,42 @@ import net.bytebuddy.matcher.ElementMatchers._
 
 object AkkaPersistenceAgent {
 
-  def install(): Unit = {
-    val agent = ByteBuddyAgent.install
+  private final val ReplayingEventsClassName   = "akka.persistence.typed.internal.ReplayingEvents"
+  private final val ReplayingSnapshotClassName = "akka.persistence.typed.internal.ReplayingSnapshot"
 
-    val onRecoveryCompleteDescription: ElementMatcher.Junction[MethodDescription] =
-      isMethod[MethodDescription].and(named("onRecoveryComplete"))
-    val onRecoveryStartDescription: ElementMatcher.Junction[MethodDescription] =
-      isMethod[MethodDescription].and(named("onRecoveryStart"))
+  private val onRecoveryCompleteMethod: ElementMatcher.Junction[MethodDescription] =
+    isMethod[MethodDescription].and(named("onRecoveryComplete"))
+  private val onRecoveryStartMethod: ElementMatcher.Junction[MethodDescription] =
+    isMethod[MethodDescription].and(named("onRecoveryStart"))
 
+  private def builder =
     new AgentBuilder.Default()
       .`with`(new ByteBuddy().`with`(TypeValidation.DISABLED))
       .`with`(new AgentBuilder.InitializationStrategy.SelfInjection.Eager())
       .`with`(AgentBuilder.Listener.StreamWriting.toSystemOut.withTransformationsOnly)
       .`with`(AgentBuilder.InstallationListener.StreamWriting.toSystemOut)
-      .`type`(named[TypeDescription]("akka.persistence.typed.internal.ReplayingSnapshot"))
+
+  def install(on: Instrumentation): Unit = {
+    builder
+      .`type`(named[TypeDescription](ReplayingSnapshotClassName))
       .transform {
         case (builder, _, _, _) =>
-          builder.method(onRecoveryStartDescription).intercept(Advice.to(classOf[RecoveryStartedInterceptor]))
+          builder.method(onRecoveryStartMethod).intercept(Advice.to(classOf[RecoveryStartedInterceptor]))
       }
-      .installOn(agent)
+      .installOn(on)
 
-    new AgentBuilder.Default()
-      .`with`(new ByteBuddy().`with`(TypeValidation.DISABLED))
-      .`with`(new AgentBuilder.InitializationStrategy.SelfInjection.Eager())
-      .`with`(AgentBuilder.Listener.StreamWriting.toSystemOut.withTransformationsOnly)
-      .`with`(AgentBuilder.InstallationListener.StreamWriting.toSystemOut)
-      .`type`(named[TypeDescription]("akka.persistence.typed.internal.ReplayingEvents"))
+    builder
+      .`type`(named[TypeDescription](ReplayingEventsClassName))
       .transform {
         case (builder, _, _, _) =>
-          builder.method(onRecoveryCompleteDescription).intercept(Advice.to(classOf[RecoveryCompletedInterceptor]))
+          builder.method(onRecoveryCompleteMethod).intercept(Advice.to(classOf[RecoveryCompletedInterceptor]))
       }
-      .installOn(agent)
+      .installOn(on)
+  }
 
-      // this is done eagerly to not affect processing time for the first incoming command by bytecode transformations.
-      ClassLoader.getSystemClassLoader.loadClass("akka.persistence.typed.internal.ReplayingEvents")
-      ClassLoader.getSystemClassLoader.loadClass("akka.persistence.typed.internal.ReplayingSnapshot")
+  // can be done eagerly to not affect processing time for the first incoming command by bytecode transformations.
+  def transformEagerly() = {
+    ClassLoader.getSystemClassLoader.loadClass(ReplayingEventsClassName)
+    ClassLoader.getSystemClassLoader.loadClass(ReplayingSnapshotClassName)
   }
 }

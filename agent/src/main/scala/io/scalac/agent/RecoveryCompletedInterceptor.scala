@@ -16,10 +16,9 @@ object RecoveryCompletedInterceptor {
     @Advice.This thiz: Object
   ): Unit = {
     System.out.println("Recovery completion intercepted. Method: " + method + ", This: " + thiz)
-    val a        = parameters(0).asInstanceOf[ActorContext[_]]
-    val p        = a.self.path.toStringWithoutAddress
-    val measured = System.currentTimeMillis - AkkaPersistenceAgentState.recoveryStarted.get(p)
-    System.out.println("Recovery took " + measured + "ms for actor " + p)
-    AkkaPersistenceAgentState.recoveryMeasurements.put(p, measured)
+    val actorPath = parameters(0).asInstanceOf[ActorContext[_]].self.path.toStringWithoutAddress
+    val recoveryTimeMs  = System.currentTimeMillis - AkkaPersistenceAgentState.recoveryStarted.get(actorPath)
+    System.out.println("Recovery took " + recoveryTimeMs + "ms for actor " + actorPath)
+    AkkaPersistenceAgentState.recoveryMeasurements.put(actorPath, recoveryTimeMs)
   }
 }
