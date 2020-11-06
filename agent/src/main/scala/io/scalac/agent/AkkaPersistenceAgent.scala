@@ -22,6 +22,7 @@ object AkkaPersistenceAgent {
 
     new AgentBuilder.Default()
       .`with`(new ByteBuddy().`with`(TypeValidation.DISABLED))
+      .`with`(new AgentBuilder.InitializationStrategy.SelfInjection.Eager())
       .`with`(AgentBuilder.Listener.StreamWriting.toSystemOut.withTransformationsOnly)
       .`with`(AgentBuilder.InstallationListener.StreamWriting.toSystemOut)
       .`type`(named[TypeDescription]("akka.persistence.typed.internal.ReplayingSnapshot"))
@@ -33,6 +34,7 @@ object AkkaPersistenceAgent {
 
     new AgentBuilder.Default()
       .`with`(new ByteBuddy().`with`(TypeValidation.DISABLED))
+      .`with`(new AgentBuilder.InitializationStrategy.SelfInjection.Eager())
       .`with`(AgentBuilder.Listener.StreamWriting.toSystemOut.withTransformationsOnly)
       .`with`(AgentBuilder.InstallationListener.StreamWriting.toSystemOut)
       .`type`(named[TypeDescription]("akka.persistence.typed.internal.ReplayingEvents"))
