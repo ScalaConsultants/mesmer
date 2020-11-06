@@ -13,8 +13,8 @@ ThisBuild / assembly / assemblyMergeStrategy := {
 
 def runWithAgent = Command.command("runWithAgent") { state =>
   val extracted = Project extract state
-  val newState = extracted.appendWithSession(Seq(javaOptions in run += s"-javaagent:${(agent / assembly).value.absolutePath}"), state)
-  val (s, _) = Project.extract(newState).runInputTask(run in Compile, "", newState)
+  val newState = extracted.appendWithSession(Seq(run / javaOptions += s"-javaagent:${(agent / assembly).value.absolutePath}"), state)
+  val (s, _) = Project.extract(newState).runInputTask(Compile / run, "", newState)
   s
 }
 
@@ -42,7 +42,7 @@ lazy val agent = (project in file("agent"))
         case other                    => other
       }
     },
-    test in assembly := {},
+    assembly / test := {},
     assembly / assemblyJarName := "scalac_agent.jar",
     assembly / assemblyMergeStrategy := {
       case PathList("META-INF", "services", _ @_*)                      => MergeStrategy.concat
@@ -65,7 +65,7 @@ lazy val testApp = (project in file("test_app"))
   .settings(
     name := "akka-monitoring-test-app",
     libraryDependencies ++= akka ++ zio ++ circe ++ circeAkka ++ postgresDriver ++ akkaPersistance ++ slick ++ logback ++ newRelicSdk,
-    assemblyMergeStrategy in assembly := {
+    assembly /assemblyMergeStrategy := {
       case PathList("META-INF", "services", _ @_*)                      => MergeStrategy.concat
       case PathList("META-INF", xs @ _*)                                => MergeStrategy.discard
       case PathList("reference.conf")                                   => MergeStrategy.concat
@@ -84,7 +84,7 @@ lazy val testApp = (project in file("test_app"))
     assembly / assemblyJarName := "test_app.jar",
     resolvers += "Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots",
     run / fork := true,
-    connectInput in run := true,
+    run / connectInput := true,
     commands += runWithAgent
   )
   .dependsOn(extension, agent)
