@@ -22,11 +22,10 @@ import com.newrelic.telemetry.opentelemetry.`export`.{
 }
 import com.typesafe.config.{ConfigFactory, ConfigValueFactory}
 import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport
-import io.scalac.agent.AkkaPersistenceAgent
 import io.opentelemetry.sdk.OpenTelemetrySdk
 import io.opentelemetry.sdk.metrics.`export`.IntervalMetricReader
 import io.scalac.api.AccountRoutes
-import io.scalac.domain.{ AccountStateActor, JsonCodecs }
+import io.scalac.domain.{AccountStateActor, JsonCodecs}
 import io.scalac.infrastructure.PostgresAccountRepository
 import org.slf4j.LoggerFactory
 import slick.jdbc.PostgresProfile.api.Database
@@ -37,8 +36,6 @@ import scala.io.StdIn
 import scala.language.postfixOps
 
 object Boot extends App with FailFastCirceSupport with JsonCodecs {
-
-  AkkaPersistenceAgent.run()
 
   val logger = LoggerFactory.getLogger(Boot.getClass)
 
@@ -96,7 +93,7 @@ object Boot extends App with FailFastCirceSupport with JsonCodecs {
   val binding =
     accountRepository.createTableIfNotExists.flatMap { _ =>
       implicit val classicSystem = system.toClassic
-      implicit val materializer  = ActorMaterializer()
+      implicit val materializer = ActorMaterializer()
 
       val host = config.getString("app.host")
 
@@ -107,10 +104,12 @@ object Boot extends App with FailFastCirceSupport with JsonCodecs {
 
   StdIn.readLine()
 
-  binding
-    .flatMap(_.unbind())
-    .onComplete { _ =>
-      system.terminate()
-      NewRelicExporters.shutdown()
-    }
+  sys.addShutdownHook {
+    binding
+      .flatMap(_.unbind())
+      .onComplete { _ =>
+        system.terminate()
+        NewRelicExporters.shutdown()
+      }
+  }
 }
