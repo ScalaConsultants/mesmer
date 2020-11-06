@@ -1,12 +1,11 @@
 package io.scalac.agent
 
-import net.bytebuddy.agent.ByteBuddyAgent
+import java.lang.instrument.Instrumentation
 
 object Boot {
 
-  def premain(args: String): Unit = {
-    val agent = ByteBuddyAgent.install
-    AkkaPersistenceAgent.install(agent)
+  def premain(args: String, instrumentation: Instrumentation): Unit = {
+    AkkaPersistenceAgent.install(instrumentation)
     AkkaPersistenceAgent.transformEagerly()
   }
 }
