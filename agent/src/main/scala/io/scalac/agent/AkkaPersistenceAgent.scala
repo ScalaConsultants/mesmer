@@ -43,5 +43,9 @@ object AkkaPersistenceAgent {
           builder.method(onRecoveryCompleteDescription).intercept(Advice.to(classOf[RecoveryCompletedInterceptor]))
       }
       .installOn(agent)
+
+      // this is done eagerly to not affect processing time for the first incoming command by bytecode transformations.
+      ClassLoader.getSystemClassLoader.loadClass("akka.persistence.typed.internal.ReplayingEvents")
+      ClassLoader.getSystemClassLoader.loadClass("akka.persistence.typed.internal.ReplayingSnapshot")
   }
 }
