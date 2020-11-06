@@ -11,7 +11,12 @@ ThisBuild / assembly / assemblyMergeStrategy := {
   case _                             => MergeStrategy.first
 }
 
-val runWithAgent = inputKey[Unit]("Run with akka agent")
+def runWithAgent = Command.command("runWithAgent") { state =>
+  val extracted = Project extract state
+  val newState = extracted.appendWithSession(Seq(javaOptions in run += s"-javaagent:${(agent / assembly).value.absolutePath}"), state)
+  val (s, _) = Project.extract(newState).runInputTask(run in Compile, "", newState)
+  s
+}
 
 lazy val root = (project in file("."))
   .settings(
@@ -80,6 +85,6 @@ lazy val testApp = (project in file("test_app"))
     resolvers += "Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots",
     run / fork := true,
     connectInput in run := true,
-    javaOptions in run += s"-javaagent:${(agent / assembly).value.absolutePath}"
+    commands += runWithAgent
   )
   .dependsOn(extension, agent)
