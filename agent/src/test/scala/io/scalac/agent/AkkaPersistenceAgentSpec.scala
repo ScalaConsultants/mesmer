@@ -39,7 +39,7 @@ class AkkaPersistenceAgentSpec
 
   override protected def beforeAll(): Unit = {
     super.beforeAll()
-    AkkaPersistenceAgent.run()
+    AkkaPersistenceAgent.install()
   }
 
   override protected def afterAll(): Unit = {
