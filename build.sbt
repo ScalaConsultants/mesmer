@@ -25,7 +25,8 @@ lazy val extension = (project in file("extension"))
 lazy val agent = (project in file("agent"))
   .settings(
     name := "akka-monitoring-agent",
-    libraryDependencies ++= akka ++ byteBuddy
+    libraryDependencies ++= akka ++ byteBuddy ++ scalatest,
+    Test / fork := true
   )
 
 lazy val testApp = (project in file("test_app"))
