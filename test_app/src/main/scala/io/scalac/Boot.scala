@@ -22,10 +22,11 @@ import com.newrelic.telemetry.opentelemetry.`export`.{
 }
 import com.typesafe.config.{ConfigFactory, ConfigValueFactory}
 import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport
+import io.scalac.agent.AkkaPersistenceAgent
 import io.opentelemetry.sdk.OpenTelemetrySdk
 import io.opentelemetry.sdk.metrics.`export`.IntervalMetricReader
 import io.scalac.api.AccountRoutes
-import io.scalac.domain.{AccountActor, JsonCodecs}
+import io.scalac.domain.{ AccountStateActor, JsonCodecs }
 import io.scalac.infrastructure.PostgresAccountRepository
 import org.slf4j.LoggerFactory
 import slick.jdbc.PostgresProfile.api.Database
@@ -76,13 +77,13 @@ object Boot extends App with FailFastCirceSupport with JsonCodecs {
   implicit val system =
     ActorSystem[Nothing](Behaviors.empty, "Accounts", config)
   implicit val executionContext = system.executionContext
-  implicit val timeout: Timeout = 2 seconds
+  implicit val timeout: Timeout = 10 seconds
 
-  val entity = EntityTypeKey[AccountActor.Command]("accounts")
+  val entity = EntityTypeKey[AccountStateActor.Command]("accounts")
 
   val accountsShards = ClusterSharding(system)
     .init(Entity(entity) { entityContext =>
-      AccountActor(
+      AccountStateActor(
         accountRepository,
         ju.UUID.fromString(entityContext.entityId)
       )
@@ -91,24 +92,23 @@ object Boot extends App with FailFastCirceSupport with JsonCodecs {
   val accountRoutes = new AccountRoutes(accountsShards)
 
   val binding =
-    accountRepository.createTableIfNotExists.flatMap(_ => {
-
+    accountRepository.createTableIfNotExists.flatMap { _ =>
       implicit val classicSystem = system.toClassic
-      implicit val materializer = ActorMaterializer()
+      implicit val materializer  = ActorMaterializer()
 
       val host = config.getString("app.host")
 
       val port = config.getInt("app.port")
       logger.info(s"Starting http server at $host:$port")
       Http().bindAndHandle(accountRoutes.routes, host, port)
-    })
+    }
 
   StdIn.readLine()
 
   binding
     .flatMap(_.unbind())
-    .onComplete(_ => {
+    .onComplete { _ =>
       system.terminate()
       NewRelicExporters.shutdown()
-    })
+    }
 }

@@ -7,11 +7,11 @@ import akka.actor.typed.scaladsl.Behaviors
 import akka.actor.typed.{ActorRef, Behavior}
 import akka.persistence.typed.PersistenceId
 import akka.persistence.typed.scaladsl.{Effect, EventSourcedBehavior}
-import io.scalac.domain.AccountActor.Event.{MoneyDeposit, MoneyWithdrawn}
-import io.scalac.domain.AccountActor.Reply.{CurrentBalance, InsufficientFunds}
+import io.scalac.domain.AccountStateActor.Event.{MoneyDeposit, MoneyWithdrawn}
+import io.scalac.domain.AccountStateActor.Reply.{CurrentBalance, InsufficientFunds}
 import io.scalac.serialization.SerializableMessage
 
-object AccountActor {
+object AccountStateActor {
 
   sealed trait Command extends SerializableMessage
 
@@ -23,16 +23,6 @@ object AccountActor {
 
     final case class Withdraw(replyTo: ActorRef[Reply], value: Double)
         extends Command
-
-//    private[domain] case class Started(balance: Double) extends Command
-//
-//    private[domain] case class StateUpdated(replyTo: ActorRef[Reply],
-//                                            newBalance: Double)
-//        extends Command
-//
-//    private[domain] case class StateUpdateFailed(replyTo: ActorRef[Reply],
-//                                                 exception: Throwable)
-//        extends Command
   }
 
   sealed trait Reply extends SerializableMessage
@@ -83,7 +73,7 @@ object AccountActor {
   }
 
   def apply(repository: AccountRepository, uuid: ju.UUID): Behavior[Command] =
-    Behaviors.setup(ctx => {
+    Behaviors.setup(_ => {
       EventSourcedBehavior[Command, Event, AccountState](
         PersistenceId.ofUniqueId(uuid.toString),
         AccountState(0.0),
@@ -91,71 +81,4 @@ object AccountActor {
         (state, event) => state.eventHandler(event)
       )
     })
-
-//    Behaviors.setup { context =>
-//      import Command._
-//      import Event._
-//      import context.{executionContext, log}
-//
-//      context.pipeToSelf(repository.getOrCreateAccount(uuid)) {
-//        case Success(account) => Started(account.balance)
-//        case Failure(ex) =>
-//          log.error("Account failed during initializatoin", ex)
-//          throw ex
-//      }
-//
-//      def waitForUpdate(replyTo: ActorRef[Event],
-//                        newBalance: Double): Behavior[Command] = {
-//        context.pipeToSelf(repository.update(Account(uuid, newBalance))) {
-//          case Success(updatedValue) => StateUpdated(replyTo, updatedValue)
-//          case Failure(exception)    => StateUpdateFailed(replyTo, exception)
-//        }
-//        waitingState
-//      }
-//
-//      def initState = Behaviors.withStash[Command](1024) { stash =>
-//        Behaviors.receiveMessage {
-//          case Started(balance) => stash.unstashAll(runningState(balance))
-//          case command =>
-//            stash.stash(command)
-//            Behaviors.same
-//        }
-//      }
-//
-//      def runningState(balance: Double): Behavior[Command] =
-//        Behaviors.receiveMessage {
-//          case GetBalance(replyTo) =>
-//            replyTo ! CurrentBalance(balance)
-//            Behaviors.same
-//          case Deposit(replyTo, value) =>
-//            waitForUpdate(replyTo, balance + value)
-//          case Withdraw(replyTo, value) => {
-//            if (balance - value < 0.0) {
-//              replyTo ! InsufficientFunds
-//              Behaviors.same
-//            } else waitForUpdate(replyTo, balance - value)
-//
-//          }
-//        }
-//
-//      def waitingState: Behavior[Command] =
-//        Behaviors.withStash(1024)(
-//          stash =>
-//            Behaviors.receiveMessage {
-//              case StateUpdated(replyTo, newState) => {
-//                replyTo ! CurrentBalance(newState)
-//                runningState(newState)
-//              }
-//              case StateUpdateFailed(replyTo, exception) => {
-//                replyTo ! PersistentStorageFailure(exception.getMessage())
-//                //default behaviour for sharded supervisor is to restart actor
-//                throw exception
-//              }
-//              case command =>
-//                stash.stash(command)
-//                Behaviors.same
-//          }
-//        )
-//      initState
-//    }
 }

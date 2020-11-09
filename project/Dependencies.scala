@@ -8,11 +8,13 @@ object Dependencies {
   val SlickVersion = "3.3.3"
   val PostgresVersion = "9.4-1201-jdbc41"
   val LogbackVersion = "1.2.3"
+  val ScalatestVersion = "3.1.2"
 
   val akka = Seq(
     "com.typesafe.akka" %% "akka-http" % AkkaHttpVersion,
     "com.typesafe.akka" %% "akka-stream" % AkkaVersion,
     "com.typesafe.akka" %% "akka-cluster-typed" % AkkaVersion,
+    "com.typesafe.akka" %% "akka-persistence-typed" % AkkaVersion,
     "com.typesafe.akka" %% "akka-actor-typed" % AkkaVersion,
     "com.typesafe.akka" %% "akka-serialization-jackson" % AkkaVersion,
     "com.typesafe.akka" %% "akka-cluster-sharding-typed" % AkkaVersion
@@ -22,6 +24,11 @@ object Dependencies {
     "com.typesafe.akka" %% "akka-persistence-typed" % AkkaVersion,
     "com.lightbend.akka" %% "akka-persistence-jdbc" % "4.0.0",
     "com.typesafe.akka" %% "akka-persistence-query" % AkkaVersion
+  )
+
+  val byteBuddy = Seq(
+    "net.bytebuddy" % "byte-buddy" % "1.10.18",
+    "net.bytebuddy" % "byte-buddy-agent" % "1.10.18"
   )
 
   val zio = Seq(
@@ -55,4 +62,6 @@ object Dependencies {
     "com.newrelic.telemetry" % "telemetry" % "0.9.0",
     "com.newrelic.telemetry" % "telemetry-http-okhttp" % "0.9.0"
   )
+
+  val scalatest = Seq("org.scalatest" %% "scalatest" % ScalatestVersion % Test)
 }
