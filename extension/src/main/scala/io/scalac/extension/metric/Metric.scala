@@ -3,8 +3,6 @@ package io.scalac.extension.metric
 import io.opentelemetry.metrics.LongUpDownCounter.BoundLongUpDownCounter
 import io.opentelemetry.metrics.LongValueRecorder.BoundLongValueRecorder
 import io.opentelemetry.metrics.SynchronousInstrument.BoundInstrument
-import io.scalac.extension.upstream.Metric
-
 
 sealed trait Metric[T]
 
