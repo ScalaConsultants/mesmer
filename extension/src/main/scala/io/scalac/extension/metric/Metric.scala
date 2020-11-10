@@ -2,25 +2,26 @@ package io.scalac.extension.metric
 
 import io.opentelemetry.metrics.LongUpDownCounter.BoundLongUpDownCounter
 import io.opentelemetry.metrics.LongValueRecorder.BoundLongValueRecorder
-import io.opentelemetry.metrics.SynchronousInstrument.BoundInstrument
 
 sealed trait Metric[T]
 
 object Metric {
-  implicit class OpenTelemetryOps[T <: BoundInstrument](instrument: T) {
-    def toMetricRecorder(
-                          implicit ev: T =:= BoundLongValueRecorder
-                        ): MetricRecorder[Long] = (value: Long) => ev(instrument).record(value)
 
-    def toCounter(implicit ev: T =:= BoundLongUpDownCounter): Counter[Long] =
-      new Counter[Long] {
-        private val openTelemetryCounter = ev(instrument)
-        override def incValue(value: Long): Unit =
-          openTelemetryCounter.add(value)
+  implicit class OpenTelemetryLongRecorderOps(
+    val recorder: BoundLongValueRecorder
+  ) extends AnyVal {
+    def toMetricRecorder(): MetricRecorder[Long] =
+      value => recorder.record(value)
+  }
 
-        override def decValue(value: Long): Unit =
-          openTelemetryCounter.add(-value)
-      }
+  implicit class OpenTelemetryLongUpDownCounter(
+    val counter: BoundLongUpDownCounter
+  ) extends AnyVal {
+    def toCounter(): Counter[Long] = new Counter[Long] {
+      override def incValue(value: Long): Unit = counter.add(value)
+
+      override def decValue(value: Long): Unit = counter.add(-value)
+    }
   }
 }
 

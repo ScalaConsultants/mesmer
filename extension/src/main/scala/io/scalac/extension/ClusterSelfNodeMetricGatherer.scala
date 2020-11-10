@@ -2,7 +2,15 @@ package io.scalac.extension
 
 import akka.actor.typed.Behavior
 import akka.actor.typed.scaladsl.Behaviors
-import akka.cluster.ClusterEvent.{CurrentClusterState, MemberEvent, MemberExited, MemberJoined, MemberUp, ReachableMember, UnreachableMember, ReachabilityEvent => AkkaReachabilityEvent}
+import akka.cluster.ClusterEvent.{
+  CurrentClusterState,
+  MemberEvent,
+  MemberExited,
+  MemberUp,
+  ReachableMember,
+  UnreachableMember,
+  ReachabilityEvent => AkkaReachabilityEvent
+}
 import akka.cluster.UniqueAddress
 import akka.cluster.sharding.ShardRegion.ClusterShardingStats
 import akka.cluster.sharding.typed.GetClusterShardingStats
@@ -10,8 +18,8 @@ import akka.cluster.sharding.typed.scaladsl.{ClusterSharding, EntityTypeKey}
 import akka.cluster.sharding.{ClusterSharding => ClassicClusterSharding}
 import akka.cluster.typed.{Cluster, SelfUp, Subscribe}
 import akka.util.Timeout
+import io.scalac.extension.metric.ClusterMetricsMonitor
 import io.scalac.extension.model._
-import io.scalac.extension.upstream.ClusterMetricsMonitor
 
 import scala.concurrent.duration._
 import scala.language.postfixOps
@@ -93,10 +101,8 @@ object ClusterSelfNodeMetricGatherer {
 
       cluster.subscriptions ! Subscribe(initializationAdapter, classOf[SelfUp])
 
-      def initialized(
-        boundMonitor: clusterMetricsMonitor.BoundClusterMetricsMonitor,
-        selfAddress: UniqueAddress
-      ) =
+      def initialized(monitor: clusterMetricsMonitor.Bound,
+                      selfAddress: UniqueAddress) =
         Behaviors.withTimers[Command](scheduler => {
 
           if (initRegions.nonEmpty) {
@@ -120,9 +126,9 @@ object ClusterSelfNodeMetricGatherer {
 
               event match {
                 case MemberUp(_) => {
-                  boundMonitor.reachableNodes.incValue(1L)
+                  monitor.reachableNodes.incValue(1L)
                 }
-                case MemberExited(_) => boundMonitor.reachableNodes.decValue(1L)
+                case MemberExited(_) => monitor.reachableNodes.decValue(1L)
                 case _               => // ignore other cases
               }
               Behaviors.same
@@ -142,9 +148,9 @@ object ClusterSelfNodeMetricGatherer {
                     val shards = shardsStats.stats.size
 
                     ctx.log.trace("Recorded amount of entitites {}", entities)
-                    boundMonitor.entityPerRegion.setValue(entities)
+                    monitor.entityPerRegion.setValue(entities)
                     ctx.log.trace("Recorded amount of shards {}", shards)
-                    boundMonitor.shardPerRegions.setValue(shards)
+                    monitor.shardPerRegions.setValue(shards)
                   }
 
                 }
@@ -158,20 +164,20 @@ object ClusterSelfNodeMetricGatherer {
                 clusterShardingStatsAdapter
               )
               val regions = classicSharding.shardTypeNames.size
-              boundMonitor.shardRegionsOnNode.setValue(regions)
+              monitor.shardRegionsOnNode.setValue(regions)
               Behaviors.same
             }
             case reachabilityEvent: ReachabilityEvent =>
               reachabilityEvent match {
                 case NodeReachable => {
                   ctx.log.trace("Node become reachable")
-                  boundMonitor.reachableNodes.incValue(1L)
-                  boundMonitor.unreachableNodes.decValue(1L)
+                  monitor.reachableNodes.incValue(1L)
+                  monitor.unreachableNodes.decValue(1L)
                 }
                 case NodeUnreachable => {
                   ctx.log.trace("Node become unreachable")
-                  boundMonitor.reachableNodes.decValue(1L)
-                  boundMonitor.unreachableNodes.incValue(1L)
+                  monitor.reachableNodes.decValue(1L)
+                  monitor.unreachableNodes.incValue(1L)
                 }
               }
               Behaviors.same

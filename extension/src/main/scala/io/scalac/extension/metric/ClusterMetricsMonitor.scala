@@ -4,9 +4,9 @@ import io.scalac.extension.model.Node
 
 trait ClusterMetricsMonitor {
 
-  def bind(node: Node): BoundClusterMetricsMonitor
+  def bind(node: Node): Bound
 
-  trait BoundClusterMetricsMonitor {
+  trait Bound {
     def shardPerRegions: MetricRecorder[Long]
     def entityPerRegion: MetricRecorder[Long]
     def shardRegionsOnNode: MetricRecorder[Long]
