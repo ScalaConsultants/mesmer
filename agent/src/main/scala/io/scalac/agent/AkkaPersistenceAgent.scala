@@ -2,12 +2,9 @@ package io.scalac.agent
 
 import java.lang.instrument.Instrumentation
 
-import net.bytebuddy.ByteBuddy
-import net.bytebuddy.agent.builder.AgentBuilder
 import net.bytebuddy.asm.Advice
 import net.bytebuddy.description.`type`.TypeDescription
 import net.bytebuddy.description.method.MethodDescription
-import net.bytebuddy.dynamic.scaffold.TypeValidation
 import net.bytebuddy.matcher.ElementMatcher
 import net.bytebuddy.matcher.ElementMatchers._
 
