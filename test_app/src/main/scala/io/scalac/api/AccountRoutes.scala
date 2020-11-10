@@ -8,23 +8,23 @@ import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server._
 import akka.util.Timeout
 import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport
-import io.scalac.domain.{AccountActor, JsonCodecs, _}
+import io.scalac.domain.{AccountStateActor, JsonCodecs, _}
 
 import scala.language.postfixOps
 import scala.util.Success
 
 class AccountRoutes(
-  shardedRef: ActorRef[ShardingEnvelope[AccountActor.Command]]
+  shardedRef: ActorRef[ShardingEnvelope[AccountStateActor.Command]]
 )(implicit val timeout: Timeout, val system: ActorSystem[Nothing])
     extends FailFastCirceSupport
     with JsonCodecs {
 
   val routes: Route = pathPrefix("api" / "v1" / "account" / JavaUUID) { uuid =>
     (pathPrefix("balance") & pathEndOrSingleSlash & get) {
-      import AccountActor.Command._
-      import AccountActor.Reply._
+      import AccountStateActor.Command._
+      import AccountStateActor.Reply._
       onComplete(
-        shardedRef.ask[AccountActor.Reply](
+        shardedRef.ask[AccountStateActor.Reply](
           ref => ShardingEnvelope(uuid.toString(), GetBalance(ref))
         )
       ) {
@@ -35,10 +35,10 @@ class AccountRoutes(
     } ~ (pathPrefix("withdraw" / DoubleNumber) & pathEndOrSingleSlash) {
       amount =>
         (put | post) {
-          import AccountActor.Command._
-          import AccountActor.Reply._
+          import AccountStateActor.Command._
+          import AccountStateActor.Reply._
           onComplete(
-            shardedRef.ask[AccountActor.Reply](
+            shardedRef.ask[AccountStateActor.Reply](
               ref => ShardingEnvelope(uuid.toString(), Withdraw(ref, amount))
             )
           ) {
@@ -55,10 +55,10 @@ class AccountRoutes(
     } ~ (pathPrefix("deposit" / DoubleNumber) & pathEndOrSingleSlash) {
       amount =>
         (put | post) {
-          import AccountActor.Command._
-          import AccountActor.Reply._
+          import AccountStateActor.Command._
+          import AccountStateActor.Reply._
           onComplete(
-            shardedRef.ask[AccountActor.Reply](
+            shardedRef.ask[AccountStateActor.Reply](
               ref => ShardingEnvelope(uuid.toString(), Deposit(ref, amount))
             )
           ) {
