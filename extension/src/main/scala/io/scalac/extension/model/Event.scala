@@ -6,6 +6,5 @@ sealed trait Event
 
 object Event {
 
-  case class ClusterChangedEvent(status: String, node: UniqueAddress)
-      extends Event
+  case class ClusterChangedEvent(status: String, node: UniqueAddress) extends Event
 }

@@ -9,7 +9,7 @@ trait AccountsTable {
   import profile.api._
 
   class Accounts(tag: Tag) extends Table[Account](tag, "accounts") {
-    def id = column[String]("id", O.PrimaryKey)
+    def id      = column[String]("id", O.PrimaryKey)
     def balance = column[Double]("balance")
 
     def * =

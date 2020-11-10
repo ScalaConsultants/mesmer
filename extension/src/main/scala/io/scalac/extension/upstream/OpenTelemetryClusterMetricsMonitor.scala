@@ -8,11 +8,13 @@ import io.scalac.extension.model._
 import io.scalac.extension.upstream.OpenTelemetryClusterMetricsMonitor.MetricNames
 
 object OpenTelemetryClusterMetricsMonitor {
-  case class MetricNames(shardPerEntity: String,
-                         entityPerRegion: String,
-                         shardRegionsOnNode: String,
-                         reachableNodes: String,
-                         unreachableNodes: String)
+  case class MetricNames(
+    shardPerEntity: String,
+    entityPerRegion: String,
+    shardRegionsOnNode: String,
+    reachableNodes: String,
+    unreachableNodes: String
+  )
 
   object MetricNames {
     def default: MetricNames =
@@ -60,8 +62,7 @@ object OpenTelemetryClusterMetricsMonitor {
   }
 }
 
-class OpenTelemetryClusterMetricsMonitor(instrumentationName: String,
-                                         val metricNames: MetricNames)
+class OpenTelemetryClusterMetricsMonitor(instrumentationName: String, val metricNames: MetricNames)
     extends ClusterMetricsMonitor {
   override def bind(node: Node): Bound = {
     val meter = OpenTelemetry.getMeter(instrumentationName)

@@ -2,24 +2,16 @@ package io.scalac.extension
 
 import akka.actor.CoordinatedShutdown
 import akka.actor.typed.scaladsl.Behaviors
-import akka.actor.typed.{
-  ActorSystem,
-  Extension,
-  ExtensionId,
-  SupervisorStrategy
-}
+import akka.actor.typed.{ActorSystem, Extension, ExtensionId, SupervisorStrategy}
 import akka.cluster.typed.{ClusterSingleton, SingletonActor}
 import io.scalac.extension.config.ClusterMonitoringConfig
-import io.scalac.extension.upstream.{
-  NewRelicEventStream,
-  OpenTelemetryClusterMetricsMonitor
-}
+import io.scalac.extension.upstream.{NewRelicEventStream, OpenTelemetryClusterMetricsMonitor}
 
 import scala.concurrent.duration._
 
 object ClusterMonitoring extends ExtensionId[ClusterMonitoring] {
   override def createExtension(system: ActorSystem[_]): ClusterMonitoring = {
-    val config = ClusterMonitoringConfig.apply(system.settings.config)
+    val config  = ClusterMonitoringConfig.apply(system.settings.config)
     val monitor = new ClusterMonitoring(system, config)
     import config.boot._
 
@@ -33,9 +25,7 @@ object ClusterMonitoring extends ExtensionId[ClusterMonitoring] {
   }
 }
 
-class ClusterMonitoring(private val system: ActorSystem[_],
-                        val config: ClusterMonitoringConfig)
-    extends Extension {
+class ClusterMonitoring(private val system: ActorSystem[_], val config: ClusterMonitoringConfig) extends Extension {
 
   import system.log
 
@@ -80,7 +70,7 @@ class ClusterMonitoring(private val system: ActorSystem[_],
             .error(s"Couldn't start reachability monitor -> ${errorMessage}"),
         config => {
           implicit val classicSystem = system.classicSystem
-          val newRelicEventStream = new NewRelicEventStream(config)
+          val newRelicEventStream    = new NewRelicEventStream(config)
 
           ClusterSingleton(system)
             .init(

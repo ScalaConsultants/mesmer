@@ -2,15 +2,7 @@ package io.scalac.extension
 
 import akka.actor.typed.Behavior
 import akka.actor.typed.scaladsl.Behaviors
-import akka.cluster.ClusterEvent.{
-  CurrentClusterState,
-  MemberEvent,
-  MemberExited,
-  MemberUp,
-  ReachableMember,
-  UnreachableMember,
-  ReachabilityEvent => AkkaReachabilityEvent
-}
+import akka.cluster.ClusterEvent.{CurrentClusterState, MemberEvent, MemberExited, MemberUp, ReachableMember, UnreachableMember, ReachabilityEvent => AkkaReachabilityEvent}
 import akka.cluster.UniqueAddress
 import akka.cluster.sharding.ShardRegion.ClusterShardingStats
 import akka.cluster.sharding.typed.GetClusterShardingStats
@@ -31,8 +23,7 @@ object ClusterSelfNodeMetricGatherer {
   object Command {
     case class MonitorRegion(region: String) extends SerializableMessage
 
-    private[extension] case class ClusterMemberEvent(event: MemberEvent)
-        extends Command
+    private[extension] case class ClusterMemberEvent(event: MemberEvent) extends Command
 
     private[extension] case class ClusterShardingStatsReceived(
       stats: ClusterShardingStats
@@ -50,19 +41,20 @@ object ClusterSelfNodeMetricGatherer {
 
     trait InitializationEvent extends Command
 
-    case class Initialized(state: CurrentClusterState)
-        extends InitializationEvent
+    case class Initialized(state: CurrentClusterState) extends InitializationEvent
 
     case object InitializationTimeout extends InitializationEvent
   }
 
-  def apply(clusterMetricsMonitor: ClusterMetricsMonitor,
-            initRegions: List[String],
-            pingOffset: FiniteDuration = 5.seconds,
-            initTimeout: Option[FiniteDuration] = None): Behavior[Command] =
-    Behaviors.setup(ctx => {
+  def apply(
+    clusterMetricsMonitor: ClusterMetricsMonitor,
+    initRegions: List[String],
+    pingOffset: FiniteDuration = 5.seconds,
+    initTimeout: Option[FiniteDuration] = None
+  ): Behavior[Command] =
+    Behaviors.setup { ctx =>
       import Command._
-      implicit val dispatcher = ctx.system
+      implicit val dispatcher       = ctx.system
       implicit val timeout: Timeout = pingOffset
 
       val cluster = Cluster(ctx.system)
@@ -101,20 +93,18 @@ object ClusterSelfNodeMetricGatherer {
 
       cluster.subscriptions ! Subscribe(initializationAdapter, classOf[SelfUp])
 
-      def initialized(monitor: clusterMetricsMonitor.Bound,
-                      selfAddress: UniqueAddress) =
-        Behaviors.withTimers[Command](scheduler => {
-
+      def initialized(monitor: clusterMetricsMonitor.Bound, selfAddress: UniqueAddress) =
+        Behaviors.withTimers[Command] { scheduler =>
           if (initRegions.nonEmpty) {
 
-            initRegions.foreach(region => {
+            initRegions.foreach { region =>
               ctx.log.info("Start monitoring sharding region {}", region)
               scheduler.startTimerWithFixedDelay(
                 region,
                 GetClusterShardingStatsInternal(region),
                 pingOffset
               )
-            })
+            }
           } else {
             ctx.log.warn("No initial regions specified")
           }
@@ -134,26 +124,24 @@ object ClusterSelfNodeMetricGatherer {
               Behaviors.same
             }
             case ClusterShardingStatsReceived(stats) => {
-              stats.regions
-                .find {
-                  case (address, _) => address == selfAddress.address
-                }
-                .fold {
-                  ctx.log.warn(
-                    s"No information on shards for node ${selfAddress.address}"
-                  )
-                } {
-                  case (_, shardsStats) => {
-                    val entities = shardsStats.stats.values.sum
-                    val shards = shardsStats.stats.size
+              stats.regions.find {
+                case (address, _) => address == selfAddress.address
+              }.fold {
+                ctx.log.warn(
+                  s"No information on shards for node ${selfAddress.address}"
+                )
+              } {
+                case (_, shardsStats) => {
+                  val entities = shardsStats.stats.values.sum
+                  val shards   = shardsStats.stats.size
 
-                    ctx.log.trace("Recorded amount of entitites {}", entities)
-                    monitor.entityPerRegion.setValue(entities)
-                    ctx.log.trace("Recorded amount of shards {}", shards)
-                    monitor.shardPerRegions.setValue(shards)
-                  }
-
+                  ctx.log.trace("Recorded amount of entitites {}", entities)
+                  monitor.entityPerRegion.setValue(entities)
+                  ctx.log.trace("Recorded amount of shards {}", shards)
+                  monitor.shardPerRegions.setValue(shards)
                 }
+
+              }
               Behaviors.same
             }
             case GetClusterShardingStatsInternal(region) => {
@@ -183,18 +171,17 @@ object ClusterSelfNodeMetricGatherer {
               Behaviors.same
             case InitializationTimeout => Behaviors.ignore
           }
-        })
+        }
 
       def initialize(): Behavior[Command] =
-        Behaviors.withTimers[Command](timer => {
+        Behaviors.withTimers[Command] { timer =>
           val timeoutKey: Any = InitializationTimeout
-          initTimeout.foreach(
-            duration =>
-              timer
-                .startSingleTimer(timeoutKey, InitializationTimeout, duration)
+          initTimeout.foreach(duration =>
+            timer
+              .startSingleTimer(timeoutKey, InitializationTimeout, duration)
           )
 
-          Behaviors.withStash(1024)(buffer => {
+          Behaviors.withStash(1024) { buffer =>
             Behaviors.receiveMessage {
               case Initialized(clusterState) => {
                 ctx.log.info("Successful initialization")
@@ -213,8 +200,8 @@ object ClusterSelfNodeMetricGatherer {
                 Behaviors.same
               }
             }
-          })
-        })
+          }
+        }
       initialize()
-    })
+    }
 }
