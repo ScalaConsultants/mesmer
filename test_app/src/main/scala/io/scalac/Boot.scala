@@ -35,9 +35,20 @@ import scala.concurrent.duration._
 import scala.io.StdIn
 import scala.language.postfixOps
 
+class Greeter(val name: String) {
+
+  def sayHello(to: String): Unit = {
+    println(s"$name says hello to $to")
+  }
+}
+
 object Boot extends App with FailFastCirceSupport with JsonCodecs {
 
   val logger = LoggerFactory.getLogger(Boot.getClass)
+
+  val greeter = new Greeter("Boot testApp")
+
+  greeter.sayHello("Everyone!")
 
   val config = ConfigFactory
     .load()
