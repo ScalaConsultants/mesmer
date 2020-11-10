@@ -13,6 +13,8 @@ import net.bytebuddy.matcher.ElementMatchers._
 object Boot {
 
   def premain(args: String, instrumentation: Instrumentation): Unit = {
+    AkkaPersistenceAgent.install(instrumentation)
+    AkkaPersistenceAgent.transformEagerly()
 
     val configuredAgentBuilder = new AgentBuilder.Default()
       .`with`(

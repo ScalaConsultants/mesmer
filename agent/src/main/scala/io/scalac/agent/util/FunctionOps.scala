@@ -27,7 +27,9 @@ trait FunctionOps {
 
 object FunctionOps extends FunctionOps {
   implicit class FutureFunctionOps[T, R](value: T => Future[R]) {
-    def latency(consumer: Long => Unit)(implicit ec: ExecutionContext) = {
+    def latency(
+      consumer: Long => Unit
+    )(implicit ec: ExecutionContext): T => Future[R] = {
       futureCallbackLatency(value, consumer)
     }
   }

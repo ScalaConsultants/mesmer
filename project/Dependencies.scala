@@ -8,6 +8,7 @@ object Dependencies {
   val SlickVersion = "3.3.3"
   val PostgresVersion = "9.4-1201-jdbc41"
   val LogbackVersion = "1.2.3"
+  val ScalatestVersion = "3.1.2"
 
   val akka = Seq(
     "com.typesafe.akka" %% "akka-http" % AkkaHttpVersion,
@@ -61,4 +62,6 @@ object Dependencies {
     "com.newrelic.telemetry" % "telemetry" % "0.9.0",
     "com.newrelic.telemetry" % "telemetry-http-okhttp" % "0.9.0"
   )
+
+  val scalatest = Seq("org.scalatest" %% "scalatest" % ScalatestVersion % Test)
 }
