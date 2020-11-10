@@ -7,10 +7,7 @@ import slick.jdbc.PostgresProfile.api._
 import scala.concurrent.{ExecutionContext, Future}
 import scala.language.postfixOps
 
-class PostgresAccountRepository(db: Database)
-    extends AccountsTable
-    with Profile
-    with AccountRepository {
+class PostgresAccountRepository(db: Database) extends AccountsTable with Profile with AccountRepository {
 
   type P = PostgresProfile
   override lazy val profile: PostgresProfile = PostgresProfile

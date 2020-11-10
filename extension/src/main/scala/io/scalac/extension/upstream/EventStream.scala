@@ -38,12 +38,10 @@ class NewRelicEventStream(val config: NewRelicConfig)(
   private def createEntity(
     clusterChangedEvents: Seq[Event]
   ): HttpEntity.Strict = {
-    val rawJson = clusterChangedEvents
-      .map {
-        case ClusterChangedEvent(status, node) =>
-          s"""{"eventType":"statusChanged","status":"${status}","node":"${node}"}"""
-      }
-      .mkString("[", ",", "]")
+    val rawJson = clusterChangedEvents.map {
+      case ClusterChangedEvent(status, node) =>
+        s"""{"eventType":"statusChanged","status":"${status}","node":"${node}"}"""
+    }.mkString("[", ",", "]")
 
     val payload = Gzip.encode(ByteString(rawJson))
     HttpEntity(ContentTypes.`application/json`, payload)
@@ -58,15 +56,14 @@ class NewRelicEventStream(val config: NewRelicConfig)(
     val queue = source
       .groupedWithin(1000, 5000 millis)
       .map(createEntity)
-      .map(
-        entity =>
-          HttpRequest(
-            uri = newRelicUri,
-            method = HttpMethods.POST,
-            entity = entity
-          ).withHeaders(
-            RawHeader("X-Insert-Key", apiKey),
-            `Content-Encoding`(gzip)
+      .map(entity =>
+        HttpRequest(
+          uri = newRelicUri,
+          method = HttpMethods.POST,
+          entity = entity
+        ).withHeaders(
+          RawHeader("X-Insert-Key", apiKey),
+          `Content-Encoding`(gzip)
         )
       )
       .via(connection)
@@ -75,7 +72,7 @@ class NewRelicEventStream(val config: NewRelicConfig)(
     queue
   }
 
-  override def push(event: Event): Future[Unit] = {
+  override def push(event: Event): Future[Unit] =
     newRelicQueue
       .offer(event)
       .flatMap {
@@ -86,7 +83,6 @@ class NewRelicEventStream(val config: NewRelicConfig)(
           Future.failed(new IllegalStateException("Queue closed"))
         case QueueOfferResult.Failure(ex) => Future.failed(ex)
       }
-  }
 
   def shutdown(): Future[Done] = {
     newRelicQueue.complete()
@@ -98,15 +94,14 @@ object NewRelicEventStream {
   case class NewRelicConfig(apiKey: String, accountId: String)
 
   object NewRelicConfig {
-    def fromConfig(config: Config): Either[String, NewRelicConfig] = {
+    def fromConfig(config: Config): Either[String, NewRelicConfig] =
       for {
         nrConfig <- config
-          .tryValue("newrelic")(_.getConfig)
-        apiKey <- nrConfig.tryValue("api_key")(_.getString)
+                     .tryValue("newrelic")(_.getConfig)
+        apiKey    <- nrConfig.tryValue("api_key")(_.getString)
         accountId <- nrConfig.tryValue("account_id")(_.getString)
       } yield NewRelicConfig(apiKey, accountId)
 
-    }
   }
 
 }
