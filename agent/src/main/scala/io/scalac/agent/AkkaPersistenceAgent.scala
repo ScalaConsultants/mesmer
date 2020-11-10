@@ -11,44 +11,47 @@ import net.bytebuddy.dynamic.scaffold.TypeValidation
 import net.bytebuddy.matcher.ElementMatcher
 import net.bytebuddy.matcher.ElementMatchers._
 
-object AkkaPersistenceAgent {
+trait AkkaPersistenceAgent extends Agent {
 
-  private final val ReplayingEventsClassName   = "akka.persistence.typed.internal.ReplayingEvents"
-  private final val ReplayingSnapshotClassName = "akka.persistence.typed.internal.ReplayingSnapshot"
+  private final val ReplayingEventsClassName =
+    "akka.persistence.typed.internal.ReplayingEvents"
+  private final val ReplayingSnapshotClassName =
+    "akka.persistence.typed.internal.ReplayingSnapshot"
 
-  private val onRecoveryCompleteMethod: ElementMatcher.Junction[MethodDescription] =
+  private val onRecoveryCompleteMethod
+    : ElementMatcher.Junction[MethodDescription] =
     isMethod[MethodDescription].and(named("onRecoveryComplete"))
-  private val onRecoveryStartMethod: ElementMatcher.Junction[MethodDescription] =
+  private val onRecoveryStartMethod
+    : ElementMatcher.Junction[MethodDescription] =
     isMethod[MethodDescription].and(named("onRecoveryStart"))
 
-  private def builder =
-    new AgentBuilder.Default()
-      .`with`(new ByteBuddy().`with`(TypeValidation.DISABLED))
-      .`with`(new AgentBuilder.InitializationStrategy.SelfInjection.Eager())
-      .`with`(AgentBuilder.Listener.StreamWriting.toSystemOut.withTransformationsOnly)
-      .`with`(AgentBuilder.InstallationListener.StreamWriting.toSystemOut)
-
-  def install(on: Instrumentation): Unit = {
-    builder
+  override abstract def installOn(instrumentation: Instrumentation): Unit = {
+    agentBuilder
       .`type`(named[TypeDescription](ReplayingSnapshotClassName))
       .transform {
         case (builder, _, _, _) =>
-          builder.method(onRecoveryStartMethod).intercept(Advice.to(classOf[RecoveryStartedInterceptor]))
+          builder
+            .method(onRecoveryStartMethod)
+            .intercept(Advice.to(classOf[RecoveryStartedInterceptor]))
       }
-      .installOn(on)
+      .installOn(instrumentation)
 
-    builder
+    agentBuilder
       .`type`(named[TypeDescription](ReplayingEventsClassName))
       .transform {
         case (builder, _, _, _) =>
-          builder.method(onRecoveryCompleteMethod).intercept(Advice.to(classOf[RecoveryCompletedInterceptor]))
+          builder
+            .method(onRecoveryCompleteMethod)
+            .intercept(Advice.to(classOf[RecoveryCompletedInterceptor]))
       }
-      .installOn(on)
+      .installOn(instrumentation)
+    super.installOn(instrumentation)
   }
 
   // can be done eagerly to not affect processing time for the first incoming command by bytecode transformations.
-  def transformEagerly() = {
+  override abstract def transformEagerly() = {
     ClassLoader.getSystemClassLoader.loadClass(ReplayingEventsClassName)
     ClassLoader.getSystemClassLoader.loadClass(ReplayingSnapshotClassName)
+    super.transformEagerly()
   }
 }
