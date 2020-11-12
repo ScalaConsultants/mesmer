@@ -62,7 +62,7 @@ lazy val agent = (project in file("agent"))
 lazy val testApp = (project in file("test_app"))
   .settings(
     name := "akka-monitoring-test-app",
-    libraryDependencies ++= akka ++ zio ++ circe ++ circeAkka ++ postgresDriver ++ akkaPersistance ++ slick ++ logback ++ newRelicSdk,
+    libraryDependencies ++= akka ++ scalatest ++ akkaTestkit ++ zio ++ circe ++ circeAkka ++ postgresDriver ++ akkaPersistance ++ slick ++ logback ++ newRelicSdk,
     assemblyMergeStrategySettings,
     assembly / mainClass := Some("io.scalac.Boot"),
     assembly / assemblyJarName := "test_app.jar",
