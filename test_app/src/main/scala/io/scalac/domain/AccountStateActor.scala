@@ -66,7 +66,7 @@ object AccountStateActor {
     }
   }
 
-  def apply(repository: AccountRepository, uuid: ju.UUID): Behavior[Command] =
+  def apply(uuid: ju.UUID): Behavior[Command] =
     Behaviors.setup { _ =>
       EventSourcedBehavior[Command, Event, AccountState](
         PersistenceId.ofUniqueId(uuid.toString),

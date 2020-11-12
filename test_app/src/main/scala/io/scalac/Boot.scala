@@ -19,9 +19,7 @@ import io.opentelemetry.sdk.OpenTelemetrySdk
 import io.opentelemetry.sdk.metrics.`export`.IntervalMetricReader
 import io.scalac.api.AccountRoutes
 import io.scalac.domain.{AccountStateActor, JsonCodecs}
-import io.scalac.infrastructure.PostgresAccountRepository
 import org.slf4j.LoggerFactory
-import slick.jdbc.PostgresProfile.api.Database
 
 import scala.collection.JavaConverters._
 import scala.concurrent.duration._
@@ -43,10 +41,6 @@ object Boot extends App with FailFastCirceSupport with JsonCodecs {
             .fromMap(Map("host" -> "localhost", "port" -> 8080).asJava)
         )
     )
-
-  val accountRepository = new PostgresAccountRepository(
-    Database.forConfig("db", config)
-  )
 
   val apiKey = config.getString("newrelic.api_key")
 
@@ -76,24 +70,20 @@ object Boot extends App with FailFastCirceSupport with JsonCodecs {
   val accountsShards = ClusterSharding(system)
     .init(Entity(entity) { entityContext =>
       AccountStateActor(
-        accountRepository,
         ju.UUID.fromString(entityContext.entityId)
       )
     })
 
   val accountRoutes = new AccountRoutes(accountsShards)
 
-  val binding =
-    accountRepository.createTableIfNotExists.flatMap { _ =>
-      implicit val classicSystem = system.toClassic
-      implicit val materializer  = ActorMaterializer()
+  implicit val classicSystem = system.toClassic
+  implicit val materializer  = ActorMaterializer()
 
-      val host = config.getString("app.host")
+  val host = config.getString("app.host")
 
-      val port = config.getInt("app.port")
-      logger.info(s"Starting http server at $host:$port")
-      Http().bindAndHandle(accountRoutes.routes, host, port)
-    }
+  val port = config.getInt("app.port")
+  logger.info(s"Starting http server at $host:$port")
+  val binding = Http().bindAndHandle(accountRoutes.routes, host, port)
 
   StdIn.readLine()
 
