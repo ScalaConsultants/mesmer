@@ -24,49 +24,41 @@ class AccountRoutes(
       import AccountStateActor.Command._
       import AccountStateActor.Reply._
       onComplete(
-        shardedRef.ask[AccountStateActor.Reply](
-          ref => ShardingEnvelope(uuid.toString(), GetBalance(ref))
-        )
+        shardedRef.ask[AccountStateActor.Reply](ref => ShardingEnvelope(uuid.toString(), GetBalance(ref)))
       ) {
         case Success(CurrentBalance(balance)) =>
           complete(StatusCodes.OK, Account(uuid, balance))
         case _ => complete(StatusCodes.InternalServerError)
       }
-    } ~ (pathPrefix("withdraw" / DoubleNumber) & pathEndOrSingleSlash) {
-      amount =>
-        (put | post) {
-          import AccountStateActor.Command._
-          import AccountStateActor.Reply._
-          onComplete(
-            shardedRef.ask[AccountStateActor.Reply](
-              ref => ShardingEnvelope(uuid.toString(), Withdraw(ref, amount))
+    } ~ (pathPrefix("withdraw" / DoubleNumber) & pathEndOrSingleSlash) { amount =>
+      (put | post) {
+        import AccountStateActor.Command._
+        import AccountStateActor.Reply._
+        onComplete(
+          shardedRef.ask[AccountStateActor.Reply](ref => ShardingEnvelope(uuid.toString(), Withdraw(ref, amount)))
+        ) {
+          case Success(CurrentBalance(balance)) =>
+            complete(StatusCodes.Created, Account(uuid, balance))
+          case Success(InsufficientFunds) =>
+            complete(
+              StatusCodes.Conflict,
+              ApplicationError("insufficient funds")
             )
-          ) {
-            case Success(CurrentBalance(balance)) =>
-              complete(StatusCodes.Created, Account(uuid, balance))
-            case Success(InsufficientFunds) =>
-              complete(
-                StatusCodes.Conflict,
-                ApplicationError("insufficient funds")
-              )
-            case _ => complete(StatusCodes.InternalServerError)
-          }
+          case _ => complete(StatusCodes.InternalServerError)
         }
-    } ~ (pathPrefix("deposit" / DoubleNumber) & pathEndOrSingleSlash) {
-      amount =>
-        (put | post) {
-          import AccountStateActor.Command._
-          import AccountStateActor.Reply._
-          onComplete(
-            shardedRef.ask[AccountStateActor.Reply](
-              ref => ShardingEnvelope(uuid.toString(), Deposit(ref, amount))
-            )
-          ) {
-            case Success(CurrentBalance(balance)) =>
-              complete(StatusCodes.Created, Account(uuid, balance))
-            case _ => complete(StatusCodes.InternalServerError)
-          }
+      }
+    } ~ (pathPrefix("deposit" / DoubleNumber) & pathEndOrSingleSlash) { amount =>
+      (put | post) {
+        import AccountStateActor.Command._
+        import AccountStateActor.Reply._
+        onComplete(
+          shardedRef.ask[AccountStateActor.Reply](ref => ShardingEnvelope(uuid.toString(), Deposit(ref, amount)))
+        ) {
+          case Success(CurrentBalance(balance)) =>
+            complete(StatusCodes.Created, Account(uuid, balance))
+          case _ => complete(StatusCodes.InternalServerError)
         }
+      }
     }
   }
 }
