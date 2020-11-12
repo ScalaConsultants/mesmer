@@ -22,7 +22,7 @@ class AccountStateActorTest
     extends ScalaTestWithActorTestKit(AccountStateActorTest.config2)
     with AnyFlatSpecLike
     with Matchers {
-  
+
   import AccountStateActor.Command._
   import AccountStateActor.Event._
   import AccountStateActor.Reply
