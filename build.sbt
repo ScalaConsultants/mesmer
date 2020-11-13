@@ -24,7 +24,7 @@ lazy val extension = (project in file("extension"))
   .configs()
   .settings(
     name := "akka-monitoring-extension",
-    libraryDependencies ++= akka ++ openTelemetryApi
+    libraryDependencies ++= akka ++ openTelemetryApi ++ akkaTestkit ++ scalatest ++ logback.map(_ % Test)
   )
 
 val assemblyMergeStrategySettings = assembly / assemblyMergeStrategy := {
