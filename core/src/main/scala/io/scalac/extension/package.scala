@@ -1,12 +1,10 @@
 package io.scalac
 
-import java.util.UUID
-
 import akka.actor.typed.receptionist.ServiceKey
+import io.scalac.extension.event.PersistenceEvent
 
 package object `extension` {
 
-  val persistenceService: ServiceKey[AgentListenerActorMessage] =
-    ServiceKey[AgentListenerActorMessage](s"io.scalac.extension.metric-listener-actor")
-
+  val persistenceService: ServiceKey[PersistenceEvent] =
+    ServiceKey[PersistenceEvent](s"io.scalac.metric.persistence")
 }

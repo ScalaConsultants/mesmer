@@ -2,11 +2,10 @@ package io.scalac.agent
 
 import java.lang.reflect.Method
 
-import akka.actor.typed.receptionist.Receptionist
 import akka.actor.typed.scaladsl.ActorContext
-import akka.actor.typed.scaladsl.AskPattern._
 import akka.util.Timeout
-import io.scalac.`extension`.{AgentListenerActorMessage, persistenceService}
+import io.scalac.agent.event.EventBus
+import io.scalac.extension.event.PersistenceEvent._
 import net.bytebuddy.asm.Advice
 
 import scala.concurrent.duration._
@@ -27,18 +26,7 @@ object RecoveryCompletedInterceptor {
     implicit val scheduler = actorContext.system.scheduler
     implicit val timeout   = Timeout(1.second)
 
-    val actorPath      = actorContext.self.path.toStringWithoutAddress
-    val recoveryTimeMs = System.currentTimeMillis - AkkaPersistenceAgentState.recoveryStarted.get(actorPath)
-    println("Recovery took " + recoveryTimeMs + "ms for actor " + actorPath)
-
-    (actorContext.system.receptionist ? Receptionist.Find(persistenceService))
-      .map(_.serviceInstances(persistenceService).head)
-      .filter(_.path.address.hasLocalScope) // take only local actorRefs
-      .foreach(
-        _ ! AgentListenerActorMessage.PersistentActorRecoveryDuration(actorContext.self.path, recoveryTimeMs)
-      )
-
-    AkkaPersistenceAgentState.recoveryStarted.remove(actorPath)
-    AkkaPersistenceAgentState.recoveryMeasurements.put(actorPath, recoveryTimeMs)
+    EventBus(actorContext.system)
+      .publishEvent(RecoveryFinished(actorContext.self.path, System.currentTimeMillis()))
   }
 }
