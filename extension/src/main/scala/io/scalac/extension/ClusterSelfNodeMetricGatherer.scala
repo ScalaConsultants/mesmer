@@ -93,7 +93,7 @@ object ClusterSelfNodeMetricGatherer {
 
       cluster.subscriptions ! Subscribe(initializationAdapter, classOf[SelfUp])
 
-      def initialized(monitor: clusterMetricsMonitor.Bound, selfAddress: UniqueAddress) =
+      def initialized(monitor: clusterMetricsMonitor.BoundMonitor, selfAddress: UniqueAddress) =
         Behaviors.withTimers[Command] { scheduler =>
           if (initRegions.nonEmpty) {
 

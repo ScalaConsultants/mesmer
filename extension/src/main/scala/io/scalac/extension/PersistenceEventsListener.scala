@@ -3,28 +3,18 @@ package io.scalac.`extension`
 import akka.actor.typed.Behavior
 import akka.actor.typed.receptionist.Receptionist
 import akka.actor.typed.scaladsl.Behaviors
-import io.opentelemetry.OpenTelemetry
-import io.opentelemetry.common.Labels
+import io.scalac.extension.metric.PersistenceMetricMonitor
 
 import scala.language.postfixOps
 
-object LocalAgentListener {
+object PersistenceEventsListener {
 
-  def apply(entities: Set[String]): Behavior[AgentListenerActorMessage] =
+  def apply(monitor: PersistenceMetricMonitor, entities: Set[String]): Behavior[AgentListenerActorMessage] =
     Behaviors.setup { ctx =>
-
-      ctx.system.receptionist ! Receptionist.Register(agentListenerActorKey, ctx.self)
-
-      val meter = OpenTelemetry.getMeter("io.scalac.akka-persistence-monitoring")
+      ctx.system.receptionist ! Receptionist.Register(persistenceService, ctx.self)
 
       val recoveryTimeMetrics = entities
-        .map(name =>
-          name -> meter
-            .longValueRecorderBuilder("recovery-duration")
-            .setDescription("Duration of persistent actor recovery")
-            .build()
-            .bind(Labels.empty())
-        )
+        .map(name => name -> monitor.bind(name))
         .toMap
 
       Behaviors.receiveMessage {
@@ -33,7 +23,7 @@ object LocalAgentListener {
           ctx.log.debug(e.toString)
           // todo: this works only with sharding
           val entityName = path.parent.parent.name
-          recoveryTimeMetrics.get(entityName).foreach(_.record(duration))
+          recoveryTimeMetrics.get(entityName).foreach(_.recoveryTime.setValue(duration))
           ctx.log.info(s"Recorded persistent actor recovery time for entity '$entityName': ${duration}ms")
           Behaviors.same
         }

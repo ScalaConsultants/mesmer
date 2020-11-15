@@ -6,7 +6,7 @@ import akka.actor.typed.receptionist.ServiceKey
 
 package object `extension` {
 
-  lazy val agentListenerActorKey: ServiceKey[AgentListenerActorMessage] =
-    ServiceKey[AgentListenerActorMessage](s"io.scalac.extension.agent-listener-actor-${UUID.randomUUID()}")
+  val persistenceService: ServiceKey[AgentListenerActorMessage] =
+    ServiceKey[AgentListenerActorMessage](s"io.scalac.extension.metric-listener-actor")
 
 }
