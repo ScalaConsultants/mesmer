@@ -30,3 +30,25 @@ trait RouteAgent extends Agent {
     super.installOn(instrumentation)
   }
 }
+
+trait HttpAgent extends Agent {
+  abstract override def installOn(instrumentation: Instrumentation): Unit = {
+    agentBuilder
+      .`type`(
+        ElementMatchers.nameEndsWithIgnoreCase[TypeDescription](
+          "akka.http.scaladsl.HttpExt"
+        )
+      )
+      .transform { (builder, _, _, _) =>
+        builder
+          .method(
+            (named[MethodDescription]("bindAndHandle")
+              .and(isMethod[MethodDescription])
+              .and(not(isAbstract[MethodDescription])))
+          )
+          .intercept(MethodDelegation.to(classOf[HttpInstrumentation]))
+      }
+      .installOn(instrumentation)
+    super.installOn(instrumentation)
+  }
+}

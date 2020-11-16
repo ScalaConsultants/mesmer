@@ -2,10 +2,15 @@ package io.scalac.extension
 
 import akka.actor.CoordinatedShutdown
 import akka.actor.typed.scaladsl.Behaviors
-import akka.actor.typed.{ActorSystem, Extension, ExtensionId, SupervisorStrategy}
-import akka.cluster.typed.{ClusterSingleton, SingletonActor}
+import akka.actor.typed.{ ActorSystem, Extension, ExtensionId, SupervisorStrategy }
+import akka.cluster.typed.{ ClusterSingleton, SingletonActor }
 import io.scalac.extension.config.ClusterMonitoringConfig
-import io.scalac.extension.upstream.{NewRelicEventStream, OpenTelemetryClusterMetricsMonitor, OpenTelemetryPersistenceMetricMonitor}
+import io.scalac.extension.upstream.{
+  NewRelicEventStream,
+  OpenTelemetryClusterMetricsMonitor,
+  OpenTelemetryHttpMetricsMonitor,
+  OpenTelemetryPersistenceMetricMonitor
+}
 
 import scala.concurrent.duration._
 
@@ -22,6 +27,7 @@ object ClusterMonitoring extends ExtensionId[ClusterMonitoring] {
       monitor.startReachabilityMonitor()
     }
     monitor.startAgentListener()
+    monitor.startHttpEventListener()
     monitor
   }
 }
@@ -38,7 +44,6 @@ class ClusterMonitoring(private val system: ActorSystem[_], val config: ClusterM
       OpenTelemetryClusterMetricsMonitor.MetricNames.fromConfig(
         system.settings.config
       )
-
 
     val openTelemetryClusterMetricsMonitor =
       new OpenTelemetryClusterMetricsMonitor(
@@ -98,14 +103,26 @@ class ClusterMonitoring(private val system: ActorSystem[_], val config: ClusterM
 
     val openTelemetryPersistenceMonitor = new OpenTelemetryPersistenceMetricMonitor(instrumentationName)
 
-
-
     system.systemActorOf(
       Behaviors
       // todo: configure persistence separately
         .supervise(PersistenceEventsListener.apply(openTelemetryPersistenceMonitor, config.regions.toSet))
         .onFailure[Exception](SupervisorStrategy.restart),
       "localAgentMonitor"
+    )
+  }
+
+  def startHttpEventListener(): Unit = {
+    log.info("Starting local http event listener")
+
+    val openTelemetryHttpMonitor = new OpenTelemetryHttpMetricsMonitor(instrumentationName)
+
+    system.systemActorOf(
+      Behaviors
+      // todo: configure persistence separately
+        .supervise(HttpEventsActor.apply(openTelemetryHttpMonitor))
+        .onFailure[Exception](SupervisorStrategy.restart),
+      "httpEventMonitor"
     )
   }
 }
