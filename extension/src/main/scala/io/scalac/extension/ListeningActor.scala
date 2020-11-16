@@ -15,15 +15,14 @@ object ListeningActor {
   sealed trait Command
 
   object Command {
-    final case class ClusterChanged(status: String, node: UniqueAddress)
-        extends Command
+    final case class ClusterChanged(status: String, node: UniqueAddress) extends Command
 
     private[extension] final case object PushSuccessful extends Command
 
     private[extension] final case class PushRejected(code: Int) extends Command
 
-    private[extension] final case class PushFailed(exception: Throwable)
-        extends Command
+    private[extension] final case class PushFailed(exception: Throwable) extends Command
+    private[extension] final case class Init()
   }
 
   def apply(

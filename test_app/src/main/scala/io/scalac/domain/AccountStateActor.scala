@@ -18,30 +18,24 @@ object AccountStateActor {
   object Command {
     final case class GetBalance(replyTo: ActorRef[Reply]) extends Command
 
-    final case class Deposit(replyTo: ActorRef[Reply], value: Double)
-        extends Command
+    final case class Deposit(replyTo: ActorRef[Reply], value: Double) extends Command
 
-    final case class Withdraw(replyTo: ActorRef[Reply], value: Double)
-        extends Command
+    final case class Withdraw(replyTo: ActorRef[Reply], value: Double) extends Command
   }
 
   sealed trait Reply extends SerializableMessage
 
   object Reply {
-    final case class CurrentBalance(value: Double) extends Reply
-    final case object InsufficientFunds
-        extends IllegalStateException("Insuficient funds")
-        with Reply
-    final case class PersistentStorageFailure(message: String)
-        extends IOException(message)
-        with Reply
+    final case class CurrentBalance(value: Double)             extends Reply
+    final case object InsufficientFunds                        extends IllegalStateException("Insuficient funds") with Reply
+    final case class PersistentStorageFailure(message: String) extends IOException(message) with Reply
   }
 
   sealed trait Event extends SerializableMessage
 
   object Event {
     final case class MoneyWithdrawn(amount: Double) extends Event
-    final case class MoneyDeposit(amount: Double) extends Event
+    final case class MoneyDeposit(amount: Double)   extends Event
   }
 
   case class AccountState(balance: Double) {
@@ -73,12 +67,12 @@ object AccountStateActor {
   }
 
   def apply(repository: AccountRepository, uuid: ju.UUID): Behavior[Command] =
-    Behaviors.setup(_ => {
+    Behaviors.setup { _ =>
       EventSourcedBehavior[Command, Event, AccountState](
         PersistenceId.ofUniqueId(uuid.toString),
         AccountState(0.0),
         (state, command) => state.commandHandler(command),
         (state, event) => state.eventHandler(event)
       )
-    })
+    }
 }

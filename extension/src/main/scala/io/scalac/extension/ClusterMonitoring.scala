@@ -5,11 +5,13 @@ import akka.actor.typed.scaladsl.Behaviors
 import akka.actor.typed.{ActorSystem, Extension, ExtensionId, SupervisorStrategy}
 import akka.cluster.typed.{ClusterSingleton, SingletonActor}
 import io.scalac.extension.config.ClusterMonitoringConfig
-import io.scalac.extension.upstream.NewRelicEventStream
+import io.scalac.extension.upstream.{NewRelicEventStream, OpenTelemetryClusterMetricsMonitor, OpenTelemetryPersistenceMetricMonitor}
+
+import scala.concurrent.duration._
 
 object ClusterMonitoring extends ExtensionId[ClusterMonitoring] {
   override def createExtension(system: ActorSystem[_]): ClusterMonitoring = {
-    val config = ClusterMonitoringConfig.apply(system.settings.config)
+    val config  = ClusterMonitoringConfig.apply(system.settings.config)
     val monitor = new ClusterMonitoring(system, config)
     import config.boot._
 
@@ -19,22 +21,41 @@ object ClusterMonitoring extends ExtensionId[ClusterMonitoring] {
     if (bootReachabilityEvents) {
       monitor.startReachabilityMonitor()
     }
+    monitor.startAgentListener()
     monitor
   }
 }
 
-class ClusterMonitoring(private val system: ActorSystem[_],
-                        val config: ClusterMonitoringConfig)
-    extends Extension {
+class ClusterMonitoring(private val system: ActorSystem[_], val config: ClusterMonitoringConfig) extends Extension {
 
+  private val instrumentationName = "scalac_akka_metrics"
   import system.log
 
   def startMemberMonitor(): Unit = {
     log.info("Starting member monitor")
 
+    val clusterMetricNames =
+      OpenTelemetryClusterMetricsMonitor.MetricNames.fromConfig(
+        system.settings.config
+      )
+
+
+    val openTelemetryClusterMetricsMonitor =
+      new OpenTelemetryClusterMetricsMonitor(
+        instrumentationName,
+        clusterMetricNames
+      )
+
     system.systemActorOf(
       Behaviors
-        .supervise(LocalSystemListener.apply(config.regions))
+        .supervise(
+          ClusterSelfNodeMetricGatherer
+            .apply(
+              openTelemetryClusterMetricsMonitor,
+              config.regions,
+              initTimeout = Some(60.seconds)
+            )
+        )
         .onFailure[Exception](SupervisorStrategy.restart),
       "localSystemMemberMonitor"
     )
@@ -52,7 +73,7 @@ class ClusterMonitoring(private val system: ActorSystem[_],
             .error(s"Couldn't start reachability monitor -> ${errorMessage}"),
         config => {
           implicit val classicSystem = system.classicSystem
-          val newRelicEventStream = new NewRelicEventStream(config)
+          val newRelicEventStream    = new NewRelicEventStream(config)
 
           ClusterSingleton(system)
             .init(
@@ -70,5 +91,21 @@ class ClusterMonitoring(private val system: ActorSystem[_],
           )(() => newRelicEventStream.shutdown())
         }
       )
+  }
+
+  def startAgentListener(): Unit = {
+    log.info("Starting local agent listener")
+
+    val openTelemetryPersistenceMonitor = new OpenTelemetryPersistenceMetricMonitor(instrumentationName)
+
+
+
+    system.systemActorOf(
+      Behaviors
+      // todo: configure persistence separately
+        .supervise(PersistenceEventsListener.apply(openTelemetryPersistenceMonitor, config.regions.toSet))
+        .onFailure[Exception](SupervisorStrategy.restart),
+      "localAgentMonitor"
+    )
   }
 }

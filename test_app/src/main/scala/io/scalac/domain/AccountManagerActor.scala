@@ -17,8 +17,7 @@ object AccountManagerActor {
   object Command {
     final case class CreateAccount(replyTo: ActorRef[Event]) extends Command
 
-    final case class GetAccount(replyTo: ActorRef[Event], accountId: AccountId)
-        extends Command
+    final case class GetAccount(replyTo: ActorRef[Event], accountId: AccountId) extends Command
   }
 
   trait Event extends SerializableMessage
@@ -28,17 +27,13 @@ object AccountManagerActor {
 
     final case class AccountFound(account: Account) extends Event
 
-    final case object AccountNotFound
-        extends IllegalStateException("Account not found")
-        with Event
+    final case object AccountNotFound extends IllegalStateException("Account not found") with Event
 
-    final case class StorageFailed(message: String)
-        extends IOException(message)
-        with Event
+    final case class StorageFailed(message: String) extends IOException(message) with Event
   }
 
   def apply(repository: AccountRepository): Behavior[Command] =
-    Behaviors.setup(context => {
+    Behaviors.setup { context =>
       import AccountManagerActor.Command._
       import AccountManagerActor.Event._
       import context.{executionContext, log}
@@ -69,5 +64,5 @@ object AccountManagerActor {
           Behaviors.same
         }
       }
-    })
+    }
 }
