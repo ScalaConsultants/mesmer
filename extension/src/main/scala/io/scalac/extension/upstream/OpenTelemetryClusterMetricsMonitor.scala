@@ -64,6 +64,7 @@ object OpenTelemetryClusterMetricsMonitor {
 
 class OpenTelemetryClusterMetricsMonitor(instrumentationName: String, val metricNames: MetricNames)
     extends ClusterMetricsMonitor {
+  import ClusterMetricsMonitor._
 
   override def bind(node: Node): BoundMonitor = {
     val meter = OpenTelemetry.getMeter(instrumentationName)

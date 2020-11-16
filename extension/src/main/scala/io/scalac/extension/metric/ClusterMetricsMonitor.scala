@@ -2,12 +2,7 @@ package io.scalac.extension.metric
 
 import io.scalac.extension.model.Node
 
-trait ClusterMetricsMonitor extends Bindable[Node] {
-
-  override type Bound = BoundMonitor
-
-  override def bind(node: Node): BoundMonitor
-
+object ClusterMetricsMonitor {
   trait BoundMonitor {
     def shardPerRegions: MetricRecorder[Long]
     def entityPerRegion: MetricRecorder[Long]
@@ -15,4 +10,10 @@ trait ClusterMetricsMonitor extends Bindable[Node] {
     def reachableNodes: Counter[Long]
     def unreachableNodes: Counter[Long]
   }
+}
+
+trait ClusterMetricsMonitor {
+  import ClusterMetricsMonitor._
+
+  def bind(node: Node): BoundMonitor
 }
