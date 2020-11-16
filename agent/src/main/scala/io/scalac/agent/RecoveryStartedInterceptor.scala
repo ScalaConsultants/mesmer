@@ -3,7 +3,7 @@ package io.scalac.agent
 import java.lang.reflect.Method
 
 import akka.actor.typed.scaladsl.ActorContext
-import io.scalac.agent.event.EventBus
+import io.scalac.extension.event.EventBus
 import io.scalac.extension.event.PersistenceEvent._
 import net.bytebuddy.asm.Advice
 
