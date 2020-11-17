@@ -1,5 +1,5 @@
 import Dependencies._
-import sbt.Package.{MainClass, ManifestAttributes}
+import sbt.Package.{ MainClass, ManifestAttributes }
 
 ThisBuild / scalaVersion := "2.12.10"
 ThisBuild / version := "0.1.0-SNAPSHOT"

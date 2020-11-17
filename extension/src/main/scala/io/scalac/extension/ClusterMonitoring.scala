@@ -5,7 +5,7 @@ import akka.actor.typed.scaladsl.Behaviors
 import akka.actor.typed.{ActorSystem, Extension, ExtensionId, SupervisorStrategy}
 import akka.cluster.typed.{ClusterSingleton, SingletonActor}
 import io.scalac.extension.config.ClusterMonitoringConfig
-import io.scalac.extension.upstream.{NewRelicEventStream, OpenTelemetryClusterMetricsMonitor, OpenTelemetryPersistenceMetricMonitor}
+import io.scalac.extension.upstream.{NewRelicEventStream, OpenTelemetryClusterMetricsMonitor, OpenTelemetryHttpMetricsMonitor, OpenTelemetryPersistenceMetricMonitor}
 
 import scala.concurrent.duration._
 
@@ -22,6 +22,7 @@ object ClusterMonitoring extends ExtensionId[ClusterMonitoring] {
       monitor.startReachabilityMonitor()
     }
     monitor.startAgentListener()
+    monitor.startHttpEventListener()
     monitor
   }
 }
@@ -91,7 +92,7 @@ class ClusterMonitoring(private val system: ActorSystem[_], val config: ClusterM
   def startAgentListener(): Unit = {
     log.info("Starting local agent listener")
 
-    val openTelemetryPersistenceMonitor = new OpenTelemetryPersistenceMetricMonitor(instrumentationName)
+    val openTelemetryPersistenceMonitor = OpenTelemetryPersistenceMetricMonitor(instrumentationName, actorSystemConfig)
 
 
 
