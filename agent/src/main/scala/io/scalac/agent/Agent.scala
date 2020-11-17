@@ -4,13 +4,17 @@ import java.lang.instrument.Instrumentation
 
 import net.bytebuddy.agent.builder.AgentBuilder
 
-abstract class AgentRoot {
-  def installOn(instrumentation: Instrumentation): Unit = ()
+final case class Agent(installOn: (AgentBuilder, Instrumentation) => Unit, transformEagerly: Unit => Unit) { self =>
 
-  def transformEagerly() = ()
-}
-
-trait Agent extends AgentRoot {
-
-  def agentBuilder: AgentBuilder
+  def ++(that: Agent): Agent =
+    Agent(
+      (builder, instrumentation) => {
+        self.installOn(builder, instrumentation)
+        that.installOn(builder, instrumentation)
+      },
+      _ => {
+        self.transformEagerly()
+        that.transformEagerly()
+      }
+    )
 }
