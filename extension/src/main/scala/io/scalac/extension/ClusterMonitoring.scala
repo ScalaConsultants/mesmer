@@ -35,20 +35,16 @@ object ClusterMonitoring extends ExtensionId[ClusterMonitoring] {
 class ClusterMonitoring(private val system: ActorSystem[_], val config: ClusterMonitoringConfig) extends Extension {
 
   private val instrumentationName = "scalac_akka_metrics"
+  private val actorSystemConfig   = system.settings.config
   import system.log
 
   def startMemberMonitor(): Unit = {
     log.info("Starting member monitor")
 
-    val clusterMetricNames =
-      OpenTelemetryClusterMetricsMonitor.MetricNames.fromConfig(
-        system.settings.config
-      )
-
     val openTelemetryClusterMetricsMonitor =
-      new OpenTelemetryClusterMetricsMonitor(
+      OpenTelemetryClusterMetricsMonitor(
         instrumentationName,
-        clusterMetricNames
+        actorSystemConfig
       )
 
     system.systemActorOf(
@@ -71,7 +67,7 @@ class ClusterMonitoring(private val system: ActorSystem[_], val config: ClusterM
     log.info("Starting reachability monitor")
 
     NewRelicEventStream.NewRelicConfig
-      .fromConfig(system.settings.config)
+      .fromConfig(actorSystemConfig)
       .fold(
         errorMessage =>
           system.log
@@ -115,7 +111,7 @@ class ClusterMonitoring(private val system: ActorSystem[_], val config: ClusterM
   def startHttpEventListener(): Unit = {
     log.info("Starting local http event listener")
 
-    val openTelemetryHttpMonitor = new OpenTelemetryHttpMetricsMonitor(instrumentationName)
+    val openTelemetryHttpMonitor = OpenTelemetryHttpMetricsMonitor(instrumentationName, actorSystemConfig)
 
     system.systemActorOf(
       Behaviors
