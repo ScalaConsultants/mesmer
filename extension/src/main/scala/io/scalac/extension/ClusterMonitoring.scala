@@ -119,7 +119,6 @@ class ClusterMonitoring(private val system: ActorSystem[_], val config: ClusterM
 
     system.systemActorOf(
       Behaviors
-      // todo: configure persistence separately
         .supervise(HttpEventsActor.apply(openTelemetryHttpMonitor))
         .onFailure[Exception](SupervisorStrategy.restart),
       "httpEventMonitor"

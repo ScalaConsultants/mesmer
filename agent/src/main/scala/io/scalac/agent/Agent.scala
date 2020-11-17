@@ -7,7 +7,7 @@ import net.bytebuddy.agent.builder.AgentBuilder
 abstract class AgentRoot {
   def installOn(instrumentation: Instrumentation): Unit = ()
 
-  def transformEagerly() = ()
+  def transformEagerly(): Unit = ()
 }
 
 trait Agent extends AgentRoot {

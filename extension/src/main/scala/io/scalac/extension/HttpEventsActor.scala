@@ -28,45 +28,49 @@ object HttpEventsActor {
     def monitorHttp(
       inFlightRequest: Map[String, RequestStarted],
       cachedMonitors: Map[Key, BoundMonitor]
-    ): Behavior[Event] = Behaviors.receiveMessage {
-      case HttpEventWrapper(started @ RequestStarted(id, _, _, _)) => {
-        monitorHttp(inFlightRequest + (id -> started), cachedMonitors)
-      }
-      case HttpEventWrapper(RequestCompleted(id, timestamp)) => {
-        inFlightRequest
-          .get(id)
+    ): Behavior[Event] = {
+      def getOrCreate(key: Key): (BoundMonitor, Map[Key, BoundMonitor]) =
+        cachedMonitors
+          .get(key)
           .fold {
-            ctx.log.error("Got request completed event but no corresponding request started event")
-            Behaviors.same[Event]
-          } { started =>
-            val requestDuration = timestamp - started.timestamp
-            val monitorBoundary = Key(started.path, started.method)
-            cachedMonitors
-              .get(monitorBoundary)
-              .fold {
-                val boundMonitor = httpMetricMonitor.bind(started.path, started.method)
-                boundMonitor.requestTime.setValue(requestDuration)
-                ctx.log.debug(s"request ${id} finished in {} millis", requestDuration)
+            val newBoundMonitor = httpMetricMonitor.bind(key.path, key.method)
+            (newBoundMonitor, cachedMonitors + (key -> newBoundMonitor))
+          }(boundMonitor => (boundMonitor, cachedMonitors))
+      Behaviors.receiveMessage {
+        case HttpEventWrapper(started @ RequestStarted(id, _, path, method)) => {
+          val (monitor, allMonitors) = getOrCreate(Key(path, method))
+          monitor.requestCounter.incValue(1L)
 
-                monitorHttp(inFlightRequest - id, cachedMonitors + (monitorBoundary -> boundMonitor))
-              } { boundMonitor =>
-                boundMonitor.requestTime.setValue(requestDuration)
-                ctx.log.debug(s"request ${id} finished in {} millis", requestDuration)
-                monitorHttp(inFlightRequest - id, cachedMonitors)
-              }
-          }
-      }
-      case HttpEventWrapper(RequestFailed(id, timestamp)) => {
-        inFlightRequest
-          .get(id)
-          .fold {
-            ctx.log.error("Got request failed event but no corresponding request started event")
-            Behaviors.same[Event]
-          } { started =>
-            val requestDuration = timestamp - started.timestamp
-            ctx.log.error(s"request ${id} failed after {} millis", requestDuration)
-            monitorHttp(inFlightRequest - id, cachedMonitors)
-          }
+          monitorHttp(inFlightRequest + (id -> started), allMonitors)
+        }
+        case HttpEventWrapper(RequestCompleted(id, timestamp)) => {
+          inFlightRequest
+            .get(id)
+            .fold {
+              ctx.log.error("Got request completed event but no corresponding request started event")
+              Behaviors.same[Event]
+            } { started =>
+              val requestDuration = timestamp - started.timestamp
+              val monitorBoundary = Key(started.path, started.method)
+
+              val (monitor, allMonitors) = getOrCreate(monitorBoundary)
+              monitor.requestTime.setValue(requestDuration)
+              ctx.log.debug(s"request ${id} finished in {} millis", requestDuration)
+              monitorHttp(inFlightRequest - id, allMonitors)
+            }
+        }
+        case HttpEventWrapper(RequestFailed(id, timestamp)) => {
+          inFlightRequest
+            .get(id)
+            .fold {
+              ctx.log.error("Got request failed event but no corresponding request started event")
+              Behaviors.same[Event]
+            } { started =>
+              val requestDuration = timestamp - started.timestamp
+              ctx.log.error(s"request ${id} failed after {} millis", requestDuration)
+              monitorHttp(inFlightRequest - id, cachedMonitors)
+            }
+        }
       }
     }
     monitorHttp(Map.empty, Map.empty)
