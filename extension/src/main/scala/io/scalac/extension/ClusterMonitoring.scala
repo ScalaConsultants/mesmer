@@ -2,10 +2,14 @@ package io.scalac.extension
 
 import akka.actor.CoordinatedShutdown
 import akka.actor.typed.scaladsl.Behaviors
-import akka.actor.typed.{ActorSystem, Extension, ExtensionId, SupervisorStrategy}
-import akka.cluster.typed.{ClusterSingleton, SingletonActor}
+import akka.actor.typed.{ ActorSystem, Extension, ExtensionId, SupervisorStrategy }
+import akka.cluster.typed.{ ClusterSingleton, SingletonActor }
 import io.scalac.extension.config.ClusterMonitoringConfig
-import io.scalac.extension.upstream.{NewRelicEventStream, OpenTelemetryClusterMetricsMonitor, OpenTelemetryPersistenceMetricMonitor}
+import io.scalac.extension.upstream.{
+  NewRelicEventStream,
+  OpenTelemetryClusterMetricsMonitor,
+  OpenTelemetryPersistenceMetricMonitor
+}
 
 import scala.concurrent.duration._
 
@@ -38,7 +42,6 @@ class ClusterMonitoring(private val system: ActorSystem[_], val config: ClusterM
       OpenTelemetryClusterMetricsMonitor.MetricNames.fromConfig(
         system.settings.config
       )
-
 
     val openTelemetryClusterMetricsMonitor =
       new OpenTelemetryClusterMetricsMonitor(
@@ -96,9 +99,8 @@ class ClusterMonitoring(private val system: ActorSystem[_], val config: ClusterM
   def startAgentListener(): Unit = {
     log.info("Starting local agent listener")
 
-    val openTelemetryPersistenceMonitor = new OpenTelemetryPersistenceMetricMonitor(instrumentationName)
-
-
+    val openTelemetryPersistenceMonitor =
+      OpenTelemetryPersistenceMetricMonitor(instrumentationName, system.settings.config)
 
     system.systemActorOf(
       Behaviors
