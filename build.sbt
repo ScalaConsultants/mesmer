@@ -9,15 +9,18 @@ ThisBuild / organizationName := "scalac"
 def runWithAgent = Command.command("runWithAgent") { state =>
   val extracted = Project extract state
   val newState =
-    extracted.appendWithSession(Seq(run / javaOptions += s"-javaagent:${(agent / assembly).value.absolutePath}"), state)
-  val (s, _) = Project.extract(newState).runInputTask(Compile / run, "", newState)
+    extracted.appendWithSession(
+      Seq(
+        run / javaOptions += s"-javaagent:${(agent / assembly).value.absolutePath}"
+      ),
+      state
+    )
+  val (s, _) =
+    Project.extract(newState).runInputTask(Compile / run, "", newState)
   s
 }
-
 lazy val root = (project in file("."))
-  .settings(
-    name := "akka-monitoring"
-  )
+  .settings(name := "akka-monitoring")
   .aggregate(extension, agent, testApp)
 
 lazy val core = (project in file("core"))
@@ -35,18 +38,22 @@ lazy val extension = (project in file("extension"))
   .dependsOn(core)
 
 val assemblyMergeStrategySettings = assembly / assemblyMergeStrategy := {
-  case PathList("META-INF", "services", _ @_*)                      => MergeStrategy.concat
-  case PathList("META-INF", xs @ _*)                                => MergeStrategy.discard
-  case PathList("reference.conf")                                   => MergeStrategy.concat
-  case PathList("jackson-annotations-2.10.3.jar", _ @_*)            => MergeStrategy.last
-  case PathList("jackson-core-2.10.3.jar", _ @_*)                   => MergeStrategy.last
-  case PathList("jackson-databind-2.10.3.jar", _ @_*)               => MergeStrategy.last
-  case PathList("jackson-dataformat-cbor-2.10.3.jar", _ @_*)        => MergeStrategy.last
-  case PathList("jackson-datatype-jdk8-2.10.3.jar", _ @_*)          => MergeStrategy.last
-  case PathList("jackson-datatype-jsr310-2.10.3.jar", _ @_*)        => MergeStrategy.last
-  case PathList("jackson-module-parameter-names-2.10.3.jar", _ @_*) => MergeStrategy.last
-  case PathList("jackson-module-paranamer-2.10.3.jar", _ @_*)       => MergeStrategy.last
-  case _                                                            => MergeStrategy.first
+  case PathList("META-INF", "services", _ @_*)           => MergeStrategy.concat
+  case PathList("META-INF", xs @ _*)                     => MergeStrategy.discard
+  case PathList("reference.conf")                        => MergeStrategy.concat
+  case PathList("jackson-annotations-2.10.3.jar", _ @_*) => MergeStrategy.last
+  case PathList("jackson-core-2.10.3.jar", _ @_*)        => MergeStrategy.last
+  case PathList("jackson-databind-2.10.3.jar", _ @_*)    => MergeStrategy.last
+  case PathList("jackson-dataformat-cbor-2.10.3.jar", _ @_*) =>
+    MergeStrategy.last
+  case PathList("jackson-datatype-jdk8-2.10.3.jar", _ @_*) => MergeStrategy.last
+  case PathList("jackson-datatype-jsr310-2.10.3.jar", _ @_*) =>
+    MergeStrategy.last
+  case PathList("jackson-module-parameter-names-2.10.3.jar", _ @_*) =>
+    MergeStrategy.last
+  case PathList("jackson-module-paranamer-2.10.3.jar", _ @_*) =>
+    MergeStrategy.last
+  case _ => MergeStrategy.first
 }
 
 lazy val agent = (project in file("agent"))
@@ -56,8 +63,9 @@ lazy val agent = (project in file("agent"))
     Compile / mainClass := Some("io.scalac.agent.Boot"),
     Compile / packageBin / packageOptions := {
       (Compile / packageBin / packageOptions).value.map {
-        case MainClass(mainClassName) => ManifestAttributes(List("Premain-Class" -> mainClassName): _*)
-        case other                    => other
+        case MainClass(mainClassName) =>
+          ManifestAttributes(List("Premain-Class" -> mainClassName): _*)
+        case other => other
       }
     },
     assembly / test := {},

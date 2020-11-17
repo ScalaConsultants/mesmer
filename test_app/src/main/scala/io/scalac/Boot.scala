@@ -86,7 +86,7 @@ object Boot extends App with FailFastCirceSupport with JsonCodecs {
   val binding =
     accountRepository.createTableIfNotExists.flatMap { _ =>
       implicit val classicSystem = system.toClassic
-      implicit val materializer  = ActorMaterializer()
+      implicit val materializer = ActorMaterializer()
 
       val host = config.getString("app.host")
 
@@ -97,10 +97,12 @@ object Boot extends App with FailFastCirceSupport with JsonCodecs {
 
   StdIn.readLine()
 
-  binding
-    .flatMap(_.unbind())
-    .onComplete { _ =>
-      system.terminate()
-      NewRelicExporters.shutdown()
-    }
+  sys.addShutdownHook {
+    binding
+      .flatMap(_.unbind())
+      .onComplete { _ =>
+        system.terminate()
+        NewRelicExporters.shutdown()
+      }
+  }
 }

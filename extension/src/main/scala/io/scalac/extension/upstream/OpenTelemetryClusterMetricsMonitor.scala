@@ -60,6 +60,9 @@ object OpenTelemetryClusterMetricsMonitor {
         .getOrElse(defaultCached)
     }
   }
+
+  def apply(instrumentationName: String, config: Config): OpenTelemetryClusterMetricsMonitor =
+    new OpenTelemetryClusterMetricsMonitor(instrumentationName, MetricNames.fromConfig(config))
 }
 
 class OpenTelemetryClusterMetricsMonitor(instrumentationName: String, val metricNames: MetricNames)
