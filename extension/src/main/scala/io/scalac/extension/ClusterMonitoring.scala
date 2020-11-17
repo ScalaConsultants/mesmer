@@ -2,10 +2,14 @@ package io.scalac.extension
 
 import akka.actor.CoordinatedShutdown
 import akka.actor.typed.scaladsl.Behaviors
-import akka.actor.typed.{ActorSystem, Extension, ExtensionId, SupervisorStrategy}
-import akka.cluster.typed.{ClusterSingleton, SingletonActor}
+import akka.actor.typed.{ ActorSystem, Extension, ExtensionId, SupervisorStrategy }
+import akka.cluster.typed.{ ClusterSingleton, SingletonActor }
 import io.scalac.extension.config.ClusterMonitoringConfig
-import io.scalac.extension.upstream.{NewRelicEventStream, OpenTelemetryClusterMetricsMonitor}
+import io.scalac.extension.upstream.{
+  NewRelicEventStream,
+  OpenTelemetryClusterMetricsMonitor,
+  OpenTelemetryPersistenceMetricMonitor
+}
 
 import scala.concurrent.duration._
 
@@ -21,12 +25,14 @@ object ClusterMonitoring extends ExtensionId[ClusterMonitoring] {
     if (bootReachabilityEvents) {
       monitor.startReachabilityMonitor()
     }
+    monitor.startAgentListener()
     monitor
   }
 }
 
 class ClusterMonitoring(private val system: ActorSystem[_], val config: ClusterMonitoringConfig) extends Extension {
 
+  private val instrumentationName = "scalac_akka_metrics"
   import system.log
 
   def startMemberMonitor(): Unit = {
@@ -39,7 +45,7 @@ class ClusterMonitoring(private val system: ActorSystem[_], val config: ClusterM
 
     val openTelemetryClusterMetricsMonitor =
       new OpenTelemetryClusterMetricsMonitor(
-        "scalac_akka_metrics",
+        instrumentationName,
         clusterMetricNames
       )
 
@@ -88,5 +94,20 @@ class ClusterMonitoring(private val system: ActorSystem[_], val config: ClusterM
           )(() => newRelicEventStream.shutdown())
         }
       )
+  }
+
+  def startAgentListener(): Unit = {
+    log.info("Starting local agent listener")
+
+    val openTelemetryPersistenceMonitor =
+      OpenTelemetryPersistenceMetricMonitor(instrumentationName, system.settings.config)
+
+    system.systemActorOf(
+      Behaviors
+      // todo: configure persistence separately
+        .supervise(PersistenceEventsListener.apply(openTelemetryPersistenceMonitor, config.regions.toSet))
+        .onFailure[Exception](SupervisorStrategy.restart),
+      "localAgentMonitor"
+    )
   }
 }

@@ -64,7 +64,9 @@ object OpenTelemetryClusterMetricsMonitor {
 
 class OpenTelemetryClusterMetricsMonitor(instrumentationName: String, val metricNames: MetricNames)
     extends ClusterMetricsMonitor {
-  override def bind(node: Node): Bound = {
+  import ClusterMetricsMonitor._
+
+  override def bind(node: Node): BoundMonitor = {
     val meter = OpenTelemetry.getMeter(instrumentationName)
 
     val boundLabels = Labels.of("node", node)
@@ -100,7 +102,7 @@ class OpenTelemetryClusterMetricsMonitor(instrumentationName: String, val metric
 
     import Metric._
 
-    new Bound {
+    new BoundMonitor {
       override val shardPerRegions: MetricRecorder[Long] =
         boundShardsPerRegionRecorder.toMetricRecorder
 

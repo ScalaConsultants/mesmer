@@ -3,7 +3,9 @@ package io.scalac.agent
 import java.lang.reflect.Method
 
 import akka.actor.typed.scaladsl.ActorContext
-import net.bytebuddy.asm.Advice;
+import io.scalac.extension.event.EventBus
+import io.scalac.extension.event.PersistenceEvent._
+import net.bytebuddy.asm.Advice
 
 class RecoveryStartedInterceptor
 
@@ -16,8 +18,7 @@ object RecoveryStartedInterceptor {
     @Advice.This thiz: Object
   ): Unit = {
     System.out.println("Recovery startup intercepted. Method: " + method + ", This: " + thiz)
-    val actorPath = parameters(0).asInstanceOf[ActorContext[_]].self.path.toStringWithoutAddress
-    System.out.println("Recovery startup actor path: " + actorPath)
-    AkkaPersistenceAgentState.recoveryStarted.put(actorPath, System.currentTimeMillis())
+    val context = parameters(0).asInstanceOf[ActorContext[_]]
+    EventBus(context.system).publishEvent(RecoveryStarted(context.self.path, System.currentTimeMillis()))
   }
 }

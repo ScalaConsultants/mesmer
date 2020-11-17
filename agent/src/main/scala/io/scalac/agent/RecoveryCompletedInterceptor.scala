@@ -3,7 +3,12 @@ package io.scalac.agent
 import java.lang.reflect.Method
 
 import akka.actor.typed.scaladsl.ActorContext
-import net.bytebuddy.asm.Advice;
+import akka.util.Timeout
+import io.scalac.extension.event.EventBus
+import io.scalac.extension.event.PersistenceEvent._
+import net.bytebuddy.asm.Advice
+
+import scala.concurrent.duration._
 
 class RecoveryCompletedInterceptor
 
@@ -15,10 +20,13 @@ object RecoveryCompletedInterceptor {
     @Advice.AllArguments parameters: Array[Object],
     @Advice.This thiz: Object
   ): Unit = {
-    System.out.println("Recovery completion intercepted. Method: " + method + ", This: " + thiz)
-    val actorPath = parameters(0).asInstanceOf[ActorContext[_]].self.path.toStringWithoutAddress
-    val recoveryTimeMs  = System.currentTimeMillis - AkkaPersistenceAgentState.recoveryStarted.get(actorPath)
-    System.out.println("Recovery took " + recoveryTimeMs + "ms for actor " + actorPath)
-    AkkaPersistenceAgentState.recoveryMeasurements.put(actorPath, recoveryTimeMs)
+    println("Recovery completion intercepted. Method: " + method + ", This: " + thiz)
+    val actorContext       = parameters(0).asInstanceOf[ActorContext[_]]
+    implicit val ec        = actorContext.system.executionContext
+    implicit val scheduler = actorContext.system.scheduler
+    implicit val timeout   = Timeout(1.second)
+
+    EventBus(actorContext.system)
+      .publishEvent(RecoveryFinished(actorContext.self.path, System.currentTimeMillis()))
   }
 }

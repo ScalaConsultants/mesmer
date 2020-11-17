@@ -3,6 +3,7 @@ package io.scalac.agent
 import java.util.UUID
 
 import akka.actor.typed.ActorSystem
+import akka.actor.typed.receptionist.Receptionist
 import akka.actor.typed.scaladsl.AskPattern._
 import akka.actor.typed.scaladsl.Behaviors
 import akka.util.Timeout
@@ -11,8 +12,8 @@ import net.bytebuddy.agent.ByteBuddyAgent
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
-import org.scalatest.time.{ Minute, Second, Span }
-import org.scalatest.{ BeforeAndAfterAll, OptionValues }
+import org.scalatest.time.{Minute, Second, Span}
+import org.scalatest.{BeforeAndAfterAll, OptionValues}
 
 import scala.concurrent.duration._
 import scala.util.Try
@@ -28,6 +29,8 @@ class AkkaPersistenceAgentSpec
   implicit val askTimeout = Timeout(1.minute)
   override implicit val patienceConfig: PatienceConfig =
     PatienceConfig(scaled(Span(1, Minute)), scaled(Span(1, Second)))
+
+  Receptionist
 
   "AkkaPersistenceAgent" should "intercept recovery time and store it in the agent state" in {
     val id    = UUID.randomUUID()
