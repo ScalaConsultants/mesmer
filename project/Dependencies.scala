@@ -71,4 +71,6 @@ object Dependencies {
   )
 
   val scalatest = Seq("org.scalatest" %% "scalatest" % ScalatestVersion % Test)
+
+  val slf4jApi = Seq("org.slf4j" % "slf4j-api" % "1.7.30")
 }
