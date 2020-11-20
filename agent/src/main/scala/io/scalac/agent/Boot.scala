@@ -18,10 +18,11 @@ object Boot {
         AgentBuilder.Listener.StreamWriting.toSystemOut.withTransformationsOnly
       )
       .`with`(AgentBuilder.InstallationListener.StreamWriting.toSystemOut)
-    
+
     val allInstrumentations = AkkaPersistenceAgent.agent ++ AkkaHttpAgent.agent
 
-    allInstrumentations.installOn(agentBuilder, instrumentation)
-    allInstrumentations.transformEagerly()
+    allInstrumentations
+      .installOn(agentBuilder, instrumentation)
+      .eagerLoad()
   }
 }
