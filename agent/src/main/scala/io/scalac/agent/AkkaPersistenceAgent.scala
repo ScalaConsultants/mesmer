@@ -7,6 +7,10 @@ import net.bytebuddy.matcher.ElementMatchers._
 
 object AkkaPersistenceAgent {
 
+  val defaultVersion = "2.6.8"
+  val supportedVersions = Seq(defaultVersion)
+  val moduleName = "akka-persistence-typed"
+
   private val recoveryStartedAgent = Agent { (agentBuilder, instrumentation, modules) =>
     agentBuilder
       .`type`(named[TypeDescription]("akka.persistence.typed.internal.ReplayingSnapshot"))

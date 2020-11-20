@@ -63,5 +63,12 @@ object Dependencies {
     "com.newrelic.telemetry" % "telemetry-http-okhttp" % "0.9.0"
   )
 
+  val akkaTestkit = Seq(
+    "com.typesafe.akka" %% "akka-actor-testkit-typed" % AkkaVersion % Test,
+    "com.typesafe.akka" %% "akka-persistence-testkit" % AkkaVersion % Test,
+    "com.typesafe.akka" %% "akka-stream-testkit"      % AkkaVersion,
+    "com.typesafe.akka" %% "akka-http-testkit"        % AkkaHttpVersion
+  )
+
   val scalatest = Seq("org.scalatest" %% "scalatest" % ScalatestVersion % Test)
 }

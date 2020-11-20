@@ -2,29 +2,30 @@ package io.scalac.agent
 
 import java.util.UUID
 
-import akka.actor.typed.ActorSystem
-import akka.actor.typed.receptionist.Receptionist
-import akka.actor.typed.scaladsl.AskPattern._
-import akka.actor.typed.scaladsl.Behaviors
-import akka.util.Timeout
-import io.scalac.agent.DummyEventsourcedActor.Command
+import _root_.akka.actor.testkit.typed.scaladsl.ScalaTestWithActorTestKit
+import _root_.akka.actor.typed.receptionist.Receptionist
+import _root_.akka.actor.typed.receptionist.Receptionist.Register
+import _root_.akka.util.Timeout
+import io.scalac.`extension`.persistenceService
+import io.scalac.agent.DummyEventSourcedActor.Command
+import io.scalac.extension.event.PersistenceEvent
+import io.scalac.extension.event.PersistenceEvent.{ RecoveryFinished, RecoveryStarted }
 import net.bytebuddy.agent.ByteBuddyAgent
+import net.bytebuddy.agent.builder.AgentBuilder
 import org.scalatest.concurrent.ScalaFutures
-import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.flatspec.AnyFlatSpecLike
 import org.scalatest.matchers.should.Matchers
-import org.scalatest.time.{Minute, Second, Span}
-import org.scalatest.{BeforeAndAfterAll, OptionValues}
+import org.scalatest.time.{ Minute, Second, Span }
+import org.scalatest.{ BeforeAndAfterAll, OptionValues }
 
 import scala.concurrent.duration._
-import scala.util.Try
 class AkkaPersistenceAgentSpec
-    extends AnyFlatSpec
+    extends ScalaTestWithActorTestKit
+    with AnyFlatSpecLike
     with Matchers
     with BeforeAndAfterAll
     with ScalaFutures
     with OptionValues {
-
-  implicit val actorSystem = ActorSystem[Nothing](Behaviors.empty, "AkkaPersistenceAgentSpec")
 
   implicit val askTimeout = Timeout(1.minute)
   override implicit val patienceConfig: PatienceConfig =
@@ -33,22 +34,27 @@ class AkkaPersistenceAgentSpec
   Receptionist
 
   "AkkaPersistenceAgent" should "intercept recovery time and store it in the agent state" in {
-    val id    = UUID.randomUUID()
-    val actor = actorSystem.systemActorOf(DummyEventsourcedActor(id), id.toString)
-    actor.ask(Command).futureValue
 
-    val measurement = Try(AkkaPersistenceAgentState.recoveryMeasurements.get(s"/system/$id")).toOption
-    (measurement.value > 0L) shouldBe true
+    val id      = UUID.randomUUID()
+    val monitor = createTestProbe[PersistenceEvent]
+    Receptionist(system).ref ! Register(persistenceService, monitor.ref)
+
+    val actor = system.systemActorOf(DummyEventSourcedActor(id), id.toString)
+
+    actor ! Command
+
+    monitor.expectMessageType[RecoveryStarted]
+    monitor.expectMessageType[RecoveryFinished]
   }
 
   override protected def beforeAll(): Unit = {
     super.beforeAll()
-    val agent = ByteBuddyAgent.install()
-    AkkaPersistenceAgent.install(agent)
-  }
+    val instrumentation = ByteBuddyAgent.install()
 
-  override protected def afterAll(): Unit = {
-    actorSystem.terminate()
-    super.afterAll()
+    val builder = new AgentBuilder.Default()
+
+    val modules = Map(AkkaPersistenceAgent.moduleName -> AkkaPersistenceAgent.defaultVersion)
+
+    AkkaPersistenceAgent.agent.installOn(builder, instrumentation, modules)
   }
 }

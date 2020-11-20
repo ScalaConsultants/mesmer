@@ -17,7 +17,7 @@ object RecoveryStartedInterceptor {
     @Advice.AllArguments parameters: Array[Object],
     @Advice.This thiz: Object
   ): Unit = {
-    System.out.println("Recovery startup intercepted. Method: " + method + ", This: " + thiz)
+    println("Recovery startup intercepted. Method: " + method + ", This: " + thiz)
     val context = parameters(0).asInstanceOf[ActorContext[_]]
     EventBus(context.system).publishEvent(RecoveryStarted(context.self.path, System.currentTimeMillis()))
   }
