@@ -64,11 +64,11 @@ class OpenTelemetryHttpMetricsMonitor(
     .setDescription("Amount of requests")
     .build()
 
-  override def bind(path: Path, method: Method): HttpMetricMonitor.BoundMonitor = new BoundMonitor {
+  override def bind(node: Node, path: Path, method: Method): HttpMetricMonitor.BoundMonitor = new BoundMonitor {
     override val requestTime: MetricRecorder[Long] =
-      requestTimeRequest.bind(Labels.of("path", path, "method", method)).toMetricRecorder()
+      requestTimeRequest.bind(Labels.of("node", node, "path", path, "method", method)).toMetricRecorder()
 
     override val requestCounter: Counter[Long] =
-      requestUpDownCounter.bind(Labels.of("path", path, "method", method)).toCounter()
+      requestUpDownCounter.bind(Labels.of("node", node, "path", path, "method", method)).toCounter()
   }
 }

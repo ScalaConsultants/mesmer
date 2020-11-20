@@ -10,7 +10,7 @@ object PersistenceMetricMonitor {
 trait PersistenceMetricMonitor {
   import PersistenceMetricMonitor._
 
-  def bind(path: Path): BoundMonitor
+  def bind(node: Node, path: Path): BoundMonitor
 
 
 }

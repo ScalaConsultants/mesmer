@@ -10,5 +10,5 @@ object HttpMetricMonitor {
 }
 trait HttpMetricMonitor {
   import HttpMetricMonitor._
-  def bind(node: Path, method: Method): BoundMonitor
+  def bind(node: Node, path: Path, method: Method): BoundMonitor
 }

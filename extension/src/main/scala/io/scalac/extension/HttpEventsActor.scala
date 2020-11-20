@@ -4,11 +4,12 @@ import akka.actor.typed.Behavior
 import akka.actor.typed.receptionist.Receptionist
 import akka.actor.typed.receptionist.Receptionist.Register
 import akka.actor.typed.scaladsl.Behaviors
+import akka.cluster.typed.Cluster
 import io.scalac.extension.event.HttpEvent
 import io.scalac.extension.event.HttpEvent._
 import io.scalac.extension.metric.HttpMetricMonitor
 import io.scalac.extension.metric.HttpMetricMonitor.BoundMonitor
-import io.scalac.extension.model.{ Method, Path }
+import io.scalac.extension.model._
 
 object HttpEventsActor {
 
@@ -25,6 +26,8 @@ object HttpEventsActor {
 
     Receptionist(ctx.system).ref ! Register(httpService, ctx.messageAdapter(HttpEventWrapper.apply))
 
+    val selfNodeAddress = Cluster(ctx.system).selfMember.uniqueAddress.toNode
+
     def monitorHttp(
       inFlightRequest: Map[String, RequestStarted],
       cachedMonitors: Map[Key, BoundMonitor]
@@ -33,12 +36,12 @@ object HttpEventsActor {
         cachedMonitors
           .get(key)
           .fold {
-            val newBoundMonitor = httpMetricMonitor.bind(key.path, key.method)
+            val newBoundMonitor = httpMetricMonitor.bind(selfNodeAddress, key.path, key.method)
             (newBoundMonitor, cachedMonitors + (key -> newBoundMonitor))
           }(boundMonitor => (boundMonitor, cachedMonitors))
       Behaviors.receiveMessage {
         case HttpEventWrapper(started @ RequestStarted(id, _, path, method)) => {
-          val (monitor, allMonitors) = getOrCreate(Key(path, method))
+          val (monitor, allMonitors) = getOrCreate(Key("", method))
           monitor.requestCounter.incValue(1L)
 
           monitorHttp(inFlightRequest + (id -> started), allMonitors)
@@ -51,7 +54,7 @@ object HttpEventsActor {
               Behaviors.same[Event]
             } { started =>
               val requestDuration = timestamp - started.timestamp
-              val monitorBoundary = Key(started.path, started.method)
+              val monitorBoundary = Key("", started.method)
 
               val (monitor, allMonitors) = getOrCreate(monitorBoundary)
               monitor.requestTime.setValue(requestDuration)

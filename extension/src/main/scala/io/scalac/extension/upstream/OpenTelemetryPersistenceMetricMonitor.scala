@@ -50,10 +50,10 @@ class OpenTelemetryPersistenceMetricMonitor(instrumentationName: String, metricN
     .setDescription("Amount of time needed for entity recovery")
     .build()
 
-  override def bind(path: Path): BoundMonitor =
+  override def bind(node: Node, path: Path): BoundMonitor =
     new BoundMonitor {
 
       override lazy val recoveryTime: MetricRecorder[Long] =
-        recoveryTimeRecorder.bind(Labels.of("path", path)).toMetricRecorder()
+        recoveryTimeRecorder.bind(Labels.of("node", node, "path", path)).toMetricRecorder()
     }
 }

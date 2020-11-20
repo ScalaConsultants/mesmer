@@ -5,9 +5,11 @@ import akka.actor.typed.Behavior
 import akka.actor.typed.receptionist.Receptionist
 import akka.actor.typed.receptionist.Receptionist.Register
 import akka.actor.typed.scaladsl.Behaviors
+import akka.cluster.typed.Cluster
 import io.scalac.extension.event.PersistenceEvent
 import io.scalac.extension.event.PersistenceEvent._
 import io.scalac.extension.metric.PersistenceMetricMonitor
+import io.scalac.extension.model._
 
 import scala.language.postfixOps
 
@@ -24,8 +26,10 @@ object PersistenceEventsListener {
       import Event._
       Receptionist(ctx.system).ref ! Register(persistenceService, ctx.messageAdapter(PersistentEventWrapper.apply))
 
+      val selfNodeAddress = Cluster(ctx.system).selfMember.uniqueAddress.toNode
+
       val recoveryTimeMetrics = entities
-        .map(name => name -> monitor.bind(name))
+        .map(name => name -> monitor.bind(selfNodeAddress, name))
         .toMap
 
       def watchRecovery(inFlightRecoveries: Map[ActorPath, RecoveryStarted]): Behavior[Event] =

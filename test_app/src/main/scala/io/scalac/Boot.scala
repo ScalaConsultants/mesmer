@@ -85,14 +85,20 @@ object Boot extends App with FailFastCirceSupport with JsonCodecs {
 
   val binding =
     accountRepository.createTableIfNotExists.flatMap { _ =>
-      implicit val classicSystem = system.toClassic
-      implicit val materializer = ActorMaterializer()
+//      implicit val classicSystem = system.toClassic
+//      implicit val materializer = ActorMaterializer()
 
       val host = config.getString("app.host")
 
       val port = config.getInt("app.port")
       logger.info(s"Starting http server at $host:$port")
-      Http().bindAndHandle(accountRoutes.routes, host, port)
+//      Http().bindAndHandle(accountRoutes.routes, host, port)
+
+      Http()
+        .newServerAt("localhost", 8080)
+        .bind(accountRoutes.routes)
+
+
     }
 
   StdIn.readLine()
