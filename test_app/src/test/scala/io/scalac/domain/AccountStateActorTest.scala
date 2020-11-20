@@ -4,7 +4,7 @@ import java.util.UUID
 
 import akka.actor.testkit.typed.scaladsl.{ ActorTestKit, ScalaTestWithActorTestKit, TestProbe }
 import akka.persistence.testkit.PersistenceTestKitPlugin
-import akka.persistence.testkit.scaladsl.{ EventSourcedBehaviorTestKit, PersistenceTestKit }
+import akka.persistence.testkit.scaladsl.PersistenceTestKit
 import org.scalatest.flatspec.AnyFlatSpecLike
 import org.scalatest.matchers.should.Matchers
 
@@ -13,13 +13,11 @@ import scala.language.postfixOps
 import scala.util.Random
 
 object AccountStateActorTest {
-  val config = EventSourcedBehaviorTestKit.config.withFallback(ActorTestKit.ApplicationTestConfig)
-
-  val config2 = PersistenceTestKitPlugin.config.withFallback(ActorTestKit.ApplicationTestConfig)
+  val config = PersistenceTestKitPlugin.config.withFallback(ActorTestKit.ApplicationTestConfig)
 }
 
 class AccountStateActorTest
-    extends ScalaTestWithActorTestKit(AccountStateActorTest.config2)
+    extends ScalaTestWithActorTestKit(AccountStateActorTest.config)
     with AnyFlatSpecLike
     with Matchers {
 
@@ -67,7 +65,8 @@ class AccountStateActorTest
     case (uuid, probe) =>
       val accountState = testKit.spawn(AccountStateActor.apply(uuid))
 
-      val deposits = List.fill(10)(Random.nextInt(100)).map(_.toDouble)
+      // don't allow it to be zero
+      val deposits = List.fill(10)(Random.nextInt(100) + 1).map(_.toDouble)
 
       for {
         value <- deposits
@@ -85,7 +84,7 @@ class AccountStateActorTest
     case (uuid, probe) =>
       val accountState = testKit.spawn(AccountStateActor.apply(uuid))
 
-      val deposits = List.fill(10)(Random.nextInt(100)).map(_.toDouble)
+      val deposits = List.fill(10)(Random.nextInt(100) + 1).map(_.toDouble)
 
       val withdraws = Random.shuffle(deposits).tail
 
