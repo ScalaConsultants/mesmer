@@ -36,7 +36,7 @@ object AkkaHttpAgent {
         None
     }
 
-  private val routeAgent = Agent { (agentBuilder, instrumentation, modules) =>
+  private val routeAgent = Agent { (agentBuilder, instrumentation, _) =>
     agentBuilder
       .`type`(
         ElementMatchers.nameEndsWithIgnoreCase[TypeDescription](

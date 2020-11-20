@@ -1,4 +1,4 @@
-package io.scalac.agent
+package io.scalac.agent.akka.persistence
 
 import java.util.UUID
 
@@ -7,7 +7,8 @@ import _root_.akka.actor.typed.receptionist.Receptionist
 import _root_.akka.actor.typed.receptionist.Receptionist.Register
 import _root_.akka.util.Timeout
 import io.scalac.`extension`.persistenceService
-import io.scalac.agent.DummyEventSourcedActor.Command
+import io.scalac.agent.utils.DummyEventSourcedActor
+import io.scalac.agent.utils.DummyEventSourcedActor.Command
 import io.scalac.extension.event.PersistenceEvent
 import io.scalac.extension.event.PersistenceEvent.{ RecoveryFinished, RecoveryStarted }
 import net.bytebuddy.agent.ByteBuddyAgent
@@ -30,8 +31,6 @@ class AkkaPersistenceAgentSpec
   implicit val askTimeout = Timeout(1.minute)
   override implicit val patienceConfig: PatienceConfig =
     PatienceConfig(scaled(Span(1, Minute)), scaled(Span(1, Second)))
-
-  Receptionist
 
   "AkkaPersistenceAgent" should "intercept recovery time and store it in the agent state" in {
 

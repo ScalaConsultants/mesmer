@@ -1,4 +1,4 @@
-package io.scalac.agent
+package io.scalac.agent.akka.persistence
 
 import java.lang.reflect.Method
 

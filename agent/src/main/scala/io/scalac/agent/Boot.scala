@@ -3,6 +3,7 @@ package io.scalac.agent
 import java.lang.instrument.Instrumentation
 
 import io.scalac.agent.akka.http.AkkaHttpAgent
+import io.scalac.agent.akka.persistence.AkkaPersistenceAgent
 import io.scalac.agent.util.ModuleInfo
 import net.bytebuddy.ByteBuddy
 import net.bytebuddy.agent.builder.AgentBuilder

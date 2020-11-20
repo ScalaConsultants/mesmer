@@ -1,15 +1,16 @@
-package io.scalac.agent
+package io.scalac.agent.akka.persistence
 
+import io.scalac.agent.Agent
 import net.bytebuddy.asm.Advice
 import net.bytebuddy.description.`type`.TypeDescription
 import net.bytebuddy.description.method.MethodDescription
-import net.bytebuddy.matcher.ElementMatchers._
+import net.bytebuddy.matcher.ElementMatchers.{ isMethod, named }
 
 object AkkaPersistenceAgent {
 
-  val defaultVersion = "2.6.8"
+  val defaultVersion    = "2.6.8"
   val supportedVersions = Seq(defaultVersion)
-  val moduleName = "akka-persistence-typed"
+  val moduleName        = "akka-persistence-typed"
 
   private val recoveryStartedAgent = Agent { (agentBuilder, instrumentation, modules) =>
     agentBuilder
