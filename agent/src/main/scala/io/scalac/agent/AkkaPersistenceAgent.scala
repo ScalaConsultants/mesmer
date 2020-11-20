@@ -7,7 +7,7 @@ import net.bytebuddy.matcher.ElementMatchers._
 
 object AkkaPersistenceAgent {
 
-  private val recoveryStartedAgent = Agent { (agentBuilder, instrumentation) =>
+  private val recoveryStartedAgent = Agent { (agentBuilder, instrumentation, modules) =>
     agentBuilder
       .`type`(named[TypeDescription]("akka.persistence.typed.internal.ReplayingSnapshot"))
       .transform {
@@ -20,7 +20,7 @@ object AkkaPersistenceAgent {
     List("akka.persistence.typed.internal.ReplayingSnapshot")
   }
 
-  private val recoveryCompletedAgent = Agent { (agentBuilder, instrumentation) =>
+  private val recoveryCompletedAgent = Agent { (agentBuilder, instrumentation, modules) =>
     agentBuilder
       .`type`(named[TypeDescription]("akka.persistence.typed.internal.ReplayingEvents"))
       .transform {

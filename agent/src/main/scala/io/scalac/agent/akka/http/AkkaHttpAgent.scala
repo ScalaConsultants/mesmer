@@ -4,7 +4,7 @@ import java.lang.instrument.Instrumentation
 import java.net.URLClassLoader
 
 import io.scalac.agent.Agent
-import io.scalac.agent.util.ModuleInfo
+import io.scalac.agent.util.ModuleInfo.Modules
 import net.bytebuddy.agent.builder.AgentBuilder
 import net.bytebuddy.description.`type`.TypeDescription
 import net.bytebuddy.description.method.MethodDescription
@@ -15,7 +15,9 @@ import net.bytebuddy.matcher.ElementMatchers._
 object AkkaHttpAgent {
 
   // @ToDo tests all supported versions
-  private val supportedVersions = Seq("10.1.8", "10.2.0")
+  private val defaultVersion    = "10.2.0"
+  private val supportedVersions = Seq(defaultVersion, "10.1.8")
+  private val moduleName        = "akka-http"
 
   val akkaHttpRegex = "^akka-http_(.+?)-(.+?)\\.jar$".r
 
@@ -34,7 +36,7 @@ object AkkaHttpAgent {
         None
     }
 
-  private val routeAgent = Agent { (agentBuilder: AgentBuilder, instrumentation: Instrumentation) =>
+  private val routeAgent = Agent { (agentBuilder, instrumentation, modules) =>
     agentBuilder
       .`type`(
         ElementMatchers.nameEndsWithIgnoreCase[TypeDescription](
@@ -51,37 +53,38 @@ object AkkaHttpAgent {
           .intercept(MethodDelegation.to(classOf[RouteInstrumentation]))
       }
       .installOn(instrumentation)
-    Nil
+    List("akka.http.scaladsl.server.Route$")
   }
 
-  private val httpAgent = Agent { (agentBuilder: AgentBuilder, instrumentation: Instrumentation) =>
-    @volatile
-    var shouldCheckLibraryVersion = true
-    agentBuilder
-      .`type`(
-        ElementMatchers.nameEndsWithIgnoreCase[TypeDescription](
-          "akka.http.scaladsl.HttpExt"
-        )
-      )
-      .transform { (builder, typeDescription, classLoader, _) =>
-        if (shouldCheckLibraryVersion) {
-          detectAkkaHttpVersion(classLoader).fold {
-            println("Could't detect akka-http version")
-          }(version => println(s"Found akka http version: ${version}"))
-          shouldCheckLibraryVersion = false
-        }
-        typeDescription.getTypeManifestation
-
-        builder
-          .method(
-            (named[MethodDescription]("bindAndHandle")
-              .and(isMethod[MethodDescription])
-              .and(not(isAbstract[MethodDescription])))
-          )
-          .intercept(MethodDelegation.to(classOf[HttpInstrumentation]))
+  private val httpAgent = Agent { (agentBuilder: AgentBuilder, instrumentation: Instrumentation, modules: Modules) =>
+    modules
+      .get(moduleName)
+      .orElse {
+        println(s"No version found for module ${moduleName}, selecting default")
+        Some(defaultVersion)
       }
-      .installOn(instrumentation)
-    Nil
+      .filter(supportedVersions.contains)
+      .fold[List[String]] {
+        println(s"Cannot instrument ${moduleName} - unsupported version found")
+        Nil
+      } { version => //here comes branching
+        agentBuilder
+          .`type`(
+            ElementMatchers.nameEndsWithIgnoreCase[TypeDescription](
+              "akka.http.scaladsl.HttpExt"
+            )
+          )
+          .transform { (builder, typeDescription, classLoader, _) =>
+            builder
+              .method(
+                (named[MethodDescription]("bindAndHandle")
+                  .and(isMethod[MethodDescription])
+                  .and(not(isAbstract[MethodDescription])))
+              )
+              .intercept(MethodDelegation.to(classOf[HttpInstrumentation]))
+          }.installOn(instrumentation)
+        List("akka.http.scaladsl.HttpExt")
+      }
   }
 
   val agent = httpAgent

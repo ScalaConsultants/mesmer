@@ -3,9 +3,9 @@ package io.scalac.agent
 import java.lang.instrument.Instrumentation
 
 import io.scalac.agent.Agent.LoadingResult
+import io.scalac.agent.util.ModuleInfo
+import io.scalac.agent.util.ModuleInfo.Modules
 import net.bytebuddy.agent.builder.AgentBuilder
-
-case class ModuleInformation(moduleId: String, version: String)
 
 object Agent {
   class LoadingResult(val fqns: Seq[String]) { self =>
@@ -25,10 +25,10 @@ object Agent {
   }
 }
 
-final case class Agent(installOn: (AgentBuilder, Instrumentation) => LoadingResult) { self =>
+final case class Agent(installOn: (AgentBuilder, Instrumentation, Modules) => LoadingResult) { self =>
 
   def ++(that: Agent): Agent =
-    Agent { (builder, instrumentation) =>
-      self.installOn(builder, instrumentation) ++ that.installOn(builder, instrumentation)
+    Agent { (builder, instrumentation, moduleInfo) =>
+      self.installOn(builder, instrumentation, moduleInfo) ++ that.installOn(builder, instrumentation, moduleInfo)
     }
 }
