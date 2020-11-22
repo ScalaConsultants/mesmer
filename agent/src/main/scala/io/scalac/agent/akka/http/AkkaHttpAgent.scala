@@ -1,7 +1,6 @@
 package io.scalac.agent.akka.http
 
 import java.lang.instrument.Instrumentation
-import java.net.URLClassLoader
 
 import io.scalac.agent.Agent
 import io.scalac.agent.util.ModuleInfo.Modules
@@ -11,6 +10,7 @@ import net.bytebuddy.description.method.MethodDescription
 import net.bytebuddy.implementation.MethodDelegation
 import net.bytebuddy.matcher.ElementMatchers
 import net.bytebuddy.matcher.ElementMatchers._
+import org.slf4j.LoggerFactory
 
 object AkkaHttpAgent {
 
@@ -19,22 +19,7 @@ object AkkaHttpAgent {
   private val supportedVersions = Seq(defaultVersion, "10.1.8")
   private val moduleName        = "akka-http"
 
-  val akkaHttpRegex = "^akka-http_(.+?)-(.+?)\\.jar$".r
-
-  private def detectAkkaHttpVersion(loader: ClassLoader): Option[String] =
-    loader match {
-      case urLClassLoader: URLClassLoader =>
-        urLClassLoader.getURLs
-          .find(_.getFile.startsWith("akka-http"))
-          .flatMap { url =>
-            url.getFile match {
-              case akkaHttpRegex(_, akkaHttpVersion) => Some(akkaHttpVersion)
-              case _                                 => None
-            }
-          }
-      case _ =>
-        None
-    }
+  private[http] val logger = LoggerFactory.getLogger(AkkaHttpAgent.getClass)
 
   private val routeAgent = Agent { (agentBuilder, instrumentation, _) =>
     agentBuilder
@@ -60,12 +45,17 @@ object AkkaHttpAgent {
     modules
       .get(moduleName)
       .orElse {
-        println(s"No version found for module ${moduleName}, selecting default")
+        logger.warn("No version for {} found, using default ({}}", moduleName, defaultVersion)
         Some(defaultVersion)
       }
       .filter(supportedVersions.contains)
       .fold[List[String]] {
-        println(s"Cannot instrument ${moduleName} - unsupported version found")
+        logger.error(
+          "Cannot instrument {} - unsupported version found. Supported versions: {}.",
+          moduleName,
+          supportedVersions.mkString(", ")
+        )
+
         Nil
       } { version => //here comes branching
         agentBuilder
@@ -82,7 +72,8 @@ object AkkaHttpAgent {
                   .and(not(isAbstract[MethodDescription])))
               )
               .intercept(MethodDelegation.to(classOf[HttpInstrumentation]))
-          }.installOn(instrumentation)
+          }
+          .installOn(instrumentation)
         List("akka.http.scaladsl.HttpExt")
       }
   }
