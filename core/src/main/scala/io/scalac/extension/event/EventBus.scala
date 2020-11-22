@@ -3,25 +3,24 @@ package io.scalac.extension.event
 import java.util.UUID
 
 import akka.actor.typed._
-import akka.actor.typed.receptionist.Receptionist
 import akka.actor.typed.receptionist.Receptionist.Subscribe
+import akka.actor.typed.receptionist.{ Receptionist, ServiceKey }
 import akka.actor.typed.scaladsl.Behaviors
-import akka.stream.scaladsl.{ Sink, Source }
-import akka.stream.{ OverflowStrategy, QueueOfferResult }
 import akka.util.Timeout
+import io.scalac.`extension`.{ httpService, persistenceService }
 
+import scala.collection.mutable.{ Map => MutableMap }
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
 import scala.language.postfixOps
 import scala.reflect.ClassTag
-import scala.util.Success
 
 trait EventBus extends Extension {
-  def publishEvent[T <: MonitoredEvent: ClassTag](event: T)
+  def publishEvent[T <: Event[_]: ClassTag](event: T)
 }
 
 object EventBus extends ExtensionId[EventBus] {
-  final case class Event(timestamp: Long, event: MonitoredEvent)
+  final case class Event(timestamp: Long, event: AbstractEvent)
 
   override def createExtension(system: ActorSystem[_]): EventBus = {
     implicit val s                = system
@@ -34,17 +33,16 @@ object EventBus extends ExtensionId[EventBus] {
 object ReceptionistBasedEventBus {
   private final case class Subscribers(refs: Set[ActorRef[Any]])
 
-  def cachingBehavior(implicit timeout: Timeout): Behavior[MonitoredEvent] = {
+  def cachingBehavior[T](serviceKey: ServiceKey[T])(implicit timeout: Timeout): Behavior[T] = {
 
     def initialize(): Behavior[Any] = Behaviors.receive {
       //first message set up type of the service
-      case (ctx, event: MonitoredEvent) => {
-//        ctx.log.info("Received first event for service type")
-//        val tag = ClassTag[event.Service](classOf[event.Service])
+      case (ctx, event: T) => {
+        ctx.log.error("Received first event for service {}", serviceKey)
         Receptionist(ctx.system).ref ! Subscribe(
-          event.serviceKey,
+          serviceKey,
           ctx.messageAdapter { key =>
-            val set = key.serviceInstances(event.serviceKey).filter(_.path.address.hasLocalScope)
+            val set = key.serviceInstances(serviceKey).filter(_.path.address.hasLocalScope)
             Subscribers(set.asInstanceOf[Set[ActorRef[Any]]])
           }
         )
@@ -54,21 +52,21 @@ object ReceptionistBasedEventBus {
     }
 
     // type safety should be guard by the stream
-    def withCachedServices(services: Set[ActorRef[Any]]): Behavior[Any] =
+    def withCachedServices(services: Set[ActorRef[T]]): Behavior[Any] =
       Behaviors.withStash(1024)(buffer =>
         Behaviors.receive {
           case (ctx, message) =>
             message match {
               case Subscribers(refs) => {
                 ctx.log.info("Subscribers updated")
-                buffer.unstashAll(withCachedServices(services ++ refs))
+                buffer.unstashAll(withCachedServices(services ++ refs.asInstanceOf[Set[ActorRef[T]]]))
               }
-              case event: MonitoredEvent if services.nonEmpty => {
-                services.foreach(_.asInstanceOf[ActorRef[MonitoredEvent]] ! event)
+              case event: T if services.nonEmpty => {
+                services.foreach(_ ! event)
                 Behaviors.same
               }
-              case event: MonitoredEvent => {
-                ctx.log.warn("Recevied event but no services registered for this key")
+              case event: T => {
+                ctx.log.warn("Received event but no services registered for this key")
                 buffer.stash(event)
                 Behaviors.same
               }
@@ -79,8 +77,7 @@ object ReceptionistBasedEventBus {
             }
         }
       )
-
-    initialize().narrow[MonitoredEvent]
+    initialize().narrow[T]
   }
 
 }
@@ -91,23 +88,27 @@ private[event] class ReceptionistBasedEventBus(
   val timeout: Timeout
 ) extends EventBus {
   import ReceptionistBasedEventBus._
-  import system.log
 
-  override def publishEvent[T <: MonitoredEvent: ClassTag](event: T): Unit =
-    internalBus.offer(event).onComplete {
-      case Success(QueueOfferResult.Enqueued) => log.trace("Successfully enqueued event {}", event)
-      case _                                  => log.error("Error occurred when enqueueing event {}", event)
-    }
+  private[this] val eventBuffers = MutableMap.empty[ServiceKey[_], ActorRef[_]]
 
-  private[this] lazy val internalBus = {
-
-    Source
-      .queue[MonitoredEvent](1024, OverflowStrategy.fail)
-      .groupBy(Integer.MAX_VALUE, _.serviceKey)
-      .to(Sink.lazySink { () =>
-        lazy val cachingActor = system.systemActorOf(cachingBehavior, UUID.randomUUID().toString)
-        Sink.foreach(cachingActor ! _)
-      })
-      .run()
+  override def publishEvent[T <: Event[_]: ClassTag](event: T): Unit = event match {
+    case event: PersistenceEvent => dispatchEvent(persistenceService, event)
+    case event: HttpEvent        => dispatchEvent(httpService, event)
   }
+
+  def dispatchEvent[P](serviceKey: ServiceKey[P], event: P): Unit =
+    eventBuffers
+      .get(serviceKey)
+      .orElse(synchronized {
+        eventBuffers
+          .get(serviceKey)
+          .fold[Option[ActorRef[_]]] {
+            system.log.error("Initialize event buffer for service {}", serviceKey)
+            val ref = system.systemActorOf(cachingBehavior(serviceKey), UUID.randomUUID().toString)
+
+            eventBuffers += (serviceKey -> ref)
+            Some(ref)
+          }(ref => Some(ref))
+      })
+      .foreach(ref => ref.asInstanceOf[ActorRef[P]] ! event)
 }
