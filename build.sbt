@@ -85,6 +85,14 @@ lazy val testApp = (project in file("test_app"))
     resolvers += "Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots",
     run / fork := true,
     run / connectInput := true,
+    run / javaOptions ++= {
+        val properties = System.getProperties
+
+      import scala.collection.JavaConverters._
+      (for {
+        (key, value) <- properties.asScala.toList if value.nonEmpty
+      } yield s"-D$key=$value")
+    },
     commands += runWithAgent
   )
   .dependsOn(extension, agent)
