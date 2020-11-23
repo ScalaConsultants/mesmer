@@ -13,7 +13,8 @@ object OpenTelemetryClusterMetricsMonitor {
     entityPerRegion: String,
     shardRegionsOnNode: String,
     reachableNodes: String,
-    unreachableNodes: String
+    unreachableNodes: String,
+    nodeDown: String
   )
 
   object MetricNames {
@@ -23,7 +24,8 @@ object OpenTelemetryClusterMetricsMonitor {
         "entities_per_region",
         "shard_regions_on_node",
         "reachable_nodes",
-        "unreachable_nodes"
+        "unreachable_nodes",
+        "node_down_total"
       )
 
     def fromConfig(config: Config): MetricNames = {
@@ -55,7 +57,11 @@ object OpenTelemetryClusterMetricsMonitor {
             .tryValue("unreachable-nodes")(_.getString)
             .getOrElse(defaultCached.unreachableNodes)
 
-          MetricNames(shards, entities, regions, reachable, unreachable)
+          val down = clusterMetricsConfig
+            .tryValue("node-down")(_.getString)
+            .getOrElse(defaultCached.nodeDown)
+
+          MetricNames(shards, entities, regions, reachable, unreachable, down)
         }
         .getOrElse(defaultCached)
     }
@@ -103,23 +109,31 @@ class OpenTelemetryClusterMetricsMonitor(instrumentationName: String, val metric
       .build()
       .bind(boundLabels)
 
+    val boundNodeDown = meter
+      .longCounterBuilder(metricNames.nodeDown)
+      .setDescription("Counter for node down events")
+      .build()
+      .bind(boundLabels)
+
     import Metric._
 
     new BoundMonitor {
       override val shardPerRegions: MetricRecorder[Long] =
-        boundShardsPerRegionRecorder.toMetricRecorder
+        boundShardsPerRegionRecorder.toMetricRecorder()
 
       override val entityPerRegion: MetricRecorder[Long] =
-        boundEntityPerRegionRecorder.toMetricRecorder
+        boundEntityPerRegionRecorder.toMetricRecorder()
 
       override val reachableNodes: Counter[Long] =
-        boundReachableNodeCounter.toCounter
+        boundReachableNodeCounter.toCounter()
 
       override val unreachableNodes: Counter[Long] =
-        boundUnreachableNodeCounter.toCounter
+        boundUnreachableNodeCounter.toCounter()
 
       override val shardRegionsOnNode: MetricRecorder[Long] =
-        boundRegionsOnNode.toMetricRecorder
+        boundRegionsOnNode.toMetricRecorder()
+
+      override val nodeDown: UpCounter[Long] = boundNodeDown.toUpCounter()
     }
 
   }

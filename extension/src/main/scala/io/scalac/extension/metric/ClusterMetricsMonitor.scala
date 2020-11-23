@@ -9,6 +9,7 @@ object ClusterMetricsMonitor {
     def shardRegionsOnNode: MetricRecorder[Long]
     def reachableNodes: Counter[Long]
     def unreachableNodes: Counter[Long]
+    def nodeDown: UpCounter[Long]
   }
 }
 

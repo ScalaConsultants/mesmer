@@ -4,8 +4,9 @@ import akka.actor.typed.Behavior
 import akka.actor.typed.scaladsl.Behaviors
 import akka.cluster.ClusterEvent.{
   CurrentClusterState,
+  MemberDowned,
   MemberEvent,
-  MemberExited,
+  MemberRemoved,
   MemberUp,
   ReachableMember,
   UnreachableMember,
@@ -124,11 +125,10 @@ object ClusterSelfNodeMetricGatherer {
               ctx.log.info(s"${event.toString}")
 
               event match {
-                case MemberUp(_) => {
-                  monitor.reachableNodes.incValue(1L)
-                }
-                case MemberExited(_) => monitor.reachableNodes.decValue(1L)
-                case _               => // ignore other cases
+                case MemberUp(_)         => monitor.reachableNodes.incValue(1L)
+                case MemberRemoved(_, _) => monitor.reachableNodes.decValue(1L)
+                case MemberDowned(_)     => monitor.nodeDown.incValue(1L)
+                case _                   => // ignore other cases
               }
               Behaviors.same
             }
@@ -197,6 +197,7 @@ object ClusterSelfNodeMetricGatherer {
                 val selfAddress = cluster.selfMember.uniqueAddress
                 val boundMonitor =
                   clusterMetricsMonitor.bind(selfAddress.toNode)
+                boundMonitor.nodeDown.incValue(0L) // to force value to be pushed / pulled
                 timer.cancel(timeoutKey)
                 buffer.unstashAll(initialized(boundMonitor, selfAddress))
               }
