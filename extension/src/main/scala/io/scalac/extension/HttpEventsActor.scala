@@ -9,6 +9,7 @@ import io.scalac.extension.event.HttpEvent._
 import io.scalac.extension.metric.HttpMetricMonitor
 import io.scalac.extension.metric.HttpMetricMonitor.BoundMonitor
 import io.scalac.extension.model.{ Method, Path }
+import io.scalac.extension.service.PathService
 
 object HttpEventsActor {
 
@@ -18,27 +19,31 @@ object HttpEventsActor {
     private[extension] final case class HttpEventWrapper(event: HttpEvent) extends Event
   }
 
-  private case class Key(path: Path, method: Method)
+  private case class MonitorKey(path: Path, method: Method)
 
-  def apply(httpMetricMonitor: HttpMetricMonitor): Behavior[Event] = Behaviors.setup { ctx =>
+  def apply(httpMetricMonitor: HttpMetricMonitor, pathService: PathService): Behavior[Event] = Behaviors.setup { ctx =>
     import Event._
 
     Receptionist(ctx.system).ref ! Register(httpService, ctx.messageAdapter(HttpEventWrapper.apply))
 
+    def createMonitorKey(path: Path, method: Method): MonitorKey = MonitorKey(pathService.template(path), method)
+
     def monitorHttp(
       inFlightRequest: Map[String, RequestStarted],
-      cachedMonitors: Map[Key, BoundMonitor]
+      cachedMonitors: Map[MonitorKey, BoundMonitor]
     ): Behavior[Event] = {
-      def getOrCreate(key: Key): (BoundMonitor, Map[Key, BoundMonitor]) =
+
+      def getOrCreate(key: MonitorKey): (BoundMonitor, Map[MonitorKey, BoundMonitor]) =
         cachedMonitors
           .get(key)
           .fold {
             val newBoundMonitor = httpMetricMonitor.bind(key.path, key.method)
             (newBoundMonitor, cachedMonitors + (key -> newBoundMonitor))
           }(boundMonitor => (boundMonitor, cachedMonitors))
+
       Behaviors.receiveMessage {
         case HttpEventWrapper(started @ RequestStarted(id, _, path, method)) => {
-          val (monitor, allMonitors) = getOrCreate(Key(path, method))
+          val (monitor, allMonitors) = getOrCreate(createMonitorKey(path, method))
           monitor.requestCounter.incValue(1L)
 
           monitorHttp(inFlightRequest + (id -> started), allMonitors)
@@ -51,7 +56,7 @@ object HttpEventsActor {
               Behaviors.same[Event]
             } { started =>
               val requestDuration = timestamp - started.timestamp
-              val monitorBoundary = Key(started.path, started.method)
+              val monitorBoundary = createMonitorKey(started.path, started.method)
 
               val (monitor, allMonitors) = getOrCreate(monitorBoundary)
               monitor.requestTime.setValue(requestDuration)
