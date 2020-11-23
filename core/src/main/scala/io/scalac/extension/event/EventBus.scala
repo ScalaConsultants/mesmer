@@ -7,7 +7,7 @@ import akka.actor.typed.receptionist.Receptionist.Subscribe
 import akka.actor.typed.receptionist.{ Receptionist, ServiceKey }
 import akka.actor.typed.scaladsl.Behaviors
 import akka.util.Timeout
-import io.scalac.extension.util.TypedMap
+import io.scalac.extension.util.MutableTypedMap
 
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
@@ -87,27 +87,15 @@ private[event] class ReceptionistBasedEventBus(
 ) extends EventBus {
   import ReceptionistBasedEventBus._
 
-//  private[this] val eventBuffers = MutableMap.empty[ServiceKey[_], ActorRef[_]]
-
   type ServiceMapFunc[K <: AbstractService] = ActorRef[K#ServiceType]
 
-  private[this] var serviceBuffers = TypedMap[AbstractService, ServiceMapFunc]
-  override def publishEvent[T <: AbstractEvent](event: T)(implicit service: Service[event.Service]): Unit =
-    getOrInitialize(service).foreach(_ ! event)
+  private[this] val serviceBuffers = MutableTypedMap[AbstractService, ServiceMapFunc]
 
-  private def getOrInitialize[P](service: Service[P]): Option[ActorRef[P]] =
-    serviceBuffers
-      .get(service)
-      .orElse(
-        synchronized {
-          serviceBuffers
-            .get(service)
-            .fold {
-              system.log.error("Initialize event buffer for service {}", service.serviceKey)
-              val ref = system.systemActorOf(cachingBehavior(service.serviceKey), UUID.randomUUID().toString)
-              serviceBuffers = serviceBuffers.insert(service)(ref)
-              Some(ref)
-            }(ref => Some(ref))
-        }
-      )
+  override def publishEvent[T <: AbstractEvent](event: T)(implicit service: Service[event.Service]): Unit = {
+    val ref: ActorRef[event.Service] = serviceBuffers.getOrCreate(service) {
+      system.log.error("Initialize event buffer for service {}", service.serviceKey)
+      system.systemActorOf(cachingBehavior(service.serviceKey), UUID.randomUUID().toString)
+    }
+    ref ! event
+  }
 }
