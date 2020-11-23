@@ -31,12 +31,9 @@ object EventBus extends ExtensionId[EventBus] {
 object ReceptionistBasedEventBus {
   private final case class Subscribers(refs: Set[ActorRef[Any]])
 
-  def cachingBehavior[T](serviceKey: ServiceKey[T])(implicit timeout: Timeout): Behavior[T] = {
-
-    def initialize(): Behavior[Any] = Behaviors.receive {
-      //first message set up type of the service
-      case (ctx, event: T) => {
-        ctx.log.error("Received first event for service {}", serviceKey)
+  def cachingBehavior[T](serviceKey: ServiceKey[T])(implicit timeout: Timeout): Behavior[T] =
+    Behaviors
+      .setup[Any] { ctx =>
         Receptionist(ctx.system).ref ! Subscribe(
           serviceKey,
           ctx.messageAdapter { key =>
@@ -44,39 +41,32 @@ object ReceptionistBasedEventBus {
             Subscribers(set.asInstanceOf[Set[ActorRef[Any]]])
           }
         )
-        ctx.self ! event
+
+        def withCachedServices(services: Set[ActorRef[T]]): Behavior[Any] =
+          Behaviors.withStash(1024)(buffer =>
+            Behaviors.receive {
+              case (ctx, message) =>
+                message match {
+                  case Subscribers(refs) => {
+                    ctx.log.info("Subscribers updated")
+                    buffer.unstashAll(withCachedServices(services ++ refs.asInstanceOf[Set[ActorRef[T]]]))
+                  }
+                  case event: T
+                      if services.nonEmpty => { // T is removed on runtime but placing it here make type downcast
+                    services.foreach(_ ! event)
+                    Behaviors.same
+                  }
+                  case event => {
+                    ctx.log.warn("Received event but no services registered for this key")
+                    buffer.stash(event)
+                    Behaviors.same
+                  }
+                }
+            }
+          )
         withCachedServices(Set.empty)
       }
-    }
-
-    // type safety should be guard by the stream
-    def withCachedServices(services: Set[ActorRef[T]]): Behavior[Any] =
-      Behaviors.withStash(1024)(buffer =>
-        Behaviors.receive {
-          case (ctx, message) =>
-            message match {
-              case Subscribers(refs) => {
-                ctx.log.info("Subscribers updated")
-                buffer.unstashAll(withCachedServices(services ++ refs.asInstanceOf[Set[ActorRef[T]]]))
-              }
-              case event: T if services.nonEmpty => {
-                services.foreach(_ ! event)
-                Behaviors.same
-              }
-              case event: T => {
-                ctx.log.warn("Received event but no services registered for this key")
-                buffer.stash(event)
-                Behaviors.same
-              }
-              case _ => {
-                ctx.log.warn("Unhandled message")
-                Behaviors.unhandled
-              }
-            }
-        }
-      )
-    initialize().narrow[T]
-  }
+      .narrow[T]
 
 }
 
