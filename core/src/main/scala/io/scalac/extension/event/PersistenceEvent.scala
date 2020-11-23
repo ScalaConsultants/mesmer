@@ -1,26 +1,21 @@
 package io.scalac.extension.event
 
 import akka.actor.ActorPath
-import akka.actor.typed.receptionist.ServiceKey
-import io.scalac.`extension`._
 
 sealed trait AbstractEvent { self =>
-  type Service
+  type Service >: self.type
 }
 
-sealed trait Event[T] extends AbstractEvent {
-  type Service <: T
+sealed trait PersistenceEvent extends AbstractEvent { self =>
+  override type Service = PersistenceEvent
 }
-
-
-sealed trait PersistenceEvent extends Event[PersistenceEvent]
 
 object PersistenceEvent {
   case class RecoveryStarted(path: ActorPath, timestamp: Long)  extends PersistenceEvent
   case class RecoveryFinished(path: ActorPath, timestamp: Long) extends PersistenceEvent
 }
 
-sealed trait HttpEvent extends Event[HttpEvent] {
+sealed trait HttpEvent extends AbstractEvent {
   override type Service = HttpEvent
 }
 

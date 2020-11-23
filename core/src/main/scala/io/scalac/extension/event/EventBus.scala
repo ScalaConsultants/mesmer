@@ -7,16 +7,14 @@ import akka.actor.typed.receptionist.Receptionist.Subscribe
 import akka.actor.typed.receptionist.{ Receptionist, ServiceKey }
 import akka.actor.typed.scaladsl.Behaviors
 import akka.util.Timeout
-import io.scalac.`extension`.{ httpService, persistenceService }
+import io.scalac.extension.util.TypedMap
 
-import scala.collection.mutable.{ Map => MutableMap }
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
 import scala.language.postfixOps
-import scala.reflect.ClassTag
 
 trait EventBus extends Extension {
-  def publishEvent[T <: Event[_]: ClassTag](event: T)
+  def publishEvent[T <: AbstractEvent](event: T)(implicit serivce: Service[event.Service]): Unit
 }
 
 object EventBus extends ExtensionId[EventBus] {
@@ -89,26 +87,27 @@ private[event] class ReceptionistBasedEventBus(
 ) extends EventBus {
   import ReceptionistBasedEventBus._
 
-  private[this] val eventBuffers = MutableMap.empty[ServiceKey[_], ActorRef[_]]
+//  private[this] val eventBuffers = MutableMap.empty[ServiceKey[_], ActorRef[_]]
 
-  override def publishEvent[T <: Event[_]: ClassTag](event: T): Unit = event match {
-    case event: PersistenceEvent => dispatchEvent(persistenceService, event)
-    case event: HttpEvent        => dispatchEvent(httpService, event)
-  }
+  type ServiceMapFunc[K <: AbstractService] = ActorRef[K#ServiceType]
 
-  def dispatchEvent[P](serviceKey: ServiceKey[P], event: P): Unit =
-    eventBuffers
-      .get(serviceKey)
-      .orElse(synchronized {
-        eventBuffers
-          .get(serviceKey)
-          .fold[Option[ActorRef[_]]] {
-            system.log.error("Initialize event buffer for service {}", serviceKey)
-            val ref = system.systemActorOf(cachingBehavior(serviceKey), UUID.randomUUID().toString)
+  private[this] var serviceBuffers = TypedMap[AbstractService, ServiceMapFunc]
+  override def publishEvent[T <: AbstractEvent](event: T)(implicit service: Service[event.Service]): Unit =
+    getOrInitialize(service).foreach(_ ! event)
 
-            eventBuffers += (serviceKey -> ref)
-            Some(ref)
-          }(ref => Some(ref))
-      })
-      .foreach(ref => ref.asInstanceOf[ActorRef[P]] ! event)
+  private def getOrInitialize[P](service: Service[P]): Option[ActorRef[P]] =
+    serviceBuffers
+      .get(service)
+      .orElse(
+        synchronized {
+          serviceBuffers
+            .get(service)
+            .fold {
+              system.log.error("Initialize event buffer for service {}", service.serviceKey)
+              val ref = system.systemActorOf(cachingBehavior(service.serviceKey), UUID.randomUUID().toString)
+              serviceBuffers = serviceBuffers.insert(service)(ref)
+              Some(ref)
+            }(ref => Some(ref))
+        }
+      )
 }
