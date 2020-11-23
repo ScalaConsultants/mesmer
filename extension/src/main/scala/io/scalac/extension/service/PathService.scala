@@ -7,8 +7,8 @@ trait PathService {
 }
 
 class CommonRegexPathService extends PathService {
-  private val uuid   = """[\da-fA-F]{8}-[\da-fA-F]{4}-[\da-fA-F]{4}-[\da-fA-F]{4}-[\da-fA-F]{12}""".r
-  private val number = """[+-]?\d+\.?\d*""".r
+  private val uuid   = """^[\da-fA-F]{8}-[\da-fA-F]{4}-[\da-fA-F]{4}-[\da-fA-F]{4}-[\da-fA-F]{12}$""".r
+  private val number = """^[+-]?\d+\.?\d*$""".r
 
   private val detectionChain = List((number, "<num>"), (uuid, "<uuid>"))
 
