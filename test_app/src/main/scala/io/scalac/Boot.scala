@@ -42,7 +42,7 @@ object Boot extends App with FailFastCirceSupport with JsonCodecs {
           ConfigValueFactory
             .fromMap(Map("host" -> "localhost", "port" -> 8080).asJava)
         )
-    )
+    ).resolve
 
   val accountRepository = new PostgresAccountRepository(
     Database.forConfig("db", config)
