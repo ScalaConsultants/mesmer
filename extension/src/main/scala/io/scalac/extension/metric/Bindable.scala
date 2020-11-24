@@ -6,3 +6,7 @@ trait Bindable[L] {
 
   def bind(lables: L): Bound
 }
+
+object Bindable {
+  type Aux[L, B0] = Bindable[L] { type Bound = B0 }
+}
