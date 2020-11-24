@@ -4,7 +4,7 @@ import com.typesafe.config.Config
 import io.opentelemetry.OpenTelemetry
 import io.opentelemetry.common.Labels
 import io.scalac.extension.metric.Metric._
-import io.scalac.extension.metric.{ Counter, HttpMetricMonitor, MetricRecorder }
+import io.scalac.extension.metric.{ HttpMetricMonitor, MetricRecorder, UpCounter }
 import io.scalac.extension.model._
 
 object OpenTelemetryHttpMetricsMonitor {
@@ -60,7 +60,7 @@ class OpenTelemetryHttpMetricsMonitor(
 
   private val requestUpDownCounter = OpenTelemetry
     .getMeter(instrumentationName)
-    .longUpDownCounterBuilder(metricNames.requestTotal)
+    .longCounterBuilder(metricNames.requestTotal)
     .setDescription("Amount of requests")
     .build()
 
@@ -68,7 +68,7 @@ class OpenTelemetryHttpMetricsMonitor(
     override val requestTime: MetricRecorder[Long] =
       requestTimeRequest.bind(Labels.of("path", path, "method", method)).toMetricRecorder()
 
-    override val requestCounter: Counter[Long] =
-      requestUpDownCounter.bind(Labels.of("path", path, "method", method)).toCounter()
+    override val requestCounter: UpCounter[Long] =
+      requestUpDownCounter.bind(Labels.of("path", path, "method", method)).toUpCounter()
   }
 }
