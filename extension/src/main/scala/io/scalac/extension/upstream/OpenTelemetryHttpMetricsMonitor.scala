@@ -2,10 +2,8 @@ package io.scalac.extension.upstream
 
 import com.typesafe.config.Config
 import io.opentelemetry.OpenTelemetry
-import io.opentelemetry.common.Labels
 import io.scalac.extension.metric.Metric._
 import io.scalac.extension.metric.{ HttpMetricMonitor, MetricRecorder, UpCounter }
-import io.scalac.extension.model._
 
 object OpenTelemetryHttpMetricsMonitor {
   case class MetricNames(
@@ -50,7 +48,7 @@ class OpenTelemetryHttpMetricsMonitor(
   instrumentationName: String,
   metricNames: OpenTelemetryHttpMetricsMonitor.MetricNames
 ) extends HttpMetricMonitor {
-  import HttpMetricMonitor.BoundMonitor
+  import HttpMetricMonitor.{ BoundMonitor, _ }
 
   private val requestTimeRequest = OpenTelemetry
     .getMeter(instrumentationName)
@@ -64,11 +62,11 @@ class OpenTelemetryHttpMetricsMonitor(
     .setDescription("Amount of requests")
     .build()
 
-  override def bind(path: Path, method: Method): HttpMetricMonitor.BoundMonitor = new BoundMonitor {
+  override def bind(labels: Labels): HttpMetricMonitor.BoundMonitor = new BoundMonitor {
     override val requestTime: MetricRecorder[Long] =
-      requestTimeRequest.bind(Labels.of("path", path, "method", method)).toMetricRecorder()
+      requestTimeRequest.bind(labels.toOpenTelemetry).toMetricRecorder()
 
     override val requestCounter: UpCounter[Long] =
-      requestUpDownCounter.bind(Labels.of("path", path, "method", method)).toUpCounter()
+      requestUpDownCounter.bind(labels.toOpenTelemetry).toUpCounter()
   }
 }

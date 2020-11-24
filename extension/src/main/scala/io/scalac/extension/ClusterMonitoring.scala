@@ -75,7 +75,7 @@ class ClusterMonitoring(private val system: ActorSystem[_], val config: ClusterM
             .init(
               SingletonActor(
                 Behaviors
-                  .supervise(ListeningActor(newRelicEventStream))
+                  .supervise(ClusterEventsMonitor(newRelicEventStream))
                   .onFailure[Exception](SupervisorStrategy.restart),
                 "MemberMonitoringActor"
               )

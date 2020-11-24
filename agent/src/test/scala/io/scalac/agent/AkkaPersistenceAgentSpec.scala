@@ -2,11 +2,11 @@ package io.scalac.agent
 
 import java.util.UUID
 
-import akka.actor.typed.ActorSystem
-import akka.actor.typed.receptionist.Receptionist
-import akka.actor.typed.scaladsl.AskPattern._
-import akka.actor.typed.scaladsl.Behaviors
-import akka.util.Timeout
+import _root_.akka.actor.typed.ActorSystem
+import _root_.akka.actor.typed.receptionist.Receptionist
+import _root_.akka.actor.typed.scaladsl.AskPattern._
+import _root_.akka.actor.typed.scaladsl.Behaviors
+import _root_.akka.util.Timeout
 import io.scalac.agent.DummyEventsourcedActor.Command
 import net.bytebuddy.agent.ByteBuddyAgent
 import org.scalatest.concurrent.ScalaFutures
@@ -44,7 +44,7 @@ class AkkaPersistenceAgentSpec
   override protected def beforeAll(): Unit = {
     super.beforeAll()
     val agent = ByteBuddyAgent.install()
-    AkkaPersistenceAgent.install(agent)
+//    AkkaPersistenceAgent.install(agent)
   }
 
   override protected def afterAll(): Unit = {

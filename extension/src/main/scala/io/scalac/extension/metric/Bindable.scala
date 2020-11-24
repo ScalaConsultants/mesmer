@@ -1,8 +1,8 @@
 package io.scalac.extension.metric
 
-trait Bindable[T] {
+trait Bindable[L] {
 
   type Bound
 
-  def bind(node: T): Bound
+  def bind(lables: L): Bound
 }

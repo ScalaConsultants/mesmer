@@ -10,7 +10,7 @@ import io.scalac.extension.upstream.EventStream
 
 import scala.util.{Failure, Success}
 
-object ListeningActor {
+object ClusterEventsMonitor {
 
   sealed trait Command
 

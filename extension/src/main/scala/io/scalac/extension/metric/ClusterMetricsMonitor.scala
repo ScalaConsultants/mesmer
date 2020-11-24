@@ -13,8 +13,7 @@ object ClusterMetricsMonitor {
   }
 }
 
-trait ClusterMetricsMonitor {
+trait ClusterMetricsMonitor extends Bindable[Node] {
   import ClusterMetricsMonitor._
-
-  def bind(node: Node): BoundMonitor
+  override type Bound = BoundMonitor
 }
