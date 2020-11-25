@@ -2,10 +2,15 @@ package io.scalac.extension
 
 import akka.actor.CoordinatedShutdown
 import akka.actor.typed.scaladsl.Behaviors
-import akka.actor.typed.{ActorSystem, Extension, ExtensionId, SupervisorStrategy}
-import akka.cluster.typed.{ClusterSingleton, SingletonActor}
+import akka.actor.typed.{ ActorSystem, Extension, ExtensionId, SupervisorStrategy }
+import akka.cluster.typed.{ ClusterSingleton, SingletonActor }
 import io.scalac.extension.config.ClusterMonitoringConfig
-import io.scalac.extension.upstream.{NewRelicEventStream, OpenTelemetryClusterMetricsMonitor, OpenTelemetryHttpMetricsMonitor, OpenTelemetryPersistenceMetricMonitor}
+import io.scalac.extension.upstream.{
+  NewRelicEventStream,
+  OpenTelemetryClusterMetricsMonitor,
+  OpenTelemetryHttpMetricsMonitor,
+  OpenTelemetryPersistenceMetricMonitor
+}
 
 import scala.concurrent.duration._
 
@@ -32,15 +37,14 @@ class ClusterMonitoring(private val system: ActorSystem[_], val config: ClusterM
   private val instrumentationName = "scalac_akka_metrics"
   private val actorSystemConfig   = system.settings.config
   import system.log
+  private lazy val openTelemetryClusterMetricsMonitor =
+    OpenTelemetryClusterMetricsMonitor(
+      instrumentationName,
+      actorSystemConfig
+    )
 
   def startMemberMonitor(): Unit = {
     log.info("Starting member monitor")
-
-    val openTelemetryClusterMetricsMonitor =
-      OpenTelemetryClusterMetricsMonitor(
-        instrumentationName,
-        actorSystemConfig
-      )
 
     system.systemActorOf(
       Behaviors
@@ -75,7 +79,7 @@ class ClusterMonitoring(private val system: ActorSystem[_], val config: ClusterM
             .init(
               SingletonActor(
                 Behaviors
-                  .supervise(ClusterEventsMonitor(newRelicEventStream))
+                  .supervise(ClusterEventsMonitor(openTelemetryClusterMetricsMonitor))
                   .onFailure[Exception](SupervisorStrategy.restart),
                 "MemberMonitoringActor"
               )
@@ -93,8 +97,6 @@ class ClusterMonitoring(private val system: ActorSystem[_], val config: ClusterM
     log.info("Starting local agent listener")
 
     val openTelemetryPersistenceMonitor = OpenTelemetryPersistenceMetricMonitor(instrumentationName, actorSystemConfig)
-
-
 
     system.systemActorOf(
       Behaviors

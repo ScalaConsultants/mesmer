@@ -127,7 +127,6 @@ object ClusterSelfNodeMetricGatherer {
               event match {
                 case MemberUp(_)         => monitor.reachableNodes.incValue(1L)
                 case MemberRemoved(_, _) => monitor.reachableNodes.decValue(1L)
-                case MemberDowned(_)     => monitor.nodeDown.incValue(1L)
                 case _                   => // ignore other cases
               }
               Behaviors.same
@@ -197,7 +196,6 @@ object ClusterSelfNodeMetricGatherer {
                 val selfAddress = cluster.selfMember.uniqueAddress
                 val boundMonitor =
                   clusterMetricsMonitor.bind(selfAddress.toNode)
-                boundMonitor.nodeDown.incValue(0L) // to force value to be pushed / pulled
                 timer.cancel(timeoutKey)
                 buffer.unstashAll(initialized(boundMonitor, selfAddress))
               }

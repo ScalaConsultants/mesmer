@@ -9,11 +9,13 @@ import akka.actor.typed.scaladsl.Behaviors
 import akka.actor.typed.scaladsl.adapter._
 import akka.cluster.sharding.typed.scaladsl.{ClusterSharding, Entity, EntityTypeKey}
 import akka.http.scaladsl.Http
+import akka.management.scaladsl.AkkaManagement
 import akka.stream.ActorMaterializer
 import akka.util.Timeout
 import com.newrelic.telemetry.Attributes
 import com.newrelic.telemetry.opentelemetry.`export`.{NewRelicExporters, NewRelicMetricExporter}
 import com.typesafe.config.{ConfigFactory, ConfigValueFactory}
+import com.zaxxer.hikari.metrics.prometheus.PrometheusMetricsTrackerFactory
 import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport
 import io.opentelemetry.sdk.OpenTelemetrySdk
 import io.opentelemetry.sdk.metrics.`export`.IntervalMetricReader
@@ -27,6 +29,7 @@ import scala.collection.JavaConverters._
 import scala.concurrent.duration._
 import scala.io.StdIn
 import scala.language.postfixOps
+import scala.util.{Failure, Success}
 
 object Boot extends App with FailFastCirceSupport with JsonCodecs {
 
@@ -42,7 +45,8 @@ object Boot extends App with FailFastCirceSupport with JsonCodecs {
           ConfigValueFactory
             .fromMap(Map("host" -> "localhost", "port" -> 8080).asJava)
         )
-    ).resolve
+    )
+    .resolve
 
   val accountRepository = new PostgresAccountRepository(
     Database.forConfig("db", config)
@@ -56,7 +60,7 @@ object Boot extends App with FailFastCirceSupport with JsonCodecs {
     .commonAttributes(new Attributes().put("service.name", "test_app"))
     .uriOverride(URI.create("https://metric-api.eu.newrelic.com/metric/v1"))
     .build()
-
+  
   val intervalMetricReader = IntervalMetricReader
     .builder()
     .setMetricProducers(
@@ -81,12 +85,19 @@ object Boot extends App with FailFastCirceSupport with JsonCodecs {
       )
     })
 
+  AkkaManagement(system)
+    .start()
+    .onComplete {
+      case Success(value)     => logger.info(s"Started akka management on uri: ${value}")
+      case Failure(exception) => logger.error("Coundn't start akka management", exception)
+    }
+
   val accountRoutes = new AccountRoutes(accountsShards)
 
   val binding =
     accountRepository.createTableIfNotExists.flatMap { _ =>
       implicit val classicSystem = system.toClassic
-      implicit val materializer = ActorMaterializer()
+      implicit val materializer  = ActorMaterializer()
 
       val host = config.getString("app.host")
 

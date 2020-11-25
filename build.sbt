@@ -78,7 +78,7 @@ lazy val agent = (project in file("agent"))
 lazy val testApp = (project in file("test_app"))
   .settings(
     name := "akka-monitoring-test-app",
-    libraryDependencies ++= akka ++ zio ++ circe ++ circeAkka ++ postgresDriver ++ akkaPersistance ++ slick ++ logback ++ newRelicSdk,
+    libraryDependencies ++= akka ++ zio ++ circe ++ circeAkka ++ postgresDriver ++ akkaPersistance ++ slick ++ logback ++ newRelicSdk ++ akkaManagement,
     assemblyMergeStrategySettings,
     assembly / mainClass := Some("io.scalac.Boot"),
     assembly / assemblyJarName := "test_app.jar",
@@ -86,7 +86,7 @@ lazy val testApp = (project in file("test_app"))
     run / fork := true,
     run / connectInput := true,
     run / javaOptions ++= {
-        val properties = System.getProperties
+      val properties = System.getProperties
 
       import scala.collection.JavaConverters._
       (for {
