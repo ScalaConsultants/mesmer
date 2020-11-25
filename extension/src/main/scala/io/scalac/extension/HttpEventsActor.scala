@@ -6,10 +6,9 @@ import akka.actor.typed.receptionist.Receptionist.Register
 import akka.actor.typed.scaladsl.Behaviors
 import io.scalac.extension.event.HttpEvent
 import io.scalac.extension.event.HttpEvent._
-import io.scalac.extension.metric.HttpMetricMonitor._
-import io.scalac.extension.metric.{ Bindable, CachingMonitor, HttpMetricMonitor }
 import io.scalac.extension.metric.CachingMonitor._
-
+import io.scalac.extension.metric.HttpMetricMonitor._
+import io.scalac.extension.metric.{ Bindable, HttpMetricMonitor }
 
 object HttpEventsActor {
 
@@ -24,9 +23,8 @@ object HttpEventsActor {
 
     Receptionist(ctx.system).ref ! Register(httpService, ctx.messageAdapter(HttpEventWrapper.apply))
 
-    val cachingHttpMonitor = httpMetricMonitor.caching
-
-//    cachingHttpMonitor.bind()
+    val cachingHttpMonitor: Bindable.Aux[Labels, httpMetricMonitor.Bound] =
+      httpMetricMonitor.caching
 
     def monitorHttp(
       inFlightRequest: Map[String, RequestStarted]
