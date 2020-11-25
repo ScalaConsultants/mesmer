@@ -68,5 +68,10 @@ object Dependencies {
     "com.newrelic.telemetry" % "telemetry-http-okhttp"            % "0.9.0"
   )
 
+  val prometheus = Seq(
+    "io.opentelemetry" % "opentelemetry-exporters-prometheus" % "0.9.1",
+    "fr.davit"         %% "akka-http-metrics-prometheus"      % "1.1.1"
+  )
+
   val scalatest = Seq("org.scalatest" %% "scalatest" % ScalatestVersion % Test)
 }
