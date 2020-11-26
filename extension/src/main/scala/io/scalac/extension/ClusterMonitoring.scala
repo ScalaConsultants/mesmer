@@ -2,10 +2,16 @@ package io.scalac.extension
 
 import akka.actor.CoordinatedShutdown
 import akka.actor.typed.scaladsl.Behaviors
-import akka.actor.typed.{ActorSystem, Extension, ExtensionId, SupervisorStrategy}
-import akka.cluster.typed.{ClusterSingleton, SingletonActor}
+import akka.actor.typed.{ ActorSystem, Extension, ExtensionId, SupervisorStrategy }
+import akka.cluster.typed.{ ClusterSingleton, SingletonActor }
 import io.scalac.extension.config.ClusterMonitoringConfig
-import io.scalac.extension.upstream.{NewRelicEventStream, OpenTelemetryClusterMetricsMonitor, OpenTelemetryHttpMetricsMonitor, OpenTelemetryPersistenceMetricMonitor}
+import io.scalac.extension.service.CommonRegexPathService
+import io.scalac.extension.upstream.{
+  NewRelicEventStream,
+  OpenTelemetryClusterMetricsMonitor,
+  OpenTelemetryHttpMetricsMonitor,
+  OpenTelemetryPersistenceMetricMonitor
+}
 
 import scala.concurrent.duration._
 
@@ -94,8 +100,6 @@ class ClusterMonitoring(private val system: ActorSystem[_], val config: ClusterM
 
     val openTelemetryPersistenceMonitor = OpenTelemetryPersistenceMetricMonitor(instrumentationName, actorSystemConfig)
 
-
-
     system.systemActorOf(
       Behaviors
       // todo: configure persistence separately
@@ -109,10 +113,11 @@ class ClusterMonitoring(private val system: ActorSystem[_], val config: ClusterM
     log.info("Starting local http event listener")
 
     val openTelemetryHttpMonitor = OpenTelemetryHttpMetricsMonitor(instrumentationName, actorSystemConfig)
+    val pathService              = CommonRegexPathService
 
     system.systemActorOf(
       Behaviors
-        .supervise(HttpEventsActor.apply(openTelemetryHttpMonitor))
+        .supervise(HttpEventsActor.apply(openTelemetryHttpMonitor, pathService))
         .onFailure[Exception](SupervisorStrategy.restart),
       "httpEventMonitor"
     )

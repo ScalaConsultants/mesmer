@@ -2,23 +2,23 @@ package io.scalac
 
 import java.net.URI
 import java.util.Collections
-import java.{util => ju}
+import java.{ util => ju }
 
 import akka.actor.typed.ActorSystem
 import akka.actor.typed.scaladsl.Behaviors
 import akka.actor.typed.scaladsl.adapter._
-import akka.cluster.sharding.typed.scaladsl.{ClusterSharding, Entity, EntityTypeKey}
+import akka.cluster.sharding.typed.scaladsl.{ ClusterSharding, Entity, EntityTypeKey }
 import akka.http.scaladsl.Http
 import akka.stream.ActorMaterializer
 import akka.util.Timeout
 import com.newrelic.telemetry.Attributes
-import com.newrelic.telemetry.opentelemetry.`export`.{NewRelicExporters, NewRelicMetricExporter}
-import com.typesafe.config.{ConfigFactory, ConfigValueFactory}
+import com.newrelic.telemetry.opentelemetry.`export`.{ NewRelicExporters, NewRelicMetricExporter }
+import com.typesafe.config.{ ConfigFactory, ConfigValueFactory }
 import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport
 import io.opentelemetry.sdk.OpenTelemetrySdk
 import io.opentelemetry.sdk.metrics.`export`.IntervalMetricReader
 import io.scalac.api.AccountRoutes
-import io.scalac.domain.{AccountStateActor, JsonCodecs}
+import io.scalac.domain.{ AccountStateActor, JsonCodecs }
 import org.slf4j.LoggerFactory
 
 import scala.collection.JavaConverters._
@@ -41,6 +41,7 @@ object Boot extends App with FailFastCirceSupport with JsonCodecs {
             .fromMap(Map("host" -> "localhost", "port" -> 8080).asJava)
         )
     )
+    .resolve
 
   val apiKey = config.getString("newrelic.api_key")
 
