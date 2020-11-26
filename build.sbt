@@ -33,7 +33,7 @@ lazy val extension = (project in file("extension"))
   .configs()
   .settings(
     name := "akka-monitoring-extension",
-    libraryDependencies ++= akka ++ openTelemetryApi
+    libraryDependencies ++= akka ++ openTelemetryApi ++ akkaTestkit ++ scalatest ++ logback.map(_ % Test)
   )
   .dependsOn(core)
 
@@ -78,7 +78,7 @@ lazy val agent = (project in file("agent"))
 lazy val testApp = (project in file("test_app"))
   .settings(
     name := "akka-monitoring-test-app",
-    libraryDependencies ++= akka ++ zio ++ circe ++ circeAkka ++ postgresDriver ++ akkaPersistance ++ slick ++ logback ++ newRelicSdk ++ akkaManagement,
+    libraryDependencies ++= akka ++ scalatest ++ akkaTestkit ++ circe ++ circeAkka ++ postgresDriver ++ akkaPersistance ++ slick ++ logback ++ newRelicSdk ++ akkaManagement,
     assemblyMergeStrategySettings,
     assembly / mainClass := Some("io.scalac.Boot"),
     assembly / assemblyJarName := "test_app.jar",

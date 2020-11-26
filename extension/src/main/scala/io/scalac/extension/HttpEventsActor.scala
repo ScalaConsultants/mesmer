@@ -8,7 +8,9 @@ import io.scalac.extension.event.HttpEvent
 import io.scalac.extension.event.HttpEvent._
 import io.scalac.extension.metric.CachingMonitor._
 import io.scalac.extension.metric.HttpMetricMonitor._
-import io.scalac.extension.metric.{ Bindable, HttpMetricMonitor }
+import io.scalac.extension.metric.{Bindable, HttpMetricMonitor}
+import io.scalac.extension.model.{Method, Path}
+import io.scalac.extension.service.PathService
 
 object HttpEventsActor {
 
@@ -18,7 +20,7 @@ object HttpEventsActor {
     private[extension] final case class HttpEventWrapper(event: HttpEvent) extends Event
   }
 
-  def apply(httpMetricMonitor: HttpMetricMonitor): Behavior[Event] = Behaviors.setup { ctx =>
+  def apply(httpMetricMonitor: HttpMetricMonitor, pathService: PathService): Behavior[Event] = Behaviors.setup { ctx =>
     import Event._
 
     Receptionist(ctx.system).ref ! Register(httpService, ctx.messageAdapter(HttpEventWrapper.apply))
@@ -26,12 +28,14 @@ object HttpEventsActor {
     val cachingHttpMonitor: Bindable.Aux[Labels, httpMetricMonitor.Bound] =
       httpMetricMonitor.caching
 
+    def createLabels(path: Path, method: Method): Labels = Labels(pathService.template(path), method)
+
     def monitorHttp(
       inFlightRequest: Map[String, RequestStarted]
     ): Behavior[Event] =
       Behaviors.receiveMessage {
         case HttpEventWrapper(started @ RequestStarted(id, _, path, method)) => {
-          val monitor = cachingHttpMonitor.bind(Labels(path, method))
+          val monitor = cachingHttpMonitor.bind(createLabels(path, method))
 
           monitor.requestCounter.incValue(1L)
 
@@ -45,7 +49,7 @@ object HttpEventsActor {
               Behaviors.same[Event]
             } { started =>
               val requestDuration = timestamp - started.timestamp
-              val monitorBoundary = Labels(started.path, started.method)
+              val monitorBoundary = createLabels(started.path, started.method)
               val monitor         = cachingHttpMonitor.bind(monitorBoundary)
 
               monitor.requestTime.setValue(requestDuration)
