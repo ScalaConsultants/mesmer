@@ -87,10 +87,12 @@ object Boot extends App with FailFastCirceSupport with JsonCodecs {
 
   StdIn.readLine()
 
-  binding
-    .flatMap(_.unbind())
-    .onComplete { _ =>
-      system.terminate()
-      NewRelicExporters.shutdown()
-    }
+  sys.addShutdownHook {
+    binding
+      .flatMap(_.unbind())
+      .onComplete { _ =>
+        system.terminate()
+        NewRelicExporters.shutdown()
+      }
+  }
 }
