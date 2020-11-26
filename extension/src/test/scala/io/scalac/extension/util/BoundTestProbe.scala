@@ -22,9 +22,7 @@ object BoundTestProbe {
 trait BoundTestProbe {
 
   implicit protected class testProbeMetricRecorderOps(val probe: TestProbe[MetricRecorderCommand]) {
-    def toMetricRecorder: MetricRecorder[Long] = (value: Long) => {
-      probe.ref ! MetricRecorded(value)
-    }
+    def toMetricRecorder: MetricRecorder[Long] = (value: Long) => probe.ref ! MetricRecorded(value)
   }
 
   implicit protected class testProbeCounterOps(val probe: TestProbe[CounterCommand]) {

@@ -78,10 +78,9 @@ class ClusterSelfNodeMetricGathererTest extends AsyncFlatSpec with Matchers {
       val entity    = Entity(entityKey)(context => behavior(context.entityId))
 
       // sharding boots-up synchronously
-      val ref = sharding
-        .init(entity)
-
+      val ref          = sharding.init(entity)
       val clusterProbe = ClusterMetricsTestProbe()
+
       Function.untupled(test)(system, ref, clusterProbe, entityName)
     }
 
@@ -93,7 +92,7 @@ class ClusterSelfNodeMetricGathererTest extends AsyncFlatSpec with Matchers {
     } yield assertion
   }
 
-  "Monitoring" should "show proper amout of shards" in setup(TestBehavior.apply) {
+  "Monitoring" should "show proper amount of entities" in setup(TestBehavior.apply) {
     case (system, ref, monitor, region) =>
       val selfMonitor = system.systemActorOf(ClusterSelfNodeMetricGatherer.apply(monitor, List(region)), "sut")
 
