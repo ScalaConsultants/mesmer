@@ -62,6 +62,7 @@ object ClusterSelfNodeMetricGatherer {
     initTimeout: Option[FiniteDuration] = None
   ): Behavior[Command] =
     Behaviors.setup { ctx =>
+      ctx.log.debug("BOOTING UP")
       import Command._
       implicit val dispatcher       = ctx.system
       implicit val timeout: Timeout = pingOffset
