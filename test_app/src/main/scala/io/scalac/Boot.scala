@@ -9,6 +9,7 @@ import akka.actor.typed.scaladsl.Behaviors
 import akka.actor.typed.scaladsl.adapter._
 import akka.cluster.sharding.typed.scaladsl.{ ClusterSharding, Entity, EntityTypeKey }
 import akka.http.scaladsl.Http
+import akka.management.scaladsl.AkkaManagement
 import akka.stream.ActorMaterializer
 import akka.util.Timeout
 import com.newrelic.telemetry.Attributes
@@ -25,6 +26,7 @@ import scala.collection.JavaConverters._
 import scala.concurrent.duration._
 import scala.io.StdIn
 import scala.language.postfixOps
+import scala.util.{ Failure, Success }
 
 object Boot extends App with FailFastCirceSupport with JsonCodecs {
 
@@ -74,6 +76,13 @@ object Boot extends App with FailFastCirceSupport with JsonCodecs {
         ju.UUID.fromString(entityContext.entityId)
       )
     })
+
+  AkkaManagement(system)
+    .start()
+    .onComplete {
+      case Success(value)     => logger.info(s"Started akka management on uri: ${value}")
+      case Failure(exception) => logger.error("Coundn't start akka management", exception)
+    }
 
   val accountRoutes = new AccountRoutes(accountsShards)
 

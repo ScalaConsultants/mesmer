@@ -7,10 +7,8 @@ object PersistenceMetricMonitor {
   }
 }
 
-trait PersistenceMetricMonitor {
+trait PersistenceMetricMonitor extends Bindable[Path] {
   import PersistenceMetricMonitor._
 
-  def bind(path: Path): BoundMonitor
-
-
+  override type Bound = BoundMonitor
 }
