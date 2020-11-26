@@ -113,7 +113,7 @@ class ClusterMonitoring(private val system: ActorSystem[_], val config: ClusterM
     log.info("Starting local http event listener")
 
     val openTelemetryHttpMonitor = OpenTelemetryHttpMetricsMonitor(instrumentationName, actorSystemConfig)
-    val pathService              = new CommonRegexPathService()
+    val pathService              = CommonRegexPathService
 
     system.systemActorOf(
       Behaviors

@@ -2,6 +2,7 @@ package io.scalac.extension.util
 
 import akka.actor.testkit.typed.scaladsl.TestProbe
 import akka.actor.typed.ActorSystem
+import io.scalac.extension.metric.ClusterMetricsMonitor.BoundMonitor
 import io.scalac.extension.metric.{ ClusterMetricsMonitor, Counter, MetricRecorder }
 import io.scalac.extension.model.Node
 import io.scalac.extension.util.BoundTestProbe._
@@ -44,7 +45,7 @@ class ClusterMetricsTestProbe private (
 ) extends ClusterMetricsMonitor
     with BoundTestProbe {
 
-  override def bind(node: Node): Bound = new Bound {
+  override def bind(node: Node): BoundMonitor = new BoundMonitor {
 
     override val shardPerRegions: MetricRecorder[Long] = shardPerRegionsProbe.toMetricRecorder
 
