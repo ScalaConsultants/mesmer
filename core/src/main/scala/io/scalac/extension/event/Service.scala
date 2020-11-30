@@ -13,16 +13,19 @@ trait Service[T] extends AbstractService {
 
   override def hashCode(): Int = serviceKey.hashCode()
 
-  override def equals(obj: Any): Boolean =
-    (obj.isInstanceOf[Service[T]] && obj.asInstanceOf[Service[T]].serviceKey.equals(serviceKey))
+  override def equals(obj: Any): Boolean = obj match {
+    case other: Service[T] => other.eq(this) || other.serviceKey.equals(this.serviceKey)
+    case _                 => false
+  }
 }
 
 object Service {
-  implicit val persistenceService: Service[PersistenceEvent] = new Service[PersistenceEvent] {
-    override val serviceKey: ServiceKey[PersistenceEvent] = persistenceServiceKey
+
+  def apply[T](key: ServiceKey[T]): Service[T] = new Service[T] {
+    override val serviceKey: ServiceKey[T] = key
   }
 
-  implicit val httpService: Service[HttpEvent] = new Service[HttpEvent] {
-    override val serviceKey: ServiceKey[HttpEvent] = httpServiceKey
-  }
+  implicit val persistenceService: Service[PersistenceEvent] = Service(persistenceServiceKey)
+
+  implicit val httpService: Service[HttpEvent] = Service(httpServiceKey)
 }
