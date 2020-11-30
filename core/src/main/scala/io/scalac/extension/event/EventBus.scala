@@ -46,21 +46,17 @@ object ReceptionistBasedEventBus {
         def withCachedServices(services: Set[ActorRef[T]]): Behavior[Any] =
           Behaviors.withStash(1024)(buffer =>
             Behaviors.receiveMessage {
-              case Subscribers(refs) => {
+              case Subscribers(refs) =>
                 ctx.log.debug("Subscribers for service {} updated", serviceKey)
                 buffer.unstashAll(withCachedServices(services ++ refs.asInstanceOf[Set[ActorRef[T]]]))
-              }
-              case event: T if services.nonEmpty => { // T is removed on runtime but placing it here make type downcast
+              case event: T if services.nonEmpty => // T is removed on runtime but placing it here make type downcast
                 ctx.log.trace("Publish event for service {}", serviceKey)
                 services.foreach(_ ! event)
                 Behaviors.same
-              }
-              case event => {
+              case event =>
                 ctx.log.warn("Received event but no services registered for key {}", serviceKey)
                 buffer.stash(event)
                 Behaviors.same
-              }
-
             }
           )
         withCachedServices(Set.empty)

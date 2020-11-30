@@ -6,7 +6,7 @@ sealed trait AbstractEvent { self =>
   type Service >: self.type
 }
 
-sealed trait PersistenceEvent extends AbstractEvent { self =>
+sealed trait PersistenceEvent extends AbstractEvent {
   override type Service = PersistenceEvent
 }
 
