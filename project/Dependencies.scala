@@ -71,4 +71,6 @@ object Dependencies {
   )
 
   val scalatest = Seq("org.scalatest" %% "scalatest" % ScalatestVersion % Test)
+
+  val reflection: String => Seq[ModuleID] = version => Seq("org.scala-lang" % "scala-reflect" % version)
 }

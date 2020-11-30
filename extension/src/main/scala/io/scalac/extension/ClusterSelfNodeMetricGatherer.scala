@@ -1,10 +1,11 @@
 package io.scalac.extension
 
 import akka.actor.typed.Behavior
+import akka.actor.typed.receptionist.Receptionist
+import akka.actor.typed.receptionist.Receptionist.Register
 import akka.actor.typed.scaladsl.Behaviors
 import akka.cluster.ClusterEvent.{
   CurrentClusterState,
-  MemberDowned,
   MemberEvent,
   MemberRemoved,
   MemberUp,
@@ -19,6 +20,8 @@ import akka.cluster.sharding.typed.scaladsl.{ ClusterSharding, EntityTypeKey }
 import akka.cluster.sharding.{ ClusterSharding => ClassicClusterSharding }
 import akka.cluster.typed.{ Cluster, SelfUp, Subscribe }
 import akka.util.Timeout
+import io.scalac.extension.event.ClusterEvent
+import io.scalac.extension.event.ClusterEvent.ShardingRegionInstalled
 import io.scalac.extension.metric.ClusterMetricsMonitor
 import io.scalac.extension.metric.ClusterMetricsMonitor.BoundMonitor
 import io.scalac.extension.model._
@@ -31,15 +34,15 @@ object ClusterSelfNodeMetricGatherer {
   sealed trait Command extends SerializableMessage
 
   object Command {
-    case class MonitorRegion(region: String) extends SerializableMessage
+    final case class MonitorRegion(region: String) extends Command
 
-    private[extension] case class ClusterMemberEvent(event: MemberEvent) extends Command
+    private[extension] final case class ClusterMemberEvent(event: MemberEvent) extends Command
 
-    private[extension] case class ClusterShardingStatsReceived(
+    private[extension] final case class ClusterShardingStatsReceived(
       stats: ClusterShardingStats
     ) extends Command
 
-    private[extension] case class GetClusterShardingStatsInternal(
+    private[extension] final case class GetClusterShardingStatsInternal(
       regions: String
     ) extends Command
 
@@ -51,19 +54,17 @@ object ClusterSelfNodeMetricGatherer {
 
     trait InitializationEvent extends Command
 
-    case class Initialized(state: CurrentClusterState) extends InitializationEvent
+    final case class Initialized(state: CurrentClusterState) extends InitializationEvent
 
     case object InitializationTimeout extends InitializationEvent
   }
 
   def apply(
     clusterMetricsMonitor: ClusterMetricsMonitor,
-    initRegions: List[String],
     pingOffset: FiniteDuration = 5.seconds,
     initTimeout: Option[FiniteDuration] = None
   ): Behavior[Command] =
     Behaviors.setup { ctx =>
-      ctx.log.debug("BOOTING UP")
       import Command._
       implicit val dispatcher       = ctx.system
       implicit val timeout: Timeout = pingOffset
@@ -104,23 +105,32 @@ object ClusterSelfNodeMetricGatherer {
 
       cluster.subscriptions ! Subscribe(initializationAdapter, classOf[SelfUp])
 
-      def initialized(monitor: BoundMonitor, selfAddress: UniqueAddress) =
-        Behaviors.withTimers[Command] { scheduler =>
-          if (initRegions.nonEmpty) {
+      Receptionist(ctx.system).ref ! Register(clusterService, ctx.messageAdapter[ClusterEvent] {
+        case ShardingRegionInstalled(region) => MonitorRegion(region)
+      })
 
-            initRegions.foreach { region =>
-              ctx.log.info("Start monitoring sharding region {}", region)
-              scheduler.startTimerWithFixedDelay(
-                region,
-                GetClusterShardingStatsInternal(region),
-                pingOffset
-              )
-            }
-          } else {
-            ctx.log.warn("No initial regions specified")
-          }
+      def initialized(regions: Seq[String], monitor: BoundMonitor, selfAddress: UniqueAddress): Behavior[Command] =
+        Behaviors.withTimers[Command] { scheduler =>
+//          if (initRegions.nonEmpty) {
+//
+//            initRegions.foreach { region =>
+//              ctx.log.info("Start monitoring sharding region {}", region)
+//              scheduler.startTimerWithFixedDelay(
+//                region,
+//                GetClusterShardingStatsInternal(region),
+//                pingOffset
+//              )
+//            }
+//          } else {
+//            ctx.log.warn("No initial regions specified")
+//          }
 
           Behaviors.receiveMessage {
+            case MonitorRegion(region) => {
+              ctx.log.info("Start monitoring region {}", region)
+              scheduler.startTimerWithFixedDelay(region, GetClusterShardingStatsInternal(region), pingOffset)
+              initialized(regions :+ region, monitor, selfAddress)
+            }
 
             case ClusterMemberEvent(event) => {
               ctx.log.info(s"${event.toString}")
@@ -192,13 +202,13 @@ object ClusterSelfNodeMetricGatherer {
 
           Behaviors.withStash(1024) { buffer =>
             Behaviors.receiveMessage {
-              case Initialized(clusterState) => {
+              case Initialized(_) => {
                 ctx.log.info("Successful initialization")
                 val selfAddress = cluster.selfMember.uniqueAddress
                 val boundMonitor =
                   clusterMetricsMonitor.bind(selfAddress.toNode)
                 timer.cancel(timeoutKey)
-                buffer.unstashAll(initialized(boundMonitor, selfAddress))
+                buffer.unstashAll(initialized(Seq.empty, boundMonitor, selfAddress))
               }
               case InitializationTimeout => {
                 ctx.log.error("Initialization timeout")

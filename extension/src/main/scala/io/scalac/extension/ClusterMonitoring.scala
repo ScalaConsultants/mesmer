@@ -2,11 +2,16 @@ package io.scalac.extension
 
 import akka.actor.CoordinatedShutdown
 import akka.actor.typed.scaladsl.Behaviors
-import akka.actor.typed.{ActorSystem, Extension, ExtensionId, SupervisorStrategy}
-import akka.cluster.typed.{ClusterSingleton, SingletonActor}
+import akka.actor.typed.{ ActorSystem, Extension, ExtensionId, SupervisorStrategy }
+import akka.cluster.typed.{ ClusterSingleton, SingletonActor }
 import io.scalac.extension.config.ClusterMonitoringConfig
 import io.scalac.extension.service.CommonRegexPathService
-import io.scalac.extension.upstream.{NewRelicEventStream, OpenTelemetryClusterMetricsMonitor, OpenTelemetryHttpMetricsMonitor, OpenTelemetryPersistenceMetricMonitor}
+import io.scalac.extension.upstream.{
+  NewRelicEventStream,
+  OpenTelemetryClusterMetricsMonitor,
+  OpenTelemetryHttpMetricsMonitor,
+  OpenTelemetryPersistenceMetricMonitor
+}
 
 import scala.concurrent.duration._
 
@@ -48,7 +53,6 @@ class ClusterMonitoring(private val system: ActorSystem[_], val config: ClusterM
           ClusterSelfNodeMetricGatherer
             .apply(
               openTelemetryClusterMetricsMonitor,
-              config.regions,
               initTimeout = Some(60.seconds)
             )
         )

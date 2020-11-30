@@ -18,7 +18,7 @@ object RecoveryCompletedInterceptor {
   def enter(
     @Advice.Origin method: Method,
     @Advice.AllArguments parameters: Array[Object],
-    @Advice.This thiz: Object
+    @Advice.This thiz: Object/**/
   ): Unit = {
     println("Recovery completion intercepted. Method: " + method + ", This: " + thiz)
     val actorContext       = parameters(0).asInstanceOf[ActorContext[_]]

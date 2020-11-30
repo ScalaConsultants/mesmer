@@ -32,3 +32,13 @@ object HttpEvent {
   case class RequestCompleted(id: String, timestamp: Long)                             extends HttpEvent
   case class RequestFailed(id: String, timestamp: Long)                                extends HttpEvent
 }
+
+sealed trait ClusterEvent extends MonitoredEvent {
+  override type Service = ClusterEvent
+
+  override def serviceKey: ServiceKey[ClusterEvent] = clusterService
+}
+
+object ClusterEvent {
+  final case class ShardingRegionInstalled(region: String) extends ClusterEvent
+}

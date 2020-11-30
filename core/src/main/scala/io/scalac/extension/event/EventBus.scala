@@ -3,8 +3,8 @@ package io.scalac.extension.event
 import java.util.UUID
 
 import akka.actor.typed._
-import akka.actor.typed.receptionist.Receptionist
 import akka.actor.typed.receptionist.Receptionist.Subscribe
+import akka.actor.typed.receptionist.{ Receptionist, ServiceKey }
 import akka.actor.typed.scaladsl.Behaviors
 import akka.stream.scaladsl.{ Sink, Source }
 import akka.stream.{ OverflowStrategy, QueueOfferResult }
@@ -49,26 +49,26 @@ object ReceptionistBasedEventBus {
           }
         )
         ctx.self ! event
-        withCachedServices(Set.empty)
+        withCachedServices(event.serviceKey, Set.empty)
       }
     }
 
     // type safety should be guard by the stream
-    def withCachedServices(services: Set[ActorRef[Any]]): Behavior[Any] =
+    def withCachedServices(serviceKey: ServiceKey[_], services: Set[ActorRef[Any]]): Behavior[Any] =
       Behaviors.withStash(1024)(buffer =>
         Behaviors.receive {
           case (ctx, message) =>
             message match {
               case Subscribers(refs) => {
-                ctx.log.info("Subscribers updated")
-                buffer.unstashAll(withCachedServices(services ++ refs))
+                ctx.log.info("Subscribers updated for key {}", serviceKey)
+                buffer.unstashAll(withCachedServices(serviceKey, services ++ refs))
               }
               case event: MonitoredEvent if services.nonEmpty => {
                 services.foreach(_.asInstanceOf[ActorRef[MonitoredEvent]] ! event)
                 Behaviors.same
               }
               case event: MonitoredEvent => {
-                ctx.log.warn("Recevied event but no services registered for this key")
+                ctx.log.warn("Received event but no services registered for key {}", serviceKey)
                 buffer.stash(event)
                 Behaviors.same
               }

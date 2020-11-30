@@ -113,7 +113,7 @@ object HttpInstrumentation {
       FlowShape(outerRequest.in, outerResponse.out)
 
     })
-    println("DOING HTTP BINDING")
+    println(s"DOING HTTP BINDING ON ${self}")
 
     method
       .invoke(

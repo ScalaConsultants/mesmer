@@ -2,6 +2,7 @@ package io.scalac.agent
 
 import java.lang.instrument.Instrumentation
 
+import io.scalac.agent.akka.cluster.AkkaClusterAgent
 import io.scalac.agent.akka.http.AkkaHttpAgent
 import net.bytebuddy.ByteBuddy
 import net.bytebuddy.agent.builder.AgentBuilder
@@ -18,8 +19,8 @@ object Boot {
         AgentBuilder.Listener.StreamWriting.toSystemOut.withTransformationsOnly
       )
       .`with`(AgentBuilder.InstallationListener.StreamWriting.toSystemOut)
-    
-    val allInstrumentations = AkkaPersistenceAgent.agent ++ AkkaHttpAgent.agent
+
+    val allInstrumentations = AkkaPersistenceAgent.agent ++ AkkaHttpAgent.agent ++ AkkaClusterAgent.agent
 
     allInstrumentations.installOn(agentBuilder, instrumentation)
     allInstrumentations.transformEagerly()
