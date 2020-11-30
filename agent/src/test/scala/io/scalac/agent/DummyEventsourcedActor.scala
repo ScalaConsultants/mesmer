@@ -2,10 +2,10 @@ package io.scalac.agent
 
 import java.util.UUID
 
-import akka.actor.typed.scaladsl.Behaviors
-import akka.actor.typed.{ ActorRef, Behavior }
-import akka.persistence.typed.PersistenceId
-import akka.persistence.typed.scaladsl.{ Effect, EventSourcedBehavior }
+import _root_.akka.actor.typed.scaladsl.Behaviors
+import _root_.akka.actor.typed.{ ActorRef, Behavior }
+import _root_.akka.persistence.typed.PersistenceId
+import _root_.akka.persistence.typed.scaladsl.{ Effect, EventSourcedBehavior }
 
 object DummyEventsourcedActor {
 
