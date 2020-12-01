@@ -16,12 +16,13 @@ object RecoveryCompletedInterceptor {
   def enter(
     @Advice.Argument(0) actorContext: ActorContext[_]
   ): Unit = {
-    logger.error("Recovery event triggered")
+    val path = actorContext.self.path
+    logger.trace("Recovery completed for {}", path)
     implicit val ec        = actorContext.system.executionContext
     implicit val scheduler = actorContext.system.scheduler
-    implicit val timeout   = Timeout(1.second)
 
+    implicit val timeout   = Timeout(1.second)
     EventBus(actorContext.system)
-      .publishEvent(RecoveryFinished(actorContext.self.path, System.currentTimeMillis()))
+      .publishEvent(RecoveryFinished(path, System.currentTimeMillis()))
   }
 }

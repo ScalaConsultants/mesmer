@@ -9,11 +9,11 @@ object ClusterMetricsMonitor {
     def shardRegionsOnNode: MetricRecorder[Long]
     def reachableNodes: Counter[Long]
     def unreachableNodes: Counter[Long]
+    def nodeDown: UpCounter[Long]
   }
 }
 
-trait ClusterMetricsMonitor {
+trait ClusterMetricsMonitor extends Bindable[Node] {
   import ClusterMetricsMonitor._
-
-  def bind(node: Node): BoundMonitor
+  override type Bound = BoundMonitor
 }

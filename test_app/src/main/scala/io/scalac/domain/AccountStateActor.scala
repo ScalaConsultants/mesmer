@@ -13,21 +13,23 @@ import io.scalac.serialization.SerializableMessage
 
 object AccountStateActor {
 
-  sealed trait Command extends SerializableMessage
+  sealed trait Command extends SerializableMessage {
+    def replyTo: ActorRef[Reply]
+  }
 
   object Command {
-    final case class GetBalance(replyTo: ActorRef[Reply]) extends Command
+    final case class GetBalance(override val replyTo: ActorRef[Reply]) extends Command
 
-    final case class Deposit(replyTo: ActorRef[Reply], value: Double) extends Command
+    final case class Deposit(override val replyTo: ActorRef[Reply], value: Double) extends Command
 
-    final case class Withdraw(replyTo: ActorRef[Reply], value: Double) extends Command
+    final case class Withdraw(override val replyTo: ActorRef[Reply], value: Double) extends Command
   }
 
   sealed trait Reply extends SerializableMessage
 
   object Reply {
     final case class CurrentBalance(value: Double)             extends Reply
-    final case object InsufficientFunds                        extends IllegalStateException("Insuficient funds") with Reply
+    final case object InsufficientFunds                        extends IllegalStateException("Insufficient funds") with Reply
     final case class PersistentStorageFailure(message: String) extends IOException(message) with Reply
   }
 
@@ -45,17 +47,20 @@ object AccountStateActor {
         case GetBalance(replyTo) =>
           Effect.none.thenReply(replyTo)(state => CurrentBalance(state.balance))
         case Withdraw(replyTo, value) => {
-          if (value > balance) {
-            Effect.none.thenReply(replyTo)(_ => InsufficientFunds)
-          } else {
+          if (value < balance && value > 0.0) {
             Effect
               .persist(MoneyWithdrawn(value))
               .thenReply(replyTo)(state => CurrentBalance(state.balance))
+          } else {
+            Effect.none.thenReply(replyTo)(_ => InsufficientFunds)
           }
         }
         case Deposit(replyTo, value) => {
-          Effect
-            .persist(MoneyDeposit(value))
+          val effect = if (value > 0.0) {
+            Effect.persist[Event, AccountState](MoneyDeposit(value))
+          } else Effect.none[Event, AccountState]
+
+          effect
             .thenReply(replyTo)(state => CurrentBalance(state.balance))
         }
       }
@@ -66,7 +71,7 @@ object AccountStateActor {
     }
   }
 
-  def apply(repository: AccountRepository, uuid: ju.UUID): Behavior[Command] =
+  def apply(uuid: ju.UUID): Behavior[Command] =
     Behaviors.setup { _ =>
       EventSourcedBehavior[Command, Event, AccountState](
         PersistenceId.ofUniqueId(uuid.toString),

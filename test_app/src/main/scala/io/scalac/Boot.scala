@@ -6,10 +6,9 @@ import java.{util => ju}
 
 import akka.actor.typed.ActorSystem
 import akka.actor.typed.scaladsl.Behaviors
-import akka.actor.typed.scaladsl.adapter._
 import akka.cluster.sharding.typed.scaladsl.{ClusterSharding, Entity, EntityTypeKey}
 import akka.http.scaladsl.Http
-import akka.stream.ActorMaterializer
+import akka.management.scaladsl.AkkaManagement
 import akka.util.Timeout
 import com.newrelic.telemetry.Attributes
 import com.newrelic.telemetry.opentelemetry.`export`.{NewRelicExporters, NewRelicMetricExporter}
@@ -19,14 +18,13 @@ import io.opentelemetry.sdk.OpenTelemetrySdk
 import io.opentelemetry.sdk.metrics.`export`.IntervalMetricReader
 import io.scalac.api.AccountRoutes
 import io.scalac.domain.{AccountStateActor, JsonCodecs}
-import io.scalac.infrastructure.PostgresAccountRepository
 import org.slf4j.LoggerFactory
-import slick.jdbc.PostgresProfile.api.Database
 
-import scala.collection.JavaConverters._
 import scala.concurrent.duration._
 import scala.io.StdIn
+import scala.jdk.CollectionConverters._
 import scala.language.postfixOps
+import scala.util.{Failure, Success}
 
 object Boot extends App with FailFastCirceSupport with JsonCodecs {
 
@@ -42,11 +40,8 @@ object Boot extends App with FailFastCirceSupport with JsonCodecs {
           ConfigValueFactory
             .fromMap(Map("host" -> "localhost", "port" -> 8080).asJava)
         )
-    ).resolve
-
-  val accountRepository = new PostgresAccountRepository(
-    Database.forConfig("db", config)
-  )
+    )
+    .resolve
 
   val apiKey = config.getString("newrelic.api_key")
 
@@ -76,30 +71,27 @@ object Boot extends App with FailFastCirceSupport with JsonCodecs {
   val accountsShards = ClusterSharding(system)
     .init(Entity(entity) { entityContext =>
       AccountStateActor(
-        accountRepository,
         ju.UUID.fromString(entityContext.entityId)
       )
     })
 
+  AkkaManagement(system)
+    .start()
+    .onComplete {
+      case Success(value)     => logger.info(s"Started akka management on uri: ${value}")
+      case Failure(exception) => logger.error("Coundn't start akka management", exception)
+    }
+
   val accountRoutes = new AccountRoutes(accountsShards)
 
-  val binding =
-    accountRepository.createTableIfNotExists.flatMap { _ =>
-//      implicit val classicSystem = system.toClassic
-//      implicit val materializer = ActorMaterializer()
+  val host = config.getString("app.host")
 
-      val host = config.getString("app.host")
+  val port = config.getInt("app.port")
+  logger.info(s"Starting http server at $host:$port")
 
-      val port = config.getInt("app.port")
-      logger.info(s"Starting http server at $host:$port")
-//      Http().bindAndHandle(accountRoutes.routes, host, port)
-
-      Http()
-        .newServerAt("localhost", 8080)
-        .bind(accountRoutes.routes)
-
-
-    }
+  val binding = Http()
+    .newServerAt("localhost", 8080)
+    .bind(accountRoutes.routes)
 
   StdIn.readLine()
 

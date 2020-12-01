@@ -4,8 +4,9 @@ import akka.actor.typed.Behavior
 import akka.actor.typed.scaladsl.Behaviors
 import akka.cluster.ClusterEvent.{
   CurrentClusterState,
+  MemberDowned,
   MemberEvent,
-  MemberExited,
+  MemberRemoved,
   MemberUp,
   ReachableMember,
   UnreachableMember,
@@ -62,6 +63,7 @@ object ClusterSelfNodeMetricGatherer {
     initTimeout: Option[FiniteDuration] = None
   ): Behavior[Command] =
     Behaviors.setup { ctx =>
+      ctx.log.debug("BOOTING UP")
       import Command._
       implicit val dispatcher       = ctx.system
       implicit val timeout: Timeout = pingOffset
@@ -124,11 +126,9 @@ object ClusterSelfNodeMetricGatherer {
               ctx.log.info(s"${event.toString}")
 
               event match {
-                case MemberUp(_) => {
-                  monitor.reachableNodes.incValue(1L)
-                }
-                case MemberExited(_) => monitor.reachableNodes.decValue(1L)
-                case _               => // ignore other cases
+                case MemberUp(_)         => monitor.reachableNodes.incValue(1L)
+                case MemberRemoved(_, _) => monitor.reachableNodes.decValue(1L)
+                case _                   => // ignore other cases
               }
               Behaviors.same
             }
