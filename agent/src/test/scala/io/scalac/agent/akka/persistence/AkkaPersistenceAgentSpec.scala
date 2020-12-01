@@ -6,7 +6,7 @@ import _root_.akka.actor.testkit.typed.scaladsl.ScalaTestWithActorTestKit
 import _root_.akka.actor.typed.receptionist.Receptionist
 import _root_.akka.actor.typed.receptionist.Receptionist.Register
 import _root_.akka.util.Timeout
-import io.scalac.`extension`.persistenceService
+import io.scalac.`extension`.persistenceServiceKey
 import io.scalac.agent.utils.DummyEventSourcedActor
 import io.scalac.agent.utils.DummyEventSourcedActor.Command
 import io.scalac.extension.event.PersistenceEvent
@@ -36,7 +36,7 @@ class AkkaPersistenceAgentSpec
 
     val id      = UUID.randomUUID()
     val monitor = createTestProbe[PersistenceEvent]
-    Receptionist(system).ref ! Register(persistenceService, monitor.ref)
+    Receptionist(system).ref ! Register(persistenceServiceKey, monitor.ref)
 
     val actor = system.systemActorOf(DummyEventSourcedActor(id), id.toString)
 
