@@ -22,7 +22,7 @@ object PersistenceEventsListener {
   def apply(monitor: PersistenceMetricMonitor, entities: Set[String]): Behavior[Event] =
     Behaviors.setup { ctx =>
       import Event._
-      Receptionist(ctx.system).ref ! Register(persistenceService, ctx.messageAdapter(PersistentEventWrapper.apply))
+      Receptionist(ctx.system).ref ! Register(persistenceServiceKey, ctx.messageAdapter(PersistentEventWrapper.apply))
 
       val recoveryTimeMetrics = entities
         .map(name => name -> monitor.bind(name))

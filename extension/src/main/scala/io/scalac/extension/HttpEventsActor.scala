@@ -23,7 +23,7 @@ object HttpEventsActor {
   def apply(httpMetricMonitor: HttpMetricMonitor, pathService: PathService): Behavior[Event] = Behaviors.setup { ctx =>
     import Event._
 
-    Receptionist(ctx.system).ref ! Register(httpService, ctx.messageAdapter(HttpEventWrapper.apply))
+    Receptionist(ctx.system).ref ! Register(httpServiceKey, ctx.messageAdapter(HttpEventWrapper.apply))
 
     val cachingHttpMonitor: Bindable.Aux[Labels, httpMetricMonitor.Bound] =
       httpMetricMonitor.caching
