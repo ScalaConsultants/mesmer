@@ -47,4 +47,10 @@ class CommonRegexPathServiceTest extends AnyFlatSpec with Matchers {
     val expectedUri = s"/api//v1/balance//${numberTemplate}"
     template(testUri) shouldEqual (expectedUri)
   }
+
+  it should "template string without slashes" in {
+    val testUri     = UUID.randomUUID().toString
+    val expectedUri = uuidTemplate
+    template(testUri) shouldEqual (expectedUri)
+  }
 }

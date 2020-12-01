@@ -17,8 +17,8 @@ sealed trait PersistenceEvent extends MonitoredEvent {
 }
 
 object PersistenceEvent {
-  case class RecoveryStarted(path: ActorPath, timestamp: Long)  extends PersistenceEvent
-  case class RecoveryFinished(path: ActorPath, timestamp: Long) extends PersistenceEvent
+  case class RecoveryStarted(path: String, persistenceId: String, timestamp: Long)  extends PersistenceEvent
+  case class RecoveryFinished(path: String, persistenceId: String, timestamp: Long) extends PersistenceEvent
 }
 
 sealed trait HttpEvent extends MonitoredEvent {

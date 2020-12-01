@@ -96,7 +96,7 @@ class ClusterMonitoring(private val system: ActorSystem[_], val config: ClusterM
 
     system.systemActorOf(
       Behaviors
-        .supervise(PersistenceEventsListener.apply(openTelemetryPersistenceMonitor, config.regions.toSet))
+        .supervise(PersistenceEventsListener.apply(CommonRegexPathService, openTelemetryPersistenceMonitor, config.regions.toSet))
         .onFailure[Exception](SupervisorStrategy.restart),
       "persistenceAgentMonitor"
     )
