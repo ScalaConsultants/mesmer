@@ -14,22 +14,19 @@ class RecoveryStartedInterceptor
 
 object RecoveryStartedInterceptor {
 
-  private val behaviorSetupField = {
-    val mirror = ru.runtimeMirror(Thread.currentThread().getContextClassLoader)
-    mirror.staticClass("akka.persistence.typed.internal.ReplayingSnapshot").toType.decl(ru.TermName("setup")).asTerm
+  private val setupField = {
+    val setup = Class.forName("akka.persistence.typed.internal.ReplayingSnapshot").getDeclaredField("setup")
+    setup.setAccessible(true)
+    setup
   }
-
   private val persistenceIdField = {
-    val mirror = ru.runtimeMirror(Thread.currentThread().getContextClassLoader)
-    mirror.staticClass("akka.persistence.typed.internal.BehaviorSetup").toType.decl(ru.TermName("persistenceId")).asTerm
+    val persistenceId = Class.forName("akka.persistence.typed.internal.BehaviorSetup").getDeclaredField("persistenceId")
+    persistenceId.setAccessible(true)
+    persistenceId
   }
 
-  val reflectivePersistenceIdLens: Any => PersistenceId = ref => {
-    val mirror = ru.runtimeMirror(Thread.currentThread().getContextClassLoader)
-
-    val setup = mirror.reflect(ref).reflectField(behaviorSetupField).get
-    mirror.reflect(setup).reflectField(persistenceIdField).get.asInstanceOf[PersistenceId]
-  }
+  val persistenceIdExtractor: Any => PersistenceId = ref =>
+    persistenceIdField.get(setupField.get(ref)).asInstanceOf[PersistenceId]
 
   @Advice.OnMethodEnter
   def enter(
@@ -39,7 +36,7 @@ object RecoveryStartedInterceptor {
   ): Unit = {
     System.out.println("Recovery startup intercepted. Method: " + method + ", This: " + thiz)
     val context       = parameters(0).asInstanceOf[ActorContext[_]]
-    val persistenceId = reflectivePersistenceIdLens(thiz)
+    val persistenceId = persistenceIdExtractor(thiz)
     EventBus(context.system)
       .publishEvent(RecoveryStarted(context.self.path.toString, persistenceId.id, System.currentTimeMillis()))
   }

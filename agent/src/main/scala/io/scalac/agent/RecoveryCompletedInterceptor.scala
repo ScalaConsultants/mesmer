@@ -10,7 +10,6 @@ import io.scalac.extension.event.PersistenceEvent.RecoveryFinished
 import net.bytebuddy.asm.Advice
 
 import scala.concurrent.duration._
-import scala.reflect.runtime.{ universe => ru }
 
 case class Settings(role: String)
 case class Person(name: String, settings: Settings)
@@ -19,22 +18,19 @@ class RecoveryCompletedInterceptor
 
 object RecoveryCompletedInterceptor {
 
-  private val behaviorSetupField = {
-    val mirror = ru.runtimeMirror(Thread.currentThread().getContextClassLoader)
-    mirror.staticClass("akka.persistence.typed.internal.ReplayingEvents").toType.decl(ru.TermName("setup")).asTerm
+  private val setupField = {
+    val setup = Class.forName("akka.persistence.typed.internal.ReplayingEvents").getDeclaredField("setup")
+    setup.setAccessible(true)
+    setup
   }
-
   private val persistenceIdField = {
-    val mirror = ru.runtimeMirror(Thread.currentThread().getContextClassLoader)
-    mirror.staticClass("akka.persistence.typed.internal.BehaviorSetup").toType.decl(ru.TermName("persistenceId")).asTerm
+    val persistenceId = Class.forName("akka.persistence.typed.internal.BehaviorSetup").getDeclaredField("persistenceId")
+    persistenceId.setAccessible(true)
+    persistenceId
   }
 
-  val reflectivePersistenceIdLens: Any => PersistenceId = ref => {
-    val mirror = ru.runtimeMirror(Thread.currentThread().getContextClassLoader)
-
-    val setup = mirror.reflect(ref).reflectField(behaviorSetupField).get
-    mirror.reflect(setup).reflectField(persistenceIdField).get.asInstanceOf[PersistenceId]
-  }
+  val persistenceIdExtractor: Any => PersistenceId = ref =>
+    persistenceIdField.get(setupField.get(ref)).asInstanceOf[PersistenceId]
 
   @Advice.OnMethodEnter
   def enter(
@@ -48,7 +44,7 @@ object RecoveryCompletedInterceptor {
     implicit val scheduler = actorContext.system.scheduler
     implicit val timeout   = Timeout(1.second)
 
-    val persistenceId = reflectivePersistenceIdLens(thiz)
+    val persistenceId = persistenceIdExtractor(thiz)
 
     EventBus(actorContext.system)
       .publishEvent(
