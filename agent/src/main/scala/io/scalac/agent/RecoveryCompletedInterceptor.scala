@@ -10,6 +10,7 @@ import io.scalac.extension.event.PersistenceEvent.RecoveryFinished
 import net.bytebuddy.asm.Advice
 
 import scala.concurrent.duration._
+import scala.util.Try
 
 case class Settings(role: String)
 case class Person(name: String, settings: Settings)
@@ -23,15 +24,19 @@ object RecoveryCompletedInterceptor {
     setup.setAccessible(true)
     setup
   }
+
   private val persistenceIdField = {
     val persistenceId = Class.forName("akka.persistence.typed.internal.BehaviorSetup").getDeclaredField("persistenceId")
     persistenceId.setAccessible(true)
     persistenceId
   }
 
-  val persistenceIdExtractor: Any => PersistenceId = ref =>
-    persistenceIdField.get(setupField.get(ref)).asInstanceOf[PersistenceId]
-
+  val persistenceIdExtractor: Any => Try[PersistenceId] = ref => {
+    for {
+      setup         <- Try(setupField.get(ref))
+      persistenceId <- Try(persistenceIdField.get(setup))
+    } yield persistenceId.asInstanceOf[PersistenceId]
+  }
   @Advice.OnMethodEnter
   def enter(
     @Advice.Origin method: Method,
@@ -44,11 +49,13 @@ object RecoveryCompletedInterceptor {
     implicit val scheduler = actorContext.system.scheduler
     implicit val timeout   = Timeout(1.second)
 
-    val persistenceId = persistenceIdExtractor(thiz)
-
-    EventBus(actorContext.system)
-      .publishEvent(
-        RecoveryFinished(actorContext.self.path.toString, persistenceId.id, System.currentTimeMillis())
-      )
+    persistenceIdExtractor(thiz).fold(
+      _.printStackTrace(),
+      persistenceId =>
+        EventBus(actorContext.system)
+          .publishEvent(
+            RecoveryFinished(actorContext.self.path.toString, persistenceId.id, System.currentTimeMillis())
+          )
+    )
   }
 }

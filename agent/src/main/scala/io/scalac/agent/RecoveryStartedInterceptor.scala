@@ -8,7 +8,7 @@ import io.scalac.extension.event.EventBus
 import io.scalac.extension.event.PersistenceEvent.RecoveryStarted
 import net.bytebuddy.asm.Advice
 
-import scala.reflect.runtime.{ universe => ru }
+import scala.util.Try
 
 class RecoveryStartedInterceptor
 
@@ -25,8 +25,12 @@ object RecoveryStartedInterceptor {
     persistenceId
   }
 
-  val persistenceIdExtractor: Any => PersistenceId = ref =>
-    persistenceIdField.get(setupField.get(ref)).asInstanceOf[PersistenceId]
+  val persistenceIdExtractor: Any => Try[PersistenceId] = ref => {
+    for {
+      setup         <- Try(setupField.get(ref))
+      persistenceId <- Try(persistenceIdField.get(setup))
+    } yield persistenceId.asInstanceOf[PersistenceId]
+  }
 
   @Advice.OnMethodEnter
   def enter(
@@ -35,9 +39,12 @@ object RecoveryStartedInterceptor {
     @Advice.This thiz: Object
   ): Unit = {
     System.out.println("Recovery startup intercepted. Method: " + method + ", This: " + thiz)
-    val context       = parameters(0).asInstanceOf[ActorContext[_]]
-    val persistenceId = persistenceIdExtractor(thiz)
-    EventBus(context.system)
-      .publishEvent(RecoveryStarted(context.self.path.toString, persistenceId.id, System.currentTimeMillis()))
+    val context = parameters(0).asInstanceOf[ActorContext[_]]
+    persistenceIdExtractor(thiz).fold(
+      _.printStackTrace(),
+      persistenceId =>
+        EventBus(context.system)
+          .publishEvent(RecoveryStarted(context.self.path.toString, persistenceId.id, System.currentTimeMillis()))
+    )
   }
 }
