@@ -145,7 +145,7 @@ object ClusterSelfNodeMetricGatherer {
 
                   ctx.log.trace("Recorded amount of entities {}", entities)
                   monitor.entityPerRegion.setValue(entities)
-                  ctx.log.trace("Recorded amount o f shards {}", shards)
+                  ctx.log.trace("Recorded amount of shards {}", shards)
                   monitor.shardPerRegions.setValue(shards)
 
                 }
