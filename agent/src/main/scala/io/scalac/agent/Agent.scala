@@ -10,17 +10,18 @@ import org.slf4j.LoggerFactory
 
 object Agent {
 
-  private val logger = LoggerFactory.getLogger(Agent.getClass)
+  private val logger = LoggerFactory.getLogger(classOf[Agent])
 
   def apply(head: AgentInstrumentation, tail: AgentInstrumentation*): Agent = Agent((head +: tail).toSet)
 
   class LoadingResult(val fqns: Seq[String]) {
+    import LoadingResult.{ logger => loadingLogger }
     def eagerLoad(): Unit =
       fqns.foreach { className =>
         try {
           Thread.currentThread().getContextClassLoader.loadClass(className)
         } catch {
-          case _: ClassNotFoundException => println(s"Couldn't load class ${className}")
+          case _: ClassNotFoundException => loadingLogger.error(s"Couldn't load class ${className}")
         }
       }
 
@@ -28,6 +29,8 @@ object Agent {
   }
 
   object LoadingResult {
+    private val logger = LoggerFactory.getLogger(classOf[LoadingResult])
+
     def apply(fqns: Seq[String]): LoadingResult = new LoadingResult(fqns)
 
     def apply(fqn: String, fqns: String*): LoadingResult = apply(fqn +: fqns)
@@ -45,7 +48,6 @@ object AgentInstrumentation {
       override def apply(builder: AgentBuilder, instrumentation: Instrumentation, modules: Modules): LoadingResult =
         installation(builder, instrumentation, modules)
     }
-
 }
 
 sealed abstract case class AgentInstrumentation(name: String, instrumentingModules: SupportedModules)
