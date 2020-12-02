@@ -55,7 +55,7 @@ object Boot extends App with FailFastCirceSupport with JsonCodecs {
   val intervalMetricReader = IntervalMetricReader
     .builder()
     .setMetricProducers(
-      Collections.singleton(OpenTelemetrySdk.getMeterProvider.getMetricProducer)
+      Collections.singleton(OpenTelemetrySdk.getGlobalMeterProvider.getMetricProducer)
     )
     .setExportIntervalMillis(5000)
     .setMetricExporter(newRelicExporter)

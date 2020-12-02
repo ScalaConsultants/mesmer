@@ -1,8 +1,8 @@
 package io.scalac.extension.metric
 
-import io.opentelemetry.metrics.LongCounter.BoundLongCounter
-import io.opentelemetry.metrics.LongUpDownCounter.BoundLongUpDownCounter
-import io.opentelemetry.metrics.LongValueRecorder.BoundLongValueRecorder
+import io.opentelemetry.api.metrics.LongCounter.BoundLongCounter
+import io.opentelemetry.api.metrics.LongUpDownCounter.BoundLongUpDownCounter
+import io.opentelemetry.api.metrics.LongValueRecorder.BoundLongValueRecorder
 
 sealed trait Metric[T]
 

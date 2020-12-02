@@ -49,7 +49,8 @@ object ReceptionistBasedEventBus {
               case Subscribers(refs) =>
                 ctx.log.debug("Subscribers for service {} updated", serviceKey)
                 buffer.unstashAll(withCachedServices(services ++ refs.asInstanceOf[Set[ActorRef[T]]]))
-              case event: T if services.nonEmpty => // T is removed on runtime but placing it here make type downcast
+              case event: T @unchecked
+                  if services.nonEmpty => // T is removed on runtime but placing it here make type downcast
                 ctx.log.trace("Publish event for service {}", serviceKey)
                 services.foreach(_ ! event)
                 Behaviors.same

@@ -1,8 +1,8 @@
 package io.scalac.extension.upstream
 
 import com.typesafe.config.Config
-import io.opentelemetry.OpenTelemetry
-import io.opentelemetry.common.Labels
+import io.opentelemetry.api.OpenTelemetry
+import io.opentelemetry.api.common.Labels
 import io.scalac.extension.metric._
 import io.scalac.extension.model._
 import io.scalac.extension.upstream.OpenTelemetryClusterMetricsMonitor.MetricNames
@@ -76,7 +76,7 @@ class OpenTelemetryClusterMetricsMonitor(instrumentationName: String, val metric
   import ClusterMetricsMonitor._
 
   override def bind(node: Node): BoundMonitor = {
-    val meter = OpenTelemetry.getMeter(instrumentationName)
+    val meter = OpenTelemetry.getGlobalMeter(instrumentationName)
 
     val boundLabels = Labels.of("node", node)
     val boundShardsPerRegionRecorder = meter
