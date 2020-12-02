@@ -1,7 +1,8 @@
 package io.scalac.agent.akka.persistence
 
-import io.scalac.agent.Agent
 import io.scalac.agent.Agent.LoadingResult
+import io.scalac.agent.model._
+import io.scalac.agent.{ Agent, AgentInstrumentation }
 import net.bytebuddy.asm.Advice
 import net.bytebuddy.description.`type`.TypeDescription
 import net.bytebuddy.description.method.MethodDescription
@@ -12,11 +13,14 @@ object AkkaPersistenceAgent {
 
   private[persistence] val logger = LoggerFactory.getLogger(AkkaPersistenceAgent.getClass)
 
-  val defaultVersion    = "2.6.8"
-  val supportedVersions = Seq(defaultVersion)
-  val moduleName        = "akka-persistence-typed"
+  val defaultVersion    = Version(2, 6, 8)
+  val supportedVersions = SupportedVersion.majors("2") && SupportedVersion.minors("6")
+  val moduleName        = Module("akka-persistence-typed")
 
-  private val recoveryStartedAgent = Agent { (agentBuilder, instrumentation, _) =>
+  private val recoveryStartedAgent = AgentInstrumentation(
+    "akka.persistence.typed.internal.ReplayingSnapshot",
+    SupportedModules(moduleName, supportedVersions)
+  ) { (agentBuilder, instrumentation, _) =>
     agentBuilder
       .`type`(named[TypeDescription]("akka.persistence.typed.internal.ReplayingSnapshot"))
       .transform {
@@ -29,7 +33,10 @@ object AkkaPersistenceAgent {
     LoadingResult("akka.persistence.typed.internal.ReplayingSnapshot")
   }
 
-  private val recoveryCompletedAgent = Agent { (agentBuilder, instrumentation, _) =>
+  private val recoveryCompletedAgent = AgentInstrumentation(
+    "akka.persistence.typed.internal.ReplayingEvents",
+    SupportedModules(moduleName, supportedVersions)
+  ) { (agentBuilder, instrumentation, _) =>
     agentBuilder
       .`type`(named[TypeDescription]("akka.persistence.typed.internal.ReplayingEvents"))
       .transform {
@@ -42,5 +49,5 @@ object AkkaPersistenceAgent {
     LoadingResult("akka.persistence.typed.internal.ReplayingEvents")
   }
 
-  val agent = recoveryStartedAgent ++ recoveryCompletedAgent
+  val agent = Agent(recoveryStartedAgent, recoveryCompletedAgent)
 }
