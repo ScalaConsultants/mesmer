@@ -3,6 +3,7 @@ package io.scalac.agent.akka.http
 import java.lang.instrument.Instrumentation
 
 import io.scalac.agent.Agent
+import io.scalac.agent.Agent.LoadingResult
 import io.scalac.agent.util.ModuleInfo.Modules
 import net.bytebuddy.agent.builder.AgentBuilder
 import net.bytebuddy.description.`type`.TypeDescription
@@ -38,7 +39,7 @@ object AkkaHttpAgent {
           .intercept(MethodDelegation.to(classOf[RouteInstrumentation]))
       }
       .installOn(instrumentation)
-    List("akka.http.scaladsl.server.Route$")
+    LoadingResult("akka.http.scaladsl.server.Route$")
   }
 
   private val httpAgent = Agent { (agentBuilder: AgentBuilder, instrumentation: Instrumentation, modules: Modules) =>
@@ -49,14 +50,13 @@ object AkkaHttpAgent {
         Some(defaultVersion)
       }
       .filter(supportedVersions.contains)
-      .fold[List[String]] {
+      .fold[LoadingResult] {
         logger.error(
           "Cannot instrument {} - unsupported version found. Supported versions: {}.",
           moduleName,
           supportedVersions.mkString(", ")
         )
-
-        Nil
+        LoadingResult.empty
       } { version => //here comes branching
         agentBuilder
           .`type`(
@@ -74,7 +74,7 @@ object AkkaHttpAgent {
               .intercept(MethodDelegation.to(classOf[HttpInstrumentation]))
           }
           .installOn(instrumentation)
-        List("akka.http.scaladsl.HttpExt")
+        LoadingResult("akka.http.scaladsl.HttpExt")
       }
   }
 

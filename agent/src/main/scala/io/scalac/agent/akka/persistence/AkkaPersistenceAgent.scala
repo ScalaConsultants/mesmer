@@ -1,6 +1,7 @@
 package io.scalac.agent.akka.persistence
 
 import io.scalac.agent.Agent
+import io.scalac.agent.Agent.LoadingResult
 import net.bytebuddy.asm.Advice
 import net.bytebuddy.description.`type`.TypeDescription
 import net.bytebuddy.description.method.MethodDescription
@@ -25,7 +26,7 @@ object AkkaPersistenceAgent {
             .intercept(Advice.to(classOf[RecoveryStartedInterceptor]))
       }
       .installOn(instrumentation)
-    List("akka.persistence.typed.internal.ReplayingSnapshot")
+    LoadingResult("akka.persistence.typed.internal.ReplayingSnapshot")
   }
 
   private val recoveryCompletedAgent = Agent { (agentBuilder, instrumentation, _) =>
@@ -38,7 +39,7 @@ object AkkaPersistenceAgent {
             .intercept(Advice.to(classOf[RecoveryCompletedInterceptor]))
       }
       .installOn(instrumentation)
-    List("akka.persistence.typed.internal.ReplayingEvents")
+    LoadingResult("akka.persistence.typed.internal.ReplayingEvents")
   }
 
   val agent = recoveryStartedAgent ++ recoveryCompletedAgent
