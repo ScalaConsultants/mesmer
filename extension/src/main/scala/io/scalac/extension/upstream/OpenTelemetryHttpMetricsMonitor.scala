@@ -3,7 +3,7 @@ package io.scalac.extension.upstream
 import com.typesafe.config.Config
 import io.opentelemetry.OpenTelemetry
 import io.scalac.extension.metric.Metric._
-import io.scalac.extension.metric.{ HttpMetricMonitor, MetricRecorder, UpCounter }
+import io.scalac.extension.metric.{HttpMetricMonitor, MetricRecorder, UpCounter}
 
 object OpenTelemetryHttpMetricsMonitor {
   case class MetricNames(
@@ -48,7 +48,7 @@ class OpenTelemetryHttpMetricsMonitor(
   instrumentationName: String,
   metricNames: OpenTelemetryHttpMetricsMonitor.MetricNames
 ) extends HttpMetricMonitor {
-  import HttpMetricMonitor.{ BoundMonitor, _ }
+  import HttpMetricMonitor._
 
   private val requestTimeRequest = OpenTelemetry
     .getMeter(instrumentationName)

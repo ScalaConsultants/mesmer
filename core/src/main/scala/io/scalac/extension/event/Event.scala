@@ -24,3 +24,5 @@ object HttpEvent {
   case class RequestCompleted(id: String, timestamp: Long)                             extends HttpEvent
   case class RequestFailed(id: String, timestamp: Long)                                extends HttpEvent
 }
+
+case class PathMatcherRegistered()

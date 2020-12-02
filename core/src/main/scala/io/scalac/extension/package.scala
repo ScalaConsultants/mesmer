@@ -10,4 +10,6 @@ package object `extension` {
 
   val httpServiceKey: ServiceKey[HttpEvent] =
     ServiceKey[HttpEvent](s"io.scalac.metric.http")
+
+
 }

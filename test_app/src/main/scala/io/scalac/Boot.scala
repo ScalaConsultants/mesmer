@@ -6,11 +6,9 @@ import java.{ util => ju }
 
 import akka.actor.typed.ActorSystem
 import akka.actor.typed.scaladsl.Behaviors
-import akka.actor.typed.scaladsl.adapter._
 import akka.cluster.sharding.typed.scaladsl.{ ClusterSharding, Entity, EntityTypeKey }
 import akka.http.scaladsl.Http
 import akka.management.scaladsl.AkkaManagement
-import akka.stream.ActorMaterializer
 import akka.util.Timeout
 import com.newrelic.telemetry.Attributes
 import com.newrelic.telemetry.opentelemetry.`export`.{ NewRelicExporters, NewRelicMetricExporter }
@@ -22,9 +20,9 @@ import io.scalac.api.AccountRoutes
 import io.scalac.domain.{ AccountStateActor, JsonCodecs }
 import org.slf4j.LoggerFactory
 
-import scala.collection.JavaConverters._
 import scala.concurrent.duration._
 import scala.io.StdIn
+import scala.jdk.CollectionConverters._
 import scala.language.postfixOps
 import scala.util.{ Failure, Success }
 
@@ -86,14 +84,14 @@ object Boot extends App with FailFastCirceSupport with JsonCodecs {
 
   val accountRoutes = new AccountRoutes(accountsShards)
 
-  implicit val classicSystem = system.toClassic
-  implicit val materializer  = ActorMaterializer()
-
   val host = config.getString("app.host")
 
   val port = config.getInt("app.port")
   logger.info(s"Starting http server at $host:$port")
-  val binding = Http().bindAndHandle(accountRoutes.routes, host, port)
+
+  val binding = Http()
+    .newServerAt("localhost", 8080)
+    .bind(accountRoutes.routes)
 
   StdIn.readLine()
 

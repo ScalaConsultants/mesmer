@@ -4,12 +4,13 @@ import akka.actor.typed.Behavior
 import akka.actor.typed.receptionist.Receptionist
 import akka.actor.typed.receptionist.Receptionist.Register
 import akka.actor.typed.scaladsl.Behaviors
+import akka.cluster.typed.Cluster
 import io.scalac.extension.event.HttpEvent
 import io.scalac.extension.event.HttpEvent._
 import io.scalac.extension.metric.CachingMonitor._
 import io.scalac.extension.metric.HttpMetricMonitor._
 import io.scalac.extension.metric.{Bindable, HttpMetricMonitor}
-import io.scalac.extension.model.{Method, Path}
+import io.scalac.extension.model.{Method, Path, _}
 import io.scalac.extension.service.PathService
 
 object HttpEventsActor {
@@ -29,6 +30,8 @@ object HttpEventsActor {
       httpMetricMonitor.caching
 
     def createLabels(path: Path, method: Method): Labels = Labels(pathService.template(path), method)
+
+    val selfNodeAddress = Cluster(ctx.system).selfMember.uniqueAddress.toNode
 
     def monitorHttp(
       inFlightRequest: Map[String, RequestStarted]

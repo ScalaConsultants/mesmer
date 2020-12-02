@@ -1,6 +1,4 @@
-package io.scalac.agent
-
-import java.lang.reflect.Method
+package io.scalac.agent.akka.persistence
 
 import _root_.akka.actor.typed.scaladsl.ActorContext
 import _root_.akka.util.Timeout
@@ -13,20 +11,18 @@ import scala.concurrent.duration._
 class RecoveryCompletedInterceptor
 
 object RecoveryCompletedInterceptor {
-
+  import AkkaPersistenceAgent.logger
   @Advice.OnMethodEnter
   def enter(
-    @Advice.Origin method: Method,
-    @Advice.AllArguments parameters: Array[Object],
-    @Advice.This thiz: Object
+    @Advice.Argument(0) actorContext: ActorContext[_]
   ): Unit = {
-    println("Recovery completion intercepted. Method: " + method + ", This: " + thiz)
-    val actorContext       = parameters(0).asInstanceOf[ActorContext[_]]
+    val path = actorContext.self.path
+    logger.trace("Recovery completed for {}", path)
     implicit val ec        = actorContext.system.executionContext
     implicit val scheduler = actorContext.system.scheduler
-    implicit val timeout   = Timeout(1.second)
 
+    implicit val timeout   = Timeout(1.second)
     EventBus(actorContext.system)
-      .publishEvent(RecoveryFinished(actorContext.self.path, System.currentTimeMillis()))
+      .publishEvent(RecoveryFinished(path, System.currentTimeMillis()))
   }
 }
