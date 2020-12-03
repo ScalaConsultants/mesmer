@@ -68,12 +68,14 @@ final case class Agent private (private val set: Set[AgentInstrumentation]) exte
     set.flatMap { agentInstrumentation =>
       val dependencies = agentInstrumentation.instrumentingModules
 
-      val requiredModules = modules.view.filterKeys(dependencies.modules.contains)
-      val allModulesSupported = requiredModules.forall {
-        case (module, version) => dependencies.supportedVersion(module).supports(version)
+      val allModulesSupported = dependencies.modules.forall { module =>
+        (for {
+          detectedVersion <- modules.get(module)
+        } yield dependencies.supportedVersion(module).supports(detectedVersion)).getOrElse(false)
       }
 
       if (allModulesSupported) {
+        val requiredModules = modules.view.filterKeys(dependencies.modules.contains)
         Some(agentInstrumentation(builder, instrumentation, requiredModules.toMap))
       } else {
         logger.error("Unsupported versions for instrumentation for {}", agentInstrumentation.name)
