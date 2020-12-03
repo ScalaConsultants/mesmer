@@ -1,6 +1,4 @@
-package io.scalac.agent
-
-import java.lang.reflect.Method
+package io.scalac.agent.akka.persistence
 
 import _root_.akka.actor.typed.scaladsl.ActorContext
 import _root_.akka.persistence.typed.PersistenceId
@@ -37,24 +35,21 @@ object RecoveryCompletedInterceptor {
       persistenceId <- Try(persistenceIdField.get(setup))
     } yield persistenceId.asInstanceOf[PersistenceId]
   }
+  import AkkaPersistenceAgent.logger
   @Advice.OnMethodEnter
   def enter(
-    @Advice.Origin method: Method,
-    @Advice.AllArguments parameters: Array[Object],
-    @Advice.This thiz: Object
+    @Advice.Argument(0) actorContext: ActorContext[_],
+    @Advice.This thiz: AnyRef
   ): Unit = {
-    println("Recovery completion intercepted. Method: " + method + ", This: " + thiz)
-    val actorContext       = parameters(0).asInstanceOf[ActorContext[_]]
-    implicit val ec        = actorContext.system.executionContext
-    implicit val scheduler = actorContext.system.scheduler
-    implicit val timeout   = Timeout(1.second)
+    val path = actorContext.self.path
+    logger.trace("Recovery completed for {}", path)
 
     persistenceIdExtractor(thiz).fold(
       _.printStackTrace(),
       persistenceId =>
         EventBus(actorContext.system)
           .publishEvent(
-            RecoveryFinished(actorContext.self.path.toString, persistenceId.id, System.currentTimeMillis())
+            RecoveryFinished(path.toString, persistenceId.id, System.currentTimeMillis())
           )
     )
   }

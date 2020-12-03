@@ -1,7 +1,7 @@
 import sbt._
 
 object Dependencies {
-  val AkkaHttpVersion       = "10.1.12"
+  val AkkaHttpVersion       = "10.2.0"
   val AkkaVersion           = "2.6.8"
   val CirceVersion          = "0.12.3"
   val SlickVersion          = "3.3.3"
@@ -56,6 +56,7 @@ object Dependencies {
     "com.typesafe.slick" %% "slick"          % SlickVersion,
     "com.typesafe.slick" %% "slick-hikaricp" % SlickVersion
   )
+
   val postgresDriver = Seq("org.postgresql" % "postgresql" % PostgresVersion)
 
   val logback = Seq("ch.qos.logback" % "logback-classic" % LogbackVersion)
@@ -73,4 +74,6 @@ object Dependencies {
   val scalatest = Seq("org.scalatest" %% "scalatest" % ScalatestVersion % Test)
 
   val reflection: String => Seq[ModuleID] = version => Seq("org.scala-lang" % "scala-reflect" % version)
+
+  val slf4jApi = Seq("org.slf4j" % "slf4j-api" % "1.7.30")
 }

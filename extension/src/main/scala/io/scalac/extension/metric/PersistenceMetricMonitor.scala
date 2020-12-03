@@ -7,8 +7,9 @@ object PersistenceMetricMonitor {
   trait BoundMonitor {
     def recoveryTime: MetricRecorder[Long]
   }
-  final case class Labels(path: Path, persistenceId: String) {
-    def toOpenTelemetry: OpenTelemetryLabels = OpenTelemetryLabels.of("path", path, "persistenceId", persistenceId)
+  final case class Labels(node: Node, path: Path, persistenceId: String) {
+    def toOpenTelemetry: OpenTelemetryLabels =
+      OpenTelemetryLabels.of("node", node, "path", path, "persistenceId", persistenceId)
   }
 }
 

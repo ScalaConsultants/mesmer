@@ -19,6 +19,10 @@ class AccountRoutes(
     extends FailFastCirceSupport
     with JsonCodecs {
 
+  val testRoute: Route = path("api") {
+    complete("Hi")
+  }
+
   val routes: Route = pathPrefix("api" / "v1" / "account" / JavaUUID) { uuid =>
     (pathPrefix("balance") & pathEndOrSingleSlash & get) {
       import AccountStateActor.Command._
@@ -47,7 +51,7 @@ class AccountRoutes(
           case _ => complete(StatusCodes.InternalServerError)
         }
       }
-    } ~ (pathPrefix("deposit" / DoubleNumber) & pathEndOrSingleSlash) { amount =>
+    } ~ (pathPrefix("deposit" /  DoubleNumber ) & pathEndOrSingleSlash) { amount =>
       (put | post) {
         import AccountStateActor.Command._
         import AccountStateActor.Reply._

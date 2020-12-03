@@ -3,7 +3,7 @@ package io.scalac.extension.util
 import akka.actor.testkit.typed.scaladsl.TestProbe
 import akka.actor.typed.ActorSystem
 import io.scalac.extension.metric.ClusterMetricsMonitor.BoundMonitor
-import io.scalac.extension.metric.{ ClusterMetricsMonitor, Counter, MetricRecorder }
+import io.scalac.extension.metric.{ClusterMetricsMonitor, Counter, MetricRecorder, UpCounter}
 import io.scalac.extension.model.Node
 import io.scalac.extension.util.BoundTestProbe._
 
@@ -34,6 +34,10 @@ trait BoundTestProbe {
     }
   }
 
+  implicit protected class testProbeUpCounterOps(val probe: TestProbe[CounterCommand]) {
+    def toUpCounter: UpCounter[Long] = value => probe.ref ! Inc(value)
+  }
+
 }
 
 class ClusterMetricsTestProbe private (
@@ -41,7 +45,8 @@ class ClusterMetricsTestProbe private (
   val entityPerRegionProbe: TestProbe[MetricRecorderCommand],
   val shardRegionsOnNodeProbe: TestProbe[MetricRecorderCommand],
   val reachableNodesProbe: TestProbe[CounterCommand],
-  val unreachableNodesProbe: TestProbe[CounterCommand]
+  val unreachableNodesProbe: TestProbe[CounterCommand],
+  val nodeDownProbe: TestProbe[CounterCommand]
 ) extends ClusterMetricsMonitor
     with BoundTestProbe {
 
@@ -56,6 +61,8 @@ class ClusterMetricsTestProbe private (
     override val reachableNodes: Counter[Long] = reachableNodesProbe.toCounter
 
     override val unreachableNodes: Counter[Long] = unreachableNodesProbe.toCounter
+
+    override val nodeDown: UpCounter[Long] = nodeDownProbe.toUpCounter
   }
 }
 
@@ -66,12 +73,14 @@ object ClusterMetricsTestProbe {
     val shardRegionsOnNodeProbe = TestProbe[MetricRecorderCommand]("shardRegionsOnNodeProbe")
     val reachableNodesProbe     = TestProbe[CounterCommand]("reachableNodesProbe")
     val unreachableNodesProbe   = TestProbe[CounterCommand]("unreachableNodesProbe")
+    val nodeDownProbe           = TestProbe[CounterCommand]("nodeDownProbe")
     new ClusterMetricsTestProbe(
       shardPerRegionsProbe,
       entityPerRegionProbe,
       shardRegionsOnNodeProbe,
       reachableNodesProbe,
-      unreachableNodesProbe
+      unreachableNodesProbe,
+      nodeDownProbe
     )
   }
 }

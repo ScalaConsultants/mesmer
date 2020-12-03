@@ -4,11 +4,13 @@ import akka.actor.typed.Behavior
 import akka.actor.typed.receptionist.Receptionist
 import akka.actor.typed.receptionist.Receptionist.Register
 import akka.actor.typed.scaladsl.Behaviors
+import akka.cluster.typed.Cluster
 import io.scalac.extension.event.PersistenceEvent
 import io.scalac.extension.event.PersistenceEvent._
 import io.scalac.extension.metric.CachingMonitor._
 import io.scalac.extension.metric.PersistenceMetricMonitor
 import io.scalac.extension.metric.PersistenceMetricMonitor.Labels
+import io.scalac.extension.model._
 import io.scalac.extension.service.PathService
 
 import scala.language.postfixOps
@@ -24,7 +26,9 @@ object PersistenceEventsListener {
   def apply(pathService: PathService, monitor: PersistenceMetricMonitor, entities: Set[String]): Behavior[Event] =
     Behaviors.setup { ctx =>
       import Event._
-      Receptionist(ctx.system).ref ! Register(persistenceService, ctx.messageAdapter(PersistentEventWrapper.apply))
+      Receptionist(ctx.system).ref ! Register(persistenceServiceKey, ctx.messageAdapter(PersistentEventWrapper.apply))
+
+      val selfNodeAddress = Cluster(ctx.system).selfMember.uniqueAddress.toNode
 
       // this is thread unsafe mutable data structure that relies on actor model abstraction
       val cachingMonitor = monitor.caching
@@ -43,7 +47,7 @@ object PersistenceEventsListener {
                 Behaviors.same[Event]
               } { started =>
                 val recoveryTime = timestamp - started.timestamp
-                val labels = Labels(pathService.template(path), pathService.template(persistenceId))
+                val labels       = Labels(selfNodeAddress, pathService.template(path), pathService.template(persistenceId))
                 ctx.log.debug("Capture recovery time {}ms for labels {}", recoveryTime, labels)
                 cachingMonitor
                   .bind(labels)

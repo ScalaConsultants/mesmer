@@ -1,6 +1,4 @@
-package io.scalac.agent
-
-import java.lang.reflect.Method
+package io.scalac.agent.akka.persistence
 
 import _root_.akka.actor.typed.scaladsl.ActorContext
 import _root_.akka.persistence.typed.PersistenceId
@@ -13,6 +11,7 @@ import scala.util.Try
 class RecoveryStartedInterceptor
 
 object RecoveryStartedInterceptor {
+  import AkkaPersistenceAgent.logger
 
   private val setupField = {
     val setup = Class.forName("akka.persistence.typed.internal.ReplayingSnapshot").getDeclaredField("setup")
@@ -34,17 +33,16 @@ object RecoveryStartedInterceptor {
 
   @Advice.OnMethodEnter
   def enter(
-    @Advice.Origin method: Method,
-    @Advice.AllArguments parameters: Array[Object],
-    @Advice.This thiz: Object
+    @Advice.Argument(0) context: ActorContext[_],
+    @Advice.This thiz: AnyRef
   ): Unit = {
-    System.out.println("Recovery startup intercepted. Method: " + method + ", This: " + thiz)
-    val context = parameters(0).asInstanceOf[ActorContext[_]]
+    val path = context.self.path
+    logger.trace("Started actor {} recovery", path)
     persistenceIdExtractor(thiz).fold(
       _.printStackTrace(),
       persistenceId =>
         EventBus(context.system)
-          .publishEvent(RecoveryStarted(context.self.path.toString, persistenceId.id, System.currentTimeMillis()))
+          .publishEvent(RecoveryStarted(path.toString, persistenceId.id, System.currentTimeMillis()))
     )
   }
 }

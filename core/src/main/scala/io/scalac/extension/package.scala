@@ -5,9 +5,11 @@ import io.scalac.extension.event.{ HttpEvent, PersistenceEvent }
 
 package object `extension` {
 
-  val persistenceService: ServiceKey[PersistenceEvent] =
+  val persistenceServiceKey: ServiceKey[PersistenceEvent] =
     ServiceKey[PersistenceEvent](s"io.scalac.metric.persistence")
 
-  val httpService: ServiceKey[HttpEvent] =
+  val httpServiceKey: ServiceKey[HttpEvent] =
     ServiceKey[HttpEvent](s"io.scalac.metric.http")
+
+
 }
