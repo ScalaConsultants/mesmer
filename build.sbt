@@ -70,6 +70,7 @@ lazy val agent = (project in file("agent"))
     },
     assembly / test := {},
     assembly / assemblyJarName := "scalac_agent.jar",
+    assembly / assemblyOption ~= { _.copy(includeScala = false) },
     assemblyMergeStrategySettings,
     Test / fork := true
   )
