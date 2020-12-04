@@ -1,7 +1,7 @@
 import Dependencies._
 import sbt.Package.{ MainClass, ManifestAttributes }
 
-ThisBuild / scalaVersion := "2.12.10"
+ThisBuild / scalaVersion := "2.13.4"
 ThisBuild / version := "0.1.0-SNAPSHOT"
 ThisBuild / organization := "io.scalac"
 ThisBuild / organizationName := "scalac"
@@ -59,7 +59,7 @@ val assemblyMergeStrategySettings = assembly / assemblyMergeStrategy := {
 lazy val agent = (project in file("agent"))
   .settings(
     name := "akka-monitoring-agent",
-    libraryDependencies ++= akka ++ byteBuddy ++ scalatest ++ reflection(scalaVersion.value),
+    libraryDependencies ++= akka ++ byteBuddy ++ scalatest ++ akkaTestkit ++ slf4jApi ++ reflection(scalaVersion.value),
     Compile / mainClass := Some("io.scalac.agent.Boot"),
     Compile / packageBin / packageOptions := {
       (Compile / packageBin / packageOptions).value.map {

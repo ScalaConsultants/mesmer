@@ -1,4 +1,4 @@
-package io.scalac.agent
+package io.scalac.agent.akka.persistence
 
 import java.lang.reflect.Method
 
@@ -10,15 +10,13 @@ import net.bytebuddy.asm.Advice
 class RecoveryStartedInterceptor
 
 object RecoveryStartedInterceptor {
+  import AkkaPersistenceAgent.logger
 
   @Advice.OnMethodEnter
   def enter(
-    @Advice.Origin method: Method,
-    @Advice.AllArguments parameters: Array[Object],
-    @Advice.This thiz: Object
+    @Advice.Argument(0) context: ActorContext[_],
   ): Unit = {
-    System.out.println("Recovery startup intercepted. Method: " + method + ", This: " + thiz)
-    val context = parameters(0).asInstanceOf[ActorContext[_]]
+    logger.trace("Started actor {} recovery", context.self.path)
     EventBus(context.system).publishEvent(RecoveryStarted(context.self.path, System.currentTimeMillis()))
   }
 }

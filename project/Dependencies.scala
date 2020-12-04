@@ -1,7 +1,7 @@
 import sbt._
 
 object Dependencies {
-  val AkkaHttpVersion       = "10.1.12"
+  val AkkaHttpVersion       = "10.2.0"
   val AkkaVersion           = "2.6.8"
   val CirceVersion          = "0.12.3"
   val SlickVersion          = "3.3.3"
@@ -19,17 +19,6 @@ object Dependencies {
     "com.typesafe.akka" %% "akka-actor-typed"            % AkkaVersion,
     "com.typesafe.akka" %% "akka-serialization-jackson"  % AkkaVersion,
     "com.typesafe.akka" %% "akka-cluster-sharding-typed" % AkkaVersion
-  )
-  val akkaManagement = Seq(
-    "com.lightbend.akka.management" %% "akka-management"              % AkkaManagementVersion,
-    "com.lightbend.akka.management" %% "akka-management-cluster-http" % AkkaManagementVersion
-  )
-
-  val akkaTestkit = Seq(
-    "com.typesafe.akka" %% "akka-actor-testkit-typed" % AkkaVersion % Test,
-    "com.typesafe.akka" %% "akka-persistence-testkit" % AkkaVersion % Test,
-    "com.typesafe.akka" %% "akka-stream-testkit"      % AkkaVersion,
-    "com.typesafe.akka" %% "akka-http-testkit"        % AkkaHttpVersion
   )
 
   val akkaPersistance = Seq(
@@ -56,6 +45,7 @@ object Dependencies {
     "com.typesafe.slick" %% "slick"          % SlickVersion,
     "com.typesafe.slick" %% "slick-hikaricp" % SlickVersion
   )
+
   val postgresDriver = Seq("org.postgresql" % "postgresql" % PostgresVersion)
 
   val logback = Seq("ch.qos.logback" % "logback-classic" % LogbackVersion)
@@ -70,7 +60,21 @@ object Dependencies {
     "com.newrelic.telemetry" % "telemetry-http-okhttp"            % "0.9.0"
   )
 
+  val akkaManagement = Seq(
+    "com.lightbend.akka.management" %% "akka-management"              % AkkaManagementVersion,
+    "com.lightbend.akka.management" %% "akka-management-cluster-http" % AkkaManagementVersion
+  )
+
+  val akkaTestkit = Seq(
+    "com.typesafe.akka" %% "akka-actor-testkit-typed" % AkkaVersion % Test,
+    "com.typesafe.akka" %% "akka-persistence-testkit" % AkkaVersion % Test,
+    "com.typesafe.akka" %% "akka-stream-testkit"      % AkkaVersion,
+    "com.typesafe.akka" %% "akka-http-testkit"        % AkkaHttpVersion
+  )
+
   val scalatest = Seq("org.scalatest" %% "scalatest" % ScalatestVersion % Test)
+
+  val slf4jApi = Seq("org.slf4j" % "slf4j-api" % "1.7.30")
 
   val reflection: String => Seq[ModuleID] = version => Seq("org.scala-lang" % "scala-reflect" % version)
 }

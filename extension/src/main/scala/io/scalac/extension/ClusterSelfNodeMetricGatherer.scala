@@ -105,7 +105,7 @@ object ClusterSelfNodeMetricGatherer {
 
       cluster.subscriptions ! Subscribe(initializationAdapter, classOf[SelfUp])
 
-      Receptionist(ctx.system).ref ! Register(clusterService, ctx.messageAdapter[ClusterEvent] {
+      Receptionist(ctx.system).ref ! Register(clusterServiceKey, ctx.messageAdapter[ClusterEvent] {
         case ShardingRegionInstalled(region) => MonitorRegion(region)
       })
 
@@ -143,24 +143,22 @@ object ClusterSelfNodeMetricGatherer {
               Behaviors.same
             }
             case ClusterShardingStatsReceived(stats) => {
-              stats.regions.find {
-                case (address, _) => address == selfAddress.address
-              }.fold {
-                ctx.log.warn(
-                  s"No information on shards for node ${selfAddress.address}"
-                )
-              } {
-                case (_, shardsStats) => {
+              stats.regions
+                .get(selfAddress.address)
+                .fold {
+                  ctx.log.warn(
+                    s"No information on shards for node ${selfAddress.address}"
+                  )
+                } { shardsStats =>
                   val entities = shardsStats.stats.values.sum
                   val shards   = shardsStats.stats.size
 
-                  ctx.log.trace("Recorded amount of entitites {}", entities)
+                  ctx.log.trace("Recorded amount of entities {}", entities)
                   monitor.entityPerRegion.setValue(entities)
                   ctx.log.trace("Recorded amount of shards {}", shards)
                   monitor.shardPerRegions.setValue(shards)
-                }
 
-              }
+                }
               Behaviors.same
             }
             case GetClusterShardingStatsInternal(region) => {

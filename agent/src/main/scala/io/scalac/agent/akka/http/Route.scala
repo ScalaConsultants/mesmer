@@ -93,9 +93,9 @@ object HttpInstrumentation {
 
       zipRequest.out.map {
         case (request, id) => {
-          EventBus(system.toTyped).publishEvent(
-            RequestStarted(id, System.currentTimeMillis(), request.uri.path.toString(), request.method.value)
-          )
+          val path   = request.uri.path.toString()
+          val method = request.method.value
+          EventBus(system.toTyped).publishEvent(RequestStarted(id, System.currentTimeMillis(), path, method))
           request
         }
       } ~> flow
@@ -113,7 +113,6 @@ object HttpInstrumentation {
       FlowShape(outerRequest.in, outerResponse.out)
 
     })
-    println(s"DOING HTTP BINDING ON ${self}")
 
     method
       .invoke(
