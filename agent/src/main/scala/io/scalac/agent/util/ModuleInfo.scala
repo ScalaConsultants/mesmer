@@ -14,7 +14,7 @@ object ModuleInfo {
   private def matchModules(properties: Map[String, String]): Modules =
     properties.keySet.flatMap { key =>
       for {
-        splited @ Array(ModulePrefix, module) <- Option(key.split('.')) if splited.length == 2
+        splitted @ Array(ModulePrefix, module) <- Option(key.split('.')) if splitted.length == 2
         versionRaw                            <- properties.get(key)
         version                               <- Version(versionRaw)
       } yield (Module(module) -> version)
