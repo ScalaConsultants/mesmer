@@ -26,6 +26,13 @@ object Agent {
       }
 
     def ++(other: LoadingResult): LoadingResult = new LoadingResult(this.fqns ++ other.fqns)
+
+    override def hashCode(): Int = fqns.hashCode()
+
+    override def equals(obj: Any): Boolean = obj match {
+      case loadingResult: LoadingResult => loadingResult.fqns == this.fqns
+      case _                            => false
+    }
   }
 
   object LoadingResult {
@@ -69,9 +76,9 @@ final case class Agent private (private val set: Set[AgentInstrumentation]) exte
       val dependencies = agentInstrumentation.instrumentingModules
 
       val allModulesSupported = dependencies.modules.forall { module =>
-        (for {
-          detectedVersion <- modules.get(module)
-        } yield dependencies.supportedVersion(module).supports(detectedVersion)).getOrElse(false)
+        modules
+          .get(module)
+          .exists(dependencies.supportedVersion(module).supports)
       }
 
       if (allModulesSupported) {
