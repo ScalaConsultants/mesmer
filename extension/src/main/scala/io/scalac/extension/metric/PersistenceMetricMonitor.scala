@@ -14,6 +14,11 @@ trait PersistenceMetricMonitor extends Bindable[Labels] { self =>
 
   override type Bound <: BoundMonitor
 
+  def transactionally[A, B, C <: self.type](
+    one: TrackingMetricRecorder.Aux[A, C],
+    two: TrackingMetricRecorder.Aux[B, C]
+  ): Option[(A, B) => Unit]
+
   trait BoundMonitor {
     def recoveryTime: TrackingMetricRecorder.Aux[Long, self.type]
   }
