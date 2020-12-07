@@ -39,3 +39,17 @@ trait UpCounter[T] extends Metric[T] {
 trait Counter[T] extends UpCounter[T] {
   def decValue(value: T): Unit
 }
+
+trait TrackingMetricRecorder[T] extends MetricRecorder[T] {
+  type Creator
+}
+
+object TrackingMetricRecorder {
+  type Aux[T, C] = TrackingMetricRecorder[T] { type Creator = C }
+
+  def lift[T, C](recorder: MetricRecorder[T]): TrackingMetricRecorder.Aux[T, C] = new TrackingMetricRecorder[T] {
+    override type Creator = C
+
+    override def setValue(value: T): Unit = recorder.setValue(value)
+  }
+}

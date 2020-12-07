@@ -3,8 +3,7 @@ package io.scalac.extension.upstream
 import com.typesafe.config.Config
 import io.opentelemetry.api.OpenTelemetry
 import io.scalac.extension.metric.Metric._
-import io.scalac.extension.metric.{ MetricRecorder, PersistenceMetricMonitor }
-import io.scalac.extension.model._
+import io.scalac.extension.metric.{ PersistenceMetricMonitor, TrackingMetricRecorder }
 import io.scalac.extension.upstream.OpenTelemetryPersistenceMetricMonitor._
 
 object OpenTelemetryPersistenceMetricMonitor {
@@ -41,18 +40,20 @@ object OpenTelemetryPersistenceMetricMonitor {
 }
 
 class OpenTelemetryPersistenceMetricMonitor(instrumentationName: String, metricNames: MetricNames)
-    extends PersistenceMetricMonitor {
+    extends PersistenceMetricMonitor { self =>
   import PersistenceMetricMonitor._
   private val recoveryTimeRecorder = OpenTelemetry
     .getGlobalMeter(instrumentationName)
     .longValueRecorderBuilder(metricNames.recoveryTime)
     .setDescription("Amount of time needed for entity recovery")
     .build()
+  
+  override type Bound = BoundMonitor
 
   override def bind(labels: Labels): BoundMonitor =
     new BoundMonitor {
 
-      override lazy val recoveryTime: MetricRecorder[Long] =
-        recoveryTimeRecorder.bind(labels.toOpenTelemetry).toMetricRecorder()
+      override lazy val recoveryTime: TrackingMetricRecorder.Aux[Long, self.type] =
+        TrackingMetricRecorder.lift(recoveryTimeRecorder.bind(labels.toOpenTelemetry).toMetricRecorder())
     }
 }
