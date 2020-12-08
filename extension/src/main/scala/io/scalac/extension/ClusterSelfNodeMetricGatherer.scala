@@ -48,9 +48,9 @@ object ClusterSelfNodeMetricGatherer {
 
     sealed trait ReachabilityEvent extends Command
 
-    private[extension] case object NodeUnreachable extends ReachabilityEvent
+    private[extension] case class NodeUnreachable(address: UniqueAddress) extends ReachabilityEvent
 
-    private[extension] case object NodeReachable extends ReachabilityEvent
+    private[extension] case class NodeReachable(address: UniqueAddress) extends ReachabilityEvent
 
     trait InitializationEvent extends Command
 
@@ -86,8 +86,8 @@ object ClusterSelfNodeMetricGatherer {
 
       val memberReachabilityAdapter =
         ctx.messageAdapter[AkkaReachabilityEvent] {
-          case UnreachableMember(_) => NodeUnreachable
-          case ReachableMember(_)   => NodeReachable
+          case UnreachableMember(member) => NodeUnreachable(member.uniqueAddress)
+          case ReachableMember(member)   => NodeReachable(member.uniqueAddress)
         }
 
       val clusterShardingStatsAdapter =
@@ -109,36 +109,32 @@ object ClusterSelfNodeMetricGatherer {
         case ShardingRegionInstalled(region) => MonitorRegion(region)
       })
 
-      def initialized(regions: Seq[String], monitor: BoundMonitor, selfAddress: UniqueAddress): Behavior[Command] =
+      def initialized(
+        regions: Seq[String],
+        monitor: BoundMonitor,
+        selfAddress: UniqueAddress,
+        unreachableNodes: Set[UniqueAddress]
+      ): Behavior[Command] =
         Behaviors.withTimers[Command] { scheduler =>
-//          if (initRegions.nonEmpty) {
-//
-//            initRegions.foreach { region =>
-//              ctx.log.info("Start monitoring sharding region {}", region)
-//              scheduler.startTimerWithFixedDelay(
-//                region,
-//                GetClusterShardingStatsInternal(region),
-//                pingOffset
-//              )
-//            }
-//          } else {
-//            ctx.log.warn("No initial regions specified")
-//          }
-
           Behaviors.receiveMessage {
             case MonitorRegion(region) => {
               ctx.log.info("Start monitoring region {}", region)
               scheduler.startTimerWithFixedDelay(region, GetClusterShardingStatsInternal(region), pingOffset)
-              initialized(regions :+ region, monitor, selfAddress)
+              initialized(regions :+ region, monitor, selfAddress, unreachableNodes)
             }
 
+            case ClusterMemberEvent(MemberRemoved(member, _)) => {
+              if (unreachableNodes.contains(member.uniqueAddress)) {
+                monitor.unreachableNodes.decValue(1L)
+              } else {
+                monitor.reachableNodes.decValue(1L)
+              }
+              initialized(regions, monitor, selfAddress, unreachableNodes - member.uniqueAddress)
+            }
             case ClusterMemberEvent(event) => {
-              ctx.log.info(s"${event.toString}")
-
               event match {
-                case MemberUp(_)         => monitor.reachableNodes.incValue(1L)
-                case MemberRemoved(_, _) => monitor.reachableNodes.decValue(1L)
-                case _                   => // ignore other cases
+                case MemberUp(_) => monitor.reachableNodes.incValue(1L)
+                case _           => //
               }
               Behaviors.same
             }
@@ -172,20 +168,18 @@ object ClusterSelfNodeMetricGatherer {
               monitor.shardRegionsOnNode.setValue(regions)
               Behaviors.same
             }
-            case reachabilityEvent: ReachabilityEvent =>
-              reachabilityEvent match {
-                case NodeReachable => {
-                  ctx.log.trace("Node become reachable")
-                  monitor.reachableNodes.incValue(1L)
-                  monitor.unreachableNodes.decValue(1L)
-                }
-                case NodeUnreachable => {
-                  ctx.log.trace("Node become unreachable")
-                  monitor.reachableNodes.decValue(1L)
-                  monitor.unreachableNodes.incValue(1L)
-                }
-              }
-              Behaviors.same
+            case NodeReachable(address) => {
+              ctx.log.trace("Node {} become reachable", address)
+              monitor.reachableNodes.incValue(1L)
+              monitor.unreachableNodes.decValue(1L)
+              initialized(regions, monitor, selfAddress, unreachableNodes - address)
+            }
+            case NodeUnreachable(address) => {
+              ctx.log.trace("Node {} become unreachable", address)
+              monitor.reachableNodes.decValue(1L)
+              monitor.unreachableNodes.incValue(1L)
+              initialized(regions, monitor, selfAddress, unreachableNodes + address)
+            }
             case InitializationTimeout => Behaviors.ignore
           }
         }
@@ -206,7 +200,7 @@ object ClusterSelfNodeMetricGatherer {
                 val boundMonitor =
                   clusterMetricsMonitor.bind(selfAddress.toNode)
                 timer.cancel(timeoutKey)
-                buffer.unstashAll(initialized(Seq.empty, boundMonitor, selfAddress))
+                buffer.unstashAll(initialized(Seq.empty, boundMonitor, selfAddress, Set.empty))
               }
               case InitializationTimeout => {
                 ctx.log.error("Initialization timeout")
