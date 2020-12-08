@@ -28,4 +28,6 @@ object Service {
   implicit val persistenceService: Service[PersistenceEvent] = Service(persistenceServiceKey)
 
   implicit val httpService: Service[HttpEvent] = Service(httpServiceKey)
+
+  implicit val clusterService: Service[ClusterEvent] = Service(clusterServiceKey)
 }

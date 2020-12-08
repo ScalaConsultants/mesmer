@@ -2,6 +2,7 @@ package io.scalac.agent
 
 import java.lang.instrument.Instrumentation
 
+import io.scalac.agent.akka.cluster.AkkaClusterAgent
 import io.scalac.agent.akka.http.AkkaHttpAgent
 import io.scalac.agent.akka.persistence.AkkaPersistenceAgent
 import io.scalac.agent.util.ModuleInfo
@@ -21,7 +22,7 @@ object Boot {
       )
       .`with`(AgentBuilder.InstallationListener.StreamWriting.toSystemOut)
 
-    val allInstrumentations = AkkaPersistenceAgent.agent ++ AkkaHttpAgent.agent
+    val allInstrumentations = AkkaPersistenceAgent.agent ++ AkkaHttpAgent.agent ++ AkkaClusterAgent.agent
     val moduleInfo = ModuleInfo.extractModulesInformation(Thread.currentThread().getContextClassLoader)
 
     allInstrumentations
