@@ -3,10 +3,8 @@ package io.scalac.extension.upstream
 import com.typesafe.config.Config
 import io.opentelemetry.api.OpenTelemetry
 import io.scalac.extension.metric.MetricRecorder.BoundWrappedValueRecorder
-import io.scalac.extension.metric.{ PersistenceMetricMonitor, TrackingMetricRecorder }
+import io.scalac.extension.metric.PersistenceMetricMonitor
 import io.scalac.extension.upstream.OpenTelemetryPersistenceMetricMonitor._
-
-import scala.collection.mutable.ListBuffer
 
 object OpenTelemetryPersistenceMetricMonitor {
   case class MetricNames(
@@ -50,33 +48,36 @@ class OpenTelemetryPersistenceMetricMonitor(instrumentationName: String, metricN
     .setDescription("Amount of time needed for entity recovery")
     .build()
 
-  override type Bound = BoundMonitor
+  override type Bound = OpenTelemetryBoundMonitor
 
-  override def transactionally[A, B, C <: self.type](
-    one: TrackingMetricRecorder.Aux[A, C],
-    two: TrackingMetricRecorder.Aux[B, C]
-  ): Option[(A, B) => Unit] =
-    (one.underlying, two.underlying) match {
-      case (first: BoundWrappedValueRecorder, second: BoundWrappedValueRecorder) =>
-        Some { (a, b) =>
-          val labels: ListBuffer[String] = ListBuffer.empty
-          first.labels.forEach {
-            case (key, value) => labels ++= List(key, value)
-          }
-          OpenTelemetry
-            .getGlobalMeter(instrumentationName)
-            .newBatchRecorder(labels.toList: _*)
-            .put(first.underlying, a.asInstanceOf[Long])
-            .put(second.underlying, b.asInstanceOf[Long])
-            .record()
-        }
-      case _ => None
-    }
+//  override def transactionally[A, B, C <: self.type](
+//    one: TrackingMetricRecorder.Aux[A, C],
+//    two: TrackingMetricRecorder.Aux[B, C]
+//  ): Option[(A, B) => Unit] =
+//    (one.underlying, two.underlying) match {
+//      case (first: BoundWrappedValueRecorder, second: BoundWrappedValueRecorder) =>
+//        Some { (a, b) =>
+//          val labels: ListBuffer[String] = ListBuffer.empty
+//          first.labels.forEach {
+//            case (key, value) => labels ++= List(key, value)
+//          }
+//          OpenTelemetry
+//            .getGlobalMeter(instrumentationName)
+//            .newBatchRecorder(labels.toList: _*)
+//            .put(first.underlying, a.asInstanceOf[Long])
+//            .put(second.underlying, b.asInstanceOf[Long])
+//            .record()
+//        }
+//      case _ => None
+//    }
 
-  override def bind(labels: Labels): BoundMonitor =
-    new BoundMonitor {
+  override def bind(labels: Labels): OpenTelemetryBoundMonitor =
+    new OpenTelemetryBoundMonitor(labels)
 
-      override lazy val recoveryTime: TrackingMetricRecorder.Aux[Long, self.type] =
-        TrackingMetricRecorder.lift(new BoundWrappedValueRecorder(recoveryTimeRecorder, labels.toOpenTelemetry))
-    }
+  class OpenTelemetryBoundMonitor(labels: Labels) extends BoundMonitor {
+    override type Instrument = BoundWrappedValueRecorder
+
+    override lazy val recoveryTime: BoundWrappedValueRecorder =
+      new BoundWrappedValueRecorder(recoveryTimeRecorder, labels.toOpenTelemetry)
+  }
 }
