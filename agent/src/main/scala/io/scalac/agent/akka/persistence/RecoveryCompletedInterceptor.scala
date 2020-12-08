@@ -10,9 +10,6 @@ import net.bytebuddy.asm.Advice
 import scala.concurrent.duration._
 import scala.util.Try
 
-case class Settings(role: String)
-case class Person(name: String, settings: Settings)
-
 class RecoveryCompletedInterceptor
 
 object RecoveryCompletedInterceptor {
