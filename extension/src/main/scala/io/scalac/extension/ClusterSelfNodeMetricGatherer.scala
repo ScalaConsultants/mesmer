@@ -4,21 +4,13 @@ import akka.actor.typed.Behavior
 import akka.actor.typed.receptionist.Receptionist
 import akka.actor.typed.receptionist.Receptionist.Register
 import akka.actor.typed.scaladsl.Behaviors
-import akka.cluster.ClusterEvent.{
-  CurrentClusterState,
-  MemberEvent,
-  MemberRemoved,
-  MemberUp,
-  ReachableMember,
-  UnreachableMember,
-  ReachabilityEvent => AkkaReachabilityEvent
-}
+import akka.cluster.ClusterEvent.{CurrentClusterState, MemberEvent, MemberRemoved, MemberUp, ReachableMember, UnreachableMember, ReachabilityEvent => AkkaReachabilityEvent}
 import akka.cluster.UniqueAddress
-import akka.cluster.sharding.ShardRegion.ClusterShardingStats
-import akka.cluster.sharding.typed.GetClusterShardingStats
-import akka.cluster.sharding.typed.scaladsl.{ ClusterSharding, EntityTypeKey }
-import akka.cluster.sharding.{ ClusterSharding => ClassicClusterSharding }
-import akka.cluster.typed.{ Cluster, SelfUp, Subscribe }
+import akka.cluster.sharding.ShardRegion.CurrentShardRegionState
+import akka.cluster.sharding.typed.GetShardRegionState
+import akka.cluster.sharding.typed.scaladsl.{ClusterSharding, EntityTypeKey}
+import akka.cluster.sharding.{ClusterSharding => ClassicClusterSharding}
+import akka.cluster.typed.{Cluster, SelfUp, Subscribe}
 import akka.util.Timeout
 import io.scalac.extension.event.ClusterEvent
 import io.scalac.extension.event.ClusterEvent.ShardingRegionInstalled
@@ -39,7 +31,7 @@ object ClusterSelfNodeMetricGatherer {
     private[extension] final case class ClusterMemberEvent(event: MemberEvent) extends Command
 
     private[extension] final case class ClusterShardingStatsReceived(
-      stats: ClusterShardingStats
+      stats: CurrentShardRegionState
     ) extends Command
 
     private[extension] final case class GetClusterShardingStatsInternal(
@@ -91,7 +83,7 @@ object ClusterSelfNodeMetricGatherer {
         }
 
       val clusterShardingStatsAdapter =
-        ctx.messageAdapter[ClusterShardingStats](
+        ctx.messageAdapter[CurrentShardRegionState](
           ClusterShardingStatsReceived.apply
         )
 
@@ -139,29 +131,21 @@ object ClusterSelfNodeMetricGatherer {
               Behaviors.same
             }
             case ClusterShardingStatsReceived(stats) => {
-              stats.regions
-                .get(selfAddress.address)
-                .fold {
-                  ctx.log.warn(
-                    s"No information on shards for node ${selfAddress.address}"
-                  )
-                } { shardsStats =>
-                  val entities = shardsStats.stats.values.sum
-                  val shards   = shardsStats.stats.size
+              val shards = stats.shards.size
+              val entities = stats.shards.foldLeft(0) {
+                case (acc, state) => acc + state.entityIds.size
+              }
 
-                  ctx.log.trace("Recorded amount of entities {}", entities)
-                  monitor.entityPerRegion.setValue(entities)
-                  ctx.log.trace("Recorded amount of shards {}", shards)
-                  monitor.shardPerRegions.setValue(shards)
-
-                }
+              ctx.log.trace("Recorded amount of entities {}", entities)
+              monitor.entityPerRegion.setValue(entities)
+              ctx.log.trace("Recorded amount of shards {}", shards)
+              monitor.shardPerRegions.setValue(shards)
               Behaviors.same
             }
             case GetClusterShardingStatsInternal(region) => {
 
-              sharding.shardState ! GetClusterShardingStats(
+              sharding.shardState ! GetShardRegionState(
                 EntityTypeKey[Any](region),
-                pingOffset,
                 clusterShardingStatsAdapter
               )
               val regions = classicSharding.shardTypeNames.size
