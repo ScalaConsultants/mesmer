@@ -38,13 +38,14 @@ trait MetricRecorder[T] extends Metric[T] {
 
 object MetricRecorder {
 
-  class BoundWrappedValueRecorder(val underlying: LongValueRecorder,val labels: Labels) extends MetricRecorder[Long] {
+  class BoundWrappedValueRecorder(val underlying: LongValueRecorder, val labels: Labels) extends MetricRecorder[Long] {
 
     private[this] val bound = underlying.bind(labels)
 
     override def setValue(value: Long): Unit = bound.record(value)
   }
 }
+
 trait UpCounter[T] extends Metric[T] {
   def incValue(value: T): Unit
 }
@@ -52,16 +53,4 @@ trait Counter[T] extends UpCounter[T] {
   def decValue(value: T): Unit
 }
 
-abstract class TrackingMetricRecorder[T](val underlying: MetricRecorder[T]) extends MetricRecorder[T] {
-  type Creator
-  override def setValue(value: T): Unit = underlying.setValue(value)
-}
 
-object TrackingMetricRecorder {
-  type Aux[T, C] = TrackingMetricRecorder[T] { type Creator = C }
-
-  def lift[T, C](recorder: MetricRecorder[T]): TrackingMetricRecorder.Aux[T, C] =
-    new TrackingMetricRecorder[T](recorder) {
-      override type Creator = C
-    }
-}
