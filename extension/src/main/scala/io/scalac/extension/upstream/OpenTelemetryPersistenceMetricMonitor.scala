@@ -6,6 +6,8 @@ import io.scalac.extension.metric.MetricRecorder.BoundWrappedValueRecorder
 import io.scalac.extension.metric.PersistenceMetricMonitor
 import io.scalac.extension.upstream.OpenTelemetryPersistenceMetricMonitor._
 
+import scala.collection.mutable.ListBuffer
+
 object OpenTelemetryPersistenceMetricMonitor {
   case class MetricNames(
     recoveryTime: String
@@ -75,9 +77,26 @@ class OpenTelemetryPersistenceMetricMonitor(instrumentationName: String, metricN
     new OpenTelemetryBoundMonitor(labels)
 
   class OpenTelemetryBoundMonitor(labels: Labels) extends BoundMonitor {
-    override type Instrument = BoundWrappedValueRecorder
+    override type Instrument[_] = BoundWrappedValueRecorder
 
     override lazy val recoveryTime: BoundWrappedValueRecorder =
       new BoundWrappedValueRecorder(recoveryTimeRecorder, labels.toOpenTelemetry)
+
+    override def transactionally[A, B](
+      one: BoundWrappedValueRecorder,
+      two: BoundWrappedValueRecorder
+    ): (A, B) => Unit = (a, b) => {
+      val labels: ListBuffer[String] = ListBuffer.empty
+      one.labels.forEach {
+        case (key, value) => labels ++= List(key, value)
+      }
+      println("Doing opentelemetry transactionally")
+      OpenTelemetry
+        .getGlobalMeter("meter")
+        .newBatchRecorder(labels.toList: _*)
+        .put(one.underlying, a.asInstanceOf[Long])
+        .put(two.underlying, b.asInstanceOf[Long])
+        .record()
+    }
   }
 }
