@@ -26,6 +26,8 @@ object HttpEventsActor {
 
     Receptionist(ctx.system).ref ! Register(httpServiceKey, ctx.messageAdapter(HttpEventWrapper.apply))
 
+    httpMetricMonitor.caching
+
     val cachingHttpMonitor: Bindable.Aux[Labels, httpMetricMonitor.Bound] =
       httpMetricMonitor.caching
 
