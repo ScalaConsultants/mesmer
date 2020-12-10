@@ -3,12 +3,12 @@ import org.slf4j.LoggerFactory
 
 import scala.collection.mutable.{ Map => MutableMap }
 
-class CachingMonitor[L, B, T <: Bindable.Aux[L, B]](val monitor: T) extends Bindable[L] {
+class CachingMonitor[L, T <: Bindable[L]](val monitor: T) extends Bindable[L] {
   private[this] val logger = LoggerFactory.getLogger(this.getClass)
 
   private[this] val cachedMonitors: MutableMap[L, monitor.Bound] = MutableMap.empty
 
-  override type Bound = B
+  override type Bound = monitor.Bound
 
   override final def bind(node: L): Bound =
     cachedMonitors.getOrElse(node, updateMonitors(node, monitor.bind(node)))
@@ -33,9 +33,8 @@ class Dependent extends Bindable[Unit] {
 
 object CachingMonitor {
   /*
-   * Due to limitations of type interference this definition differ from CachingMonitor
+   * Due to limitations of type interference type parameters has to be manually assigned
+   * see https://github.com/scala/bug/issues/5298
    */
-  implicit class CachingMonitorOps[L, B](monitor: Bindable.Aux[L, B]) {
-    def caching: Bindable.Aux[L, B] = new CachingMonitor[L, B, Bindable.Aux[L, B]](monitor)
-  }
+  def caching[L, V <: Bindable[L]](monitor: V) = new CachingMonitor[L, V](monitor)
 }

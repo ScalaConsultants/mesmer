@@ -2,25 +2,15 @@ package io.scalac.extension
 
 import akka.actor.typed.Behavior
 import akka.actor.typed.scaladsl.Behaviors
-import akka.cluster.ClusterEvent.{
-  CurrentClusterState,
-  MemberDowned,
-  MemberEvent,
-  MemberRemoved,
-  MemberUp,
-  ReachableMember,
-  UnreachableMember,
-  ReachabilityEvent => AkkaReachabilityEvent
-}
+import akka.cluster.ClusterEvent.{CurrentClusterState, MemberEvent, MemberRemoved, MemberUp, ReachableMember, UnreachableMember, ReachabilityEvent => AkkaReachabilityEvent}
 import akka.cluster.UniqueAddress
 import akka.cluster.sharding.ShardRegion.ClusterShardingStats
 import akka.cluster.sharding.typed.GetClusterShardingStats
-import akka.cluster.sharding.typed.scaladsl.{ ClusterSharding, EntityTypeKey }
-import akka.cluster.sharding.{ ClusterSharding => ClassicClusterSharding }
-import akka.cluster.typed.{ Cluster, SelfUp, Subscribe }
+import akka.cluster.sharding.typed.scaladsl.{ClusterSharding, EntityTypeKey}
+import akka.cluster.sharding.{ClusterSharding => ClassicClusterSharding}
+import akka.cluster.typed.{Cluster, SelfUp, Subscribe}
 import akka.util.Timeout
 import io.scalac.extension.metric.ClusterMetricsMonitor
-import io.scalac.extension.metric.ClusterMetricsMonitor.BoundMonitor
 import io.scalac.extension.model._
 
 import scala.concurrent.duration._
@@ -104,7 +94,7 @@ object ClusterSelfNodeMetricGatherer {
 
       cluster.subscriptions ! Subscribe(initializationAdapter, classOf[SelfUp])
 
-      def initialized(monitor: BoundMonitor, selfAddress: UniqueAddress) =
+      def initialized(monitor: clusterMetricsMonitor.BoundMonitor, selfAddress: UniqueAddress) =
         Behaviors.withTimers[Command] { scheduler =>
           if (initRegions.nonEmpty) {
 
