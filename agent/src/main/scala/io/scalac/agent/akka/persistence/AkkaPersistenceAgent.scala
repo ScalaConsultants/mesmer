@@ -42,7 +42,7 @@ object AkkaPersistenceAgent {
       .transform {
         case (builder, _, _, _) =>
           builder
-            .method(isMethod[MethodDescription].and(named("onRecoveryStart")))
+            .method(isMethod[MethodDescription].and(named("onRecoveryComplete")))
             .intercept(Advice.to(classOf[RecoveryCompletedInterceptor]))
       }
       .installOn(instrumentation)
