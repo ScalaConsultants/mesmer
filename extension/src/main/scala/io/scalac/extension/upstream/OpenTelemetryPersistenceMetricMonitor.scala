@@ -4,7 +4,6 @@ import com.typesafe.config.Config
 import io.opentelemetry.api.OpenTelemetry
 import io.scalac.extension.metric.Metric._
 import io.scalac.extension.metric.{ MetricRecorder, PersistenceMetricMonitor }
-import io.scalac.extension.model._
 import io.scalac.extension.upstream.OpenTelemetryPersistenceMetricMonitor._
 
 object OpenTelemetryPersistenceMetricMonitor {
