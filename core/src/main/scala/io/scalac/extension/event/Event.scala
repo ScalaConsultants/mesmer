@@ -25,4 +25,10 @@ object HttpEvent {
   case class RequestFailed(id: String, timestamp: Long)                                extends HttpEvent
 }
 
-case class PathMatcherRegistered()
+sealed trait ClusterEvent extends AbstractEvent {
+  override type Service = ClusterEvent
+}
+
+object ClusterEvent {
+  final case class ShardingRegionInstalled(region: String) extends ClusterEvent
+}

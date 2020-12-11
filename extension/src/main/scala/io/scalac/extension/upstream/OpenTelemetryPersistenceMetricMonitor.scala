@@ -1,7 +1,7 @@
 package io.scalac.extension.upstream
 
 import com.typesafe.config.Config
-import io.opentelemetry.OpenTelemetry
+import io.opentelemetry.api.OpenTelemetry
 import io.scalac.extension.metric.Metric._
 import io.scalac.extension.metric.{ MetricRecorder, PersistenceMetricMonitor }
 import io.scalac.extension.upstream.OpenTelemetryPersistenceMetricMonitor._
@@ -43,7 +43,7 @@ class OpenTelemetryPersistenceMetricMonitor(instrumentationName: String, metricN
     extends PersistenceMetricMonitor {
   import PersistenceMetricMonitor._
   private val recoveryTimeRecorder = OpenTelemetry
-    .getMeter(instrumentationName)
+    .getGlobalMeter(instrumentationName)
     .longValueRecorderBuilder(metricNames.recoveryTime)
     .setDescription("Amount of time needed for entity recovery")
     .build()

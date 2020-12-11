@@ -20,17 +20,6 @@ object Dependencies {
     "com.typesafe.akka" %% "akka-serialization-jackson"  % AkkaVersion,
     "com.typesafe.akka" %% "akka-cluster-sharding-typed" % AkkaVersion
   )
-  val akkaManagement = Seq(
-    "com.lightbend.akka.management" %% "akka-management"              % AkkaManagementVersion,
-    "com.lightbend.akka.management" %% "akka-management-cluster-http" % AkkaManagementVersion
-  )
-
-  val akkaTestkit = Seq(
-    "com.typesafe.akka" %% "akka-actor-testkit-typed" % AkkaVersion % Test,
-    "com.typesafe.akka" %% "akka-persistence-testkit" % AkkaVersion % Test,
-    "com.typesafe.akka" %% "akka-stream-testkit"      % AkkaVersion,
-    "com.typesafe.akka" %% "akka-http-testkit"        % AkkaHttpVersion
-  )
 
   val akkaPersistance = Seq(
     "com.typesafe.akka"  %% "akka-persistence-typed" % AkkaVersion,
@@ -61,19 +50,31 @@ object Dependencies {
 
   val logback = Seq("ch.qos.logback" % "logback-classic" % LogbackVersion)
 
-  val openTelemetryApi = Seq("io.opentelemetry" % "opentelemetry-api" % "0.9.1")
+  val openTelemetryApi = Seq("io.opentelemetry" % "opentelemetry-api" % "0.10.0")
 
-  val openTelemetrySdk = Seq("io.opentelemetry" % "opentelemetry-sdk" % "0.9.1")
+  val openTelemetrySdk = Seq("io.opentelemetry" % "opentelemetry-sdk" % "0.10.0")
 
   val newRelicSdk = Seq(
-    "com.newrelic.telemetry" % "opentelemetry-exporters-newrelic" % "0.9.0",
+    "com.newrelic.telemetry" % "opentelemetry-exporters-newrelic" % "0.10.0",
     "com.newrelic.telemetry" % "telemetry"                        % "0.9.0",
     "com.newrelic.telemetry" % "telemetry-http-okhttp"            % "0.9.0"
   )
 
+  val akkaManagement = Seq(
+    "com.lightbend.akka.management" %% "akka-management"              % AkkaManagementVersion,
+    "com.lightbend.akka.management" %% "akka-management-cluster-http" % AkkaManagementVersion
+  )
+
+  val akkaTestkit = Seq(
+    "com.typesafe.akka" %% "akka-actor-testkit-typed" % AkkaVersion     % Test,
+    "com.typesafe.akka" %% "akka-persistence-testkit" % AkkaVersion     % Test,
+    "com.typesafe.akka" %% "akka-stream-testkit"      % AkkaVersion     % Test,
+    "com.typesafe.akka" %% "akka-http-testkit"        % AkkaHttpVersion % Test
+  )
+
   val scalatest = Seq("org.scalatest" %% "scalatest" % ScalatestVersion % Test)
 
-  val reflection: String => Seq[ModuleID] = version => Seq("org.scala-lang" % "scala-reflect" % version)
-
   val slf4jApi = Seq("org.slf4j" % "slf4j-api" % "1.7.30")
+
+  val reflection: String => Seq[ModuleID] = version => Seq("org.scala-lang" % "scala-reflect" % version)
 }

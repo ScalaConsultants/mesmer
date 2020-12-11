@@ -10,6 +10,8 @@ import akka.cluster.sharding.typed.scaladsl.{ ClusterSharding, Entity, EntityTyp
 import akka.cluster.typed.{ Cluster, SelfUp, Subscribe }
 import akka.util.Timeout
 import com.typesafe.config.{ Config, ConfigFactory, ConfigValueFactory }
+import io.scalac.extension.event.ClusterEvent.ShardingRegionInstalled
+import io.scalac.extension.event.EventBus
 import io.scalac.extension.util.BoundTestProbe._
 import io.scalac.extension.util.ClusterMetricsTestProbe
 import org.scalatest.Assertion
@@ -94,8 +96,9 @@ class ClusterSelfNodeMetricGathererTest extends AsyncFlatSpec with Matchers {
 
   "Monitoring" should "show proper amount of entities" in setup(TestBehavior.apply) {
     case (system, ref, monitor, region) =>
-      val selfMonitor = system.systemActorOf(ClusterSelfNodeMetricGatherer.apply(monitor, List(region)), "sut")
+      system.systemActorOf(ClusterSelfNodeMetricGatherer.apply(monitor), "sut")
 
+      EventBus(system).publishEvent(ShardingRegionInstalled(region))
       for {
         index <- 0 until 10
       } yield ref ! ShardingEnvelope(s"test_${index}", Create)
@@ -107,7 +110,9 @@ class ClusterSelfNodeMetricGathererTest extends AsyncFlatSpec with Matchers {
 
   it should "show proper amount of reachable nodes" in setup(TestBehavior.apply) {
     case (system, ref, monitor, region) =>
-      val selfMonitor = system.systemActorOf(ClusterSelfNodeMetricGatherer.apply(monitor, List(region)), "sut")
+      system.systemActorOf(ClusterSelfNodeMetricGatherer.apply(monitor), "sut")
+
+      EventBus(system).publishEvent(ShardingRegionInstalled(region))
 
       monitor.reachableNodesProbe.within(5 seconds) {
         import monitor.reachableNodesProbe._

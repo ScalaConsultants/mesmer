@@ -55,7 +55,7 @@ object Boot extends App with FailFastCirceSupport with JsonCodecs {
   val intervalMetricReader = IntervalMetricReader
     .builder()
     .setMetricProducers(
-      Collections.singleton(OpenTelemetrySdk.getMeterProvider.getMetricProducer)
+      Collections.singleton(OpenTelemetrySdk.getGlobalMeterProvider.getMetricProducer)
     )
     .setExportIntervalMillis(5000)
     .setMetricExporter(newRelicExporter)
@@ -90,7 +90,7 @@ object Boot extends App with FailFastCirceSupport with JsonCodecs {
   logger.info(s"Starting http server at $host:$port")
 
   val binding = Http()
-    .newServerAt("localhost", 8080)
+    .newServerAt(host, port)
     .bind(accountRoutes.routes)
 
   StdIn.readLine()
