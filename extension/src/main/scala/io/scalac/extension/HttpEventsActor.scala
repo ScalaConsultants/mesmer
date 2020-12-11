@@ -28,9 +28,9 @@ object HttpEventsActor {
 
     val cachingHttpMonitor = caching[Labels, HttpMetricMonitor](httpMetricMonitor)
 
-    def createLabels(path: Path, method: Method): Labels = Labels(pathService.template(path), method)
-
     val selfNodeAddress = Cluster(ctx.system).selfMember.uniqueAddress.toNode
+
+    def createLabels(path: Path, method: Method): Labels = Labels(selfNodeAddress, pathService.template(path), method)
 
     def monitorHttp(
       inFlightRequest: Map[String, RequestStarted]

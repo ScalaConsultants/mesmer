@@ -11,8 +11,8 @@ sealed trait PersistenceEvent extends AbstractEvent {
 }
 
 object PersistenceEvent {
-  case class RecoveryStarted(path: ActorPath, timestamp: Long)  extends PersistenceEvent
-  case class RecoveryFinished(path: ActorPath, timestamp: Long) extends PersistenceEvent
+  case class RecoveryStarted(path: String, persistenceId: String, timestamp: Long)  extends PersistenceEvent
+  case class RecoveryFinished(path: String, persistenceId: String, timestamp: Long) extends PersistenceEvent
 }
 
 sealed trait HttpEvent extends AbstractEvent {
@@ -25,4 +25,10 @@ object HttpEvent {
   case class RequestFailed(id: String, timestamp: Long)                                extends HttpEvent
 }
 
-case class PathMatcherRegistered()
+sealed trait ClusterEvent extends AbstractEvent {
+  override type Service = ClusterEvent
+}
+
+object ClusterEvent {
+  final case class ShardingRegionInstalled(region: String) extends ClusterEvent
+}

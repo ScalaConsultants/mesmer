@@ -66,13 +66,15 @@ object Dependencies {
   )
 
   val akkaTestkit = Seq(
-    "com.typesafe.akka" %% "akka-actor-testkit-typed" % AkkaVersion % Test,
-    "com.typesafe.akka" %% "akka-persistence-testkit" % AkkaVersion % Test,
-    "com.typesafe.akka" %% "akka-stream-testkit"      % AkkaVersion,
-    "com.typesafe.akka" %% "akka-http-testkit"        % AkkaHttpVersion
+    "com.typesafe.akka" %% "akka-actor-testkit-typed" % AkkaVersion     % Test,
+    "com.typesafe.akka" %% "akka-persistence-testkit" % AkkaVersion     % Test,
+    "com.typesafe.akka" %% "akka-stream-testkit"      % AkkaVersion     % Test,
+    "com.typesafe.akka" %% "akka-http-testkit"        % AkkaHttpVersion % Test
   )
 
   val scalatest = Seq("org.scalatest" %% "scalatest" % ScalatestVersion % Test)
 
   val slf4jApi = Seq("org.slf4j" % "slf4j-api" % "1.7.30")
+
+  val reflection: String => Seq[ModuleID] = version => Seq("org.scala-lang" % "scala-reflect" % version)
 }

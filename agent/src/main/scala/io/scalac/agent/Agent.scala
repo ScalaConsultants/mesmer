@@ -26,6 +26,13 @@ object Agent {
       }
 
     def ++(other: LoadingResult): LoadingResult = new LoadingResult(this.fqns ++ other.fqns)
+
+    override def hashCode(): Int = fqns.hashCode()
+
+    override def equals(obj: Any): Boolean = obj match {
+      case loadingResult: LoadingResult => loadingResult.fqns == this.fqns
+      case _                            => false
+    }
   }
 
   object LoadingResult {
@@ -68,12 +75,14 @@ final case class Agent private (private val set: Set[AgentInstrumentation]) exte
     set.flatMap { agentInstrumentation =>
       val dependencies = agentInstrumentation.instrumentingModules
 
-      val requiredModules = modules.view.filterKeys(dependencies.modules.contains)
-      val allModulesSupported = requiredModules.forall {
-        case (module, version) => dependencies.supportedVersion(module).supports(version)
+      val allModulesSupported = dependencies.modules.forall { module =>
+        modules
+          .get(module)
+          .exists(dependencies.supportedVersion(module).supports)
       }
 
       if (allModulesSupported) {
+        val requiredModules = modules.view.filterKeys(dependencies.modules.contains)
         Some(agentInstrumentation(builder, instrumentation, requiredModules.toMap))
       } else {
         logger.error("Unsupported versions for instrumentation for {}", agentInstrumentation.name)

@@ -40,7 +40,7 @@ object OpenTelemetryPersistenceMetricMonitor {
 }
 
 class OpenTelemetryPersistenceMetricMonitor(instrumentationName: String, metricNames: MetricNames)
-    extends PersistenceMetricMonitor { self =>
+    extends PersistenceMetricMonitor {
   import PersistenceMetricMonitor._
 
   private val recoveryTimeRecorder = OpenTelemetry
