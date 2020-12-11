@@ -1,7 +1,5 @@
 package io.scalac.extension.event
 
-import akka.actor.ActorPath
-
 sealed trait AbstractEvent { self =>
   type Service >: self.type
 }
@@ -13,6 +11,10 @@ sealed trait PersistenceEvent extends AbstractEvent {
 object PersistenceEvent {
   case class RecoveryStarted(path: String, persistenceId: String, timestamp: Long)  extends PersistenceEvent
   case class RecoveryFinished(path: String, persistenceId: String, timestamp: Long) extends PersistenceEvent
+
+  case class SnapshotCreated(persistenceId: String, sequenceNr: Long, timestamp: Long)         extends PersistenceEvent
+  case class PersistingEventStarted(persistenceId: String, sequenceNr: Long, timestamp: Long)  extends PersistenceEvent
+  case class PersistingEventFinished(persistenceId: String, sequenceNr: Long, timestamp: Long) extends PersistenceEvent
 }
 
 sealed trait HttpEvent extends AbstractEvent {

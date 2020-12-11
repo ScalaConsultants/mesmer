@@ -7,6 +7,11 @@ case class SnapshotSignalHandler[O] private (
   private var inner: PartialFunction[(Any, Signal), Any] = PartialFunction.empty
 ) extends PartialFunction[(Any, Signal), O] {
 
+  private def pushEvent(persistenceId: String, seqId: Long): Unit = {
+
+  }
+
+
   override def apply(v1: (Any, Signal)): O =
     v1 match {
       case (_, SnapshotCompleted(meta)) => {

@@ -68,5 +68,24 @@ object AkkaPersistenceAgent {
     LoadingResult("akka.persistence.typed.internal.EventSourcedBehaviorImpl")
   }
 
-  val agent = Agent(recoveryStartedAgent, recoveryCompletedAgent, eventSourcesConstuctor)
+  private val eventWriteSuccessInstrumentation = AgentInstrumentation(
+    "akka.persistence.typed.internal.Running",
+    SupportedModules(moduleName, supportedVersions)
+  ) { (agentBuilder, instrumentation, _) =>
+    agentBuilder
+      .`type`(named[TypeDescription]("akka.persistence.typed.internal.Running"))
+      .transform {
+        case (builder, _, _, _) =>
+          builder
+            .method(isMethod[MethodDescription].and(named("onWriteSuccess")))
+            .intercept(Advice.to(classOf[PersistingEventSuccessInterceptor]))
+            .method(isMethod[MethodDescription].and(named("onWriteInitiated")))
+            .intercept(Advice.to(classOf[JournalInteractionsInterceptor]))
+      }
+      .installOn(instrumentation)
+    LoadingResult("akka.persistence.typed.internal.Running")
+  }
+
+  val agent =
+    Agent(recoveryStartedAgent, recoveryCompletedAgent, eventSourcesConstuctor, eventWriteSuccessInstrumentation)
 }
