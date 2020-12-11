@@ -23,7 +23,7 @@ object Boot {
       .`with`(AgentBuilder.InstallationListener.StreamWriting.toSystemOut)
 
     val allInstrumentations = AkkaPersistenceAgent.agent ++ AkkaHttpAgent.agent ++ AkkaClusterAgent.agent
-    val moduleInfo = ModuleInfo.extractModulesInformation(Thread.currentThread().getContextClassLoader)
+    val moduleInfo          = ModuleInfo.extractModulesInformation(Thread.currentThread().getContextClassLoader)
 
     allInstrumentations
       .installOn(agentBuilder, instrumentation, moduleInfo)
