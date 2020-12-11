@@ -6,7 +6,7 @@ import io.scalac.agent.{ Agent, AgentInstrumentation }
 import net.bytebuddy.asm.Advice
 import net.bytebuddy.description.`type`.TypeDescription
 import net.bytebuddy.description.method.MethodDescription
-import net.bytebuddy.matcher.ElementMatchers.{ isMethod, named }
+import net.bytebuddy.matcher.ElementMatchers._
 import org.slf4j.LoggerFactory
 
 object AkkaPersistenceAgent {
@@ -49,5 +49,24 @@ object AkkaPersistenceAgent {
     LoadingResult("akka.persistence.typed.internal.ReplayingEvents")
   }
 
-  val agent = Agent(recoveryStartedAgent, recoveryCompletedAgent)
+  private val eventSourcesConstuctor = AgentInstrumentation(
+    "akka.persistence.typed.internal.EventSourcedBehaviorImpl",
+    SupportedModules(moduleName, supportedVersions)
+  ) { (agentBuilder, instrumentation, _) =>
+    agentBuilder
+      .`type`(named[TypeDescription]("akka.persistence.typed.internal.EventSourcedBehaviorImpl"))
+      .transform {
+        case (builder, _, _, _) =>
+          builder
+            .visit(
+              Advice
+                .to(classOf[SnapshotAdvice])
+                .on(isConstructor[MethodDescription].and(hasParameters[MethodDescription](any())))
+            )
+      }
+      .installOn(instrumentation)
+    LoadingResult("akka.persistence.typed.internal.EventSourcedBehaviorImpl")
+  }
+
+  val agent = Agent(recoveryStartedAgent, recoveryCompletedAgent, eventSourcesConstuctor)
 }

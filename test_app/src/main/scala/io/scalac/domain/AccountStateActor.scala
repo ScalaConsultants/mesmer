@@ -1,14 +1,14 @@
 package io.scalac.domain
 
 import java.io.IOException
-import java.{ util => ju }
+import java.{util => ju}
 
 import akka.actor.typed.scaladsl.Behaviors
-import akka.actor.typed.{ ActorRef, Behavior }
-import akka.persistence.typed.scaladsl.{ Effect, EventSourcedBehavior, RetentionCriteria }
-import akka.persistence.typed.{ PersistenceId, SnapshotCompleted }
-import io.scalac.domain.AccountStateActor.Event.{ MoneyDeposit, MoneyWithdrawn }
-import io.scalac.domain.AccountStateActor.Reply.{ CurrentBalance, InsufficientFunds }
+import akka.actor.typed.{ActorRef, Behavior}
+import akka.persistence.typed.scaladsl.{Effect, EventSourcedBehavior, RetentionCriteria}
+import akka.persistence.typed.{PersistenceId, SnapshotCompleted}
+import io.scalac.domain.AccountStateActor.Event.{MoneyDeposit, MoneyWithdrawn}
+import io.scalac.domain.AccountStateActor.Reply.{CurrentBalance, InsufficientFunds}
 import io.scalac.serialization.SerializableMessage
 
 object AccountStateActor {
@@ -78,9 +78,10 @@ object AccountStateActor {
         AccountState(0.0),
         (state, command) => state.commandHandler(command),
         (state, event) => state.eventHandler(event)
-      ).withRetention(RetentionCriteria.snapshotEvery(2, 2)).receiveSignal {
-        case (_, SnapshotCompleted(meta)) => ctx.log.error("Create snapshot for {}", meta.persistenceId)
-      }
+      ).withRetention(RetentionCriteria.snapshotEvery(2, 2))
+//        .receiveSignal {
+//        case (_, SnapshotCompleted(meta)) => ctx.log.error("Create snapshot for {}", meta.persistenceId)
+//      }
 
     }
 }
