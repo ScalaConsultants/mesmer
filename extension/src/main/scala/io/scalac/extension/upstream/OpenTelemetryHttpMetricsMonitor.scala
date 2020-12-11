@@ -1,9 +1,9 @@
 package io.scalac.extension.upstream
 
 import com.typesafe.config.Config
-import io.opentelemetry.OpenTelemetry
+import io.opentelemetry.api.OpenTelemetry
+import io.scalac.extension.metric.{ HttpMetricMonitor, MetricRecorder, UpCounter }
 import io.scalac.extension.metric.Metric._
-import io.scalac.extension.metric.{HttpMetricMonitor, MetricRecorder, UpCounter}
 
 object OpenTelemetryHttpMetricsMonitor {
   case class MetricNames(
@@ -50,14 +50,15 @@ class OpenTelemetryHttpMetricsMonitor(
 ) extends HttpMetricMonitor {
   import HttpMetricMonitor._
 
-  private val requestTimeRequest = OpenTelemetry
-    .getMeter(instrumentationName)
+  private val meter = OpenTelemetry
+    .getGlobalMeter(instrumentationName)
+
+  private val requestTimeRequest = meter
     .longValueRecorderBuilder(metricNames.requestDuration)
     .setDescription("Amount of ms request took to complete")
     .build()
 
-  private val requestUpDownCounter = OpenTelemetry
-    .getMeter(instrumentationName)
+  private val requestUpDownCounter = meter
     .longCounterBuilder(metricNames.requestTotal)
     .setDescription("Amount of requests")
     .build()

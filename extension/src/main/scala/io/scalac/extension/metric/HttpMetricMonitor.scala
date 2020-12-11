@@ -1,6 +1,6 @@
 package io.scalac.extension.metric
 
-import io.opentelemetry.common.{ Labels => OpenTelemetryLabels }
+import io.opentelemetry.api.common.{ Labels => OpenTelemetryLabels }
 import io.scalac.extension.metric.HttpMetricMonitor._
 import io.scalac.extension.model._
 
