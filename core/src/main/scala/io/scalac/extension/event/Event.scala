@@ -12,9 +12,11 @@ object PersistenceEvent {
   case class RecoveryStarted(path: String, persistenceId: String, timestamp: Long)  extends PersistenceEvent
   case class RecoveryFinished(path: String, persistenceId: String, timestamp: Long) extends PersistenceEvent
 
-  case class SnapshotCreated(persistenceId: String, sequenceNr: Long, timestamp: Long)         extends PersistenceEvent
-  case class PersistingEventStarted(persistenceId: String, sequenceNr: Long, timestamp: Long)  extends PersistenceEvent
-  case class PersistingEventFinished(persistenceId: String, sequenceNr: Long, timestamp: Long) extends PersistenceEvent
+  case class SnapshotCreated(persistenceId: String, sequenceNr: Long, timestamp: Long) extends PersistenceEvent
+  case class PersistingEventStarted(path: String, persistenceId: String, sequenceNr: Long, timestamp: Long)
+      extends PersistenceEvent
+  case class PersistingEventFinished(path: String, persistenceId: String, sequenceNr: Long, timestamp: Long)
+      extends PersistenceEvent
 }
 
 sealed trait HttpEvent extends AbstractEvent {

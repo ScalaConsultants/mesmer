@@ -9,13 +9,17 @@ class PersistingEventSuccessInterceptor
 object PersistingEventSuccessInterceptor {
 
   @OnMethodEnter
-  def onWriteSuccess(@Argument(0) context: ActorContext[_], @Argument(1) event: PersistentRepr): Unit =
+  def onWriteSuccess(@Argument(0) context: ActorContext[_], @Argument(1) event: PersistentRepr): Unit = {
+    val path = context.self.path.toString
+
     EventBus(context.system)
       .publishEvent(
         PersistingEventFinished(
+          path,
           event.persistenceId,
           event.sequenceNr,
           System.currentTimeMillis()
         )
       )
+  }
 }

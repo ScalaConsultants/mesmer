@@ -10,9 +10,9 @@ object JournalInteractionsInterceptor {
 
   @OnMethodEnter
   def onWriteInitiated(@Argument(0) context: ActorContext[_], @Argument(2) event: PersistentRepr): Unit = {
-    val path = context.self.path
+    val path = context.self.path.toString
     EventBus(context.system)
-      .publishEvent(PersistingEventStarted(event.persistenceId, event.sequenceNr, System.currentTimeMillis()))
+      .publishEvent(PersistingEventStarted(path, event.persistenceId, event.sequenceNr, System.currentTimeMillis()))
   }
 
 }

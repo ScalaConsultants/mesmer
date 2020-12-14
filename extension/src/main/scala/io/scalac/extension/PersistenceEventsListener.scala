@@ -33,6 +33,8 @@ object PersistenceEventsListener {
 
       // this is thread unsafe mutable data structure that relies on actor model abstraction
       val cachingMonitor = caching[Labels, PersistenceMetricMonitor](monitor)
+      def getMonitor(path: String, persistenceId: PersistenceId): PersistenceMetricMonitor#Bound =
+        cachingMonitor.bind(Labels(selfNodeAddress, pathService.template(path), pathService.template(persistenceId)))
 
       def running(
         inFlightRecoveries: Map[String, RecoveryStarted],
@@ -51,21 +53,19 @@ object PersistenceEventsListener {
                 Behaviors.same[Event]
               } { started =>
                 val recoveryTime = timestamp - started.timestamp
-                val labels       = Labels(selfNodeAddress, pathService.template(path), pathService.template(persistenceId))
-                ctx.log.debug("Capture recovery time {}ms for labels {}", recoveryTime, labels)
-                cachingMonitor
-                  .bind(labels)
-                  .recoveryTime
+                val monitor      = getMonitor(path, persistenceId)
+                ctx.log.debug("Capture recovery time {}ms for path {}", recoveryTime, path)
+                monitor.recoveryTime
                   .setValue(recoveryTime)
                 running(inFlightRecoveries - path, inFlightPersitEvents)
               }
           }
 
-          case PersistentEventWrapper(pes @ PersistingEventStarted(persistenceId, sequenceNr, _)) => {
-            ctx.log.debug("Persit event initiated for {}:{}", persistenceId, sequenceNr)
+          case PersistentEventWrapper(pes @ PersistingEventStarted(path, persistenceId, sequenceNr, _)) => {
+            ctx.log.debug("Persit event initiated for actor {}/{}:{}", path, persistenceId, sequenceNr)
             running(inFlightRecoveries, inFlightPersitEvents + (PersistEventKey(persistenceId, sequenceNr) -> pes))
           }
-          case PersistentEventWrapper(PersistingEventFinished(persistenceId, sequenceNr, timestamp)) => {
+          case PersistentEventWrapper(PersistingEventFinished(path, persistenceId, sequenceNr, timestamp)) => {
             val key = PersistEventKey(persistenceId, sequenceNr)
             inFlightPersitEvents
               .get(key)
@@ -75,7 +75,11 @@ object PersistenceEventsListener {
                 Behaviors.same[Event]
               } { started =>
                 val persistTime = timestamp - started.timestamp
-                ctx.log.info("Persited event for {}:{} in {}ms", persistenceId, sequenceNr, persistTime)
+                ctx.log.debug("Persited event for actor {}/{}:{} in {}ms", path, persistenceId, sequenceNr, persistTime)
+
+                val monitor = getMonitor(path, persistenceId)
+                monitor.persistentEvent.setValue(persistTime)
+                monitor.persistentEventTotal.incValue(1L)
                 running(inFlightRecoveries, inFlightPersitEvents - key)
               }
           }

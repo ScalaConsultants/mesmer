@@ -86,6 +86,22 @@ object AkkaPersistenceAgent {
     LoadingResult("akka.persistence.typed.internal.Running")
   }
 
+  private val snapshotLoadingInstrumentation = AgentInstrumentation(
+    "akka.persistence.typed.internal.Running$StoringSnapshot",
+    SupportedModules(moduleName, supportedVersions)
+  ) { (agentBuilder, instrumentation, _) =>
+    agentBuilder
+      .`type`(named[TypeDescription]("akka.persistence.typed.internal.Running$StoringSnapshot"))
+      .transform {
+        case (builder, _, _, _) =>
+          builder
+            .method(isMethod[MethodDescription].and(named("onSaveSnapshotResponse")))
+            .intercept(Advice.to(classOf[StoringSnapshotInterceptor]))
+      }
+      .installOn(instrumentation)
+    LoadingResult("akka.persistence.typed.internal.Running$StoringSnapshot")
+  }
+
   val agent =
-    Agent(recoveryStartedAgent, recoveryCompletedAgent, eventSourcesConstuctor, eventWriteSuccessInstrumentation)
+    Agent(recoveryStartedAgent, recoveryCompletedAgent, eventWriteSuccessInstrumentation, snapshotLoadingInstrumentation)
 }
