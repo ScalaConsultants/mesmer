@@ -20,17 +20,6 @@ class CachingMonitor[L <: AnyRef, T <: Bindable[L]](val monitor: T) extends Bind
     })
 }
 
-class Dependent extends Bindable[Unit] {
-
-  override type Bound = BoundMonitor
-
-  override def bind(lables: Unit): Bound = new BoundMonitor {}
-
-  trait BoundMonitor {
-    def testBoundMonitor(): Unit = ()
-  }
-}
-
 object CachingMonitor {
   /*
    * Due to limitations of type interference type parameters has to be manually assigned
