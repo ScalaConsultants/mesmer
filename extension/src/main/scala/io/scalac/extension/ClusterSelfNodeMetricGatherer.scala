@@ -121,7 +121,6 @@ object ClusterSelfNodeMetricGatherer {
               scheduler.startTimerWithFixedDelay(region, GetClusterShardingStatsInternal(region), pingOffset)
               initialized(regions :+ region, monitor, selfAddress, unreachableNodes)
             }
-
             case ClusterMemberEvent(MemberRemoved(member, _)) => {
               if (unreachableNodes.contains(member.uniqueAddress)) {
                 monitor.unreachableNodes.decValue(1L)
@@ -161,14 +160,13 @@ object ClusterSelfNodeMetricGatherer {
             }
             case NodeReachable(address) => {
               ctx.log.trace("Node {} become reachable", address)
-              monitor.reachableNodes.incValue(1L)
-              monitor.unreachableNodes.decValue(1L)
+              monitor.atomically(monitor.reachableNodes, monitor.unreachableNodes)(1L, -1L)
               initialized(regions, monitor, selfAddress, unreachableNodes - address)
             }
             case NodeUnreachable(address) => {
               ctx.log.trace("Node {} become unreachable", address)
-              monitor.reachableNodes.decValue(1L)
-              monitor.unreachableNodes.incValue(1L)
+
+              monitor.atomically(monitor.reachableNodes, monitor.unreachableNodes)(-1L, 1L)
               initialized(regions, monitor, selfAddress, unreachableNodes + address)
             }
             case InitializationTimeout => Behaviors.ignore
