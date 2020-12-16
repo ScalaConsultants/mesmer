@@ -83,6 +83,12 @@ object PersistenceEventsListener {
                 running(inFlightRecoveries, inFlightPersitEvents - key)
               }
           }
+          case PersistentEventWrapper(SnapshotCreated(path, persistenceId, _, _)) => {
+            val monitor = getMonitor(path, persistenceId)
+            ctx.log.trace("Received snapshot created for {}", persistenceId)
+            monitor.snapshot.incValue(1L)
+            Behaviors.same
+          }
           case _ => Behaviors.unhandled
         }
       running(Map.empty, Map.empty)
