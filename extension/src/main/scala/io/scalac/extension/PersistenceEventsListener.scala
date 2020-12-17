@@ -55,8 +55,8 @@ object PersistenceEventsListener {
                 val recoveryTime = timestamp - started.timestamp
                 val monitor      = getMonitor(path, persistenceId)
                 ctx.log.debug("Capture recovery time {}ms for path {}", recoveryTime, path)
-                monitor.recoveryTime
-                  .setValue(recoveryTime)
+                monitor.recoveryTime.setValue(recoveryTime)
+                monitor.recoveryTotal.incValue(1L)
                 running(inFlightRecoveries - path, inFlightPersitEvents)
               }
           }
