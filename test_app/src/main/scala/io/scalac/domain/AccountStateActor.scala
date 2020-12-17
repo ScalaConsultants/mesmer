@@ -80,9 +80,6 @@ object AccountStateActor {
         (state, event) => state.eventHandler(event)
       )
         .withRetention(RetentionCriteria.snapshotEvery(2, 2))
-        .receiveSignal {
-          case (_, SnapshotCompleted(meta)) => ctx.log.error("Create snapshot for {}", meta.persistenceId)
-        }
 
     }
 }
