@@ -5,7 +5,7 @@ import io.scalac.extension.persistence.InMemoryPersistStorage.PersistEventKey
 
 trait PersistStorage {
   def persistEventStarted(event: PersistingEventStarted): PersistStorage
-  def persistEventSFinished(event: PersistingEventFinished): Option[(PersistStorage, Long)]
+  def persistEventFinished(event: PersistingEventFinished): Option[(PersistStorage, Long)]
 }
 
 class InMemoryPersistStorage private (private val persist: Map[PersistEventKey, PersistingEventStarted])
@@ -20,7 +20,7 @@ class InMemoryPersistStorage private (private val persist: Map[PersistEventKey, 
     new InMemoryPersistStorage(persist + (key -> event))
   }
 
-  override def persistEventSFinished(event: PersistingEventFinished): Option[(PersistStorage, Long)] = {
+  override def persistEventFinished(event: PersistingEventFinished): Option[(PersistStorage, Long)] = {
     val key = eventToKey(event)
     persist.get(key).map { started =>
       val duration = event.timestamp - started.timestamp

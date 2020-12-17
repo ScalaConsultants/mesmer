@@ -72,7 +72,7 @@ object PersistenceEventsListener {
           }
           case PersistentEventWrapper(finished @ PersistingEventFinished(path, persistenceId, _, _)) => {
             persistStorage
-              .persistEventSFinished(finished)
+              .persistEventFinished(finished)
               .fold {
                 ctx.log
                   .error(s"Got persisting event finished for {} but no related initiated event found", persistenceId)
