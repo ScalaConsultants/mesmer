@@ -1,7 +1,9 @@
 package io.scalac.extension.metric
 
+import io.opentelemetry.api.common.Labels
 import io.opentelemetry.api.metrics.LongCounter.BoundLongCounter
 import io.opentelemetry.api.metrics.LongUpDownCounter.BoundLongUpDownCounter
+import io.opentelemetry.api.metrics.LongValueRecorder
 import io.opentelemetry.api.metrics.LongValueRecorder.BoundLongValueRecorder
 
 sealed trait Metric[T]
@@ -33,9 +35,22 @@ object Metric {
 trait MetricRecorder[T] extends Metric[T] {
   def setValue(value: T): Unit
 }
+
+object MetricRecorder {
+
+  class BoundWrappedValueRecorder(val underlying: LongValueRecorder, val labels: Labels) extends MetricRecorder[Long] {
+
+    private[this] val bound = underlying.bind(labels)
+
+    override def setValue(value: Long): Unit = bound.record(value)
+  }
+}
+
 trait UpCounter[T] extends Metric[T] {
   def incValue(value: T): Unit
 }
 trait Counter[T] extends UpCounter[T] {
   def decValue(value: T): Unit
 }
+
+

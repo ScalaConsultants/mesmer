@@ -4,17 +4,19 @@ import io.scalac.extension.metric.PersistenceMetricMonitor.Labels
 import io.scalac.extension.model._
 
 object PersistenceMetricMonitor {
-  trait BoundMonitor {
-    def recoveryTime: MetricRecorder[Long]
-  }
-  final case class Labels(node: Node, path: Path, persistenceId: String) {
+
+  final case class Labels(node: Node, path: Path, persistenceId: PersistenceId) {
     def toOpenTelemetry: OpenTelemetryLabels =
       OpenTelemetryLabels.of("node", node, "path", path, "persistenceId", persistenceId)
   }
 }
 
-trait PersistenceMetricMonitor extends Bindable[Labels] {
-  import PersistenceMetricMonitor._
+trait PersistenceMetricMonitor extends Bindable[Labels] { self =>
 
-  override type Bound = BoundMonitor
+  override type Bound <: BoundMonitor
+
+  trait BoundMonitor extends Synchronized {
+
+    def recoveryTime: Instrument[Long] with MetricRecorder[Long]
+  }
 }

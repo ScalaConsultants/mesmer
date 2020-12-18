@@ -4,18 +4,25 @@ import akka.actor.typed.Behavior
 import akka.actor.typed.receptionist.Receptionist
 import akka.actor.typed.receptionist.Receptionist.Register
 import akka.actor.typed.scaladsl.Behaviors
-import akka.cluster.ClusterEvent.{CurrentClusterState, MemberEvent, MemberRemoved, MemberUp, ReachableMember, UnreachableMember, ReachabilityEvent => AkkaReachabilityEvent}
+import akka.cluster.ClusterEvent.{
+  CurrentClusterState,
+  MemberEvent,
+  MemberRemoved,
+  MemberUp,
+  ReachableMember,
+  UnreachableMember,
+  ReachabilityEvent => AkkaReachabilityEvent
+}
 import akka.cluster.UniqueAddress
 import akka.cluster.sharding.ShardRegion.CurrentShardRegionState
 import akka.cluster.sharding.typed.GetShardRegionState
-import akka.cluster.sharding.typed.scaladsl.{ClusterSharding, EntityTypeKey}
-import akka.cluster.sharding.{ClusterSharding => ClassicClusterSharding}
-import akka.cluster.typed.{Cluster, SelfUp, Subscribe}
+import akka.cluster.sharding.typed.scaladsl.{ ClusterSharding, EntityTypeKey }
+import akka.cluster.sharding.{ ClusterSharding => ClassicClusterSharding }
+import akka.cluster.typed.{ Cluster, SelfUp, Subscribe }
 import akka.util.Timeout
 import io.scalac.extension.event.ClusterEvent
 import io.scalac.extension.event.ClusterEvent.ShardingRegionInstalled
 import io.scalac.extension.metric.ClusterMetricsMonitor
-import io.scalac.extension.metric.ClusterMetricsMonitor.BoundMonitor
 import io.scalac.extension.model._
 
 import scala.concurrent.duration._
@@ -103,7 +110,7 @@ object ClusterSelfNodeMetricGatherer {
 
       def initialized(
         regions: Seq[String],
-        monitor: BoundMonitor,
+        monitor: clusterMetricsMonitor.BoundMonitor,
         selfAddress: UniqueAddress,
         unreachableNodes: Set[UniqueAddress]
       ): Behavior[Command] =

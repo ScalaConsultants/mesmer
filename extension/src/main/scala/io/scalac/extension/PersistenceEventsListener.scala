@@ -31,7 +31,7 @@ object PersistenceEventsListener {
       val selfNodeAddress = Cluster(ctx.system).selfMember.uniqueAddress.toNode
 
       // this is thread unsafe mutable data structure that relies on actor model abstraction
-      val cachingMonitor = monitor.caching
+      val cachingMonitor = caching[Labels, PersistenceMetricMonitor](monitor)
 
       def watchRecovery(inFlightRecoveries: Map[String, RecoveryStarted]): Behavior[Event] =
         Behaviors.receiveMessage {
