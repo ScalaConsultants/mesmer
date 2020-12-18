@@ -65,8 +65,10 @@ class ClusterSelfNodeMetricGathererTest extends AsyncFlatSpec with Matchers {
     val systemId: String   = UUID.randomUUID().toString
     val entityName: String = UUID.randomUUID().toString
     val systemConfig       = createConfig(randomRemotingPort, systemId)
+    val fallbackConfig     = ConfigFactory.load("application-test.conf")
 
-    implicit val system: ActorSystem[Nothing] = ActorSystem[Nothing](Behaviors.empty, systemId, systemConfig)
+    implicit val system: ActorSystem[Nothing] =
+      ActorSystem[Nothing](Behaviors.empty, systemId, systemConfig.withFallback(fallbackConfig))
     // consider using blocking dispatcher
     implicit val dispatcher: ExecutionContextExecutor = system.dispatchers.lookup(DispatcherSelector.default())
     implicit val bootTimeout: Timeout                 = 30 seconds
