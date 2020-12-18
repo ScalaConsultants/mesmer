@@ -23,7 +23,7 @@ object PersistenceEventsListener {
     private[extension] final case class PersistentEventWrapper(event: PersistenceEvent) extends Event
   }
 
-  def apply(pathService: PathService, monitor: PersistenceMetricMonitor, entities: Set[String]): Behavior[Event] =
+  def apply(pathService: PathService, monitor: PersistenceMetricMonitor): Behavior[Event] =
     Behaviors.setup { ctx =>
       import Event._
       Receptionist(ctx.system).ref ! Register(persistenceServiceKey, ctx.messageAdapter(PersistentEventWrapper.apply))

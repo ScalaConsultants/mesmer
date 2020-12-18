@@ -42,24 +42,24 @@ object Boot extends App with FailFastCirceSupport with JsonCodecs {
         )
     )
     .resolve
-
-  val apiKey = config.getString("newrelic.api_key")
-
-  val newRelicExporter = NewRelicMetricExporter
-    .newBuilder()
-    .apiKey(apiKey)
-    .commonAttributes(new Attributes().put("service.name", "test_app"))
-    .uriOverride(URI.create("https://metric-api.eu.newrelic.com/metric/v1"))
-    .build()
-
-  val intervalMetricReader = IntervalMetricReader
-    .builder()
-    .setMetricProducers(
-      Collections.singleton(OpenTelemetrySdk.getGlobalMeterProvider.getMetricProducer)
-    )
-    .setExportIntervalMillis(5000)
-    .setMetricExporter(newRelicExporter)
-    .build()
+//
+//  val apiKey = config.getString("newrelic.api_key")
+//
+//  val newRelicExporter = NewRelicMetricExporter
+//    .newBuilder()
+//    .apiKey(apiKey)
+//    .commonAttributes(new Attributes().put("service.name", "test_app"))
+//    .uriOverride(URI.create("https://metric-api.eu.newrelic.com/metric/v1"))
+//    .build()
+//
+//  val intervalMetricReader = IntervalMetricReader
+//    .builder()
+//    .setMetricProducers(
+//      Collections.singleton(OpenTelemetrySdk.getGlobalMeterProvider.getMetricProducer)
+//    )
+//    .setExportIntervalMillis(5000)
+//    .setMetricExporter(newRelicExporter)
+//    .build()
 
   implicit val system =
     ActorSystem[Nothing](Behaviors.empty, "Accounts", config)
