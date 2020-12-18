@@ -5,7 +5,7 @@ import java.lang.instrument.Instrumentation
 import io.scalac.agent.akka.cluster.AkkaClusterAgent
 import io.scalac.agent.akka.http.AkkaHttpAgent
 import io.scalac.agent.akka.persistence.AkkaPersistenceAgent
-import io.scalac.agent.util.ModuleInfo
+import io.scalac.core.util.ModuleInfo
 import net.bytebuddy.ByteBuddy
 import net.bytebuddy.agent.builder.AgentBuilder
 import net.bytebuddy.dynamic.scaffold.TypeValidation

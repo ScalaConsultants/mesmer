@@ -1,4 +1,4 @@
-package io.scalac.agent.model
+package io.scalac.core.model
 
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers

@@ -1,8 +1,8 @@
-package io.scalac.agent.util
+package io.scalac.core.util
+
 import java.util.jar.{ Attributes, Manifest }
 
-import io.scalac.agent.model.{ Module, Version }
-
+import io.scalac.core.model.{ Module, Version }
 import scala.jdk.CollectionConverters._
 
 object ModuleInfo {
@@ -15,8 +15,8 @@ object ModuleInfo {
     properties.keySet.flatMap { key =>
       for {
         splitted @ Array(ModulePrefix, module) <- Option(key.split('.')) if splitted.length == 2
-        versionRaw                            <- properties.get(key)
-        version                               <- Version(versionRaw)
+        versionRaw                             <- properties.get(key)
+        version                                <- Version(versionRaw)
       } yield (Module(module) -> version)
     }.toMap
 

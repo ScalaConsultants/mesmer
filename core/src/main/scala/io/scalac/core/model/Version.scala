@@ -1,4 +1,4 @@
-package io.scalac.agent.model
+package io.scalac.core.model
 
 final case class Version(major: String, minor: String, patch: String)
 

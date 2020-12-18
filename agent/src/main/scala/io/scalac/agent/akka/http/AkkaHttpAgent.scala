@@ -2,7 +2,7 @@ package io.scalac.agent.akka.http
 
 import io.scalac.agent.Agent.LoadingResult
 import io.scalac.agent.{Agent, AgentInstrumentation}
-import io.scalac.agent.model._
+import io.scalac.core.model.{Module, SupportedModules, SupportedVersion, Version}
 import net.bytebuddy.description.`type`.TypeDescription
 import net.bytebuddy.description.method.MethodDescription
 import net.bytebuddy.implementation.MethodDelegation

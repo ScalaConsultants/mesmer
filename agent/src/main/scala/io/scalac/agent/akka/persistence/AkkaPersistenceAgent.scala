@@ -1,12 +1,12 @@
 package io.scalac.agent.akka.persistence
 
 import io.scalac.agent.Agent.LoadingResult
-import io.scalac.agent.model._
-import io.scalac.agent.{ Agent, AgentInstrumentation }
+import io.scalac.agent.{Agent, AgentInstrumentation}
+import io.scalac.core.model.{Module, SupportedModules, SupportedVersion, Version}
 import net.bytebuddy.asm.Advice
 import net.bytebuddy.description.`type`.TypeDescription
 import net.bytebuddy.description.method.MethodDescription
-import net.bytebuddy.matcher.ElementMatchers.{ isMethod, named }
+import net.bytebuddy.matcher.ElementMatchers.{isMethod, named}
 import org.slf4j.LoggerFactory
 
 object AkkaPersistenceAgent {
