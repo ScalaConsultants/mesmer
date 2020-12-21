@@ -1,4 +1,4 @@
-package io.scalac.agent.model
+package io.scalac.core.model
 
 object SupportedModules {
   def apply(module: Module, supportedVersion: SupportedVersion): SupportedModules =

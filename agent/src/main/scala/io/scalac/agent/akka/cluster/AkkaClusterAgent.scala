@@ -1,13 +1,13 @@
 package io.scalac.agent.akka.cluster
 
 import io.scalac.agent.Agent.LoadingResult
-import io.scalac.agent.model._
-import io.scalac.agent.{ Agent, AgentInstrumentation }
+import io.scalac.agent.{Agent, AgentInstrumentation}
+import io.scalac.core.model.{Module, SupportedModules, SupportedVersion, Version}
 import net.bytebuddy.asm.Advice
 import net.bytebuddy.description.`type`.TypeDescription
 import net.bytebuddy.description.method.MethodDescription
 import net.bytebuddy.matcher.ElementMatchers
-import net.bytebuddy.matcher.ElementMatchers.{ isAbstract, isMethod, named, not }
+import net.bytebuddy.matcher.ElementMatchers.{isAbstract, isMethod, named, not}
 
 object AkkaClusterAgent {
 

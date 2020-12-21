@@ -30,7 +30,7 @@ object OpenTelemetryPersistenceMetricMonitor {
       val defaultCached = default
 
       config
-        .tryValue("io.scalac.akka-cluster-monitoring.cluster-metrics")(
+        .tryValue("io.scalac.akka-monitoring.metrics.cluster-metrics")(
           _.getConfig
         )
         .map { clusterMetricsConfig =>

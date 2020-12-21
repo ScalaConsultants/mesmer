@@ -3,8 +3,8 @@ package io.scalac.agent
 import java.lang.instrument.Instrumentation
 
 import io.scalac.agent.Agent.LoadingResult
-import io.scalac.agent.model.SupportedModules
-import io.scalac.agent.util.ModuleInfo.Modules
+import io.scalac.core.model.SupportedModules
+import io.scalac.core.util.ModuleInfo.Modules
 import net.bytebuddy.agent.builder.AgentBuilder
 import org.slf4j.LoggerFactory
 

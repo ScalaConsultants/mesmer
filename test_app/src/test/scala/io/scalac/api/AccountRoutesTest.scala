@@ -7,12 +7,13 @@ import akka.actor.typed.scaladsl.adapter._
 import akka.cluster.sharding.typed.ShardingEnvelope
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.Route
-import akka.http.scaladsl.testkit.{RouteTestTimeout, ScalatestRouteTest}
+import akka.http.scaladsl.testkit.{ RouteTestTimeout, ScalatestRouteTest }
 import akka.util.Timeout
+import com.typesafe.config.{ Config, ConfigFactory }
 import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport
-import io.scalac.domain.AccountStateActor.Command.{Deposit, GetBalance, Withdraw}
-import io.scalac.domain.AccountStateActor.Reply.{CurrentBalance, InsufficientFunds}
-import io.scalac.domain.{AccountStateActor, _}
+import io.scalac.domain.AccountStateActor.Command.{ Deposit, GetBalance, Withdraw }
+import io.scalac.domain.AccountStateActor.Reply.{ CurrentBalance, InsufficientFunds }
+import io.scalac.domain.{ AccountStateActor, _ }
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
@@ -30,6 +31,8 @@ class AccountRoutesTest
   implicit val typedSystem      = system.toTyped
   implicit val timeout: Timeout = 1 seconds
   import AccountStateActor.{ Command, Reply }
+
+  override def testConfig: Config = ConfigFactory.load("application-test")
 
   type Fixture = (UUID, Route)
 

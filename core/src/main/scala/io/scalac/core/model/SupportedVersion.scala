@@ -1,11 +1,15 @@
-package io.scalac.agent.model
+package io.scalac.core.model
 
 sealed trait SupportedVersion {
   import SupportedVersion._
 
-  def &&(other: SupportedVersion): SupportedVersion = And(this, other)
+  def &&(other: SupportedVersion): SupportedVersion = and(other)
 
-  def ||(other: SupportedVersion): SupportedVersion = other match {
+  def and(other: SupportedVersion): SupportedVersion = And(this, other)
+
+  def ||(other: SupportedVersion): SupportedVersion = or(other)
+
+  def or(other: SupportedVersion): SupportedVersion = other match {
     case AnyVersion => AnyVersion
     case _          => Or(this, other)
   }
@@ -15,6 +19,7 @@ sealed trait SupportedVersion {
     case Selected(versions) => versions.contains(version)
     case WithMajor(major)   => version.major == major
     case WithMinor(minor)   => version.minor == minor
+    case WithPatch(patch)   => version.patch == patch
     case Not(supported)     => !supported.supports(version)
     case And(left, right)   => left.supports(version) && right.supports(version)
     case Or(left, right)    => left.supports(version) || right.supports(version)
@@ -36,6 +41,8 @@ object SupportedVersion {
   private final case class WithMajor(major: String) extends SupportedVersion
 
   private final case class WithMinor(minor: String) extends SupportedVersion
+
+  private final case class WithPatch(patch: String) extends SupportedVersion
 
   private final case class Not(supportedVersion: SupportedVersion) extends SupportedVersion
 
@@ -60,5 +67,15 @@ object SupportedVersion {
 
   def majors(head: String, tail: String*): SupportedVersion = tail.foldLeft[SupportedVersion](WithMajor(head)) {
     case (acc, minor) => Or(acc, WithMajor(minor))
+  }
+
+  def patches(values: Seq[String]): SupportedVersion =
+    values match {
+      case x :: xs => patches(x, xs: _*)
+      case _       => none
+    }
+
+  def patches(head: String, tail: String*): SupportedVersion = tail.foldLeft[SupportedVersion](WithPatch(head)) {
+    case (acc, patch) => Or(acc, WithPatch(patch))
   }
 }

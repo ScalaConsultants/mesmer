@@ -23,7 +23,7 @@ object OpenTelemetryHttpMetricsMonitor {
       val defaultCached = default
 
       config
-        .tryValue("io.scalac.akka-cluster-monitoring.http-metrics")(
+        .tryValue("io.scalac.akka-monitoring.metrics.http-metrics")(
           _.getConfig
         )
         .map { clusterMetricsConfig =>

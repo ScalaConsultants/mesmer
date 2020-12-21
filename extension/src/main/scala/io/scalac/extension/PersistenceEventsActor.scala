@@ -16,13 +16,14 @@ import io.scalac.extension.service.PathService
 
 import scala.language.postfixOps
 
-object PersistenceEventsListener {
+object PersistenceEventsActor {
 
   sealed trait Event extends SerializableMessage
 
   object Event {
     private[extension] final case class PersistentEventWrapper(event: PersistenceEvent) extends Event
   }
+
   def apply(
     pathService: PathService,
     initRecoveryStorage: RecoveryStorage,

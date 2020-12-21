@@ -1,8 +1,8 @@
 package io.scalac.agent.akka.persistence
 
 import io.scalac.agent.Agent.LoadingResult
-import io.scalac.agent.model._
 import io.scalac.agent.{ Agent, AgentInstrumentation }
+import io.scalac.core.model.{ Module, SupportedModules, SupportedVersion, Version }
 import net.bytebuddy.asm.Advice
 import net.bytebuddy.description.`type`.TypeDescription
 import net.bytebuddy.description.method.MethodDescription
@@ -49,25 +49,6 @@ object AkkaPersistenceAgent {
     LoadingResult("akka.persistence.typed.internal.ReplayingEvents")
   }
 
-//  private val eventSourcesConstuctor = AgentInstrumentation(
-//    "akka.persistence.typed.internal.EventSourcedBehaviorImpl",
-//    SupportedModules(moduleName, supportedVersions)
-//  ) { (agentBuilder, instrumentation, _) =>
-//    agentBuilder
-//      .`type`(named[TypeDescription]("akka.persistence.typed.internal.EventSourcedBehaviorImpl"))
-//      .transform {
-//        case (builder, _, _, _) =>
-//          builder
-//            .visit(
-//              Advice
-//                .to(classOf[SnapshotAdvice])
-//                .on(isConstructor[MethodDescription].and(hasParameters[MethodDescription](any())))
-//            )
-//      }
-//      .installOn(instrumentation)
-//    LoadingResult("akka.persistence.typed.internal.EventSourcedBehaviorImpl")
-//  }
-
   private val eventWriteSuccessInstrumentation = AgentInstrumentation(
     "akka.persistence.typed.internal.Running",
     SupportedModules(moduleName, supportedVersions)
@@ -103,5 +84,10 @@ object AkkaPersistenceAgent {
   }
 
   val agent =
-    Agent(recoveryStartedAgent, recoveryCompletedAgent, eventWriteSuccessInstrumentation, snapshotLoadingInstrumentation)
+    Agent(
+      recoveryStartedAgent,
+      recoveryCompletedAgent,
+      eventWriteSuccessInstrumentation,
+      snapshotLoadingInstrumentation
+    )
 }
