@@ -2,8 +2,8 @@ package io.scalac.extension.upstream
 
 import com.typesafe.config.Config
 import io.opentelemetry.api.OpenTelemetry
-import io.scalac.extension.metric.{ HttpMetricMonitor, MetricRecorder, UpCounter }
-import io.scalac.extension.metric.Metric._
+import io.scalac.extension.metric.HttpMetricMonitor
+import io.scalac.extension.upstream.opentelemetry._
 
 object OpenTelemetryHttpMetricsMonitor {
   case class MetricNames(
@@ -48,7 +48,10 @@ class OpenTelemetryHttpMetricsMonitor(
   instrumentationName: String,
   metricNames: OpenTelemetryHttpMetricsMonitor.MetricNames
 ) extends HttpMetricMonitor {
+
   import HttpMetricMonitor._
+
+  override type Bound = HttpMetricsBoundMonitor
 
   private val meter = OpenTelemetry
     .getGlobalMeter(instrumentationName)
@@ -58,16 +61,16 @@ class OpenTelemetryHttpMetricsMonitor(
     .setDescription("Amount of ms request took to complete")
     .build()
 
-  private val requestUpDownCounter = meter
+  private val requestTotalCounter = meter
     .longCounterBuilder(metricNames.requestTotal)
     .setDescription("Amount of requests")
     .build()
 
-  override def bind(labels: Labels): HttpMetricMonitor.BoundMonitor = new BoundMonitor {
-    override val requestTime: MetricRecorder[Long] =
-      requestTimeRequest.bind(labels.toOpenTelemetry).toMetricRecorder()
+  override def bind(labels: Labels): Bound = new HttpMetricsBoundMonitor(labels)
 
-    override val requestCounter: UpCounter[Long] =
-      requestUpDownCounter.bind(labels.toOpenTelemetry).toUpCounter()
+  class HttpMetricsBoundMonitor(val labels: Labels) extends BoundMonitor with opentelemetry.Synchronized {
+    override def requestTime = WrappedLongValueRecorder(requestTimeRequest, labels.toOpenTelemetry)
+
+    override def requestCounter = WrappedCounter(requestTotalCounter, labels.toOpenTelemetry)
   }
 }

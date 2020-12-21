@@ -6,6 +6,7 @@ import io.opentelemetry.api.common.Labels
 import io.scalac.extension.metric._
 import io.scalac.extension.model._
 import io.scalac.extension.upstream.OpenTelemetryClusterMetricsMonitor.MetricNames
+import io.scalac.extension.upstream.opentelemetry._
 
 object OpenTelemetryClusterMetricsMonitor {
   case class MetricNames(
@@ -73,68 +74,62 @@ object OpenTelemetryClusterMetricsMonitor {
 
 class OpenTelemetryClusterMetricsMonitor(instrumentationName: String, val metricNames: MetricNames)
     extends ClusterMetricsMonitor {
-  import ClusterMetricsMonitor._
 
-  override def bind(node: Node): BoundMonitor = {
-    val meter = OpenTelemetry.getGlobalMeter(instrumentationName)
+  private[this] val meter = OpenTelemetry.getGlobalMeter(instrumentationName)
 
+  private val shardsPerRegionRecorder = meter
+    .longValueRecorderBuilder(metricNames.shardPerEntity)
+    .setDescription("Amount of shards in region")
+    .build()
+
+  private val entityPerRegionRecorder = meter
+    .longValueRecorderBuilder(metricNames.entityPerRegion)
+    .setDescription("Amount of entities in region")
+    .build()
+
+  private val reachableNodeCounter = meter
+    .longUpDownCounterBuilder(metricNames.reachableNodes)
+    .setDescription("Amount of reachable nodes")
+    .build()
+
+  private val unreachableNodeCounter = meter
+    .longUpDownCounterBuilder(metricNames.unreachableNodes)
+    .setDescription("Amount of unreachable nodes")
+    .build()
+
+  private val regionsOnNode = meter
+    .longValueRecorderBuilder(metricNames.shardRegionsOnNode)
+    .setDescription("Amount of shard regions on node")
+    .build()
+
+  private val nodeDownCounter = meter
+    .longCounterBuilder(metricNames.nodeDown)
+    .setDescription("Counter for node down events")
+    .build()
+
+  override type Bound = ClusterBoundMonitor
+
+  override def bind(node: Node): ClusterBoundMonitor = {
     val boundLabels = Labels.of("node", node)
-    val boundShardsPerRegionRecorder = meter
-      .longValueRecorderBuilder(metricNames.shardPerEntity)
-      .setDescription("Amount of shards in region")
-      .build()
-      .bind(boundLabels)
+    new ClusterBoundMonitor(boundLabels)
+  }
 
-    val boundEntityPerRegionRecorder = meter
-      .longValueRecorderBuilder(metricNames.entityPerRegion)
-      .setDescription("Amount of entities in region")
-      .build()
-      .bind(boundLabels)
+  class ClusterBoundMonitor(labels: Labels) extends BoundMonitor with opentelemetry.Synchronized {
+    override def shardPerRegions: MetricRecorder[Long] with Instrument[Long] =
+      WrappedLongValueRecorder(shardsPerRegionRecorder, labels)
 
-    val boundReachableNodeCounter = meter
-      .longUpDownCounterBuilder(metricNames.reachableNodes)
-      .setDescription("Amount of reachable nodes")
-      .build()
-      .bind(boundLabels)
+    override def entityPerRegion: MetricRecorder[Long] with Instrument[Long] =
+      WrappedLongValueRecorder(entityPerRegionRecorder, labels)
 
-    val boundUnreachableNodeCounter = meter
-      .longUpDownCounterBuilder(metricNames.unreachableNodes)
-      .setDescription("Amount of unreachable nodes")
-      .build()
-      .bind(boundLabels)
+    override def shardRegionsOnNode: MetricRecorder[Long] with Instrument[Long] =
+      WrappedLongValueRecorder(regionsOnNode, labels)
 
-    val boundRegionsOnNode = meter
-      .longValueRecorderBuilder(metricNames.shardRegionsOnNode)
-      .setDescription("Amount of shard regions on node")
-      .build()
-      .bind(boundLabels)
+    override def reachableNodes: Counter[Long] with Instrument[Long] =
+      WrappedUpDownCounter(reachableNodeCounter, labels)
 
-    val boundNodeDown = meter
-      .longCounterBuilder(metricNames.nodeDown)
-      .setDescription("Counter for node down events")
-      .build()
-      .bind(boundLabels)
+    override def unreachableNodes: Counter[Long] with Instrument[Long] =
+      WrappedUpDownCounter(unreachableNodeCounter, labels)
 
-    import Metric._
-
-    new BoundMonitor {
-      override val shardPerRegions: MetricRecorder[Long] =
-        boundShardsPerRegionRecorder.toMetricRecorder()
-
-      override val entityPerRegion: MetricRecorder[Long] =
-        boundEntityPerRegionRecorder.toMetricRecorder()
-
-      override val reachableNodes: Counter[Long] =
-        boundReachableNodeCounter.toCounter()
-
-      override val unreachableNodes: Counter[Long] =
-        boundUnreachableNodeCounter.toCounter()
-
-      override val shardRegionsOnNode: MetricRecorder[Long] =
-        boundRegionsOnNode.toMetricRecorder()
-
-      override val nodeDown: UpCounter[Long] = boundNodeDown.toUpCounter()
-    }
-
+    override def nodeDown: UpCounter[Long] with Instrument[Long] = WrappedCounter(nodeDownCounter, labels)
   }
 }

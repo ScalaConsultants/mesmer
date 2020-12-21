@@ -11,6 +11,7 @@ import io.scalac.extension.metric.CachingMonitor._
 import io.scalac.extension.metric.PersistenceMetricMonitor
 import io.scalac.extension.metric.PersistenceMetricMonitor.Labels
 import io.scalac.extension.model._
+import io.scalac.extension.persistence.{ PersistStorage, RecoveryStorage }
 import io.scalac.extension.service.PathService
 
 import scala.language.postfixOps
@@ -23,7 +24,12 @@ object PersistenceEventsActor {
     private[extension] final case class PersistentEventWrapper(event: PersistenceEvent) extends Event
   }
 
-  def apply(pathService: PathService, monitor: PersistenceMetricMonitor): Behavior[Event] =
+  def apply(
+    pathService: PathService,
+    initRecoveryStorage: RecoveryStorage,
+    initPersistStorage: PersistStorage,
+    monitor: PersistenceMetricMonitor
+  ): Behavior[Event] =
     Behaviors.setup { ctx =>
       import Event._
       Receptionist(ctx.system).ref ! Register(persistenceServiceKey, ctx.messageAdapter(PersistentEventWrapper.apply))
@@ -31,32 +37,65 @@ object PersistenceEventsActor {
       val selfNodeAddress = Cluster(ctx.system).selfMember.uniqueAddress.toNode
 
       // this is thread unsafe mutable data structure that relies on actor model abstraction
-      val cachingMonitor = monitor.caching
+      val cachingMonitor = caching[Labels, PersistenceMetricMonitor](monitor)
+      def getMonitor(path: String, persistenceId: PersistenceId): PersistenceMetricMonitor#Bound =
+        cachingMonitor.bind(Labels(selfNodeAddress, pathService.template(path), pathService.template(persistenceId)))
 
-      def watchRecovery(inFlightRecoveries: Map[String, RecoveryStarted]): Behavior[Event] =
+      def running(
+        recoveryStorage: RecoveryStorage,
+        persistStorage: PersistStorage
+      ): Behavior[Event] =
         Behaviors.receiveMessage {
-          case PersistentEventWrapper(started @ RecoveryStarted(path, persistenceId, _)) => {
+          case PersistentEventWrapper(started @ RecoveryStarted(path, _, _)) => {
             ctx.log.debug("Actor {} started recovery", path)
-            watchRecovery(inFlightRecoveries + (persistenceId -> started))
+            running(recoveryStorage.recoveryStarted(started), persistStorage)
           }
-          case PersistentEventWrapper(RecoveryFinished(path, persistenceId, timestamp)) => {
-            inFlightRecoveries
-              .get(persistenceId)
+          case PersistentEventWrapper(finished @ RecoveryFinished(path, persistenceId, _)) => {
+            recoveryStorage
+              .recoveryFinished(finished)
               .fold {
                 ctx.log.error(s"Got recovery finished event for actor {} but no related recovery started found", path)
                 Behaviors.same[Event]
-              } { started =>
-                val recoveryTime = timestamp - started.timestamp
-                val labels       = Labels(selfNodeAddress, pathService.template(path), pathService.template(persistenceId))
-                ctx.log.debug("Capture recovery time {}ms for labels {}", recoveryTime, labels)
-                cachingMonitor
-                  .bind(labels)
-                  .recoveryTime
-                  .setValue(recoveryTime)
-                watchRecovery(inFlightRecoveries - path)
+              } {
+                case (storage, duration) => {
+                  ctx.log.trace("Recovery finished in {} for {}", duration, path)
+                  val monitor = getMonitor(path, persistenceId)
+                  monitor.recoveryTime.setValue(duration)
+                  monitor.recoveryTotal.incValue(1L)
+                  running(storage, persistStorage)
+                }
               }
           }
+
+          case PersistentEventWrapper(pes @ PersistingEventStarted(path, persistenceId, sequenceNr, _)) => {
+            ctx.log.trace("Persit event initiated for actor {}/{}:{}", path, persistenceId, sequenceNr)
+            running(recoveryStorage, persistStorage.persistEventStarted(pes))
+          }
+          case PersistentEventWrapper(finished @ PersistingEventFinished(path, persistenceId, _, _)) => {
+            persistStorage
+              .persistEventFinished(finished)
+              .fold {
+                ctx.log
+                  .error(s"Got persisting event finished for {} but no related initiated event found", persistenceId)
+                Behaviors.same[Event]
+              } {
+                case (storage, duration) => {
+                  val monitor = getMonitor(path, persistenceId)
+                  monitor.persistentEvent.setValue(duration)
+                  monitor.persistentEventTotal.incValue(1L)
+                  running(recoveryStorage, storage)
+                }
+              }
+          }
+          case PersistentEventWrapper(SnapshotCreated(path, persistenceId, _, _)) => {
+            val monitor = getMonitor(path, persistenceId)
+            ctx.log.trace("Received snapshot created for {}", persistenceId)
+            monitor.snapshot.incValue(1L)
+            Behaviors.same
+          }
+          case _ => Behaviors.unhandled
         }
-      watchRecovery(Map.empty)
+
+      running(initRecoveryStorage, initPersistStorage)
     }
 }

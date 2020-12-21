@@ -2,19 +2,27 @@ package io.scalac.extension.upstream
 
 import com.typesafe.config.Config
 import io.opentelemetry.api.OpenTelemetry
-import io.scalac.extension.metric.Metric._
-import io.scalac.extension.metric.{ MetricRecorder, PersistenceMetricMonitor }
+import io.scalac.extension.metric.{ MetricRecorder, PersistenceMetricMonitor, UpCounter }
 import io.scalac.extension.upstream.OpenTelemetryPersistenceMetricMonitor._
+import io.scalac.extension.upstream.opentelemetry._
 
 object OpenTelemetryPersistenceMetricMonitor {
   case class MetricNames(
-    recoveryTime: String
+    recoveryTime: String,
+    recoveryTotal: String,
+    persistentEvent: String,
+    persistentEventTotal: String,
+    snapshotTotal: String
   )
 
   object MetricNames {
     def default: MetricNames =
       MetricNames(
-        "recovery_time"
+        "recovery_time",
+        "recovery_total",
+        "persistent_event",
+        "persistent_event_total",
+        "snapshot_total"
       )
 
     def fromConfig(config: Config): MetricNames = {
@@ -29,8 +37,20 @@ object OpenTelemetryPersistenceMetricMonitor {
           val recoveryTime = clusterMetricsConfig
             .tryValue("recovery-time")(_.getString)
             .getOrElse(defaultCached.recoveryTime)
+          val recoveryTotal = clusterMetricsConfig
+            .tryValue("recovery-total")(_.getString)
+            .getOrElse(defaultCached.recoveryTotal)
+          val persistentEvent = clusterMetricsConfig
+            .tryValue("persistent-event")(_.getString)
+            .getOrElse(defaultCached.persistentEvent)
+          val persistentEventTotal = clusterMetricsConfig
+            .tryValue("persistent-event-total")(_.getString)
+            .getOrElse(defaultCached.persistentEventTotal)
+          val snapshotTotal = clusterMetricsConfig
+            .tryValue("snapshot")(_.getString)
+            .getOrElse(defaultCached.snapshotTotal)
 
-          MetricNames(recoveryTime)
+          MetricNames(recoveryTime, recoveryTotal, persistentEvent, persistentEventTotal, snapshotTotal)
         }
         .getOrElse(defaultCached)
     }
@@ -42,16 +62,55 @@ object OpenTelemetryPersistenceMetricMonitor {
 class OpenTelemetryPersistenceMetricMonitor(instrumentationName: String, metricNames: MetricNames)
     extends PersistenceMetricMonitor {
   import PersistenceMetricMonitor._
+
   private val recoveryTimeRecorder = OpenTelemetry
     .getGlobalMeter(instrumentationName)
     .longValueRecorderBuilder(metricNames.recoveryTime)
     .setDescription("Amount of time needed for entity recovery")
     .build()
 
-  override def bind(labels: Labels): BoundMonitor =
-    new BoundMonitor {
+  private val recoveryTotalCounter = OpenTelemetry
+    .getGlobalMeter(instrumentationName)
+    .longCounterBuilder(metricNames.recoveryTotal)
+    .setDescription("Amount of recoveries")
+    .build()
 
-      override lazy val recoveryTime: MetricRecorder[Long] =
-        recoveryTimeRecorder.bind(labels.toOpenTelemetry).toMetricRecorder()
-    }
+  private val persistentEventRecorder = OpenTelemetry
+    .getGlobalMeter(instrumentationName)
+    .longValueRecorderBuilder(metricNames.persistentEvent)
+    .setDescription("Amount of time needed for entity to persist events")
+    .build()
+
+  private val persistentEventTotalCounter = OpenTelemetry
+    .getGlobalMeter(instrumentationName)
+    .longCounterBuilder(metricNames.persistentEventTotal)
+    .setDescription("Amount of persist events")
+    .build()
+
+  private val snapshotCounter = OpenTelemetry
+    .getGlobalMeter(instrumentationName)
+    .longCounterBuilder(metricNames.snapshotTotal)
+    .setDescription("Amount of snapshots created")
+    .build()
+
+  override type Bound = OpenTelemetryBoundMonitor
+
+  override def bind(labels: Labels): OpenTelemetryBoundMonitor =
+    new OpenTelemetryBoundMonitor(labels)
+
+  class OpenTelemetryBoundMonitor(labels: Labels) extends BoundMonitor with opentelemetry.Synchronized {
+    override lazy val recoveryTime = WrappedLongValueRecorder(recoveryTimeRecorder, labels.toOpenTelemetry)
+
+    override lazy val persistentEvent: WrappedSynchronousInstrument[Long] with MetricRecorder[Long] =
+      WrappedLongValueRecorder(persistentEventRecorder, labels.toOpenTelemetry)
+
+    override lazy val persistentEventTotal: WrappedSynchronousInstrument[Long] with UpCounter[Long] =
+      WrappedCounter(persistentEventTotalCounter, labels.toOpenTelemetry)
+
+    override lazy val snapshot: WrappedSynchronousInstrument[Long] with UpCounter[Long] =
+      WrappedCounter(snapshotCounter, labels.toOpenTelemetry)
+
+    override lazy val recoveryTotal: WrappedSynchronousInstrument[Long] with UpCounter[Long] =
+      WrappedCounter(recoveryTotalCounter, labels.toOpenTelemetry)
+  }
 }

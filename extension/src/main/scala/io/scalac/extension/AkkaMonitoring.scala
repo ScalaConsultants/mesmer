@@ -16,6 +16,7 @@ import io.scalac.core.support.ModulesSupport
 import io.scalac.core.util.ModuleInfo
 import io.scalac.core.util.ModuleInfo.Modules
 import io.scalac.extension.config.ClusterMonitoringConfig
+import io.scalac.extension.persistence.{ InMemoryPersistStorage, InMemoryRecoveryStorage }
 import io.scalac.extension.service.CommonRegexPathService
 import io.scalac.extension.upstream.{
   OpenTelemetryClusterMetricsMonitor,
@@ -211,7 +212,12 @@ class AkkaMonitoring(private val system: ActorSystem[_], val config: ClusterMoni
     system.systemActorOf(
       Behaviors
         .supervise(
-          PersistenceEventsActor.apply(CommonRegexPathService, openTelemetryPersistenceMonitor)
+          PersistenceEventsActor.apply(
+            CommonRegexPathService,
+            InMemoryRecoveryStorage.empty,
+            InMemoryPersistStorage.empty,
+            openTelemetryPersistenceMonitor
+          )
         )
         .onFailure[Exception](SupervisorStrategy.restart),
       "persistenceAgentMonitor"

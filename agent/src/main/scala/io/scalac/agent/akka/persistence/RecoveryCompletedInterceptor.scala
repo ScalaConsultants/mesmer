@@ -14,13 +14,13 @@ class RecoveryCompletedInterceptor
 
 object RecoveryCompletedInterceptor {
 
-  private val setupField = {
+  private lazy val setupField = {
     val setup = Class.forName("akka.persistence.typed.internal.ReplayingEvents").getDeclaredField("setup")
     setup.setAccessible(true)
     setup
   }
 
-  private val persistenceIdField = {
+  private lazy val persistenceIdField = {
     val persistenceId = Class.forName("akka.persistence.typed.internal.BehaviorSetup").getDeclaredField("persistenceId")
     persistenceId.setAccessible(true)
     persistenceId

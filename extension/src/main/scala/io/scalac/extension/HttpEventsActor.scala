@@ -8,8 +8,8 @@ import akka.cluster.typed.Cluster
 import io.scalac.extension.event.HttpEvent
 import io.scalac.extension.event.HttpEvent._
 import io.scalac.extension.metric.CachingMonitor._
+import io.scalac.extension.metric.HttpMetricMonitor
 import io.scalac.extension.metric.HttpMetricMonitor._
-import io.scalac.extension.metric.{ Bindable, HttpMetricMonitor }
 import io.scalac.extension.model.{ Method, Path, _ }
 import io.scalac.extension.service.PathService
 
@@ -26,8 +26,7 @@ object HttpEventsActor {
 
     Receptionist(ctx.system).ref ! Register(httpServiceKey, ctx.messageAdapter(HttpEventWrapper.apply))
 
-    val cachingHttpMonitor: Bindable.Aux[Labels, httpMetricMonitor.Bound] =
-      httpMetricMonitor.caching
+    val cachingHttpMonitor = caching[Labels, HttpMetricMonitor](httpMetricMonitor)
 
     val selfNodeAddress = Cluster(ctx.system).selfMember.uniqueAddress.toNode
 
