@@ -8,7 +8,7 @@ import scala.collection.mutable.ListBuffer
 
 class CachingMonitorTest extends AnyFlatSpec with Matchers with Inspectors {
 
-  case class TestBound(lables: String)
+  case class TestBound(labels: String)
   class TestBindable extends Bindable[String] {
     override type Bound = TestBound
 
@@ -27,7 +27,7 @@ class CachingMonitorTest extends AnyFlatSpec with Matchers with Inspectors {
     body(new TestBindable)
 
   "CachingMonitor" should "proxy to wrapped monitor" in test { testBindable =>
-    val sut = new CachingMonitor[String, TestBindable](testBindable)
+    val sut = new CachingMonitor[String, TestBound, TestBindable](testBindable)
 
     val labels = List.tabulate(10)(num => s"label_${num}")
 
@@ -37,7 +37,7 @@ class CachingMonitorTest extends AnyFlatSpec with Matchers with Inspectors {
   }
 
   it should "return same instance when keys repeat" in test { testBindable =>
-    val sut       = new CachingMonitor[String, TestBindable](testBindable)
+    val sut       = new CachingMonitor[String, TestBound, TestBindable](testBindable)
     val label     = "label"
     val labels    = List.fill(10)(label)
     val instances = labels.map(sut.bind)
