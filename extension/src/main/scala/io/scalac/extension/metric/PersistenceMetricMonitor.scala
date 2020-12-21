@@ -18,5 +18,9 @@ trait PersistenceMetricMonitor extends Bindable[Labels] { self =>
   trait BoundMonitor extends Synchronized {
 
     def recoveryTime: Instrument[Long] with MetricRecorder[Long]
+    def recoveryTotal: Instrument[Long] with UpCounter[Long]
+    def persistentEvent: Instrument[Long] with MetricRecorder[Long]
+    def persistentEventTotal: Instrument[Long] with UpCounter[Long]
+    def snapshot: Instrument[Long] with UpCounter[Long]
   }
 }

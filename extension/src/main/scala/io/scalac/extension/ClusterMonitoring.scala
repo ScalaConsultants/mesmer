@@ -5,6 +5,7 @@ import akka.actor.typed.scaladsl.Behaviors
 import akka.actor.typed.{ ActorSystem, Extension, ExtensionId, SupervisorStrategy }
 import akka.cluster.typed.{ ClusterSingleton, SingletonActor }
 import io.scalac.extension.config.ClusterMonitoringConfig
+import io.scalac.extension.persistence.{ InMemoryPersistStorage, InMemoryRecoveryStorage }
 import io.scalac.extension.service.CommonRegexPathService
 import io.scalac.extension.upstream.{
   NewRelicEventStream,
@@ -100,7 +101,14 @@ class ClusterMonitoring(private val system: ActorSystem[_], val config: ClusterM
 
     system.systemActorOf(
       Behaviors
-        .supervise(PersistenceEventsListener.apply(CommonRegexPathService, openTelemetryPersistenceMonitor, config.regions.toSet))
+        .supervise(
+          PersistenceEventsListener.apply(
+            CommonRegexPathService,
+            InMemoryRecoveryStorage.empty,
+            InMemoryPersistStorage.empty,
+            openTelemetryPersistenceMonitor
+          )
+        )
         .onFailure[Exception](SupervisorStrategy.restart),
       "persistenceAgentMonitor"
     )

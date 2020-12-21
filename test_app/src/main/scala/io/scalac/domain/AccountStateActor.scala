@@ -1,14 +1,14 @@
 package io.scalac.domain
 
 import java.io.IOException
-import java.{ util => ju }
+import java.{util => ju}
 
 import akka.actor.typed.scaladsl.Behaviors
-import akka.actor.typed.{ ActorRef, Behavior }
-import akka.persistence.typed.PersistenceId
-import akka.persistence.typed.scaladsl.{ Effect, EventSourcedBehavior, RetentionCriteria }
-import io.scalac.domain.AccountStateActor.Event.{ MoneyDeposit, MoneyWithdrawn }
-import io.scalac.domain.AccountStateActor.Reply.{ CurrentBalance, InsufficientFunds }
+import akka.actor.typed.{ActorRef, Behavior}
+import akka.persistence.typed.scaladsl.{Effect, EventSourcedBehavior, RetentionCriteria}
+import akka.persistence.typed.{PersistenceId, SnapshotCompleted}
+import io.scalac.domain.AccountStateActor.Event.{MoneyDeposit, MoneyWithdrawn}
+import io.scalac.domain.AccountStateActor.Reply.{CurrentBalance, InsufficientFunds}
 import io.scalac.serialization.SerializableMessage
 
 object AccountStateActor {
@@ -72,12 +72,14 @@ object AccountStateActor {
   }
 
   def apply(uuid: ju.UUID): Behavior[Command] =
-    Behaviors.setup { _ =>
+    Behaviors.setup { ctx =>
       EventSourcedBehavior[Command, Event, AccountState](
         PersistenceId.ofUniqueId(uuid.toString),
         AccountState(0.0),
         (state, command) => state.commandHandler(command),
         (state, event) => state.eventHandler(event)
-      ).withRetention(RetentionCriteria.snapshotEvery(10, 2))
+      )
+        .withRetention(RetentionCriteria.snapshotEvery(2, 2))
+
     }
 }

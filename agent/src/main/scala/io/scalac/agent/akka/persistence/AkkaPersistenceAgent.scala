@@ -6,7 +6,7 @@ import io.scalac.agent.{ Agent, AgentInstrumentation }
 import net.bytebuddy.asm.Advice
 import net.bytebuddy.description.`type`.TypeDescription
 import net.bytebuddy.description.method.MethodDescription
-import net.bytebuddy.matcher.ElementMatchers.{ isMethod, named }
+import net.bytebuddy.matcher.ElementMatchers._
 import org.slf4j.LoggerFactory
 
 object AkkaPersistenceAgent {
@@ -42,12 +42,66 @@ object AkkaPersistenceAgent {
       .transform {
         case (builder, _, _, _) =>
           builder
-            .method(isMethod[MethodDescription].and(named("onRecoveryStart")))
+            .method(isMethod[MethodDescription].and(named("onRecoveryComplete")))
             .intercept(Advice.to(classOf[RecoveryCompletedInterceptor]))
       }
       .installOn(instrumentation)
     LoadingResult("akka.persistence.typed.internal.ReplayingEvents")
   }
 
-  val agent = Agent(recoveryStartedAgent, recoveryCompletedAgent)
+//  private val eventSourcesConstuctor = AgentInstrumentation(
+//    "akka.persistence.typed.internal.EventSourcedBehaviorImpl",
+//    SupportedModules(moduleName, supportedVersions)
+//  ) { (agentBuilder, instrumentation, _) =>
+//    agentBuilder
+//      .`type`(named[TypeDescription]("akka.persistence.typed.internal.EventSourcedBehaviorImpl"))
+//      .transform {
+//        case (builder, _, _, _) =>
+//          builder
+//            .visit(
+//              Advice
+//                .to(classOf[SnapshotAdvice])
+//                .on(isConstructor[MethodDescription].and(hasParameters[MethodDescription](any())))
+//            )
+//      }
+//      .installOn(instrumentation)
+//    LoadingResult("akka.persistence.typed.internal.EventSourcedBehaviorImpl")
+//  }
+
+  private val eventWriteSuccessInstrumentation = AgentInstrumentation(
+    "akka.persistence.typed.internal.Running",
+    SupportedModules(moduleName, supportedVersions)
+  ) { (agentBuilder, instrumentation, _) =>
+    agentBuilder
+      .`type`(named[TypeDescription]("akka.persistence.typed.internal.Running"))
+      .transform {
+        case (builder, _, _, _) =>
+          builder
+            .method(isMethod[MethodDescription].and(named("onWriteSuccess")))
+            .intercept(Advice.to(classOf[PersistingEventSuccessInterceptor]))
+            .method(isMethod[MethodDescription].and(named("onWriteInitiated")))
+            .intercept(Advice.to(classOf[JournalInteractionsInterceptor]))
+      }
+      .installOn(instrumentation)
+    LoadingResult("akka.persistence.typed.internal.Running")
+  }
+
+  private val snapshotLoadingInstrumentation = AgentInstrumentation(
+    "akka.persistence.typed.internal.Running$StoringSnapshot",
+    SupportedModules(moduleName, supportedVersions)
+  ) { (agentBuilder, instrumentation, _) =>
+    agentBuilder
+      .`type`(named[TypeDescription]("akka.persistence.typed.internal.Running$StoringSnapshot"))
+      .transform {
+        case (builder, _, _, _) =>
+          builder
+            .method(isMethod[MethodDescription].and(named("onSaveSnapshotResponse")))
+            .intercept(Advice.to(classOf[StoringSnapshotInterceptor]))
+      }
+      .installOn(instrumentation)
+    LoadingResult("akka.persistence.typed.internal.Running$StoringSnapshot")
+  }
+
+  val agent =
+    Agent(recoveryStartedAgent, recoveryCompletedAgent, eventWriteSuccessInstrumentation, snapshotLoadingInstrumentation)
 }
