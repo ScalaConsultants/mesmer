@@ -3,7 +3,8 @@ package io.scalac.extension
 import akka.actor.typed.Behavior
 import akka.actor.typed.scaladsl.Behaviors
 import akka.cluster.ClusterEvent.CurrentClusterState
-import akka.cluster.typed.{ Cluster, SelfUp, Subscribe }
+import akka.cluster.Member
+import akka.cluster.typed.{Cluster, SelfUp, Subscribe}
 
 import scala.concurrent.duration.FiniteDuration
 
@@ -13,7 +14,7 @@ object OnClusterStartUp {
   private case object Timeout
   private val timeoutTimerKey = "WithTimeoutKey"
 
-  def apply[T](inner: Behavior[T], timeout: Option[FiniteDuration]): Behavior[T] =
+  def apply[T](inner: Member => Behavior[T], timeout: Option[FiniteDuration]): Behavior[T] =
     Behaviors
       .setup[Any] { ctx =>
         def init: Behavior[Any] = Behaviors.withTimers { timer =>
@@ -26,7 +27,8 @@ object OnClusterStartUp {
               case Initialized(_) =>
                 ctx.log.info("Cluster initialized")
                 timer.cancel(timeoutTimerKey)
-                stash.unstashAll(inner.asInstanceOf[Behavior[Any]])
+                val selfMember = Cluster(ctx.system).selfMember
+                stash.unstashAll(inner(selfMember).asInstanceOf[Behavior[Any]])
               case message: T @unchecked =>
                 stash.stash(message)
                 Behaviors.same

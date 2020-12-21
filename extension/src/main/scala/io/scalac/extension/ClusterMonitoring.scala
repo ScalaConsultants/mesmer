@@ -172,11 +172,15 @@ class ClusterMonitoring(private val system: ActorSystem[_], val config: ClusterM
       system.systemActorOf(
         Behaviors
           .supervise(
-            ClusterSelfNodeMetricGatherer
-              .apply(
-                openTelemetryClusterMetricsMonitor,
-                initTimeout = None
-              )
+            OnClusterStartUp(
+              selfMember =>
+                ClusterSelfNodeMetricGatherer
+                  .apply(
+                    openTelemetryClusterMetricsMonitor,
+                    selfMember
+                  ),
+              None
+            )
           )
           .onFailure[Exception](SupervisorStrategy.restart),
         "localSystemMemberMonitor"
@@ -192,7 +196,7 @@ class ClusterMonitoring(private val system: ActorSystem[_], val config: ClusterM
         .init(
           SingletonActor(
             Behaviors
-              .supervise(OnClusterStartUp(ClusterEventsMonitor(openTelemetryClusterMetricsMonitor), None))
+              .supervise(OnClusterStartUp(_ => ClusterEventsMonitor(openTelemetryClusterMetricsMonitor), None))
               .onFailure[Exception](SupervisorStrategy.restart),
             "MemberMonitoringActor"
           )
