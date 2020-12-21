@@ -3,7 +3,7 @@ package io.scalac.extension
 import java.net.URI
 import java.util.Collections
 
-import akka.actor.CoordinatedShutdown
+import akka.actor.ExtendedActorSystem
 import akka.actor.typed.scaladsl.Behaviors
 import akka.actor.typed.{ ActorSystem, Extension, ExtensionId, SupervisorStrategy }
 import akka.cluster.typed.{ ClusterSingleton, SingletonActor }
@@ -18,14 +18,13 @@ import io.scalac.core.util.ModuleInfo.Modules
 import io.scalac.extension.config.ClusterMonitoringConfig
 import io.scalac.extension.service.CommonRegexPathService
 import io.scalac.extension.upstream.{
-  NewRelicEventStream,
   OpenTelemetryClusterMetricsMonitor,
   OpenTelemetryHttpMetricsMonitor,
   OpenTelemetryPersistenceMetricMonitor
 }
 import org.slf4j.Logger
 
-import scala.concurrent.duration._
+import scala.util.Try
 
 object ClusterMonitoring extends ExtensionId[ClusterMonitoring] {
   override def createExtension(system: ActorSystem[_]): ClusterMonitoring = {
@@ -87,7 +86,7 @@ object ClusterMonitoring extends ExtensionId[ClusterMonitoring] {
       akkaPersistenceTypedModule,
       modulesSupport.akkaPersistenceTyped,
       config.autoStart.akkaPersistence,
-      cm => cm.startAgentListener()
+      cm => cm.startPersistenceMonitoring()
     )
 
     if (config.boot.metricsBackend) {
@@ -95,7 +94,7 @@ object ClusterMonitoring extends ExtensionId[ClusterMonitoring] {
         system.log.error("Boot backend is set to true, but no configuration for backend found")
       } { backendConfig =>
         if (backendConfig.name.toLowerCase() == "newrelic") {
-          system.log.error(s"Starting NewRelic backend with config ${backendConfig}")
+          system.log.info(s"Starting NewRelic backend with config ${backendConfig}")
           startNewRelicBackend(backendConfig.region, backendConfig.apiKey, backendConfig.serviceName)(system.log)
         } else
           system.log.error(s"Backend ${backendConfig.name} not supported")
@@ -143,57 +142,65 @@ class ClusterMonitoring(private val system: ActorSystem[_], val config: ClusterM
       actorSystemConfig
     )
 
-  def startMemberMonitor(): Unit = {
-    log.info("Starting member monitor")
+  private val extendedActorSystem: Option[ExtendedActorSystem] = Option(system.classicSystem)
+    .filter(_.isInstanceOf[ExtendedActorSystem])
+    .map(_.asInstanceOf[ExtendedActorSystem])
 
-    system.systemActorOf(
-      Behaviors
-        .supervise(
-          ClusterSelfNodeMetricGatherer
-            .apply(
-              openTelemetryClusterMetricsMonitor,
-              initTimeout = Some(60.seconds)
-            )
-        )
-        .onFailure[Exception](SupervisorStrategy.restart),
-      "localSystemMemberMonitor"
-    )
+  private def reflectiveIsInstanceOf(fqcn: String, ref: Any): Either[String, Unit] =
+    Try(Class.forName(fqcn)).toEither.left.map {
+      case _: ClassNotFoundException => s"Class ${fqcn} not found"
+      case e                         => e.getMessage
+    }.filterOrElse(_.isInstance(ref), s"Ref ${ref} is not instance of ${fqcn}").map(_ => ())
+
+  private lazy val canStartCluster: Option[ExtendedActorSystem] = {
+    (for {
+      _       <- reflectiveIsInstanceOf("akka.actor.typed.internal.adapter.ActorSystemAdapter", system)
+      classic = system.classicSystem.asInstanceOf[ExtendedActorSystem]
+      _       <- reflectiveIsInstanceOf("akka.cluster.ClusterActorRefProvider", classic.provider)
+    } yield classic).fold(message => {
+      log.error(message)
+      None
+    }, Some.apply)
   }
 
-  def startReachabilityMonitor(): Unit = {
+  def startMemberMonitor(): Unit =
+    canStartCluster.fold {
+      log.error("ActorSystem is not properly configured to start cluster monitoring")
+    } { _ =>
+      log.debug("Starting member monitor")
 
-    log.info("Starting reachability monitor")
-
-    NewRelicEventStream.NewRelicConfig
-      .fromConfig(system.settings.config)
-      .fold(
-        errorMessage =>
-          system.log
-            .error(s"Couldn't start reachability monitor -> ${errorMessage}"),
-        config => {
-          implicit val classicSystem = system.classicSystem
-          val newRelicEventStream    = new NewRelicEventStream(config)
-
-          ClusterSingleton(system)
-            .init(
-              SingletonActor(
-                Behaviors
-                  .supervise(ClusterEventsMonitor(openTelemetryClusterMetricsMonitor))
-                  .onFailure[Exception](SupervisorStrategy.restart),
-                "MemberMonitoringActor"
+      system.systemActorOf(
+        Behaviors
+          .supervise(
+            ClusterSelfNodeMetricGatherer
+              .apply(
+                openTelemetryClusterMetricsMonitor,
+                initTimeout = None
               )
-            )
-
-          CoordinatedShutdown(classicSystem).addTask(
-            CoordinatedShutdown.PhaseBeforeActorSystemTerminate,
-            "closeNewRelicEventStream"
-          )(() => newRelicEventStream.shutdown())
-        }
+          )
+          .onFailure[Exception](SupervisorStrategy.restart),
+        "localSystemMemberMonitor"
       )
-  }
+    }
 
-  def startAgentListener(): Unit = {
-    log.info("Starting local agent listener")
+  def startReachabilityMonitor(): Unit =
+    canStartCluster.fold {
+      log.error("ActorSystem is not properly configured to start cluster monitoring")
+    } { _ =>
+      log.debug("Starting reachability monitor")
+      ClusterSingleton(system)
+        .init(
+          SingletonActor(
+            Behaviors
+              .supervise(OnClusterStartUp(ClusterEventsMonitor(openTelemetryClusterMetricsMonitor), None))
+              .onFailure[Exception](SupervisorStrategy.restart),
+            "MemberMonitoringActor"
+          )
+        )
+    }
+
+  def startPersistenceMonitoring(): Unit = {
+    log.debug("Starting PersistenceEventsListener")
 
     val openTelemetryPersistenceMonitor = OpenTelemetryPersistenceMetricMonitor(instrumentationName, actorSystemConfig)
 

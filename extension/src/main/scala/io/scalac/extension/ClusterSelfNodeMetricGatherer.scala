@@ -61,7 +61,7 @@ object ClusterSelfNodeMetricGatherer {
       implicit val dispatcher       = ctx.system
       implicit val timeout: Timeout = pingOffset
 
-      val cluster = Cluster(ctx.system)
+      val  cluster = Cluster(ctx.system)
 
       val sharding = ClusterSharding(ctx.system)
 
@@ -178,7 +178,7 @@ object ClusterSelfNodeMetricGatherer {
 
           Behaviors.withStash(1024) { buffer =>
             Behaviors.receiveMessage {
-              case Initialized(_) => {
+              case Initialized(current) => {
                 ctx.log.info("Successful initialization")
                 val selfAddress = cluster.selfMember.uniqueAddress
                 val boundMonitor =
