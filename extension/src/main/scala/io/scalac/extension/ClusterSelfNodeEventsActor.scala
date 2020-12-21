@@ -26,29 +26,29 @@ import io.scalac.extension.model._
 
 import scala.concurrent.duration._
 import scala.language.postfixOps
-class ClusterSelfNodeMetricGatherer
-object ClusterSelfNodeMetricGatherer {
+class ClusterSelfNodeEventsActor
+object ClusterSelfNodeEventsActor {
 
   sealed trait Command extends SerializableMessage
 
   object Command {
     final case class MonitorRegion(region: String) extends Command
 
-    private[ClusterSelfNodeMetricGatherer] final case class ClusterMemberEvent(event: MemberEvent) extends Command
+    private[ClusterSelfNodeEventsActor] final case class ClusterMemberEvent(event: MemberEvent) extends Command
 
-    private[ClusterSelfNodeMetricGatherer] final case class ClusterShardingStatsReceived(
+    private[ClusterSelfNodeEventsActor] final case class ClusterShardingStatsReceived(
       stats: CurrentShardRegionState
     ) extends Command
 
-    private[ClusterSelfNodeMetricGatherer] final case class GetClusterShardingStatsInternal(
+    private[ClusterSelfNodeEventsActor] final case class GetClusterShardingStatsInternal(
       regions: String
     ) extends Command
 
     sealed trait ReachabilityEvent extends Command
 
-    private[ClusterSelfNodeMetricGatherer] case class NodeUnreachable(address: UniqueAddress) extends ReachabilityEvent
+    private[ClusterSelfNodeEventsActor] case class NodeUnreachable(address: UniqueAddress) extends ReachabilityEvent
 
-    private[ClusterSelfNodeMetricGatherer] case class NodeReachable(address: UniqueAddress) extends ReachabilityEvent
+    private[ClusterSelfNodeEventsActor] case class NodeReachable(address: UniqueAddress) extends ReachabilityEvent
   }
 
   def apply(

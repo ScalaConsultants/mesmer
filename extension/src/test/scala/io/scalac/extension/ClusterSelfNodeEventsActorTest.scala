@@ -2,9 +2,11 @@ package io.scalac.extension
 
 import java.util.UUID
 
+import akka.actor.testkit.typed.scaladsl.ScalaTestWithActorTestKit
 import akka.actor.typed.scaladsl.AskPattern._
 import akka.actor.typed.scaladsl.Behaviors
 import akka.actor.typed.{ ActorRef, ActorSystem, Behavior, DispatcherSelector }
+import akka.cluster.Member
 import akka.cluster.sharding.typed.ShardingEnvelope
 import akka.cluster.sharding.typed.scaladsl.{ ClusterSharding, Entity, EntityTypeKey }
 import akka.cluster.typed.{ Cluster, SelfUp, Subscribe }
@@ -25,10 +27,12 @@ import scala.language.postfixOps
 import scala.reflect.ClassTag
 import scala.util.Random
 
-class ClusterSelfNodeMetricGathererTest extends AsyncFlatSpec with Matchers {
+class AAA extends ScalaTestWithActorTestKit
+
+class ClusterSelfNodeEventsActorTest extends AsyncFlatSpec with Matchers {
 
   type Region     = String
-  type Fixture[T] = (ActorSystem[Nothing], ActorRef[ShardingEnvelope[T]], ClusterMetricsTestProbe, Region)
+  type Fixture[T] = (ActorSystem[Nothing], Member, ActorRef[ShardingEnvelope[T]], ClusterMetricsTestProbe, Region)
 
   object TestBehavior {
 
@@ -85,7 +89,7 @@ class ClusterSelfNodeMetricGathererTest extends AsyncFlatSpec with Matchers {
       val ref          = sharding.init(entity)
       val clusterProbe = ClusterMetricsTestProbe()
 
-      Function.untupled(test)(system, ref, clusterProbe, entityName)
+      Function.untupled(test)(system, cluster.selfMember, ref, clusterProbe, entityName)
     }
 
     for {
@@ -97,8 +101,8 @@ class ClusterSelfNodeMetricGathererTest extends AsyncFlatSpec with Matchers {
   }
 
   "Monitoring" should "show proper amount of entities" in setup(TestBehavior.apply) {
-    case (system, ref, monitor, region) =>
-      system.systemActorOf(ClusterSelfNodeMetricGatherer.apply(monitor), "sut")
+    case (system, member, ref, monitor, region) =>
+      system.systemActorOf(ClusterSelfNodeEventsActor.apply(monitor, member), "sut")
 
       EventBus(system).publishEvent(ShardingRegionInstalled(region))
       for {
@@ -111,8 +115,8 @@ class ClusterSelfNodeMetricGathererTest extends AsyncFlatSpec with Matchers {
   }
 
   it should "show proper amount of reachable nodes" in setup(TestBehavior.apply) {
-    case (system, ref, monitor, region) =>
-      system.systemActorOf(ClusterSelfNodeMetricGatherer.apply(monitor), "sut")
+    case (system, member, ref, monitor, region) =>
+      system.systemActorOf(ClusterSelfNodeEventsActor.apply(monitor, member), "sut")
 
       EventBus(system).publishEvent(ShardingRegionInstalled(region))
 

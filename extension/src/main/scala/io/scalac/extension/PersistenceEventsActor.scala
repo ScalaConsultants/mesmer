@@ -15,7 +15,7 @@ import io.scalac.extension.service.PathService
 
 import scala.language.postfixOps
 
-object PersistenceEventsListener {
+object PersistenceEventsActor {
 
   sealed trait Event extends SerializableMessage
 

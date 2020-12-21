@@ -26,10 +26,10 @@ import org.slf4j.Logger
 
 import scala.util.Try
 
-object ClusterMonitoring extends ExtensionId[ClusterMonitoring] {
-  override def createExtension(system: ActorSystem[_]): ClusterMonitoring = {
+object AkkaMonitoring extends ExtensionId[AkkaMonitoring] {
+  override def createExtension(system: ActorSystem[_]): AkkaMonitoring = {
     val config  = ClusterMonitoringConfig.apply(system.settings.config)
-    val monitor = new ClusterMonitoring(system, config)
+    val monitor = new AkkaMonitoring(system, config)
 
     val modules: Modules = ModuleInfo.extractModulesInformation(system.dynamicAccess.classLoader)
 
@@ -43,7 +43,7 @@ object ClusterMonitoring extends ExtensionId[ClusterMonitoring] {
   }
 
   private def startMonitors(
-    monitoring: ClusterMonitoring,
+    monitoring: AkkaMonitoring,
     config: ClusterMonitoringConfig,
     akkaVersion: Version,
     modules: Modules,
@@ -56,7 +56,7 @@ object ClusterMonitoring extends ExtensionId[ClusterMonitoring] {
       module: Module,
       supportedVersion: SupportedVersion,
       autoStart: Boolean,
-      init: ClusterMonitoring => Unit
+      init: AkkaMonitoring => Unit
     ): Unit =
       modules
         .get(module)
@@ -78,8 +78,8 @@ object ClusterMonitoring extends ExtensionId[ClusterMonitoring] {
       modulesSupport.akkaClusterTyped,
       config.autoStart.akkaCluster,
       cm => {
-        cm.startMemberMonitor()
-        cm.startReachabilityMonitor()
+        cm.startSelfMemberMonitor()
+        cm.startClusterEventsMonitor()
       }
     )
     initModule(
@@ -131,7 +131,7 @@ object ClusterMonitoring extends ExtensionId[ClusterMonitoring] {
 
 }
 
-class ClusterMonitoring(private val system: ActorSystem[_], val config: ClusterMonitoringConfig) extends Extension {
+class AkkaMonitoring(private val system: ActorSystem[_], val config: ClusterMonitoringConfig) extends Extension {
 
   private val instrumentationName = "scalac_akka_metrics"
   private val actorSystemConfig   = system.settings.config
@@ -163,7 +163,7 @@ class ClusterMonitoring(private val system: ActorSystem[_], val config: ClusterM
     }, Some.apply)
   }
 
-  def startMemberMonitor(): Unit =
+  def startSelfMemberMonitor(): Unit =
     canStartCluster.fold {
       log.error("ActorSystem is not properly configured to start cluster monitoring")
     } { _ =>
@@ -174,7 +174,7 @@ class ClusterMonitoring(private val system: ActorSystem[_], val config: ClusterM
           .supervise(
             OnClusterStartUp(
               selfMember =>
-                ClusterSelfNodeMetricGatherer
+                ClusterSelfNodeEventsActor
                   .apply(
                     openTelemetryClusterMetricsMonitor,
                     selfMember
@@ -187,7 +187,7 @@ class ClusterMonitoring(private val system: ActorSystem[_], val config: ClusterM
       )
     }
 
-  def startReachabilityMonitor(): Unit =
+  def startClusterEventsMonitor(): Unit =
     canStartCluster.fold {
       log.error("ActorSystem is not properly configured to start cluster monitoring")
     } { _ =>
@@ -211,7 +211,7 @@ class ClusterMonitoring(private val system: ActorSystem[_], val config: ClusterM
     system.systemActorOf(
       Behaviors
         .supervise(
-          PersistenceEventsListener.apply(CommonRegexPathService, openTelemetryPersistenceMonitor)
+          PersistenceEventsActor.apply(CommonRegexPathService, openTelemetryPersistenceMonitor)
         )
         .onFailure[Exception](SupervisorStrategy.restart),
       "persistenceAgentMonitor"
