@@ -1,0 +1,49 @@
+package io.scalac.extension.util
+
+import akka.actor.typed._
+import io.scalac.extension.util.FailingInterceptor.sendFailSignal
+
+import scala.reflect.ClassTag
+
+private class FailingInterceptor[A: ClassTag] private(val probe: Option[ActorRef[A]]) extends BehaviorInterceptor[A, A] {
+
+  import FailingInterceptor._
+
+  override def aroundReceive(
+    ctx: TypedActorContext[A],
+    msg: A,
+    target: BehaviorInterceptor.ReceiveTarget[A]
+  ): Behavior[A] = {
+    probe.foreach(_ ! msg)
+    target.apply(ctx, msg)
+  }
+
+  override def aroundSignal(
+    ctx: TypedActorContext[A],
+    signal: Signal,
+    target: BehaviorInterceptor.SignalTarget[A]
+  ): Behavior[A] =
+    signal match {
+      case Fail   => throw new RuntimeException("Failing")
+      case signal => super.aroundSignal(ctx, signal, target)
+    }
+}
+
+trait ActorFailing {
+  implicit class FailOps(actor: ActorRef[_]) {
+    def fail(): Unit = sendFailSignal(actor)
+  }
+}
+
+object FailingInterceptor extends ActorFailing {
+
+  private case object Fail extends Signal
+
+  def sendFailSignal(actorRef: ActorRef[_]): Unit = {
+    val internalActor = actorRef.unsafeUpcast[Any]
+    internalActor ! Fail
+  }
+
+  def apply[T: ClassTag](probe: ActorRef[T]): BehaviorInterceptor[T, T] = new FailingInterceptor[T](Some(probe))
+  def apply[T: ClassTag]: BehaviorInterceptor[T, T]                     = new FailingInterceptor[T](None)
+}

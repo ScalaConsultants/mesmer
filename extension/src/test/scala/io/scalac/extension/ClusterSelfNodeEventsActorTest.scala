@@ -1,104 +1,33 @@
 package io.scalac.extension
 
-import java.util.UUID
-
-import akka.actor.testkit.typed.scaladsl.ScalaTestWithActorTestKit
-import akka.actor.typed.scaladsl.AskPattern._
+import akka.actor.testkit.typed.javadsl.FishingOutcomes
+import akka.actor.testkit.typed.scaladsl.TestProbe
+import akka.actor.typed._
 import akka.actor.typed.scaladsl.Behaviors
-import akka.actor.typed.{ ActorRef, ActorSystem, Behavior, DispatcherSelector }
-import akka.cluster.Member
 import akka.cluster.sharding.typed.ShardingEnvelope
-import akka.cluster.sharding.typed.scaladsl.{ ClusterSharding, Entity, EntityTypeKey }
-import akka.cluster.typed.{ Cluster, SelfUp, Subscribe }
-import akka.util.Timeout
-import com.typesafe.config.{ Config, ConfigFactory, ConfigValueFactory }
+import io.scalac.extension.ClusterSelfNodeEventsActor.Command.MonitorRegion
 import io.scalac.extension.event.ClusterEvent.ShardingRegionInstalled
 import io.scalac.extension.event.EventBus
 import io.scalac.extension.util.BoundTestProbe._
-import io.scalac.extension.util.ClusterMetricsTestProbe
-import org.scalatest.Assertion
+import io.scalac.extension.util.{ ActorFailing, FailingInterceptor, SingleNodeClusterSpec, TestBehavior }
+import org.scalatest.Inspectors
 import org.scalatest.flatspec.AsyncFlatSpec
 import org.scalatest.matchers.should.Matchers
 
-import scala.collection.JavaConverters._
 import scala.concurrent.duration._
-import scala.concurrent.{ ExecutionContextExecutor, Future }
 import scala.language.postfixOps
-import scala.reflect.ClassTag
-import scala.util.Random
 
-class AAA extends ScalaTestWithActorTestKit
+class ClusterSelfNodeEventsActorTest
+    extends AsyncFlatSpec
+    with SingleNodeClusterSpec
+    with Matchers
+    with Inspectors
+    with ActorFailing {
 
-class ClusterSelfNodeEventsActorTest extends AsyncFlatSpec with Matchers {
+  type Region = String
+  import util.TestBehavior.Command._
 
-  type Region     = String
-  type Fixture[T] = (ActorSystem[Nothing], Member, ActorRef[ShardingEnvelope[T]], ClusterMetricsTestProbe, Region)
-
-  object TestBehavior {
-
-    sealed trait Command
-
-    object Command {
-
-      case object Create extends Command
-      case object Stop   extends Command
-    }
-    import Command._
-    def apply(id: String): Behavior[Command] = Behaviors.receiveMessage {
-      case Create => Behaviors.same
-      case Stop   => Behaviors.stopped
-    }
-  }
-  import TestBehavior.Command._
-
-  def createConfig(port: Int, systemName: String): Config = {
-    val hostname = "127.0.0.1"
-    val seedNode = s"akka://${systemName}@${hostname}:${port}"
-    ConfigFactory.empty
-      .withValue("akka.actor.provider", ConfigValueFactory.fromAnyRef("cluster"))
-      .withValue(
-        "akka.remote.artery.canonical",
-        ConfigValueFactory.fromMap(Map("hostname" -> "127.0.0.1", "port" -> port).asJava)
-      )
-      .withValue("akka.cluster.seed-nodes", ConfigValueFactory.fromIterable(List(seedNode).asJava))
-  }
-
-  def setup[T: ClassTag](behavior: String => Behavior[T])(test: Fixture[T] => Assertion): Future[Assertion] = {
-
-    val randomRemotingPort = Random.nextInt(20000) + 2000
-    val systemId: String   = UUID.randomUUID().toString
-    val entityName: String = UUID.randomUUID().toString
-    val systemConfig       = createConfig(randomRemotingPort, systemId)
-    val fallbackConfig     = ConfigFactory.load("application-test.conf")
-
-    implicit val system: ActorSystem[Nothing] =
-      ActorSystem[Nothing](Behaviors.empty, systemId, systemConfig.withFallback(fallbackConfig))
-    // consider using blocking dispatcher
-    implicit val dispatcher: ExecutionContextExecutor = system.dispatchers.lookup(DispatcherSelector.default())
-    implicit val bootTimeout: Timeout                 = 30 seconds
-
-    val cluster = Cluster(system)
-
-    val sharding = ClusterSharding(system)
-
-    def runTest(): Future[Assertion] = Future {
-      val entityKey = EntityTypeKey[T](entityName)
-      val entity    = Entity(entityKey)(context => behavior(context.entityId))
-
-      // sharding boots-up synchronously
-      val ref          = sharding.init(entity)
-      val clusterProbe = ClusterMetricsTestProbe()
-
-      Function.untupled(test)(system, cluster.selfMember, ref, clusterProbe, entityName)
-    }
-
-    for {
-      _         <- cluster.subscriptions.ask[SelfUp](reply => Subscribe(reply, classOf[SelfUp]))
-      assertion <- runTest()
-      _         = system.terminate()
-      _         <- system.whenTerminated
-    } yield assertion
-  }
+  private case object FailCommand
 
   "Monitoring" should "show proper amount of entities" in setup(TestBehavior.apply) {
     case (system, member, ref, monitor, region) =>
@@ -126,6 +55,49 @@ class ClusterSelfNodeEventsActorTest extends AsyncFlatSpec with Matchers {
         expectNoMessage(remaining)
       }
       monitor.unreachableNodesProbe.expectNoMessage()
+      succeed
+  }
+
+  it should "restart properly" in setup(TestBehavior.apply) {
+    case (_system, member, ref, monitor, region) =>
+      implicit val system: ActorSystem[Nothing] = _system
+
+      val probe = TestProbe[ClusterSelfNodeEventsActor.Command]
+
+      val failingBehavior = Behaviors.intercept(() => FailingInterceptor(probe.ref))(
+        ClusterSelfNodeEventsActor.apply(monitor, member)
+      )
+
+      val testedBehavior = Behaviors
+        .supervise(failingBehavior)
+        .onFailure[Throwable](SupervisorStrategy.restart)
+
+      val sut = system.systemActorOf(testedBehavior, "sut")
+
+      EventBus(system).publishEvent(ShardingRegionInstalled(region))
+
+      val monitoredRegions = probe.fishForMessage(5 seconds) {
+        case _: MonitorRegion => FishingOutcomes.complete()
+        case _                => FishingOutcomes.continueAndIgnore()
+      }
+
+      monitoredRegions should have size (1)
+      forAll(monitoredRegions) {
+        _ shouldBe MonitorRegion(region)
+      }
+
+      sut.fail()
+
+      val monitoredRegions2 = probe.fishForMessage(5 seconds) {
+        case _: MonitorRegion => FishingOutcomes.complete()
+        case _                => FishingOutcomes.continueAndIgnore()
+      }
+
+      monitoredRegions2 should have size (1)
+      forAll(monitoredRegions2) {
+        _ shouldBe MonitorRegion(region)
+      }
+
       succeed
   }
 }
