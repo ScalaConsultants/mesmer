@@ -10,9 +10,9 @@ import io.scalac.extension.event.ClusterEvent.ShardingRegionInstalled
 import io.scalac.extension.event.EventBus
 import io.scalac.extension.util.BoundTestProbe._
 import io.scalac.extension.util.{ ActorFailing, FailingInterceptor, SingleNodeClusterSpec, TestBehavior }
-import org.scalatest.Inspectors
 import org.scalatest.flatspec.AsyncFlatSpec
 import org.scalatest.matchers.should.Matchers
+import org.scalatest.{ Inspectors, ParallelTestExecution }
 
 import scala.concurrent.duration._
 import scala.language.postfixOps
@@ -22,16 +22,15 @@ class ClusterSelfNodeEventsActorTest
     with SingleNodeClusterSpec
     with Matchers
     with Inspectors
-    with ActorFailing {
+    with ActorFailing
+     {
 
   type Region = String
   import util.TestBehavior.Command._
 
-  private case object FailCommand
-
   "Monitoring" should "show proper amount of entities" in setup(TestBehavior.apply) {
     case (system, member, ref, monitor, region) =>
-      system.systemActorOf(ClusterSelfNodeEventsActor.apply(monitor, member), "sut")
+      system.systemActorOf(ClusterSelfNodeEventsActor.apply(monitor), "sut")
 
       EventBus(system).publishEvent(ShardingRegionInstalled(region))
       for {
@@ -45,7 +44,7 @@ class ClusterSelfNodeEventsActorTest
 
   it should "show proper amount of reachable nodes" in setup(TestBehavior.apply) {
     case (system, member, ref, monitor, region) =>
-      system.systemActorOf(ClusterSelfNodeEventsActor.apply(monitor, member), "sut")
+      system.systemActorOf(ClusterSelfNodeEventsActor.apply(monitor), "sut")
 
       EventBus(system).publishEvent(ShardingRegionInstalled(region))
 
@@ -65,7 +64,7 @@ class ClusterSelfNodeEventsActorTest
       val probe = TestProbe[ClusterSelfNodeEventsActor.Command]
 
       val failingBehavior = Behaviors.intercept(() => FailingInterceptor(probe.ref))(
-        ClusterSelfNodeEventsActor.apply(monitor, member)
+        ClusterSelfNodeEventsActor.apply(monitor)
       )
 
       val testedBehavior = Behaviors

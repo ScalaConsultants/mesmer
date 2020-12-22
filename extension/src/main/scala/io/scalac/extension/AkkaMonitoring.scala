@@ -173,15 +173,10 @@ class AkkaMonitoring(private val system: ActorSystem[_], val config: ClusterMoni
       system.systemActorOf(
         Behaviors
           .supervise(
-            OnClusterStartUp(
-              selfMember =>
-                ClusterSelfNodeEventsActor
-                  .apply(
-                    openTelemetryClusterMetricsMonitor,
-                    selfMember
-                  ),
-              None
-            )
+            ClusterSelfNodeEventsActor
+              .apply(
+                openTelemetryClusterMetricsMonitor
+              )
           )
           .onFailure[Exception](SupervisorStrategy.restart),
         "localSystemMemberMonitor"
