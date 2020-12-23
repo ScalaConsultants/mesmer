@@ -46,9 +46,9 @@ class ClusterSelfNodeEventsActorTest
       EventBus(system).publishEvent(ShardingRegionInstalled(region))
 
       monitor.reachableNodesProbe.within(5 seconds) {
-        import monitor.reachableNodesProbe._
-        receiveMessage() shouldEqual (Inc(1L))
-        expectNoMessage(remaining)
+        val probe = monitor.reachableNodesProbe
+        probe.receiveMessage() shouldEqual (Inc(1L))
+        probe.expectNoMessage(probe.remaining)
       }
       monitor.unreachableNodesProbe.expectNoMessage()
       succeed
