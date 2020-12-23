@@ -10,9 +10,9 @@ import io.scalac.extension.event.ClusterEvent.ShardingRegionInstalled
 import io.scalac.extension.event.EventBus
 import io.scalac.extension.util.BoundTestProbe._
 import io.scalac.extension.util.{ ActorFailing, FailingInterceptor, SingleNodeClusterSpec, TestBehavior }
+import org.scalatest.Inspectors
 import org.scalatest.flatspec.AsyncFlatSpec
 import org.scalatest.matchers.should.Matchers
-import org.scalatest.{ Inspectors, ParallelTestExecution }
 
 import scala.concurrent.duration._
 import scala.language.postfixOps
@@ -22,13 +22,11 @@ class ClusterSelfNodeEventsActorTest
     with SingleNodeClusterSpec
     with Matchers
     with Inspectors
-    with ActorFailing
-     {
+    with ActorFailing {
 
-  type Region = String
   import util.TestBehavior.Command._
 
-  "Monitoring" should "show proper amount of entities" in setup(TestBehavior.apply) {
+  "ClusterSelfNodeEventsActor" should "show proper amount of entities" in setup(TestBehavior.apply) {
     case (system, member, ref, monitor, region) =>
       system.systemActorOf(ClusterSelfNodeEventsActor.apply(monitor), "sut")
 
@@ -38,7 +36,6 @@ class ClusterSelfNodeEventsActorTest
       } yield ref ! ShardingEnvelope(s"test_${index}", Create)
 
       val messages = monitor.entityPerRegionProbe.receiveMessages(2, 15 seconds)
-
       messages should contain(MetricRecorded(10))
   }
 
@@ -57,7 +54,7 @@ class ClusterSelfNodeEventsActorTest
       succeed
   }
 
-  it should "restart properly" in setup(TestBehavior.apply) {
+  it should "have same regions monitored after restart" in setup(TestBehavior.apply) {
     case (_system, member, ref, monitor, region) =>
       implicit val system: ActorSystem[Nothing] = _system
 
@@ -75,10 +72,11 @@ class ClusterSelfNodeEventsActorTest
 
       EventBus(system).publishEvent(ShardingRegionInstalled(region))
 
-      val monitoredRegions = probe.fishForMessage(5 seconds) {
-        case _: MonitorRegion => FishingOutcomes.complete()
-        case _                => FishingOutcomes.continueAndIgnore()
-      }
+      val monitoredRegions =
+        probe.fishForMessage(5 seconds) {
+          case _: MonitorRegion => FishingOutcomes.complete()
+          case _                => FishingOutcomes.continueAndIgnore()
+        }
 
       monitoredRegions should have size (1)
       forAll(monitoredRegions) {

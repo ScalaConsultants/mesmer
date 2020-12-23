@@ -4,7 +4,7 @@ import java.util.UUID
 
 import akka.actor.typed._
 import akka.actor.typed.receptionist.Receptionist.Subscribe
-import akka.actor.typed.receptionist.{ Receptionist, ServiceKey }
+import akka.actor.typed.receptionist.{Receptionist, ServiceKey}
 import akka.actor.typed.scaladsl.Behaviors
 import akka.util.Timeout
 import io.scalac.extension.util.MutableTypedMap

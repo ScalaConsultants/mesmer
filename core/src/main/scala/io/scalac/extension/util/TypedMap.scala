@@ -30,9 +30,10 @@ class MutableTypedMap[K <: AnyRef, KV[_ <: K]] private (private val map: Mutable
 
   def get(key: K): Option[KV[key.type]] = map.get(key).asInstanceOf[Option[KV[key.type]]]
 
+  def size: Int = map.size
+
 }
 
 object MutableTypedMap {
-  private val _empty                                         = new MutableTypedMap[Nothing, Nothing](MutableMap.empty)
-  def apply[K <: AnyRef, KV[_ <: K]]: MutableTypedMap[K, KV] = _empty.asInstanceOf[MutableTypedMap[K, KV]]
+  def apply[K <: AnyRef, KV[_ <: K]]: MutableTypedMap[K, KV] = new MutableTypedMap[K, KV](MutableMap.empty)
 }
