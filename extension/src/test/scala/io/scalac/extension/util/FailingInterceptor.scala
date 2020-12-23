@@ -4,8 +4,10 @@ import akka.actor.typed._
 import io.scalac.extension.util.FailingInterceptor.sendFailSignal
 
 import scala.reflect.ClassTag
+import scala.util.control.NoStackTrace
 
-private class FailingInterceptor[A: ClassTag] private(val probe: Option[ActorRef[A]]) extends BehaviorInterceptor[A, A] {
+private class FailingInterceptor[A: ClassTag] private (val probe: Option[ActorRef[A]])
+    extends BehaviorInterceptor[A, A] {
 
   import FailingInterceptor._
 
@@ -24,7 +26,7 @@ private class FailingInterceptor[A: ClassTag] private(val probe: Option[ActorRef
     target: BehaviorInterceptor.SignalTarget[A]
   ): Behavior[A] =
     signal match {
-      case Fail   => throw new RuntimeException("Failing")
+      case Fail   => throw FailException
       case signal => super.aroundSignal(ctx, signal, target)
     }
 }
@@ -38,6 +40,8 @@ trait ActorFailing {
 object FailingInterceptor extends ActorFailing {
 
   private case object Fail extends Signal
+
+  private case object FailException extends RuntimeException("Planned actor failure") with NoStackTrace
 
   def sendFailSignal(actorRef: ActorRef[_]): Unit = {
     val internalActor = actorRef.unsafeUpcast[Any]
