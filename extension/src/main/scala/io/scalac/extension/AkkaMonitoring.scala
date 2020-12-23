@@ -5,25 +5,20 @@ import java.util.Collections
 
 import akka.actor.ExtendedActorSystem
 import akka.actor.typed.scaladsl.Behaviors
-import akka.actor.typed.{ ActorSystem, Extension, ExtensionId, SupervisorStrategy }
-import akka.cluster.typed.{ ClusterSingleton, SingletonActor }
+import akka.actor.typed.{ActorSystem, Extension, ExtensionId, SupervisorStrategy}
+import akka.cluster.typed.{ClusterSingleton, SingletonActor}
 import com.newrelic.telemetry.Attributes
 import com.newrelic.telemetry.opentelemetry.`export`.NewRelicMetricExporter
 import io.opentelemetry.sdk.OpenTelemetrySdk
 import io.opentelemetry.sdk.metrics.`export`.IntervalMetricReader
-import io.scalac.core.model.{ Module, SupportedVersion, Version }
+import io.scalac.core.model.{Module, SupportedVersion, Version}
 import io.scalac.core.support.ModulesSupport
 import io.scalac.core.util.ModuleInfo
 import io.scalac.core.util.ModuleInfo.Modules
 import io.scalac.extension.config.ClusterMonitoringConfig
-import io.scalac.extension.persistence.{ InMemoryPersistStorage, InMemoryRecoveryStorage }
+import io.scalac.extension.persistence.{InMemoryPersistStorage, InMemoryRecoveryStorage}
 import io.scalac.extension.service.CommonRegexPathService
-import io.scalac.extension.upstream.{
-  OpenTelemetryClusterMetricsMonitor,
-  OpenTelemetryHttpMetricsMonitor,
-  OpenTelemetryPersistenceMetricMonitor
-}
-import org.slf4j.Logger
+import io.scalac.extension.upstream.{OpenTelemetryClusterMetricsMonitor, OpenTelemetryHttpMetricsMonitor, OpenTelemetryPersistenceMetricMonitor}
 
 import scala.util.Try
 
@@ -96,14 +91,14 @@ object AkkaMonitoring extends ExtensionId[AkkaMonitoring] {
       } { backendConfig =>
         if (backendConfig.name.toLowerCase() == "newrelic") {
           system.log.info(s"Starting NewRelic backend with config ${backendConfig}")
-          startNewRelicBackend(backendConfig.region, backendConfig.apiKey, backendConfig.serviceName)(system.log)
+          startNewRelicBackend(backendConfig.region, backendConfig.apiKey, backendConfig.serviceName)
         } else
           system.log.error(s"Backend ${backendConfig.name} not supported")
       }
     }
   }
 
-  private def startNewRelicBackend(region: String, apiKey: String, serviceName: String)(logger: Logger): Unit = {
+  private def startNewRelicBackend(region: String, apiKey: String, serviceName: String): Unit = {
     val newRelicExporterBuilder = NewRelicMetricExporter
       .newBuilder()
       .apiKey(apiKey)
@@ -111,12 +106,10 @@ object AkkaMonitoring extends ExtensionId[AkkaMonitoring] {
 
     val newRelicExporter =
       if (region == "eu") {
-        logger.error("Overriding NR uri")
         newRelicExporterBuilder
           .uriOverride(URI.create("https://metric-api.eu.newrelic.com/metric/v1"))
           .build()
       } else {
-        logger.error(s"Going with default uri -> region: ${region}")
         newRelicExporterBuilder.build()
       }
 
