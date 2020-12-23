@@ -19,24 +19,31 @@ object BoundTestProbe {
 
 }
 
-trait BoundTestProbe {
+sealed trait AbstractTestProbeWrapper {
+  type Cmd
+  def probe: TestProbe[Cmd]
+}
 
-  implicit protected class testProbeMetricRecorderOps(val probe: TestProbe[MetricRecorderCommand]) {
-    def toMetricRecorder: MetricRecorder[Long] = (value: Long) => probe.ref ! MetricRecorded(value)
-  }
+case class CounterTestProbeWrapper(private val _probe: TestProbe[CounterCommand])
+    extends AbstractTestProbeWrapper
+    with Counter[Long]
+    with UpCounter[Long] {
+  override type Cmd = CounterCommand
+  def probe: TestProbe[CounterCommand] = _probe
 
-  implicit protected class testProbeCounterOps(val probe: TestProbe[CounterCommand]) {
-    def toCounter: Counter[Long] = new Counter[Long] {
-      override def incValue(value: Long): Unit = probe.ref ! Inc(value)
+  override def decValue(value: Long): Unit = _probe.ref ! Dec(value)
 
-      override def decValue(value: Long): Unit = probe.ref ! Dec(value)
-    }
-  }
+  override def incValue(value: Long): Unit = _probe.ref ! Inc(value)
+}
 
-  implicit protected class testProbeUpCounterOps(val probe: TestProbe[CounterCommand]) {
-    def toUpCounter: UpCounter[Long] = value => probe.ref ! Inc(value)
-  }
+case class RecorderTestProbeWrapper(private val _probe: TestProbe[MetricRecorderCommand])
+    extends AbstractTestProbeWrapper
+    with MetricRecorder[Long] {
+  override type Cmd = MetricRecorderCommand
 
+  override def probe: TestProbe[MetricRecorderCommand] = _probe
+
+  override def setValue(value: Long): Unit = _probe.ref ! MetricRecorded(value)
 }
 
 class ClusterMetricsTestProbe private (
@@ -46,28 +53,47 @@ class ClusterMetricsTestProbe private (
   val reachableNodesProbe: TestProbe[CounterCommand],
   val unreachableNodesProbe: TestProbe[CounterCommand],
   val nodeDownProbe: TestProbe[CounterCommand]
-) extends ClusterMetricsMonitor
-    with BoundTestProbe {
+) extends ClusterMetricsMonitor {
 
   override type Bound = BoundMonitor
 
   override def bind(node: Node): Bound = new BoundMonitor {
 
-    override type Instrument[L] = Any
+    override type Instrument[L] = AbstractTestProbeWrapper
 
-    override def atomically[A, B](first: Any, second: Any): (A, B) => Unit = ???
+    override def atomically[A, B](first: AbstractTestProbeWrapper, second: AbstractTestProbeWrapper): (A, B) => Unit = {
+      def submitValue(value: Long, probe: AbstractTestProbeWrapper): Unit = probe match {
+        case counter: CounterTestProbeWrapper =>
+          if (value >= 0L) counter.probe.ref ! Inc(value) else counter.probe.ref ! Dec(-value)
+        case recorder: RecorderTestProbeWrapper => recorder.probe.ref ! MetricRecorded(value)
+      }
+      (a, b) => {
+        submitValue(a.asInstanceOf[Long], first)
+        submitValue(b.asInstanceOf[Long], second)
+      }
+    }
 
-    override val shardPerRegions: MetricRecorder[Long] = shardPerRegionsProbe.toMetricRecorder
+    override val shardPerRegions: MetricRecorder[Long] with AbstractTestProbeWrapper = RecorderTestProbeWrapper(
+      shardPerRegionsProbe
+    )
 
-    override val entityPerRegion: MetricRecorder[Long] = entityPerRegionProbe.toMetricRecorder
+    override val entityPerRegion: MetricRecorder[Long] with AbstractTestProbeWrapper = RecorderTestProbeWrapper(
+      entityPerRegionProbe
+    )
 
-    override val shardRegionsOnNode: MetricRecorder[Long] = shardRegionsOnNodeProbe.toMetricRecorder
+    override val shardRegionsOnNode: MetricRecorder[Long] with AbstractTestProbeWrapper = RecorderTestProbeWrapper(
+      shardRegionsOnNodeProbe
+    )
 
-    override val reachableNodes: Counter[Long] = reachableNodesProbe.toCounter
+    override val reachableNodes: Counter[Long] with AbstractTestProbeWrapper = CounterTestProbeWrapper(
+      reachableNodesProbe
+    )
 
-    override val unreachableNodes: Counter[Long] = unreachableNodesProbe.toCounter
+    override val unreachableNodes: Counter[Long] with AbstractTestProbeWrapper = CounterTestProbeWrapper(
+      unreachableNodesProbe
+    )
 
-    override val nodeDown: UpCounter[Long] = nodeDownProbe.toUpCounter
+    override val nodeDown: UpCounter[Long] with AbstractTestProbeWrapper = CounterTestProbeWrapper(nodeDownProbe)
   }
 }
 

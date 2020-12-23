@@ -109,7 +109,6 @@ object ClusterSelfNodeEventsActor {
                       scheduler.startTimerWithFixedDelay(region, GetClusterShardingStatsInternal(region), pingOffset)
                       initialized(regions :+ region, unreachableNodes)
                     }
-
                     case ClusterMemberEvent(MemberRemoved(member, _)) => {
                       if (unreachableNodes.contains(member.uniqueAddress)) {
                         monitor.unreachableNodes.decValue(1L)
