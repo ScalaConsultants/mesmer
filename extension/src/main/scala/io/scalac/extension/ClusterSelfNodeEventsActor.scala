@@ -147,14 +147,12 @@ object ClusterSelfNodeEventsActor {
               }
               case NodeReachable(address) => {
                 ctx.log.trace("Node {} become reachable", address)
-                monitor.reachableNodes.incValue(1L)
-                monitor.unreachableNodes.decValue(1L)
+                monitor.atomically(monitor.reachableNodes, monitor.unreachableNodes)(1L, -1L)
                 initialized(regions, unreachableNodes - address)
               }
               case NodeUnreachable(address) => {
                 ctx.log.trace("Node {} become unreachable", address)
-                monitor.reachableNodes.decValue(1L)
-                monitor.unreachableNodes.incValue(1L)
+                monitor.atomically(monitor.reachableNodes, monitor.unreachableNodes)(-1L, 1L)
                 initialized(regions, unreachableNodes + address)
               }
             }
