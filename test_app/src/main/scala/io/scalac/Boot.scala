@@ -1,21 +1,17 @@
 package io.scalac
 
-import java.net.URI
-import java.util.Collections
 import java.{ util => ju }
 
 import akka.actor.typed.ActorSystem
 import akka.actor.typed.scaladsl.Behaviors
 import akka.cluster.sharding.typed.scaladsl.{ ClusterSharding, Entity, EntityTypeKey }
 import akka.http.scaladsl.Http
+import akka.management.cluster.bootstrap.ClusterBootstrap
 import akka.management.scaladsl.AkkaManagement
 import akka.util.Timeout
-import com.newrelic.telemetry.Attributes
-import com.newrelic.telemetry.opentelemetry.`export`.{ NewRelicExporters, NewRelicMetricExporter }
+import com.newrelic.telemetry.opentelemetry.`export`.NewRelicExporters
 import com.typesafe.config.{ ConfigFactory, ConfigValueFactory }
 import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport
-import io.opentelemetry.sdk.OpenTelemetrySdk
-import io.opentelemetry.sdk.metrics.`export`.IntervalMetricReader
 import io.scalac.api.AccountRoutes
 import io.scalac.domain.{ AccountStateActor, JsonCodecs }
 import org.slf4j.LoggerFactory
@@ -38,33 +34,24 @@ object Boot extends App with FailFastCirceSupport with JsonCodecs {
         .withValue(
           "app",
           ConfigValueFactory
-            .fromMap(Map("host" -> "localhost", "port" -> 8080).asJava)
+            .fromMap(Map("host" -> "localhost", "port" -> 8080, "systemName" -> "Accounts").asJava)
         )
     )
     .resolve
-//
-//  val apiKey = config.getString("newrelic.api_key")
-//
-//  val newRelicExporter = NewRelicMetricExporter
-//    .newBuilder()
-//    .apiKey(apiKey)
-//    .commonAttributes(new Attributes().put("service.name", "test_app"))
-//    .uriOverride(URI.create("https://metric-api.eu.newrelic.com/metric/v1"))
-//    .build()
-//
-//  val intervalMetricReader = IntervalMetricReader
-//    .builder()
-//    .setMetricProducers(
-//      Collections.singleton(OpenTelemetrySdk.getGlobalMeterProvider.getMetricProducer)
-//    )
-//    .setExportIntervalMillis(5000)
-//    .setMetricExporter(newRelicExporter)
-//    .build()
 
   implicit val system =
-    ActorSystem[Nothing](Behaviors.empty, "Accounts", config)
+    ActorSystem[Nothing](Behaviors.empty, config.getString("app.systemName"), config)
+
   implicit val executionContext = system.executionContext
   implicit val timeout: Timeout = 10 seconds
+
+  ClusterBootstrap(system).start()
+  AkkaManagement(system)
+    .start()
+    .onComplete {
+      case Success(value)     => logger.info(s"Started akka management on uri: ${value}")
+      case Failure(exception) => logger.error("Coundn't start akka management", exception)
+    }
 
   val entity = EntityTypeKey[AccountStateActor.Command]("accounts")
 
@@ -74,13 +61,6 @@ object Boot extends App with FailFastCirceSupport with JsonCodecs {
         ju.UUID.fromString(entityContext.entityId)
       )
     })
-
-  AkkaManagement(system)
-    .start()
-    .onComplete {
-      case Success(value)     => logger.info(s"Started akka management on uri: ${value}")
-      case Failure(exception) => logger.error("Coundn't start akka management", exception)
-    }
 
   val accountRoutes = new AccountRoutes(accountsShards)
 
