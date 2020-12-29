@@ -19,6 +19,7 @@ def runWithAgent = Command.command("runWithAgent") { state =>
     Project.extract(newState).runInputTask(Compile / run, "", newState)
   s
 }
+
 lazy val root = (project in file("."))
   .settings(name := "akka-monitoring")
   .aggregate(extension, agent, testApp)
@@ -82,6 +83,7 @@ lazy val agent = (project in file("agent"))
   )
 
 lazy val testApp = (project in file("test_app"))
+  .enablePlugins(JavaAppPackaging, DockerPlugin, UniversalPlugin)
   .settings(
     name := "akka-monitoring-test-app",
     libraryDependencies ++= akka ++ scalatest ++ akkaTestkit ++ circe ++ circeAkka ++ postgresDriver ++ akkaPersistance ++ slick ++ logback ++ newRelicSdk ++ akkaManagement,
@@ -99,6 +101,15 @@ lazy val testApp = (project in file("test_app"))
         (key, value) <- properties.asScala.toList if value.nonEmpty
       } yield s"-D$key=$value")
     },
-    commands += runWithAgent
+    commands += runWithAgent,
+    Universal / mappings += {
+      val jar = (agent / assembly).value
+      jar -> "scalac.agent.jar"
+    },
+    dockerEnvVars := {
+      Map("JAVA_OPTS" -> s"-javaagent:/opt/docker/scalac.agent.jar")
+    },
+    dockerExposedPorts += Seq(8080)
+
   )
-  .dependsOn(extension, agent)
+  .dependsOn(extension)
