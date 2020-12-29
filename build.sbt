@@ -109,7 +109,17 @@ lazy val testApp = (project in file("test_app"))
     dockerEnvVars := {
       Map("JAVA_OPTS" -> s"-javaagent:/opt/docker/scalac.agent.jar")
     },
-    dockerExposedPorts += Seq(8080)
-
+    dockerExposedPorts ++= Seq(8080),
+    Docker / dockerRepository := {
+      sys.env.get("DOCKER_REPO")
+    },
+    Docker / dockerRepository := {
+      sys.env.get("DOCKER_USER")
+    },
+    Docker / packageName := {
+      val old = (Docker / packageName).value
+      sys.env.getOrElse("DOCKER_PACKAGE_NAME", old)
+    },
+    dockerUpdateLatest := true
   )
   .dependsOn(extension)
