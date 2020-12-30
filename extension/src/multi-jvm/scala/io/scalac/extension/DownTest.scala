@@ -86,7 +86,7 @@ class DownTest extends MultiNodeSpec(ThreeNodesConfig) with ScalaTestMultiNodeSp
       enterBarrier("after-network-partition-check")
     }
 
-    "shod node down and substract unreachable nodes" in {
+    "show node down and substract unreachable nodes" in {
       runOn(node1) {
         Cluster(system).down(node(node2).address)
       }
