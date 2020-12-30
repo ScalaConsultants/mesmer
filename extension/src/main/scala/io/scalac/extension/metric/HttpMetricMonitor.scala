@@ -6,9 +6,12 @@ import io.scalac.extension.model._
 
 object HttpMetricMonitor {
 
-
-  final case class Labels(node: Node, path: Path, method: Method) {
-    def toOpenTelemetry: OpenTelemetryLabels = OpenTelemetryLabels.of("node", node, "path", path, "method", method)
+  final case class Labels(node: Option[Node], path: Path, method: Method) {
+    def toOpenTelemetry: OpenTelemetryLabels = {
+      val required: Seq[String] = Seq("path", path, "method", method)
+      val optional              = node.map(n => Seq("node", n)).getOrElse(Seq.empty)
+      OpenTelemetryLabels.of((optional ++ required).toArray)
+    }
   }
 }
 
