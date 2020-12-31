@@ -8,8 +8,8 @@ import akka.cluster.typed.{ ClusterSingleton, SingletonActor }
 import akka.remote.testkit.MultiNodeSpec
 import akka.remote.transport.ThrottlerTransportAdapter.Direction
 import io.scalac.extension.ThreeNodesConfig._
-import io.scalac.extension.util.BoundTestProbe.{ Dec, Inc }
-import io.scalac.extension.util.{ ClusterMetricsTestProbe, ScalaTestMultiNodeSpec }
+import io.scalac.extension.util.probe.BoundTestProbe.{ Dec, Inc }
+import io.scalac.extension.util.ScalaTestMultiNodeSpec
 import org.scalatest.Inspectors
 
 import scala.concurrent.duration._

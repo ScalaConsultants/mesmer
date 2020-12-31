@@ -8,7 +8,7 @@ import akka.cluster.sharding.typed.ShardingEnvelope
 import io.scalac.extension.ClusterSelfNodeEventsActor.Command.MonitorRegion
 import io.scalac.extension.event.ClusterEvent.ShardingRegionInstalled
 import io.scalac.extension.event.EventBus
-import io.scalac.extension.util.BoundTestProbe._
+import io.scalac.extension.util.probe.BoundTestProbe._
 import io.scalac.extension.util.{ ActorFailing, FailingInterceptor, SingleNodeClusterSpec, TestBehavior }
 import org.scalatest.Inspectors
 import org.scalatest.flatspec.AsyncFlatSpec

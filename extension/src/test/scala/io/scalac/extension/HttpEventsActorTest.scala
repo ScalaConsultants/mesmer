@@ -7,15 +7,16 @@ import akka.actor.typed.receptionist.Receptionist
 import akka.actor.typed.receptionist.Receptionist.Listing
 import akka.actor.typed.scaladsl.AskPattern._
 import io.scalac.extension.event.EventBus
-import io.scalac.extension.event.HttpEvent.{ RequestCompleted, RequestStarted }
+import io.scalac.extension.event.HttpEvent.{RequestCompleted, RequestStarted}
 import io.scalac.extension.metric.HttpMetricMonitor.Labels
-import io.scalac.extension.util.BoundTestProbe._
-import io.scalac.extension.util.{ HttpMetricsTestProbe, IdentityPathService, TerminationRegistryOps, TestOps }
+import io.scalac.extension.util.probe.BoundTestProbe._
+import io.scalac.extension.util.probe.HttpMetricsTestProbe
+import io.scalac.extension.util.{IdentityPathService, TerminationRegistryOps, TestOps}
 import org.scalatest._
 import org.scalatest.concurrent.Eventually
 import org.scalatest.flatspec.AnyFlatSpecLike
 import org.scalatest.matchers.should.Matchers
-import org.scalatest.matchers.{ MatchResult, Matcher }
+import org.scalatest.matchers.{MatchResult, Matcher}
 
 import scala.concurrent.duration._
 import scala.language.postfixOps

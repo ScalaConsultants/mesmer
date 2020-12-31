@@ -1,10 +1,11 @@
-package io.scalac.extension.util
+package io.scalac.extension.util.probe
 
 import akka.actor.testkit.typed.scaladsl.TestProbe
 import akka.actor.typed.ActorSystem
-import io.scalac.extension.metric.{ ClusterMetricsMonitor, Counter, MetricRecorder, UpCounter }
+import io.scalac.extension.metric.{ClusterMetricsMonitor, Counter, MetricRecorder, UpCounter}
 import io.scalac.extension.model.Node
-import io.scalac.extension.util.BoundTestProbe._
+import io.scalac.extension.util.probe.BoundTestProbe._
+import io.scalac.extension.util.{TestProbeSynchronized, probe}
 
 class ClusterMetricsTestProbe private (
   val shardPerRegionsProbe: TestProbe[MetricRecorderCommand],
@@ -23,11 +24,11 @@ class ClusterMetricsTestProbe private (
       shardPerRegionsProbe
     )
 
-    override val entityPerRegion: MetricRecorder[Long] with AbstractTestProbeWrapper = RecorderTestProbeWrapper(
+    override val entityPerRegion: MetricRecorder[Long] with AbstractTestProbeWrapper = probe.RecorderTestProbeWrapper(
       entityPerRegionProbe
     )
 
-    override val shardRegionsOnNode: MetricRecorder[Long] with AbstractTestProbeWrapper = RecorderTestProbeWrapper(
+    override val shardRegionsOnNode: MetricRecorder[Long] with AbstractTestProbeWrapper = probe.RecorderTestProbeWrapper(
       shardRegionsOnNodeProbe
     )
 
@@ -35,11 +36,11 @@ class ClusterMetricsTestProbe private (
       reachableNodesProbe
     )
 
-    override val unreachableNodes: Counter[Long] with AbstractTestProbeWrapper = CounterTestProbeWrapper(
+    override val unreachableNodes: Counter[Long] with AbstractTestProbeWrapper = probe.CounterTestProbeWrapper(
       unreachableNodesProbe
     )
 
-    override val nodeDown: UpCounter[Long] with AbstractTestProbeWrapper = CounterTestProbeWrapper(nodeDownProbe)
+    override val nodeDown: UpCounter[Long] with AbstractTestProbeWrapper = probe.CounterTestProbeWrapper(nodeDownProbe)
   }
 }
 

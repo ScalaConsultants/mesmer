@@ -1,8 +1,8 @@
-package io.scalac.extension.util
+package io.scalac.extension.util.probe
 
 import akka.actor.testkit.typed.scaladsl.TestProbe
-import io.scalac.extension.metric.{ Counter, MetricRecorder, UpCounter }
-import io.scalac.extension.util.BoundTestProbe._
+import io.scalac.extension.metric.{Counter, MetricRecorder, UpCounter}
+import io.scalac.extension.util.probe.BoundTestProbe._
 
 object BoundTestProbe {
   sealed trait MetricRecorderCommand

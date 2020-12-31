@@ -6,8 +6,8 @@ import akka.cluster.Cluster
 import akka.remote.testkit.{ MultiNodeConfig, MultiNodeSpec }
 import akka.remote.transport.ThrottlerTransportAdapter.Direction
 import com.typesafe.config.ConfigFactory
-import io.scalac.extension.util.BoundTestProbe.{ Dec, Inc }
-import io.scalac.extension.util.{ ClusterMetricsTestProbe, ScalaTestMultiNodeSpec }
+import io.scalac.extension.util.probe.BoundTestProbe.{ Dec, Inc }
+import io.scalac.extension.util.ScalaTestMultiNodeSpec
 import org.scalatest.Inspectors
 
 import scala.concurrent.duration._

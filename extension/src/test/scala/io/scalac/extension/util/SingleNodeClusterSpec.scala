@@ -4,14 +4,15 @@ import java.util.UUID
 
 import akka.actor.typed.scaladsl.AskPattern._
 import akka.actor.typed.scaladsl.Behaviors
-import akka.actor.typed.{ ActorRef, ActorSystem, Behavior }
+import akka.actor.typed.{ActorRef, ActorSystem, Behavior}
 import akka.cluster.Member
 import akka.cluster.sharding.typed.ShardingEnvelope
-import akka.cluster.sharding.typed.scaladsl.{ ClusterSharding, Entity, EntityTypeKey }
-import akka.cluster.typed.{ Cluster, SelfUp, Subscribe }
+import akka.cluster.sharding.typed.scaladsl.{ClusterSharding, Entity, EntityTypeKey}
+import akka.cluster.typed.{Cluster, SelfUp, Subscribe}
 import akka.util.Timeout
-import com.typesafe.config.{ Config, ConfigFactory, ConfigValueFactory }
-import org.scalatest.{ Assertion, AsyncTestSuite }
+import com.typesafe.config.{Config, ConfigFactory, ConfigValueFactory}
+import io.scalac.extension.util.probe.ClusterMetricsTestProbe
+import org.scalatest.{Assertion, AsyncTestSuite}
 
 import scala.concurrent.Future
 import scala.concurrent.duration._
