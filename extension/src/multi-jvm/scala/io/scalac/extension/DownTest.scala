@@ -2,14 +2,15 @@ package io.scalac.extension
 
 import akka.actor.typed.scaladsl.Behaviors
 import akka.actor.typed.scaladsl.adapter._
-import akka.actor.typed.{ ActorSystem, SupervisorStrategy }
+import akka.actor.typed.{ActorSystem, SupervisorStrategy}
 import akka.cluster.Cluster
-import akka.cluster.typed.{ ClusterSingleton, SingletonActor }
+import akka.cluster.typed.{ClusterSingleton, SingletonActor}
 import akka.remote.testkit.MultiNodeSpec
 import akka.remote.transport.ThrottlerTransportAdapter.Direction
 import io.scalac.extension.ThreeNodesConfig._
-import io.scalac.extension.util.probe.BoundTestProbe.{ Dec, Inc }
+import io.scalac.extension.util.probe.BoundTestProbe.{Dec, Inc}
 import io.scalac.extension.util.ScalaTestMultiNodeSpec
+import io.scalac.extension.util.probe.ClusterMetricsTestProbe
 import org.scalatest.Inspectors
 
 import scala.concurrent.duration._

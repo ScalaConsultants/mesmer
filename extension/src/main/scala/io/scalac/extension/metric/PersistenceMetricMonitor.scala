@@ -5,9 +5,13 @@ import io.scalac.extension.model._
 
 object PersistenceMetricMonitor {
 
-  final case class Labels(node: Node, path: Path, persistenceId: PersistenceId) {
-    def toOpenTelemetry: OpenTelemetryLabels =
-      OpenTelemetryLabels.of("node", node, "path", path, "persistenceId", persistenceId)
+  final case class Labels(node: Option[Node], path: Path, persistenceId: PersistenceId) {
+    def toOpenTelemetry: OpenTelemetryLabels = {
+      val required = Seq("path", path, "persistenceId", persistenceId)
+      val optional = node.map(n => Seq("node", n)).getOrElse(Seq.empty)
+      OpenTelemetryLabels.of((optional ++ required).toArray)
+
+    }
   }
 }
 

@@ -1,22 +1,18 @@
 package io.scalac.extension
 
-import akka.actor.PoisonPill
 import akka.actor.testkit.typed.scaladsl.ScalaTestWithActorTestKit
 import akka.actor.typed.ActorRef
-import akka.actor.typed.receptionist.Receptionist
-import akka.actor.typed.receptionist.Receptionist.Listing
-import akka.actor.typed.scaladsl.AskPattern._
+import akka.actor.typed.receptionist.ServiceKey
 import io.scalac.extension.event.EventBus
-import io.scalac.extension.event.HttpEvent.{RequestCompleted, RequestStarted}
+import io.scalac.extension.event.HttpEvent.{ RequestCompleted, RequestStarted }
 import io.scalac.extension.metric.HttpMetricMonitor.Labels
 import io.scalac.extension.util.probe.BoundTestProbe._
 import io.scalac.extension.util.probe.HttpMetricsTestProbe
-import io.scalac.extension.util.{IdentityPathService, TerminationRegistryOps, TestOps}
+import io.scalac.extension.util.{ IdentityPathService, MonitorFixture, TerminationRegistryOps, TestOps }
 import org.scalatest._
 import org.scalatest.concurrent.Eventually
 import org.scalatest.flatspec.AnyFlatSpecLike
 import org.scalatest.matchers.should.Matchers
-import org.scalatest.matchers.{MatchResult, Matcher}
 
 import scala.concurrent.duration._
 import scala.language.postfixOps
@@ -32,34 +28,17 @@ class HttpEventsActorTest
     with BeforeAndAfterAll
     with TerminationRegistryOps
     with LoneElement
-    with TestOps {
+    with TestOps
+    with MonitorFixture {
 
-  type Fixture = HttpMetricsTestProbe
+  override type Monitor = HttpMetricsTestProbe
 
-  def sameOrParent(ref: ActorRef[_]): Matcher[ActorRef[_]] = left => {
-    val test = ref.path == left.path || left.path.parent == ref.path
+  override protected def createMonitor: Monitor = new HttpMetricsTestProbe()
 
-    MatchResult(test, s"${ref} is not same or parent of ${left}", s"${ref} is same as or parent of ${left}")
-  }
+  override protected def setUp(monitor: Monitor): ActorRef[_] =
+    system.systemActorOf(HttpEventsActor(monitor, IdentityPathService), createUniqueId)
 
-  def test(body: Fixture => Any): Any = {
-    val monitor = new HttpMetricsTestProbe()
-    val sut     = system.systemActorOf(HttpEventsActor(monitor, IdentityPathService), createUniqueId)
-    watch(sut)
-    //Receptionist has a delay between registering and deregistering services, here we wait for cleanup of other tests
-    eventually {
-      val result = Receptionist(system).ref.ask[Listing](reply => Receptionist.find(httpServiceKey, reply)).futureValue
-      inside(result) {
-        case httpServiceKey.Listing(res) => {
-          val elem = res.loneElement
-          elem should sameOrParent(sut)
-        }
-      }
-    }
-    body(monitor)
-    sut.unsafeUpcast[Any] ! PoisonPill
-    waitFor(sut)
-  }
+  override protected val serviceKey: ServiceKey[_] = httpServiceKey
 
   def requestStarted(id: String, labels: Labels): Unit = EventBus(system).publishEvent(
     RequestStarted(id, System.currentTimeMillis(), labels.path, labels.method)
@@ -72,12 +51,9 @@ class HttpEventsActorTest
     val expectedLabels = Labels(None, "/api/v1/test", "GET")
 
     val id = createUniqueId
-    EventBus(system).publishEvent(
-      RequestStarted(id, System.currentTimeMillis(), expectedLabels.path, expectedLabels.method)
-    )
+    requestStarted(id, expectedLabels)
     Thread.sleep(1050)
-    EventBus(system).publishEvent(RequestCompleted(id, System.currentTimeMillis()))
-
+    requestCompleted(id)
     eventually(monitor.boundSize shouldBe 1)
 
     monitor.boundLabels should contain theSameElementsAs (Seq(expectedLabels))
