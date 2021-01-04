@@ -7,6 +7,7 @@ import io.scalac.extension.event.EventBus
 import io.scalac.extension.event.PersistenceEvent._
 import io.scalac.extension.metric.PersistenceMetricMonitor.Labels
 import io.scalac.extension.persistence.{ InMemoryPersistStorage, InMemoryRecoveryStorage }
+import io.scalac.extension.util.TestConfig.localActorProvider
 import io.scalac.extension.util.probe.BoundTestProbe.{ Inc, MetricRecorded }
 import io.scalac.extension.util.probe.PersistenceMetricTestProbe
 import io.scalac.extension.util.{ IdentityPathService, MonitorFixture }
@@ -18,7 +19,7 @@ import scala.concurrent.duration._
 import scala.language.postfixOps
 
 class PersistenceEventsActorTest
-    extends ScalaTestWithActorTestKit
+    extends ScalaTestWithActorTestKit(localActorProvider)
     with AnyFlatSpecLike
     with Matchers
     with Inspectors

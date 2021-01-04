@@ -13,9 +13,7 @@ import io.scalac.extension.metric.HttpMetricMonitor._
 import io.scalac.extension.model.{ Method, Path, _ }
 import io.scalac.extension.service.PathService
 
-import scala.concurrent.duration._
 import scala.language.postfixOps
-import scala.util.Success
 
 class HttpEventsActor
 object HttpEventsActor {
@@ -24,32 +22,20 @@ object HttpEventsActor {
 
   object Event {
     private[HttpEventsActor] final case class HttpEventWrapper(event: HttpEvent) extends Event
-
-    private[HttpEventsActor] case object Registered extends Event
   }
 
   def apply(
     httpMetricMonitor: HttpMetricMonitor,
     pathService: PathService,
     node: Option[Node] = None
-  ): Behavior[Event] = Behaviors.setup { ctx =>
+  )(implicit timeout: Timeout): Behavior[Event] = Behaviors.setup { ctx =>
     import Event._
 
-    implicit val timeout: Timeout = 5 seconds
-    val receptionistAdapter       = ctx.messageAdapter(HttpEventWrapper.apply)
+    val receptionistAdapter = ctx.messageAdapter(HttpEventWrapper.apply)
 
-    ctx.ask[Receptionist.Command, Receptionist.Registered](
-      Receptionist(ctx.system).ref,
-      reply => Register(httpServiceKey, receptionistAdapter, reply)
-    ) {
-
-      case Success(_) => Registered
-    }
-//    Receptionist(ctx.system).ref ! Register(httpServiceKey, ctx.messageAdapter(HttpEventWrapper.apply))
+    Receptionist(ctx.system).ref ! Register(httpServiceKey, ctx.messageAdapter(HttpEventWrapper.apply))
 
     val cachingHttpMonitor = caching[Labels, HttpMetricMonitor](httpMetricMonitor)
-
-//    val selfNodeAddress = Cluster(ctx.system).selfMember.uniqueAddress.toNode
 
     def createLabels(path: Path, method: Method): Labels = Labels(node, pathService.template(path), method)
 
@@ -92,10 +78,6 @@ object HttpEventsActor {
                 ctx.log.error(s"request ${id} failed after {} millis", requestDuration)
                 monitorHttp(inFlightRequest - id)
               }
-          }
-          case Registered => {
-            ctx.log.info("Monitored registered in ActorSystem")
-            Behaviors.same
           }
         }
         .receiveSignal {

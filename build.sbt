@@ -39,7 +39,7 @@ lazy val extension = (project in file("extension"))
     libraryDependencies ++= akka ++ openTelemetryApi ++ akkaTestkit ++ scalatest ++ logback.map(_ % Test) ++ akkaMultiNodeTestKit
        ++ newRelicSdk ++ openTelemetrySdk
   )
-  .dependsOn(core)
+  .dependsOn(core % "compile->compile;test->test")
 
 val assemblyMergeStrategySettings = assembly / assemblyMergeStrategy := {
   case PathList("META-INF", "services", _ @_*)           => MergeStrategy.concat
@@ -81,7 +81,7 @@ lazy val agent = (project in file("agent"))
     Test / fork := true
   )
   .dependsOn(
-    core % "provided->compile"
+    core % "provided->compile;test->test"
   )
 
 lazy val testApp = (project in file("test_app"))

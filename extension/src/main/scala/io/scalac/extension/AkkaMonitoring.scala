@@ -5,25 +5,23 @@ import java.util.Collections
 
 import akka.actor.ExtendedActorSystem
 import akka.actor.typed.scaladsl.Behaviors
-import akka.actor.typed.{ ActorSystem, Extension, ExtensionId, SupervisorStrategy }
-import akka.cluster.typed.{ ClusterSingleton, SingletonActor }
+import akka.actor.typed.{ActorSystem, Extension, ExtensionId, SupervisorStrategy}
+import akka.cluster.typed.{ClusterSingleton, SingletonActor}
+import akka.util.Timeout
 import com.newrelic.telemetry.Attributes
 import com.newrelic.telemetry.opentelemetry.`export`.NewRelicMetricExporter
 import io.opentelemetry.sdk.OpenTelemetrySdk
 import io.opentelemetry.sdk.metrics.`export`.IntervalMetricReader
-import io.scalac.core.model.{ Module, SupportedVersion, Version }
+import io.scalac.core.model.{Module, SupportedVersion, Version}
 import io.scalac.core.support.ModulesSupport
 import io.scalac.core.util.ModuleInfo
 import io.scalac.core.util.ModuleInfo.Modules
 import io.scalac.extension.config.ClusterMonitoringConfig
-import io.scalac.extension.persistence.{ InMemoryPersistStorage, InMemoryRecoveryStorage }
+import io.scalac.extension.persistence.{InMemoryPersistStorage, InMemoryRecoveryStorage}
 import io.scalac.extension.service.CommonRegexPathService
-import io.scalac.extension.upstream.{
-  OpenTelemetryClusterMetricsMonitor,
-  OpenTelemetryHttpMetricsMonitor,
-  OpenTelemetryPersistenceMetricMonitor
-}
-
+import io.scalac.extension.upstream.{OpenTelemetryClusterMetricsMonitor, OpenTelemetryHttpMetricsMonitor, OpenTelemetryPersistenceMetricMonitor}
+import scala.concurrent.duration._
+import scala.language.postfixOps
 import scala.util.Try
 
 object AkkaMonitoring extends ExtensionId[AkkaMonitoring] {
@@ -139,6 +137,7 @@ class AkkaMonitoring(private val system: ActorSystem[_], val config: ClusterMoni
       instrumentationName,
       actorSystemConfig
     )
+  implicit private val timeout: Timeout = 5 seconds
 
   private def reflectiveIsInstanceOf(fqcn: String, ref: Any): Either[String, Unit] =
     Try(Class.forName(fqcn)).toEither.left.map {

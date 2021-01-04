@@ -6,6 +6,7 @@ import akka.actor.typed.receptionist.ServiceKey
 import io.scalac.extension.event.EventBus
 import io.scalac.extension.event.HttpEvent.{ RequestCompleted, RequestStarted }
 import io.scalac.extension.metric.HttpMetricMonitor.Labels
+import io.scalac.extension.util.TestConfig.localActorProvider
 import io.scalac.extension.util.probe.BoundTestProbe._
 import io.scalac.extension.util.probe.HttpMetricsTestProbe
 import io.scalac.extension.util.{ IdentityPathService, MonitorFixture, TerminationRegistryOps, TestOps }
@@ -18,7 +19,7 @@ import scala.concurrent.duration._
 import scala.language.postfixOps
 
 class HttpEventsActorTest
-    extends ScalaTestWithActorTestKit
+    extends ScalaTestWithActorTestKit(localActorProvider)
     with AnyFlatSpecLike
     with Matchers
     with Inspectors
