@@ -125,7 +125,7 @@ class PersistenceEventsActorTest
     forAll(allProbes)(probes => forAll(probes.snapshotProbe.receiveMessages(seqNumbers.size))(_ should be(Inc(1L))))
   }
 
-  it should "capture persist event time with resued monitors" in test { monitor =>
+  it should "capture persist event time with resued monitors for many events" in test { monitor =>
     val seqNo = 150
     val expectedLabels = List.fill(5) {
       val id = createUniqueId
@@ -149,6 +149,54 @@ class PersistenceEventsActorTest
       probes.persistentEventTotalProbe.receiveMessage() should be(Inc(1L))
       inside(probes.persistentEventProbe.receiveMessage()) {
         case MetricRecorded(value) => value should be(1000L +- 100L)
+      }
+    }
+  }
+
+  it should "capture all metrics persist metrics with reused monitors" in test { monitor =>
+    val seqNbs                   = List(150, 151, 152)
+    val expectedRecoveryTime     = 1000L
+    val expectedPersistEventTime = 500L
+    val expectedLabels = List.fill(5) {
+      val id = createUniqueId
+      Labels(None, s"/some/path/${id}", id)
+    }
+    expectedLabels.foreach(recoveryStarted)
+    Thread.sleep(expectedRecoveryTime + 50L)
+    expectedLabels.foreach(recoveryFinished)
+
+    seqNbs.foreach { seqNo =>
+      for {
+        labels <- expectedLabels
+      } persistEventStarted(seqNo, labels)
+
+      Thread.sleep(expectedPersistEventTime + 50L)
+      for {
+        labels <- expectedLabels
+      } {
+        snapshotCreated(seqNo, labels)
+        persistEventFinished(seqNo, labels)
+      }
+    }
+
+    expectMetricsUpdates(monitor, expectedLabels.size * (1 + seqNbs.size * 2))
+    monitor.boundLabels should have size (expectedLabels.size)
+    monitor.binds should be(expectedLabels.size)
+
+    val allProbes = monitor.boundLabels.flatMap(monitor.probes)
+    allProbes should have size (expectedLabels.size)
+    forAll(allProbes) { probes =>
+      forAll(probes.persistentEventTotalProbe.receiveMessages(seqNbs.size))(_ should be(Inc(1L)))
+      forAll(probes.persistentEventProbe.receiveMessages(seqNbs.size))(mr =>
+        inside(mr) {
+          case MetricRecorded(value) => value should be(expectedPersistEventTime +- 100L)
+        }
+      )
+      forAll(probes.snapshotProbe.receiveMessages(seqNbs.size))(_ should be(Inc(1L)))
+
+      probes.recoveryTotalProbe.receiveMessage() should be(Inc(1L))
+      inside(probes.recoveryTimeProbe.receiveMessage()) {
+        case MetricRecorded(value) => value should be(expectedRecoveryTime +- 100L)
       }
     }
   }
