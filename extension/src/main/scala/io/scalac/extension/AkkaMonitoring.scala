@@ -207,8 +207,7 @@ class AkkaMonitoring(private val system: ActorSystem[_], val config: ClusterMoni
         .supervise(
           WithSelfCleaningState
             .clean(FlushingRecoveryStorage.withConfig(flushConfig))
-            .every(flushConfig.every)
-            .`for`(rs =>
+            .every(flushConfig.every)(rs =>
               PersistenceEventsActor.apply(
                 CommonRegexPathService,
                 rs,
