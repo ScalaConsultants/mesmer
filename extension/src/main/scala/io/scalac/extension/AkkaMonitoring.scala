@@ -5,21 +5,26 @@ import java.util.Collections
 
 import akka.actor.ExtendedActorSystem
 import akka.actor.typed.scaladsl.Behaviors
-import akka.actor.typed.{ActorSystem, Extension, ExtensionId, SupervisorStrategy}
-import akka.cluster.typed.{ClusterSingleton, SingletonActor}
+import akka.actor.typed.{ ActorSystem, Extension, ExtensionId, SupervisorStrategy }
+import akka.cluster.typed.{ ClusterSingleton, SingletonActor }
 import akka.util.Timeout
 import com.newrelic.telemetry.Attributes
 import com.newrelic.telemetry.opentelemetry.`export`.NewRelicMetricExporter
 import io.opentelemetry.sdk.OpenTelemetrySdk
 import io.opentelemetry.sdk.metrics.`export`.IntervalMetricReader
-import io.scalac.core.model.{Module, SupportedVersion, Version}
+import io.scalac.core.model.{ Module, SupportedVersion, Version }
 import io.scalac.core.support.ModulesSupport
 import io.scalac.core.util.ModuleInfo
 import io.scalac.core.util.ModuleInfo.Modules
-import io.scalac.extension.config.ClusterMonitoringConfig
-import io.scalac.extension.persistence.{InMemoryPersistStorage, InMemoryRecoveryStorage}
+import io.scalac.extension.config.{ ClusterMonitoringConfig, FlushConfig }
+import io.scalac.extension.persistence.{ FlushingRecoveryStorage, InMemoryPersistStorage }
 import io.scalac.extension.service.CommonRegexPathService
-import io.scalac.extension.upstream.{OpenTelemetryClusterMetricsMonitor, OpenTelemetryHttpMetricsMonitor, OpenTelemetryPersistenceMetricMonitor}
+import io.scalac.extension.upstream.{
+  OpenTelemetryClusterMetricsMonitor,
+  OpenTelemetryHttpMetricsMonitor,
+  OpenTelemetryPersistenceMetricMonitor
+}
+
 import scala.concurrent.duration._
 import scala.language.postfixOps
 import scala.util.Try
@@ -196,15 +201,21 @@ class AkkaMonitoring(private val system: ActorSystem[_], val config: ClusterMoni
 
     val openTelemetryPersistenceMonitor = OpenTelemetryPersistenceMetricMonitor(instrumentationName, actorSystemConfig)
 
+    val flushConfig = FlushConfig(20_000L, 20 seconds)
     system.systemActorOf(
       Behaviors
         .supervise(
-          PersistenceEventsActor.apply(
-            CommonRegexPathService,
-            InMemoryRecoveryStorage.empty,
-            InMemoryPersistStorage.empty,
-            openTelemetryPersistenceMonitor
-          )
+          WithSelfCleaningState
+            .clean(FlushingRecoveryStorage.withConfig(flushConfig))
+            .every(flushConfig.every)
+            .`for`(rs =>
+              PersistenceEventsActor.apply(
+                CommonRegexPathService,
+                rs,
+                InMemoryPersistStorage.empty,
+                openTelemetryPersistenceMonitor
+              )
+            )
         )
         .onFailure[Exception](SupervisorStrategy.restart),
       "persistenceAgentMonitor"
