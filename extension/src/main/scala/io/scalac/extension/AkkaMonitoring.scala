@@ -16,8 +16,8 @@ import io.scalac.core.model.{ Module, SupportedVersion, Version }
 import io.scalac.core.support.ModulesSupport
 import io.scalac.core.util.ModuleInfo
 import io.scalac.core.util.ModuleInfo.Modules
-import io.scalac.extension.config.{ ClusterMonitoringConfig, FlushConfig }
-import io.scalac.extension.persistence.{ CleaningPersistingStorage, FlushingRecoveryStorage }
+import io.scalac.extension.config.{ ClusterMonitoringConfig, CleaningConfig }
+import io.scalac.extension.persistence.{ CleanablePersistingStorage, CleanableRecoveryStorage }
 import io.scalac.extension.service.CommonRegexPathService
 import io.scalac.extension.upstream.{
   OpenTelemetryClusterMetricsMonitor,
@@ -200,16 +200,16 @@ class AkkaMonitoring(private val system: ActorSystem[_], val config: ClusterMoni
 
     val openTelemetryPersistenceMonitor = OpenTelemetryPersistenceMetricMonitor(instrumentationName, actorSystemConfig)
 
-    val flushConfig = FlushConfig(20_000L, 20 seconds)
+    val flushConfig = CleaningConfig(20_000L, 20 seconds)
 
     system.systemActorOf(
       Behaviors
         .supervise(
           WithSelfCleaningState
-            .clean(FlushingRecoveryStorage.withConfig(flushConfig))
+            .clean(CleanableRecoveryStorage.withConfig(flushConfig))
             .every(flushConfig.every)(rs =>
               WithSelfCleaningState
-                .clean(CleaningPersistingStorage.withConfig(flushConfig))
+                .clean(CleanablePersistingStorage.withConfig(flushConfig))
                 .every(flushConfig.every) { ps =>
                   PersistenceEventsActor.apply(
                     CommonRegexPathService,
