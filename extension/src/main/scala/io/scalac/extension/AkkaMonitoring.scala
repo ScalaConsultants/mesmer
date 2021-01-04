@@ -23,7 +23,6 @@ import io.scalac.extension.upstream.{
   OpenTelemetryHttpMetricsMonitor,
   OpenTelemetryPersistenceMetricMonitor
 }
-import org.slf4j.Logger
 
 import scala.util.Try
 
@@ -96,14 +95,14 @@ object AkkaMonitoring extends ExtensionId[AkkaMonitoring] {
       } { backendConfig =>
         if (backendConfig.name.toLowerCase() == "newrelic") {
           system.log.info(s"Starting NewRelic backend with config ${backendConfig}")
-          startNewRelicBackend(backendConfig.region, backendConfig.apiKey, backendConfig.serviceName)(system.log)
+          startNewRelicBackend(backendConfig.region, backendConfig.apiKey, backendConfig.serviceName)
         } else
           system.log.error(s"Backend ${backendConfig.name} not supported")
       }
     }
   }
 
-  private def startNewRelicBackend(region: String, apiKey: String, serviceName: String)(logger: Logger): Unit = {
+  private def startNewRelicBackend(region: String, apiKey: String, serviceName: String): Unit = {
     val newRelicExporterBuilder = NewRelicMetricExporter
       .newBuilder()
       .apiKey(apiKey)
@@ -111,12 +110,10 @@ object AkkaMonitoring extends ExtensionId[AkkaMonitoring] {
 
     val newRelicExporter =
       if (region == "eu") {
-        logger.error("Overriding NR uri")
         newRelicExporterBuilder
           .uriOverride(URI.create("https://metric-api.eu.newrelic.com/metric/v1"))
           .build()
       } else {
-        logger.error(s"Going with default uri -> region: ${region}")
         newRelicExporterBuilder.build()
       }
 
@@ -142,10 +139,6 @@ class AkkaMonitoring(private val system: ActorSystem[_], val config: ClusterMoni
       instrumentationName,
       actorSystemConfig
     )
-
-  private val extendedActorSystem: Option[ExtendedActorSystem] = Option(system.classicSystem)
-    .filter(_.isInstanceOf[ExtendedActorSystem])
-    .map(_.asInstanceOf[ExtendedActorSystem])
 
   private def reflectiveIsInstanceOf(fqcn: String, ref: Any): Either[String, Unit] =
     Try(Class.forName(fqcn)).toEither.left.map {
@@ -173,15 +166,10 @@ class AkkaMonitoring(private val system: ActorSystem[_], val config: ClusterMoni
       system.systemActorOf(
         Behaviors
           .supervise(
-            OnClusterStartUp(
-              selfMember =>
-                ClusterSelfNodeEventsActor
-                  .apply(
-                    openTelemetryClusterMetricsMonitor,
-                    selfMember
-                  ),
-              None
-            )
+            ClusterSelfNodeEventsActor
+              .apply(
+                openTelemetryClusterMetricsMonitor
+              )
           )
           .onFailure[Exception](SupervisorStrategy.restart),
         "localSystemMemberMonitor"

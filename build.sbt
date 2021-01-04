@@ -20,21 +20,24 @@ def runWithAgent = Command.command("runWithAgent") { state =>
   s
 }
 lazy val root = (project in file("."))
+//  .enablePlugins(MultiJvmPlugin)
   .settings(name := "akka-monitoring")
   .aggregate(extension, agent, testApp)
 
 lazy val core = (project in file("core"))
   .settings(
     name := "core",
-    libraryDependencies ++= akka ++ openTelemetryApi
+    libraryDependencies ++= akka ++ openTelemetryApi ++ scalatest ++ akkaTestkit
   )
 
 lazy val extension = (project in file("extension"))
-  .configs()
+  .enablePlugins(MultiJvmPlugin)
+  .configs(MultiJvm)
   .settings(
+    parallelExecution in Test := true,
     name := "akka-monitoring-extension",
-    libraryDependencies ++= akka ++ openTelemetryApi ++ akkaTestkit ++ scalatest ++ logback
-      .map(_ % Test) ++ newRelicSdk ++ openTelemetrySdk
+    libraryDependencies ++= akka ++ openTelemetryApi ++ akkaTestkit ++ scalatest ++ logback.map(_ % Test) ++ akkaMultiNodeTestKit
+       ++ newRelicSdk ++ openTelemetrySdk
   )
   .dependsOn(core)
 
@@ -90,7 +93,6 @@ lazy val testApp = (project in file("test_app"))
     assembly / assemblyJarName := "test_app.jar",
     resolvers += "Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots",
     run / fork := true,
-    run / connectInput := true,
     run / javaOptions ++= {
       val properties = System.getProperties
 

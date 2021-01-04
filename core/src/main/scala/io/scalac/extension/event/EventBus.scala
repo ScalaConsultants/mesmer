@@ -4,7 +4,7 @@ import java.util.UUID
 
 import akka.actor.typed._
 import akka.actor.typed.receptionist.Receptionist.Subscribe
-import akka.actor.typed.receptionist.{ Receptionist, ServiceKey }
+import akka.actor.typed.receptionist.{Receptionist, ServiceKey}
 import akka.actor.typed.scaladsl.Behaviors
 import akka.util.Timeout
 import io.scalac.extension.util.MutableTypedMap
@@ -48,7 +48,7 @@ object ReceptionistBasedEventBus {
             Behaviors.receiveMessage {
               case Subscribers(refs) =>
                 ctx.log.debug("Subscribers for service {} updated", serviceKey)
-                buffer.unstashAll(withCachedServices(services ++ refs.asInstanceOf[Set[ActorRef[T]]]))
+                buffer.unstashAll(withCachedServices(refs.asInstanceOf[Set[ActorRef[T]]]))
               case event: T @unchecked
                   if services.nonEmpty => // T is removed on runtime but placing it here make type downcast
                 ctx.log.trace("Publish event for service {}", serviceKey)
