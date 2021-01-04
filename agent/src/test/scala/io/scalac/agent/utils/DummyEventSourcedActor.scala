@@ -5,19 +5,31 @@ import java.util.UUID
 import akka.actor.typed.Behavior
 import akka.actor.typed.scaladsl.Behaviors
 import akka.persistence.typed.PersistenceId
-import akka.persistence.typed.scaladsl.{Effect, EventSourcedBehavior}
+import akka.persistence.typed.scaladsl.{ Effect, EventSourcedBehavior, RetentionCriteria }
 
 object DummyEventSourcedActor {
 
-  final case object Command
+  sealed trait Command
 
-  def apply(uuid: UUID): Behavior[Command.type] =
+  final case object DoNothing extends Command
+  final case object Persist   extends Command
+
+  final case object OneInc
+
+  def apply(uuid: UUID, snapshotEvery: Int = 1): Behavior[Command] =
     Behaviors.setup { _ =>
-      EventSourcedBehavior[Command.type, Unit, Unit](
+      EventSourcedBehavior[Command, OneInc.type, Int](
         PersistenceId.ofUniqueId(uuid.toString),
-        (),
-        (_, cmd) => Effect.none,
-        (_, _) => ()
-      )
+        0,
+        (_, cmd) =>
+          cmd match {
+            case DoNothing => Effect.none
+            case Persist   => Effect.persist(OneInc)
+          },
+        (current, event) =>
+          event match {
+            case OneInc => current + 1
+          }
+      ).withRetention(RetentionCriteria.snapshotEvery(snapshotEvery, 1))
     }
 }
