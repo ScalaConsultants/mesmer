@@ -6,14 +6,17 @@ import akka.actor.typed.ActorRef
 import akka.actor.typed.receptionist.Receptionist.Listing
 import akka.actor.typed.receptionist.{ Receptionist, ServiceKey }
 import akka.actor.typed.scaladsl.AskPattern._
+import org.scalatest.concurrent.Eventually
 import org.scalatest.{ Inside, LoneElement, Suite }
+
+
 
 trait MonitorFixture
     extends ScalaTestWithActorTestKit
     with TestOps
     with LoneElement
     with TerminationRegistryOps
-    with Inside {
+    with Inside with ReceptionistOps {
   this: Suite =>
   type Monitor
 
@@ -26,15 +29,7 @@ trait MonitorFixture
     val sut     = setUp(monitor)
     watch(sut)
 
-    eventually {
-      val result = Receptionist(system).ref.ask[Listing](reply => Receptionist.find(serviceKey, reply)).futureValue
-      inside(result) {
-        case serviceKey.Listing(res) => {
-          val elem = res.loneElement
-          elem should sameOrParent(sut)
-        }
-      }
-    }
+    onlyRef(sut, serviceKey)
     body(monitor)
     sut.unsafeUpcast[Any] ! PoisonPill
     waitFor(sut)
