@@ -17,7 +17,7 @@ import io.scalac.core.support.ModulesSupport
 import io.scalac.core.util.ModuleInfo
 import io.scalac.core.util.ModuleInfo.Modules
 import io.scalac.extension.config.{ ClusterMonitoringConfig, FlushConfig }
-import io.scalac.extension.persistence.{ FlushingRecoveryStorage, InMemoryPersistStorage }
+import io.scalac.extension.persistence.{ CleaningPersistingStorage, FlushingRecoveryStorage }
 import io.scalac.extension.service.CommonRegexPathService
 import io.scalac.extension.upstream.{
   OpenTelemetryClusterMetricsMonitor,
@@ -129,7 +129,6 @@ object AkkaMonitoring extends ExtensionId[AkkaMonitoring] {
       .setMetricExporter(newRelicExporter)
       .build()
   }
-
 }
 
 class AkkaMonitoring(private val system: ActorSystem[_], val config: ClusterMonitoringConfig) extends Extension {
@@ -202,18 +201,23 @@ class AkkaMonitoring(private val system: ActorSystem[_], val config: ClusterMoni
     val openTelemetryPersistenceMonitor = OpenTelemetryPersistenceMetricMonitor(instrumentationName, actorSystemConfig)
 
     val flushConfig = FlushConfig(20_000L, 20 seconds)
+
     system.systemActorOf(
       Behaviors
         .supervise(
           WithSelfCleaningState
             .clean(FlushingRecoveryStorage.withConfig(flushConfig))
             .every(flushConfig.every)(rs =>
-              PersistenceEventsActor.apply(
-                CommonRegexPathService,
-                rs,
-                InMemoryPersistStorage.empty,
-                openTelemetryPersistenceMonitor
-              )
+              WithSelfCleaningState
+                .clean(CleaningPersistingStorage.withConfig(flushConfig))
+                .every(flushConfig.every) { ps =>
+                  PersistenceEventsActor.apply(
+                    CommonRegexPathService,
+                    rs,
+                    ps,
+                    openTelemetryPersistenceMonitor
+                  )
+                }
             )
         )
         .onFailure[Exception](SupervisorStrategy.restart),
