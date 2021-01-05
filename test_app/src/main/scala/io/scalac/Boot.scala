@@ -17,70 +17,81 @@ import io.scalac.domain.{ AccountStateActor, JsonCodecs }
 import org.slf4j.LoggerFactory
 
 import scala.concurrent.duration._
-import scala.io.StdIn
 import scala.jdk.CollectionConverters._
 import scala.language.postfixOps
-import scala.util.{ Failure, Success }
 
 object Boot extends App with FailFastCirceSupport with JsonCodecs {
-
   val logger = LoggerFactory.getLogger(Boot.getClass)
 
-  val config = ConfigFactory
-    .load()
-    .withFallback(
-      ConfigFactory
-        .empty()
-        .withValue(
-          "app",
-          ConfigValueFactory
-            .fromMap(Map("host" -> "localhost", "port" -> 8080, "systemName" -> "Accounts").asJava)
-        )
+  private val fallbackConfig = ConfigFactory
+    .empty()
+    .withValue(
+      "app",
+      ConfigValueFactory
+        .fromMap(Map("host" -> "localhost", "port" -> 8080, "systemName" -> "Accounts").asJava)
     )
-    .resolve
 
-  implicit val system =
-    ActorSystem[Nothing](Behaviors.empty, config.getString("app.systemName"), config)
+  def startUp(local: Boolean): Unit = {
+    val baseConfig =
+      if (local) ConfigFactory.load("local/application")
+      else ConfigFactory.load()
 
-  implicit val executionContext = system.executionContext
-  implicit val timeout: Timeout = 10 seconds
+    println(baseConfig.getString("akka.actor.provider"))
+    println(baseConfig.getString("newrelic.account_id"))
+    println(baseConfig.getStringList("akka.cluster.seed-nodes"))
 
-  ClusterBootstrap(system).start()
-  AkkaManagement(system)
-    .start()
-    .onComplete {
-      case Success(value)     => logger.info(s"Started akka management on uri: ${value}")
-      case Failure(exception) => logger.error("Coundn't start akka management", exception)
+    val config =
+      baseConfig
+        .withFallback(fallbackConfig)
+        .resolve
+
+    implicit val system =
+      ActorSystem[Nothing](Behaviors.empty, config.getString("app.systemName"), config)
+
+    implicit val executionContext = system.executionContext
+    implicit val timeout: Timeout = 10 seconds
+
+    if (!local) {
+      ClusterBootstrap(system).start()
     }
 
-  val entity = EntityTypeKey[AccountStateActor.Command]("accounts")
+    AkkaManagement(system).start()
 
-  val accountsShards = ClusterSharding(system)
-    .init(Entity(entity) { entityContext =>
-      AccountStateActor(
-        ju.UUID.fromString(entityContext.entityId)
-      )
-    })
+    val entity = EntityTypeKey[AccountStateActor.Command]("accounts")
 
-  val accountRoutes = new AccountRoutes(accountsShards)
+    val accountsShards = ClusterSharding(system)
+      .init(Entity(entity) { entityContext =>
+        AccountStateActor(
+          ju.UUID.fromString(entityContext.entityId)
+        )
+      })
 
-  val host = config.getString("app.host")
+    val accountRoutes = new AccountRoutes(accountsShards)
 
-  val port = config.getInt("app.port")
-  logger.info(s"Starting http server at $host:$port")
+    val host = config.getString("app.host")
 
-  val binding = Http()
-    .newServerAt(host, port)
-    .bind(accountRoutes.routes)
+    val port = config.getInt("app.port")
+    logger.info(s"Starting http server at $host:$port")
 
-  StdIn.readLine()
+    val binding = Http()
+      .newServerAt(host, port)
+      .bind(accountRoutes.routes)
 
-  sys.addShutdownHook {
-    binding
-      .flatMap(_.unbind())
-      .onComplete { _ =>
-        system.terminate()
-        NewRelicExporters.shutdown()
-      }
+    sys.addShutdownHook {
+      binding
+        .flatMap(_.unbind())
+        .onComplete { _ =>
+          system.terminate()
+          NewRelicExporters.shutdown()
+        }
+    }
   }
+
+  val local = sys.props.get("env").exists(_.toLowerCase() == "local")
+  if (local) {
+    logger.info("Starting application with static seed nodes")
+  } else {
+    logger.info("Staring application with ClusterBootstrap")
+  }
+  startUp(local)
 }
