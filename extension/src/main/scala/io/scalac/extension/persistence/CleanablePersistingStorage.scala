@@ -19,8 +19,8 @@ class CleanablePersistingStorage private[persistence] (_persist: CMap[PersistEve
 }
 
 object CleanablePersistingStorage {
-  def withConfig(flushConfig: CleaningConfig): CleanablePersistingStorage =
+  def withConfig(cleaningConfig: CleaningConfig): CleanablePersistingStorage =
     new CleanablePersistingStorage(new ConcurrentHashMap[PersistEventKey, PersistingEventStarted]().asScala)(
-      flushConfig
+      cleaningConfig
     )
 }

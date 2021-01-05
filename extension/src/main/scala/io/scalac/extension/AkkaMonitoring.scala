@@ -16,7 +16,8 @@ import io.scalac.core.model.{ Module, SupportedVersion, Version }
 import io.scalac.core.support.ModulesSupport
 import io.scalac.core.util.ModuleInfo
 import io.scalac.core.util.ModuleInfo.Modules
-import io.scalac.extension.config.{ ClusterMonitoringConfig, CleaningConfig }
+import io.scalac.extension.config.{ CleaningConfig, ClusterMonitoringConfig }
+import io.scalac.extension.http.CleanableRequestStorage
 import io.scalac.extension.persistence.{ CleanablePersistingStorage, CleanableRecoveryStorage }
 import io.scalac.extension.service.CommonRegexPathService
 import io.scalac.extension.upstream.{
@@ -141,6 +142,9 @@ class AkkaMonitoring(private val system: ActorSystem[_], val config: ClusterMoni
       instrumentationName,
       actorSystemConfig
     )
+
+  val flushConfig = CleaningConfig(20_000L, 20 seconds)
+
   implicit private val timeout: Timeout = 5 seconds
 
   private def reflectiveIsInstanceOf(fqcn: String, ref: Any): Either[String, Unit] =
@@ -194,13 +198,10 @@ class AkkaMonitoring(private val system: ActorSystem[_], val config: ClusterMoni
           )
         )
     }
-
   def startPersistenceMonitoring(): Unit = {
     log.debug("Starting PersistenceEventsListener")
 
     val openTelemetryPersistenceMonitor = OpenTelemetryPersistenceMetricMonitor(instrumentationName, actorSystemConfig)
-
-    val flushConfig = CleaningConfig(20_000L, 20 seconds)
 
     system.systemActorOf(
       Behaviors
@@ -233,7 +234,11 @@ class AkkaMonitoring(private val system: ActorSystem[_], val config: ClusterMoni
 
     system.systemActorOf(
       Behaviors
-        .supervise(HttpEventsActor.apply(openTelemetryHttpMonitor, pathService))
+        .supervise(
+          WithSelfCleaningState
+            .clean(CleanableRequestStorage.withConfig(flushConfig))
+            .every(flushConfig.every)(rs => HttpEventsActor.apply(openTelemetryHttpMonitor, rs, pathService))
+        )
         .onFailure[Exception](SupervisorStrategy.restart),
       "httpEventMonitor"
     )
