@@ -63,5 +63,4 @@ class MutablePersistStorageTest extends AnyFlatSpec with Matchers with TestOps {
       resultStorage should be theSameInstanceAs (sut)
       latency should be(expectedLatency)
   }
-
 }
