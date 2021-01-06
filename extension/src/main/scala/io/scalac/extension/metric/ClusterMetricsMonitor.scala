@@ -8,9 +8,12 @@ trait ClusterMetricsMonitor extends Bindable[Node] {
   override type Bound <: BoundMonitor
 
   trait BoundMonitor extends Synchronized {
+    // TODO How can we reduce the boilerplate to write `Metric...[T] with Instrument[T]` here and where use it?
+    // TODO How can we reduce the effort to add new metrics?
     def shardPerRegions: MetricRecorder[Long] with Instrument[Long]
     def entityPerRegion: MetricRecorder[Long] with Instrument[Long]
     def shardRegionsOnNode: MetricRecorder[Long] with Instrument[Long]
+    def entitiesOnNode: MetricRecorder[Long] with Instrument[Long]
     def reachableNodes: Counter[Long] with Instrument[Long]
     def unreachableNodes: Counter[Long] with Instrument[Long]
     def nodeDown: UpCounter[Long] with Instrument[Long]
