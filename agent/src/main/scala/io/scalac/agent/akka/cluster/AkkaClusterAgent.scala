@@ -24,9 +24,9 @@ object AkkaClusterAgent {
         .transform { (builder, _, _, _) =>
           builder
             .method(
-              (named[MethodDescription]("internalStart")
+              named[MethodDescription]("internalStart")
                 .and(isMethod[MethodDescription])
-                .and(not(isAbstract[MethodDescription])))
+                .and(not(isAbstract[MethodDescription]))
             )
             .intercept(Advice.to(classOf[ClusterShardingInterceptor]))
         }
