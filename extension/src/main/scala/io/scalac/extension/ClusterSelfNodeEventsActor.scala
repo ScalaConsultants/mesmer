@@ -5,7 +5,14 @@ import akka.actor.typed.receptionist.Receptionist
 import akka.actor.typed.receptionist.Receptionist.Register
 import akka.actor.typed.scaladsl.Behaviors
 import akka.actor.typed.{Behavior, PreRestart}
-import akka.cluster.ClusterEvent.{MemberEvent, MemberRemoved, MemberUp, ReachableMember, UnreachableMember, ReachabilityEvent => AkkaReachabilityEvent}
+import akka.cluster.ClusterEvent.{
+  MemberEvent,
+  MemberRemoved,
+  MemberUp,
+  ReachableMember,
+  UnreachableMember,
+  ReachabilityEvent => AkkaReachabilityEvent
+}
 import akka.cluster.UniqueAddress
 import akka.cluster.sharding.ShardRegion.CurrentShardRegionState
 import akka.cluster.sharding.typed.GetShardRegionState
