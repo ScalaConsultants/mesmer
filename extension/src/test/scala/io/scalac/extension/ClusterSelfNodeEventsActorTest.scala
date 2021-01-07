@@ -1,10 +1,13 @@
 package io.scalac.extension
 
+import java.util.UUID
+
 import akka.actor.testkit.typed.javadsl.FishingOutcomes
 import akka.actor.testkit.typed.scaladsl.TestProbe
 import akka.actor.typed._
 import akka.actor.typed.scaladsl.Behaviors
 import akka.cluster.sharding.typed.ShardingEnvelope
+
 import io.scalac.extension.ClusterSelfNodeEventsActor.Command.MonitorRegion
 import io.scalac.extension.event.ClusterEvent.ShardingRegionInstalled
 import io.scalac.extension.event.EventBus
@@ -13,7 +16,6 @@ import io.scalac.extension.util.{ ActorFailing, FailingInterceptor, SingleNodeCl
 import org.scalatest.Inspectors
 import org.scalatest.flatspec.AsyncFlatSpec
 import org.scalatest.matchers.should.Matchers
-
 import scala.concurrent.duration._
 import scala.language.postfixOps
 
@@ -53,7 +55,8 @@ class ClusterSelfNodeEventsActorTest
       system.systemActorOf(ClusterSelfNodeEventsActor.apply(monitor), "sut")
 
       EventBus(system).publishEvent(ShardingRegionInstalled(region))
-      EventBus(system).publishEvent(ShardingRegionInstalled("dumb-region"))
+      EventBus(system).publishEvent(ShardingRegionInstalled(UUID.randomUUID.toString))
+      // TODO How to send message to the new region?
 
       for (i <- 0 until 10) ref ! ShardingEnvelope(s"test_$i", Create)
 
