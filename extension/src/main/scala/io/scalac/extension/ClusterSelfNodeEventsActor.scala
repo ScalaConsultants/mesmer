@@ -66,15 +66,13 @@ object ClusterSelfNodeEventsActor {
         import Command._
         import ctx.{log, system, messageAdapter}
 
-        // values
-
         implicit val timeout: Timeout = pingOffset
 
-        val selfAddress = selfMember.uniqueAddress
-        val monitor = clusterMetricsMonitor.bind(selfAddress.toNode)
+        val monitor = clusterMetricsMonitor.bind(selfMember.uniqueAddress.toNode)
         val cluster  = Cluster(system)
         val sharding = ClusterSharding(system)
-        val classicSharding = ClassicClusterSharding(system.classicSystem) // current implementation of akka cluster works only on adapted actor systems
+        val classicSharding = ClassicClusterSharding(system.classicSystem)
+        // classicSharding disclaimer: current implementation of akka cluster works only on adapted actor systems
 
         // adapters
 
@@ -159,9 +157,11 @@ object ClusterSelfNodeEventsActor {
                   val regions = classicSharding.shardTypeNames.size
                   monitor.shardRegionsOnNode.setValue(regions)
                   log.trace("Recorded amount of regions on node {}", regions)
+
                   val entities = entitiesCount.view.values.sum
                   monitor.entitiesOnNode.setValue(entities)
                   log.trace("Recorded amount of entities on node {}", entities)
+
                   Behaviors.same
 
                 case NodeReachable(address) =>
