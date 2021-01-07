@@ -3,14 +3,15 @@ package io.scalac.extension
 import akka.actor.testkit.typed.scaladsl.ScalaTestWithActorTestKit
 import akka.actor.typed.ActorRef
 import akka.actor.typed.receptionist.ServiceKey
+import io.scalac.core.util.Timestamp
 import io.scalac.extension.event.EventBus
 import io.scalac.extension.event.PersistenceEvent._
 import io.scalac.extension.metric.PersistenceMetricMonitor.Labels
-import io.scalac.extension.persistence.{ InMemoryPersistStorage, InMemoryRecoveryStorage }
+import io.scalac.extension.persistence.{InMemoryPersistStorage, InMemoryRecoveryStorage}
 import io.scalac.extension.util.TestConfig.localActorProvider
-import io.scalac.extension.util.probe.BoundTestProbe.{ Inc, MetricRecorded }
+import io.scalac.extension.util.probe.BoundTestProbe.{Inc, MetricRecorded}
 import io.scalac.extension.util.probe.PersistenceMetricTestProbe
-import io.scalac.extension.util.{ IdentityPathService, MonitorFixture }
+import io.scalac.extension.util.{IdentityPathService, MonitorFixture}
 import org.scalatest._
 import org.scalatest.flatspec.AnyFlatSpecLike
 import org.scalatest.matchers.should.Matchers
@@ -35,23 +36,23 @@ class PersistenceEventsActorTest
     )
 
   def recoveryStarted(labels: Labels): Unit =
-    EventBus(system).publishEvent(RecoveryStarted(labels.path, labels.persistenceId, System.currentTimeMillis()))
+    EventBus(system).publishEvent(RecoveryStarted(labels.path, labels.persistenceId, Timestamp.create()))
 
   def recoveryFinished(labels: Labels): Unit =
-    EventBus(system).publishEvent(RecoveryFinished(labels.path, labels.persistenceId, System.currentTimeMillis()))
+    EventBus(system).publishEvent(RecoveryFinished(labels.path, labels.persistenceId, Timestamp.create()))
 
   def persistEventStarted(seqNo: Long, labels: Labels): Unit =
     EventBus(system).publishEvent(
-      PersistingEventStarted(labels.path, labels.persistenceId, seqNo, System.currentTimeMillis())
+      PersistingEventStarted(labels.path, labels.persistenceId, seqNo, Timestamp.create())
     )
 
   def persistEventFinished(seqNo: Long, labels: Labels): Unit =
     EventBus(system).publishEvent(
-      PersistingEventFinished(labels.path, labels.persistenceId, seqNo, System.currentTimeMillis())
+      PersistingEventFinished(labels.path, labels.persistenceId, seqNo, Timestamp.create())
     )
 
   def snapshotCreated(seqNo: Long, labels: Labels): Unit =
-    EventBus(system).publishEvent(SnapshotCreated(labels.path, labels.persistenceId, seqNo, System.currentTimeMillis()))
+    EventBus(system).publishEvent(SnapshotCreated(labels.path, labels.persistenceId, seqNo, Timestamp.create()))
 
   def expectMetricsUpdates(monitor: Monitor, amount: Int): Unit =
     monitor.globalCounter.within(1 second) {

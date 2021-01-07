@@ -23,7 +23,7 @@ class InMemoryPersistStorage private (private val persist: Map[PersistEventKey, 
   override def persistEventFinished(event: PersistingEventFinished): Option[(PersistStorage, Long)] = {
     val key = eventToKey(event)
     persist.get(key).map { started =>
-      val duration = event.timestamp - started.timestamp
+      val duration = started.timestamp.diff(event.timestamp)
       (new InMemoryPersistStorage(persist - key), duration)
     }
   }

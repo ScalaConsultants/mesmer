@@ -2,6 +2,7 @@ package io.scalac.agent.akka.persistence
 
 import _root_.akka.actor.typed.scaladsl.ActorContext
 import _root_.akka.persistence.typed.PersistenceId
+import io.scalac.core.util.Timestamp
 import io.scalac.extension.event.EventBus
 import io.scalac.extension.event.PersistenceEvent.RecoveryStarted
 import net.bytebuddy.asm.Advice
@@ -42,7 +43,7 @@ object RecoveryStartedInterceptor {
       _.printStackTrace(),
       persistenceId =>
         EventBus(context.system)
-          .publishEvent(RecoveryStarted(path.toString, persistenceId.id, System.currentTimeMillis()))
+          .publishEvent(RecoveryStarted(path.toString, persistenceId.id, Timestamp.create()))
     )
   }
 }

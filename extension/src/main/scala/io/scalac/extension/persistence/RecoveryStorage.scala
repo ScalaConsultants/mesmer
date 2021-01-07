@@ -27,7 +27,7 @@ class InMemoryRecoveryStorage private (private val recoveries: Map[String, Recov
     recoveries
       .get(key)
       .map { start =>
-        val recoveryDuration = event.timestamp - start.timestamp
+        val recoveryDuration = start.timestamp.diff(event.timestamp)
         (new InMemoryRecoveryStorage(recoveries - key), recoveryDuration)
       }
   }
