@@ -1,14 +1,11 @@
 package io.scalac.extension.persistence
 
-import java.util.concurrent.ConcurrentHashMap
-
 import io.scalac.extension.event.PersistenceEvent.{ RecoveryFinished, RecoveryStarted }
 import io.scalac.extension.resource.MutableStorage
 
-import scala.collection.mutable.{ Map => MMap }
-import scala.jdk.CollectionConverters._
+import scala.collection.mutable
 
-class MutableRecoveryStorage private[persistence] (protected val buffer: MMap[String, RecoveryStarted])
+class MutableRecoveryStorage private[persistence] (protected val buffer: mutable.Map[String, RecoveryStarted])
     extends RecoveryStorage
     with MutableStorage[String, RecoveryStarted] {
 
@@ -26,5 +23,5 @@ class MutableRecoveryStorage private[persistence] (protected val buffer: MMap[St
 
 object MutableRecoveryStorage {
   def empty: MutableRecoveryStorage =
-    new MutableRecoveryStorage(new ConcurrentHashMap[String, RecoveryStarted]().asScala)
+    new MutableRecoveryStorage(mutable.Map.empty)
 }

@@ -1,16 +1,13 @@
 package io.scalac.extension.persistence
 
-import java.util.concurrent.ConcurrentHashMap
-
 import io.scalac.extension.event.PersistenceEvent.{PersistingEventFinished, PersistingEventStarted}
 import io.scalac.extension.persistence.PersistStorage.PersistEventKey
 import io.scalac.extension.resource.MutableStorage
 
-import scala.collection.mutable.{Map => MMap}
-import scala.jdk.CollectionConverters._
+import scala.collection.mutable
 
 class MutablePersistStorage private[persistence] (
-  protected val buffer: MMap[PersistEventKey, PersistingEventStarted]
+  protected val buffer: mutable.Map[PersistEventKey, PersistingEventStarted]
 ) extends PersistStorage
     with MutableStorage[PersistEventKey, PersistingEventStarted] {
 
@@ -28,5 +25,5 @@ class MutablePersistStorage private[persistence] (
 
 object MutablePersistStorage {
   def empty: MutablePersistStorage =
-    new MutablePersistStorage(new ConcurrentHashMap[PersistEventKey, PersistingEventStarted]().asScala)
+    new MutablePersistStorage(mutable.Map.empty)
 }
