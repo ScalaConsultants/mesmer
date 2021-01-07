@@ -1,21 +1,18 @@
 package io.scalac.extension.persistence
 
-import java.util.concurrent.ConcurrentHashMap
-
 import io.scalac.extension.event.PersistenceEvent._
 import io.scalac.extension.util.TestOps
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
-import scala.collection.concurrent.{ Map => CMap }
-import scala.jdk.CollectionConverters._
+import scala.collection.mutable
 
 class MutableRecoveryStorageTest extends AnyFlatSpec with Matchers with TestOps {
-  type Fixture = (CMap[String, RecoveryStarted], MutableRecoveryStorage)
+  type Fixture = (mutable.Map[String, RecoveryStarted], MutableRecoveryStorage)
   def test(body: Fixture => Any): Any = {
-    val buffer = new ConcurrentHashMap[String, RecoveryStarted]()
-    val sut    = new MutableRecoveryStorage(buffer.asScala)
-    Function.untupled(body)(buffer.asScala, sut)
+    val buffer: mutable.Map[String, RecoveryStarted] = mutable.Map.empty
+    val sut                                          = new MutableRecoveryStorage(buffer)
+    Function.untupled(body)(buffer, sut)
   }
 
   "MutableRecoveryStorage" should "add started events to internal buffer" in test {

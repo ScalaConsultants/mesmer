@@ -1,22 +1,20 @@
 package io.scalac.extension.persistence
 
-import java.util.concurrent.ConcurrentHashMap
-
 import io.scalac.extension.config.CleaningConfig
-import io.scalac.extension.event.PersistenceEvent.{PersistingEventStarted, RecoveryStarted}
+import io.scalac.extension.event.PersistenceEvent.PersistingEventStarted
 import io.scalac.extension.persistence.PersistStorage.PersistEventKey
 import io.scalac.extension.util.TestOps
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
+import scala.collection.mutable
 import scala.concurrent.duration._
-import scala.jdk.CollectionConverters._
 import scala.util.Random
 
 class CleanablePersistingStorageTest extends AnyFlatSpec with Matchers with TestOps {
 
   "CleanablePersistingStorage" should "clean internal buffer" in {
-    val buffer        = new ConcurrentHashMap[PersistEventKey, PersistingEventStarted]()
+    val buffer        = mutable.Map.empty[PersistEventKey, PersistingEventStarted]
     val maxStaleness  = 10_000L
     val config        = CleaningConfig(maxStaleness, 10.seconds)
     val baseTimestamp = 100_000L
@@ -32,7 +30,7 @@ class CleanablePersistingStorageTest extends AnyFlatSpec with Matchers with Test
       PersistingEventStarted(s"/some/path/${id}", id, 100L, baseTimestamp - staleness)
     }
 
-    val sut = new CleanablePersistingStorage(buffer.asScala)(config) {
+    val sut = new CleanablePersistingStorage(buffer)(config) {
       override protected def timestamp: Long = baseTimestamp
     }
 

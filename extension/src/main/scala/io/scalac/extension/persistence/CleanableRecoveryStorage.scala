@@ -1,15 +1,12 @@
 package io.scalac.extension.persistence
 
-import java.util.concurrent.ConcurrentHashMap
-
 import io.scalac.extension.config.CleaningConfig
 import io.scalac.extension.event.PersistenceEvent.RecoveryStarted
 import io.scalac.extension.resource.MutableCleanableStorage
 
-import scala.collection.concurrent.{ Map => CMap }
-import scala.jdk.CollectionConverters._
+import scala.collection.mutable
 
-class CleanableRecoveryStorage private[persistence] (_recoveries: CMap[String, RecoveryStarted])(
+class CleanableRecoveryStorage private[persistence] (_recoveries: mutable.Map[String, RecoveryStarted])(
   override val cleaningConfig: CleaningConfig
 ) extends MutableRecoveryStorage(_recoveries)
     with MutableCleanableStorage[String, RecoveryStarted] {
@@ -19,5 +16,5 @@ class CleanableRecoveryStorage private[persistence] (_recoveries: CMap[String, R
 
 object CleanableRecoveryStorage {
   def withConfig(flushConfig: CleaningConfig): CleanableRecoveryStorage =
-    new CleanableRecoveryStorage(new ConcurrentHashMap[String, RecoveryStarted]().asScala)(flushConfig)
+    new CleanableRecoveryStorage(mutable.Map.empty)(flushConfig)
 }

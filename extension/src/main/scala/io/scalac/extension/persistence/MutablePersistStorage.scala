@@ -6,16 +6,16 @@ import io.scalac.extension.event.PersistenceEvent.{PersistingEventFinished, Pers
 import io.scalac.extension.persistence.PersistStorage.PersistEventKey
 import io.scalac.extension.resource.MutableStorage
 
-import scala.collection.concurrent.{Map => CMap}
+import scala.collection.mutable.{Map => MMap}
 import scala.jdk.CollectionConverters._
 
 class MutablePersistStorage private[persistence] (
-  protected val buffer: CMap[PersistEventKey, PersistingEventStarted]
+  protected val buffer: MMap[PersistEventKey, PersistingEventStarted]
 ) extends PersistStorage
     with MutableStorage[PersistEventKey, PersistingEventStarted] {
 
   override def persistEventStarted(event: PersistingEventStarted): PersistStorage = {
-    buffer.putIfAbsent(eventToKey(event), event)
+    buffer.put(eventToKey(event), event)
     this
   }
 

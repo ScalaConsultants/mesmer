@@ -1,16 +1,13 @@
 package io.scalac.extension.persistence
 
-import java.util.concurrent.ConcurrentHashMap
-
 import io.scalac.extension.config.CleaningConfig
 import io.scalac.extension.event.PersistenceEvent.PersistingEventStarted
 import io.scalac.extension.persistence.PersistStorage.PersistEventKey
 import io.scalac.extension.resource.MutableCleanableStorage
 
-import scala.collection.concurrent.{ Map => CMap }
-import scala.jdk.CollectionConverters._
+import scala.collection.mutable.{Map => MMap}
 
-class CleanablePersistingStorage private[persistence] (_persist: CMap[PersistEventKey, PersistingEventStarted])(
+class CleanablePersistingStorage private[persistence] (_persist: MMap[PersistEventKey, PersistingEventStarted])(
   override val cleaningConfig: CleaningConfig
 ) extends MutablePersistStorage(_persist)
     with MutableCleanableStorage[PersistEventKey, PersistingEventStarted] {
@@ -20,7 +17,7 @@ class CleanablePersistingStorage private[persistence] (_persist: CMap[PersistEve
 
 object CleanablePersistingStorage {
   def withConfig(cleaningConfig: CleaningConfig): CleanablePersistingStorage =
-    new CleanablePersistingStorage(new ConcurrentHashMap[PersistEventKey, PersistingEventStarted]().asScala)(
+    new CleanablePersistingStorage(MMap.empty)(
       cleaningConfig
     )
 }

@@ -7,7 +7,7 @@ import io.scalac.extension.event.HttpEvent
 import io.scalac.extension.event.HttpEvent.{ RequestCompleted, RequestFailed, RequestStarted }
 import io.scalac.extension.resource.{ MutableCleanableStorage, MutableStorage }
 
-import scala.collection.concurrent
+import scala.collection.mutable
 import scala.jdk.CollectionConverters._
 
 trait RequestStorage {
@@ -22,12 +22,12 @@ trait RequestStorage {
   }
 }
 
-class MutableRequestStorage private[http] (protected val buffer: concurrent.Map[String, RequestStarted])
+class MutableRequestStorage private[http] (protected val buffer: mutable.Map[String, RequestStarted])
     extends MutableStorage[String, RequestStarted]
     with RequestStorage {
 
   override def requestStarted(event: RequestStarted): RequestStorage = {
-    buffer.putIfAbsent(eventToKey(event), event)
+    buffer.put(eventToKey(event), event)
     this
   }
 
@@ -42,7 +42,7 @@ object MutableRequestStorage {
   def empty: MutableRequestStorage = new MutableRequestStorage(new ConcurrentHashMap[String, RequestStarted]().asScala)
 }
 
-class CleanableRequestStorage private[http] (_buffer: concurrent.Map[String, RequestStarted])(
+class CleanableRequestStorage private[http] (_buffer: mutable.Map[String, RequestStarted])(
   override val cleaningConfig: CleaningConfig
 ) extends MutableRequestStorage(_buffer)
     with MutableCleanableStorage[String, RequestStarted] {
@@ -51,5 +51,5 @@ class CleanableRequestStorage private[http] (_buffer: concurrent.Map[String, Req
 
 object CleanableRequestStorage {
   def withConfig(cleaningConfig: CleaningConfig): CleanableRequestStorage =
-    new CleanableRequestStorage(new ConcurrentHashMap[String, RequestStarted]().asScala)(cleaningConfig)
+    new CleanableRequestStorage(mutable.Map.empty)(cleaningConfig)
 }
