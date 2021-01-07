@@ -91,6 +91,8 @@ object HttpInstrumentation {
       outerRequest ~> zipRequest.in0
       idBroadcast ~> zipRequest.in1
 
+      System.nanoTime()
+
       zipRequest.out.map {
         case (request, id) => {
           val path   = request.uri.path.toString()
