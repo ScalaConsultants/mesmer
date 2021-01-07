@@ -61,7 +61,6 @@ object ClusterSelfNodeEventsActor {
     pingOffset: FiniteDuration = 5.seconds
   ): Behavior[Command] = {
     OnClusterStartUp { selfMember =>
-      Behaviors.withTimers { selfScheduler =>
       Behaviors.setup { ctx =>
 
           import Command._
@@ -104,9 +103,6 @@ object ClusterSelfNodeEventsActor {
             }
           )
 
-          // scheduler for update node status
-          selfScheduler.startTimerWithFixedDelay(UpdateNodeStats, pingOffset)
-
           // behavior setup
 
           def initialized(
@@ -145,6 +141,7 @@ object ClusterSelfNodeEventsActor {
                 case MonitorRegion(region) =>
                   log.info("Start monitoring region {}", region)
                   scheduler.startTimerWithFixedDelay(region, GetShardRegionStats(region), pingOffset)
+                  scheduler.startTimerWithFixedDelay(selfMember, UpdateNodeStats, pingOffset)
                   initialized(regions :+ region, unreachableNodes, entitiesCount)
 
                 case GetShardRegionStats(region) =>
@@ -187,7 +184,7 @@ object ClusterSelfNodeEventsActor {
           val unreachable = cluster.state.unreachable.map(_.uniqueAddress)
           initialized(Seq.empty, unreachable, Map.empty)
 
-      }}
+      }
     }
   }
 }
