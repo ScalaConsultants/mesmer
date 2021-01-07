@@ -1,10 +1,9 @@
 package io.scalac.extension
 
-
 import akka.actor.typed.receptionist.Receptionist
 import akka.actor.typed.receptionist.Receptionist.Register
 import akka.actor.typed.scaladsl.Behaviors
-import akka.actor.typed.{Behavior, PreRestart}
+import akka.actor.typed.{ Behavior, PreRestart }
 import akka.cluster.ClusterEvent.{
   MemberEvent,
   MemberRemoved,
@@ -16,9 +15,9 @@ import akka.cluster.ClusterEvent.{
 import akka.cluster.UniqueAddress
 import akka.cluster.sharding.ShardRegion.CurrentShardRegionState
 import akka.cluster.sharding.typed.GetShardRegionState
-import akka.cluster.sharding.typed.scaladsl.{ClusterSharding, EntityTypeKey}
-import akka.cluster.sharding.{ClusterSharding => ClassicClusterSharding}
-import akka.cluster.typed.{Cluster, Subscribe}
+import akka.cluster.sharding.typed.scaladsl.{ ClusterSharding, EntityTypeKey }
+import akka.cluster.sharding.{ ClusterSharding => ClassicClusterSharding }
+import akka.cluster.typed.{ Cluster, Subscribe }
 import akka.util.Timeout
 
 import io.scalac.extension.event.ClusterEvent
@@ -62,56 +61,56 @@ object ClusterSelfNodeEventsActor {
   ): Behavior[Command] = {
     OnClusterStartUp { selfMember =>
       Behaviors.setup { ctx =>
+        import Command._
+        import ctx.{ log, messageAdapter, system }
 
-          import Command._
-          import ctx.{log, system, messageAdapter}
+        implicit val timeout: Timeout = pingOffset
 
-          implicit val timeout: Timeout = pingOffset
+        val monitor         = clusterMetricsMonitor.bind(selfMember.uniqueAddress.toNode)
+        val cluster         = Cluster(system)
+        val sharding        = ClusterSharding(system)
+        val classicSharding = ClassicClusterSharding(system.classicSystem)
+        // classicSharding disclaimer: current implementation of akka cluster works only on adapted actor systems
 
-          val monitor = clusterMetricsMonitor.bind(selfMember.uniqueAddress.toNode)
-          val cluster  = Cluster(system)
-          val sharding = ClusterSharding(system)
-          val classicSharding = ClassicClusterSharding(system.classicSystem)
-          // classicSharding disclaimer: current implementation of akka cluster works only on adapted actor systems
+        // adapters
 
-          // adapters
-
-          def shardRegionStatsAdapterFor(region: String) =
-            messageAdapter[CurrentShardRegionState](
-              ShardRegionStatsReceived(_, region)
-            )
-
-          // bootstrap messages
-
-          cluster.subscriptions ! Subscribe(
-            messageAdapter[MemberEvent](ClusterMemberEvent.apply),
-            classOf[MemberEvent]
+        def shardRegionStatsAdapterFor(region: String) =
+          messageAdapter[CurrentShardRegionState](
+            ShardRegionStatsReceived(_, region)
           )
 
-          cluster.subscriptions ! Subscribe(
-            messageAdapter[AkkaReachabilityEvent] {
-              case UnreachableMember(member) => NodeUnreachable(member.uniqueAddress)
-              case ReachableMember(member)   => NodeReachable(member.uniqueAddress)
-            },
-            classOf[AkkaReachabilityEvent]
-          )
+        // bootstrap messages
 
-          Receptionist(system).ref ! Register(
-            clusterServiceKey,
-            messageAdapter[ClusterEvent] {
-              case ShardingRegionInstalled(region) => MonitorRegion(region)
-            }
-          )
+        cluster.subscriptions ! Subscribe(
+          messageAdapter[MemberEvent](ClusterMemberEvent.apply),
+          classOf[MemberEvent]
+        )
 
-          // behavior setup
+        cluster.subscriptions ! Subscribe(
+          messageAdapter[AkkaReachabilityEvent] {
+            case UnreachableMember(member) => NodeUnreachable(member.uniqueAddress)
+            case ReachableMember(member)   => NodeReachable(member.uniqueAddress)
+          },
+          classOf[AkkaReachabilityEvent]
+        )
 
-          def initialized(
-            regions: Seq[String],
-            unreachableNodes: Set[UniqueAddress],
-            entitiesCount: Map[String, Long] // region -> count
-          ): Behavior[Command] = {
-            Behaviors.withTimers[Command] { scheduler =>
-              Behaviors.receiveMessage[Command] {
+        Receptionist(system).ref ! Register(
+          clusterServiceKey,
+          messageAdapter[ClusterEvent] {
+            case ShardingRegionInstalled(region) => MonitorRegion(region)
+          }
+        )
+
+        // behavior setup
+
+        def initialized(
+          regions: Seq[String],
+          unreachableNodes: Set[UniqueAddress],
+          entitiesCount: Map[String, Long] // region -> count
+        ): Behavior[Command] =
+          Behaviors.withTimers[Command] { scheduler =>
+            Behaviors
+              .receiveMessage[Command] {
 
                 case ClusterMemberEvent(MemberRemoved(member, _)) =>
                   if (unreachableNodes.contains(member.uniqueAddress)) {
@@ -124,7 +123,7 @@ object ClusterSelfNodeEventsActor {
                 case ClusterMemberEvent(event) =>
                   event match {
                     case MemberUp(_) => monitor.reachableNodes.incValue(1L)
-                    case _ => //
+                    case _           => //
                   }
                   Behaviors.same
 
@@ -163,7 +162,7 @@ object ClusterSelfNodeEventsActor {
                   Behaviors.same
 
                 case ShardRegionStatsReceived(regionStats, region) =>
-                  val shards = regionStats.shards.size
+                  val shards   = regionStats.shards.size
                   val entities = regionStats.shards.foldLeft(0L)(_ + _.entityIds.size)
                   log.trace("Recorded amount of entities {}", entities)
                   monitor.entityPerRegion.setValue(entities)
@@ -178,11 +177,10 @@ object ClusterSelfNodeEventsActor {
                   regions.map(MonitorRegion).foreach(ctx.self.tell)
                   Behaviors.same
               }
-            }
           }
 
-          val unreachable = cluster.state.unreachable.map(_.uniqueAddress)
-          initialized(Seq.empty, unreachable, Map.empty)
+        val unreachable = cluster.state.unreachable.map(_.uniqueAddress)
+        initialized(Seq.empty, unreachable, Map.empty)
 
       }
     }
