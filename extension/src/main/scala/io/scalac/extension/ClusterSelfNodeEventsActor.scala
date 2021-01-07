@@ -26,6 +26,7 @@ import io.scalac.extension.metric.ClusterMetricsMonitor
 import io.scalac.extension.model._
 import scala.concurrent.duration._
 import scala.language.postfixOps
+import scala.util.{ Failure, Success }
 
 class ClusterSelfNodeEventsActor
 object ClusterSelfNodeEventsActor {
@@ -42,7 +43,7 @@ object ClusterSelfNodeEventsActor {
     ) extends Command
 
     private[ClusterSelfNodeEventsActor] final case class ShardRegionStatsReceived(
-      stats: CurrentShardRegionState,
+      stats: Option[CurrentShardRegionState],
       region: String
     ) extends Command
 
@@ -64,20 +65,11 @@ object ClusterSelfNodeEventsActor {
         import Command._
         import ctx.{ log, messageAdapter, system }
 
-        implicit val timeout: Timeout = pingOffset
-
         val monitor         = clusterMetricsMonitor.bind(selfMember.uniqueAddress.toNode)
         val cluster         = Cluster(system)
         val sharding        = ClusterSharding(system)
         val classicSharding = ClassicClusterSharding(system.classicSystem)
         // classicSharding disclaimer: current implementation of akka cluster works only on adapted actor systems
-
-        // adapters
-
-        def shardRegionStatsAdapterFor(region: String) =
-          messageAdapter[CurrentShardRegionState](
-            ShardRegionStatsReceived(_, region)
-          )
 
         // bootstrap messages
 
@@ -137,19 +129,6 @@ object ClusterSelfNodeEventsActor {
                   monitor.atomically(monitor.reachableNodes, monitor.unreachableNodes)(-1L, 1L)
                   initialized(regions, unreachableNodes + address, entitiesCount)
 
-                case MonitorRegion(region) =>
-                  log.info("Start monitoring region {}", region)
-                  scheduler.startTimerWithFixedDelay(region, GetShardRegionStats(region), pingOffset)
-                  scheduler.startTimerWithFixedDelay(selfMember, UpdateNodeStats, pingOffset)
-                  initialized(regions :+ region, unreachableNodes, entitiesCount)
-
-                case GetShardRegionStats(region) =>
-                  sharding.shardState ! GetShardRegionState(
-                    EntityTypeKey[Any](region),
-                    shardRegionStatsAdapterFor(region)
-                  )
-                  Behaviors.same
-
                 case UpdateNodeStats =>
                   val regions = classicSharding.shardTypeNames.size
                   monitor.shardRegionsOnNode.setValue(regions)
@@ -161,15 +140,43 @@ object ClusterSelfNodeEventsActor {
 
                   Behaviors.same
 
-                case ShardRegionStatsReceived(regionStats, region) =>
-                  val shards   = regionStats.shards.size
-                  val entities = regionStats.shards.foldLeft(0L)(_ + _.entityIds.size)
-                  log.trace("Recorded amount of entities {}", entities)
-                  monitor.entityPerRegion.setValue(entities)
-                  log.trace("Recorded amount of shards {}", shards)
-                  monitor.shardPerRegions.setValue(shards)
-                  initialized(regions, unreachableNodes, entitiesCount.updated(region, entities))
+                case MonitorRegion(region) =>
+                  log.info("Start monitoring region {}", region)
+                  scheduler.startTimerWithFixedDelay(region, GetShardRegionStats(region), pingOffset)
+                  scheduler.startTimerWithFixedDelay(selfMember, UpdateNodeStats, pingOffset)
+                  initialized(regions :+ region, unreachableNodes, entitiesCount)
 
+                case GetShardRegionStats(region) =>
+                  implicit val timeout: Timeout = pingOffset
+                  ctx.ask[GetShardRegionState, CurrentShardRegionState](
+                    sharding.shardState,
+                    replyTo =>
+                      GetShardRegionState(
+                        EntityTypeKey[Any](region),
+                        replyTo
+                    )
+                  ) {
+                    case Success(stats) =>
+                      ShardRegionStatsReceived(Some(stats), region)
+                    case Failure(exception) =>
+                      log.warn(s"Failure to get stats for region $region.", exception)
+                      ShardRegionStatsReceived(None, region)
+                  }
+
+                  Behaviors.same
+
+                case ShardRegionStatsReceived(opRegionStats, region) =>
+                  opRegionStats.fold(
+                    Behaviors.same[Command]
+                  ) { regionStats =>
+                    val shards   = regionStats.shards.size
+                    val entities = regionStats.shards.foldLeft(0L)(_ + _.entityIds.size)
+                    log.trace("Recorded amount of entities {}", entities)
+                    monitor.entityPerRegion.setValue(entities)
+                    log.trace("Recorded amount of shards {}", shards)
+                    monitor.shardPerRegions.setValue(shards)
+                    initialized(regions, unreachableNodes, entitiesCount.updated(region, entities))
+                  }
               }
               .receiveSignal {
                 case (_, PreRestart) =>
