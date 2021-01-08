@@ -3,13 +3,14 @@ package io.scalac.extension
 import akka.actor.testkit.typed.scaladsl.ScalaTestWithActorTestKit
 import akka.actor.typed.ActorRef
 import akka.actor.typed.receptionist.ServiceKey
+import io.scalac.core.util.Timestamp
 import io.scalac.extension.event.EventBus
-import io.scalac.extension.event.HttpEvent.{ RequestCompleted, RequestStarted }
+import io.scalac.extension.event.HttpEvent.{RequestCompleted, RequestStarted}
 import io.scalac.extension.metric.HttpMetricMonitor.Labels
 import io.scalac.extension.util.TestConfig.localActorProvider
 import io.scalac.extension.util.probe.BoundTestProbe._
 import io.scalac.extension.util.probe.HttpMetricsTestProbe
-import io.scalac.extension.util.{ IdentityPathService, MonitorFixture, TerminationRegistryOps, TestOps }
+import io.scalac.extension.util.{IdentityPathService, MonitorFixture, TerminationRegistryOps, TestOps}
 import org.scalatest._
 import org.scalatest.concurrent.Eventually
 import org.scalatest.flatspec.AnyFlatSpecLike
@@ -42,11 +43,11 @@ class HttpEventsActorTest
   override protected val serviceKey: ServiceKey[_] = httpServiceKey
 
   def requestStarted(id: String, labels: Labels): Unit = EventBus(system).publishEvent(
-    RequestStarted(id, System.currentTimeMillis(), labels.path, labels.method)
+    RequestStarted(id, Timestamp.create(), labels.path, labels.method)
   )
 
   def requestCompleted(id: String): Unit =
-    EventBus(system).publishEvent(RequestCompleted(id, System.currentTimeMillis()))
+    EventBus(system).publishEvent(RequestCompleted(id, Timestamp.create()))
 
   "HttpEventsActor" should "collect metrics for single request" in test { monitor =>
     val expectedLabels = Labels(None, "/api/v1/test", "GET")

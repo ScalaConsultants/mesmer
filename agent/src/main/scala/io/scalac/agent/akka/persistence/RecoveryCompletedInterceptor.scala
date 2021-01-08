@@ -3,6 +3,7 @@ package io.scalac.agent.akka.persistence
 import _root_.akka.actor.typed.scaladsl.ActorContext
 import _root_.akka.persistence.typed.PersistenceId
 import _root_.akka.util.Timeout
+import io.scalac.core.util.Timestamp
 import io.scalac.extension.event.EventBus
 import io.scalac.extension.event.PersistenceEvent.RecoveryFinished
 import net.bytebuddy.asm.Advice
@@ -46,7 +47,7 @@ object RecoveryCompletedInterceptor {
       persistenceId =>
         EventBus(actorContext.system)
           .publishEvent(
-            RecoveryFinished(path.toString, persistenceId.id, System.currentTimeMillis())
+            RecoveryFinished(path.toString, persistenceId.id, Timestamp.create())
           )
     )
   }

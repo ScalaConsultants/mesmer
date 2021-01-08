@@ -58,7 +58,7 @@ object HttpEventsActor {
                 ctx.log.error("Got request completed event but no corresponding request started event")
                 Behaviors.same[Event]
               } { started =>
-                val requestDuration = timestamp - started.timestamp
+                val requestDuration = started.timestamp.interval(timestamp)
                 val monitorBoundary = createLabels(started.path, started.method)
                 val monitor         = cachingHttpMonitor.bind(monitorBoundary)
 
@@ -74,7 +74,7 @@ object HttpEventsActor {
                 ctx.log.error("Got request failed event but no corresponding request started event")
                 Behaviors.same[Event]
               } { started =>
-                val requestDuration = timestamp - started.timestamp
+                val requestDuration = started.timestamp.interval(timestamp)
                 ctx.log.error(s"request ${id} failed after {} millis", requestDuration)
                 monitorHttp(inFlightRequest - id)
               }
