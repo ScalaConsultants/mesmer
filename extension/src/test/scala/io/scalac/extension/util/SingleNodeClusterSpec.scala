@@ -2,23 +2,24 @@ package io.scalac.extension.util
 
 import java.util.UUID
 
-import akka.actor.typed.scaladsl.AskPattern._
-import akka.actor.typed.scaladsl.Behaviors
-import akka.actor.typed.{ActorRef, ActorSystem, Behavior}
-import akka.cluster.Member
-import akka.cluster.sharding.typed.ShardingEnvelope
-import akka.cluster.sharding.typed.scaladsl.{ClusterSharding, Entity, EntityTypeKey}
-import akka.cluster.typed.{Cluster, SelfUp, Subscribe}
-import akka.util.Timeout
-import com.typesafe.config.{Config, ConfigFactory, ConfigValueFactory}
-import io.scalac.extension.util.probe.ClusterMetricsTestProbe
-import org.scalatest.{Assertion, AsyncTestSuite}
-
 import scala.concurrent.Future
 import scala.concurrent.duration._
 import scala.jdk.CollectionConverters._
 import scala.language.postfixOps
 import scala.reflect.ClassTag
+
+import akka.actor.typed.scaladsl.AskPattern._
+import akka.actor.typed.scaladsl.Behaviors
+import akka.actor.typed.{ ActorRef, ActorSystem, Behavior }
+import akka.cluster.Member
+import akka.cluster.sharding.typed.ShardingEnvelope
+import akka.cluster.sharding.typed.scaladsl.{ ClusterSharding, Entity, EntityTypeKey }
+import akka.cluster.typed.{ Cluster, SelfUp, Subscribe }
+import akka.util.Timeout
+
+import com.typesafe.config.{ Config, ConfigFactory, ConfigValueFactory }
+import io.scalac.extension.util.probe.ClusterMetricsTestProbe
+import org.scalatest.{ Assertion, AsyncTestSuite }
 
 trait SingleNodeClusterSpec extends AsyncTestSuite {
 
@@ -38,52 +39,65 @@ trait SingleNodeClusterSpec extends AsyncTestSuite {
   }
 
   type Fixture[T] = (ActorSystem[Nothing], Member, ActorRef[ShardingEnvelope[T]], ClusterMetricsTestProbe, String)
+  type FixtureN[T] =
+    (ActorSystem[Nothing], Member, List[ActorRef[ShardingEnvelope[T]]], ClusterMetricsTestProbe, List[String])
 
-  def setup[T: ClassTag](behavior: String => Behavior[T])(test: Fixture[T] => Assertion): Future[Assertion] = {
+  def setupN[T: ClassTag](behavior: String => Behavior[T], n: Int)(
+    test: FixtureN[T] => Assertion
+  ): Future[Assertion] = {
     val port = portGenerator.generatePort()
 
-    def initAkka(): Future[(String, ActorSystem[Nothing], Cluster, ClusterSharding)] = Future {
-      val systemId: String   = UUID.randomUUID().toString
-      val entityName: String = UUID.randomUUID().toString
-      val systemConfig       = createConfig(port.port, systemId)
+    def initAkka(): Future[(List[String], ActorSystem[Nothing], Cluster, ClusterSharding)] = Future {
+      val systemId     = UUID.randomUUID().toString
+      val entityNames  = List.tabulate(n)(_ => UUID.randomUUID().toString)
+      val systemConfig = createConfig(port.port, systemId)
 
       implicit val system: ActorSystem[Nothing] = ActorSystem[Nothing](Behaviors.empty, systemId, systemConfig)
-      // consider using blocking dispatcher
+
+      // TODO consider using blocking dispatcher
       val cluster = Cluster(system)
 
       val sharding = ClusterSharding(system)
-      (entityName, system, cluster, sharding)
+      (entityNames, system, cluster, sharding)
     }
 
     def runTest(
       system: ActorSystem[Nothing],
-      entityName: String,
+      entityNames: List[String],
       cluster: Cluster,
       sharding: ClusterSharding
-    ): Future[Assertion] =
-      Future {
+    ): Future[Assertion] = Future {
+
+      // sharding boots-up synchronously
+      val refs = entityNames.map { entityName =>
         val entityKey = EntityTypeKey[T](entityName)
         val entity    = Entity(entityKey)(context => behavior(context.entityId))
-
-        // sharding boots-up synchronously
-        val ref          = sharding.init(entity)
-        val clusterProbe = ClusterMetricsTestProbe()(system)
-
-        Function.untupled(test)(system, cluster.selfMember, ref, clusterProbe, entityName)
+        sharding.init(entity)
       }
+
+      val clusterProbe = ClusterMetricsTestProbe()(system)
+
+      Function.untupled(test)(system, cluster.selfMember, refs, clusterProbe, entityNames)
+    }
 
     def onClusterStart(cluster: Cluster)(implicit system: ActorSystem[_]) =
       cluster.subscriptions.ask[SelfUp](reply => Subscribe(reply, classOf[SelfUp]))
 
     for {
-      (region, _system, cluster, sharding) <- initAkka()
-      system                               = _system
-      _                                    <- onClusterStart(cluster)(system)
-      assertion                            <- runTest(system, region, cluster, sharding)
-      _                                    = portGenerator.releasePort(port)
-      _                                    = system.terminate()
-      _                                    <- system.whenTerminated
+      (regions, _system, cluster, sharding) <- initAkka()
+      system                                = _system
+      _                                     <- onClusterStart(cluster)(system)
+      assertion                             <- runTest(system, regions, cluster, sharding)
+      _                                     = portGenerator.releasePort(port)
+      _                                     = system.terminate()
+      _                                     <- system.whenTerminated
     } yield assertion
   }
+
+  def setup[T: ClassTag](behavior: String => Behavior[T])(test: Fixture[T] => Assertion): Future[Assertion] =
+    setupN(behavior, n = 1) {
+      case (system, member, ref :: Nil, probe, shading :: Nil) =>
+        test(system, member, ref, probe, shading)
+    }
 
 }

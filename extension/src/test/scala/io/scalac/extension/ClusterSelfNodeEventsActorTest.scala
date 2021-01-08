@@ -50,15 +50,14 @@ class ClusterSelfNodeEventsActorTest
       messages should contain(MetricRecorded(10))
   }
 
-  it should "show proper amount of entities on node with more than one region" in setup(TestBehavior.apply) {
-    case (system, _, ref, monitor, region) =>
+  it should "show proper amount of entities on node with 2 regions" in setupN(TestBehavior.apply, n = 2) {
+    case (system, _, refs, monitor, regions) =>
       system.systemActorOf(ClusterSelfNodeEventsActor.apply(monitor), "sut")
 
-      EventBus(system).publishEvent(ShardingRegionInstalled(region))
-      EventBus(system).publishEvent(ShardingRegionInstalled(UUID.randomUUID.toString))
-      // TODO How to send message to the new region?
+      val eventBus = EventBus(system)
+      regions.view.map(ShardingRegionInstalled).foreach(eventBus.publishEvent(_))
 
-      for (i <- 0 until 10) ref ! ShardingEnvelope(s"test_$i", Create)
+      for (i <- 0 until 10) refs(i % refs.length) ! ShardingEnvelope(s"test_$i", Create)
 
       val messages = monitor.entitiesOnNodeProbe.receiveMessages(2, 15 seconds)
       messages should contain(MetricRecorded(10))
@@ -80,7 +79,7 @@ class ClusterSelfNodeEventsActorTest
   }
 
   it should "have same regions monitored after restart" in setup(TestBehavior.apply) {
-    case (_system, member, ref, monitor, region) =>
+    case (_system, _, _, monitor, region) =>
       implicit val system: ActorSystem[Nothing] = _system
 
       val probe = TestProbe[ClusterSelfNodeEventsActor.Command]
