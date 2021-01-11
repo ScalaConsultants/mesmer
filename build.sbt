@@ -2,7 +2,7 @@ import Dependencies._
 import sbt.Package.{ MainClass, ManifestAttributes }
 
 ThisBuild / scalaVersion := "2.13.4"
-ThisBuild / version := "0.1.0-SNAPSHOT"
+ThisBuild / version := "0.1"
 ThisBuild / organization := "io.scalac"
 ThisBuild / organizationName := "scalac"
 
@@ -19,15 +19,18 @@ def runWithAgent = Command.command("runWithAgent") { state =>
     Project.extract(newState).runInputTask(Compile / run, "", newState)
   s
 }
+
 lazy val root = (project in file("."))
-//  .enablePlugins(MultiJvmPlugin)
   .settings(name := "akka-monitoring")
   .aggregate(extension, agent, testApp)
+
+val testAndProvided = "test;provided"
 
 lazy val core = (project in file("core"))
   .settings(
     name := "core",
-    libraryDependencies ++= akka ++ openTelemetryApi ++ scalatest ++ akkaTestkit
+    libraryDependencies ++= akka.map(_ % testAndProvided) ++ openTelemetryApi
+      .map(_                           % Provided) ++ scalatest ++ akkaTestkit
   )
 
 lazy val extension = (project in file("extension"))
@@ -36,8 +39,11 @@ lazy val extension = (project in file("extension"))
   .settings(
     parallelExecution in Test := true,
     name := "akka-monitoring-extension",
-    libraryDependencies ++= akka ++ openTelemetryApi ++ akkaTestkit ++ scalatest ++ logback.map(_ % Test) ++ akkaMultiNodeTestKit
-       ++ newRelicSdk ++ openTelemetrySdk
+    libraryDependencies ++= openTelemetryApi ++ akkaTestkit ++ scalatest ++ logback.map(_ % Test)
+      ++ akkaMultiNodeTestKit ++ (openTelemetrySdk ++ akka ++ newRelicSdk).map(_          % testAndProvided),
+    assembly / assemblyJarName := s"${name.value}.jar",
+    assembly / assemblyOption ~= { _.copy(includeScala = false) },
+    assembly / test := {}
   )
   .dependsOn(core % "compile->compile;test->test")
 
@@ -63,7 +69,8 @@ val assemblyMergeStrategySettings = assembly / assemblyMergeStrategy := {
 lazy val agent = (project in file("agent"))
   .settings(
     name := "akka-monitoring-agent",
-    libraryDependencies ++= akka.map(_ % "provided") ++ byteBuddy ++ scalatest ++ akkaTestkit ++ slf4jApi ++ reflection(
+    libraryDependencies ++= akka.map(_ % "provided") ++ byteBuddy ++ scalatest ++ akkaTestkit ++ slf4jApi
+      .map(_                           % Test) ++ reflection(
       scalaVersion.value
     ),
     Compile / mainClass := Some("io.scalac.agent.Boot"),
@@ -84,6 +91,8 @@ lazy val agent = (project in file("agent"))
     core % "provided->compile;test->test"
   )
 
+Seq()
+
 lazy val testApp = (project in file("test_app"))
   .settings(
     name := "akka-monitoring-test-app",
@@ -103,4 +112,4 @@ lazy val testApp = (project in file("test_app"))
     },
     commands += runWithAgent
   )
-  .dependsOn(extension, agent)
+  .dependsOn(extension)
