@@ -4,7 +4,7 @@ import akka.actor.typed.Behavior
 import akka.actor.typed.receptionist.Receptionist
 import akka.actor.typed.receptionist.Receptionist.Register
 import akka.actor.typed.scaladsl.Behaviors
-import io.scalac.extension.config.CleaningConfig
+import io.scalac.extension.config.CleaningSettings
 import io.scalac.extension.event.PersistenceEvent
 import io.scalac.extension.event.PersistenceEvent._
 import io.scalac.extension.metric.CachingMonitor._

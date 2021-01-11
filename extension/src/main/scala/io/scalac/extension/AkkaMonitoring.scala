@@ -1,29 +1,32 @@
 package io.scalac.extension
 
-import java.net.URI
-import java.util.Collections
-
 import akka.actor.ExtendedActorSystem
 import akka.actor.typed.scaladsl.Behaviors
-import akka.actor.typed.{ActorSystem, Extension, ExtensionId, SupervisorStrategy}
+import akka.actor.typed.{ ActorSystem, Extension, ExtensionId, SupervisorStrategy }
 import akka.cluster.Cluster
-import akka.cluster.typed.{ClusterSingleton, SingletonActor}
+import akka.cluster.typed.{ ClusterSingleton, SingletonActor }
 import akka.util.Timeout
 import com.newrelic.telemetry.Attributes
 import com.newrelic.telemetry.opentelemetry.`export`.NewRelicMetricExporter
 import io.opentelemetry.sdk.OpenTelemetrySdk
 import io.opentelemetry.sdk.metrics.`export`.IntervalMetricReader
-import io.scalac.core.model.{Module, SupportedVersion, Version}
+import io.scalac.core.model.{ Module, SupportedVersion, Version }
 import io.scalac.core.support.ModulesSupport
 import io.scalac.core.util.ModuleInfo
 import io.scalac.core.util.ModuleInfo.Modules
-import io.scalac.extension.config.{CleaningConfig, ClusterMonitoringConfig}
+import io.scalac.extension.config.ClusterMonitoringConfig
 import io.scalac.extension.http.CleanableRequestStorage
 import io.scalac.extension.model._
-import io.scalac.extension.persistence.{CleanablePersistingStorage, CleanableRecoveryStorage}
+import io.scalac.extension.persistence.{ CleanablePersistingStorage, CleanableRecoveryStorage }
 import io.scalac.extension.service.CommonRegexPathService
-import io.scalac.extension.upstream.{OpenTelemetryClusterMetricsMonitor, OpenTelemetryHttpMetricsMonitor, OpenTelemetryPersistenceMetricMonitor}
+import io.scalac.extension.upstream.{
+  OpenTelemetryClusterMetricsMonitor,
+  OpenTelemetryHttpMetricsMonitor,
+  OpenTelemetryPersistenceMetricMonitor
+}
 
+import java.net.URI
+import java.util.Collections
 import scala.concurrent.duration._
 import scala.language.postfixOps
 import scala.util.Try
@@ -131,7 +134,7 @@ object AkkaMonitoring extends ExtensionId[AkkaMonitoring] {
 }
 
 class AkkaMonitoring(private val system: ActorSystem[_], val config: ClusterMonitoringConfig) extends Extension {
-
+  import config._
   private val instrumentationName = "scalac_akka_metrics"
   private val actorSystemConfig   = system.settings.config
   import system.log
@@ -140,8 +143,6 @@ class AkkaMonitoring(private val system: ActorSystem[_], val config: ClusterMoni
       instrumentationName,
       actorSystemConfig
     )
-
-  val flushConfig = CleaningConfig(20_000L, 20 seconds)
 
   implicit private val timeout: Timeout = 5 seconds
 
@@ -201,16 +202,15 @@ class AkkaMonitoring(private val system: ActorSystem[_], val config: ClusterMoni
     log.debug("Starting PersistenceEventsListener")
 
     val openTelemetryPersistenceMonitor = OpenTelemetryPersistenceMetricMonitor(instrumentationName, actorSystemConfig)
-
     system.systemActorOf(
       Behaviors
         .supervise(
           WithSelfCleaningState
-            .clean(CleanableRecoveryStorage.withConfig(flushConfig))
-            .every(flushConfig.every)(rs =>
+            .clean(CleanableRecoveryStorage.withConfig(cleaningSettings))
+            .every(cleaningSettings.every)(rs =>
               WithSelfCleaningState
-                .clean(CleanablePersistingStorage.withConfig(flushConfig))
-                .every(flushConfig.every) { ps =>
+                .clean(CleanablePersistingStorage.withConfig(cleaningSettings))
+                .every(cleaningSettings.every) { ps =>
                   PersistenceEventsActor.apply(
                     CommonRegexPathService,
                     rs,
@@ -236,8 +236,10 @@ class AkkaMonitoring(private val system: ActorSystem[_], val config: ClusterMoni
       Behaviors
         .supervise(
           WithSelfCleaningState
-            .clean(CleanableRequestStorage.withConfig(flushConfig))
-            .every(flushConfig.every)(rs => HttpEventsActor.apply(openTelemetryHttpMonitor, rs, pathService, nodeName))
+            .clean(CleanableRequestStorage.withConfig(cleaningSettings))
+            .every(cleaningSettings.every)(rs =>
+              HttpEventsActor.apply(openTelemetryHttpMonitor, rs, pathService, nodeName)
+            )
         )
         .onFailure[Exception](SupervisorStrategy.restart),
       "httpEventMonitor"
