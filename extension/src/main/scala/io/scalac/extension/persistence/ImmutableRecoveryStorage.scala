@@ -2,12 +2,12 @@ package io.scalac.extension.persistence
 
 import io.scalac.extension.event.PersistenceEvent.{ RecoveryFinished, RecoveryStarted }
 
-class InMemoryRecoveryStorage private[persistence] (private val recoveries: Map[String, RecoveryStarted])
+class ImmutableRecoveryStorage private[persistence] (private val recoveries: Map[String, RecoveryStarted])
     extends RecoveryStorage {
 
   override def recoveryStarted(event: RecoveryStarted): RecoveryStorage = {
     val key = eventToKey(event)
-    new InMemoryRecoveryStorage(recoveries + (key -> event))
+    new ImmutableRecoveryStorage(recoveries + (key -> event))
   }
 
   override def recoveryFinished(event: RecoveryFinished): Option[(RecoveryStorage, Long)] = {
@@ -16,11 +16,11 @@ class InMemoryRecoveryStorage private[persistence] (private val recoveries: Map[
       .get(key)
       .map { start =>
         val recoveryDuration = calculate(start, event)
-        (new InMemoryRecoveryStorage(recoveries - key), recoveryDuration)
+        (new ImmutableRecoveryStorage(recoveries - key), recoveryDuration)
       }
   }
 }
 
-object InMemoryRecoveryStorage {
-  def empty: InMemoryRecoveryStorage = new InMemoryRecoveryStorage(Map.empty)
+object ImmutableRecoveryStorage {
+  def empty: ImmutableRecoveryStorage = new ImmutableRecoveryStorage(Map.empty)
 }
