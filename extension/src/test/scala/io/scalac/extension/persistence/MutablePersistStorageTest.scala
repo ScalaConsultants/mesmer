@@ -8,6 +8,7 @@ import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
 import scala.collection.mutable
+import scala.concurrent.duration._
 
 class MutablePersistStorageTest extends AnyFlatSpec with Matchers with TestOps {
   type Fixture = (mutable.Map[PersistEventKey, PersistingEventStarted], MutablePersistStorage)
@@ -43,7 +44,7 @@ class MutablePersistStorageTest extends AnyFlatSpec with Matchers with TestOps {
             started.path,
             started.persistenceId,
             started.sequenceNr,
-            started.timestamp.after(1000L)
+            started.timestamp.plus(1000.millis)
           )
         )
 
@@ -62,7 +63,7 @@ class MutablePersistStorageTest extends AnyFlatSpec with Matchers with TestOps {
       val expectedLatency = 1234L
       sut.persistEventStarted(PersistingEventStarted(path, id, seqNo, startTimestamp))
       val Some((resultStorage, latency)) =
-        sut.persistEventFinished(PersistingEventFinished(path, id, seqNo, startTimestamp.after(expectedLatency)))
+        sut.persistEventFinished(PersistingEventFinished(path, id, seqNo, startTimestamp.plus(expectedLatency.millis)))
       resultStorage should be theSameInstanceAs (sut)
       latency should be(expectedLatency)
   }

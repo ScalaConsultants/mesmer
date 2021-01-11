@@ -22,13 +22,13 @@ class CleanableRecoveryStorageTest extends AnyFlatSpec with Matchers with TestOp
     val staleEvents = List.fill(10) {
       val staleness = Random.nextLong(80_000) + maxStaleness
       val id        = createUniqueId
-      RecoveryStarted(s"/some/path/${id}", id, baseTimestamp.before(staleness))
+      RecoveryStarted(s"/some/path/${id}", id, baseTimestamp.minus(staleness.millis))
     }
 
     val freshEvents = List.fill(10) {
       val id        = createUniqueId
       val staleness = Random.nextLong(maxStaleness)
-      RecoveryStarted(s"/some/path/${id}", id, baseTimestamp.before(staleness))
+      RecoveryStarted(s"/some/path/${id}", id, baseTimestamp.minus(staleness.millis))
     }
 
     val sut = new CleanableRecoveryStorage(buffer)(config) {

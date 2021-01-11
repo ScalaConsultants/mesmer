@@ -7,6 +7,7 @@ import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
 import scala.collection.mutable
+import scala.concurrent.duration._
 
 class MutableRecoveryStorageTest extends AnyFlatSpec with Matchers with TestOps {
   type Fixture = (mutable.Map[String, RecoveryStarted], MutableRecoveryStorage)
@@ -36,7 +37,7 @@ class MutableRecoveryStorageTest extends AnyFlatSpec with Matchers with TestOps 
       events.foreach(sut.recoveryStarted)
       val finished = events
         .take(5)
-        .map(started => RecoveryFinished(started.path, started.persistenceId, started.timestamp.after(100L)))
+        .map(started => RecoveryFinished(started.path, started.persistenceId, started.timestamp.plus(100L.millis)))
       finished.foreach(sut.recoveryFinished)
 
       buffer should have size (events.size - finished.size)
@@ -51,7 +52,7 @@ class MutableRecoveryStorageTest extends AnyFlatSpec with Matchers with TestOps 
       val expectedLatency = 1234L
       sut.recoveryStarted(RecoveryStarted(path, id, startTimestamp))
       val Some((resultStorage, latency)) =
-        sut.recoveryFinished(RecoveryFinished(path, id, startTimestamp.after(expectedLatency)))
+        sut.recoveryFinished(RecoveryFinished(path, id, startTimestamp.plus(expectedLatency.millis)))
       resultStorage should be theSameInstanceAs (sut)
       latency should be(expectedLatency)
   }
