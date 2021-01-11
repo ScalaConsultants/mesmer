@@ -61,12 +61,12 @@ object HttpEventsActor {
                 Behaviors.same[Event]
               } {
                 case (storage, started) =>
-                  val latency         = timestamp - started.timestamp
+                  val requestDuration = started.timestamp.interval(timestamp)
                   val monitorBoundary = createLabels(started.path, started.method)
                   val monitor         = cachingHttpMonitor.bind(monitorBoundary)
 
-                  monitor.requestTime.setValue(latency)
-                  ctx.log.debug(s"request ${id} finished in {} millis", latency)
+                  monitor.requestTime.setValue(requestDuration)
+                  ctx.log.debug(s"request ${id} finished in {} millis", requestDuration)
                   monitorHttp(storage)
               }
           }
@@ -78,7 +78,7 @@ object HttpEventsActor {
                 Behaviors.same[Event]
               } {
                 case (storage, started) =>
-                  val requestDuration = timestamp - started.timestamp
+                  val requestDuration = started.timestamp.interval(timestamp)
                   ctx.log.error(s"request ${id} failed after {} millis", requestDuration)
                   monitorHttp(storage)
               }

@@ -1,5 +1,6 @@
 package io.scalac.extension.persistence
 
+import io.scalac.core.util.Timestamp
 import io.scalac.extension.config.CleaningConfig
 import io.scalac.extension.event.PersistenceEvent.RecoveryStarted
 import io.scalac.extension.util.TestOps
@@ -16,22 +17,22 @@ class CleanableRecoveryStorageTest extends AnyFlatSpec with Matchers with TestOp
     val buffer        = mutable.Map.empty[String, RecoveryStarted]
     val maxStaleness  = 10_000L
     val config        = CleaningConfig(maxStaleness, 10.seconds)
-    val baseTimestamp = 100_000L
+    val baseTimestamp = Timestamp.create()
 
     val staleEvents = List.fill(10) {
       val staleness = Random.nextLong(80_000) + maxStaleness
       val id        = createUniqueId
-      RecoveryStarted(s"/some/path/${id}", id, baseTimestamp - staleness)
+      RecoveryStarted(s"/some/path/${id}", id, baseTimestamp.before(staleness))
     }
 
     val freshEvents = List.fill(10) {
       val id        = createUniqueId
       val staleness = Random.nextLong(maxStaleness)
-      RecoveryStarted(s"/some/path/${id}", id, baseTimestamp - staleness)
+      RecoveryStarted(s"/some/path/${id}", id, baseTimestamp.before(staleness))
     }
 
     val sut = new CleanableRecoveryStorage(buffer)(config) {
-      override protected def timestamp: Long = baseTimestamp
+      override protected def currentTimestamp: Timestamp = baseTimestamp
     }
 
     for {

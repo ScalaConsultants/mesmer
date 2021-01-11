@@ -1,6 +1,6 @@
 package io.scalac.extension.persistence
 
-import io.scalac.extension.event.PersistenceEvent.{RecoveryFinished, RecoveryStarted}
+import io.scalac.extension.event.PersistenceEvent.{ RecoveryFinished, RecoveryStarted }
 
 class InMemoryRecoveryStorage private[persistence] (private val recoveries: Map[String, RecoveryStarted])
     extends RecoveryStorage {
@@ -15,7 +15,7 @@ class InMemoryRecoveryStorage private[persistence] (private val recoveries: Map[
     recoveries
       .get(key)
       .map { start =>
-        val recoveryDuration = event.timestamp - start.timestamp
+        val recoveryDuration = calculate(start, event)
         (new InMemoryRecoveryStorage(recoveries - key), recoveryDuration)
       }
   }

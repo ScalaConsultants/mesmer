@@ -1,5 +1,6 @@
 package io.scalac.extension.http
 
+import io.scalac.core.util.Timestamp
 import io.scalac.extension.config.CleaningConfig
 import io.scalac.extension.event.HttpEvent._
 import io.scalac.extension.util.TestOps
@@ -16,22 +17,22 @@ class CleanableRequestStorageTest extends AnyFlatSpec with Matchers with TestOps
     val buffer        = mutable.Map.empty[String, RequestStarted]
     val maxStaleness  = 10_000L
     val config        = CleaningConfig(maxStaleness, 10.seconds)
-    val baseTimestamp = 100_000L
+    val baseTimestamp = Timestamp.create()
 
     val staleEvents = List.fill(10) {
       val staleness = Random.nextLong(80_000) + maxStaleness
       val id        = createUniqueId
-      RequestStarted(id, baseTimestamp - staleness, "/some/path", "GET")
+      RequestStarted(id, baseTimestamp.before(staleness), "/some/path", "GET")
     }
 
     val freshEvents = List.fill(10) {
       val id        = createUniqueId
       val staleness = Random.nextLong(maxStaleness)
-      RequestStarted(id, baseTimestamp - staleness, "/some/path", "GET")
+      RequestStarted(id, baseTimestamp.before(staleness), "/some/path", "GET")
     }
 
     val sut = new CleanableRequestStorage(buffer)(config) {
-      override protected def timestamp: Long = baseTimestamp
+      override protected def currentTimestamp: Timestamp = baseTimestamp
     }
 
     for {

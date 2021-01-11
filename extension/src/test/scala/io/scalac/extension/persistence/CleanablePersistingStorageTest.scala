@@ -1,5 +1,6 @@
 package io.scalac.extension.persistence
 
+import io.scalac.core.util.Timestamp
 import io.scalac.extension.config.CleaningConfig
 import io.scalac.extension.event.PersistenceEvent.PersistingEventStarted
 import io.scalac.extension.persistence.PersistStorage.PersistEventKey
@@ -17,21 +18,22 @@ class CleanablePersistingStorageTest extends AnyFlatSpec with Matchers with Test
     val buffer        = mutable.Map.empty[PersistEventKey, PersistingEventStarted]
     val maxStaleness  = 10_000L
     val config        = CleaningConfig(maxStaleness, 10.seconds)
-    val baseTimestamp = 100_000L
+    val baseTimestamp = Timestamp.create()
 
     val staleEvents = List.fill(10) {
       val staleness = Random.nextLong(80_000) + maxStaleness
       val id        = createUniqueId
-      PersistingEventStarted(s"/some/path/${id}", id, 100L, baseTimestamp - staleness)
+      PersistingEventStarted(s"/some/path/${id}", id, 100L, baseTimestamp.before(staleness))
     }
+
     val freshEvents = List.fill(10) {
       val id        = createUniqueId
       val staleness = Random.nextLong(maxStaleness)
-      PersistingEventStarted(s"/some/path/${id}", id, 100L, baseTimestamp - staleness)
+      PersistingEventStarted(s"/some/path/${id}", id, 100L, baseTimestamp.before(staleness))
     }
 
     val sut = new CleanablePersistingStorage(buffer)(config) {
-      override protected def timestamp: Long = baseTimestamp
+      override protected def currentTimestamp: Timestamp = baseTimestamp
     }
 
     for {

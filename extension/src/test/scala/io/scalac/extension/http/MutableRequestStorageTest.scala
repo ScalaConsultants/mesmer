@@ -1,6 +1,7 @@
 package io.scalac.extension.http
 
-import io.scalac.extension.event.HttpEvent.{ RequestCompleted, RequestFailed, RequestStarted }
+import io.scalac.core.util.Timestamp
+import io.scalac.extension.event.HttpEvent.{RequestCompleted, RequestFailed, RequestStarted}
 import io.scalac.extension.util.TestOps
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
@@ -19,7 +20,7 @@ class MutableRequestStorageTest extends AnyFlatSpec with Matchers with TestOps {
     case (buffer, sut) =>
       val events = List.fill(10) {
         val id = createUniqueId
-        RequestStarted(id, System.currentTimeMillis(), "/some/path", "GET")
+        RequestStarted(id, Timestamp.create(), "/some/path", "GET")
       }
       events.foreach(sut.requestStarted)
 
@@ -29,14 +30,15 @@ class MutableRequestStorageTest extends AnyFlatSpec with Matchers with TestOps {
 
   it should "remove started event from internal buffer when corresponding finish event is fired" in test {
     case (buffer, sut) =>
+      val startTimestamp = Timestamp.create()
       val events = List.fill(10) {
         val id = createUniqueId
-        RequestStarted(id, System.currentTimeMillis(), "/some/path", "GET")
+        RequestStarted(id, startTimestamp, "/some/path", "GET")
       }
       events.foreach(sut.requestStarted)
       val finished = events
         .take(5)
-        .map(started => RequestCompleted(started.id, System.currentTimeMillis() + 100L))
+        .map(started => RequestCompleted(started.id, startTimestamp.after(100L)))
 
       finished.foreach(sut.requestCompleted)
 
@@ -47,13 +49,13 @@ class MutableRequestStorageTest extends AnyFlatSpec with Matchers with TestOps {
   it should "return same storage instance and corresponding starte event" in test {
     case (_, sut) =>
       val id             = createUniqueId
-      val startTimestamp = System.currentTimeMillis()
+      val startTimestamp = Timestamp.create()
       val path           = "/some/path/"
 
       sut.requestStarted(RequestStarted(id, startTimestamp, path, "GET"))
 
       val Some((resultStorage, started)) =
-        sut.requestCompleted(RequestCompleted(id, startTimestamp + 123L))
+        sut.requestCompleted(RequestCompleted(id, startTimestamp.after(123L)))
 
       resultStorage should be theSameInstanceAs (sut)
       started.id should be(id)
@@ -61,14 +63,15 @@ class MutableRequestStorageTest extends AnyFlatSpec with Matchers with TestOps {
 
   it should "remove stared event from internal buffer when requestFailed is fired" in test {
     case (buffer, sut) =>
+      val startTimestamp = Timestamp.create()
       val events = List.fill(10) {
         val id = createUniqueId
-        RequestStarted(id, System.currentTimeMillis(), "/some/path", "GET")
+        RequestStarted(id, startTimestamp, "/some/path", "GET")
       }
       events.foreach(sut.requestStarted)
       val finished = events
         .take(5)
-        .map(started => RequestFailed(started.id, System.currentTimeMillis() + 100L))
+        .map(started => RequestFailed(started.id, startTimestamp.after(100L)))
 
       finished.foreach(sut.requestFailed)
 
@@ -78,23 +81,25 @@ class MutableRequestStorageTest extends AnyFlatSpec with Matchers with TestOps {
 
   it should "return None for requestCompleted if no corresponding started event is present" in test {
     case (buffer, sut) =>
+      val startTimestamp = Timestamp.create()
       val events = List.fill(10) {
         val id = createUniqueId
-        RequestStarted(id, System.currentTimeMillis(), "/some/path", "GET")
+        RequestStarted(id, startTimestamp, "/some/path", "GET")
       }
       events.foreach(sut.requestStarted)
-      sut.requestCompleted(RequestCompleted(createUniqueId, System.currentTimeMillis())) should be(None)
+      sut.requestCompleted(RequestCompleted(createUniqueId, startTimestamp.after(100L))) should be(None)
       buffer.values should contain theSameElementsAs (events)
   }
 
   it should "return None for requestFailed if no corresponding started event is present" in test {
     case (buffer, sut) =>
+      val startTimestamp = Timestamp.create()
       val events = List.fill(10) {
         val id = createUniqueId
-        RequestStarted(id, System.currentTimeMillis(), "/some/path", "GET")
+        RequestStarted(id, startTimestamp, "/some/path", "GET")
       }
       events.foreach(sut.requestStarted)
-      sut.requestFailed(RequestFailed(createUniqueId, System.currentTimeMillis())) should be(None)
+      sut.requestFailed(RequestFailed(createUniqueId, startTimestamp.after(100L))) should be(None)
       buffer.values should contain theSameElementsAs (events)
   }
 }
