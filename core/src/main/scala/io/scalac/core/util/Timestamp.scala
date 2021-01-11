@@ -10,9 +10,22 @@ package io.scalac.core.util
 class Timestamp(val value: Long) extends AnyVal {
   def interval(finished: Timestamp): Long = Timestamp.interval(this, finished)
 
-  private[scalac] def after(ms: Long): Timestamp = new Timestamp(value + (ms * 1_000_000))
+  /**
+   * This is created only for testing
+   *
+   * @param offset in ms
+   * @return new Timestamp that indicate moment in time after offset ms
+   */
+  private[scalac] def after(offset: Long): Timestamp = new Timestamp(value + (offset * 1_000_000))
 
-  private[scalac] def before(ms: Long): Timestamp = after(-ms)
+
+  /**
+   * This is created only for testing
+   *
+   * @param offset in ms
+   * @return new Timestamp that indicate moment in time offset ms before
+   */
+  private[scalac] def before(offset: Long): Timestamp = after(-offset)
 }
 
 object Timestamp {
