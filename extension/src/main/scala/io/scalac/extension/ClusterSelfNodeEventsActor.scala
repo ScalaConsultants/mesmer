@@ -19,13 +19,15 @@ import akka.cluster.sharding.typed.scaladsl.{ ClusterSharding, EntityTypeKey }
 import akka.cluster.sharding.{ ClusterSharding => ClassicClusterSharding }
 import akka.cluster.typed.{ Cluster, Subscribe }
 import akka.util.Timeout
+
 import io.scalac.extension.event.ClusterEvent
 import io.scalac.extension.event.ClusterEvent.ShardingRegionInstalled
 import io.scalac.extension.metric.ClusterMetricsMonitor
 import io.scalac.extension.model._
-
 import scala.concurrent.duration._
 import scala.language.postfixOps
+import scala.util.{ Failure, Success }
+
 class ClusterSelfNodeEventsActor
 object ClusterSelfNodeEventsActor {
 
@@ -36,13 +38,16 @@ object ClusterSelfNodeEventsActor {
 
     private[ClusterSelfNodeEventsActor] final case class ClusterMemberEvent(event: MemberEvent) extends Command
 
-    private[ClusterSelfNodeEventsActor] final case class ClusterShardingStatsReceived(
-      stats: CurrentShardRegionState
+    private[ClusterSelfNodeEventsActor] final case class GetShardRegionStats(
+      region: String
     ) extends Command
 
-    private[ClusterSelfNodeEventsActor] final case class GetClusterShardingStatsInternal(
-      regions: String
+    private[ClusterSelfNodeEventsActor] final case class ShardRegionStatsReceived(
+      stats: Option[CurrentShardRegionState],
+      region: String
     ) extends Command
+
+    private[ClusterSelfNodeEventsActor] case object UpdateNodeStats extends Command
 
     sealed trait ReachabilityEvent extends Command
 
@@ -54,121 +59,140 @@ object ClusterSelfNodeEventsActor {
   def apply(
     clusterMetricsMonitor: ClusterMetricsMonitor,
     pingOffset: FiniteDuration = 5.seconds
-  ): Behavior[Command] =
-    OnClusterStartUp(
-      selfMember =>
-        Behaviors.setup { ctx =>
-          import Command._
-          implicit val dispatcher       = ctx.system
-          implicit val timeout: Timeout = pingOffset
-          val selfAddress               = selfMember.uniqueAddress
-          val monitor                   = clusterMetricsMonitor.bind(selfAddress.toNode)
-          val clusterShardingStatsAdapter =
-            ctx.messageAdapter[CurrentShardRegionState](
-              ClusterShardingStatsReceived.apply
-            )
+  ): Behavior[Command] = {
+    OnClusterStartUp { selfMember =>
+      Behaviors.setup { ctx =>
+      Behaviors.withTimers { selfScheduler =>
+        import Command._
+        import ctx.{ log, messageAdapter, system }
 
-          val cluster  = Cluster(ctx.system)
-          val sharding = ClusterSharding(ctx.system)
-          // current implementation of akka cluster works only on adapted actor systems
-          val classicSharding = ClassicClusterSharding(ctx.system.classicSystem)
+        val monitor         = clusterMetricsMonitor.bind(selfMember.uniqueAddress.toNode)
+        val cluster         = Cluster(system)
+        val sharding        = ClusterSharding(system)
+        val classicSharding = ClassicClusterSharding(system.classicSystem)
+        // classicSharding disclaimer: current implementation of akka cluster works only on adapted actor systems
 
-          val memberStateAdapter =
-            ctx.messageAdapter[MemberEvent](ClusterMemberEvent.apply)
+        // bootstrap messages
 
-          cluster.subscriptions ! Subscribe(
-            memberStateAdapter,
-            classOf[MemberEvent]
-          )
+        cluster.subscriptions ! Subscribe(
+          messageAdapter[MemberEvent](ClusterMemberEvent.apply),
+          classOf[MemberEvent]
+        )
 
-          val memberReachabilityAdapter =
-            ctx.messageAdapter[AkkaReachabilityEvent] {
-              case UnreachableMember(member) => NodeUnreachable(member.uniqueAddress)
-              case ReachableMember(member)   => NodeReachable(member.uniqueAddress)
-            }
+        cluster.subscriptions ! Subscribe(
+          messageAdapter[AkkaReachabilityEvent] {
+            case UnreachableMember(member) => NodeUnreachable(member.uniqueAddress)
+            case ReachableMember(member)   => NodeReachable(member.uniqueAddress)
+          },
+          classOf[AkkaReachabilityEvent]
+        )
 
-          cluster.subscriptions ! Subscribe(
-            memberReachabilityAdapter,
-            classOf[AkkaReachabilityEvent]
-          )
-
-          Receptionist(ctx.system).ref ! Register(clusterServiceKey, ctx.messageAdapter[ClusterEvent] {
+        Receptionist(system).ref ! Register(
+          clusterServiceKey,
+          messageAdapter[ClusterEvent] {
             case ShardingRegionInstalled(region) => MonitorRegion(region)
-          })
+          }
+        )
 
-          def initialized(
-            regions: Seq[String],
-            unreachableNodes: Set[UniqueAddress]
-          ): Behavior[Command] =
-            Behaviors.withTimers[Command] {
-              scheduler =>
-                Behaviors
-                  .receiveMessage[Command] {
-                    case MonitorRegion(region) => {
-                      ctx.log.info("Start monitoring region {}", region)
-                      scheduler.startTimerWithFixedDelay(region, GetClusterShardingStatsInternal(region), pingOffset)
-                      initialized(regions :+ region, unreachableNodes)
-                    }
-                    case ClusterMemberEvent(MemberRemoved(member, _)) => {
-                      if (unreachableNodes.contains(member.uniqueAddress)) {
-                        monitor.unreachableNodes.decValue(1L)
-                      } else {
-                        monitor.reachableNodes.decValue(1L)
-                      }
-                      initialized(regions, unreachableNodes - member.uniqueAddress)
-                    }
-                    case ClusterMemberEvent(event) => {
-                      event match {
-                        case MemberUp(_) => monitor.reachableNodes.incValue(1L)
-                        case _           => //
-                      }
-                      Behaviors.same
-                    }
-                    case ClusterShardingStatsReceived(stats) => {
-                      val shards = stats.shards.size
-                      val entities = stats.shards.foldLeft(0) {
-                        case (acc, state) => acc + state.entityIds.size
-                      }
+        // separated routine to update node metrics regardless start of region's monitoring
+        selfScheduler.startTimerWithFixedDelay(UpdateNodeStats, pingOffset)
 
-                      ctx.log.trace("Recorded amount of entities {}", entities)
-                      monitor.entityPerRegion.setValue(entities)
-                      ctx.log.trace("Recorded amount of shards {}", shards)
-                      monitor.shardPerRegions.setValue(shards)
-                      Behaviors.same
-                    }
-                    case GetClusterShardingStatsInternal(region) => {
+        // behavior setup
 
-                      sharding.shardState ! GetShardRegionState(
+        def initialized(
+          regions: Seq[String],
+          unreachableNodes: Set[UniqueAddress],
+          entitiesCount: Map[String, Long] // region -> count
+        ): Behavior[Command] =
+          Behaviors.withTimers[Command] { scheduler =>
+            Behaviors
+              .receiveMessage[Command] {
+
+                case ClusterMemberEvent(MemberRemoved(member, _)) =>
+                  if (unreachableNodes.contains(member.uniqueAddress)) {
+                    monitor.unreachableNodes.decValue(1L)
+                  } else {
+                    monitor.reachableNodes.decValue(1L)
+                  }
+                  initialized(regions, unreachableNodes - member.uniqueAddress, entitiesCount)
+
+                case ClusterMemberEvent(event) =>
+                  event match {
+                    case MemberUp(_) => monitor.reachableNodes.incValue(1L)
+                    case _           => //
+                  }
+                  Behaviors.same
+
+                case NodeReachable(address) =>
+                  log.trace("Node {} become reachable", address)
+                  monitor.atomically(monitor.reachableNodes, monitor.unreachableNodes)(1L, -1L)
+                  initialized(regions, unreachableNodes - address, entitiesCount)
+
+                case NodeUnreachable(address) =>
+                  log.trace("Node {} become unreachable", address)
+                  monitor.atomically(monitor.reachableNodes, monitor.unreachableNodes)(-1L, 1L)
+                  initialized(regions, unreachableNodes + address, entitiesCount)
+
+                case UpdateNodeStats =>
+                  val regions = classicSharding.shardTypeNames.size
+                  monitor.shardRegionsOnNode.setValue(regions)
+                  log.trace("Recorded amount of regions on node {}", regions)
+
+                  val entities = entitiesCount.view.values.sum
+                  monitor.entitiesOnNode.setValue(entities)
+                  log.trace("Recorded amount of entities on node {}", entities)
+
+                  Behaviors.same
+
+                case MonitorRegion(region) =>
+                  log.info("Start monitoring region {}", region)
+                  scheduler.startTimerWithFixedDelay(region, GetShardRegionStats(region), pingOffset)
+                  initialized(regions :+ region, unreachableNodes, entitiesCount)
+
+                case GetShardRegionStats(region) =>
+                  implicit val timeout: Timeout = pingOffset
+                  ctx.ask[GetShardRegionState, CurrentShardRegionState](
+                    sharding.shardState,
+                    replyTo =>
+                      GetShardRegionState(
                         EntityTypeKey[Any](region),
-                        clusterShardingStatsAdapter
-                      )
-                      val regions = classicSharding.shardTypeNames.size
-                      monitor.shardRegionsOnNode.setValue(regions)
-                      Behaviors.same
-                    }
-                    case NodeReachable(address) => {
-                      ctx.log.trace("Node {} become reachable", address)
-                      monitor.atomically(monitor.reachableNodes, monitor.unreachableNodes)(1L, -1L)
-                      initialized(regions, unreachableNodes - address)
-                    }
-                    case NodeUnreachable(address) => {
-                      ctx.log.trace("Node {} become unreachable", address)
-                      monitor.atomically(monitor.reachableNodes, monitor.unreachableNodes)(-1L, 1L)
-                      initialized(regions, unreachableNodes + address)
-                    }
+                        replyTo
+                    )
+                  ) {
+                    case Success(stats) =>
+                      ShardRegionStatsReceived(Some(stats), region)
+                    case Failure(exception) =>
+                      log.warn(s"Failure to get stats for region $region.", exception)
+                      ShardRegionStatsReceived(None, region)
                   }
-                  .receiveSignal {
-                    case (_, PreRestart) => {
-                      ctx.log.info("Saving all monitored regions")
-                      regions.map(MonitorRegion).foreach(ctx.self.tell)
-                      Behaviors.same
-                    }
-                  }
-            }
 
-          val unreachable = cluster.state.unreachable.map(_.uniqueAddress)
-          initialized(Seq.empty, unreachable)
-        },
-      None
-    )
+                  Behaviors.same
+
+                case ShardRegionStatsReceived(opRegionStats, region) =>
+                  opRegionStats.fold(
+                    Behaviors.same[Command]
+                  ) { regionStats =>
+                    val shards   = regionStats.shards.size
+                    val entities = regionStats.shards.foldLeft(0L)(_ + _.entityIds.size)
+                    log.trace("Recorded amount of entities {}", entities)
+                    monitor.entityPerRegion.setValue(entities)
+                    log.trace("Recorded amount of shards {}", shards)
+                    monitor.shardPerRegions.setValue(shards)
+                    initialized(regions, unreachableNodes, entitiesCount.updated(region, entities))
+                  }
+              }
+              .receiveSignal {
+                case (_, PreRestart) =>
+                  log.info("Saving all monitored regions")
+                  regions.map(MonitorRegion).foreach(ctx.self.tell)
+                  Behaviors.same
+              }
+          }
+
+        val unreachable = cluster.state.unreachable.map(_.uniqueAddress)
+        initialized(Seq.empty, unreachable, Map.empty)
+
+      }}
+    }
+  }
 }

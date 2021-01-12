@@ -13,6 +13,7 @@ object OpenTelemetryClusterMetricsMonitor {
     shardPerEntity: String,
     entityPerRegion: String,
     shardRegionsOnNode: String,
+    entitiesOnNode: String,
     reachableNodes: String,
     unreachableNodes: String,
     nodeDown: String
@@ -24,6 +25,7 @@ object OpenTelemetryClusterMetricsMonitor {
         "shards_per_region",
         "entities_per_region",
         "shard_regions_on_node",
+        "entities_on_node",
         "reachable_nodes",
         "unreachable_nodes",
         "node_down_total"
@@ -38,31 +40,43 @@ object OpenTelemetryClusterMetricsMonitor {
           _.getConfig
         )
         .map { clusterMetricsConfig =>
-          val shards = clusterMetricsConfig
+          val shardsPerRegion = clusterMetricsConfig
             .tryValue("shards-per-region")(_.getString)
             .getOrElse(defaultCached.shardPerEntity)
 
-          val entities = clusterMetricsConfig
+          val entitiesPerRegion = clusterMetricsConfig
             .tryValue("entities-per-region")(_.getString)
             .getOrElse(defaultCached.entityPerRegion)
 
-          val regions = clusterMetricsConfig
+          val shardRegionsOnNode = clusterMetricsConfig
             .tryValue("shard-regions-on-node")(_.getString)
             .getOrElse(defaultCached.shardRegionsOnNode)
 
-          val reachable = clusterMetricsConfig
+          val entitiesOnNode = clusterMetricsConfig
+            .tryValue("entities-on-node")(_.getString)
+            .getOrElse(defaultCached.shardRegionsOnNode)
+
+          val reachableNodes = clusterMetricsConfig
             .tryValue("reachable-nodes")(_.getString)
             .getOrElse(defaultCached.reachableNodes)
 
-          val unreachable = clusterMetricsConfig
+          val unreachableNodes = clusterMetricsConfig
             .tryValue("unreachable-nodes")(_.getString)
             .getOrElse(defaultCached.unreachableNodes)
 
-          val down = clusterMetricsConfig
+          val nodesDown = clusterMetricsConfig
             .tryValue("node-down")(_.getString)
             .getOrElse(defaultCached.nodeDown)
 
-          MetricNames(shards, entities, regions, reachable, unreachable, down)
+          MetricNames(
+            shardsPerRegion,
+            entitiesPerRegion,
+            shardRegionsOnNode,
+            entitiesOnNode,
+            reachableNodes,
+            unreachableNodes,
+            nodesDown,
+          )
         }
         .getOrElse(defaultCached)
     }
@@ -97,9 +111,14 @@ class OpenTelemetryClusterMetricsMonitor(instrumentationName: String, val metric
     .setDescription("Amount of unreachable nodes")
     .build()
 
-  private val regionsOnNode = meter
+  private val shardRegionsOnNodeRecorder = meter
     .longValueRecorderBuilder(metricNames.shardRegionsOnNode)
     .setDescription("Amount of shard regions on node")
+    .build()
+
+  private val entitiesOnNodeRecorder = meter
+    .longValueRecorderBuilder(metricNames.entitiesOnNode)
+    .setDescription("Amount of entities on node")
     .build()
 
   private val nodeDownCounter = meter
@@ -122,7 +141,10 @@ class OpenTelemetryClusterMetricsMonitor(instrumentationName: String, val metric
       WrappedLongValueRecorder(entityPerRegionRecorder, labels)
 
     override def shardRegionsOnNode: MetricRecorder[Long] with Instrument[Long] =
-      WrappedLongValueRecorder(regionsOnNode, labels)
+      WrappedLongValueRecorder(shardRegionsOnNodeRecorder, labels)
+
+    override def entitiesOnNode: MetricRecorder[Long] with Instrument[Long] =
+      WrappedLongValueRecorder(entitiesOnNodeRecorder, labels)
 
     override def reachableNodes: Counter[Long] with Instrument[Long] =
       WrappedUpDownCounter(reachableNodeCounter, labels)
