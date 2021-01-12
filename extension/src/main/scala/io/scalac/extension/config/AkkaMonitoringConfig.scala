@@ -3,7 +3,15 @@ package io.scalac.extension.config
 import com.typesafe.config.Config
 import io.scalac.extension.config
 
-case class ClusterMonitoringConfig(boot: BootSettings, autoStart: AutoStartSettings, backend: Option[BackendSettings])
+import scala.concurrent.duration._
+import scala.jdk.DurationConverters._
+
+case class ClusterMonitoringConfig(
+  boot: BootSettings,
+  autoStart: AutoStartSettings,
+  backend: Option[BackendSettings],
+  cleaningSettings: CleaningSettings
+)
 
 case class BootSettings(metricsBackend: Boolean)
 
@@ -15,8 +23,9 @@ object ClusterMonitoringConfig {
 
   import config.ConfigurationUtils._
 
-  private val autoStartDefaults    = AutoStartSettings(false, false, false)
-  private val bootSettingsDefaults = BootSettings(false)
+  private val autoStartDefaults        = AutoStartSettings(false, false, false)
+  private val bootSettingsDefaults     = BootSettings(false)
+  private val cleaningSettingsDefaults = CleaningSettings(20.seconds, 5.second)
 
   def apply(config: Config): ClusterMonitoringConfig =
     config
@@ -51,12 +60,23 @@ object ClusterMonitoringConfig {
           }
           .toOption
 
+        val cleaningSettings = monitoringConfig
+          .tryValue("cleaning")(_.getConfig)
+          .flatMap { cleaningConfig =>
+            for {
+              max   <- cleaningConfig.tryValue("max-staleness")(_.getDuration)
+              every <- cleaningConfig.tryValue("every")(_.getDuration)
+            } yield CleaningSettings(max.toScala, every.toScala)
+          }
+          .getOrElse(cleaningSettingsDefaults)
+
         ClusterMonitoringConfig(
           BootSettings(bootBackend),
           autoStartSettings,
-          backend
+          backend,
+          cleaningSettings
         )
       }
-      .getOrElse(ClusterMonitoringConfig(bootSettingsDefaults, autoStartDefaults, None))
+      .getOrElse(ClusterMonitoringConfig(bootSettingsDefaults, autoStartDefaults, None, cleaningSettingsDefaults))
 
 }

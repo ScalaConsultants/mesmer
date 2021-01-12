@@ -7,7 +7,7 @@ import io.scalac.core.util.Timestamp
 import io.scalac.extension.event.EventBus
 import io.scalac.extension.event.PersistenceEvent._
 import io.scalac.extension.metric.PersistenceMetricMonitor.Labels
-import io.scalac.extension.persistence.{InMemoryPersistStorage, InMemoryRecoveryStorage}
+import io.scalac.extension.persistence.{ImmutablePersistStorage, ImmutableRecoveryStorage}
 import io.scalac.extension.util.TestConfig.localActorProvider
 import io.scalac.extension.util.probe.BoundTestProbe.{Inc, MetricRecorded}
 import io.scalac.extension.util.probe.PersistenceMetricTestProbe
@@ -31,7 +31,7 @@ class PersistenceEventsActorTest
 
   override protected def setUp(monitor: Monitor): ActorRef[_] =
     system.systemActorOf(
-      PersistenceEventsActor(IdentityPathService, InMemoryRecoveryStorage.empty, InMemoryPersistStorage.empty, monitor),
+      PersistenceEventsActor(IdentityPathService, ImmutableRecoveryStorage.empty, ImmutablePersistStorage.empty, monitor),
       createUniqueId
     )
 
