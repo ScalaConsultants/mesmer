@@ -2,7 +2,8 @@ package io.scalac.agent.akka.persistence
 
 import io.scalac.agent.Agent.LoadingResult
 import io.scalac.agent.{ Agent, AgentInstrumentation }
-import io.scalac.core.model.{ Module, SupportedModules, SupportedVersion, Version }
+import io.scalac.core.model.SupportedModules
+import io.scalac.core.support.ModulesSupport._
 import net.bytebuddy.asm.Advice
 import net.bytebuddy.description.`type`.TypeDescription
 import net.bytebuddy.description.method.MethodDescription
@@ -13,13 +14,11 @@ object AkkaPersistenceAgent {
 
   private[persistence] val logger = LoggerFactory.getLogger(AkkaPersistenceAgent.getClass)
 
-  val defaultVersion    = Version(2, 6, 8)
-  val supportedVersions = SupportedVersion.majors("2") && SupportedVersion.minors("6")
-  val moduleName        = Module("akka-persistence-typed")
+  private val supportedModules: SupportedModules = SupportedModules(akkaPersistenceTypedModule, akkaPersistenceTyped)
 
   private val recoveryStartedAgent = AgentInstrumentation(
     "akka.persistence.typed.internal.ReplayingSnapshot",
-    SupportedModules(moduleName, supportedVersions)
+    supportedModules
   ) { (agentBuilder, instrumentation, _) =>
     agentBuilder
       .`type`(named[TypeDescription]("akka.persistence.typed.internal.ReplayingSnapshot"))
@@ -35,7 +34,7 @@ object AkkaPersistenceAgent {
 
   private val recoveryCompletedAgent = AgentInstrumentation(
     "akka.persistence.typed.internal.ReplayingEvents",
-    SupportedModules(moduleName, supportedVersions)
+    supportedModules
   ) { (agentBuilder, instrumentation, _) =>
     agentBuilder
       .`type`(named[TypeDescription]("akka.persistence.typed.internal.ReplayingEvents"))
@@ -51,7 +50,7 @@ object AkkaPersistenceAgent {
 
   private val eventWriteSuccessInstrumentation = AgentInstrumentation(
     "akka.persistence.typed.internal.Running",
-    SupportedModules(moduleName, supportedVersions)
+    supportedModules
   ) { (agentBuilder, instrumentation, _) =>
     agentBuilder
       .`type`(named[TypeDescription]("akka.persistence.typed.internal.Running"))
@@ -69,7 +68,7 @@ object AkkaPersistenceAgent {
 
   private val snapshotLoadingInstrumentation = AgentInstrumentation(
     "akka.persistence.typed.internal.Running$StoringSnapshot",
-    SupportedModules(moduleName, supportedVersions)
+    supportedModules
   ) { (agentBuilder, instrumentation, _) =>
     agentBuilder
       .`type`(named[TypeDescription]("akka.persistence.typed.internal.Running$StoringSnapshot"))
