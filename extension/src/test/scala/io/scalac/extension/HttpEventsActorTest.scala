@@ -5,12 +5,13 @@ import akka.actor.typed.ActorRef
 import akka.actor.typed.receptionist.ServiceKey
 import io.scalac.core.util.Timestamp
 import io.scalac.extension.event.EventBus
-import io.scalac.extension.event.HttpEvent.{RequestCompleted, RequestStarted}
+import io.scalac.extension.event.HttpEvent.{ RequestCompleted, RequestStarted }
+import io.scalac.extension.http.MutableRequestStorage
 import io.scalac.extension.metric.HttpMetricMonitor.Labels
 import io.scalac.extension.util.TestConfig.localActorProvider
 import io.scalac.extension.util.probe.BoundTestProbe._
 import io.scalac.extension.util.probe.HttpMetricsTestProbe
-import io.scalac.extension.util.{IdentityPathService, MonitorFixture, TerminationRegistryOps, TestOps}
+import io.scalac.extension.util.{ IdentityPathService, MonitorFixture, TerminationRegistryOps, TestOps }
 import org.scalatest._
 import org.scalatest.concurrent.Eventually
 import org.scalatest.flatspec.AnyFlatSpecLike
@@ -38,7 +39,7 @@ class HttpEventsActorTest
   override protected def createMonitor: Monitor = new HttpMetricsTestProbe()
 
   override protected def setUp(monitor: Monitor): ActorRef[_] =
-    system.systemActorOf(HttpEventsActor(monitor, IdentityPathService), createUniqueId)
+    system.systemActorOf(HttpEventsActor(monitor, MutableRequestStorage.empty, IdentityPathService), createUniqueId)
 
   override protected val serviceKey: ServiceKey[_] = httpServiceKey
 
