@@ -26,6 +26,10 @@ trait SingleNodeClusterSpec extends AsyncTestSuite {
   protected val portGenerator: PortGenerator = PortGeneratorImpl
   implicit val timeout: Timeout              = 30 seconds
 
+  type Fixture[C[_], T] =
+    (ActorSystem[Nothing], Member, C[ActorRef[ShardingEnvelope[T]]], ClusterMetricsTestProbe, C[String])
+  type Id[T] = T
+
   protected def createConfig(port: Int, systemName: String): Config = {
     val hostname = "127.0.0.1"
     val seedNode = s"akka://${systemName}@${hostname}:${port}"
@@ -38,12 +42,8 @@ trait SingleNodeClusterSpec extends AsyncTestSuite {
       .withValue("akka.cluster.seed-nodes", ConfigValueFactory.fromIterable(List(seedNode).asJava))
   }
 
-  type Fixture[T] = (ActorSystem[Nothing], Member, ActorRef[ShardingEnvelope[T]], ClusterMetricsTestProbe, String)
-  type FixtureN[T] =
-    (ActorSystem[Nothing], Member, List[ActorRef[ShardingEnvelope[T]]], ClusterMetricsTestProbe, List[String])
-
   def setupN[T: ClassTag](behavior: String => Behavior[T], n: Int)(
-    test: FixtureN[T] => Assertion
+    test: Fixture[Seq, T] => Assertion
   ): Future[Assertion] = {
     val port = portGenerator.generatePort()
 
@@ -94,9 +94,9 @@ trait SingleNodeClusterSpec extends AsyncTestSuite {
     } yield assertion
   }
 
-  def setup[T: ClassTag](behavior: String => Behavior[T])(test: Fixture[T] => Assertion): Future[Assertion] =
+  def setup[T: ClassTag](behavior: String => Behavior[T])(test: Fixture[Id, T] => Assertion): Future[Assertion] =
     setupN(behavior, n = 1) {
-      case (system, member, ref :: Nil, probe, shading :: Nil) =>
+      case (system, member, Seq(ref), probe, Seq(shading)) =>
         test(system, member, ref, probe, shading)
     }
 
