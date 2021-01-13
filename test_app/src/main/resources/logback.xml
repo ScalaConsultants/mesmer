@@ -28,7 +28,7 @@
         <appender-ref ref="STDOUT"/>
     </appender>
 
-    <logger name="akka" level="WARN"/>
+    <logger name="akka" level="DEBUG"/>
     <logger name="slick" level="INFO"/>
     <logger name="io.scalac.extension" level="TRACE"/>
 
