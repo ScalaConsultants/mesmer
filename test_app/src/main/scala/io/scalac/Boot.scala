@@ -1,7 +1,5 @@
 package io.scalac
 
-import java.{ util => ju }
-
 import akka.actor.typed.ActorSystem
 import akka.actor.typed.scaladsl.Behaviors
 import akka.cluster.sharding.typed.scaladsl.{ ClusterSharding, Entity, EntityTypeKey }
@@ -16,6 +14,7 @@ import io.scalac.api.AccountRoutes
 import io.scalac.domain.{ AccountStateActor, JsonCodecs }
 import org.slf4j.LoggerFactory
 
+import java.{ util => ju }
 import scala.concurrent.duration._
 import scala.jdk.CollectionConverters._
 import scala.language.postfixOps
@@ -51,11 +50,11 @@ object Boot extends App with FailFastCirceSupport with JsonCodecs {
     implicit val executionContext = system.executionContext
     implicit val timeout: Timeout = 10 seconds
 
+    AkkaManagement(system).start()
+
     if (!local) {
       ClusterBootstrap(system).start()
     }
-
-    AkkaManagement(system).start()
 
     val entity = EntityTypeKey[AccountStateActor.Command]("accounts")
 
