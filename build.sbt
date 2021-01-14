@@ -27,7 +27,7 @@ lazy val root = (project in file("."))
 lazy val core = (project in file("core"))
   .settings(
     name := "core",
-    libraryDependencies ++= akka ++ openTelemetryApi ++ scalatest ++ akkaTestkit
+    libraryDependencies ++= akka ++ openTelemetryApi ++ scalatest ++ akkaTestkit ++ logback.map(_ % Test)
   )
 
 lazy val extension = (project in file("extension"))
