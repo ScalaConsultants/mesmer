@@ -1,12 +1,13 @@
 package io.scalac.core.util
 
-import akka.actor.{ ActorRef, ActorSystem, ExtendedActorSystem }
+import akka.actor.{ActorRef, ActorSystem, ExtendedActorSystem}
 import io.scalac.core.model.ActorNode
+import io.scalac.core.util.reflect.AkkaMirrors.AkkaRefWithCell
 import org.slf4j.LoggerFactory
 
 import java.lang.invoke.MethodHandles._
 import java.lang.invoke.MethodType.methodType
-import java.lang.invoke.{ MethodHandle, MethodHandles }
+import java.lang.invoke.{MethodHandle, MethodHandles}
 import scala.annotation.tailrec
 import scala.collection.immutable
 import scala.util.control.NonFatal
@@ -26,6 +27,8 @@ object ActorDiscovery {
   val extractChildren: MethodHandle = {
     val lookup = MethodHandles.lookup()
 
+    AkkaRefWithCell.underlying
+
     val underlying   = lookup.findVirtual(actorRefWithCell, "underlying", methodType(cell))
     val childrenRefs = lookup.findVirtual(cell, "childrenRefs", methodType(childrenContainer))
     val children     = lookup.findVirtual(childrenContainer, "children", methodType(classOf[immutable.Iterable[_]]))
@@ -36,10 +39,10 @@ object ActorDiscovery {
     )
   }
 
-  def rethrowFatal(log: String, throwable: Throwable): immutable.Iterable[ActorRef] = throwable match {
+  def rethrowFatal[T](value: T, log: String, throwable: Throwable): T = throwable match {
     case NonFatal(ex) => {
       logger.error(log, ex)
-      immutable.Iterable.empty
+      value
     }
     case fatal => throw fatal
   }
@@ -51,13 +54,18 @@ object ActorDiscovery {
         .findStatic(
           classOf[ActorDiscovery],
           "rethrowFatal",
-          methodType(classOf[immutable.Iterable[ActorRef]], classOf[String], classOf[Throwable])
+          methodType(classOf[Any], classOf[Any], classOf[String], classOf[Throwable])
         ),
       0,
+      immutable.Iterable.empty,
       "Exception while collecting actor children"
     )
 
-    catchException(extractChildren, classOf[Throwable], nonFatalHandle)
+    catchException(
+      extractChildren,
+      classOf[Throwable],
+      nonFatalHandle.asType(methodType(classOf[immutable.Iterable[_]], classOf[Throwable]))
+    )
   }
 
   private val isLocalHandle: MethodHandle = {

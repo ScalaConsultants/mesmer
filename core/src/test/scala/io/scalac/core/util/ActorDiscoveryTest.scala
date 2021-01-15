@@ -1,6 +1,6 @@
 package io.scalac.core.util
 
-import akka.actor.{ actorRef2Scala, Actor, ActorLogging, ActorSystem, ExtendedActorSystem, Props }
+import akka.actor.{ actorRef2Scala, Actor, ActorLogging, ActorRef, ActorSystem, ExtendedActorSystem, Props }
 import com.typesafe.config.ConfigFactory
 import io.scalac.core.model.ActorNode
 import io.scalac.extension.util.TestOps
@@ -104,5 +104,15 @@ class ActorDiscoveryTest extends AnyFlatSpec with Matchers with TestOps with Eve
       } should contain theSameElementsAs (children)
     }
     system.terminate()
+  }
+
+  it should "return empty Seq when nonfatal error occur" in {
+    val config = ConfigFactory
+      .parseString("akka.actor.provider=local")
+      .withFallback(ConfigFactory.load())
+
+    implicit val system: ActorSystem = ActorSystem(createUniqueId, config)
+    val actors                       = ActorDiscovery.getActorsFrom(null: ActorRef)
+    actors should be(Seq.empty)
   }
 }
