@@ -9,7 +9,8 @@ import java.lang.invoke.MethodType.methodType
 import java.lang.invoke.{ MethodHandle, MethodHandles }
 import scala.annotation.tailrec
 import scala.collection.immutable
-
+import scala.util.control.NonFatal
+class ActorDiscovery
 object ActorDiscovery {
 
   private val logger = LoggerFactory.getLogger(ActorDiscovery.getClass)
@@ -35,6 +36,30 @@ object ActorDiscovery {
     )
   }
 
+  def rethrowFatal(log: String, throwable: Throwable): immutable.Iterable[ActorRef] = throwable match {
+    case NonFatal(ex) => {
+      logger.error(log, ex)
+      immutable.Iterable.empty
+    }
+    case fatal => throw fatal
+  }
+
+  val extractChildrenSafe: MethodHandle = {
+
+    val nonFatalHandle = insertArguments(
+      lookup()
+        .findStatic(
+          classOf[ActorDiscovery],
+          "rethrowFatal",
+          methodType(classOf[immutable.Iterable[ActorRef]], classOf[String], classOf[Throwable])
+        ),
+      0,
+      "Exception while collecting actor children"
+    )
+
+    catchException(extractChildren, classOf[Throwable], nonFatalHandle)
+  }
+
   private val isLocalHandle: MethodHandle = {
     lookup().findVirtual(actorRefScope, "isLocal", methodType(classOf[Boolean]))
   }
@@ -45,14 +70,7 @@ object ActorDiscovery {
 
   def getActorsFrom(from: ActorRef)(implicit system: ActorSystem): Seq[ActorNode] = {
     def getChildren(ref: ActorRef): Seq[ActorRef] =
-      try {
-        extractChildren.invoke(ref).asInstanceOf[immutable.Iterable[ActorRef]].toSeq
-      } catch {
-        case e: Throwable =>
-          logger.error("Got error", e)
-          Seq.empty
-      }
-
+      extractChildrenSafe.invoke(ref).asInstanceOf[immutable.Iterable[ActorRef]].toSeq
     @tailrec
     def flatActorsStructure(check: Seq[ActorRef], acc: Seq[ActorNode]): Seq[ActorNode] = check match {
       case Seq() => acc
