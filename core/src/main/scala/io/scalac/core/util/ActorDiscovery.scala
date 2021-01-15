@@ -1,19 +1,19 @@
 package io.scalac.core.util
 
-import akka.actor.{ ActorRef, ExtendedActorSystem }
+import akka.actor.{ActorRef, ExtendedActorSystem}
+import io.scalac.core.model.ActorNode
 import org.slf4j.LoggerFactory
 
 import java.lang.invoke.MethodHandles._
 import java.lang.invoke.MethodType.methodType
-import java.lang.invoke.{ MethodHandle, MethodHandles }
+import java.lang.invoke.{MethodHandle, MethodHandles}
 import scala.annotation.tailrec
 import scala.collection.immutable
 import scala.util.Try
-object Actors {
 
-  private val logger = LoggerFactory.getLogger(Actor.getClass)
+object ActorDiscovery {
 
-  case class Actor(parent: String, self: String)
+  private val logger = LoggerFactory.getLogger(ActorDiscovery.getClass)
 
   private val actorRefWithCell: Class[_] = Class.forName("akka.actor.ActorRefWithCell")
 
@@ -27,6 +27,7 @@ object Actors {
     val underlying   = lookup.findVirtual(actorRefWithCell, "underlying", methodType(cell))
     val childrenRefs = lookup.findVirtual(cell, "childrenRefs", methodType(childrenContainer))
     val children     = lookup.findVirtual(childrenContainer, "children", methodType(classOf[immutable.Iterable[_]]))
+
     foldArguments(
       dropArguments(foldArguments(dropArguments(children, 1, cell), childrenRefs), 1, actorRefWithCell),
       underlying
@@ -40,7 +41,7 @@ object Actors {
     localClass.exists(_.isInstance(system.provider))
   }
 
-  def getActorsFlat(system: ExtendedActorSystem): Seq[Actor] = {
+  def getActorsFlat(system: ExtendedActorSystem): Seq[ActorNode] = {
     def getChildren(ref: ActorRef): Seq[ActorRef] =
       try {
         extractChildren.invoke(ref).asInstanceOf[immutable.Iterable[ActorRef]].toSeq
@@ -51,11 +52,11 @@ object Actors {
       }
 
     @tailrec
-    def flatActorsStructure(check: Seq[ActorRef], acc: Seq[Actor]): Seq[Actor] = check match {
+    def flatActorsStructure(check: Seq[ActorRef], acc: Seq[ActorNode]): Seq[ActorNode] = check match {
       case Seq() => acc
       case head +: tail => {
         val children = getChildren(head)
-        flatActorsStructure(children ++ tail, acc ++ children.map(ref => Actor(head.path.toString, ref.path.toString)))
+        flatActorsStructure(children ++ tail, acc ++ children.map(ref => ActorNode(head.path, ref.path)))
       }
     }
 
