@@ -37,6 +37,14 @@ spec:
                   fieldPath: metadata.namespace
             - name: REQUIRED_CONTACT_POINT_NR
               value: "3"
+            - name: AKKA_CLUSTER_BOOTSTRAP_SERVICE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.labels['app']
+            - name: HOSTNAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
 ---
 kind: Role
 apiVersion: rbac.authorization.k8s.io/v1
