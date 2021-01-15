@@ -26,21 +26,10 @@ object ActorDiscovery {
   private val actorRefScope = Class.forName("akka.actor.ActorRefScope")
 
   val extractChildren: MethodHandle = {
-    val lookup = MethodHandles.lookup()
-
     AkkaRefWithCell.underlying
       .andThen(Cell.childrenRefs)
       .andThen(ChildrenContainer.children)
       .handle
-
-    val underlying   = lookup.findVirtual(actorRefWithCell, "underlying", methodType(cell))
-    val childrenRefs = lookup.findVirtual(cell, "childrenRefs", methodType(childrenContainer))
-    val children     = lookup.findVirtual(childrenContainer, "children", methodType(classOf[immutable.Iterable[_]]))
-
-    foldArguments(
-      dropArguments(foldArguments(dropArguments(children, 1, cell), childrenRefs), 1, actorRefWithCell),
-      underlying
-    )
   }
 
   def rethrowFatal[T](value: T, log: String, throwable: Throwable): T = throwable match {
