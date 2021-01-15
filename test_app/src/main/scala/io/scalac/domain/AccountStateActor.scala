@@ -47,7 +47,7 @@ object AccountStateActor {
         case GetBalance(replyTo) =>
           Effect.none.thenReply(replyTo)(state => CurrentBalance(state.balance))
         case Withdraw(replyTo, value) => {
-          if (value < balance && value > 0.0) {
+          if (value <= balance && value > 0.0) {
             Effect
               .persist(MoneyWithdrawn(value))
               .thenReply(replyTo)(state => CurrentBalance(state.balance))

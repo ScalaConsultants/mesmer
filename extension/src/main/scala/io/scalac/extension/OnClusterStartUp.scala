@@ -14,7 +14,7 @@ object OnClusterStartUp {
   private case object Timeout
   private val timeoutTimerKey = "WithTimeoutKey"
 
-  def apply[T](inner: Member => Behavior[T], timeout: Option[FiniteDuration]): Behavior[T] =
+  def apply[T](inner: Member => Behavior[T], timeout: Option[FiniteDuration] = None): Behavior[T] =
     Behaviors
       .setup[Any] { ctx =>
         def init: Behavior[Any] = Behaviors.withTimers { timer =>

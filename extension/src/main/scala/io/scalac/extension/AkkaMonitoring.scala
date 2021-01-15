@@ -191,7 +191,7 @@ class AkkaMonitoring(private val system: ActorSystem[_], val config: ClusterMoni
         .init(
           SingletonActor(
             Behaviors
-              .supervise(OnClusterStartUp(_ => ClusterEventsMonitor(openTelemetryClusterMetricsMonitor), None))
+              .supervise(OnClusterStartUp(_ => ClusterEventsMonitor(openTelemetryClusterMetricsMonitor)))
               .onFailure[Exception](SupervisorStrategy.restart),
             "MemberMonitoringActor"
           )

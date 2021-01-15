@@ -11,6 +11,7 @@ class ClusterMetricsTestProbe private (
   val shardPerRegionsProbe: TestProbe[MetricRecorderCommand],
   val entityPerRegionProbe: TestProbe[MetricRecorderCommand],
   val shardRegionsOnNodeProbe: TestProbe[MetricRecorderCommand],
+  val entitiesOnNodeProbe: TestProbe[MetricRecorderCommand],
   val reachableNodesProbe: TestProbe[CounterCommand],
   val unreachableNodesProbe: TestProbe[CounterCommand],
   val nodeDownProbe: TestProbe[CounterCommand]
@@ -32,6 +33,10 @@ class ClusterMetricsTestProbe private (
       shardRegionsOnNodeProbe
     )
 
+    override val entitiesOnNode: MetricRecorder[Long] with AbstractTestProbeWrapper = probe.RecorderTestProbeWrapper(
+      entitiesOnNodeProbe
+    )
+
     override val reachableNodes: Counter[Long] with AbstractTestProbeWrapper = CounterTestProbeWrapper(
       reachableNodesProbe
     )
@@ -49,6 +54,7 @@ object ClusterMetricsTestProbe {
     val shardPerRegionsProbe    = TestProbe[MetricRecorderCommand]("shardPerRegionsProbe")
     val entityPerRegionProbe    = TestProbe[MetricRecorderCommand]("entityPerRegionProbe")
     val shardRegionsOnNodeProbe = TestProbe[MetricRecorderCommand]("shardRegionsOnNodeProbe")
+    val entitiesOnNodeProbe     = TestProbe[MetricRecorderCommand]("entitiesOnNodeProbe")
     val reachableNodesProbe     = TestProbe[CounterCommand]("reachableNodesProbe")
     val unreachableNodesProbe   = TestProbe[CounterCommand]("unreachableNodesProbe")
     val nodeDownProbe           = TestProbe[CounterCommand]("nodeDownProbe")
@@ -56,6 +62,7 @@ object ClusterMetricsTestProbe {
       shardPerRegionsProbe,
       entityPerRegionProbe,
       shardRegionsOnNodeProbe,
+      entitiesOnNodeProbe,
       reachableNodesProbe,
       unreachableNodesProbe,
       nodeDownProbe
