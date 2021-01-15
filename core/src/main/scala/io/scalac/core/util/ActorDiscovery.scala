@@ -1,15 +1,14 @@
 package io.scalac.core.util
 
-import akka.actor.{ActorRef, ExtendedActorSystem}
+import akka.actor.{ ActorRef, ActorSystem, ExtendedActorSystem }
 import io.scalac.core.model.ActorNode
 import org.slf4j.LoggerFactory
 
 import java.lang.invoke.MethodHandles._
 import java.lang.invoke.MethodType.methodType
-import java.lang.invoke.{MethodHandle, MethodHandles}
+import java.lang.invoke.{ MethodHandle, MethodHandles }
 import scala.annotation.tailrec
 import scala.collection.immutable
-import scala.util.Try
 
 object ActorDiscovery {
 
@@ -20,6 +19,8 @@ object ActorDiscovery {
   private val cell = Class.forName("akka.actor.Cell")
 
   private val childrenContainer = Class.forName("akka.actor.dungeon.ChildrenContainer")
+
+  private val actorRefScope = Class.forName("akka.actor.ActorRefScope")
 
   val extractChildren: MethodHandle = {
     val lookup = MethodHandles.lookup()
@@ -34,14 +35,15 @@ object ActorDiscovery {
     )
   }
 
-  def isLocalProvider(system: ExtendedActorSystem): Boolean = {
-    // TODO use dynamicAccess
-    val localClass = Try(Class.forName("akka.actor.LocalActorRefProvider")).toOption
-    println(localClass.isDefined)
-    localClass.exists(_.isInstance(system.provider))
+  private val isLocalHandle: MethodHandle = {
+    lookup().findVirtual(actorRefScope, "isLocal", methodType(classOf[Boolean]))
   }
 
-  def getActorsFlat(system: ExtendedActorSystem): Seq[ActorNode] = {
+  def isLocal(ref: ActorRef): Boolean = isLocalHandle.invoke(ref)
+
+  def getUserActorsFlat(implicit system: ExtendedActorSystem): Seq[ActorNode] = getActorsFrom(system.provider.guardian)
+
+  def getActorsFrom(from: ActorRef)(implicit system: ActorSystem): Seq[ActorNode] = {
     def getChildren(ref: ActorRef): Seq[ActorRef] =
       try {
         extractChildren.invoke(ref).asInstanceOf[immutable.Iterable[ActorRef]].toSeq
@@ -55,20 +57,14 @@ object ActorDiscovery {
     def flatActorsStructure(check: Seq[ActorRef], acc: Seq[ActorNode]): Seq[ActorNode] = check match {
       case Seq() => acc
       case head +: tail => {
-        val children = getChildren(head)
+        val children = getChildren(head).filter(isLocal)
         flatActorsStructure(children ++ tail, acc ++ children.map(ref => ActorNode(head.path, ref.path)))
       }
     }
 
-    if (isLocalProvider(system)) {
-      val guardian = system.provider.rootGuardian
-
-      logger.info("Starting")
-      flatActorsStructure(List(guardian), Nil)
-    } else {
-      logger.warn("Not local actor provider")
-      Nil
-    }
+    flatActorsStructure(List(from), Nil)
   }
+
+  def allActorsFlat(implicit system: ExtendedActorSystem): Seq[ActorNode] = getActorsFrom(system.provider.rootGuardian)
 
 }
