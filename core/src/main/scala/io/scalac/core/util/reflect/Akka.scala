@@ -1,6 +1,7 @@
 package io.scalac.core.util.reflect
 
 import akka.actor.ActorRef
+import org.slf4j.LoggerFactory
 
 import java.lang.invoke.MethodHandles._
 import java.lang.invoke.MethodType._
@@ -11,9 +12,17 @@ import scala.util.Try
 
 trait ClassProvider {
 
+  protected val logger = LoggerFactory.getLogger(this.getClass)
+
   protected def registerRequired(fqcn: String): Unit
   def requiredClasses: Map[String, Class[_]]
-  protected def findClass(fqcn: String): Option[Class[_]] = Try(Class.forName(fqcn)).toOption
+  protected def findClass(fqcn: String): Option[Class[_]] = {
+    logger.info(s"Searching for class ${fqcn}")
+    val result = Try(Class.forName(fqcn)).toOption
+    if (result.isEmpty)
+      logger.error(s"Cannot locate ${fqcn}")
+    result
+  }
 
   trait Mirror[T] {
     type Public
@@ -67,14 +76,17 @@ object AkkaMirrors extends ClassProvider {
 
   override protected def registerRequired(fqcn: String): Unit = _required.update(fqcn, findClass(fqcn).get)
 
-  private[this] var _required: mutable.Map[String, Class[_]] = mutable.Map.empty
+  private[this] val _required: mutable.Map[String, Class[_]] = mutable.Map.empty
 
   override def requiredClasses: Map[String, Class[_]] = _required.toMap
 
   val actorRefWithCell: Option[Class[_]] = findClass("akka.actor.ActorRefWithCell")
 
   trait Cell {
-    def childrenRefs: MirrorDelegation[Cell, List[ActorRef]] = ???
+    def childrenRefs: MirrorDelegation[Cell, ChildrenContainer] =
+      MirrorDelegation(
+        lookup.findVirtual(Mirror[Cell].mirroring, "childrenRefs", methodType(Mirror[ChildrenContainer].mirroring))
+      )
   }
 
   object Cell extends Cell
@@ -91,6 +103,8 @@ object AkkaMirrors extends ClassProvider {
       )
   }
 
+  object ChildrenContainer extends ChildrenContainer
+
   trait AkkaRefWithCell {
     private val selfClass: Class[_] = Mirror[AkkaRefWithCell].mirroring
     val underlying: MirrorDelegation[AkkaRefWithCell, Cell] = {
@@ -104,18 +118,18 @@ object AkkaMirrors extends ClassProvider {
   object AkkaRefWithCell extends AkkaRefWithCell
 
   private implicit val cellMirror: Mirror[Cell] = new Required[Cell] {
-    override val fqcn: String = "akka.actor.Cell"
+    override lazy val fqcn: String = "akka.actor.Cell"
   }
 
   private implicit val akkaRefWithCellMirror: Mirror[AkkaRefWithCell] = new Required[AkkaRefWithCell] {
-    override val fqcn: String = "akka.actor.ActorRefWithCell"
+    override lazy val fqcn: String = "akka.actor.ActorRefWithCell"
   }
 
   private implicit val childrenContainerMirror: Mirror[ChildrenContainer] = new Required[ChildrenContainer] {
-    override val fqcn: String = "akka.actor.dungeon.ChildrenContainer"
+    override lazy val fqcn: String = "akka.actor.dungeon.ChildrenContainer"
   }
 
-  case class MirrorDelegation[I, O](private[reflect] val handle: MethodHandle)(
+  case class MirrorDelegation[I, O](val handle: MethodHandle)(
     implicit val inputMirror: Mirror[I],
     implicit val outputMirror: Mirror[O]
   ) {

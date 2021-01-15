@@ -1,16 +1,17 @@
 package io.scalac.core.util
 
-import akka.actor.{ActorRef, ActorSystem, ExtendedActorSystem}
+import akka.actor.{ ActorRef, ActorSystem, ExtendedActorSystem }
 import io.scalac.core.model.ActorNode
-import io.scalac.core.util.reflect.AkkaMirrors.AkkaRefWithCell
+import io.scalac.core.util.reflect.AkkaMirrors.{ AkkaRefWithCell, _ }
 import org.slf4j.LoggerFactory
 
 import java.lang.invoke.MethodHandles._
 import java.lang.invoke.MethodType.methodType
-import java.lang.invoke.{MethodHandle, MethodHandles}
+import java.lang.invoke.{ MethodHandle, MethodHandles }
 import scala.annotation.tailrec
 import scala.collection.immutable
 import scala.util.control.NonFatal
+
 class ActorDiscovery
 object ActorDiscovery {
 
@@ -28,6 +29,9 @@ object ActorDiscovery {
     val lookup = MethodHandles.lookup()
 
     AkkaRefWithCell.underlying
+      .andThen(Cell.childrenRefs)
+      .andThen(ChildrenContainer.children)
+      .handle
 
     val underlying   = lookup.findVirtual(actorRefWithCell, "underlying", methodType(cell))
     val childrenRefs = lookup.findVirtual(cell, "childrenRefs", methodType(childrenContainer))
