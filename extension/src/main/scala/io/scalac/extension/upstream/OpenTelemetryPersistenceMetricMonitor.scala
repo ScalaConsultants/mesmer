@@ -16,7 +16,7 @@ object OpenTelemetryPersistenceMetricMonitor {
   )
 
   object MetricNames {
-    def default: MetricNames =
+    val default: MetricNames =
       MetricNames(
         "recovery_time",
         "recovery_total",

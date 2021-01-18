@@ -55,10 +55,6 @@ object ActorDiscovery {
     )
   }
 
-//  private val isLocalHandle: MethodHandle = {
-//    lookup().findVirtual(actorRefScope, "isLocal", methodType(classOf[Boolean]))
-//  }
-
   @inline
   def isLocal(ref: ActorRef): Boolean = ActorRefScope.isLocal.handle.invoke(ref)
 
@@ -71,7 +67,9 @@ object ActorDiscovery {
     def flatActorsStructure(check: Seq[ActorRef], acc: Seq[ActorNode]): Seq[ActorNode] = check match {
       case Seq() => acc
       case head +: tail => {
+
         val children = getChildren(head).filter(isLocal)
+
         flatActorsStructure(children ++ tail, acc ++ children.map(ref => ActorNode(head.path, ref.path)))
       }
     }

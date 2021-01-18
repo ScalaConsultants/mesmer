@@ -38,6 +38,13 @@ trait ClassProvider {
      * @return
      */
     def fqcn: String
+
+    /**
+     * Check if [[ref]] is instance of [[mirroring]] class
+     * @param ref tested reference
+     * @return
+     */
+    def isInstance(ref: AnyRef): Boolean = mirroring.isInstance(ref)
   }
 
   object Mirror {
@@ -141,20 +148,26 @@ object AkkaMirrors extends ClassProvider {
 
   object ActorRefScope extends ActorRefScope
 
-  private implicit val cellMirror: Mirror[Cell] = new Required[Cell] {
+  sealed trait ActorSystemAdapter
+
+  private[scalac] implicit val cellMirror: Mirror[Cell] = new Required[Cell] {
     override lazy val fqcn: String = "akka.actor.Cell"
   }
 
-  private implicit val akkaRefWithCellMirror: Mirror[AkkaRefWithCell] = new Required[AkkaRefWithCell] {
+  private[scalac] implicit val akkaRefWithCellMirror: Mirror[AkkaRefWithCell] = new Required[AkkaRefWithCell] {
     override lazy val fqcn: String = "akka.actor.ActorRefWithCell"
   }
 
-  private implicit val childrenContainerMirror: Mirror[ChildrenContainer] = new Required[ChildrenContainer] {
+  private[scalac] implicit val childrenContainerMirror: Mirror[ChildrenContainer] = new Required[ChildrenContainer] {
     override lazy val fqcn: String = "akka.actor.dungeon.ChildrenContainer"
   }
 
-  private implicit val actorRefScopeMirror: Mirror[ActorRefScope] = new Required[ActorRefScope] {
+  private[scalac] implicit val actorRefScopeMirror: Mirror[ActorRefScope] = new Required[ActorRefScope] {
     override lazy val fqcn: String = "akka.actor.ActorRefScope"
+  }
+
+  private[scalac] implicit val actorSystemAdapterMirror: Mirror[ActorSystemAdapter] = new Required[ActorSystemAdapter] {
+    override lazy val fqcn: String = "akka.actor.typed.internal.adapter.ActorSystemAdapter"
   }
 
   //TODO see if all elements are necessary for this class

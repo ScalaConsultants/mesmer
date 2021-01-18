@@ -20,10 +20,12 @@ import io.scalac.extension.model._
 import io.scalac.extension.persistence.{ CleanablePersistingStorage, CleanableRecoveryStorage }
 import io.scalac.extension.service.CommonRegexPathService
 import io.scalac.extension.upstream.{
+  OpenTelemetryActorSystemMonitor,
   OpenTelemetryClusterMetricsMonitor,
   OpenTelemetryHttpMetricsMonitor,
   OpenTelemetryPersistenceMetricMonitor
 }
+import org.slf4j.LoggerFactory
 
 import java.net.URI
 import java.util.Collections
@@ -77,6 +79,7 @@ object AkkaMonitoring extends ExtensionId[AkkaMonitoring] {
               system.log.info(s"Supported version of ${module.name} detected, but auto-start is set to false")
         )
 
+    initModule(akkaActorModule, modulesSupport.akkaActor, config.autoStart.akkaActor, _.startActorSystemMonitoring())
     initModule(akkaHttpModule, modulesSupport.akkaHttp, config.autoStart.akkaHttp, _.startHttpEventListener())
     initModule(
       akkaClusterTypedModule,
@@ -137,14 +140,17 @@ class AkkaMonitoring(private val system: ActorSystem[_], val config: ClusterMoni
   import config._
   private val instrumentationName = "scalac_akka_metrics"
   private val actorSystemConfig   = system.settings.config
-  import system.log
-  private lazy val openTelemetryClusterMetricsMonitor =
+  private lazy val openTelemetryClusterMetricsMonitor = {
     OpenTelemetryClusterMetricsMonitor(
       instrumentationName,
       actorSystemConfig
     )
+  }
 
-  implicit private val timeout: Timeout = 5 seconds
+  private val logger = LoggerFactory.getLogger(classOf[AkkaMonitoring])
+
+  implicit private val timeout: Timeout     = 5 seconds
+  implicit private val ping: FiniteDuration = 5 seconds
 
   private def reflectiveIsInstanceOf(fqcn: String, ref: Any): Either[String, Unit] =
     Try(Class.forName(fqcn)).toEither.left.map {
@@ -158,16 +164,16 @@ class AkkaMonitoring(private val system: ActorSystem[_], val config: ClusterMoni
       classic = system.classicSystem.asInstanceOf[ExtendedActorSystem]
       _       <- reflectiveIsInstanceOf("akka.cluster.ClusterActorRefProvider", classic.provider)
     } yield Cluster(classic).selfUniqueAddress.toNode).fold(message => {
-      log.error(message)
+      logger.error(message)
       None
     }, Some.apply)
   }
 
   def startSelfMemberMonitor(): Unit =
     nodeName.fold {
-      log.error("ActorSystem is not properly configured to start cluster monitoring")
+      logger.error("ActorSystem is not properly configured to start cluster monitoring")
     } { _ =>
-      log.debug("Starting member monitor")
+      logger.debug("Starting member monitor")
 
       system.systemActorOf(
         Behaviors
@@ -184,9 +190,9 @@ class AkkaMonitoring(private val system: ActorSystem[_], val config: ClusterMoni
 
   def startClusterEventsMonitor(): Unit =
     nodeName.fold {
-      log.error("ActorSystem is not properly configured to start cluster monitoring")
+      logger.error("ActorSystem is not properly configured to start cluster monitoring")
     } { _ =>
-      log.debug("Starting reachability monitor")
+      logger.debug("Starting reachability monitor")
       ClusterSingleton(system)
         .init(
           SingletonActor(
@@ -199,7 +205,7 @@ class AkkaMonitoring(private val system: ActorSystem[_], val config: ClusterMoni
     }
 
   def startPersistenceMonitoring(): Unit = {
-    log.debug("Starting PersistenceEventsListener")
+    logger.debug("Starting PersistenceEventsListener")
 
     val openTelemetryPersistenceMonitor = OpenTelemetryPersistenceMetricMonitor(instrumentationName, actorSystemConfig)
     system.systemActorOf(
@@ -227,7 +233,7 @@ class AkkaMonitoring(private val system: ActorSystem[_], val config: ClusterMoni
   }
 
   def startHttpEventListener(): Unit = {
-    log.info("Starting local http event listener")
+    logger.debug("Starting local http event listener")
 
     val openTelemetryHttpMonitor = OpenTelemetryHttpMetricsMonitor(instrumentationName, actorSystemConfig)
     val pathService              = CommonRegexPathService
@@ -243,6 +249,20 @@ class AkkaMonitoring(private val system: ActorSystem[_], val config: ClusterMoni
         )
         .onFailure[Exception](SupervisorStrategy.restart),
       "httpEventMonitor"
+    )
+  }
+
+  def startActorSystemMonitoring() = {
+    logger.debug("Starting actor system monitoring")
+
+    val openTelemetryActorSystemMonitor = OpenTelemetryActorSystemMonitor(instrumentationName, actorSystemConfig)
+    system.systemActorOf(
+      Behaviors
+        .supervise(
+          ActorSystemMonitorActor.apply(openTelemetryActorSystemMonitor, ping, nodeName)
+        )
+        .onFailure[Exception](SupervisorStrategy.restart),
+      "actorSystemMonitor"
     )
   }
 }

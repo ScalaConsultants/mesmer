@@ -1,16 +1,14 @@
 package io.scalac.extension.metric
-import io.opentelemetry.api.common.{ Labels => OpenTelemetryLabels }
+import io.opentelemetry.api.common.{ Labels => OTLabels }
 import io.scalac.extension.metric.PersistenceMetricMonitor.Labels
 import io.scalac.extension.model._
 
 object PersistenceMetricMonitor {
 
-  final case class Labels(node: Option[Node], path: Path, persistenceId: PersistenceId) {
-    def toOpenTelemetry: OpenTelemetryLabels = {
-      val required = Seq("path", path, "persistenceId", persistenceId)
-      val optional = node.map(n => Seq("node", n)).getOrElse(Seq.empty)
-      OpenTelemetryLabels.of((optional ++ required).toArray)
-
+  final case class Labels(node: Option[Node], path: Path, persistenceId: PersistenceId) extends OpenTelemetryLabels {
+    def toOpenTelemetry: OTLabels = {
+      val required = Seq("path" -> path, "persistenceId" -> persistenceId)
+      convert(required, "node" -> node)
     }
   }
 }
