@@ -103,7 +103,7 @@ object AkkaMirrors extends ClassProvider {
   /**
    * Type mirroring [[akka.actor.dungeon.ChildrenContainer]]
    */
-  trait ChildrenContainer {
+  sealed trait ChildrenContainer {
 
     /**
      * Unary operators expect this pointer passed to them
@@ -120,7 +120,7 @@ object AkkaMirrors extends ClassProvider {
   /**
    * Type mirroring [[akka.actor.ActorRefWithCell]]
    */
-  trait AkkaRefWithCell {
+  sealed trait AkkaRefWithCell {
     private val selfClass: Class[_] = Mirror[AkkaRefWithCell].mirroring
     val underlying: MirrorDelegation[AkkaRefWithCell, Cell] = {
       Mirror[AkkaRefWithCell]
@@ -131,6 +131,15 @@ object AkkaMirrors extends ClassProvider {
   }
 
   object AkkaRefWithCell extends AkkaRefWithCell
+
+  sealed trait ActorRefScope {
+    val isLocal: MirrorDelegation[ActorRefScope, Boolean] = MirrorDelegation(
+      lookup
+        .findVirtual(Mirror[ActorRefScope].mirroring, "isLocal", methodType(classOf[Boolean]))
+    )
+  }
+
+  object ActorRefScope extends ActorRefScope
 
   private implicit val cellMirror: Mirror[Cell] = new Required[Cell] {
     override lazy val fqcn: String = "akka.actor.Cell"
@@ -143,6 +152,11 @@ object AkkaMirrors extends ClassProvider {
   private implicit val childrenContainerMirror: Mirror[ChildrenContainer] = new Required[ChildrenContainer] {
     override lazy val fqcn: String = "akka.actor.dungeon.ChildrenContainer"
   }
+
+  private implicit val actorRefScopeMirror: Mirror[ActorRefScope] = new Required[ActorRefScope] {
+    override lazy val fqcn: String = "akka.actor.ActorRefScope"
+  }
+
   //TODO see if all elements are necessary for this class
   /**
    *
@@ -158,6 +172,10 @@ object AkkaMirrors extends ClassProvider {
   ) {
     def inputClass: Class[_]  = Mirror[I].mirroring
     def outputClass: Class[_] = Mirror[O].mirroring
+  }
+
+  object MirrorDelegation {
+    def apply[I: Mirror, O: Mirror](handle: MethodHandle) = new MirrorDelegation[I, O](handle)
   }
 
   implicit class AkkaMirrorDelegationOps[I, O](val value: MirrorDelegation[I, O])(implicit mo: Mirror[O]) {

@@ -5,9 +5,9 @@ import io.scalac.core.model.ActorNode
 import io.scalac.core.util.reflect.AkkaMirrors.{ AkkaRefWithCell, _ }
 import org.slf4j.LoggerFactory
 
+import java.lang.invoke.MethodHandle
 import java.lang.invoke.MethodHandles._
 import java.lang.invoke.MethodType.methodType
-import java.lang.invoke.{ MethodHandle, MethodHandles }
 import scala.annotation.tailrec
 import scala.collection.immutable
 import scala.util.control.NonFatal
@@ -17,13 +17,7 @@ object ActorDiscovery {
 
   private val logger = LoggerFactory.getLogger(ActorDiscovery.getClass)
 
-  private val actorRefWithCell: Class[_] = Class.forName("akka.actor.ActorRefWithCell")
-
-  private val cell = Class.forName("akka.actor.Cell")
-
-  private val childrenContainer = Class.forName("akka.actor.dungeon.ChildrenContainer")
-
-  private val actorRefScope = Class.forName("akka.actor.ActorRefScope")
+//  private val actorRefScope = Class.forName("akka.actor.ActorRefScope")
 
   val extractChildren: MethodHandle = {
     AkkaRefWithCell.underlying
@@ -61,11 +55,12 @@ object ActorDiscovery {
     )
   }
 
-  private val isLocalHandle: MethodHandle = {
-    lookup().findVirtual(actorRefScope, "isLocal", methodType(classOf[Boolean]))
-  }
+//  private val isLocalHandle: MethodHandle = {
+//    lookup().findVirtual(actorRefScope, "isLocal", methodType(classOf[Boolean]))
+//  }
 
-  def isLocal(ref: ActorRef): Boolean = isLocalHandle.invoke(ref)
+  @inline
+  def isLocal(ref: ActorRef): Boolean = ActorRefScope.isLocal.handle.invoke(ref)
 
   def getUserActorsFlat(implicit system: ExtendedActorSystem): Seq[ActorNode] = getActorsFrom(system.provider.guardian)
 

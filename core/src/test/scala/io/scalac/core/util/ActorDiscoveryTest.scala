@@ -9,6 +9,7 @@ import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
 import scala.util.Random
+import scala.concurrent.duration._
 
 class ActorDiscoveryTest extends AnyFlatSpec with Matchers with TestOps with Eventually {
 
@@ -24,6 +25,8 @@ class ActorDiscoveryTest extends AnyFlatSpec with Matchers with TestOps with Eve
       case mess => log.info("[{}]", mess)
     }
   }
+  override implicit val patienceConfig: PatienceConfig = PatienceConfig(1.second, 100.millis)
+
 
   object Dummy {
     def createName(id: Int): String = s"alpha$id"
