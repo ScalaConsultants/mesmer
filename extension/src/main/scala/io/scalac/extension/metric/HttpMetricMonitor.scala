@@ -22,7 +22,7 @@ trait HttpMetricMonitor extends Bindable[Labels] {
 
   override def bind(labels: Labels): Bound
 
-  trait BoundMonitor extends Synchronized {
+  trait BoundMonitor extends Synchronized with Unbind {
     def requestTime: MetricRecorder[Long] with Instrument[Long]
     def requestCounter: UpCounter[Long] with Instrument[Long]
   }

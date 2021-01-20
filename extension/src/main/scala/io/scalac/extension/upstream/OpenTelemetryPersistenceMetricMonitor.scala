@@ -112,5 +112,13 @@ class OpenTelemetryPersistenceMetricMonitor(instrumentationName: String, metricN
 
     override lazy val recoveryTotal: WrappedSynchronousInstrument[Long] with UpCounter[Long] =
       WrappedCounter(recoveryTotalCounter, labels.toOpenTelemetry)
+
+    override def unbind(): Unit = {
+      recoveryTime.unbind()
+      persistentEvent.unbind()
+      persistentEventTotal.unbind()
+      snapshot.unbind()
+      recoveryTotal.unbind()
+    }
   }
 }

@@ -5,12 +5,16 @@ import java.util.{ LinkedHashMap, Map }
 import scala.collection.mutable.{ Map => MutableMap }
 import scala.jdk.CollectionConverters._
 
-class CachingMonitor[L <: AnyRef, B, T <: Bindable.Aux[L, B]](val monitor: T, maxEntries: Int = 100)
+class CachingMonitor[L <: AnyRef, B <: Unbind, T <: Bindable.Aux[L, B]](val monitor: T, maxEntries: Int = 100)
     extends Bindable[L] {
   private[this] val logger = LoggerFactory.getLogger(this.getClass)
 
-  private[this] val cachedMonitors: MutableMap[L, Bound] = new LinkedHashMap[L, Bound](maxEntries, 1.0f, true) {
-    override def removeEldestEntry(eldest: Map.Entry[L, B]): Boolean = size() > maxEntries
+  private[this] val cachedMonitors: MutableMap[L, Bound] = new LinkedHashMap[L, B](maxEntries, 1.0f, true) {
+    override def removeEldestEntry(eldest: Map.Entry[L, Bound]): Boolean =
+      if (size() > maxEntries) {
+        eldest.getValue.unbind()
+        true
+      } else false
   }.asScala
 
   override type Bound = B

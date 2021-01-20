@@ -8,7 +8,10 @@ import scala.collection.mutable.ListBuffer
 
 class CachingMonitorTest extends AnyFlatSpec with Matchers with Inspectors {
 
-  case class TestBound(labels: String)
+  case class TestBound(labels: String) extends Unbind {
+    override def unbind(): Unit = ()
+  }
+
   class TestBindable extends Bindable[String] {
     override type Bound = TestBound
 
@@ -47,5 +50,4 @@ class CachingMonitorTest extends AnyFlatSpec with Matchers with Inspectors {
 
     forAll(instances.tail)(_ should be theSameInstanceAs (instances.head))
   }
-
 }

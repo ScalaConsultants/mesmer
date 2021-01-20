@@ -2,10 +2,10 @@ package io.scalac.extension.util.probe
 
 import akka.actor.testkit.typed.scaladsl.TestProbe
 import akka.actor.typed.ActorSystem
-import io.scalac.extension.metric.{ClusterMetricsMonitor, Counter, MetricRecorder, UpCounter}
+import io.scalac.extension.metric._
 import io.scalac.extension.model.Node
 import io.scalac.extension.util.probe.BoundTestProbe._
-import io.scalac.extension.util.{TestProbeSynchronized, probe}
+import io.scalac.extension.util.{ probe, TestProbeSynchronized }
 
 class ClusterMetricsTestProbe private (
   val shardPerRegionsProbe: TestProbe[MetricRecorderCommand],
@@ -19,7 +19,7 @@ class ClusterMetricsTestProbe private (
 
   override type Bound = BoundMonitor
 
-  override def bind(node: Node): Bound = new BoundMonitor with TestProbeSynchronized {
+  override def bind(node: Node): Bound = new BoundMonitor with TestProbeSynchronized with Unbind {
 
     override val shardPerRegions: MetricRecorder[Long] with AbstractTestProbeWrapper = RecorderTestProbeWrapper(
       shardPerRegionsProbe
@@ -29,9 +29,10 @@ class ClusterMetricsTestProbe private (
       entityPerRegionProbe
     )
 
-    override val shardRegionsOnNode: MetricRecorder[Long] with AbstractTestProbeWrapper = probe.RecorderTestProbeWrapper(
-      shardRegionsOnNodeProbe
-    )
+    override val shardRegionsOnNode: MetricRecorder[Long] with AbstractTestProbeWrapper =
+      probe.RecorderTestProbeWrapper(
+        shardRegionsOnNodeProbe
+      )
 
     override val entitiesOnNode: MetricRecorder[Long] with AbstractTestProbeWrapper = probe.RecorderTestProbeWrapper(
       entitiesOnNodeProbe
@@ -46,6 +47,8 @@ class ClusterMetricsTestProbe private (
     )
 
     override val nodeDown: UpCounter[Long] with AbstractTestProbeWrapper = probe.CounterTestProbeWrapper(nodeDownProbe)
+
+    override def unbind(): Unit = ()
   }
 }
 

@@ -43,5 +43,7 @@ class HttpMetricsTestProbe(implicit val system: ActorSystem[_]) extends HttpMetr
 
     override def requestCounter: UpCounter[Long] with AbstractTestProbeWrapper =
       CounterTestProbeWrapper(requestCounterProbe, Some(globalRequestCounter))
+
+    override def unbind(): Unit = ()
   }
 }

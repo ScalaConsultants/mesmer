@@ -75,7 +75,7 @@ object OpenTelemetryClusterMetricsMonitor {
             entitiesOnNode,
             reachableNodes,
             unreachableNodes,
-            nodesDown,
+            nodesDown
           )
         }
         .getOrElse(defaultCached)
@@ -134,24 +134,34 @@ class OpenTelemetryClusterMetricsMonitor(instrumentationName: String, val metric
   }
 
   class ClusterBoundMonitor(labels: Labels) extends BoundMonitor with opentelemetry.Synchronized {
-    override def shardPerRegions: MetricRecorder[Long] with Instrument[Long] =
+    override val shardPerRegions: MetricRecorder[Long] with Instrument[Long] =
       WrappedLongValueRecorder(shardsPerRegionRecorder, labels)
 
-    override def entityPerRegion: MetricRecorder[Long] with Instrument[Long] =
+    override val entityPerRegion: MetricRecorder[Long] with Instrument[Long] =
       WrappedLongValueRecorder(entityPerRegionRecorder, labels)
 
-    override def shardRegionsOnNode: MetricRecorder[Long] with Instrument[Long] =
+    override val shardRegionsOnNode: MetricRecorder[Long] with Instrument[Long] =
       WrappedLongValueRecorder(shardRegionsOnNodeRecorder, labels)
 
-    override def entitiesOnNode: MetricRecorder[Long] with Instrument[Long] =
+    override val entitiesOnNode: MetricRecorder[Long] with Instrument[Long] =
       WrappedLongValueRecorder(entitiesOnNodeRecorder, labels)
 
-    override def reachableNodes: Counter[Long] with Instrument[Long] =
+    override val reachableNodes: Counter[Long] with Instrument[Long] =
       WrappedUpDownCounter(reachableNodeCounter, labels)
 
-    override def unreachableNodes: Counter[Long] with Instrument[Long] =
+    override val unreachableNodes: Counter[Long] with Instrument[Long] =
       WrappedUpDownCounter(unreachableNodeCounter, labels)
 
-    override def nodeDown: UpCounter[Long] with Instrument[Long] = WrappedCounter(nodeDownCounter, labels)
+    override val nodeDown: UpCounter[Long] with Instrument[Long] = WrappedCounter(nodeDownCounter, labels)
+
+    override def unbind(): Unit = {
+      shardPerRegions.unbind()
+      entityPerRegion.unbind()
+      shardRegionsOnNode.unbind()
+      entitiesOnNode.unbind()
+      reachableNodes.unbind()
+      unreachableNodes.unbind()
+      nodeDown.unbind()
+    }
   }
 }

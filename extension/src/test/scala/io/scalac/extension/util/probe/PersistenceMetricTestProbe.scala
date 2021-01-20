@@ -1,8 +1,5 @@
 package io.scalac.extension.util.probe
 
-import java.util.concurrent.ConcurrentHashMap
-import java.util.concurrent.atomic.AtomicInteger
-
 import akka.actor.testkit.typed.scaladsl.TestProbe
 import akka.actor.typed.ActorSystem
 import io.scalac.extension.metric.PersistenceMetricMonitor.Labels
@@ -10,6 +7,8 @@ import io.scalac.extension.metric.{ Bindable, MetricRecorder, PersistenceMetricM
 import io.scalac.extension.util.TestProbeSynchronized
 import io.scalac.extension.util.probe.BoundTestProbe.{ CounterCommand, MetricRecorderCommand }
 
+import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.atomic.AtomicInteger
 import scala.collection.concurrent.{ Map => CMap }
 import scala.jdk.CollectionConverters._
 
@@ -75,5 +74,7 @@ class PersistenceMetricTestProbe(implicit val system: ActorSystem[_])
 
     override def snapshot: AbstractTestProbeWrapper with UpCounter[Long] =
       CounterTestProbeWrapper(snapshotProbe, Some(globalCounter))
+
+    override def unbind(): Unit = ()
   }
 }

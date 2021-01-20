@@ -19,7 +19,7 @@ trait PersistenceMetricMonitor extends Bindable[Labels] { self =>
 
   override type Bound <: BoundMonitor
 
-  trait BoundMonitor extends Synchronized {
+  trait BoundMonitor extends Synchronized with Unbind {
 
     def recoveryTime: Instrument[Long] with MetricRecorder[Long]
     def recoveryTotal: Instrument[Long] with UpCounter[Long]
