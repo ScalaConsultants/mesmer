@@ -1,12 +1,17 @@
 package io.scalac.extension.metric
 import org.slf4j.LoggerFactory
 
+import java.util.{ LinkedHashMap, Map }
 import scala.collection.mutable.{ Map => MutableMap }
+import scala.jdk.CollectionConverters._
 
-class CachingMonitor[L <: AnyRef, B, T <: Bindable.Aux[L, B]](val monitor: T) extends Bindable[L] {
+class CachingMonitor[L <: AnyRef, B, T <: Bindable.Aux[L, B]](val monitor: T, maxEntries: Int = 100)
+    extends Bindable[L] {
   private[this] val logger = LoggerFactory.getLogger(this.getClass)
 
-  private[this] val cachedMonitors: MutableMap[L, Bound] = MutableMap.empty
+  private[this] val cachedMonitors: MutableMap[L, Bound] = new LinkedHashMap[L, Bound](maxEntries, 1.0f, true) {
+    override def removeEldestEntry(eldest: Map.Entry[L, B]): Boolean = size() > maxEntries
+  }.asScala
 
   override type Bound = B
 
