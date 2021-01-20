@@ -7,9 +7,9 @@ import scala.jdk.CollectionConverters._
 
 class CachingMonitor[L <: AnyRef, B <: Unbind, T <: Bindable.Aux[L, B]](val monitor: T, maxEntries: Int = 100)
     extends Bindable[L] {
-  private[this] val logger = LoggerFactory.getLogger(this.getClass)
+  import CachingMonitor._
 
-  private[this] val cachedMonitors: MutableMap[L, Bound] = new LinkedHashMap[L, B](maxEntries, 1.0f, true) {
+  private[metric] val cachedMonitors: MutableMap[L, Bound] = new LinkedHashMap[L, B](maxEntries, 1.0f, true) {
     override def removeEldestEntry(eldest: Map.Entry[L, Bound]): Boolean =
       if (size() > maxEntries) {
         eldest.getValue.unbind()
@@ -30,6 +30,8 @@ class CachingMonitor[L <: AnyRef, B <: Unbind, T <: Bindable.Aux[L, B]](val moni
 }
 
 object CachingMonitor {
+  private[CachingMonitor] val logger = LoggerFactory.getLogger(CachingMonitor.getClass)
+
   /*
    * Due to limitations of type interference type parameters has to be manually assigned
    * see https://github.com/scala/bug/issues/5298
