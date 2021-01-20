@@ -36,7 +36,7 @@ object HttpEventsActor {
     val receptionistAdapter = ctx.messageAdapter(HttpEventWrapper.apply)
 
     Receptionist(ctx.system).ref ! Register(httpServiceKey, ctx.messageAdapter(HttpEventWrapper.apply))
-
+    // TODO move caching outside this scope - it shouldn't be this actor who decide if caching is in use
     val cachingHttpMonitor = caching[Labels, HttpMetricMonitor](httpMetricMonitor)
 
     def createLabels(path: Path, method: Method): Labels = Labels(node, pathService.template(path), method)
