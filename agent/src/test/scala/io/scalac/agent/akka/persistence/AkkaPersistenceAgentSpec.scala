@@ -1,7 +1,5 @@
 package io.scalac.agent.akka.persistence
 
-import java.util.UUID
-
 import _root_.akka.actor.testkit.typed.scaladsl.{ ScalaTestWithActorTestKit, TestProbe }
 import _root_.akka.actor.typed.receptionist.Receptionist
 import _root_.akka.actor.typed.receptionist.Receptionist.{ Deregister, Register }
@@ -9,6 +7,8 @@ import _root_.akka.util.Timeout
 import io.scalac.`extension`.persistenceServiceKey
 import io.scalac.agent.utils.DummyEventSourcedActor
 import io.scalac.agent.utils.DummyEventSourcedActor.{ DoNothing, Persist }
+import io.scalac.core.model.Version
+import io.scalac.core.support.ModulesSupport
 import io.scalac.extension.event.PersistenceEvent
 import io.scalac.extension.event.PersistenceEvent._
 import io.scalac.extension.util.ReceptionistOps
@@ -20,6 +20,7 @@ import org.scalatest.matchers.should.Matchers
 import org.scalatest.time.{ Minute, Second, Span }
 import org.scalatest.{ BeforeAndAfterAll, OptionValues }
 
+import java.util.UUID
 import scala.concurrent.duration._
 class AkkaPersistenceAgentSpec
     extends ScalaTestWithActorTestKit
@@ -100,7 +101,7 @@ class AkkaPersistenceAgentSpec
 
     val builder = new AgentBuilder.Default()
 
-    val modules = Map(AkkaPersistenceAgent.moduleName -> AkkaPersistenceAgent.defaultVersion)
+    val modules = Map(ModulesSupport.akkaPersistenceTypedModule -> Version(2, 6, 8))
 
     AkkaPersistenceAgent.agent.installOn(builder, instrumentation, modules)
   }

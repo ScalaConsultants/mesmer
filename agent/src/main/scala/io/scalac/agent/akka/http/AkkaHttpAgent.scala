@@ -15,7 +15,7 @@ object AkkaHttpAgent {
 
   private[http] val logger = LoggerFactory.getLogger(AkkaHttpAgent.getClass)
 
-  private val supportedModules: SupportedModules = SupportedModules(akkaHttpModule, akkaHttp)
+  private[http] val supportedModules: SupportedModules = SupportedModules(akkaHttpModule, akkaHttp)
 
   private val routeAgent = AgentInstrumentation(
     "akka.http.scaladsl.server.Route$",

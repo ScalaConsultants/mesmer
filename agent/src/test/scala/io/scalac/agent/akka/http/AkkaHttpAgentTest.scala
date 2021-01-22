@@ -12,6 +12,8 @@ import akka.http.scaladsl.testkit.ScalatestRouteTest
 import akka.util.Timeout
 import com.typesafe.config.{ Config, ConfigFactory }
 import io.scalac.`extension`.httpServiceKey
+import io.scalac.core.model.Version
+import io.scalac.core.support.ModulesSupport
 import io.scalac.extension.event.HttpEvent
 import io.scalac.extension.event.HttpEvent.{ RequestCompleted, RequestStarted }
 import net.bytebuddy.ByteBuddy
@@ -62,7 +64,7 @@ class AkkaHttpAgentTest extends AnyFlatSpec with ScalatestRouteTest with Matcher
     val builder = new AgentBuilder.Default()
       .`with`(new ByteBuddy().`with`(TypeValidation.DISABLED))
 
-    val modules = Map(AkkaHttpAgent.moduleName -> AkkaHttpAgent.defaultVersion)
+    val modules = Map(ModulesSupport.akkaHttpModule -> Version(10, 2, 0))
 
     AkkaHttpAgent.agent.installOn(builder, instrumentation, modules)
   }

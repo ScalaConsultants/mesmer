@@ -11,6 +11,7 @@ trait ModulesSupport {
 }
 
 object ModulesSupport extends ModulesSupport {
+
   val akkaHttpModule             = Module("akka-http")
   val akkaClusterTypedModule     = Module("akka-cluster-typed")
   val akkaPersistenceTypedModule = Module("akka-persistence-typed")
