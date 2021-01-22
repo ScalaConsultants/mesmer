@@ -100,6 +100,7 @@ lazy val testApp = (project in file("test_app"))
     assemblyMergeStrategySettings,
     assembly / mainClass := Some("io.scalac.Boot"),
     assembly / assemblyJarName := "test_app.jar",
+    assembly / test := {},
     resolvers += "Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots",
     run / fork := true,
     run / javaOptions ++= {
