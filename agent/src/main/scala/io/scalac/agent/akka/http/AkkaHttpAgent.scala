@@ -4,6 +4,7 @@ import io.scalac.agent.Agent.LoadingResult
 import io.scalac.agent.{ Agent, AgentInstrumentation }
 import io.scalac.core.model.SupportedModules
 import io.scalac.core.support.ModulesSupport._
+import net.bytebuddy.asm.Advice
 import net.bytebuddy.description.`type`.TypeDescription
 import net.bytebuddy.description.method.MethodDescription
 import net.bytebuddy.implementation.MethodDelegation
@@ -57,7 +58,7 @@ object AkkaHttpAgent {
               .and(isMethod[MethodDescription])
               .and(not(isAbstract[MethodDescription])))
           )
-          .intercept(MethodDelegation.to(classOf[HttpInstrumentation]))
+          .intercept(Advice.to(classOf[HttpExtAdvice]))
       }
       .installOn(instrumentation)
     LoadingResult("akka.http.scaladsl.HttpExt")
