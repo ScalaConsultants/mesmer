@@ -14,7 +14,7 @@ import io.scalac.core.model.{ Module, SupportedVersion, Version }
 import io.scalac.core.support.ModulesSupport
 import io.scalac.core.util.ModuleInfo
 import io.scalac.core.util.ModuleInfo.Modules
-import io.scalac.extension.config.ClusterMonitoringConfig
+import io.scalac.extension.config.AkkaMonitoringConfig
 import io.scalac.extension.http.CleanableRequestStorage
 import io.scalac.extension.model._
 import io.scalac.extension.persistence.{ CleanablePersistingStorage, CleanableRecoveryStorage }
@@ -33,7 +33,7 @@ import scala.util.Try
 
 object AkkaMonitoring extends ExtensionId[AkkaMonitoring] {
   override def createExtension(system: ActorSystem[_]): AkkaMonitoring = {
-    val config  = ClusterMonitoringConfig.apply(system.settings.config)
+    val config  = AkkaMonitoringConfig.apply(system.settings.config)
     val monitor = new AkkaMonitoring(system, config)
 
     val modules: Modules = ModuleInfo.extractModulesInformation(system.dynamicAccess.classLoader)
@@ -49,7 +49,7 @@ object AkkaMonitoring extends ExtensionId[AkkaMonitoring] {
 
   private def startMonitors(
     monitoring: AkkaMonitoring,
-    config: ClusterMonitoringConfig,
+    config: AkkaMonitoringConfig,
     akkaVersion: Version,
     modules: Modules,
     modulesSupport: ModulesSupport
@@ -133,16 +133,15 @@ object AkkaMonitoring extends ExtensionId[AkkaMonitoring] {
   }
 }
 
-class AkkaMonitoring(private val system: ActorSystem[_], val config: ClusterMonitoringConfig) extends Extension {
-  import config._
+class AkkaMonitoring(private val system: ActorSystem[_], val config: AkkaMonitoringConfig) extends Extension {
+  import system.log
+
   private val instrumentationName = "scalac_akka_metrics"
   private val actorSystemConfig   = system.settings.config
-  import system.log
-  private lazy val openTelemetryClusterMetricsMonitor =
-    OpenTelemetryClusterMetricsMonitor(
-      instrumentationName,
-      actorSystemConfig
-    )
+  private lazy val openTelemetryClusterMetricsMonitor = OpenTelemetryClusterMetricsMonitor(
+    instrumentationName,
+    actorSystemConfig
+  )
 
   implicit private val timeout: Timeout = 5 seconds
 
@@ -206,11 +205,11 @@ class AkkaMonitoring(private val system: ActorSystem[_], val config: ClusterMoni
       Behaviors
         .supervise(
           WithSelfCleaningState
-            .clean(CleanableRecoveryStorage.withConfig(cleaningSettings))
-            .every(cleaningSettings.every)(rs =>
+            .clean(CleanableRecoveryStorage.withConfig(config.cleaning))
+            .every(config.cleaning.every)(rs =>
               WithSelfCleaningState
-                .clean(CleanablePersistingStorage.withConfig(cleaningSettings))
-                .every(cleaningSettings.every) { ps =>
+                .clean(CleanablePersistingStorage.withConfig(config.cleaning))
+                .every(config.cleaning.every) { ps =>
                   PersistenceEventsActor.apply(
                     CommonRegexPathService,
                     rs,
@@ -236,8 +235,8 @@ class AkkaMonitoring(private val system: ActorSystem[_], val config: ClusterMoni
       Behaviors
         .supervise(
           WithSelfCleaningState
-            .clean(CleanableRequestStorage.withConfig(cleaningSettings))
-            .every(cleaningSettings.every)(rs =>
+            .clean(CleanableRequestStorage.withConfig(config.cleaning))
+            .every(config.cleaning.every)(rs =>
               HttpEventsActor.apply(openTelemetryHttpMonitor, rs, pathService, nodeName)
             )
         )
