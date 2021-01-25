@@ -5,6 +5,7 @@ import akka.actor.typed.receptionist.Receptionist.{ Deregister, Register }
 import akka.actor.typed.scaladsl.Behaviors
 import akka.actor.typed.{ Behavior, PostStop }
 import akka.util.Timeout
+
 import io.scalac.extension.event.HttpEvent
 import io.scalac.extension.event.HttpEvent._
 import io.scalac.extension.http.RequestStorage
@@ -13,8 +14,9 @@ import io.scalac.extension.metric.HttpMetricMonitor
 import io.scalac.extension.metric.HttpMetricMonitor._
 import io.scalac.extension.model.{ Method, Path, _ }
 import io.scalac.extension.service.PathService
-
 import scala.language.postfixOps
+
+import io.scalac.extension.config.CachingConfig
 
 class HttpEventsActor
 object HttpEventsActor {
@@ -37,7 +39,10 @@ object HttpEventsActor {
 
     Receptionist(ctx.system).ref ! Register(httpServiceKey, ctx.messageAdapter(HttpEventWrapper.apply))
     // TODO move caching outside this scope - it shouldn't be this actor who decide if caching is in use
-    val cachingHttpMonitor = caching[Labels, HttpMetricMonitor](httpMetricMonitor)
+    val cachingHttpMonitor = caching[Labels, HttpMetricMonitor](
+      httpMetricMonitor,
+      CachingConfig.fromConfig(ctx.system.settings.config, "http")
+    )
 
     def createLabels(path: Path, method: Method): Labels = Labels(node, pathService.template(path), method)
 

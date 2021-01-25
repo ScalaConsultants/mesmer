@@ -3,8 +3,9 @@ package io.scalac.extension.metric
 import org.scalatest.Inspectors
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
-
 import scala.collection.mutable.ListBuffer
+
+import io.scalac.extension.config.CachingConfig
 
 class CachingMonitorTest extends AnyFlatSpec with Matchers with Inspectors {
 
@@ -55,7 +56,7 @@ class CachingMonitorTest extends AnyFlatSpec with Matchers with Inspectors {
 
   it should "evict elements when cache limit is hit" in test { testBindable =>
     val cacheSize = 5
-    val sut       = new CachingMonitor[String, TestBound, TestBindable](testBindable, cacheSize)
+    val sut       = new CachingMonitor[String, TestBound, TestBindable](testBindable, CachingConfig(cacheSize))
     val labels    = List.tabulate(cacheSize + 1)(num => s"label_${num}")
 
     val instances = labels.map(sut.bind)
@@ -67,7 +68,7 @@ class CachingMonitorTest extends AnyFlatSpec with Matchers with Inspectors {
 
   it should "evict monitors in LRU manner" in test { testBindable =>
     val cacheSize                              = 5
-    val sut                                    = new CachingMonitor[String, TestBound, TestBindable](testBindable, cacheSize)
+    val sut                                    = new CachingMonitor[String, TestBound, TestBindable](testBindable, CachingConfig(cacheSize))
     val labels @ firstLabel :: _ :: labelsTail = List.tabulate(cacheSize)(num => s"label_${num}")
     val additionalLabel                        = "evicting_label"
 
