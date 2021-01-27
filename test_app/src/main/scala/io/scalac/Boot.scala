@@ -1,25 +1,20 @@
 package io.scalac
 
-import java.net.URI
-import java.util.Collections
-import java.{ util => ju }
-
-import akka.actor.typed.ActorSystem
 import akka.actor.typed.scaladsl.Behaviors
+import akka.actor.typed.{ ActorSystem, Behavior }
 import akka.cluster.sharding.typed.scaladsl.{ ClusterSharding, Entity, EntityTypeKey }
 import akka.http.scaladsl.Http
 import akka.management.scaladsl.AkkaManagement
 import akka.util.Timeout
-import com.newrelic.telemetry.Attributes
-import com.newrelic.telemetry.opentelemetry.`export`.{ NewRelicExporters, NewRelicMetricExporter }
+import com.newrelic.telemetry.opentelemetry.`export`.NewRelicExporters
 import com.typesafe.config.{ ConfigFactory, ConfigValueFactory }
 import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport
-import io.opentelemetry.sdk.OpenTelemetrySdk
-import io.opentelemetry.sdk.metrics.`export`.IntervalMetricReader
 import io.scalac.api.AccountRoutes
+import io.scalac.domain.AccountStateActor.Command
 import io.scalac.domain.{ AccountStateActor, JsonCodecs }
 import org.slf4j.LoggerFactory
 
+import java.util.UUID
 import scala.concurrent.duration._
 import scala.io.StdIn
 import scala.jdk.CollectionConverters._
@@ -38,28 +33,10 @@ object Boot extends App with FailFastCirceSupport with JsonCodecs {
         .withValue(
           "app",
           ConfigValueFactory
-            .fromMap(Map("host" -> "localhost", "port" -> 8080).asJava)
+            .fromMap(Map("host" -> "localhost", "port" -> 8080, "snapshot-every" -> 10, "keep-snapshots" -> 2).asJava)
         )
     )
     .resolve
-//
-//  val apiKey = config.getString("newrelic.api_key")
-//
-//  val newRelicExporter = NewRelicMetricExporter
-//    .newBuilder()
-//    .apiKey(apiKey)
-//    .commonAttributes(new Attributes().put("service.name", "test_app"))
-//    .uriOverride(URI.create("https://metric-api.eu.newrelic.com/metric/v1"))
-//    .build()
-//
-//  val intervalMetricReader = IntervalMetricReader
-//    .builder()
-//    .setMetricProducers(
-//      Collections.singleton(OpenTelemetrySdk.getGlobalMeterProvider.getMetricProducer)
-//    )
-//    .setExportIntervalMillis(5000)
-//    .setMetricExporter(newRelicExporter)
-//    .build()
 
   implicit val system =
     ActorSystem[Nothing](Behaviors.empty, "Accounts", config)
@@ -68,12 +45,11 @@ object Boot extends App with FailFastCirceSupport with JsonCodecs {
 
   val entity = EntityTypeKey[AccountStateActor.Command]("accounts")
 
+  val createActorFromUUid: UUID => Behavior[Command] =
+    AccountStateActor(_, config.getInt("app.snapshot-every"), config.getInt("app.keep-snapshots"))
+
   val accountsShards = ClusterSharding(system)
-    .init(Entity(entity) { entityContext =>
-      AccountStateActor(
-        ju.UUID.fromString(entityContext.entityId)
-      )
-    })
+    .init(Entity(entity)(entityContext => createActorFromUUid(UUID.fromString(entityContext.entityId))))
 
   AkkaManagement(system)
     .start()
