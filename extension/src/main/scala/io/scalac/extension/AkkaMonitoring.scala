@@ -220,10 +220,10 @@ class AkkaMonitoring(private val system: ActorSystem[_], val config: AkkaMonitor
                 .clean(CleanablePersistingStorage.withConfig(config.cleaning))
                 .every(config.cleaning.every) { ps =>
                   PersistenceEventsActor.apply(
-                    CommonRegexPathService,
+                    openTelemetryPersistenceMonitor,
                     rs,
                     ps,
-                    openTelemetryPersistenceMonitor,
+                    CommonRegexPathService,
                     nodeName
                   )
                 }

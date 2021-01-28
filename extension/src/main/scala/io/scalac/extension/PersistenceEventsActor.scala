@@ -24,10 +24,10 @@ object PersistenceEventsActor {
   }
 
   def apply(
-    pathService: PathService,
+    monitor: PersistenceMetricMonitor,
     initRecoveryStorage: RecoveryStorage,
     initPersistStorage: PersistStorage,
-    monitor: PersistenceMetricMonitor,
+    pathService: PathService,
     node: Option[Node] = None
   ): Behavior[Event] =
     Behaviors.setup { ctx =>

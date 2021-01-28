@@ -41,10 +41,10 @@ class HttpEventsActorTest
 
   override protected def createMonitor: Monitor = new HttpMetricsTestProbe()
 
-  override protected def setUp(monitor: Monitor): ActorRef[_] =
+  override protected def setUp(monitor: Monitor, cache: Boolean): ActorRef[_] =
     system.systemActorOf(
       HttpEventsActor(
-        CachingMonitor(monitor),
+        if (cache) CachingMonitor(monitor) else monitor,
         MutableRequestStorage.empty,
         IdentityPathService
       ),
@@ -78,7 +78,7 @@ class HttpEventsActorTest
     }
   }
 
-  it should "reuse monitors for same labels" in test { monitor =>
+  it should "reuse monitors for same labels" in testCaching { monitor =>
     val expectedLabels = List(Labels(None, "/api/v1/test", "GET"), Labels(None, "/api/v2/test", "POST"))
     val requestCount   = 10
 
@@ -95,7 +95,7 @@ class HttpEventsActorTest
     monitor.binds should be(2)
   }
 
-  it should "collect metric for several concurrent requests" in test { monitor =>
+  it should "collect metric for several concurrent requests" in testCaching { monitor =>
     val labels   = List.fill(10)(createUniqueId).map(id => Labels(None, id, "GET"))
     val requests = labels.map(l => createUniqueId -> l).toMap
     requests.foreach(Function.tupled(requestStarted))

@@ -32,13 +32,13 @@ class PersistenceEventsActorTest
 
   override protected def createMonitor: Monitor = new PersistenceMetricTestProbe()
 
-  override protected def setUp(monitor: Monitor): ActorRef[_] =
+  override protected def setUp(monitor: Monitor, cache: Boolean): ActorRef[_] =
     system.systemActorOf(
       PersistenceEventsActor(
-        IdentityPathService,
+        if (cache) CachingMonitor(monitor) else monitor,
         ImmutableRecoveryStorage.empty,
         ImmutablePersistStorage.empty,
-        CachingMonitor(monitor)
+        IdentityPathService
       ),
       createUniqueId
     )
@@ -100,7 +100,7 @@ class PersistenceEventsActorTest
     }
   }
 
-  it should "capture amount of snapshots for same entity with same monitor" in test { monitor =>
+  it should "capture amount of snapshots for same entity with same monitor" in testCaching { monitor =>
     val seqNumbers     = (100 to 140 by 5).toList
     val expectedLabels = Labels(None, "/some/path", createUniqueId)
     for {
@@ -115,7 +115,7 @@ class PersistenceEventsActorTest
     forAll(probes.snapshotProbe.receiveMessages(seqNumbers.size))(_ should be(Inc(1L)))
   }
 
-  it should "capture amount of snapshots for same different entities with reused monitors" in test { monitor =>
+  it should "capture amount of snapshots for same different entities with reused monitors" in testCaching { monitor =>
     val seqNumbers = (100 to 140 by 5).toList
     val expectedLabels = List.fill(5) {
       val id = createUniqueId
@@ -135,7 +135,7 @@ class PersistenceEventsActorTest
     forAll(allProbes)(probes => forAll(probes.snapshotProbe.receiveMessages(seqNumbers.size))(_ should be(Inc(1L))))
   }
 
-  it should "capture persist event time with resued monitors for many events" in test { monitor =>
+  it should "capture persist event time with resued monitors for many events" in testCaching { monitor =>
     val seqNo = 150
     val expectedLabels = List.fill(5) {
       val id = createUniqueId
@@ -163,7 +163,7 @@ class PersistenceEventsActorTest
     }
   }
 
-  it should "capture all metrics persist metrics with reused monitors" in test { monitor =>
+  it should "capture all metrics persist metrics with reused monitors" in testCaching { monitor =>
     val seqNbs                   = List(150, 151, 152)
     val expectedRecoveryTime     = 1000L
     val expectedPersistEventTime = 500L
