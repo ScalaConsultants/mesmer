@@ -115,21 +115,21 @@ class OpenTelemetryClusterMetricsMonitor(instrumentationName: String, val metric
   }
 
   class ClusterBoundMonitor(labels: Labels) extends BoundMonitor with opentelemetry.Synchronized {
-    override def shardPerRegions: MetricRecorder[Long] with Instrument[Long] =
+    override lazy val shardPerRegions: MetricRecorder[Long] with Instrument[Long] =
       WrappedLongValueRecorder(shardsPerRegionRecorder, labels)
 
-    override def entityPerRegion: MetricRecorder[Long] with Instrument[Long] =
+    override lazy val entityPerRegion: MetricRecorder[Long] with Instrument[Long] =
       WrappedLongValueRecorder(entityPerRegionRecorder, labels)
 
-    override def shardRegionsOnNode: MetricRecorder[Long] with Instrument[Long] =
+    override lazy val shardRegionsOnNode: MetricRecorder[Long] with Instrument[Long] =
       WrappedLongValueRecorder(regionsOnNode, labels)
 
-    override def reachableNodes: Counter[Long] with Instrument[Long] =
+    override lazy val reachableNodes: Counter[Long] with Instrument[Long] =
       WrappedUpDownCounter(reachableNodeCounter, labels)
 
-    override def unreachableNodes: Counter[Long] with Instrument[Long] =
+    override lazy val unreachableNodes: Counter[Long] with Instrument[Long] =
       WrappedUpDownCounter(unreachableNodeCounter, labels)
 
-    override def nodeDown: UpCounter[Long] with Instrument[Long] = WrappedCounter(nodeDownCounter, labels)
+    override lazy val nodeDown: UpCounter[Long] with Instrument[Long] = WrappedCounter(nodeDownCounter, labels)
   }
 }
