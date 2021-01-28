@@ -3,6 +3,7 @@ package io.scalac.extension
 import akka.actor.testkit.typed.scaladsl.ScalaTestWithActorTestKit
 import akka.actor.typed.ActorRef
 import akka.actor.typed.receptionist.ServiceKey
+
 import io.scalac.core.util.Timestamp
 import io.scalac.extension.event.EventBus
 import io.scalac.extension.event.HttpEvent.{ RequestCompleted, RequestStarted }
@@ -16,9 +17,11 @@ import org.scalatest._
 import org.scalatest.concurrent.Eventually
 import org.scalatest.flatspec.AnyFlatSpecLike
 import org.scalatest.matchers.should.Matchers
-
 import scala.concurrent.duration._
 import scala.language.postfixOps
+
+import io.scalac.extension.config.CachingConfig
+import io.scalac.extension.metric.CachingMonitor
 
 class HttpEventsActorTest
     extends ScalaTestWithActorTestKit(localActorProvider)
@@ -39,7 +42,14 @@ class HttpEventsActorTest
   override protected def createMonitor: Monitor = new HttpMetricsTestProbe()
 
   override protected def setUp(monitor: Monitor): ActorRef[_] =
-    system.systemActorOf(HttpEventsActor(monitor, MutableRequestStorage.empty, IdentityPathService), createUniqueId)
+    system.systemActorOf(
+      HttpEventsActor(
+        CachingMonitor(monitor),
+        MutableRequestStorage.empty,
+        IdentityPathService
+      ),
+      createUniqueId
+    )
 
   override protected val serviceKey: ServiceKey[_] = httpServiceKey
 

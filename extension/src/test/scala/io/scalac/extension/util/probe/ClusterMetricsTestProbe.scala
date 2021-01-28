@@ -17,39 +17,39 @@ class ClusterMetricsTestProbe private (
   val nodeDownProbe: TestProbe[CounterCommand]
 ) extends ClusterMetricsMonitor {
 
-  override type Bound = BoundMonitor
+  override def bind(node: Node): ClusterMetricsMonitor.BoundMonitor =
+    new ClusterMetricsMonitor.BoundMonitor with TestProbeSynchronized {
 
-  override def bind(node: Node): Bound = new BoundMonitor with TestProbeSynchronized with Unbind {
-
-    override val shardPerRegions: MetricRecorder[Long] with AbstractTestProbeWrapper = RecorderTestProbeWrapper(
-      shardPerRegionsProbe
-    )
-
-    override val entityPerRegion: MetricRecorder[Long] with AbstractTestProbeWrapper = probe.RecorderTestProbeWrapper(
-      entityPerRegionProbe
-    )
-
-    override val shardRegionsOnNode: MetricRecorder[Long] with AbstractTestProbeWrapper =
-      probe.RecorderTestProbeWrapper(
-        shardRegionsOnNodeProbe
+      override val shardPerRegions: MetricRecorder[Long] with AbstractTestProbeWrapper = RecorderTestProbeWrapper(
+        shardPerRegionsProbe
       )
 
-    override val entitiesOnNode: MetricRecorder[Long] with AbstractTestProbeWrapper = probe.RecorderTestProbeWrapper(
-      entitiesOnNodeProbe
-    )
+      override val entityPerRegion: MetricRecorder[Long] with AbstractTestProbeWrapper = probe.RecorderTestProbeWrapper(
+        entityPerRegionProbe
+      )
 
-    override val reachableNodes: Counter[Long] with AbstractTestProbeWrapper = CounterTestProbeWrapper(
-      reachableNodesProbe
-    )
+      override val shardRegionsOnNode: MetricRecorder[Long] with AbstractTestProbeWrapper =
+        probe.RecorderTestProbeWrapper(
+          shardRegionsOnNodeProbe
+        )
 
-    override val unreachableNodes: Counter[Long] with AbstractTestProbeWrapper = probe.CounterTestProbeWrapper(
-      unreachableNodesProbe
-    )
+      override val entitiesOnNode: MetricRecorder[Long] with AbstractTestProbeWrapper = probe.RecorderTestProbeWrapper(
+        entitiesOnNodeProbe
+      )
 
-    override val nodeDown: UpCounter[Long] with AbstractTestProbeWrapper = probe.CounterTestProbeWrapper(nodeDownProbe)
+      override val reachableNodes: Counter[Long] with AbstractTestProbeWrapper = CounterTestProbeWrapper(
+        reachableNodesProbe
+      )
 
-    override def unbind(): Unit = ()
-  }
+      override val unreachableNodes: Counter[Long] with AbstractTestProbeWrapper = probe.CounterTestProbeWrapper(
+        unreachableNodesProbe
+      )
+
+      override val nodeDown: UpCounter[Long] with AbstractTestProbeWrapper =
+        probe.CounterTestProbeWrapper(nodeDownProbe)
+
+      override def unbind(): Unit = ()
+    }
 }
 
 object ClusterMetricsTestProbe {

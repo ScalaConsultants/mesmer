@@ -3,6 +3,7 @@ package io.scalac.extension.upstream
 import com.typesafe.config.Config
 import io.opentelemetry.api.OpenTelemetry
 import io.opentelemetry.api.common.Labels
+
 import io.scalac.extension.metric._
 import io.scalac.extension.model._
 import io.scalac.extension.upstream.OpenTelemetryClusterMetricsMonitor.MetricNames
@@ -126,14 +127,12 @@ class OpenTelemetryClusterMetricsMonitor(instrumentationName: String, val metric
     .setDescription("Counter for node down events")
     .build()
 
-  override type Bound = ClusterBoundMonitor
-
   override def bind(node: Node): ClusterBoundMonitor = {
     val boundLabels = Labels.of("node", node)
     new ClusterBoundMonitor(boundLabels)
   }
 
-  class ClusterBoundMonitor(labels: Labels) extends BoundMonitor with opentelemetry.Synchronized {
+  class ClusterBoundMonitor(labels: Labels) extends ClusterMetricsMonitor.BoundMonitor with opentelemetry.Synchronized {
     override val shardPerRegions: MetricRecorder[Long] with Instrument[Long] =
       WrappedLongValueRecorder(shardsPerRegionRecorder, labels)
 

@@ -93,10 +93,7 @@ class OpenTelemetryPersistenceMetricMonitor(instrumentationName: String, metricN
     .setDescription("Amount of snapshots created")
     .build()
 
-  override type Bound = OpenTelemetryBoundMonitor
-
-  override def bind(labels: Labels): OpenTelemetryBoundMonitor =
-    new OpenTelemetryBoundMonitor(labels)
+  override def bind(labels: Labels): BoundMonitor = new OpenTelemetryBoundMonitor(labels)
 
   class OpenTelemetryBoundMonitor(labels: Labels) extends BoundMonitor with opentelemetry.Synchronized {
     override lazy val recoveryTime = WrappedLongValueRecorder(recoveryTimeRecorder, labels.toOpenTelemetry)

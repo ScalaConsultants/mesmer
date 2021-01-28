@@ -9,16 +9,14 @@ import akka.util.Timeout
 import io.scalac.extension.event.HttpEvent
 import io.scalac.extension.event.HttpEvent._
 import io.scalac.extension.http.RequestStorage
-import io.scalac.extension.metric.CachingMonitor._
 import io.scalac.extension.metric.HttpMetricMonitor
 import io.scalac.extension.metric.HttpMetricMonitor._
 import io.scalac.extension.model.{ Method, Path, _ }
 import io.scalac.extension.service.PathService
 import scala.language.postfixOps
 
-import io.scalac.extension.config.CachingConfig
-
 class HttpEventsActor
+
 object HttpEventsActor {
 
   sealed trait Event extends SerializableMessage
@@ -38,11 +36,6 @@ object HttpEventsActor {
     val receptionistAdapter = ctx.messageAdapter(HttpEventWrapper.apply)
 
     Receptionist(ctx.system).ref ! Register(httpServiceKey, ctx.messageAdapter(HttpEventWrapper.apply))
-    // TODO move caching outside this scope - it shouldn't be this actor who decide if caching is in use
-    val cachingHttpMonitor = caching[Labels, HttpMetricMonitor](
-      httpMetricMonitor,
-      CachingConfig.fromConfig(ctx.system.settings.config, "http")
-    )
 
     def createLabels(path: Path, method: Method): Labels = Labels(node, pathService.template(path), method)
 
@@ -52,7 +45,7 @@ object HttpEventsActor {
       Behaviors
         .receiveMessage[Event] {
           case HttpEventWrapper(started @ RequestStarted(id, _, path, method)) => {
-            val monitor = cachingHttpMonitor.bind(createLabels(path, method))
+            val monitor = httpMetricMonitor.bind(createLabels(path, method))
 
             monitor.requestCounter.incValue(1L)
 
@@ -68,7 +61,7 @@ object HttpEventsActor {
                 case (storage, started) =>
                   val requestDuration = started.timestamp.interval(timestamp)
                   val monitorBoundary = createLabels(started.path, started.method)
-                  val monitor         = cachingHttpMonitor.bind(monitorBoundary)
+                  val monitor         = httpMetricMonitor.bind(monitorBoundary)
 
                   monitor.requestTime.setValue(requestDuration)
                   ctx.log.debug(s"request ${id} finished in {} millis", requestDuration)

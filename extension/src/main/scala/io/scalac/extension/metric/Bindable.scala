@@ -4,12 +4,9 @@ trait Unbind {
   def unbind(): Unit
 }
 
-trait Bindable[L] {
-  type Bound <: Unbind
+trait Bound extends Unbind
 
-  def bind(labels: L): Bound
-}
-
-object Bindable {
-  type Aux[L, B0 <: Unbind] = Bindable[L] { type Bound = B0 }
+trait Bindable[-L, +B <: Bound] extends (L => B) {
+  final def apply(labels: L): B = bind(labels)
+  def bind(labels: L): B
 }

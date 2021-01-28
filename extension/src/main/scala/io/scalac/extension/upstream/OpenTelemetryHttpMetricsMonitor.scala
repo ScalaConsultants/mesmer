@@ -51,8 +51,6 @@ class OpenTelemetryHttpMetricsMonitor(
 
   import HttpMetricMonitor._
 
-  override type Bound = HttpMetricsBoundMonitor
-
   private val meter = OpenTelemetry
     .getGlobalMeter(instrumentationName)
 
@@ -66,7 +64,7 @@ class OpenTelemetryHttpMetricsMonitor(
     .setDescription("Amount of requests")
     .build()
 
-  override def bind(labels: Labels): Bound = new HttpMetricsBoundMonitor(labels)
+  def bind(labels: Labels): BoundMonitor = new HttpMetricsBoundMonitor(labels)
 
   class HttpMetricsBoundMonitor(labels: Labels) extends BoundMonitor with opentelemetry.Synchronized {
     private val openTelemetryLabels = labels.toOpenTelemetry

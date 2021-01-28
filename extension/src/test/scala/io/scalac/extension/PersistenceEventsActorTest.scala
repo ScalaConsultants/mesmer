@@ -3,21 +3,24 @@ package io.scalac.extension
 import akka.actor.testkit.typed.scaladsl.ScalaTestWithActorTestKit
 import akka.actor.typed.ActorRef
 import akka.actor.typed.receptionist.ServiceKey
+
 import io.scalac.core.util.Timestamp
 import io.scalac.extension.event.EventBus
 import io.scalac.extension.event.PersistenceEvent._
 import io.scalac.extension.metric.PersistenceMetricMonitor.Labels
-import io.scalac.extension.persistence.{ImmutablePersistStorage, ImmutableRecoveryStorage}
+import io.scalac.extension.persistence.{ ImmutablePersistStorage, ImmutableRecoveryStorage }
 import io.scalac.extension.util.TestConfig.localActorProvider
-import io.scalac.extension.util.probe.BoundTestProbe.{Inc, MetricRecorded}
+import io.scalac.extension.util.probe.BoundTestProbe.{ Inc, MetricRecorded }
 import io.scalac.extension.util.probe.PersistenceMetricTestProbe
-import io.scalac.extension.util.{IdentityPathService, MonitorFixture}
+import io.scalac.extension.util.{ IdentityPathService, MonitorFixture }
 import org.scalatest._
 import org.scalatest.flatspec.AnyFlatSpecLike
 import org.scalatest.matchers.should.Matchers
-
 import scala.concurrent.duration._
 import scala.language.postfixOps
+
+import io.scalac.extension.config.CachingConfig
+import io.scalac.extension.metric.CachingMonitor
 
 class PersistenceEventsActorTest
     extends ScalaTestWithActorTestKit(localActorProvider)
@@ -31,7 +34,12 @@ class PersistenceEventsActorTest
 
   override protected def setUp(monitor: Monitor): ActorRef[_] =
     system.systemActorOf(
-      PersistenceEventsActor(IdentityPathService, ImmutableRecoveryStorage.empty, ImmutablePersistStorage.empty, monitor),
+      PersistenceEventsActor(
+        IdentityPathService,
+        ImmutableRecoveryStorage.empty,
+        ImmutablePersistStorage.empty,
+        CachingMonitor(monitor)
+      ),
       createUniqueId
     )
 
