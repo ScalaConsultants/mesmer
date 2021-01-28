@@ -2,37 +2,37 @@ package io.scalac.agent.akka.persistence
 
 import _root_.akka.actor.typed.scaladsl.ActorContext
 import _root_.akka.persistence.typed.PersistenceId
-import _root_.akka.util.Timeout
 import io.scalac.core.util.Timestamp
 import io.scalac.extension.event.EventBus
 import io.scalac.extension.event.PersistenceEvent.RecoveryFinished
 import net.bytebuddy.asm.Advice
 
-import scala.concurrent.duration._
-import scala.util.Try
+import java.lang.invoke.{ MethodHandles, MethodType }
 
 class RecoveryCompletedInterceptor
 
 object RecoveryCompletedInterceptor {
 
-  private lazy val setupField = {
-    val setup = Class.forName("akka.persistence.typed.internal.ReplayingEvents").getDeclaredField("setup")
-    setup.setAccessible(true)
-    setup
+  private val replayingEventsClass = Class.forName("akka.persistence.typed.internal.ReplayingEvents")
+
+  private val behaviorSetupClass = Class.forName("akka.persistence.typed.internal.BehaviorSetup")
+
+  private val handle = {
+    val lookup = MethodHandles
+      .lookup()
+
+    import MethodHandles._
+    import MethodType._
+
+    val persistenceId =
+      lookup.findVirtual(behaviorSetupClass, "persistenceId", methodType(classOf[PersistenceId]))
+    val behavior = lookup.findVirtual(replayingEventsClass, "setup", methodType(behaviorSetupClass))
+
+    foldArguments(dropArguments(persistenceId, 1, replayingEventsClass), behavior)
   }
 
-  private lazy val persistenceIdField = {
-    val persistenceId = Class.forName("akka.persistence.typed.internal.BehaviorSetup").getDeclaredField("persistenceId")
-    persistenceId.setAccessible(true)
-    persistenceId
-  }
+  def getPersistenceId(ref: AnyRef): PersistenceId = handle.invoke(ref).asInstanceOf[PersistenceId]
 
-  val persistenceIdExtractor: Any => Try[PersistenceId] = ref => {
-    for {
-      setup         <- Try(setupField.get(ref))
-      persistenceId <- Try(persistenceIdField.get(setup))
-    } yield persistenceId.asInstanceOf[PersistenceId]
-  }
   import AkkaPersistenceAgent.logger
   @Advice.OnMethodEnter
   def enter(
@@ -42,13 +42,9 @@ object RecoveryCompletedInterceptor {
     val path = actorContext.self.path
     logger.trace("Recovery completed for {}", path)
 
-    persistenceIdExtractor(thiz).fold(
-      _.printStackTrace(),
-      persistenceId =>
-        EventBus(actorContext.system)
-          .publishEvent(
-            RecoveryFinished(path.toString, persistenceId.id, Timestamp.create())
-          )
-    )
+    val persistenceId = getPersistenceId(thiz).id
+    EventBus(actorContext.system)
+      .publishEvent(RecoveryFinished(path.toString, persistenceId, Timestamp.create()))
+
   }
 }

@@ -1,7 +1,7 @@
 package io.scalac.extension.upstream
 
 import com.typesafe.config.Config
-import io.opentelemetry.api.OpenTelemetry
+import io.opentelemetry.api.{ common, OpenTelemetry }
 import io.scalac.extension.metric.{ MetricRecorder, PersistenceMetricMonitor, UpCounter }
 import io.scalac.extension.upstream.OpenTelemetryPersistenceMetricMonitor._
 import io.scalac.extension.upstream.opentelemetry._
@@ -99,18 +99,20 @@ class OpenTelemetryPersistenceMetricMonitor(instrumentationName: String, metricN
     new OpenTelemetryBoundMonitor(labels)
 
   class OpenTelemetryBoundMonitor(labels: Labels) extends BoundMonitor with opentelemetry.Synchronized {
-    override lazy val recoveryTime = WrappedLongValueRecorder(recoveryTimeRecorder, labels.toOpenTelemetry)
+    private val openTelemetryLabels: common.Labels = labels.toOpenTelemetry
+
+    override lazy val recoveryTime = WrappedLongValueRecorder(recoveryTimeRecorder, openTelemetryLabels)
 
     override lazy val persistentEvent: WrappedSynchronousInstrument[Long] with MetricRecorder[Long] =
-      WrappedLongValueRecorder(persistentEventRecorder, labels.toOpenTelemetry)
+      WrappedLongValueRecorder(persistentEventRecorder, openTelemetryLabels)
 
     override lazy val persistentEventTotal: WrappedSynchronousInstrument[Long] with UpCounter[Long] =
-      WrappedCounter(persistentEventTotalCounter, labels.toOpenTelemetry)
+      WrappedCounter(persistentEventTotalCounter, openTelemetryLabels)
 
     override lazy val snapshot: WrappedSynchronousInstrument[Long] with UpCounter[Long] =
-      WrappedCounter(snapshotCounter, labels.toOpenTelemetry)
+      WrappedCounter(snapshotCounter, openTelemetryLabels)
 
     override lazy val recoveryTotal: WrappedSynchronousInstrument[Long] with UpCounter[Long] =
-      WrappedCounter(recoveryTotalCounter, labels.toOpenTelemetry)
+      WrappedCounter(recoveryTotalCounter, openTelemetryLabels)
   }
 }

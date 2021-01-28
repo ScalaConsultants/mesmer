@@ -1,7 +1,7 @@
 package io.scalac.extension.upstream
 
 import com.typesafe.config.Config
-import io.opentelemetry.api.OpenTelemetry
+import io.opentelemetry.api.{OpenTelemetry, common}
 import io.scalac.extension.metric.HttpMetricMonitor
 import io.scalac.extension.upstream.opentelemetry._
 
@@ -69,8 +69,9 @@ class OpenTelemetryHttpMetricsMonitor(
   override def bind(labels: Labels): Bound = new HttpMetricsBoundMonitor(labels)
 
   class HttpMetricsBoundMonitor(val labels: Labels) extends BoundMonitor with opentelemetry.Synchronized {
-    override def requestTime = WrappedLongValueRecorder(requestTimeRequest, labels.toOpenTelemetry)
+    private val openTelemetryLabels: common.Labels = labels.toOpenTelemetry
+    override val requestTime = WrappedLongValueRecorder(requestTimeRequest, openTelemetryLabels)
 
-    override def requestCounter = WrappedCounter(requestTotalCounter, labels.toOpenTelemetry)
+    override val requestCounter = WrappedCounter(requestTotalCounter, openTelemetryLabels)
   }
 }

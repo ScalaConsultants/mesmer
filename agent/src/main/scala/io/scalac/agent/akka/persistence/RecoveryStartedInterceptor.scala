@@ -7,31 +7,32 @@ import io.scalac.extension.event.EventBus
 import io.scalac.extension.event.PersistenceEvent.RecoveryStarted
 import net.bytebuddy.asm.Advice
 
-import scala.util.Try
+import java.lang.invoke.{ MethodHandles, MethodType }
 
 class RecoveryStartedInterceptor
 
 object RecoveryStartedInterceptor {
   import AkkaPersistenceAgent.logger
 
-  private val setupField = {
-    val setup = Class.forName("akka.persistence.typed.internal.ReplayingSnapshot").getDeclaredField("setup")
-    setup.setAccessible(true)
-    setup
-  }
-  private val persistenceIdField = {
-    val persistenceId = Class.forName("akka.persistence.typed.internal.BehaviorSetup").getDeclaredField("persistenceId")
-    persistenceId.setAccessible(true)
-    persistenceId
+  private val replayingSnapshotClass = Class.forName("akka.persistence.typed.internal.ReplayingSnapshot")
+
+  private val behaviorSetupClass = Class.forName("akka.persistence.typed.internal.BehaviorSetup")
+
+  private val handle = {
+    val lookup = MethodHandles
+      .lookup()
+
+    import MethodHandles._
+    import MethodType._
+
+    val persistenceId =
+      lookup.findVirtual(behaviorSetupClass, "persistenceId", methodType(classOf[PersistenceId]))
+    val behavior = lookup.findVirtual(replayingSnapshotClass, "setup", methodType(behaviorSetupClass))
+
+    foldArguments(dropArguments(persistenceId, 1, replayingSnapshotClass), behavior)
   }
 
-  val persistenceIdExtractor: Any => Try[PersistenceId] = ref => {
-    for {
-      setup         <- Try(setupField.get(ref))
-      persistenceId <- Try(persistenceIdField.get(setup))
-    } yield persistenceId.asInstanceOf[PersistenceId]
-  }
-
+  def getPersistenceId(ref: AnyRef): PersistenceId = handle.invoke(ref).asInstanceOf[PersistenceId]
   @Advice.OnMethodEnter
   def enter(
     @Advice.Argument(0) context: ActorContext[_],
@@ -39,11 +40,10 @@ object RecoveryStartedInterceptor {
   ): Unit = {
     val path = context.self.path
     logger.trace("Started actor {} recovery", path)
-    persistenceIdExtractor(thiz).fold(
-      _.printStackTrace(),
-      persistenceId =>
-        EventBus(context.system)
-          .publishEvent(RecoveryStarted(path.toString, persistenceId.id, Timestamp.create()))
-    )
+    val persistenceId = getPersistenceId(thiz).id
+
+    EventBus(context.system)
+      .publishEvent(RecoveryStarted(path.toString, persistenceId, Timestamp.create()))
+
   }
 }
