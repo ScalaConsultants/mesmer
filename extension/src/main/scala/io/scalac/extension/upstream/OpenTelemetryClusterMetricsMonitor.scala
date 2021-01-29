@@ -75,7 +75,7 @@ object OpenTelemetryClusterMetricsMonitor {
             entitiesOnNode,
             reachableNodes,
             unreachableNodes,
-            nodesDown,
+            nodesDown
           )
         }
         .getOrElse(defaultCached)
@@ -112,14 +112,12 @@ class OpenTelemetryClusterMetricsMonitor(instrumentationName: String, val metric
     .build()
 
   private val shardRegionsOnNodeRecorder = meter
-    .longValueRecorderBuilder(metricNames.shardRegionsOnNode)
+    .longValueObserverBuilder(metricNames.shardRegionsOnNode)
     .setDescription("Amount of shard regions on node")
-    .build()
 
-  private val entitiesOnNodeRecorder = meter
-    .longValueRecorderBuilder(metricNames.entitiesOnNode)
+  private val entitiesOnNodeObserver = meter
+    .longValueObserverBuilder(metricNames.entitiesOnNode)
     .setDescription("Amount of entities on node")
-    .build()
 
   private val nodeDownCounter = meter
     .longCounterBuilder(metricNames.nodeDown)
@@ -140,11 +138,11 @@ class OpenTelemetryClusterMetricsMonitor(instrumentationName: String, val metric
     override def entityPerRegion: MetricRecorder[Long] with Instrument[Long] =
       WrappedLongValueRecorder(entityPerRegionRecorder, labels)
 
-    override def shardRegionsOnNode: MetricRecorder[Long] with Instrument[Long] =
-      WrappedLongValueRecorder(shardRegionsOnNodeRecorder, labels)
+    override def shardRegionsOnNode: MetricObserver[Long] =
+      WrappedLongValueObserver(shardRegionsOnNodeRecorder, labels)
 
-    override def entitiesOnNode: MetricRecorder[Long] with Instrument[Long] =
-      WrappedLongValueRecorder(entitiesOnNodeRecorder, labels)
+    override def entitiesOnNode: MetricObserver[Long] =
+      WrappedLongValueObserver(entitiesOnNodeObserver, labels)
 
     override def reachableNodes: Counter[Long] with Instrument[Long] =
       WrappedUpDownCounter(reachableNodeCounter, labels)
