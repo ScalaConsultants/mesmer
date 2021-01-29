@@ -9,7 +9,7 @@ object PersistenceMetricMonitor {
     def toOpenTelemetry: OpenTelemetryLabels = {
       val required = Seq("path", path, "persistenceId", persistenceId)
       val optional = node.map(n => Seq("node", n)).getOrElse(Seq.empty)
-      OpenTelemetryLabels.of((optional ++ required).toArray)
+      OpenTelemetryLabels.of(optional ++ required: _*)
 
     }
   }

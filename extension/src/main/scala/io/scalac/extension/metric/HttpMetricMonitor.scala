@@ -10,7 +10,7 @@ object HttpMetricMonitor {
     def toOpenTelemetry: OpenTelemetryLabels = {
       val required: Seq[String] = Seq("path", path, "method", method)
       val optional              = node.map(n => Seq("node", n)).getOrElse(Seq.empty)
-      OpenTelemetryLabels.of((optional ++ required).toArray)
+      OpenTelemetryLabels.of(optional ++ required: _*)
     }
   }
 }
