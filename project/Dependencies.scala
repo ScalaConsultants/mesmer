@@ -50,14 +50,25 @@ object Dependencies {
 
   val logback = Seq("ch.qos.logback" % "logback-classic" % LogbackVersion)
 
-  val openTelemetryApi = Seq("io.opentelemetry" % "opentelemetry-api" % "0.10.0")
+  val openTelemetryApi = Seq(
+    "io.opentelemetry" % "opentelemetry-api" % "0.13.0"
+  )
 
-  val openTelemetrySdk = Seq("io.opentelemetry" % "opentelemetry-sdk" % "0.10.0")
+  val openTelemetrySdk = Seq(
+    "io.opentelemetry" % "opentelemetry-sdk" % "0.13.0"
+  )
+
+  val openTelemetryDependenciesOverrides = Seq(
+    "io.opentelemetry" % "opentelemetry-api-metrics" % "0.13.0-alpha",
+    "io.opentelemetry" % "opentelemetry-sdk-metrics" % "0.13.0-alpha"
+  )
 
   val newRelicSdk = Seq(
-    "com.newrelic.telemetry" % "opentelemetry-exporters-newrelic" % "0.10.0",
-    "com.newrelic.telemetry" % "telemetry"                        % "0.9.0",
-    "com.newrelic.telemetry" % "telemetry-http-okhttp"            % "0.9.0"
+    // "com.newrelic.telemetry" % "opentelemetry-exporters-newrelic" % "0.13.0",
+    // TODO uncomment the line above when solve this issue: https://github.com/newrelic/opentelemetry-exporter-java/issues/149
+    // For a while, we use it as a unmanaged dependency at extension/lib
+    "com.newrelic.telemetry" % "telemetry"             % "0.10.0",
+    "com.newrelic.telemetry" % "telemetry-http-okhttp" % "0.10.0"
   )
 
   val akkaManagement = Seq(

@@ -11,7 +11,10 @@ def runWithAgent = Command.command("runWithAgent") { state =>
   val newState =
     extracted.appendWithSession(
       Seq(
-        run / javaOptions += s"-javaagent:${(agent / assembly).value.absolutePath}"
+        run / javaOptions ++= Seq(
+          s"-javaagent:${(agent / assembly).value.absolutePath}",
+          "-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=9999"
+        )
       ),
       state
     )
@@ -27,7 +30,8 @@ lazy val root = (project in file("."))
 lazy val core = (project in file("core"))
   .settings(
     name := "core",
-    libraryDependencies ++= akka ++ openTelemetryApi ++ scalatest ++ akkaTestkit
+    libraryDependencies ++= akka ++ openTelemetryApi ++ scalatest ++ akkaTestkit,
+    dependencyOverrides ++= openTelemetryDependenciesOverrides
   )
 
 lazy val extension = (project in file("extension"))
@@ -36,8 +40,10 @@ lazy val extension = (project in file("extension"))
   .settings(
     parallelExecution in Test := true,
     name := "akka-monitoring-extension",
-    libraryDependencies ++= akka ++ openTelemetryApi ++ akkaTestkit ++ scalatest ++ logback.map(_ % Test) ++ akkaMultiNodeTestKit
-       ++ newRelicSdk ++ openTelemetrySdk
+    libraryDependencies ++= akka ++ openTelemetryApi ++ akkaTestkit ++ scalatest ++ logback
+      .map(_ % Test) ++ akkaMultiNodeTestKit
+      ++ newRelicSdk ++ openTelemetrySdk,
+    dependencyOverrides ++= openTelemetryDependenciesOverrides
   )
   .dependsOn(core % "compile->compile;test->test")
 
@@ -66,6 +72,7 @@ lazy val agent = (project in file("agent"))
     libraryDependencies ++= akka.map(_ % "provided") ++ byteBuddy ++ scalatest ++ akkaTestkit ++ slf4jApi ++ reflection(
       scalaVersion.value
     ),
+    dependencyOverrides ++= openTelemetryDependenciesOverrides,
     Compile / mainClass := Some("io.scalac.agent.Boot"),
     Compile / packageBin / packageOptions := {
       (Compile / packageBin / packageOptions).value.map {
@@ -88,6 +95,7 @@ lazy val testApp = (project in file("test_app"))
   .settings(
     name := "akka-monitoring-test-app",
     libraryDependencies ++= akka ++ scalatest ++ akkaTestkit ++ circe ++ circeAkka ++ postgresDriver ++ akkaPersistance ++ slick ++ logback ++ newRelicSdk ++ akkaManagement,
+    dependencyOverrides ++= openTelemetryDependenciesOverrides,
     assemblyMergeStrategySettings,
     assembly / mainClass := Some("io.scalac.Boot"),
     assembly / assemblyJarName := "test_app.jar",
