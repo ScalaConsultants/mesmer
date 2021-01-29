@@ -1,7 +1,5 @@
 package io.scalac.extension
 
-import java.util.UUID
-
 import akka.actor.testkit.typed.javadsl.FishingOutcomes
 import akka.actor.testkit.typed.scaladsl.TestProbe
 import akka.actor.typed._
@@ -47,7 +45,7 @@ class ClusterSelfNodeEventsActorTest
       for (i <- 0 until 10) ref ! ShardingEnvelope(s"test_$i", Create)
 
       val messages = monitor.entitiesOnNodeProbe.receiveMessages(2, 15 seconds)
-      messages should contain(MetricRecorded(10))
+      messages should contain(MetricObserved(10))
   }
 
   it should "show proper amount of entities on node with 2 regions" in setupN(TestBehavior.apply, n = 2) {
@@ -60,7 +58,7 @@ class ClusterSelfNodeEventsActorTest
       for (i <- 0 until 10) refs(i % refs.length) ! ShardingEnvelope(s"test_$i", Create)
 
       val messages = monitor.entitiesOnNodeProbe.receiveMessages(2, 15 seconds)
-      messages should contain(MetricRecorded(10))
+      messages should contain(MetricObserved(10))
   }
 
   it should "show proper amount of reachable nodes" in setup(TestBehavior.apply) {
