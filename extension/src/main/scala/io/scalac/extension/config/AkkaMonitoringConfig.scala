@@ -17,6 +17,7 @@ case class BootSettings(metricsBackend: Boolean)
 
 case class AutoStartSettings(akkaHttp: Boolean, akkaPersistence: Boolean, akkaCluster: Boolean)
 
+// TODO Wouldn't be better to set the uri instead of region?
 case class BackendSettings(name: String, region: String, apiKey: String, serviceName: String)
 
 object ClusterMonitoringConfig {
