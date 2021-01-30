@@ -8,8 +8,8 @@ trait ClusterMetricsMonitor extends Bindable[Node] {
   override type Bound <: BoundMonitor
 
   trait BoundMonitor extends Synchronized {
-    def shardPerRegions: MetricRecorder[Long] with Instrument[Long]
-    def entityPerRegion: MetricRecorder[Long] with Instrument[Long]
+    def shardPerRegions(region: String): MetricObserver[Long]
+    def entityPerRegion(region: String): MetricObserver[Long]
     def shardRegionsOnNode: MetricObserver[Long]
     def entitiesOnNode: MetricObserver[Long]
     def reachableNodes: Counter[Long] with Instrument[Long]

@@ -1,14 +1,14 @@
 package io.scalac.api
 
 import akka.actor.typed.scaladsl.AskPattern._
-import akka.actor.typed.{ActorRef, ActorSystem}
+import akka.actor.typed.{ ActorRef, ActorSystem }
 import akka.cluster.sharding.typed.ShardingEnvelope
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server._
 import akka.util.Timeout
 import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport
-import io.scalac.domain.{AccountStateActor, JsonCodecs, _}
+import io.scalac.domain.{ AccountStateActor, JsonCodecs, _ }
 
 import scala.language.postfixOps
 import scala.util.Success
@@ -28,7 +28,7 @@ class AccountRoutes(
       import AccountStateActor.Command._
       import AccountStateActor.Reply._
       onComplete(
-        shardedRef.ask[AccountStateActor.Reply](ref => ShardingEnvelope(uuid.toString(), GetBalance(ref)))
+        shardedRef.ask[AccountStateActor.Reply](ref => ShardingEnvelope(uuid.toString, GetBalance(ref)))
       ) {
         case Success(CurrentBalance(balance)) =>
           complete(StatusCodes.OK, Account(uuid, balance))
@@ -39,7 +39,7 @@ class AccountRoutes(
         import AccountStateActor.Command._
         import AccountStateActor.Reply._
         onComplete(
-          shardedRef.ask[AccountStateActor.Reply](ref => ShardingEnvelope(uuid.toString(), Withdraw(ref, amount)))
+          shardedRef.ask[AccountStateActor.Reply](ref => ShardingEnvelope(uuid.toString, Withdraw(ref, amount)))
         ) {
           case Success(CurrentBalance(balance)) =>
             complete(StatusCodes.Created, Account(uuid, balance))
@@ -51,12 +51,12 @@ class AccountRoutes(
           case _ => complete(StatusCodes.InternalServerError)
         }
       }
-    } ~ (pathPrefix("deposit" /  DoubleNumber ) & pathEndOrSingleSlash) { amount =>
+    } ~ (pathPrefix("deposit" / DoubleNumber) & pathEndOrSingleSlash) { amount =>
       (put | post) {
         import AccountStateActor.Command._
         import AccountStateActor.Reply._
         onComplete(
-          shardedRef.ask[AccountStateActor.Reply](ref => ShardingEnvelope(uuid.toString(), Deposit(ref, amount)))
+          shardedRef.ask[AccountStateActor.Reply](ref => ShardingEnvelope(uuid.toString, Deposit(ref, amount)))
         ) {
           case Success(CurrentBalance(balance)) =>
             complete(StatusCodes.Created, Account(uuid, balance))

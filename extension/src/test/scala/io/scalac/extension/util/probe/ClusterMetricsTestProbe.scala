@@ -9,8 +9,8 @@ import io.scalac.extension.util.probe.BoundTestProbe._
 import io.scalac.extension.util.{ probe, TestProbeSynchronized }
 
 class ClusterMetricsTestProbe private (
-  val shardPerRegionsProbe: TestProbe[MetricRecorderCommand],
-  val entityPerRegionProbe: TestProbe[MetricRecorderCommand],
+  val shardPerRegionsProbe: TestProbe[MetricObserverCommand],
+  val entityPerRegionProbe: TestProbe[MetricObserverCommand],
   val shardRegionsOnNodeProbe: TestProbe[MetricObserverCommand],
   val entitiesOnNodeProbe: TestProbe[MetricObserverCommand],
   val reachableNodesProbe: TestProbe[CounterCommand],
@@ -23,13 +23,15 @@ class ClusterMetricsTestProbe private (
 
   override def bind(node: Node): Bound = new BoundMonitor with TestProbeSynchronized {
 
-    override val shardPerRegions: MetricRecorder[Long] with AbstractTestProbeWrapper = RecorderTestProbeWrapper(
-      shardPerRegionsProbe
-    )
+    override def shardPerRegions(region: String): MetricObserver[Long] with AbstractTestProbeWrapper =
+      ObserverTestProbeWrapper(
+        shardPerRegionsProbe
+      )
 
-    override val entityPerRegion: MetricRecorder[Long] with AbstractTestProbeWrapper = RecorderTestProbeWrapper(
-      entityPerRegionProbe
-    )
+    override def entityPerRegion(region: String): MetricObserver[Long] with AbstractTestProbeWrapper =
+      ObserverTestProbeWrapper(
+        entityPerRegionProbe
+      )
 
     override val shardRegionsOnNode: MetricObserver[Long] with AbstractTestProbeWrapper = ObserverTestProbeWrapper(
       shardRegionsOnNodeProbe
@@ -53,8 +55,8 @@ class ClusterMetricsTestProbe private (
 
 object ClusterMetricsTestProbe {
   def apply()(implicit system: ActorSystem[_]): ClusterMetricsTestProbe = {
-    val shardPerRegionsProbe    = TestProbe[MetricRecorderCommand]("shardPerRegionsProbe")
-    val entityPerRegionProbe    = TestProbe[MetricRecorderCommand]("entityPerRegionProbe")
+    val shardPerRegionsProbe    = TestProbe[MetricObserverCommand]("shardPerRegionsProbe")
+    val entityPerRegionProbe    = TestProbe[MetricObserverCommand]("entityPerRegionProbe")
     val shardRegionsOnNodeProbe = TestProbe[MetricObserverCommand]("shardRegionsOnNodeProbe")
     val entitiesOnNodeProbe     = TestProbe[MetricObserverCommand]("entitiesOnNodeProbe")
     val reachableNodesProbe     = TestProbe[CounterCommand]("reachableNodesProbe")

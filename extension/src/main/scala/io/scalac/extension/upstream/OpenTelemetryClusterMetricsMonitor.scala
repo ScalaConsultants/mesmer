@@ -92,14 +92,12 @@ class OpenTelemetryClusterMetricsMonitor(instrumentationName: String, val metric
   private[this] val meter = OpenTelemetry.getGlobalMeter(instrumentationName)
 
   private val shardsPerRegionRecorder = meter
-    .longValueRecorderBuilder(metricNames.shardPerEntity)
+    .longValueObserverBuilder(metricNames.shardPerEntity)
     .setDescription("Amount of shards in region")
-    .build()
 
   private val entityPerRegionRecorder = meter
-    .longValueRecorderBuilder(metricNames.entityPerRegion)
+    .longValueObserverBuilder(metricNames.entityPerRegion)
     .setDescription("Amount of entities in region")
-    .build()
 
   private val reachableNodeCounter = meter
     .longUpDownCounterBuilder(metricNames.reachableNodes)
@@ -132,11 +130,11 @@ class OpenTelemetryClusterMetricsMonitor(instrumentationName: String, val metric
   }
 
   class ClusterBoundMonitor(labels: Labels) extends BoundMonitor with opentelemetry.Synchronized {
-    override def shardPerRegions: MetricRecorder[Long] with Instrument[Long] =
-      WrappedLongValueRecorder(shardsPerRegionRecorder, labels)
+    override def shardPerRegions(region: String): MetricObserver[Long] =
+      WrappedLongValueObserver(shardsPerRegionRecorder, addLabels("region" -> region))
 
-    override def entityPerRegion: MetricRecorder[Long] with Instrument[Long] =
-      WrappedLongValueRecorder(entityPerRegionRecorder, labels)
+    override def entityPerRegion(region: String): MetricObserver[Long] =
+      WrappedLongValueObserver(entityPerRegionRecorder, addLabels("region" -> region))
 
     override def shardRegionsOnNode: MetricObserver[Long] =
       WrappedLongValueObserver(shardRegionsOnNodeRecorder, labels)
@@ -151,5 +149,8 @@ class OpenTelemetryClusterMetricsMonitor(instrumentationName: String, val metric
       WrappedUpDownCounter(unreachableNodeCounter, labels)
 
     override def nodeDown: UpCounter[Long] with Instrument[Long] = WrappedCounter(nodeDownCounter, labels)
+
+    private def addLabels(kv: (String, String)*): Labels =
+      kv.foldLeft(labels.toBuilder) { case (builder, (k, v)) => builder.put(k, v) }.build()
   }
 }

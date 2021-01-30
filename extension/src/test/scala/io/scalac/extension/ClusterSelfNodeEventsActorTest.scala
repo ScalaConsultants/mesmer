@@ -26,7 +26,7 @@ class ClusterSelfNodeEventsActorTest
 
   import util.TestBehavior.Command._
 
-  "ClusterSelfNodeEventsActor" should "show proper amount of entities" in setup(TestBehavior.apply) {
+  "ClusterSelfNodeEventsActor" should "show proper amount of entities per region" in setup(TestBehavior.apply) {
     case (system, _, ref, monitor, region) =>
       system.systemActorOf(ClusterSelfNodeEventsActor.apply(monitor), "sut")
 
@@ -34,7 +34,22 @@ class ClusterSelfNodeEventsActorTest
       for (i <- 0 until 10) ref ! ShardingEnvelope(s"test_$i", Create)
 
       val messages = monitor.entityPerRegionProbe.receiveMessages(2, 15 seconds)
-      messages should contain(MetricRecorded(10))
+      messages should contain(MetricObserved(10))
+  }
+
+  it should "show a amount of shards per region" in setup(TestBehavior.apply) {
+    case (system, _, ref, monitor, region) =>
+      system.systemActorOf(ClusterSelfNodeEventsActor.apply(monitor), "sut")
+
+      EventBus(system).publishEvent(ShardingRegionInstalled(region))
+      for (i <- 0 until 10) ref ! ShardingEnvelope(s"test_$i", Create)
+
+      val messages = monitor.shardPerRegionsProbe.receiveMessages(2, 15 seconds)
+      forAtLeast(1, messages)(
+        _ should matchPattern {
+          case MetricObserved(value) if value > 0 =>
+        }
+      )
   }
 
   it should "show proper amount of entities on node" in setup(TestBehavior.apply) {
