@@ -139,10 +139,15 @@ object ClusterSelfNodeEventsActor {
           }
 
           classicSharding.shardTypeNames.foreach { region =>
+            val cachedResult = CachedQueryResult({
+              logger.debug(s"running query for region $region")
+              queryOneRegionStats(region)
+            })
+
             monitor
               .entityPerRegion(region)
               .setUpdater(result =>
-                queryOneRegionStats(region).foreach { regionStats =>
+                cachedResult.get.foreach { regionStats =>
                   val entities = regionStats.values.sum
                   result.observe(entities)
                   logger.trace("Recorded amount of entities per region {}", entities)
@@ -152,7 +157,7 @@ object ClusterSelfNodeEventsActor {
             monitor
               .shardPerRegions(region)
               .setUpdater(result =>
-                queryOneRegionStats(region).foreach { regionStats =>
+                cachedResult.get.foreach { regionStats =>
                   val shards = regionStats.size
                   result.observe(shards)
                   logger.trace("Recorded amount of shards per region {}", shards)
@@ -213,4 +218,28 @@ object ClusterSelfNodeEventsActor {
       }
     }
   }
+
+  // TODO It might be useful for other components in future
+  class CachedQueryResult[T] private (q: => T, validBy: FiniteDuration = 1.second) { self =>
+    private val validByNanos: Long       = validBy.toNanos
+    private var lastUpdate: Option[Long] = None
+    private var currentValue: Option[T]  = None
+
+    def get: T =
+      self.synchronized {
+        if (needUpdate) {
+          lastUpdate = Some(now)
+          currentValue = Some(q)
+        }
+        currentValue
+      }.get
+
+    private def needUpdate: Boolean = lastUpdate.fold(true)(lu => now > (lu + validByNanos))
+    private def now: Long           = System.nanoTime()
+  }
+  object CachedQueryResult {
+    def apply[T](q: => T): CachedQueryResult[T]                       = new CachedQueryResult(q)
+    def by[T](validBy: FiniteDuration)(q: => T): CachedQueryResult[T] = new CachedQueryResult(q, validBy)
+  }
+
 }

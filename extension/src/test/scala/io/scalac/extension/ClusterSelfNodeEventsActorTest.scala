@@ -134,4 +134,25 @@ class ClusterSelfNodeEventsActorTest
 
       succeed
   }
+
+  "ClusterSelfNodeEventsActor.CachedQueryResult" should "NOT re-execute query within a interval" in {
+    var calls = 0
+    val queryResult = ClusterSelfNodeEventsActor.CachedQueryResult.by(1.second) {
+      calls += 1
+    }
+    queryResult.get // usage
+    queryResult.get
+    calls should be(1)
+  }
+
+  "ClusterSelfNodeEventsActor.CachedQueryResult" should "re-execute query within a interval" in {
+    var calls = 0
+    val queryResult = ClusterSelfNodeEventsActor.CachedQueryResult.by(1.second) {
+      calls += 1
+    }
+    queryResult.get
+    Thread.sleep(1100)
+    queryResult.get
+    calls should be(2)
+  }
 }
