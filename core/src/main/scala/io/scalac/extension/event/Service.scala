@@ -11,7 +11,7 @@ trait Service[T] extends AbstractService {
   override type ServiceType = T
   def serviceKey: ServiceKey[T]
 
-  override def hashCode(): Int = serviceKey.hashCode()
+  override lazy val hashCode: Int = serviceKey.hashCode()
 
   override def equals(obj: Any): Boolean = obj match {
     case other: Service[T] => other.eq(this) || other.serviceKey.equals(this.serviceKey)
