@@ -64,7 +64,7 @@ object Dependencies {
   )
 
   val newRelicSdk = Seq(
-    // "com.newrelic.telemetry" % "opentelemetry-exporters-newrelic" % "0.13.0",
+    "com.newrelic.telemetry" % "opentelemetry-exporters-newrelic" % "0.13.1",
     // TODO uncomment the line above when solve this issue: https://github.com/newrelic/opentelemetry-exporter-java/issues/149
     // For a while, we use it as a unmanaged dependency at extension/lib
     "com.newrelic.telemetry" % "telemetry"             % "0.10.0",
