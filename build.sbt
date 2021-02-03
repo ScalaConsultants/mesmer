@@ -114,3 +114,10 @@ lazy val testApp = (project in file("test_app"))
     commands += runWithAgent
   )
   .dependsOn(extension)
+
+lazy val benchmark = (project in file("benchmark"))
+  .enablePlugins(JmhPlugin)
+  .settings {
+    name := "akka-monitoring-benchmark"
+  }
+  .dependsOn(extension)
