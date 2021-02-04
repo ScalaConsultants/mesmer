@@ -1,16 +1,10 @@
 package io.scalac.extension
 
-import java.util.concurrent.ForkJoinPool
-
 import scala.concurrent.duration._
-import scala.concurrent._
 import scala.language.postfixOps
-import scala.util.{ Failure, Success }
 
-import akka.actor.typed.receptionist.Receptionist
-import akka.actor.typed.receptionist.Receptionist.Register
+import akka.actor.typed.Behavior
 import akka.actor.typed.scaladsl.Behaviors
-import akka.actor.typed.{ Behavior, PreRestart }
 import akka.cluster.ClusterEvent.{
   MemberEvent,
   MemberRemoved,
@@ -20,13 +14,9 @@ import akka.cluster.ClusterEvent.{
   ReachabilityEvent => AkkaReachabilityEvent
 }
 import akka.cluster.UniqueAddress
-import akka.cluster.sharding.ShardRegion.{ GetShardRegionStats, ShardRegionStats }
-import akka.cluster.sharding.{ ShardRegion, ClusterSharding => ClassicClusterSharding }
+import akka.cluster.sharding.{ ClusterSharding => ClassicClusterSharding }
 import akka.cluster.typed.{ Cluster, Subscribe }
-import akka.pattern.ask
-import akka.util.Timeout
 
-import org.slf4j.LoggerFactory
 import io.scalac.extension.metric.ClusterMetricsMonitor
 import io.scalac.extension.model._
 
@@ -45,17 +35,15 @@ object ClusterSelfNodeEventsActor {
     private[ClusterSelfNodeEventsActor] case class NodeReachable(address: UniqueAddress) extends ReachabilityEvent
   }
 
-  def apply(clusterMetricsMonitor: ClusterMetricsMonitor): Behavior[Command] = {
+  def apply(clusterMetricsMonitor: ClusterMetricsMonitor): Behavior[Command] =
     OnClusterStartUp { selfMember =>
       Behaviors.setup { ctx =>
         import ctx.{ log, messageAdapter, system }
 
         import Command._
 
-        val monitor         = clusterMetricsMonitor.bind(selfMember.uniqueAddress.toNode)
-        val cluster         = Cluster(system)
-        val classicSharding = ClassicClusterSharding(system.classicSystem)
-        // classicSharding disclaimer: current implementation of akka cluster works only on adapted actor systems
+        val monitor = clusterMetricsMonitor.bind(selfMember.uniqueAddress.toNode)
+        val cluster = Cluster(system)
 
         // bootstrap messages
 
@@ -72,149 +60,39 @@ object ClusterSelfNodeEventsActor {
           classOf[AkkaReachabilityEvent]
         )
 
-        // async observables
-        {
-          implicit val t: Timeout           = Timeout(2 seconds)
-          implicit val ec: ExecutionContext = ExecutionContext.fromExecutor(new ForkJoinPool)
-          val logger                        = LoggerFactory.getLogger(classOf[ClusterSelfNodeEventsActor])
-
-          type RegionStats    = Map[ShardRegion.ShardId, Int]
-          type RegionStatsMap = Map[String, RegionStats]
-
-          def queryAllRegionsStats(andThen: RegionStatsMap => _): Unit = {
-            val regions = classicSharding.shardTypeNames.toSeq
-            Future
-              .sequence(
-                regions.map(queryOneRegionStats)
-              )
-              .onComplete {
-                case Success(regionStats) =>
-                  andThen(regions.zip(regionStats).toMap)
-                case Failure(ex) =>
-                  logger.warn("Failed to query region stats", ex)
-              }
-          }
-
-          def queryOneRegionStats(region: String): Future[RegionStats] =
-            (classicSharding.shardRegion(region) ? GetShardRegionStats)
-              .mapTo[ShardRegionStats]
-              .flatMap { regionStats =>
-                if (regionStats.failed.isEmpty) {
-                  Future.successful(regionStats.stats)
-                } else {
-                  val shardsFailed = regionStats.failed
-                  val msg          = s"region $region failed. Shards failed: ${shardsFailed.mkString("(", ",", ")")}"
-                  Future.failed(new RuntimeException(msg))
-                }
-              }
-
-          // async metrics
-
-          monitor.entitiesOnNode.setUpdater { result =>
-            queryAllRegionsStats { regionsStats =>
-              val entities = regionsStats.view.values.flatMap(_.values).sum
-              result.observe(entities)
-              logger.trace("Recorded amount of entities on node {}", entities)
-            }
-          }
-
-          monitor.shardRegionsOnNode.setUpdater { result =>
-            val regions = classicSharding.shardTypeNames.size
-            result.observe(regions)
-            logger.trace("Recorded amount of regions on node {}", regions)
-          }
-
-          classicSharding.shardTypeNames.foreach { region =>
-            val cachedResult = CachedQueryResult({
-              logger.debug(s"running query for region $region")
-              queryOneRegionStats(region)
-            })
-
-            monitor
-              .entityPerRegion(region)
-              .setUpdater(result =>
-                cachedResult.get.foreach { regionStats =>
-                  val entities = regionStats.values.sum
-                  result.observe(entities)
-                  logger.trace("Recorded amount of entities per region {}", entities)
-                }
-              )
-
-            monitor
-              .shardPerRegions(region)
-              .setUpdater(result =>
-                cachedResult.get.foreach { regionStats =>
-                  val shards = regionStats.size
-                  result.observe(shards)
-                  logger.trace("Recorded amount of shards per region {}", shards)
-                }
-              )
-          }
-        } // end async observables
-
         // behavior setup
 
-        def initialized(
-          unreachableNodes: Set[UniqueAddress]
-        ): Behavior[Command] =
-          Behaviors
-            .receiveMessage[Command] {
-
-              case ClusterMemberEvent(MemberRemoved(member, _)) =>
-                if (unreachableNodes.contains(member.uniqueAddress)) {
-                  monitor.unreachableNodes.decValue(1L)
-                } else {
-                  monitor.reachableNodes.decValue(1L)
-                }
-                initialized(unreachableNodes - member.uniqueAddress)
-
-              case ClusterMemberEvent(event) =>
-                event match {
-                  case MemberUp(_) => monitor.reachableNodes.incValue(1L)
-                  case _           => //
-                }
-                Behaviors.same
-
-              case NodeReachable(address) =>
-                log.trace("Node {} become reachable", address)
-                monitor.atomically(monitor.reachableNodes, monitor.unreachableNodes)(1L, -1L)
-                initialized(unreachableNodes - address)
-
-              case NodeUnreachable(address) =>
-                log.trace("Node {} become unreachable", address)
-                monitor.atomically(monitor.reachableNodes, monitor.unreachableNodes)(-1L, 1L)
-                initialized(unreachableNodes + address)
-
+        def initialized(unreachableNodes: Set[UniqueAddress]): Behavior[Command] = Behaviors.receiveMessage[Command] {
+          case ClusterMemberEvent(MemberRemoved(member, _)) =>
+            if (unreachableNodes.contains(member.uniqueAddress)) {
+              monitor.unreachableNodes.decValue(1L)
+            } else {
+              monitor.reachableNodes.decValue(1L)
             }
+            initialized(unreachableNodes - member.uniqueAddress)
+
+          case ClusterMemberEvent(event) =>
+            event match {
+              case MemberUp(_) => monitor.reachableNodes.incValue(1L)
+              case _           => //
+            }
+            Behaviors.same
+
+          case NodeReachable(address) =>
+            log.trace("Node {} become reachable", address)
+            monitor.atomically(monitor.reachableNodes, monitor.unreachableNodes)(1L, -1L)
+            initialized(unreachableNodes - address)
+
+          case NodeUnreachable(address) =>
+            log.trace("Node {} become unreachable", address)
+            monitor.atomically(monitor.reachableNodes, monitor.unreachableNodes)(-1L, 1L)
+            initialized(unreachableNodes + address)
+
+        }
 
         val unreachable = cluster.state.unreachable.map(_.uniqueAddress)
         initialized(unreachable)
       }
     }
-  }
-
-  // TODO It might be useful for other components in future
-  class CachedQueryResult[T] private (q: => T, validBy: FiniteDuration = 1.second) { self =>
-    private val validByNanos: Long       = validBy.toNanos
-    private var lastUpdate: Option[Long] = None
-    private var currentValue: Option[T]  = None
-
-    def get: T = {
-      self.synchronized {
-        if (needUpdate) {
-          lastUpdate = Some(now)
-          currentValue = Some(q)
-        }
-      }
-      currentValue.get
-    }
-
-    private def needUpdate: Boolean = lastUpdate.fold(true)(lu => now > (lu + validByNanos))
-    private def now: Long           = System.nanoTime()
-  }
-  object CachedQueryResult {
-    def apply[T](q: => T): CachedQueryResult[T]                       = new CachedQueryResult(q)
-    def by[T](validBy: FiniteDuration)(q: => T): CachedQueryResult[T] = new CachedQueryResult(q, validBy)
-  }
 
 }

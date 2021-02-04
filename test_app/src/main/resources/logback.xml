@@ -32,7 +32,7 @@
     <logger name="slick" level="INFO"/>
     <logger name="io.scalac.extension" level="TRACE"/>
 
-    <root level="INFO">
+    <root level="DEBUG">
         <appender-ref ref="ASYNCFILE"/>
         <appender-ref ref="ASYNCSTDOUT"/>
     </root>

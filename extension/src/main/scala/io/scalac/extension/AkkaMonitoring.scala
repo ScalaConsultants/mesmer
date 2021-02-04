@@ -2,14 +2,16 @@ package io.scalac.extension
 
 import akka.actor.ExtendedActorSystem
 import akka.actor.typed.scaladsl.Behaviors
-import akka.actor.typed.{ ActorSystem, Extension, ExtensionId, SupervisorStrategy }
+import akka.actor.typed.{ ActorSystem, Behavior, Extension, ExtensionId, SupervisorStrategy }
 import akka.cluster.Cluster
 import akka.cluster.typed.{ ClusterSingleton, SingletonActor }
 import akka.util.Timeout
+
 import com.newrelic.telemetry.Attributes
 import com.newrelic.telemetry.opentelemetry.`export`.NewRelicMetricExporter
 import io.opentelemetry.sdk.OpenTelemetrySdk
 import io.opentelemetry.sdk.metrics.`export`.IntervalMetricReader
+
 import io.scalac.core.model.{ Module, SupportedVersion, Version }
 import io.scalac.core.support.ModulesSupport
 import io.scalac.core.util.ModuleInfo
@@ -24,12 +26,15 @@ import io.scalac.extension.upstream.{
   OpenTelemetryHttpMetricsMonitor,
   OpenTelemetryPersistenceMetricMonitor
 }
-
 import java.net.URI
 import java.util.Collections
+
 import scala.concurrent.duration._
 import scala.language.postfixOps
+import scala.reflect.ClassTag
 import scala.util.Try
+
+import io.scalac.extension.metric.ClusterMetricsMonitor
 
 object AkkaMonitoring extends ExtensionId[AkkaMonitoring] {
   override def createExtension(system: ActorSystem[_]): AkkaMonitoring = {
@@ -85,6 +90,7 @@ object AkkaMonitoring extends ExtensionId[AkkaMonitoring] {
       cm => {
         cm.startSelfMemberMonitor()
         cm.startClusterEventsMonitor()
+        cm.startClusterRegionsMonitor()
       }
     )
     initModule(
@@ -152,7 +158,7 @@ class AkkaMonitoring(private val system: ActorSystem[_], val config: ClusterMoni
       case e                         => e.getMessage
     }.filterOrElse(_.isInstance(ref), s"Ref ${ref} is not instance of ${fqcn}").map(_ => ())
 
-  private lazy val nodeName: Option[Node] = {
+  private lazy val clusterNodeName: Option[Node] = {
     (for {
       _       <- reflectiveIsInstanceOf("akka.actor.typed.internal.adapter.ActorSystemAdapter", system)
       classic = system.classicSystem.asInstanceOf[ExtendedActorSystem]
@@ -163,40 +169,30 @@ class AkkaMonitoring(private val system: ActorSystem[_], val config: ClusterMoni
     }, Some.apply)
   }
 
-  def startSelfMemberMonitor(): Unit =
-    nodeName.fold {
-      log.error("ActorSystem is not properly configured to start cluster monitoring")
-    } { _ =>
-      log.debug("Starting member monitor")
+  type ClusterMonitorActor = { def apply(monitor: ClusterMetricsMonitor): Behavior[_] }
 
+  def startSelfMemberMonitor(): Unit = startClusterMonitor(ClusterSelfNodeEventsActor)
+
+  def startClusterEventsMonitor(): Unit = startClusterMonitor(ClusterEventsMonitor)
+
+  def startClusterRegionsMonitor(): Unit = startClusterMonitor(ClusterRegionsMonitor)
+
+  private def startClusterMonitor[T <: ClusterMonitorActor: ClassTag](
+    actor: T
+  ): Unit = {
+    val name = implicitly[ClassTag[T]].runtimeClass.getSimpleName
+    clusterNodeName.fold {
+      log.error(s"ActorSystem is not properly configured to start cluster monitor of type $name")
+    } { _ =>
+      log.debug(s"Starting cluster monitor of type $name")
       system.systemActorOf(
         Behaviors
-          .supervise(
-            ClusterSelfNodeEventsActor
-              .apply(
-                openTelemetryClusterMetricsMonitor
-              )
-          )
+          .supervise(actor(openTelemetryClusterMetricsMonitor))
           .onFailure[Exception](SupervisorStrategy.restart),
-        "localSystemMemberMonitor"
+        name
       )
     }
-
-  def startClusterEventsMonitor(): Unit =
-    nodeName.fold {
-      log.error("ActorSystem is not properly configured to start cluster monitoring")
-    } { _ =>
-      log.debug("Starting reachability monitor")
-      ClusterSingleton(system)
-        .init(
-          SingletonActor(
-            Behaviors
-              .supervise(OnClusterStartUp(_ => ClusterEventsMonitor(openTelemetryClusterMetricsMonitor)))
-              .onFailure[Exception](SupervisorStrategy.restart),
-            "MemberMonitoringActor"
-          )
-        )
-    }
+  }
 
   def startPersistenceMonitoring(): Unit = {
     log.debug("Starting PersistenceEventsListener")
@@ -216,7 +212,7 @@ class AkkaMonitoring(private val system: ActorSystem[_], val config: ClusterMoni
                     rs,
                     ps,
                     openTelemetryPersistenceMonitor,
-                    nodeName
+                    clusterNodeName
                   )
                 }
             )
@@ -238,7 +234,7 @@ class AkkaMonitoring(private val system: ActorSystem[_], val config: ClusterMoni
           WithSelfCleaningState
             .clean(CleanableRequestStorage.withConfig(cleaningSettings))
             .every(cleaningSettings.every)(rs =>
-              HttpEventsActor.apply(openTelemetryHttpMonitor, rs, pathService, nodeName)
+              HttpEventsActor.apply(openTelemetryHttpMonitor, rs, pathService, clusterNodeName)
             )
         )
         .onFailure[Exception](SupervisorStrategy.restart),
