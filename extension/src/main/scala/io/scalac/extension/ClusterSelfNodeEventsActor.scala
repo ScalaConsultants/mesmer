@@ -1,6 +1,5 @@
 package io.scalac.extension
 
-import scala.concurrent.duration._
 import scala.language.postfixOps
 
 import akka.actor.typed.Behavior
@@ -14,11 +13,10 @@ import akka.cluster.ClusterEvent.{
   ReachabilityEvent => AkkaReachabilityEvent
 }
 import akka.cluster.UniqueAddress
-import akka.cluster.sharding.{ ClusterSharding => ClassicClusterSharding }
 import akka.cluster.typed.{ Cluster, Subscribe }
 
 import io.scalac.extension.metric.ClusterMetricsMonitor
-import io.scalac.extension.model._
+import io.scalac.extension.model.AkkaNodeOps
 
 class ClusterSelfNodeEventsActor
 object ClusterSelfNodeEventsActor {
