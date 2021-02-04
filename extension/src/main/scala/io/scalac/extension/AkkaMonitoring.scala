@@ -18,7 +18,7 @@ import io.scalac.extension.config.ClusterMonitoringConfig
 import io.scalac.extension.http.CleanableRequestStorage
 import io.scalac.extension.model._
 import io.scalac.extension.persistence.{ CleanablePersistingStorage, CleanableRecoveryStorage }
-import io.scalac.extension.service.CommonRegexPathService
+import io.scalac.extension.service.AsyncCachingPathService
 import io.scalac.extension.upstream.{
   OpenTelemetryClusterMetricsMonitor,
   OpenTelemetryHttpMetricsMonitor,
@@ -202,6 +202,7 @@ class AkkaMonitoring(private val system: ActorSystem[_], val config: ClusterMoni
     log.debug("Starting PersistenceEventsListener")
 
     val openTelemetryPersistenceMonitor = OpenTelemetryPersistenceMetricMonitor(instrumentationName, actorSystemConfig)
+    val pathService                     = new AsyncCachingPathService(20)
     system.systemActorOf(
       Behaviors
         .supervise(
@@ -212,7 +213,7 @@ class AkkaMonitoring(private val system: ActorSystem[_], val config: ClusterMoni
                 .clean(CleanablePersistingStorage.withConfig(cleaningSettings))
                 .every(cleaningSettings.every) { ps =>
                   PersistenceEventsActor.apply(
-                    CommonRegexPathService,
+                    pathService,
                     rs,
                     ps,
                     openTelemetryPersistenceMonitor,
@@ -230,7 +231,7 @@ class AkkaMonitoring(private val system: ActorSystem[_], val config: ClusterMoni
     log.info("Starting local http event listener")
 
     val openTelemetryHttpMonitor = OpenTelemetryHttpMetricsMonitor(instrumentationName, actorSystemConfig)
-    val pathService              = CommonRegexPathService
+    val pathService              = new AsyncCachingPathService(20)
 
     system.systemActorOf(
       Behaviors
