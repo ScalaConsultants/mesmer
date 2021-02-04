@@ -13,13 +13,15 @@ import akka.cluster.sharding.ShardRegion.{ GetShardRegionStats, ShardRegionStats
 import akka.pattern.ask
 import akka.util.Timeout
 
+import com.typesafe.config.Config
 import org.slf4j.LoggerFactory
 
 import io.scalac.extension.metric.ClusterMetricsMonitor
 import io.scalac.extension.model.AkkaNodeOps
+import io.scalac.extension.config.ConfigurationUtils.ConfigOps
 
-class ClusterRegionsMonitor
-object ClusterRegionsMonitor {
+class ClusterRegionsMonitorActor
+object ClusterRegionsMonitorActor {
 
   private type RegionStats    = Map[ShardRegion.ShardId, Int]
   private type RegionStatsMap = Map[String, RegionStats]
@@ -31,10 +33,10 @@ object ClusterRegionsMonitor {
       Behaviors.setup { ctx =>
         import ctx.system
 
-        implicit val t: Timeout           = Timeout(2.seconds)
-        implicit val ec: ExecutionContext = ExecutionContext.fromExecutor(new ForkJoinPool)
+        implicit val queryRegionStatsTimeout: Timeout = Timeout(getQueryStatsTimeout(system.settings.config))
+        implicit val ec: ExecutionContext             = ExecutionContext.fromExecutor(new ForkJoinPool)
 
-        val logger   = LoggerFactory.getLogger(classOf[ClusterRegionsMonitor])
+        val logger   = LoggerFactory.getLogger(classOf[ClusterRegionsMonitorActor])
         val sharding = ClusterSharding(system.classicSystem)
         val monitor  = clusterMetricsMonitor.bind(selfMember.uniqueAddress.toNode)
 
@@ -110,6 +112,12 @@ object ClusterRegionsMonitor {
       }
 
     }
+
+  private def getQueryStatsTimeout(config: Config): FiniteDuration =
+    config
+      .tryValue("io.scalac.scalac.akka-monitoring.timeouts.query-region-stats")(_.getDuration)
+      .map(d => FiniteDuration(d.toMillis, MILLISECONDS))
+      .getOrElse(2.second)
 
   // TODO It might be useful for other components in future
   class CachedQueryResult[T] private (q: => T, validBy: FiniteDuration = 1.second) { self =>

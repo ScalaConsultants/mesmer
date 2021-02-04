@@ -24,7 +24,7 @@ class ClusterSelfNodeEventsActorTest
 
   "ClusterSelfNodeEventsActor" should "show proper amount of entities per region" in setup(TestBehavior.apply) {
     case (system, _, ref, monitor, _) =>
-      system.systemActorOf(ClusterRegionsMonitor.apply(monitor), "sut")
+      system.systemActorOf(ClusterRegionsMonitorActor.apply(monitor), "sut")
       for (i <- 0 until 10) ref ! ShardingEnvelope(s"test_$i", Create)
       val messages = monitor.entityPerRegionProbe.receiveMessages(2, 15 seconds)
       messages should contain(MetricObserved(10))
@@ -32,7 +32,7 @@ class ClusterSelfNodeEventsActorTest
 
   it should "show a amount of shards per region" in setup(TestBehavior.apply) {
     case (system, _, ref, monitor, _) =>
-      system.systemActorOf(ClusterRegionsMonitor.apply(monitor), "sut")
+      system.systemActorOf(ClusterRegionsMonitorActor.apply(monitor), "sut")
       for (i <- 0 until 10) ref ! ShardingEnvelope(s"test_$i", Create)
       val messages = monitor.shardPerRegionsProbe.receiveMessages(2, 15 seconds)
       forAtLeast(1, messages)(
@@ -44,7 +44,7 @@ class ClusterSelfNodeEventsActorTest
 
   it should "show proper amount of entities on node" in setup(TestBehavior.apply) {
     case (system, _, ref, monitor, _) =>
-      system.systemActorOf(ClusterRegionsMonitor.apply(monitor), "sut")
+      system.systemActorOf(ClusterRegionsMonitorActor.apply(monitor), "sut")
       for (i <- 0 until 10) ref ! ShardingEnvelope(s"test_$i", Create)
       val messages = monitor.entitiesOnNodeProbe.receiveMessages(2, 15 seconds)
       messages should contain(MetricObserved(10))
@@ -52,7 +52,7 @@ class ClusterSelfNodeEventsActorTest
 
   it should "show proper amount of entities on node with 2 regions" in setupN(TestBehavior.apply, n = 2) {
     case (system, _, refs, monitor, _) =>
-      system.systemActorOf(ClusterRegionsMonitor.apply(monitor), "sut")
+      system.systemActorOf(ClusterRegionsMonitorActor.apply(monitor), "sut")
       val eventBus = EventBus(system)
       for (i <- 0 until 10) refs(i % refs.length) ! ShardingEnvelope(s"test_$i", Create)
       val messages = monitor.entitiesOnNodeProbe.receiveMessages(2, 15 seconds)
@@ -73,7 +73,7 @@ class ClusterSelfNodeEventsActorTest
 
   "ClusterSelfNodeEventsActor.CachedQueryResult" should "NOT re-execute query within a interval" in {
     var calls = 0
-    val queryResult = ClusterRegionsMonitor.CachedQueryResult.by(1.second) {
+    val queryResult = ClusterRegionsMonitorActor.CachedQueryResult.by(1.second) {
       calls += 1
     }
     queryResult.get // usage
@@ -83,7 +83,7 @@ class ClusterSelfNodeEventsActorTest
 
   "ClusterSelfNodeEventsActor.CachedQueryResult" should "re-execute query within a interval" in {
     var calls = 0
-    val queryResult = ClusterRegionsMonitor.CachedQueryResult.by(1.second) {
+    val queryResult = ClusterRegionsMonitorActor.CachedQueryResult.by(1.second) {
       calls += 1
     }
     queryResult.get

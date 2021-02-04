@@ -175,7 +175,7 @@ class AkkaMonitoring(private val system: ActorSystem[_], val config: ClusterMoni
 
   def startClusterEventsMonitor(): Unit = startClusterMonitor(ClusterEventsMonitor)
 
-  def startClusterRegionsMonitor(): Unit = startClusterMonitor(ClusterRegionsMonitor)
+  def startClusterRegionsMonitor(): Unit = startClusterMonitor(ClusterRegionsMonitorActor)
 
   private def startClusterMonitor[T <: ClusterMonitorActor: ClassTag](
     actor: T
