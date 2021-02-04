@@ -69,8 +69,7 @@ class OpenTelemetryHttpMetricsMonitor(
   override def bind(labels: Labels): Bound = new HttpMetricsBoundMonitor(labels)
 
   class HttpMetricsBoundMonitor(val labels: Labels) extends BoundMonitor with opentelemetry.Synchronized {
-    override def requestTime = WrappedLongValueRecorder(requestTimeRequest, labels.toOpenTelemetry)
-
-    override def requestCounter = WrappedCounter(requestTotalCounter, labels.toOpenTelemetry)
+    override val requestTime    = WrappedLongValueRecorder(requestTimeRequest, labels.toOpenTelemetry)
+    override val requestCounter = WrappedCounter(requestTotalCounter, labels.toOpenTelemetry)
   }
 }
