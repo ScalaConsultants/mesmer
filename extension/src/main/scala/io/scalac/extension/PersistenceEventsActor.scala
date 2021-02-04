@@ -4,14 +4,13 @@ import akka.actor.typed.Behavior
 import akka.actor.typed.receptionist.Receptionist
 import akka.actor.typed.receptionist.Receptionist.Register
 import akka.actor.typed.scaladsl.Behaviors
-import io.scalac.extension.config.CleaningSettings
 import io.scalac.extension.event.PersistenceEvent
 import io.scalac.extension.event.PersistenceEvent._
 import io.scalac.extension.metric.CachingMonitor._
 import io.scalac.extension.metric.PersistenceMetricMonitor
 import io.scalac.extension.metric.PersistenceMetricMonitor.Labels
 import io.scalac.extension.model._
-import io.scalac.extension.persistence.{PersistStorage, RecoveryStorage}
+import io.scalac.extension.persistence.{ PersistStorage, RecoveryStorage }
 import io.scalac.extension.service.PathService
 
 import scala.language.postfixOps
@@ -37,8 +36,18 @@ object PersistenceEventsActor {
 
       // this is thread unsafe mutable data structure that relies on actor model abstraction
       val cachingMonitor = caching[Labels, PersistenceMetricMonitor](monitor)
-      def getMonitor(path: String, persistenceId: PersistenceId): PersistenceMetricMonitor#Bound =
-        cachingMonitor.bind(Labels(node, pathService.template(path), pathService.template(persistenceId)))
+      def getMonitor(path: String, persistenceId: PersistenceId): PersistenceMetricMonitor#Bound = {
+        val templatedPath      = pathService.template(path)
+        val pathLastSlashIndex = path.lastIndexOf('/', path.length - 2)
+        if (pathLastSlashIndex > 0 && path.substring(pathLastSlashIndex + 1, path.length) == persistenceId) {
+          val persistentIdTemplate =
+            templatedPath.substring(templatedPath.lastIndexOf('/', templatedPath.length - 2) + 1, templatedPath.length)
+
+          cachingMonitor.bind(Labels(node, templatedPath, persistentIdTemplate))
+        } else {
+          cachingMonitor.bind(Labels(node, templatedPath, pathService.template(persistenceId)))
+        }
+      }
 
       def running(
         recoveryStorage: RecoveryStorage,
