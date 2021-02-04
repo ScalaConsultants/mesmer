@@ -31,10 +31,9 @@ object ClusterRegionsMonitorActor {
   def apply(clusterMetricsMonitor: ClusterMetricsMonitor): Behavior[Command] =
     OnClusterStartUp { selfMember =>
       Behaviors.setup { ctx =>
-        import ctx.system
-
+        val system = ctx.system
+        import system.executionContext
         implicit val queryRegionStatsTimeout: Timeout = Timeout(getQueryStatsTimeout(system.settings.config))
-        implicit val ec: ExecutionContext             = ExecutionContext.fromExecutor(new ForkJoinPool)
 
         val logger   = LoggerFactory.getLogger(classOf[ClusterRegionsMonitorActor])
         val sharding = ClusterSharding(system.classicSystem)
