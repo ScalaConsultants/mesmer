@@ -225,14 +225,15 @@ object ClusterSelfNodeEventsActor {
     private var lastUpdate: Option[Long] = None
     private var currentValue: Option[T]  = None
 
-    def get: T =
+    def get: T = {
       self.synchronized {
         if (needUpdate) {
           lastUpdate = Some(now)
           currentValue = Some(q)
         }
-        currentValue
-      }.get
+      }
+      currentValue.get
+    }
 
     private def needUpdate: Boolean = lastUpdate.fold(true)(lu => now > (lu + validByNanos))
     private def now: Long           = System.nanoTime()
