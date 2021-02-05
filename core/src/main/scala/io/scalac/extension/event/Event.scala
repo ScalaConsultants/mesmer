@@ -11,7 +11,7 @@ sealed trait PersistenceEvent extends AbstractEvent {
 }
 
 object PersistenceEvent {
-  sealed trait RecoveryEvent                                                        extends PersistenceEvent
+  sealed trait RecoveryEvent                                                             extends PersistenceEvent
   case class RecoveryStarted(path: String, persistenceId: String, timestamp: Timestamp)  extends RecoveryEvent
   case class RecoveryFinished(path: String, persistenceId: String, timestamp: Timestamp) extends RecoveryEvent
 

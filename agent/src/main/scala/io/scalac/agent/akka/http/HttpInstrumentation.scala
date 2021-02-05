@@ -3,59 +3,22 @@ package io.scalac.agent.akka.http
 import java.lang.reflect.Method
 import java.util.UUID
 
-import _root_.akka.http.scaladsl.model.{HttpRequest, HttpResponse}
-import _root_.akka.http.scaladsl.server.{ExceptionHandler, RejectionHandler, Route, RoutingLog}
-import _root_.akka.http.scaladsl.settings.{ParserSettings, RoutingSettings, ServerSettings}
-import _root_.akka.stream.{FlowShape, Materializer, SystemMaterializer}
+import scala.concurrent.Future
+
+import _root_.akka.http.scaladsl.model.{ HttpRequest, HttpResponse }
+import _root_.akka.http.scaladsl.settings.ServerSettings
+import _root_.akka.stream.{ FlowShape, Materializer }
 import akka.actor.typed.scaladsl.adapter._
 import akka.event.LoggingAdapter
 import akka.http.scaladsl.Http.ServerBinding
-import akka.http.scaladsl.{ConnectionContext, HttpExt}
-import akka.stream.scaladsl.{Broadcast, Flow, GraphDSL, Source, Zip}
-import io.scalac.agent.util.FunctionOps._
+import akka.http.scaladsl.{ ConnectionContext, HttpExt }
+import akka.stream.scaladsl.{ Broadcast, Flow, GraphDSL, Source, Zip }
+
+import net.bytebuddy.implementation.bind.annotation._
+
 import io.scalac.core.util.Timestamp
 import io.scalac.extension.event.EventBus
 import io.scalac.extension.event.HttpEvent._
-import net.bytebuddy.implementation.bind.annotation._
-
-import scala.concurrent.{ExecutionContextExecutor, Future}
-
-class RouteInstrumentation
-object RouteInstrumentation {
-
-  def asyncHandler(
-    route: Route,
-    routingSettings: RoutingSettings,
-    parserSettings: ParserSettings,
-    materializer: Materializer,
-    routingLog: RoutingLog,
-    executionContext: ExecutionContextExecutor,
-    rejectionHandler: RejectionHandler,
-    exceptionHandler: ExceptionHandler,
-    @SuperMethod method: Method,
-    @This self: Any
-  ): HttpRequest => Future[HttpResponse] = {
-
-    // this is not ideal - java reflections are not well optimized by JIT
-
-    materializer.asInstanceOf[SystemMaterializer]
-    method
-      .invoke(
-        self,
-        route.latency(millis => println(s"Request took ${millis} millis"))(
-          executionContext
-        ),
-        routingSettings,
-        parserSettings,
-        materializer,
-        routingLog,
-        executionContext,
-        rejectionHandler,
-        exceptionHandler
-      )
-      .asInstanceOf[HttpRequest => Future[HttpResponse]]
-  }
-}
 
 class HttpInstrumentation
 object HttpInstrumentation {
