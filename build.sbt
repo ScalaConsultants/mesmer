@@ -6,6 +6,8 @@ ThisBuild / version := "0.1.0-SNAPSHOT"
 ThisBuild / organization := "io.scalac"
 ThisBuild / organizationName := "scalac"
 
+ThisBuild / dependencyOverrides ++= openTelemetryDependenciesOverrides
+
 def runWithAgent = Command.command("runWithAgent") { state =>
   val extracted = Project extract state
   val newState =
@@ -30,8 +32,7 @@ lazy val root = (project in file("."))
 lazy val core = (project in file("core"))
   .settings(
     name := "core",
-    libraryDependencies ++= akka ++ openTelemetryApi ++ scalatest ++ akkaTestkit,
-    dependencyOverrides ++= openTelemetryDependenciesOverrides
+    libraryDependencies ++= akka ++ openTelemetryApi ++ scalatest ++ akkaTestkit
   )
 
 lazy val extension = (project in file("extension"))
@@ -42,8 +43,7 @@ lazy val extension = (project in file("extension"))
     name := "akka-monitoring-extension",
     libraryDependencies ++= akka ++ openTelemetryApi ++ akkaTestkit ++ scalatest ++ logback
       .map(_ % Test) ++ akkaMultiNodeTestKit
-      ++ newRelicSdk ++ openTelemetrySdk,
-    dependencyOverrides ++= openTelemetryDependenciesOverrides
+      ++ newRelicSdk ++ openTelemetrySdk
   )
   .dependsOn(core % "compile->compile;test->test")
 
@@ -72,7 +72,6 @@ lazy val agent = (project in file("agent"))
     libraryDependencies ++= akka.map(_ % "provided") ++ byteBuddy ++ scalatest ++ akkaTestkit ++ slf4jApi ++ reflection(
       scalaVersion.value
     ),
-    dependencyOverrides ++= openTelemetryDependenciesOverrides,
     Compile / mainClass := Some("io.scalac.agent.Boot"),
     Compile / packageBin / packageOptions := {
       (Compile / packageBin / packageOptions).value.map {
@@ -95,7 +94,6 @@ lazy val testApp = (project in file("test_app"))
   .settings(
     name := "akka-monitoring-test-app",
     libraryDependencies ++= akka ++ scalatest ++ akkaTestkit ++ circe ++ circeAkka ++ postgresDriver ++ akkaPersistance ++ slick ++ logback ++ newRelicSdk ++ akkaManagement,
-    dependencyOverrides ++= openTelemetryDependenciesOverrides,
     assemblyMergeStrategySettings,
     assembly / mainClass := Some("io.scalac.Boot"),
     assembly / assemblyJarName := "test_app.jar",
