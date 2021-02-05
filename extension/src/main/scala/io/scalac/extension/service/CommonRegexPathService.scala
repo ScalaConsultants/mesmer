@@ -86,7 +86,7 @@ class AsyncCachingPathServicePrefix(val cacheCapacity: Int) extends PathService 
 
 class AsyncCachingPathService(val cacheCapacity: Int) extends PathService {
 
-  private[this] val cache = new LinkedHashMap[String, Unit](cacheCapacity, 1.0f, true) {
+  private[this] val cache = new LinkedHashMap[String, Unit](cacheCapacity, 0.75f, true) {
     override def removeEldestEntry(eldest: Map.Entry[String, Unit]): Boolean =
       this.size() > cacheCapacity
   }.asScala
@@ -119,20 +119,11 @@ class AsyncCachingPathService(val cacheCapacity: Int) extends PathService {
             hit += 1
             replaceInPath(nextIndex + 1, replacements)
 
-          case number(_*) => {
-            //next must be slash, so skip it
+          case subs if number.findPrefixOf(subs).isDefined => {
             replaceInPath(nextIndex + 1, replacements :+ (offset, nextIndex, numberTemplate))
           }
-          case subs if subs.length == 36 => {
-            subs match {
-              case uuid(_*) => {
-                replaceInPath(nextIndex + 1, replacements :+ (offset, nextIndex, uuidTemplate))
-              }
-              case _ => {
-                cache.put(subs, ())
-                replaceInPath(nextIndex + 1, replacements)
-              }
-            }
+          case subs if (subs.length == 36 && uuid.findPrefixOf(subs).isDefined) => {
+            replaceInPath(nextIndex + 1, replacements :+ (offset, nextIndex, uuidTemplate))
           }
           case subs => {
             cache.put(subs, ())
@@ -232,7 +223,6 @@ object OldCommonRegexPathService extends PathService {
       .mkString("", "/", if (path.endsWith("/")) "/" else "")
 }
 
-
 object DummyCommonRegexPathService extends PathService {
   private val uuid   = """^[\da-fA-F]{8}-[\da-fA-F]{4}-[\da-fA-F]{4}-[\da-fA-F]{4}-[\da-fA-F]{12}$""".r
   private val number = """^[+-]?\d+\.?\d*$""".r
@@ -242,9 +232,9 @@ object DummyCommonRegexPathService extends PathService {
   private val detectionChain = List((number, numberTemplate), (uuid, uuidTemplate))
 
   override def template(path: Path): Path = path match {
-    case get if get.contains("balance") => "/api/v1/account/{uuid}/balance"
+    case get if get.contains("balance")           => "/api/v1/account/{uuid}/balance"
     case withdraw if withdraw.contains("balance") => "/api/v1/account/{uuid}/withdraw/{num}"
-    case deposit if deposit.contains("balance") => "/api/v1/account/{uuid}/deposit/{num}"
-    case _ => "other"
+    case deposit if deposit.contains("balance")   => "/api/v1/account/{uuid}/deposit/{num}"
+    case _                                        => "other"
   }
 }
