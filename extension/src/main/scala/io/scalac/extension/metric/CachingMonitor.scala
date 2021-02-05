@@ -16,7 +16,7 @@ case class CachingMonitor[L, B <: Bound](bindable: Bindable[L, B], config: Cachi
 
   private[extension] val cachedMonitors: MutableMap[L, B] = {
     val cacheAccessOrder = true // This constant must be hardcoded to ensure LRU policy
-    val loadFactor       = 0.1f // Since we use a fixed-size list, there's no reason to configure load factor
+    val loadFactor       = 0.75f
     new util.LinkedHashMap[L, B](config.maxEntries, loadFactor, cacheAccessOrder) {
       override def removeEldestEntry(eldest: util.Map.Entry[L, B]): Boolean =
         if (size() > config.maxEntries) {
