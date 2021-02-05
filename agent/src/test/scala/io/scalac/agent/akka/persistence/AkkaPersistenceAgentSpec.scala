@@ -4,7 +4,7 @@ import _root_.akka.actor.testkit.typed.scaladsl.{ ScalaTestWithActorTestKit, Tes
 import _root_.akka.actor.typed.receptionist.Receptionist
 import _root_.akka.actor.typed.receptionist.Receptionist.{ Deregister, Register }
 import _root_.akka.util.Timeout
-import io.scalac.`extension`.persistenceServiceKey
+import io.scalac.extension.persistenceServiceKey
 import io.scalac.agent.utils.DummyEventSourcedActor
 import io.scalac.agent.utils.DummyEventSourcedActor.{ DoNothing, Persist }
 import io.scalac.core.model.Version

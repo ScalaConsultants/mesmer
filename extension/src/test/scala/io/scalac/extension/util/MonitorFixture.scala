@@ -9,24 +9,26 @@ import akka.actor.typed.scaladsl.AskPattern._
 import org.scalatest.concurrent.Eventually
 import org.scalatest.{ Inside, LoneElement, Suite }
 
-
-
 trait MonitorFixture
     extends ScalaTestWithActorTestKit
     with TestOps
     with LoneElement
     with TerminationRegistryOps
-    with Inside with ReceptionistOps {
+    with Inside
+    with ReceptionistOps {
   this: Suite =>
   type Monitor
 
   protected def createMonitor: Monitor
-  protected def setUp(monitor: Monitor): ActorRef[_]
+  protected def setUp(monitor: Monitor, cache: Boolean): ActorRef[_]
   protected val serviceKey: ServiceKey[_]
 
-  def test(body: Monitor => Any): Any = {
-    val monitor = createMonitor
-    val sut     = setUp(monitor)
+  def testCaching(body: Monitor => Any): Any = internalTest(body, createMonitor, cache = true)
+
+  def test(body: Monitor => Any): Any = internalTest(body, createMonitor, cache = false)
+
+  private def internalTest(body: Monitor => Any, monitor: Monitor, cache: Boolean): Any = {
+    val sut = setUp(monitor, cache)
     watch(sut)
 
     onlyRef(sut, serviceKey)

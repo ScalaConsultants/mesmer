@@ -15,6 +15,7 @@ import io.scalac.domain.{ AccountStateActor, JsonCodecs }
 import org.slf4j.LoggerFactory
 
 import java.util.UUID
+import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
 import scala.io.StdIn
 import scala.jdk.CollectionConverters._
@@ -38,10 +39,9 @@ object Boot extends App with FailFastCirceSupport with JsonCodecs {
     )
     .resolve
 
-  implicit val system =
-    ActorSystem[Nothing](Behaviors.empty, "Accounts", config)
-  implicit val executionContext = system.executionContext
-  implicit val timeout: Timeout = 10 seconds
+  implicit val system: ActorSystem[Nothing]       = ActorSystem[Nothing](Behaviors.empty, "Accounts", config)
+  implicit val executionContext: ExecutionContext = system.executionContext
+  implicit val timeout: Timeout                   = 10 seconds
 
   val entity = EntityTypeKey[AccountStateActor.Command]("accounts")
 
