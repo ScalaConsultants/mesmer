@@ -6,10 +6,12 @@ import akka.actor.typed.{ ActorSystem, Extension, ExtensionId, SupervisorStrateg
 import akka.cluster.Cluster
 import akka.cluster.typed.{ ClusterSingleton, SingletonActor }
 import akka.util.Timeout
+
 import com.newrelic.telemetry.Attributes
 import com.newrelic.telemetry.opentelemetry.`export`.NewRelicMetricExporter
 import io.opentelemetry.sdk.OpenTelemetrySdk
 import io.opentelemetry.sdk.metrics.`export`.IntervalMetricReader
+
 import io.scalac.core.model.{ Module, SupportedVersion, Version }
 import io.scalac.core.support.ModulesSupport
 import io.scalac.core.util.ModuleInfo
@@ -20,13 +22,14 @@ import io.scalac.extension.model._
 import io.scalac.extension.persistence.{ CleanablePersistingStorage, CleanableRecoveryStorage }
 import io.scalac.extension.service.CommonRegexPathService
 import io.scalac.extension.upstream.{
+  OpenTelemetryActorMetricsMonitor,
   OpenTelemetryClusterMetricsMonitor,
   OpenTelemetryHttpMetricsMonitor,
   OpenTelemetryPersistenceMetricMonitor
 }
-
 import java.net.URI
 import java.util.Collections
+
 import scala.concurrent.duration._
 import scala.language.postfixOps
 import scala.util.Try
@@ -77,6 +80,7 @@ object AkkaMonitoring extends ExtensionId[AkkaMonitoring] {
               system.log.info(s"Supported version of ${module.name} detected, but auto-start is set to false")
         )
 
+    initModule(akkaActorModule, modulesSupport.akkaActor, config.autoStart.akkaActor, _.startActorMonitor())
     initModule(akkaHttpModule, modulesSupport.akkaHttp, config.autoStart.akkaHttp, _.startHttpEventListener())
     initModule(
       akkaClusterTypedModule,
@@ -161,6 +165,12 @@ class AkkaMonitoring(private val system: ActorSystem[_], val config: ClusterMoni
       log.error(message)
       None
     }, Some.apply)
+  }
+
+  def startActorMonitor(): Unit = {
+    log.debug("Starting actor monitor")
+    val monitor = OpenTelemetryActorMetricsMonitor(instrumentationName, actorSystemConfig)
+    ActorEventsMonitor.start(monitor, system, nodeName, 5.seconds) // TODO from config
   }
 
   def startSelfMemberMonitor(): Unit =
