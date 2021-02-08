@@ -5,13 +5,13 @@ import scala.collection.mutable
 import akka.actor.testkit.typed.scaladsl.TestProbe
 import akka.actor.typed.ActorSystem
 
-import io.scalac.extension.metric.{ ActorMonitor, MetricRecorder }, ActorMonitor.Labels
+import io.scalac.extension.metric.{ ActorMetricMonitor, MetricRecorder }
 import io.scalac.extension.util.TestProbeSynchronized
 import io.scalac.extension.util.probe.BoundTestProbe.MetricRecorderCommand
 
-class ActorMonitorTestProbe(implicit actorSystem: ActorSystem[_]) extends ActorMonitor {
+class ActorMonitorTestProbe(implicit actorSystem: ActorSystem[_]) extends ActorMetricMonitor {
 
-  override type Bound = TestBoundMonitor
+  import ActorMetricMonitor._
 
   private val bindsMap = mutable.HashMap.empty[Labels, TestBoundMonitor]
 
@@ -24,6 +24,7 @@ class ActorMonitorTestProbe(implicit actorSystem: ActorSystem[_]) extends ActorM
       with TestProbeSynchronized {
     override val mailboxSize: MetricRecorder[Long] with AbstractTestProbeWrapper =
       RecorderTestProbeWrapper(mailboxSizeProbe)
+    override def unbind(): Unit = ()
   }
 
 }

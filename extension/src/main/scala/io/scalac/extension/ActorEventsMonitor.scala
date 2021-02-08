@@ -3,18 +3,18 @@ package io.scalac.extension
 import scala.collection.immutable
 import scala.concurrent.duration._
 
-import akka.actor.{ ActorRef, ActorSystem }
-import akka.actor.typed
+import akka.actor.{ typed, ActorRef, ActorSystem }
 
-import io.scalac.extension.metric.ActorMonitor.Labels
-import io.scalac.extension.metric.{ ActorMonitor, CachingMonitor }
+import io.scalac.extension.config.CachingConfig
+import io.scalac.extension.metric.{ ActorMetricMonitor, CachingMonitor }
+import io.scalac.extension.metric.ActorMetricMonitor.Labels
 import io.scalac.extension.model.Node
 
 class ActorEventsMonitor
 object ActorEventsMonitor {
 
   def start(
-    actorMonitor: ActorMonitor,
+    actorMonitor: ActorMetricMonitor,
     actorSystem: typed.ActorSystem[_],
     node: Option[Node],
     pingOffset: FiniteDuration,
@@ -22,9 +22,9 @@ object ActorEventsMonitor {
     actorMetricsReader: ActorMetricsReader = ReflectiveActorMetricsReader
   ): Unit = {
 
-    import actorSystem.{ classicSystem, executionContext, log, scheduler }
+    import actorSystem.{ classicSystem, executionContext, log, scheduler, settings }
 
-    val monitor = CachingMonitor.caching[ActorMonitor.Labels, ActorMonitor](actorMonitor)
+    val monitor = CachingMonitor(actorMonitor, CachingConfig.fromConfig(settings.config, "actor"))
 
     def runActorTree(root: ActorRef): Unit = {
       report(root)

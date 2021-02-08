@@ -12,7 +12,7 @@ import io.scalac.extension.config.CachingConfig
 case class CachingMonitor[L, B <: Bound](bindable: Bindable[L, B], config: CachingConfig = CachingConfig.empty)
     extends Bindable[L, B] {
 
-  import CachingMonitor.logger
+  private val logger = LoggerFactory.getLogger(CachingMonitor.getClass)
 
   private[extension] val cachedMonitors: MutableMap[L, B] = {
     val cacheAccessOrder = true // This constant must be hardcoded to ensure LRU policy
@@ -35,8 +35,4 @@ case class CachingMonitor[L, B <: Bound](bindable: Bindable[L, B], config: Cachi
       bindable(labels)
     })
 
-}
-
-object CachingMonitor {
-  private val logger = LoggerFactory.getLogger(CachingMonitor.getClass)
 }

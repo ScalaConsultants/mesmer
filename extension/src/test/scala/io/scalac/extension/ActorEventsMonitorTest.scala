@@ -12,7 +12,7 @@ import org.scalatest.flatspec.AnyFlatSpecLike
 import org.scalatest.matchers.should.Matchers
 
 import io.scalac.extension.ActorEventsMonitor.{ ActorTreeRunner, ReflectiveActorTreeRunner }
-import io.scalac.extension.metric.ActorMonitor
+import io.scalac.extension.metric.ActorMetricMonitor
 import io.scalac.extension.util.TestConfig.localActorProvider
 import io.scalac.extension.util.probe.ActorMonitorTestProbe
 import io.scalac.extension.util.probe.BoundTestProbe.MetricRecorded
@@ -63,7 +63,7 @@ class ActorEventsMonitorTest
       val n = 10
       system ! "idle"
       for (_ <- 0 until n) system ! "Record it"
-      val bound   = monitor.bind(ActorMonitor.Labels("/user/actorB/idle", None))
+      val bound   = monitor.bind(ActorMetricMonitor.Labels("/user/actorB/idle", None))
       val records = bound.mailboxSizeProbe.receiveMessages(2, 3 * pingOffset)
       records should contain(MetricRecorded(n))
     }

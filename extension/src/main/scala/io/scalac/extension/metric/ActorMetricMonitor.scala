@@ -2,16 +2,11 @@ package io.scalac.extension.metric
 
 import io.scalac.extension.model.{ Node, Path }
 
-import ActorMonitor.Labels
+import ActorMetricMonitor.Labels
 
-object ActorMonitor {
+object ActorMetricMonitor {
   case class Labels(actorPath: Path, node: Option[Node])
-}
-
-trait ActorMonitor extends Bindable[Labels] {
-  override type Bound <: BoundMonitor
-
-  trait BoundMonitor extends Synchronized {
+  trait BoundMonitor extends Synchronized with Bound {
     def mailboxSize: MetricRecorder[Long] with Instrument[Long]
   }
 }
