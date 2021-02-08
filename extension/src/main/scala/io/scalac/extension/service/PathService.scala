@@ -5,3 +5,8 @@ trait PathService {
 
   def template(path: Path): Path
 }
+
+object PathService {
+  val numberTemplate = "{num}"
+  val uuidTemplate   = "{uuid}"
+}

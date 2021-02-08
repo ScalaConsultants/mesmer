@@ -48,8 +48,8 @@ public class PathServiceBench {
     private PathService regexOnly = OldCommonRegexPathService$.MODULE$;
     private PathService regexOptimized = CommonRegexPathService$.MODULE$;
     private PathService regexDummy = DummyCommonRegexPathService$.MODULE$;
-    private PathService regexOptimizedCaches_100 = new AsyncCachingPathService(100);
-    private PathService regexOptimizedCaches_10 = new AsyncCachingPathService(10);
+    private PathService regexOptimizedCaches_100 = new CachingPathService(100);
+    private PathService regexOptimizedCaches_10 = new CachingPathService(10);
 
     @Benchmark
     @Fork(1)
