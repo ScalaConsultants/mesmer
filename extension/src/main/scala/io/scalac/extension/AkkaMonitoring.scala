@@ -1,24 +1,15 @@
 package io.scalac.extension
 
-import java.net.URI
-import java.util.Collections
-
-import scala.concurrent.duration._
-import scala.language.postfixOps
-import scala.util.Try
-
 import akka.actor.ExtendedActorSystem
-import akka.actor.typed.scaladsl.Behaviors
 import akka.actor.typed._
+import akka.actor.typed.scaladsl.Behaviors
 import akka.cluster.Cluster
 import akka.cluster.typed.{ ClusterSingleton, SingletonActor }
 import akka.util.Timeout
-
 import com.newrelic.telemetry.Attributes
 import com.newrelic.telemetry.opentelemetry.`export`.NewRelicMetricExporter
 import io.opentelemetry.sdk.OpenTelemetrySdk
 import io.opentelemetry.sdk.metrics.`export`.IntervalMetricReader
-
 import io.scalac.core.model.{ Module, SupportedVersion, Version }
 import io.scalac.core.support.ModulesSupport
 import io.scalac.core.util.ModuleInfo
@@ -28,12 +19,18 @@ import io.scalac.extension.http.CleanableRequestStorage
 import io.scalac.extension.metric.CachingMonitor
 import io.scalac.extension.model._
 import io.scalac.extension.persistence.{ CleanablePersistingStorage, CleanableRecoveryStorage }
-import io.scalac.extension.service.CommonRegexPathService
+import io.scalac.extension.service.AsyncCachingPathService
 import io.scalac.extension.upstream.{
   OpenTelemetryClusterMetricsMonitor,
   OpenTelemetryHttpMetricsMonitor,
   OpenTelemetryPersistenceMetricMonitor
 }
+
+import java.net.URI
+import java.util.Collections
+import scala.concurrent.duration._
+import scala.language.postfixOps
+import scala.util.Try
 
 object AkkaMonitoring extends ExtensionId[AkkaMonitoring] {
   override def createExtension(system: ActorSystem[_]): AkkaMonitoring = {
@@ -58,9 +55,8 @@ object AkkaMonitoring extends ExtensionId[AkkaMonitoring] {
     modules: Modules,
     modulesSupport: ModulesSupport
   ): Unit = {
-    import monitoring.system
-
     import ModulesSupport._
+    import monitoring.system
 
     def initModule(
       module: Module,
@@ -195,7 +191,7 @@ class AkkaMonitoring(private val system: ActorSystem[_], val config: AkkaMonitor
         .init(
           SingletonActor(
             Behaviors
-              .supervise(OnClusterStartUp(_ => ClusterEventsMonitor(openTelemetryClusterMetricsMonitor)))
+              .supervise(OnClusterStartUp(_ => ClusterEventsMonitor(openTelemetryClusterMetricsMonitor), None))
               .onFailure[Exception](SupervisorStrategy.restart),
             "MemberMonitoringActor"
           )
@@ -209,6 +205,7 @@ class AkkaMonitoring(private val system: ActorSystem[_], val config: AkkaMonitor
       OpenTelemetryPersistenceMetricMonitor(instrumentationName, actorSystemConfig),
       CachingConfig.fromConfig(actorSystemConfig, "persistence")
     )
+    val pathService = new AsyncCachingPathService(20)
 
     system.systemActorOf(
       Behaviors
@@ -223,7 +220,7 @@ class AkkaMonitoring(private val system: ActorSystem[_], val config: AkkaMonitor
                     openTelemetryPersistenceMonitor,
                     rs,
                     ps,
-                    CommonRegexPathService,
+                    pathService,
                     nodeName
                   )
                 }
@@ -241,7 +238,7 @@ class AkkaMonitoring(private val system: ActorSystem[_], val config: AkkaMonitor
       OpenTelemetryHttpMetricsMonitor(instrumentationName, actorSystemConfig),
       CachingConfig.fromConfig(actorSystemConfig, "http")
     )
-    val pathService = CommonRegexPathService
+    val pathService = new AsyncCachingPathService(20)
 
     system.systemActorOf(
       Behaviors
