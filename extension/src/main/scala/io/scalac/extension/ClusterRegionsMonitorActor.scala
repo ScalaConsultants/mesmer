@@ -17,7 +17,7 @@ import io.scalac.extension.metric.ClusterMetricsMonitor
 import io.scalac.extension.model.AkkaNodeOps
 
 class ClusterRegionsMonitorActor
-object ClusterRegionsMonitorActor {
+object ClusterRegionsMonitorActor extends ClusterMonitorActor {
 
   private type RegionStats    = Map[ShardRegion.ShardId, Int]
   private type RegionStatsMap = Map[String, RegionStats]

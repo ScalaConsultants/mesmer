@@ -169,8 +169,6 @@ class AkkaMonitoring(private val system: ActorSystem[_], val config: ClusterMoni
     }, Some.apply)
   }
 
-  type ClusterMonitorActor = { def apply(monitor: ClusterMetricsMonitor): Behavior[_] }
-
   def startSelfMemberMonitor(): Unit = startClusterMonitor(ClusterSelfNodeEventsActor)
 
   def startClusterEventsMonitor(): Unit = startClusterMonitor(ClusterEventsMonitor)

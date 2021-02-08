@@ -8,7 +8,7 @@ import io.scalac.extension.ClusterEventsMonitor.Command.MemberEventWrapper
 import io.scalac.extension.metric.ClusterMetricsMonitor
 import io.scalac.extension.model._
 
-object ClusterEventsMonitor {
+object ClusterEventsMonitor extends ClusterMonitorActor {
 
   sealed trait Command
 

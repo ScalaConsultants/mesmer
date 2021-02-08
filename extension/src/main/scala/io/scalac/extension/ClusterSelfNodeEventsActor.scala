@@ -19,7 +19,7 @@ import io.scalac.extension.metric.ClusterMetricsMonitor
 import io.scalac.extension.model.AkkaNodeOps
 
 class ClusterSelfNodeEventsActor
-object ClusterSelfNodeEventsActor {
+object ClusterSelfNodeEventsActor extends ClusterMonitorActor {
 
   sealed trait Command extends SerializableMessage
 
