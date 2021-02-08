@@ -139,16 +139,21 @@ object ClusterRegionsMonitorActor extends ClusterMonitorActor {
   }
 
   // TODO It might be useful for other components in future
-  class CachedQueryResult[T] private (q: => T, validBy: FiniteDuration = 1.second) { self =>
+  class CachedQueryResult[T] private (q: => T, validBy: FiniteDuration = 1.second) {
     private val validByNanos: Long       = validBy.toNanos
     private var lastUpdate: Option[Long] = None
     private var currentValue: Option[T]  = None
 
     def get: T = {
-      self.synchronized {
-        if (needUpdate) {
-          lastUpdate = Some(now)
-          currentValue = Some(q)
+      // Disclaimer: this double check work for:
+      // 1. to have more throughput when update is not needed
+      // 2. to ensure secure updates
+      if (needUpdate) {
+        synchronized {
+          if (needUpdate) {
+            lastUpdate = Some(now)
+            currentValue = Some(q)
+          }
         }
       }
       currentValue.get
