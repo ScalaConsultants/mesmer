@@ -2,10 +2,11 @@ package io.scalac.extension.util
 
 import scala.concurrent.duration._
 
+import io.scalac.core.util.Timestamp
+
 class CachedQueryResult[T] private (q: => T, validBy: FiniteDuration = 1.second) {
-  private val validByNanos: Long       = validBy.toNanos
-  private var lastUpdate: Option[Long] = None
-  private var currentValue: Option[T]  = None
+  private var lastUpdate: Option[Timestamp] = None
+  private var currentValue: Option[T]       = None
 
   def get: T = {
     // Disclaimer: this double check exists to:
@@ -22,8 +23,8 @@ class CachedQueryResult[T] private (q: => T, validBy: FiniteDuration = 1.second)
     currentValue.get
   }
 
-  private def needUpdate: Boolean = lastUpdate.forall(lu => now > (lu + validByNanos))
-  private def now: Long           = System.nanoTime()
+  private def needUpdate: Boolean = lastUpdate.forall(lu => now > lu + validBy)
+  private def now: Timestamp      = Timestamp.create()
 }
 object CachedQueryResult {
   def apply[T](q: => T): CachedQueryResult[T]                       = new CachedQueryResult(q)

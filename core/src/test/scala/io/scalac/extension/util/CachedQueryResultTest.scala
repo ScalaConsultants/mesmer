@@ -17,7 +17,7 @@ class CachedQueryResultTest extends AnyFlatSpec with Matchers {
     calls should be(1)
   }
 
-  "CachedQueryResult" should "re-execute query within a interval" in {
+  it should "re-execute query within a interval" in {
     var calls = 0
     val queryResult = CachedQueryResult.by(1.second) {
       calls += 1
