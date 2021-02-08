@@ -2,6 +2,7 @@ package io.scalac.extension
 
 import scala.concurrent.duration._
 import scala.concurrent.{ ExecutionContext, Future }
+import scala.jdk.DurationConverters.JavaDurationOps
 
 import akka.actor.typed.scaladsl.Behaviors
 import akka.actor.typed.{ ActorSystem, Behavior }
@@ -134,7 +135,7 @@ object ClusterRegionsMonitorActor extends ClusterMonitorActor {
     private def getQueryStatsTimeout: FiniteDuration =
       system.settings.config
         .tryValue("io.scalac.scalac.akka-monitoring.timeouts.query-region-stats")(_.getDuration)
-        .map(d => FiniteDuration(d.toMillis, MILLISECONDS))
+        .map(_.toScala)
         .getOrElse(2.second)
 
   }
