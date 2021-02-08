@@ -57,6 +57,9 @@ object TerminationRegistry {
             all.foreach(ctx.unwatch)
             waitFor.values.foreach(_.unsafeUpcast[Any] ! Failure(UnwatchAllException))
             watch(Set.empty, Map.empty, Set.empty)
+          case AkcImpl =>
+            ctx.log.debug("Ack received")
+            Behaviors.same
         }
         .receiveSignal {
           case (_, Terminated(ref)) if watched.contains(ref) => {

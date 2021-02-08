@@ -3,6 +3,7 @@ package io.scalac.extension.upstream
 import com.typesafe.config.Config
 import io.opentelemetry.api.OpenTelemetry
 import io.opentelemetry.api.common.Labels
+
 import io.scalac.extension.metric._
 import io.scalac.extension.model._
 import io.scalac.extension.upstream.OpenTelemetryClusterMetricsMonitor.MetricNames
@@ -75,7 +76,7 @@ object OpenTelemetryClusterMetricsMonitor {
             entitiesOnNode,
             reachableNodes,
             unreachableNodes,
-            nodesDown,
+            nodesDown
           )
         }
         .getOrElse(defaultCached)
@@ -126,32 +127,40 @@ class OpenTelemetryClusterMetricsMonitor(instrumentationName: String, val metric
     .setDescription("Counter for node down events")
     .build()
 
-  override type Bound = ClusterBoundMonitor
-
   override def bind(node: Node): ClusterBoundMonitor = {
     val boundLabels = Labels.of("node", node)
     new ClusterBoundMonitor(boundLabels)
   }
 
-  class ClusterBoundMonitor(labels: Labels) extends BoundMonitor with opentelemetry.Synchronized {
-    override def shardPerRegions: MetricRecorder[Long] with Instrument[Long] =
+  class ClusterBoundMonitor(labels: Labels) extends ClusterMetricsMonitor.BoundMonitor with opentelemetry.Synchronized {
+    override val shardPerRegions: MetricRecorder[Long] with Instrument[Long] =
       WrappedLongValueRecorder(shardsPerRegionRecorder, labels)
 
-    override def entityPerRegion: MetricRecorder[Long] with Instrument[Long] =
+    override val entityPerRegion: MetricRecorder[Long] with Instrument[Long] =
       WrappedLongValueRecorder(entityPerRegionRecorder, labels)
 
-    override def shardRegionsOnNode: MetricRecorder[Long] with Instrument[Long] =
+    override val shardRegionsOnNode: MetricRecorder[Long] with Instrument[Long] =
       WrappedLongValueRecorder(shardRegionsOnNodeRecorder, labels)
 
-    override def entitiesOnNode: MetricRecorder[Long] with Instrument[Long] =
+    override val entitiesOnNode: MetricRecorder[Long] with Instrument[Long] =
       WrappedLongValueRecorder(entitiesOnNodeRecorder, labels)
 
-    override def reachableNodes: Counter[Long] with Instrument[Long] =
+    override val reachableNodes: Counter[Long] with Instrument[Long] =
       WrappedUpDownCounter(reachableNodeCounter, labels)
 
-    override def unreachableNodes: Counter[Long] with Instrument[Long] =
+    override val unreachableNodes: Counter[Long] with Instrument[Long] =
       WrappedUpDownCounter(unreachableNodeCounter, labels)
 
-    override def nodeDown: UpCounter[Long] with Instrument[Long] = WrappedCounter(nodeDownCounter, labels)
+    override val nodeDown: UpCounter[Long] with Instrument[Long] = WrappedCounter(nodeDownCounter, labels)
+
+    override def unbind(): Unit = {
+      shardPerRegions.unbind()
+      entityPerRegion.unbind()
+      shardRegionsOnNode.unbind()
+      entitiesOnNode.unbind()
+      reachableNodes.unbind()
+      unreachableNodes.unbind()
+      nodeDown.unbind()
+    }
   }
 }

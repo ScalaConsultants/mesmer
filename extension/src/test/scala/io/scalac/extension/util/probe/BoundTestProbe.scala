@@ -5,6 +5,7 @@ import io.scalac.extension.metric.{Counter, MetricRecorder, UpCounter}
 import io.scalac.extension.util.probe.BoundTestProbe._
 
 object BoundTestProbe {
+
   sealed trait MetricRecorderCommand
 
   case class MetricRecorded(value: Long) extends MetricRecorderCommand
