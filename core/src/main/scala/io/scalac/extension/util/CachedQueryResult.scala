@@ -22,7 +22,7 @@ class CachedQueryResult[T] private (q: => T, validBy: FiniteDuration = 1.second)
     currentValue.get
   }
 
-  private def needUpdate: Boolean = lastUpdate.fold(true)(lu => now > (lu + validByNanos))
+  private def needUpdate: Boolean = lastUpdate.forall(lu => now > (lu + validByNanos))
   private def now: Long           = System.nanoTime()
 }
 object CachedQueryResult {
