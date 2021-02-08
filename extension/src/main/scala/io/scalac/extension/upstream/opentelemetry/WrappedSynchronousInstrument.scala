@@ -5,8 +5,9 @@ import io.opentelemetry.api.metrics.{ LongCounter, LongUpDownCounter, LongValueR
 import io.scalac.extension.metric.{ Counter, MetricRecorder, UpCounter }
 
 sealed trait WrappedSynchronousInstrument[L] {
-  private[opentelemetry] def underlying: SynchronousInstrument[_]
-  private[opentelemetry] def labels: Labels
+  private[extension] def underlying: SynchronousInstrument[_]
+  private[extension] def labels: Labels
+  private[extension] def unbind(): Unit
 }
 
 case class WrappedLongValueRecorder(underlying: LongValueRecorder, labels: Labels)
@@ -15,6 +16,8 @@ case class WrappedLongValueRecorder(underlying: LongValueRecorder, labels: Label
   private[this] lazy val bound = underlying.bind(labels)
 
   override def setValue(value: Long): Unit = bound.record(value)
+
+  override private[extension] def unbind(): Unit = bound.unbind()
 }
 
 case class WrappedUpDownCounter(underlying: LongUpDownCounter, labels: Labels)
@@ -26,6 +29,8 @@ case class WrappedUpDownCounter(underlying: LongUpDownCounter, labels: Labels)
   override def decValue(value: Long): Unit = bound.add(-value)
 
   override def incValue(value: Long): Unit = bound.add(value)
+
+  override private[extension] def unbind(): Unit = bound.unbind()
 }
 
 case class WrappedCounter(underlying: LongCounter, labels: Labels)
@@ -35,4 +40,6 @@ case class WrappedCounter(underlying: LongCounter, labels: Labels)
   private[this] lazy val bound = underlying.bind(labels)
 
   override def incValue(value: Long): Unit = bound.add(value)
+
+  override private[extension] def unbind(): Unit = bound.unbind()
 }

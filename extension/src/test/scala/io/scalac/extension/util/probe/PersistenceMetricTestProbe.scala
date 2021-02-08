@@ -1,8 +1,5 @@
 package io.scalac.extension.util.probe
 
-import java.util.concurrent.ConcurrentHashMap
-import java.util.concurrent.atomic.AtomicInteger
-
 import akka.actor.testkit.typed.scaladsl.TestProbe
 import akka.actor.typed.ActorSystem
 import io.scalac.extension.metric.PersistenceMetricMonitor.Labels
@@ -10,30 +7,34 @@ import io.scalac.extension.metric.{ Bindable, MetricRecorder, PersistenceMetricM
 import io.scalac.extension.util.TestProbeSynchronized
 import io.scalac.extension.util.probe.BoundTestProbe.{ CounterCommand, MetricRecorderCommand }
 
+import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.atomic.AtomicInteger
 import scala.collection.concurrent.{ Map => CMap }
 import scala.jdk.CollectionConverters._
 
-trait BindCounter[L] extends Bindable[L] {
+trait BindCounter {
   private[this] val _binds: AtomicInteger = new AtomicInteger(0)
-  abstract override def bind(labels: L): Bound = {
+  final protected def counting[B](block: => B): B = {
     _binds.addAndGet(1)
-    super.bind(labels)
+    block
   }
   def binds: Int = _binds.get()
 }
 
-trait ConcurrentBoundProbes[L] extends Bindable[L] {
+trait ConcurrentBoundProbes[L] {
 
-  private[this] val monitors: CMap[L, Bound] =
-    new ConcurrentHashMap[L, Bound]().asScala
+  type B
 
-  override def bind(labels: L): Bound = monitors.getOrElseUpdate(labels, createBoundProbes(labels))
+  private[this] val monitors: CMap[L, B] =
+    new ConcurrentHashMap[L, B]().asScala
 
-  protected def createBoundProbes(labels: L): Bound
+  protected def createBoundProbes(labels: L): B
+  final protected def concurrentBind(labels: L): B = monitors.getOrElseUpdate(labels, createBoundProbes(labels))
 
-  def probes(labels: L): Option[Bound] = monitors.get(labels)
-  def boundLabels: Set[L]              = monitors.keySet.toSet
-  def boundSize: Int                   = monitors.size
+  def probes(labels: L): Option[B] = monitors.get(labels)
+  def boundLabels: Set[L]          = monitors.keySet.toSet
+  def boundSize: Int               = monitors.size
+
 }
 
 trait GlobalProbe {
@@ -43,12 +44,17 @@ trait GlobalProbe {
 class PersistenceMetricTestProbe(implicit val system: ActorSystem[_])
     extends PersistenceMetricMonitor
     with ConcurrentBoundProbes[Labels]
-    with BindCounter[Labels]
+    with BindCounter
     with GlobalProbe {
+
+  type B = BoundPersistenceProbes
 
   override val globalCounter: TestProbe[CounterCommand] = TestProbe()
 
-  override type Bound = BoundPersistenceProbes
+  def bind(labels: Labels): PersistenceMetricMonitor.BoundMonitor =
+    counting {
+      concurrentBind(labels)
+    }
 
   override protected def createBoundProbes(labels: Labels): BoundPersistenceProbes =
     new BoundPersistenceProbes(TestProbe(), TestProbe(), TestProbe(), TestProbe(), TestProbe())
@@ -59,7 +65,7 @@ class PersistenceMetricTestProbe(implicit val system: ActorSystem[_])
     val persistentEventProbe: TestProbe[MetricRecorderCommand],
     val persistentEventTotalProbe: TestProbe[CounterCommand],
     val snapshotProbe: TestProbe[CounterCommand]
-  ) extends BoundMonitor
+  ) extends PersistenceMetricMonitor.BoundMonitor
       with TestProbeSynchronized {
     override def recoveryTime: AbstractTestProbeWrapper with MetricRecorder[Long] =
       RecorderTestProbeWrapper(recoveryTimeProbe)
@@ -75,5 +81,7 @@ class PersistenceMetricTestProbe(implicit val system: ActorSystem[_])
 
     override def snapshot: AbstractTestProbeWrapper with UpCounter[Long] =
       CounterTestProbeWrapper(snapshotProbe, Some(globalCounter))
+
+    override def unbind(): Unit = ()
   }
 }

@@ -6,11 +6,11 @@ import io.scalac.extension.config
 import scala.concurrent.duration._
 import scala.jdk.DurationConverters._
 
-case class ClusterMonitoringConfig(
+case class AkkaMonitoringConfig(
   boot: BootSettings,
   autoStart: AutoStartSettings,
   backend: Option[BackendSettings],
-  cleaningSettings: CleaningSettings
+  cleaning: CleaningSettings
 )
 
 case class BootSettings(metricsBackend: Boolean)
@@ -20,15 +20,15 @@ case class AutoStartSettings(akkaHttp: Boolean, akkaPersistence: Boolean, akkaCl
 // TODO Wouldn't be better to set the uri instead of region?
 case class BackendSettings(name: String, region: String, apiKey: String, serviceName: String)
 
-object ClusterMonitoringConfig {
+object AkkaMonitoringConfig {
 
   import config.ConfigurationUtils._
 
-  private val autoStartDefaults        = AutoStartSettings(false, false, false)
+  private val autoStartDefaults        = AutoStartSettings(akkaHttp = false, akkaCluster = false, akkaPersistence = false)
   private val bootSettingsDefaults     = BootSettings(false)
   private val cleaningSettingsDefaults = CleaningSettings(20.seconds, 5.second)
 
-  def apply(config: Config): ClusterMonitoringConfig =
+  def apply(config: Config): AkkaMonitoringConfig =
     config
       .tryValue("io.scalac.akka-monitoring")(_.getConfig)
       .map { monitoringConfig =>
@@ -71,13 +71,13 @@ object ClusterMonitoringConfig {
           }
           .getOrElse(cleaningSettingsDefaults)
 
-        ClusterMonitoringConfig(
+        AkkaMonitoringConfig(
           BootSettings(bootBackend),
           autoStartSettings,
           backend,
           cleaningSettings
         )
       }
-      .getOrElse(ClusterMonitoringConfig(bootSettingsDefaults, autoStartDefaults, None, cleaningSettingsDefaults))
+      .getOrElse(AkkaMonitoringConfig(bootSettingsDefaults, autoStartDefaults, None, cleaningSettingsDefaults))
 
 }

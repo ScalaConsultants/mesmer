@@ -1,7 +1,6 @@
 package io.scalac.extension.metric
 
 import io.opentelemetry.api.common.{ Labels => OpenTelemetryLabels }
-import io.scalac.extension.metric.HttpMetricMonitor._
 import io.scalac.extension.model._
 
 object HttpMetricMonitor {
@@ -13,17 +12,10 @@ object HttpMetricMonitor {
       OpenTelemetryLabels.of(optional ++ required: _*)
     }
   }
-}
 
-trait HttpMetricMonitor extends Bindable[Labels] {
-  import HttpMetricMonitor._
-
-  override type Bound <: BoundMonitor
-
-  override def bind(labels: Labels): Bound
-
-  trait BoundMonitor extends Synchronized {
+  trait BoundMonitor extends Synchronized with Bound {
     def requestTime: MetricRecorder[Long] with Instrument[Long]
     def requestCounter: UpCounter[Long] with Instrument[Long]
   }
+
 }

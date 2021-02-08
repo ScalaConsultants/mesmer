@@ -3,21 +3,24 @@ package io.scalac.extension
 import akka.actor.testkit.typed.scaladsl.ScalaTestWithActorTestKit
 import akka.actor.typed.ActorRef
 import akka.actor.typed.receptionist.ServiceKey
+
 import io.scalac.core.util.Timestamp
 import io.scalac.extension.event.EventBus
 import io.scalac.extension.event.PersistenceEvent._
 import io.scalac.extension.metric.PersistenceMetricMonitor.Labels
-import io.scalac.extension.persistence.{ImmutablePersistStorage, ImmutableRecoveryStorage}
+import io.scalac.extension.persistence.{ ImmutablePersistStorage, ImmutableRecoveryStorage }
 import io.scalac.extension.util.TestConfig.localActorProvider
-import io.scalac.extension.util.probe.BoundTestProbe.{Inc, MetricRecorded}
+import io.scalac.extension.util.probe.BoundTestProbe.{ Inc, MetricRecorded }
 import io.scalac.extension.util.probe.PersistenceMetricTestProbe
-import io.scalac.extension.util.{IdentityPathService, MonitorFixture}
+import io.scalac.extension.util.{ IdentityPathService, MonitorFixture }
 import org.scalatest._
 import org.scalatest.flatspec.AnyFlatSpecLike
 import org.scalatest.matchers.should.Matchers
-
 import scala.concurrent.duration._
 import scala.language.postfixOps
+
+import io.scalac.extension.config.CachingConfig
+import io.scalac.extension.metric.CachingMonitor
 
 class PersistenceEventsActorTest
     extends ScalaTestWithActorTestKit(localActorProvider)
@@ -29,9 +32,14 @@ class PersistenceEventsActorTest
 
   override protected def createMonitor: Monitor = new PersistenceMetricTestProbe()
 
-  override protected def setUp(monitor: Monitor): ActorRef[_] =
+  override protected def setUp(monitor: Monitor, cache: Boolean): ActorRef[_] =
     system.systemActorOf(
-      PersistenceEventsActor(IdentityPathService, ImmutableRecoveryStorage.empty, ImmutablePersistStorage.empty, monitor),
+      PersistenceEventsActor(
+        if (cache) CachingMonitor(monitor) else monitor,
+        ImmutableRecoveryStorage.empty,
+        ImmutablePersistStorage.empty,
+        IdentityPathService
+      ),
       createUniqueId
     )
 
@@ -92,7 +100,7 @@ class PersistenceEventsActorTest
     }
   }
 
-  it should "capture amount of snapshots for same entity with same monitor" in test { monitor =>
+  it should "capture amount of snapshots for same entity with same monitor" in testCaching { monitor =>
     val seqNumbers     = (100 to 140 by 5).toList
     val expectedLabels = Labels(None, "/some/path", createUniqueId)
     for {
@@ -107,7 +115,7 @@ class PersistenceEventsActorTest
     forAll(probes.snapshotProbe.receiveMessages(seqNumbers.size))(_ should be(Inc(1L)))
   }
 
-  it should "capture amount of snapshots for same different entities with reused monitors" in test { monitor =>
+  it should "capture amount of snapshots for same different entities with reused monitors" in testCaching { monitor =>
     val seqNumbers = (100 to 140 by 5).toList
     val expectedLabels = List.fill(5) {
       val id = createUniqueId
@@ -127,7 +135,7 @@ class PersistenceEventsActorTest
     forAll(allProbes)(probes => forAll(probes.snapshotProbe.receiveMessages(seqNumbers.size))(_ should be(Inc(1L))))
   }
 
-  it should "capture persist event time with resued monitors for many events" in test { monitor =>
+  it should "capture persist event time with resued monitors for many events" in testCaching { monitor =>
     val seqNo = 150
     val expectedLabels = List.fill(5) {
       val id = createUniqueId
@@ -155,7 +163,7 @@ class PersistenceEventsActorTest
     }
   }
 
-  it should "capture all metrics persist metrics with reused monitors" in test { monitor =>
+  it should "capture all metrics persist metrics with reused monitors" in testCaching { monitor =>
     val seqNbs                   = List(150, 151, 152)
     val expectedRecoveryTime     = 1000L
     val expectedPersistEventTime = 500L

@@ -12,8 +12,7 @@ import akka.http.scaladsl.testkit.{ RouteTestTimeout, ScalatestRouteTest }
 import akka.util.Timeout
 
 import com.typesafe.config.{ Config, ConfigFactory }
-
-import io.scalac.`extension`.httpServiceKey
+import io.scalac.extension.httpServiceKey
 import io.scalac.extension.event.HttpEvent
 import io.scalac.extension.event.HttpEvent.{ RequestCompleted, RequestStarted }
 import net.bytebuddy.ByteBuddy
