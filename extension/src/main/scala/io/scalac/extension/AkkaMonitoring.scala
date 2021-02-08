@@ -143,6 +143,7 @@ class AkkaMonitoring(private val system: ActorSystem[_], val config: AkkaMonitor
     instrumentationName,
     actorSystemConfig
   )
+  private val dispatcherSelector = DispatcherSelector.fromConfig("extension-dispatcher")
 
   implicit private val timeout: Timeout = 5 seconds
 
@@ -178,7 +179,8 @@ class AkkaMonitoring(private val system: ActorSystem[_], val config: AkkaMonitor
               )
           )
           .onFailure[Exception](SupervisorStrategy.restart),
-        "localSystemMemberMonitor"
+        "localSystemMemberMonitor",
+        dispatcherSelector
       )
     }
 
@@ -227,7 +229,8 @@ class AkkaMonitoring(private val system: ActorSystem[_], val config: AkkaMonitor
             )
         )
         .onFailure[Exception](SupervisorStrategy.restart),
-      "persistenceAgentMonitor"
+      "persistenceAgentMonitor",
+      dispatcherSelector
     )
   }
 
@@ -250,7 +253,8 @@ class AkkaMonitoring(private val system: ActorSystem[_], val config: AkkaMonitor
             )
         )
         .onFailure[Exception](SupervisorStrategy.restart),
-      "httpEventMonitor"
+      "httpEventMonitor",
+      dispatcherSelector
     )
   }
 

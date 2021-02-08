@@ -1,10 +1,8 @@
 package io.scalac.extension.event
 
-import java.util.UUID
-
 import akka.actor.typed._
 import akka.actor.typed.receptionist.Receptionist.Subscribe
-import akka.actor.typed.receptionist.{Receptionist, ServiceKey}
+import akka.actor.typed.receptionist.{ Receptionist, ServiceKey }
 import akka.actor.typed.scaladsl.Behaviors
 import akka.util.Timeout
 import io.scalac.extension.util.MutableTypedMap
@@ -77,10 +75,16 @@ private[event] class ReceptionistBasedEventBus(
 
   private[this] val serviceBuffers = MutableTypedMap[AbstractService, ServiceMapFunc]
 
+  private val dispatcherSelector = DispatcherSelector.fromConfig("extension-dispatcher")
+
   override def publishEvent[T <: AbstractEvent](event: T)(implicit service: Service[event.Service]): Unit = {
     val ref: ActorRef[event.Service] = serviceBuffers.getOrCreate(service) {
       system.log.debug("Initialize event buffer for service {}", service.serviceKey)
-      system.systemActorOf(cachingBehavior(service.serviceKey), UUID.randomUUID().toString)
+      system.systemActorOf(
+        cachingBehavior(service.serviceKey),
+        s"event-bus-${service.serviceKey.id}",
+        dispatcherSelector
+      )
     }
     ref ! event
   }
