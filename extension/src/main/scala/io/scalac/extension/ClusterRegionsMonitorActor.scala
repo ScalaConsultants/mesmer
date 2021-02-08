@@ -15,6 +15,7 @@ import org.slf4j.LoggerFactory
 import io.scalac.extension.config.ConfigurationUtils.ConfigOps
 import io.scalac.extension.metric.ClusterMetricsMonitor
 import io.scalac.extension.model.AkkaNodeOps
+import io.scalac.extension.util.CachedQueryResult
 
 class ClusterRegionsMonitorActor
 object ClusterRegionsMonitorActor extends ClusterMonitorActor {
@@ -136,35 +137,6 @@ object ClusterRegionsMonitorActor extends ClusterMonitorActor {
         .map(d => FiniteDuration(d.toMillis, MILLISECONDS))
         .getOrElse(2.second)
 
-  }
-
-  // TODO It might be useful for other components in future
-  class CachedQueryResult[T] private (q: => T, validBy: FiniteDuration = 1.second) {
-    private val validByNanos: Long       = validBy.toNanos
-    private var lastUpdate: Option[Long] = None
-    private var currentValue: Option[T]  = None
-
-    def get: T = {
-      // Disclaimer: this double check work for:
-      // 1. to have more throughput when update is not needed
-      // 2. to ensure secure updates
-      if (needUpdate) {
-        synchronized {
-          if (needUpdate) {
-            lastUpdate = Some(now)
-            currentValue = Some(q)
-          }
-        }
-      }
-      currentValue.get
-    }
-
-    private def needUpdate: Boolean = lastUpdate.fold(true)(lu => now > (lu + validByNanos))
-    private def now: Long           = System.nanoTime()
-  }
-  object CachedQueryResult {
-    def apply[T](q: => T): CachedQueryResult[T]                       = new CachedQueryResult(q)
-    def by[T](validBy: FiniteDuration)(q: => T): CachedQueryResult[T] = new CachedQueryResult(q, validBy)
   }
 
 }

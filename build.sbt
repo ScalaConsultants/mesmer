@@ -27,7 +27,7 @@ def runWithAgent = Command.command("runWithAgent") { state =>
 lazy val root = (project in file("."))
 //  .enablePlugins(MultiJvmPlugin)
   .settings(name := "akka-monitoring")
-  .aggregate(extension, agent, testApp)
+  .aggregate(extension, agent, testApp, core)
 
 lazy val core = (project in file("core"))
   .settings(
