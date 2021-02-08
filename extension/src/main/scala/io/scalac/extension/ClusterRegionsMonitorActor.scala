@@ -59,8 +59,7 @@ object ClusterRegionsMonitorActor extends ClusterMonitorActor {
         })
 
         monitor.entitiesOnNode.setUpdater { result =>
-          regions.renewEntries()
-          regions.waitAllResults().map { regionsStats =>
+          regions.regionStats.map { regionsStats =>
             val entities = regionsStats.view.values.flatMap(_.values).sum
             result.observe(entities)
             logger.trace("Recorded amount of entities on node {}", entities)
@@ -92,14 +91,15 @@ object ClusterRegionsMonitorActor extends ClusterMonitorActor {
 
     def size: Int = cache.size
 
-    def waitAllResults(): Future[RegionStatsMap] = {
+    def regionStats: Future[RegionStatsMap] = {
+      renewEntries()
       val regions = cache.keySet.toSeq
       Future
         .sequence(regions.map(cache(_).get))
         .map(regionStats => regions.zip(regionStats).toMap)
     }
 
-    def renewEntries(): Unit = {
+    private def renewEntries(): Unit = {
       val current = sharding.shardTypeNames
       val cached  = cache.keySet
       val coming  = current.diff(cached)
