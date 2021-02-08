@@ -2,22 +2,16 @@ package io.scalac.extension.service
 
 import io.scalac.extension.model.Path
 
-import java.util.{ LinkedHashMap, Map }
+import java.util.{LinkedHashMap, Map}
 import scala.annotation.tailrec
 import scala.jdk.CollectionConverters._
 
 class CachingPathService(val cacheCapacity: Int) extends PathService {
 
-  private[this] val cache = new LinkedHashMap[String, Unit](cacheCapacity, 0.75f, true) {
+  private[service] val cache = new LinkedHashMap[String, Unit](cacheCapacity, 0.75f, true) {
     override def removeEldestEntry(eldest: Map.Entry[String, Unit]): Boolean =
       this.size() > cacheCapacity
   }.asScala
-
-  def cachedElements: Set[String] = cache.keySet.toSet
-
-  private var hit: Int = 0
-
-  def cacheHit(): Int = hit
 
   private val uuid   = """^[\da-fA-F]{8}-[\da-fA-F]{4}-[\da-fA-F]{4}-[\da-fA-F]{4}-[\da-fA-F]{12}$""".r
   private val number = """^[+-]?\d+\.?\d*$""".r
@@ -38,7 +32,6 @@ class CachingPathService(val cacheCapacity: Int) extends PathService {
       } else {
         path.substring(offset, nextIndex) match {
           case subs if cache.contains(subs) =>
-            hit += 1
             replaceInPath(nextIndex + 1, replacements)
 
           case subs if number.findPrefixOf(subs).isDefined => {

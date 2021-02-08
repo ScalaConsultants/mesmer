@@ -56,7 +56,7 @@ public class PathServiceBench {
     @Warmup(iterations = 3, time = 5, timeUnit = TimeUnit.SECONDS)
     @Measurement(iterations = 3, time = 5, timeUnit = TimeUnit.SECONDS)
     @OperationsPerInvocation(50)
-    public void regexOnlyTest(Blackhole blackhole) {
+    public void regexOnlyPathServiceTest(Blackhole blackhole) {
         for (String url : urls) {
             blackhole.consume(regexOnly.template(url));
         }
@@ -67,7 +67,7 @@ public class PathServiceBench {
     @Warmup(iterations = 3, time = 5, timeUnit = TimeUnit.SECONDS)
     @Measurement(iterations = 3, time = 5, timeUnit = TimeUnit.SECONDS)
     @OperationsPerInvocation(50)
-    public void regexOptimizedOnlyTest(Blackhole blackhole) {
+    public void regexOptimizedOnlyPathServiceTest(Blackhole blackhole) {
         for (String url : urls) {
             blackhole.consume(regexOptimized.template(url));
         }
@@ -78,7 +78,7 @@ public class PathServiceBench {
     @Warmup(iterations = 3, time = 5, timeUnit = TimeUnit.SECONDS)
     @Measurement(iterations = 3, time = 5, timeUnit = TimeUnit.SECONDS)
     @OperationsPerInvocation(50)
-    public void regexOptimizedCachedOnlyTest_10(Blackhole blackhole) {
+    public void regexOptimizedCached_10_PathServiceTest(Blackhole blackhole) {
         for (String url : urls) {
             blackhole.consume(regexOptimizedCaches_10.template(url));
         }
@@ -89,7 +89,7 @@ public class PathServiceBench {
     @Warmup(iterations = 3, time = 5, timeUnit = TimeUnit.SECONDS)
     @Measurement(iterations = 3, time = 5, timeUnit = TimeUnit.SECONDS)
     @OperationsPerInvocation(50)
-    public void regexOptimizedCachedOnlyTest_100(Blackhole blackhole) {
+    public void regexOptimizedCached_100_PathServiceTest(Blackhole blackhole) {
         for (String url : urls) {
             blackhole.consume(regexOptimizedCaches_100.template(url));
         }
@@ -100,7 +100,7 @@ public class PathServiceBench {
     @Warmup(iterations = 3, time = 5, timeUnit = TimeUnit.SECONDS)
     @Measurement(iterations = 3, time = 5, timeUnit = TimeUnit.SECONDS)
     @OperationsPerInvocation(50)
-    public void regexDummyTest(Blackhole blackhole) {
+    public void regexDummyPathServiceTest(Blackhole blackhole) {
         for (String url : urls) {
             blackhole.consume(regexDummy.template(url));
         }
