@@ -6,12 +6,17 @@ ThisBuild / version := "0.1.0-SNAPSHOT"
 ThisBuild / organization := "io.scalac"
 ThisBuild / organizationName := "scalac"
 
+ThisBuild / dependencyOverrides ++= openTelemetryDependenciesOverrides
+
 def runWithAgent = Command.command("runWithAgent") { state =>
   val extracted = Project extract state
   val newState =
     extracted.appendWithSession(
       Seq(
-        run / javaOptions += s"-javaagent:${(agent / assembly).value.absolutePath}"
+        run / javaOptions ++= Seq(
+          s"-javaagent:${(agent / assembly).value.absolutePath}",
+          "-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=9999"
+        )
       ),
       state
     )
@@ -22,7 +27,7 @@ def runWithAgent = Command.command("runWithAgent") { state =>
 lazy val root = (project in file("."))
 //  .enablePlugins(MultiJvmPlugin)
   .settings(name := "akka-monitoring")
-  .aggregate(extension, agent, testApp)
+  .aggregate(extension, agent, testApp, core)
 
 lazy val core = (project in file("core"))
   .settings(
@@ -36,8 +41,9 @@ lazy val extension = (project in file("extension"))
   .settings(
     parallelExecution in Test := true,
     name := "akka-monitoring-extension",
-    libraryDependencies ++= akka ++ openTelemetryApi ++ akkaTestkit ++ scalatest ++ logback.map(_ % Test) ++ akkaMultiNodeTestKit
-       ++ newRelicSdk ++ openTelemetrySdk
+    libraryDependencies ++= akka ++ openTelemetryApi ++ akkaTestkit ++ scalatest ++ logback
+      .map(_ % Test) ++ akkaMultiNodeTestKit
+      ++ newRelicSdk ++ openTelemetrySdk
   )
   .dependsOn(core % "compile->compile;test->test")
 

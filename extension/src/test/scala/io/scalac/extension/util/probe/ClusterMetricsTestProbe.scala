@@ -8,32 +8,34 @@ import io.scalac.extension.util.probe.BoundTestProbe._
 import io.scalac.extension.util.{ probe, TestProbeSynchronized }
 
 class ClusterMetricsTestProbe private (
-  val shardPerRegionsProbe: TestProbe[MetricRecorderCommand],
-  val entityPerRegionProbe: TestProbe[MetricRecorderCommand],
-  val shardRegionsOnNodeProbe: TestProbe[MetricRecorderCommand],
-  val entitiesOnNodeProbe: TestProbe[MetricRecorderCommand],
+  val shardPerRegionsProbe: TestProbe[MetricObserverCommand],
+  val entityPerRegionProbe: TestProbe[MetricObserverCommand],
+  val shardRegionsOnNodeProbe: TestProbe[MetricObserverCommand],
+  val entitiesOnNodeProbe: TestProbe[MetricObserverCommand],
   val reachableNodesProbe: TestProbe[CounterCommand],
   val unreachableNodesProbe: TestProbe[CounterCommand],
   val nodeDownProbe: TestProbe[CounterCommand]
-) extends ClusterMetricsMonitor {
+)(implicit system: ActorSystem[_])
+    extends ClusterMetricsMonitor {
 
   override def bind(node: Node): ClusterMetricsMonitor.BoundMonitor =
     new ClusterMetricsMonitor.BoundMonitor with TestProbeSynchronized {
 
-      override val shardPerRegions: MetricRecorder[Long] with AbstractTestProbeWrapper = RecorderTestProbeWrapper(
-        shardPerRegionsProbe
-      )
-
-      override val entityPerRegion: MetricRecorder[Long] with AbstractTestProbeWrapper = probe.RecorderTestProbeWrapper(
-        entityPerRegionProbe
-      )
-
-      override val shardRegionsOnNode: MetricRecorder[Long] with AbstractTestProbeWrapper =
-        probe.RecorderTestProbeWrapper(
-          shardRegionsOnNodeProbe
+      override def shardPerRegions(region: String): MetricObserver[Long] with AbstractTestProbeWrapper =
+        ObserverTestProbeWrapper(
+          shardPerRegionsProbe
         )
 
-      override val entitiesOnNode: MetricRecorder[Long] with AbstractTestProbeWrapper = probe.RecorderTestProbeWrapper(
+      override def entityPerRegion(region: String): MetricObserver[Long] with AbstractTestProbeWrapper =
+        ObserverTestProbeWrapper(
+          entityPerRegionProbe
+        )
+
+      override val shardRegionsOnNode: MetricObserver[Long] with AbstractTestProbeWrapper = ObserverTestProbeWrapper(
+        shardRegionsOnNodeProbe
+      )
+
+      override val entitiesOnNode: MetricObserver[Long] with AbstractTestProbeWrapper = ObserverTestProbeWrapper(
         entitiesOnNodeProbe
       )
 
@@ -41,12 +43,12 @@ class ClusterMetricsTestProbe private (
         reachableNodesProbe
       )
 
-      override val unreachableNodes: Counter[Long] with AbstractTestProbeWrapper = probe.CounterTestProbeWrapper(
+      override val unreachableNodes: Counter[Long] with AbstractTestProbeWrapper = CounterTestProbeWrapper(
         unreachableNodesProbe
       )
 
       override val nodeDown: UpCounter[Long] with AbstractTestProbeWrapper =
-        probe.CounterTestProbeWrapper(nodeDownProbe)
+        CounterTestProbeWrapper(nodeDownProbe)
 
       override def unbind(): Unit = ()
     }
@@ -54,10 +56,10 @@ class ClusterMetricsTestProbe private (
 
 object ClusterMetricsTestProbe {
   def apply()(implicit system: ActorSystem[_]): ClusterMetricsTestProbe = {
-    val shardPerRegionsProbe    = TestProbe[MetricRecorderCommand]("shardPerRegionsProbe")
-    val entityPerRegionProbe    = TestProbe[MetricRecorderCommand]("entityPerRegionProbe")
-    val shardRegionsOnNodeProbe = TestProbe[MetricRecorderCommand]("shardRegionsOnNodeProbe")
-    val entitiesOnNodeProbe     = TestProbe[MetricRecorderCommand]("entitiesOnNodeProbe")
+    val shardPerRegionsProbe    = TestProbe[MetricObserverCommand]("shardPerRegionsProbe")
+    val entityPerRegionProbe    = TestProbe[MetricObserverCommand]("entityPerRegionProbe")
+    val shardRegionsOnNodeProbe = TestProbe[MetricObserverCommand]("shardRegionsOnNodeProbe")
+    val entitiesOnNodeProbe     = TestProbe[MetricObserverCommand]("entitiesOnNodeProbe")
     val reachableNodesProbe     = TestProbe[CounterCommand]("reachableNodesProbe")
     val unreachableNodesProbe   = TestProbe[CounterCommand]("unreachableNodesProbe")
     val nodeDownProbe           = TestProbe[CounterCommand]("nodeDownProbe")
