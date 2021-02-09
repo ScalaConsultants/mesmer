@@ -20,13 +20,23 @@ import scala.concurrent.duration._
 import scala.io.StdIn
 import scala.jdk.CollectionConverters._
 import scala.language.postfixOps
-import scala.util.{ Failure, Success }
+import scala.util.{ Failure, Success, Try }
 
 object Boot extends App with FailFastCirceSupport with JsonCodecs {
 
-  val logger = LoggerFactory.getLogger(Boot.getClass)
+  val logger         = LoggerFactory.getLogger(Boot.getClass)
+  val inMemoryConfig = ConfigFactory.parseString("""
+                                                   |akka {
+                                                   |  persistence {
+                                                   |    journal {
+                                                   |      plugin = "akka.persistence.journal.inmem"
+                                                   |      auto-start-journals = ["akka.persistence.journal.inmem"]
+                                                   |    }
+                                                   |  }
+                                                   |}
+                                                   |""".stripMargin)
 
-  val config = ConfigFactory
+  val baseConfig = ConfigFactory
     .load()
     .withFallback(
       ConfigFactory
@@ -39,44 +49,53 @@ object Boot extends App with FailFastCirceSupport with JsonCodecs {
     )
     .resolve
 
-  implicit val system: ActorSystem[Nothing]       = ActorSystem[Nothing](Behaviors.empty, "Accounts", config)
-  implicit val executionContext: ExecutionContext = system.executionContext
-  implicit val timeout: Timeout                   = 10 seconds
+  def startUp(inMemoryJournal: Boolean): Unit = {
 
-  val entity = EntityTypeKey[AccountStateActor.Command]("accounts")
+    val config = if (inMemoryJournal) inMemoryConfig.withFallback(baseConfig) else baseConfig
 
-  val createActorFromUUid: UUID => Behavior[Command] =
-    AccountStateActor(_, config.getInt("app.snapshot-every"), config.getInt("app.keep-snapshots"))
+    implicit val system: ActorSystem[Nothing]       = ActorSystem[Nothing](Behaviors.empty, "Accounts", config)
+    implicit val executionContext: ExecutionContext = system.executionContext
+    implicit val timeout: Timeout                   = 10 seconds
 
-  val accountsShards = ClusterSharding(system)
-    .init(Entity(entity)(entityContext => createActorFromUUid(UUID.fromString(entityContext.entityId))))
+    val entity = EntityTypeKey[AccountStateActor.Command]("accounts")
 
-  AkkaManagement(system)
-    .start()
-    .onComplete {
-      case Success(value)     => logger.info(s"Started akka management on uri: ${value}")
-      case Failure(exception) => logger.error("Coundn't start akka management", exception)
+    val createActorFromUUid: UUID => Behavior[Command] =
+      AccountStateActor(_, config.getInt("app.snapshot-every"), config.getInt("app.keep-snapshots"))
+
+    val accountsShards = ClusterSharding(system)
+      .init(Entity(entity)(entityContext => createActorFromUUid(UUID.fromString(entityContext.entityId))))
+
+    AkkaManagement(system)
+      .start()
+      .onComplete {
+        case Success(value)     => logger.info(s"Started akka management on uri: ${value}")
+        case Failure(exception) => logger.error("Coundn't start akka management", exception)
+      }
+
+    val accountRoutes = new AccountRoutes(accountsShards)
+
+    val host = config.getString("app.host")
+
+    val port = config.getInt("app.port")
+    logger.info(s"Starting http server at $host:$port")
+
+    val binding = Http()
+      .newServerAt(host, port)
+      .bind(accountRoutes.routes)
+
+    sys.addShutdownHook {
+      binding
+        .flatMap(_.unbind())
+        .onComplete { _ =>
+          system.terminate()
+          NewRelicExporters.shutdown()
+        }
     }
 
-  val accountRoutes = new AccountRoutes(accountsShards)
-
-  val host = config.getString("app.host")
-
-  val port = config.getInt("app.port")
-  logger.info(s"Starting http server at $host:$port")
-
-  val binding = Http()
-    .newServerAt(host, port)
-    .bind(accountRoutes.routes)
-
-  StdIn.readLine()
-
-  sys.addShutdownHook {
-    binding
-      .flatMap(_.unbind())
-      .onComplete { _ =>
-        system.terminate()
-        NewRelicExporters.shutdown()
-      }
+    StdIn.readLine()
   }
+
+  val inMemoryJournal = Try(baseConfig.getBoolean("app.in_memory_journal")).getOrElse(false)
+  startUp(inMemoryJournal)
+
 }
