@@ -8,7 +8,7 @@ import akka.actor.{ typed, ActorRef, ActorRefProvider, ActorSystem }
 import org.slf4j.LoggerFactory
 
 import io.scalac.extension.config.CachingConfig
-import io.scalac.extension.metric.{ ActorMetricMonitor, CachingMonitor }
+import io.scalac.extension.metric.{ ActorMetricMonitor, Asynchronized, CachingMonitor }
 import io.scalac.extension.metric.ActorMetricMonitor.Labels
 import io.scalac.extension.model.Node
 
@@ -18,15 +18,14 @@ object ActorEventsMonitor {
   private val logger = LoggerFactory.getLogger(getClass)
 
   def start(
-    actorMonitor: ActorMetricMonitor,
+    actorMonitor: ActorMetricMonitor with Asynchronized,
     actorSystem: typed.ActorSystem[_],
     node: Option[Node],
-    pingOffset: FiniteDuration,
     actorTreeRunner: ActorTreeRunner = ReflectiveActorTreeRunner,
     actorMetricsReader: ActorMetricsReader = ReflectiveActorMetricsReader
   ): Unit = {
 
-    import actorSystem.{ classicSystem, executionContext, scheduler, settings }
+    import actorSystem.{ classicSystem, settings }
 
     val monitor = CachingMonitor(actorMonitor, CachingConfig.fromConfig(settings.config, "actor"))
 
@@ -48,7 +47,7 @@ object ActorEventsMonitor {
       // ...
     }
 
-    scheduler.scheduleWithFixedDelay(0.second, pingOffset) { () =>
+    actorMonitor.onCollect {
       runActorTree(actorTreeRunner.getRootGuardian(classicSystem))
     }
 

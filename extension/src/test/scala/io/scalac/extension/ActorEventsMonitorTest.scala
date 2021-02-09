@@ -61,10 +61,10 @@ class ActorEventsMonitorTest
   def testMonitor(): Unit = {
 
     implicit val system: ActorSystem[String] = createActorSystem()
-    val monitor                              = new ActorMonitorTestProbe()
     val pingOffset                           = 2.seconds
+    val monitor                              = new ActorMonitorTestProbe(pingOffset)
 
-    ActorEventsMonitor.start(monitor, system, None, pingOffset)
+    ActorEventsMonitor.start(monitor, system, None)
 
     "ActorEventsMonitor" should "record mailbox size" in {
       val n = 10
