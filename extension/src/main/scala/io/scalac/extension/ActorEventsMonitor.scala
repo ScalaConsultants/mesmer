@@ -3,7 +3,9 @@ package io.scalac.extension
 import scala.collection.immutable
 import scala.concurrent.duration._
 
-import akka.actor.{ typed, ActorRef, ActorSystem }
+import akka.actor.{ typed, ActorRef, ActorRefProvider, ActorSystem }
+
+import org.slf4j.LoggerFactory
 
 import io.scalac.extension.config.CachingConfig
 import io.scalac.extension.metric.{ ActorMetricMonitor, CachingMonitor }
@@ -12,6 +14,8 @@ import io.scalac.extension.model.Node
 
 class ActorEventsMonitor
 object ActorEventsMonitor {
+
+  private val logger = LoggerFactory.getLogger(getClass)
 
   def start(
     actorMonitor: ActorMetricMonitor,
@@ -22,7 +26,7 @@ object ActorEventsMonitor {
     actorMetricsReader: ActorMetricsReader = ReflectiveActorMetricsReader
   ): Unit = {
 
-    import actorSystem.{ classicSystem, executionContext, log, scheduler, settings }
+    import actorSystem.{ classicSystem, executionContext, scheduler, settings }
 
     val monitor = CachingMonitor(actorMonitor, CachingConfig.fromConfig(settings.config, "actor"))
 
@@ -32,13 +36,13 @@ object ActorEventsMonitor {
     }
 
     def report(actor: ActorRef): Unit = {
-      log.debug(s"Reporting metrics of actor $actor")
+      logger.trace(s"Reporting metrics of actor $actor")
       val bound = monitor.bind(Labels(actor.path.toStringWithoutAddress, node))
 
       // mailbox
       actorMetricsReader.mailboxSize(actor).foreach { mailboxSize =>
         bound.mailboxSize.setValue(mailboxSize)
-        log.trace(s"Recorded mailbox size for actor $actor: $mailboxSize")
+        logger.trace(s"Recorded mailbox size for actor $actor: $mailboxSize")
       }
 
       // ...
@@ -58,25 +62,32 @@ object ActorEventsMonitor {
   object ReflectiveActorTreeRunner extends ActorTreeRunner {
     import ReflectiveActorMonitorsUtils._
 
-    private val getRootGuardianReflectively = {
+    private val getSystemProviderReflectively = {
       classOf[ActorSystem]
-        .getMethod("guardian")
+        .getMethod("provider")
+    }
+
+    private val getRootGuardianReflectively = {
+      classOf[ActorRefProvider]
+        .getMethod("rootGuardian")
     }
 
     private val getChildrenReflectively = {
-      localActorRefClass
+      actorRefWithCellClass
         .getMethod("children")
     }
 
     def getChildren(actor: ActorRef): immutable.Iterable[ActorRef] =
-      if (isLocalRef(actor)) {
+      if (isLocalActorRefWithCell(actor)) {
         getChildrenReflectively.invoke(actor).asInstanceOf[immutable.Iterable[ActorRef]]
       } else {
         immutable.Iterable.empty
       }
 
-    def getRootGuardian(system: ActorSystem): ActorRef =
-      getRootGuardianReflectively.invoke(system).asInstanceOf[ActorRef]
+    def getRootGuardian(system: ActorSystem): ActorRef = {
+      val provider = getSystemProviderReflectively.invoke(system)
+      getRootGuardianReflectively.invoke(provider).asInstanceOf[ActorRef]
+    }
   }
 
   trait ActorMetricsReader {
@@ -86,38 +97,24 @@ object ActorEventsMonitor {
   object ReflectiveActorMetricsReader extends ActorMetricsReader {
     import ReflectiveActorMonitorsUtils._
 
-    private val getActorCellReflectively = {
-      val actorCell = localActorRefClass.getDeclaredField("actorCell")
-      actorCell.setAccessible(true)
-      actorCell
-    }
-
-    private val getMailboxReflectively = {
-      val mailbox = Class
-        .forName("akka.actor.dungeon.Dispatch")
-        .getDeclaredMethod("mailbox")
-      mailbox.setAccessible(true)
-      mailbox
-    }
-
-    private val getNumberOfMessagesReflectively = {
-      Class
-        .forName("akka.dispatch.Mailbox")
-        .getDeclaredMethod("numberOfMessages")
-    }
+    private val getNumberOfMessagesReflectively = cellClass.getDeclaredMethod("numberOfMessages")
 
     def mailboxSize(actor: ActorRef): Option[Int] =
-      if (isLocalRef(actor)) {
-        val actorCell = getActorCellReflectively.get(actor)
-        val mailbox   = getMailboxReflectively.invoke(actorCell)
-        Some(getNumberOfMessagesReflectively.invoke(mailbox).asInstanceOf[Int])
+      if (isLocalActorRefWithCell(actor)) {
+        val cell = underlyingReflectively.invoke(actor)
+        Some(getNumberOfMessagesReflectively.invoke(cell).asInstanceOf[Int])
       } else None
 
   }
 
   private object ReflectiveActorMonitorsUtils {
-    val localActorRefClass: Class[_]            = Class.forName("akka.actor.LocalActorRef")
-    def isLocalRef(actorRef: ActorRef): Boolean = localActorRefClass.isInstance(actorRef)
+    val actorRefWithCellClass       = Class.forName("akka.actor.ActorRefWithCell")
+    val cellClass                   = Class.forName("akka.actor.Cell")
+    val underlyingReflectively      = actorRefWithCellClass.getDeclaredMethod("underlying")
+    private val isLocalReflectively = cellClass.getDeclaredMethod("isLocal")
+    def isLocalActorRefWithCell(actorRef: ActorRef): Boolean =
+      actorRefWithCellClass.isInstance(actorRef) &&
+        isLocalReflectively.invoke(underlyingReflectively.invoke(actorRef)).asInstanceOf[Boolean]
   }
 
 }

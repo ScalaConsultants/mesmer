@@ -28,23 +28,30 @@ class ActorEventsMonitorTest
 
   def testActorTreeRunner(actorTreeRunner: ActorTreeRunner): Unit = {
 
-    val system = createActorSystem()
-
     s"ActorTreeRunner instance (${actorTreeRunner.getClass.getName})" should "getRoot properly" in {
       val root = actorTreeRunner.getRootGuardian(system.classicSystem)
-      root.path.toStringWithoutAddress should be("/user")
+      root.path.toStringWithoutAddress should be("/")
     }
 
     it should "getChildren properly" in {
       val root     = actorTreeRunner.getRootGuardian(system.classicSystem)
       val children = actorTreeRunner.getChildren(root)
       children.map(_.path.toStringWithoutAddress) should contain theSameElementsAs (Set(
-        "/user/actorA",
-        "/user/actorB"
+        "/system",
+        "/user"
       ))
     }
 
-    it should "terminate actorSystem" in {
+    it should "getChildren properly from nested actor" in {
+      val system           = createActorSystem()
+      val root             = actorTreeRunner.getRootGuardian(system.classicSystem)
+      val children         = actorTreeRunner.getChildren(root)
+      val guardian         = children.find(_.path.toStringWithoutAddress == "/user").get
+      val guardianChildren = actorTreeRunner.getChildren(guardian)
+      guardianChildren.map(_.path.toStringWithoutAddress) should contain theSameElementsAs (Set(
+        "/user/actorA",
+        "/user/actorB"
+      ))
       system.terminate()
       Await.ready(system.whenTerminated, 5.seconds)
     }
