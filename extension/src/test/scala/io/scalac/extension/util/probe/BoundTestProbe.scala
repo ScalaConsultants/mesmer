@@ -1,7 +1,12 @@
 package io.scalac.extension.util.probe
 
+import scala.concurrent.duration._
+import scala.concurrent.{ ExecutionContext, Future }
+
 import akka.actor.testkit.typed.scaladsl.TestProbe
-import io.scalac.extension.metric.{Counter, MetricRecorder, UpCounter}
+import akka.actor.typed.ActorSystem
+
+import io.scalac.extension.metric.{ Counter, MetricObserver, MetricRecorder, UpCounter }
 import io.scalac.extension.util.probe.BoundTestProbe._
 
 object BoundTestProbe {
@@ -15,6 +20,10 @@ object BoundTestProbe {
   case class Inc(value: Long) extends CounterCommand
 
   case class Dec(value: Long) extends CounterCommand
+
+  sealed trait MetricObserverCommand
+
+  case class MetricObserved(value: Long) extends MetricObserverCommand
 
 }
 
@@ -51,4 +60,21 @@ case class RecorderTestProbeWrapper(private val _probe: TestProbe[MetricRecorder
   override def probe: TestProbe[MetricRecorderCommand] = _probe
 
   override def setValue(value: Long): Unit = _probe.ref ! MetricRecorded(value)
+}
+
+case class ObserverTestProbeWrapper(private val _probe: TestProbe[MetricObserverCommand])(
+  implicit system: ActorSystem[_]
+) extends AbstractTestProbeWrapper
+    with MetricObserver[Long] {
+
+  val Ping = 5.seconds
+
+  override type Cmd = MetricObserverCommand
+  override def probe: TestProbe[MetricObserverCommand] = _probe
+
+  override def setUpdater(cb: MetricObserver.Result[Long] => Unit): Unit = {
+    import system.executionContext
+    system.scheduler.scheduleWithFixedDelay(Ping / 2, Ping)(() => cb(value => _probe.ref ! MetricObserved(value)))
+  }
+
 }

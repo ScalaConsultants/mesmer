@@ -2,6 +2,7 @@ package io.scalac.extension.upstream
 
 import com.typesafe.config.Config
 import io.opentelemetry.api.OpenTelemetry
+
 import io.scalac.extension.metric.HttpMetricMonitor
 import io.scalac.extension.upstream.opentelemetry._
 

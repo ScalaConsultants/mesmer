@@ -8,8 +8,9 @@ import akka.actor.typed.scaladsl.adapter._
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
-import akka.http.scaladsl.testkit.ScalatestRouteTest
+import akka.http.scaladsl.testkit.{ RouteTestTimeout, ScalatestRouteTest }
 import akka.util.Timeout
+
 import com.typesafe.config.{ Config, ConfigFactory }
 import io.scalac.extension.httpServiceKey
 import io.scalac.extension.event.HttpEvent
@@ -21,13 +22,12 @@ import net.bytebuddy.dynamic.scaffold.TypeValidation
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
-
 import scala.concurrent.duration._
 import scala.language.postfixOps
 
 class AkkaHttpAgentTest extends AnyFlatSpec with ScalatestRouteTest with Matchers with BeforeAndAfterAll {
 
-  implicit val askTimeout = Timeout(1 minute)
+  // implicit val askTimeout = Timeout(1 minute)
 
   override def testConfig: Config = ConfigFactory.load("application-test")
 
@@ -48,6 +48,7 @@ class AkkaHttpAgentTest extends AnyFlatSpec with ScalatestRouteTest with Matcher
   }
 
   "AkkaHttpAgent" should "instrument routes to generate events on http requests" in test { monitor =>
+    implicit val timeout = RouteTestTimeout(5 seconds)
     Get("/test") ~!> testRoute ~> check {
       status should be(StatusCodes.OK)
     }

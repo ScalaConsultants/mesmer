@@ -58,6 +58,7 @@ trait SingleNodeClusterSpec extends AsyncTestSuite {
       val cluster = Cluster(system)
 
       val sharding = ClusterSharding(system)
+
       (entityNames, system, cluster, sharding)
     }
 
@@ -87,11 +88,14 @@ trait SingleNodeClusterSpec extends AsyncTestSuite {
       (regions, _system, cluster, sharding) <- initAkka()
       system                                = _system
       _                                     <- onClusterStart(cluster)(system)
-      assertion                             <- runTest(system, regions, cluster, sharding)
-      _                                     = portGenerator.releasePort(port)
-      _                                     = system.terminate()
-      _                                     <- system.whenTerminated
+      assertion <- runTest(system, regions, cluster, sharding).andThen {
+                    case _ =>
+                      portGenerator.releasePort(port)
+                      system.terminate()
+                  }
+      _ <- system.whenTerminated
     } yield assertion
+
   }
 
   def setup[T: ClassTag](behavior: String => Behavior[T])(test: Fixture[Id, T] => Assertion): Future[Assertion] =

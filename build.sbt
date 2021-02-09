@@ -6,6 +6,8 @@ ThisBuild / version := "0.1.0-SNAPSHOT"
 ThisBuild / organization := "io.scalac"
 ThisBuild / organizationName := "scalac"
 
+ThisBuild / dependencyOverrides ++= openTelemetryDependenciesOverrides
+
 def runWithAgent = Command.command("runWithAgent") { state =>
   val extracted = Project extract state
   val newState =
@@ -25,7 +27,7 @@ def runWithAgent = Command.command("runWithAgent") { state =>
 lazy val root = (project in file("."))
 //  .enablePlugins(MultiJvmPlugin)
   .settings(name := "akka-monitoring")
-  .aggregate(extension, agent, testApp)
+  .aggregate(extension, agent, testApp, core)
 
 lazy val core = (project in file("core"))
   .settings(

@@ -11,7 +11,7 @@ import scala.concurrent.duration.FiniteDuration
  * @param value created by monotonic clock. Use should not make any assumptions about this value and should be treated
  *              as implementation detail
  */
-class Timestamp(val value: Long) extends AnyVal {
+class Timestamp(private[Timestamp] val value: Long) extends AnyVal {
   def interval(finished: Timestamp): Long = Timestamp.interval(this, finished)
 
   /**
@@ -29,6 +29,9 @@ class Timestamp(val value: Long) extends AnyVal {
    * @return new Timestamp that indicate moment in time offset ms before
    */
   private[scalac] def minus(offset: FiniteDuration): Timestamp = moveTimestamp(this, -offset.toNanos)
+
+  private[scalac] def >(other: Timestamp): Boolean         = value > other.value
+  private[scalac] def +(offset: FiniteDuration): Timestamp = plus(offset)
 }
 
 object Timestamp {
