@@ -11,7 +11,7 @@ trait OpenTelemetryAsynchronized extends CallbackListAsynchronized {
   meter
     .longValueObserverBuilder("_pseudo_metric")
     .setDescription("This metric works like a hook for the exporter's loop")
+    .setUpdater(_ => callCallbacks())
     .build()
-    .setCallback(_ => callCallbacks())
 
 }
