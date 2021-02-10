@@ -1,16 +1,17 @@
 package io.scalac.extension.service
 
+import io.scalac.extension.config.CachingConfig
 import io.scalac.extension.model.Path
 
-import java.util.{LinkedHashMap, Map}
+import java.util.{ LinkedHashMap, Map }
 import scala.annotation.tailrec
 import scala.jdk.CollectionConverters._
 
-class CachingPathService(val cacheCapacity: Int) extends PathService {
+class CachingPathService(cachingConfig: CachingConfig) extends PathService {
 
-  private[service] val cache = new LinkedHashMap[String, Unit](cacheCapacity, 0.75f, true) {
+  private[service] val cache = new LinkedHashMap[String, Unit](cachingConfig.maxEntries, 0.75f, true) {
     override def removeEldestEntry(eldest: Map.Entry[String, Unit]): Boolean =
-      this.size() > cacheCapacity
+      this.size() > cachingConfig.maxEntries
   }.asScala
 
   private val uuid   = """^[\da-fA-F]{8}-[\da-fA-F]{4}-[\da-fA-F]{4}-[\da-fA-F]{4}-[\da-fA-F]{12}$""".r

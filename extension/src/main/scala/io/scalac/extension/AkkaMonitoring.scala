@@ -203,11 +203,12 @@ class AkkaMonitoring(private val system: ActorSystem[_], val config: AkkaMonitor
   def startPersistenceMonitoring(): Unit = {
     log.debug("Starting PersistenceEventsListener")
 
+    val cachingConfig = CachingConfig.fromConfig(actorSystemConfig, "persistence")
     val openTelemetryPersistenceMonitor = CachingMonitor(
       OpenTelemetryPersistenceMetricMonitor(instrumentationName, actorSystemConfig),
-      CachingConfig.fromConfig(actorSystemConfig, "persistence")
+      cachingConfig
     )
-    val pathService = new CachingPathService(20)
+    val pathService = new CachingPathService(cachingConfig)
 
     system.systemActorOf(
       Behaviors
@@ -237,11 +238,12 @@ class AkkaMonitoring(private val system: ActorSystem[_], val config: AkkaMonitor
   def startHttpEventListener(): Unit = {
     log.info("Starting local http event listener")
 
+    val cachingConfig = CachingConfig.fromConfig(actorSystemConfig, "http")
     val openTelemetryHttpMonitor = CachingMonitor(
       OpenTelemetryHttpMetricsMonitor(instrumentationName, actorSystemConfig),
-      CachingConfig.fromConfig(actorSystemConfig, "http")
+      cachingConfig
     )
-    val pathService = new CachingPathService(20)
+    val pathService = new CachingPathService(cachingConfig)
 
     system.systemActorOf(
       Behaviors
