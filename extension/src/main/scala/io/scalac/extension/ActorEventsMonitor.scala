@@ -91,6 +91,7 @@ object ActorEventsMonitor {
 
   trait ActorMetricsReader {
     def mailboxSize(actor: ActorRef): Option[Int]
+    def stashSize(actor: ActorRef): Option[Int]
   }
 
   object ReflectiveActorMetricsReader extends ActorMetricsReader {
@@ -103,6 +104,9 @@ object ActorEventsMonitor {
         val cell = underlyingReflectively.invoke(actor)
         Some(getNumberOfMessagesReflectively.invoke(cell).asInstanceOf[Int])
       } else None
+
+    def stashSize(actor: ActorRef): Option[Int] =
+      ???
 
   }
 

@@ -6,8 +6,16 @@ sealed trait AbstractEvent { self =>
   type Service >: self.type
 }
 
+sealed trait ActorEvent extends AbstractEvent {
+  type Service = ActorEvent
+}
+
+object ActorEvent {
+  final case class StashMeasurement(size: Int, path: String) extends ActorEvent
+}
+
 sealed trait PersistenceEvent extends AbstractEvent {
-  override type Service = PersistenceEvent
+  type Service = PersistenceEvent
 }
 
 object PersistenceEvent {
@@ -25,7 +33,7 @@ object PersistenceEvent {
 }
 
 sealed trait HttpEvent extends AbstractEvent {
-  override type Service = HttpEvent
+  type Service = HttpEvent
 }
 
 object HttpEvent {
