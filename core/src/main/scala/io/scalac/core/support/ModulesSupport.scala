@@ -18,13 +18,18 @@ object ModulesSupport extends ModulesSupport {
   val akkaActorTypedModule       = Module("akka-actor-typed")
   val akkaActorModule            = Module("akka-actor")
 
-  override def akkaActor: SupportedVersion = majors("2").and(minors("6")).and(patches("8"))
+  private val commonAkkaSupportedVersion: SupportedVersion =
+    majors("2").and(minors("6")).and(patches("8", "9", "10", "11", "12"))
 
-  override def akkaHttp: SupportedVersion =
+  override val akkaActor: SupportedVersion = commonAkkaSupportedVersion
+
+  override val akkaHttp: SupportedVersion =
     majors("10")
-      .and(minors("1").and(patches("8")).or(minors("2").and(patches("0", "1", "2"))))
+      .and(minors("1").and(patches("8")).or(minors("2").and(patches("0", "1", "2", "3"))))
 
-  override def akkaPersistenceTyped: SupportedVersion = majors("2").and(minors("6")).and(patches("8", "9", "10"))
+  override val akkaPersistenceTyped: SupportedVersion =
+    commonAkkaSupportedVersion
 
-  override def akkaClusterTyped: SupportedVersion = majors("2").and(minors("6")).and(patches("8", "9", "10"))
+  override val akkaClusterTyped: SupportedVersion =
+    commonAkkaSupportedVersion
 }

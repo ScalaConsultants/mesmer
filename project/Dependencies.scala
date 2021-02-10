@@ -1,8 +1,8 @@
 import sbt._
 
 object Dependencies {
-  val AkkaHttpVersion       = "10.2.0"
-  val AkkaVersion           = "2.6.8"
+  val AkkaHttpVersion       = "10.2.3"
+  val AkkaVersion           = "2.6.12"
   val CirceVersion          = "0.12.3"
   val SlickVersion          = "3.3.3"
   val PostgresVersion       = "9.4-1201-jdbc41"
