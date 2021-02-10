@@ -143,7 +143,7 @@ class AkkaMonitoring(private val system: ActorSystem[_], val config: AkkaMonitor
     instrumentationName,
     actorSystemConfig
   )
-  private val dispatcherSelector = DispatcherSelector.fromConfig("extension-dispatcher")
+  import io.scalac.core.AkkaDispatcher._
 
   implicit private val timeout: Timeout = 5 seconds
 

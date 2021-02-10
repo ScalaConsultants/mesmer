@@ -75,7 +75,7 @@ private[event] class ReceptionistBasedEventBus(
 
   private[this] val serviceBuffers = MutableTypedMap[AbstractService, ServiceMapFunc]
 
-  private val dispatcherSelector = DispatcherSelector.fromConfig("extension-dispatcher")
+  import io.scalac.core.AkkaDispatcher._
 
   override def publishEvent[T <: AbstractEvent](event: T)(implicit service: Service[event.Service]): Unit = {
     val ref: ActorRef[event.Service] = serviceBuffers.getOrCreate(service) {

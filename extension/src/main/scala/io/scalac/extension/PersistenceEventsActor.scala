@@ -33,7 +33,7 @@ object PersistenceEventsActor {
       import Event._
       Receptionist(ctx.system).ref ! Register(persistenceServiceKey, ctx.messageAdapter(PersistentEventWrapper.apply))
 
-      def getMonitor(path: String, persistenceId: PersistenceId): PersistenceMetricMonitor.BoundMonitor = {
+      def getMonitor(path: Path, persistenceId: PersistenceId): PersistenceMetricMonitor.BoundMonitor = {
         val templatedPath      = pathService.template(path)
         val pathLastSlashIndex = path.lastIndexOf('/', path.length - 2)
         if (pathLastSlashIndex > 0 && path.substring(pathLastSlashIndex + 1, path.length) == persistenceId) {

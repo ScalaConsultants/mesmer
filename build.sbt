@@ -91,8 +91,6 @@ lazy val agent = (project in file("agent"))
     core % "provided->compile;test->test"
   )
 
-Seq()
-
 lazy val testApp = (project in file("test_app"))
   .settings(
     name := "akka-monitoring-test-app",
