@@ -3,24 +3,24 @@ package io.scalac.extension
 import akka.actor.testkit.typed.scaladsl.ScalaTestWithActorTestKit
 import akka.actor.typed.ActorRef
 import akka.actor.typed.receptionist.ServiceKey
-
 import io.scalac.core.util.Timestamp
 import io.scalac.extension.event.EventBus
 import io.scalac.extension.event.PersistenceEvent._
+import io.scalac.extension.metric.CachingMonitor
 import io.scalac.extension.metric.PersistenceMetricMonitor.Labels
 import io.scalac.extension.persistence.{ ImmutablePersistStorage, ImmutableRecoveryStorage }
+import io.scalac.extension.service.PathService
+import io.scalac.extension.util.MonitorFixture
 import io.scalac.extension.util.TestConfig.localActorProvider
 import io.scalac.extension.util.probe.BoundTestProbe.{ Inc, MetricRecorded }
 import io.scalac.extension.util.probe.PersistenceMetricTestProbe
-import io.scalac.extension.util.{ IdentityPathService, MonitorFixture }
 import org.scalatest._
 import org.scalatest.flatspec.AnyFlatSpecLike
 import org.scalatest.matchers.should.Matchers
+
+import java.util.UUID
 import scala.concurrent.duration._
 import scala.language.postfixOps
-
-import io.scalac.extension.config.CachingConfig
-import io.scalac.extension.metric.CachingMonitor
 
 class PersistenceEventsActorTest
     extends ScalaTestWithActorTestKit(localActorProvider)
@@ -32,13 +32,13 @@ class PersistenceEventsActorTest
 
   override protected def createMonitor: Monitor = new PersistenceMetricTestProbe()
 
-  override protected def setUp(monitor: Monitor, cache: Boolean): ActorRef[_] =
+  override protected def setUp(monitor: Monitor, pathService: PathService, cache: Boolean): ActorRef[_] =
     system.systemActorOf(
       PersistenceEventsActor(
         if (cache) CachingMonitor(monitor) else monitor,
         ImmutableRecoveryStorage.empty,
         ImmutablePersistStorage.empty,
-        IdentityPathService
+        pathService
       ),
       createUniqueId
     )
@@ -209,5 +209,29 @@ class PersistenceEventsActorTest
         case MetricRecorded(value) => value should be(expectedRecoveryTime +- 100L)
       }
     }
+  }
+
+  it should "call pathService only once when persitenceId is at the end of path" in test { (monitor, pathService) =>
+    val uuid           = UUID.randomUUID().toString
+    val labels: Labels = Labels(None, s"/some/path/${uuid}", uuid)
+
+    persistEventStarted(0L, labels)
+    persistEventFinished(0L, labels)
+
+    monitor.globalCounter.receiveMessage()
+    pathService.count() should be(1L)
+  }
+
+  it should "call pathService only twice when persitenceId is NOT at the end of path" in test {
+    (monitor, pathService) =>
+      val uuid           = UUID.randomUUID().toString
+      val persistenceId  = UUID.randomUUID().toString
+      val labels: Labels = Labels(None, s"/some/path/${uuid}", persistenceId)
+
+      persistEventStarted(0L, labels)
+      persistEventFinished(0L, labels)
+
+      monitor.globalCounter.receiveMessage()
+      pathService.count() should be(2L)
   }
 }

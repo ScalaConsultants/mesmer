@@ -3,10 +3,8 @@ package io.scalac.extension.util
 import akka.actor.PoisonPill
 import akka.actor.testkit.typed.scaladsl.ScalaTestWithActorTestKit
 import akka.actor.typed.ActorRef
-import akka.actor.typed.receptionist.Receptionist.Listing
-import akka.actor.typed.receptionist.{ Receptionist, ServiceKey }
-import akka.actor.typed.scaladsl.AskPattern._
-import org.scalatest.concurrent.Eventually
+import akka.actor.typed.receptionist.ServiceKey
+import io.scalac.extension.service.PathService
 import org.scalatest.{ Inside, LoneElement, Suite }
 
 trait MonitorFixture
@@ -20,19 +18,24 @@ trait MonitorFixture
   type Monitor
 
   protected def createMonitor: Monitor
-  protected def setUp(monitor: Monitor, cache: Boolean): ActorRef[_]
+  protected def setUp(monitor: Monitor, pathService: PathService, cache: Boolean): ActorRef[_]
   protected val serviceKey: ServiceKey[_]
 
-  def testCaching(body: Monitor => Any): Any = internalTest(body, createMonitor, cache = true)
+  def testCaching(body: Monitor => Any): Any = internalTest((monitor, _) => body(monitor), cache = true)
 
-  def test(body: Monitor => Any): Any = internalTest(body, createMonitor, cache = false)
+  def test(body: Monitor => Any): Any = internalTest((monitor, _) => body(monitor), cache = false)
 
-  private def internalTest(body: Monitor => Any, monitor: Monitor, cache: Boolean): Any = {
-    val sut = setUp(monitor, cache)
+  def test(body: (Monitor, TestingPathService) => Any): Any = internalTest(body, cache = false)
+
+  private def internalTest(body: (Monitor, TestingPathService) => Any, cache: Boolean): Any = {
+    val pathService = new TestingPathService()
+    val monitor     = createMonitor
+    val sut         = setUp(monitor, pathService, cache)
+
     watch(sut)
 
     onlyRef(sut, serviceKey)
-    body(monitor)
+    body(monitor, pathService)
     sut.unsafeUpcast[Any] ! PoisonPill
     waitFor(sut)
   }

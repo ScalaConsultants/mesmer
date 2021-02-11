@@ -22,6 +22,19 @@ object PersistenceEventsActor {
     private[extension] final case class PersistentEventWrapper(event: PersistenceEvent) extends Event
   }
 
+  /**
+   * Gets path last segment ignoring trailing slash if present
+   * @param path
+   * @return last segment if exists
+   */
+  private[extension] def getLastSegment(path: Path): Option[String] = {
+    val lastIndex = path.lastIndexOf('/', path.length - 2)
+
+    if (lastIndex > 0) {
+      Some(path.substring(lastIndex + 1, path.length))
+    } else None
+  }
+
   def apply(
     monitor: PersistenceMetricMonitor,
     initRecoveryStorage: RecoveryStorage,
@@ -34,16 +47,15 @@ object PersistenceEventsActor {
       Receptionist(ctx.system).ref ! Register(persistenceServiceKey, ctx.messageAdapter(PersistentEventWrapper.apply))
 
       def getMonitor(path: Path, persistenceId: PersistenceId): PersistenceMetricMonitor.BoundMonitor = {
-        val templatedPath      = pathService.template(path)
-        val pathLastSlashIndex = path.lastIndexOf('/', path.length - 2)
-        if (pathLastSlashIndex > 0 && path.substring(pathLastSlashIndex + 1, path.length) == persistenceId) {
-          val persistentIdTemplate =
-            templatedPath.substring(templatedPath.lastIndexOf('/', templatedPath.length - 2) + 1, templatedPath.length)
 
-          monitor.bind(Labels(node, templatedPath, persistentIdTemplate))
-        } else {
-          monitor.bind(Labels(node, templatedPath, pathService.template(persistenceId)))
-        }
+        val templatedPath = pathService.template(path)
+
+        getLastSegment(path)
+          .filter(_ == persistenceId)
+          .fold(monitor.bind(Labels(node, templatedPath, pathService.template(persistenceId)))) { _ =>
+            val persistenceIdTemplate = getLastSegment(templatedPath).getOrElse(pathService.template(persistenceId))
+            monitor.bind(Labels(node, templatedPath, persistenceIdTemplate))
+          }
       }
 
       def running(
