@@ -35,7 +35,7 @@ class OpenTelemetryActorMetricsMonitor(instrumentationName: String, metricNames:
     .build()
 
   private val stashSizeCounter = meter
-    .longValueRecorderBuilder(metricNames.mailboxSize)
+    .longValueRecorderBuilder(metricNames.stashSize)
     .setDescription("Tracks the size of an Actor's stash")
     .build()
 
