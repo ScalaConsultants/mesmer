@@ -1,15 +1,20 @@
 package io.scalac.extension
 
 import scala.collection.immutable
-import scala.concurrent.duration._
 
+import akka.actor.typed.Behavior
+import akka.actor.typed.receptionist.Receptionist
+import akka.actor.typed.receptionist.Receptionist.Register
+import akka.actor.typed.scaladsl.{ ActorContext, Behaviors }
 import akka.actor.{ typed, ActorRef, ActorRefProvider, ActorSystem }
 
 import org.slf4j.LoggerFactory
 
 import io.scalac.extension.config.CachingConfig
-import io.scalac.extension.metric.{ ActorMetricMonitor, Asynchronized, CachingMonitor }
+import io.scalac.extension.event.ActorEvent
+import io.scalac.extension.event.ActorEvent.StashMeasurement
 import io.scalac.extension.metric.ActorMetricMonitor.Labels
+import io.scalac.extension.metric.{ ActorMetricMonitor, Asynchronized, CachingMonitor }
 import io.scalac.extension.model.Node
 
 class ActorEventsMonitor
@@ -35,13 +40,13 @@ object ActorEventsMonitor {
     }
 
     def report(actor: ActorRef): Unit = {
-      logger.trace(s"Reporting metrics of actor $actor")
+      // logger.trace(s"Reporting metrics of actor $actor")
       val bound = monitor.bind(Labels(actor.path.toStringWithoutAddress, node))
 
       // mailbox
       actorMetricsReader.mailboxSize(actor).foreach { mailboxSize =>
         bound.mailboxSize.setValue(mailboxSize)
-        logger.trace(s"Recorded mailbox size for actor $actor: $mailboxSize")
+      // logger.trace(s"Recorded mailbox size for actor $actor: $mailboxSize")
       }
 
       // ...
@@ -59,7 +64,7 @@ object ActorEventsMonitor {
   }
 
   object ReflectiveActorTreeRunner extends ActorTreeRunner {
-    import ReflectiveActorMonitorsUtils._
+    import Utils._
 
     private val getSystemProviderReflectively = {
       classOf[ActorSystem]
@@ -91,11 +96,10 @@ object ActorEventsMonitor {
 
   trait ActorMetricsReader {
     def mailboxSize(actor: ActorRef): Option[Int]
-    def stashSize(actor: ActorRef): Option[Int]
   }
 
   object ReflectiveActorMetricsReader extends ActorMetricsReader {
-    import ReflectiveActorMonitorsUtils._
+    import Utils._
 
     private val getNumberOfMessagesReflectively = cellClass.getDeclaredMethod("numberOfMessages")
 
@@ -105,19 +109,45 @@ object ActorEventsMonitor {
         Some(getNumberOfMessagesReflectively.invoke(cell).asInstanceOf[Int])
       } else None
 
-    def stashSize(actor: ActorRef): Option[Int] =
-      ???
-
   }
 
-  private object ReflectiveActorMonitorsUtils {
-    val actorRefWithCellClass       = Class.forName("akka.actor.ActorRefWithCell")
-    val cellClass                   = Class.forName("akka.actor.Cell")
-    val underlyingReflectively      = actorRefWithCellClass.getDeclaredMethod("underlying")
-    private val isLocalReflectively = cellClass.getDeclaredMethod("isLocal")
+  private object Utils {
+    private[ActorEventsMonitor] val actorRefWithCellClass  = Class.forName("akka.actor.ActorRefWithCell")
+    private[ActorEventsMonitor] val cellClass              = Class.forName("akka.actor.Cell")
+    private[ActorEventsMonitor] val underlyingReflectively = actorRefWithCellClass.getDeclaredMethod("underlying")
+    private val isLocalReflectively                        = cellClass.getDeclaredMethod("isLocal")
     def isLocalActorRefWithCell(actorRef: ActorRef): Boolean =
       actorRefWithCellClass.isInstance(actorRef) &&
         isLocalReflectively.invoke(underlyingReflectively.invoke(actorRef)).asInstanceOf[Boolean]
+  }
+
+  sealed trait Command
+  case class ActorEventWrapper(actorEvent: ActorEvent) extends Command
+  object Command {
+    def receiveMessage(f: ActorEvent => Behavior[Command]): Behavior[Command] = Behaviors.receiveMessage[Command] {
+      case ActorEventWrapper(actorEvent) => f(actorEvent)
+    }
+  }
+
+  object Actor {
+    def apply(monitor: ActorMetricMonitor, node: Option[Node]): Behavior[Command] =
+      Behaviors.setup[Command](ctx => new Actor(monitor, node, ctx).start())
+  }
+  class Actor(monitor: ActorMetricMonitor, node: Option[Node], ctx: ActorContext[Command]) {
+
+    import ctx.{ log, messageAdapter, system }
+
+    Receptionist(system).ref ! Register(
+      actorServiceKey,
+      messageAdapter(ActorEventWrapper.apply)
+    )
+
+    def start(): Behavior[Command] = Command.receiveMessage {
+      case StashMeasurement(size, path) =>
+        log.trace(s"Recorded stash size for actor $path: $size")
+        monitor.bind(Labels(path, node)).stashSize.setValue(size)
+        Behaviors.same
+    }
   }
 
 }

@@ -11,23 +11,13 @@ import io.scalac.extension.upstream.opentelemetry._
 
 object OpenTelemetryActorMetricsMonitor {
 
-  case class MetricNames(mailboxSize: String)
-  object MetricNames {
-    def default: MetricNames = MetricNames("mailbox_size")
-    def fromConfig(config: Config): MetricNames = {
-      import io.scalac.extension.config.ConfigurationUtils._
-      val defaultCached = default
-      config
-        .tryValue("io.scalac.akka-monitoring.metrics.actor-metrics")(
-          _.getConfig
-        )
-        .map { actorMetricsConfig =>
-          val mailboxSize =
-            actorMetricsConfig.tryValue("mailbox-size")(_.getString).getOrElse(defaultCached.mailboxSize)
-          MetricNames(mailboxSize)
-        }
-        .getOrElse(defaultCached)
-    }
+  case class MetricNames(mailboxSize: String, stashSize: String)
+  object MetricNames
+      extends MetricNamesCompanion[MetricNames](
+        "io.scalac.akka-monitoring.metrics.actor-metrics",
+        Seq("mailbox-size", "stash-size")
+      ) {
+    override protected def argsApply(args: Seq[String]): MetricNames = apply(args.head, args(1))
   }
 
   def apply(instrumentationName: String, config: Config): OpenTelemetryActorMetricsMonitor =
@@ -44,6 +34,11 @@ class OpenTelemetryActorMetricsMonitor(instrumentationName: String, metricNames:
     .setDescription("Tracks the size of an Actor's mailbox")
     .build()
 
+  private val stashSizeCounter = meter
+    .longValueRecorderBuilder(metricNames.mailboxSize)
+    .setDescription("Tracks the size of an Actor's stash")
+    .build()
+
   override def bind(labels: ActorMetricMonitor.Labels): OpenTelemetryBoundMonitor =
     new OpenTelemetryBoundMonitor(
       LabelsFactory.of("actorPath" -> labels.actorPath)("node" -> labels.node)
@@ -54,8 +49,13 @@ class OpenTelemetryActorMetricsMonitor(instrumentationName: String, metricNames:
     override val mailboxSize: MetricRecorder[Long] with WrappedSynchronousInstrument[Long] =
       WrappedLongValueRecorder(mailboxSizeCounter, labels)
 
-    override def unbind(): Unit =
+    override val stashSize: MetricRecorder[Long] with WrappedSynchronousInstrument[Long] =
+      WrappedLongValueRecorder(stashSizeCounter, labels)
+
+    override def unbind(): Unit = {
       mailboxSize.unbind()
+      stashSize.unbind()
+    }
 
   }
 

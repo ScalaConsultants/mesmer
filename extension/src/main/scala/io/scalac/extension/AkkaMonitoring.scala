@@ -175,6 +175,12 @@ class AkkaMonitoring(private val system: ActorSystem[_], val config: AkkaMonitor
     log.debug("Starting actor monitor")
     val monitor = OpenTelemetryActorMetricsMonitor(instrumentationName, actorSystemConfig)
     ActorEventsMonitor.start(monitor, system, clusterNodeName)
+    system.systemActorOf(
+      Behaviors
+        .supervise(ActorEventsMonitor.Actor(monitor, clusterNodeName))
+        .onFailure[Exception](SupervisorStrategy.restart),
+      "actorEventsMonitorActor"
+    )
   }
 
   def startSelfMemberMonitor(): Unit = startClusterMonitor(ClusterSelfNodeEventsActor)

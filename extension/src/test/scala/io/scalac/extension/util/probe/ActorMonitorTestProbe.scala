@@ -19,14 +19,21 @@ class ActorMonitorTestProbe(val pingOffset: FiniteDuration)(implicit val actorSy
   private val bindsMap = mutable.HashMap.empty[Labels, TestBoundMonitor]
 
   override def bind(labels: Labels): TestBoundMonitor = synchronized {
-    bindsMap.getOrElseUpdate(labels, new TestBoundMonitor(TestProbe()))
+    bindsMap.getOrElseUpdate(labels, new TestBoundMonitor(TestProbe(), TestProbe()))
   }
 
-  class TestBoundMonitor(val mailboxSizeProbe: TestProbe[MetricRecorderCommand])
-      extends BoundMonitor
+  class TestBoundMonitor(
+    val mailboxSizeProbe: TestProbe[MetricRecorderCommand],
+    val stashSizeProbe: TestProbe[MetricRecorderCommand]
+  ) extends BoundMonitor
       with TestProbeSynchronized {
+
     override val mailboxSize: MetricRecorder[Long] with AbstractTestProbeWrapper =
       RecorderTestProbeWrapper(mailboxSizeProbe)
+
+    override val stashSize: MetricRecorder[Long] with AbstractTestProbeWrapper =
+      RecorderTestProbeWrapper(stashSizeProbe)
+
     override def unbind(): Unit = ()
   }
 
