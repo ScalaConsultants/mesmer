@@ -3,22 +3,32 @@ package io.scalac.extension.config
 import com.typesafe.config.Config
 import io.scalac.extension.config
 
-case class ClusterMonitoringConfig(boot: BootSettings, autoStart: AutoStartSettings, backend: Option[BackendSettings])
+import scala.concurrent.duration._
+import scala.jdk.DurationConverters._
+
+case class AkkaMonitoringConfig(
+  boot: BootSettings,
+  autoStart: AutoStartSettings,
+  backend: Option[BackendSettings],
+  cleaning: CleaningSettings
+)
 
 case class BootSettings(metricsBackend: Boolean)
 
 case class AutoStartSettings(akkaHttp: Boolean, akkaPersistence: Boolean, akkaCluster: Boolean)
 
+// TODO Wouldn't be better to set the uri instead of region?
 case class BackendSettings(name: String, region: String, apiKey: String, serviceName: String)
 
-object ClusterMonitoringConfig {
+object AkkaMonitoringConfig {
 
   import config.ConfigurationUtils._
 
-  private val autoStartDefaults    = AutoStartSettings(false, false, false)
-  private val bootSettingsDefaults = BootSettings(false)
+  private val autoStartDefaults        = AutoStartSettings(akkaHttp = false, akkaCluster = false, akkaPersistence = false)
+  private val bootSettingsDefaults     = BootSettings(false)
+  private val cleaningSettingsDefaults = CleaningSettings(20.seconds, 5.second)
 
-  def apply(config: Config): ClusterMonitoringConfig =
+  def apply(config: Config): AkkaMonitoringConfig =
     config
       .tryValue("io.scalac.akka-monitoring")(_.getConfig)
       .map { monitoringConfig =>
@@ -51,12 +61,23 @@ object ClusterMonitoringConfig {
           }
           .toOption
 
-        ClusterMonitoringConfig(
+        val cleaningSettings = monitoringConfig
+          .tryValue("cleaning")(_.getConfig)
+          .flatMap { cleaningConfig =>
+            for {
+              max   <- cleaningConfig.tryValue("max-staleness")(_.getDuration)
+              every <- cleaningConfig.tryValue("every")(_.getDuration)
+            } yield CleaningSettings(max.toScala, every.toScala)
+          }
+          .getOrElse(cleaningSettingsDefaults)
+
+        AkkaMonitoringConfig(
           BootSettings(bootBackend),
           autoStartSettings,
-          backend
+          backend,
+          cleaningSettings
         )
       }
-      .getOrElse(ClusterMonitoringConfig(bootSettingsDefaults, autoStartDefaults, None))
+      .getOrElse(AkkaMonitoringConfig(bootSettingsDefaults, autoStartDefaults, None, cleaningSettingsDefaults))
 
 }

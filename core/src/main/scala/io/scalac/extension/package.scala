@@ -1,9 +1,9 @@
 package io.scalac
 
 import akka.actor.typed.receptionist.ServiceKey
-import io.scalac.extension.event.{ ClusterEvent, HttpEvent, PersistenceEvent }
+import io.scalac.extension.event.{ HttpEvent, PersistenceEvent }
 
-package object `extension` {
+package object extension {
 
   val persistenceServiceKey: ServiceKey[PersistenceEvent] =
     ServiceKey[PersistenceEvent](s"io.scalac.metric.persistence")
@@ -11,5 +11,4 @@ package object `extension` {
   val httpServiceKey: ServiceKey[HttpEvent] =
     ServiceKey[HttpEvent](s"io.scalac.metric.http")
 
-  val clusterServiceKey: ServiceKey[ClusterEvent] = ServiceKey[ClusterEvent]("io.scalac.metric.cluster")
 }

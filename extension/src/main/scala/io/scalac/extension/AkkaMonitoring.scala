@@ -1,12 +1,10 @@
 package io.scalac.extension
 
-import java.net.URI
-import java.util.Collections
-
 import akka.actor.ExtendedActorSystem
+import akka.actor.typed._
 import akka.actor.typed.scaladsl.Behaviors
-import akka.actor.typed.{ ActorSystem, Extension, ExtensionId, SupervisorStrategy }
-import akka.cluster.typed.{ ClusterSingleton, SingletonActor }
+import akka.cluster.Cluster
+import akka.util.Timeout
 import com.newrelic.telemetry.Attributes
 import com.newrelic.telemetry.opentelemetry.`export`.NewRelicMetricExporter
 import io.opentelemetry.sdk.OpenTelemetrySdk
@@ -15,21 +13,28 @@ import io.scalac.core.model.{ Module, SupportedVersion, Version }
 import io.scalac.core.support.ModulesSupport
 import io.scalac.core.util.ModuleInfo
 import io.scalac.core.util.ModuleInfo.Modules
-import io.scalac.extension.config.ClusterMonitoringConfig
-import io.scalac.extension.persistence.{ InMemoryPersistStorage, InMemoryRecoveryStorage }
+import io.scalac.extension.config.{ AkkaMonitoringConfig, CachingConfig }
+import io.scalac.extension.http.CleanableRequestStorage
+import io.scalac.extension.metric.CachingMonitor
+import io.scalac.extension.model._
+import io.scalac.extension.persistence.{ CleanablePersistingStorage, CleanableRecoveryStorage }
 import io.scalac.extension.service.CommonRegexPathService
 import io.scalac.extension.upstream.{
   OpenTelemetryClusterMetricsMonitor,
   OpenTelemetryHttpMetricsMonitor,
   OpenTelemetryPersistenceMetricMonitor
 }
-import org.slf4j.Logger
 
+import java.net.URI
+import java.util.Collections
+import scala.concurrent.duration._
+import scala.language.postfixOps
+import scala.reflect.ClassTag
 import scala.util.Try
 
 object AkkaMonitoring extends ExtensionId[AkkaMonitoring] {
   override def createExtension(system: ActorSystem[_]): AkkaMonitoring = {
-    val config  = ClusterMonitoringConfig.apply(system.settings.config)
+    val config  = AkkaMonitoringConfig.apply(system.settings.config)
     val monitor = new AkkaMonitoring(system, config)
 
     val modules: Modules = ModuleInfo.extractModulesInformation(system.dynamicAccess.classLoader)
@@ -45,7 +50,7 @@ object AkkaMonitoring extends ExtensionId[AkkaMonitoring] {
 
   private def startMonitors(
     monitoring: AkkaMonitoring,
-    config: ClusterMonitoringConfig,
+    config: AkkaMonitoringConfig,
     akkaVersion: Version,
     modules: Modules,
     modulesSupport: ModulesSupport
@@ -81,6 +86,7 @@ object AkkaMonitoring extends ExtensionId[AkkaMonitoring] {
       cm => {
         cm.startSelfMemberMonitor()
         cm.startClusterEventsMonitor()
+        cm.startClusterRegionsMonitor()
       }
     )
     initModule(
@@ -96,14 +102,14 @@ object AkkaMonitoring extends ExtensionId[AkkaMonitoring] {
       } { backendConfig =>
         if (backendConfig.name.toLowerCase() == "newrelic") {
           system.log.info(s"Starting NewRelic backend with config ${backendConfig}")
-          startNewRelicBackend(backendConfig.region, backendConfig.apiKey, backendConfig.serviceName)(system.log)
+          startNewRelicBackend(backendConfig.region, backendConfig.apiKey, backendConfig.serviceName)
         } else
           system.log.error(s"Backend ${backendConfig.name} not supported")
       }
     }
   }
 
-  private def startNewRelicBackend(region: String, apiKey: String, serviceName: String)(logger: Logger): Unit = {
+  private def startNewRelicBackend(region: String, apiKey: String, serviceName: String): Unit = {
     val newRelicExporterBuilder = NewRelicMetricExporter
       .newBuilder()
       .apiKey(apiKey)
@@ -111,12 +117,10 @@ object AkkaMonitoring extends ExtensionId[AkkaMonitoring] {
 
     val newRelicExporter =
       if (region == "eu") {
-        logger.error("Overriding NR uri")
         newRelicExporterBuilder
           .uriOverride(URI.create("https://metric-api.eu.newrelic.com/metric/v1"))
           .build()
       } else {
-        logger.error(s"Going with default uri -> region: ${region}")
         newRelicExporterBuilder.build()
       }
 
@@ -129,23 +133,19 @@ object AkkaMonitoring extends ExtensionId[AkkaMonitoring] {
       .setMetricExporter(newRelicExporter)
       .build()
   }
-
 }
 
-class AkkaMonitoring(private val system: ActorSystem[_], val config: ClusterMonitoringConfig) extends Extension {
+class AkkaMonitoring(private val system: ActorSystem[_], val config: AkkaMonitoringConfig) extends Extension {
+  import system.log
 
   private val instrumentationName = "scalac_akka_metrics"
   private val actorSystemConfig   = system.settings.config
-  import system.log
-  private lazy val openTelemetryClusterMetricsMonitor =
-    OpenTelemetryClusterMetricsMonitor(
-      instrumentationName,
-      actorSystemConfig
-    )
+  private lazy val openTelemetryClusterMetricsMonitor = OpenTelemetryClusterMetricsMonitor(
+    instrumentationName,
+    actorSystemConfig
+  )
 
-  private val extendedActorSystem: Option[ExtendedActorSystem] = Option(system.classicSystem)
-    .filter(_.isInstanceOf[ExtendedActorSystem])
-    .map(_.asInstanceOf[ExtendedActorSystem])
+  implicit private val timeout: Timeout = 5 seconds
 
   private def reflectiveIsInstanceOf(fqcn: String, ref: Any): Either[String, Unit] =
     Try(Class.forName(fqcn)).toEither.left.map {
@@ -153,71 +153,66 @@ class AkkaMonitoring(private val system: ActorSystem[_], val config: ClusterMoni
       case e                         => e.getMessage
     }.filterOrElse(_.isInstance(ref), s"Ref ${ref} is not instance of ${fqcn}").map(_ => ())
 
-  private lazy val canStartCluster: Option[ExtendedActorSystem] = {
+  private lazy val clusterNodeName: Option[Node] = {
     (for {
       _       <- reflectiveIsInstanceOf("akka.actor.typed.internal.adapter.ActorSystemAdapter", system)
       classic = system.classicSystem.asInstanceOf[ExtendedActorSystem]
       _       <- reflectiveIsInstanceOf("akka.cluster.ClusterActorRefProvider", classic.provider)
-    } yield classic).fold(message => {
+    } yield Cluster(classic).selfUniqueAddress.toNode).fold(message => {
       log.error(message)
       None
     }, Some.apply)
   }
 
-  def startSelfMemberMonitor(): Unit =
-    canStartCluster.fold {
-      log.error("ActorSystem is not properly configured to start cluster monitoring")
-    } { _ =>
-      log.debug("Starting member monitor")
+  def startSelfMemberMonitor(): Unit = startClusterMonitor(ClusterSelfNodeEventsActor)
 
+  def startClusterEventsMonitor(): Unit = startClusterMonitor(ClusterEventsMonitor)
+
+  def startClusterRegionsMonitor(): Unit = startClusterMonitor(ClusterRegionsMonitorActor)
+
+  private def startClusterMonitor[T <: ClusterMonitorActor: ClassTag](
+    actor: T
+  ): Unit = {
+    val name = implicitly[ClassTag[T]].runtimeClass.getSimpleName
+    clusterNodeName.fold {
+      log.error(s"ActorSystem is not properly configured to start cluster monitor of type $name")
+    } { _ =>
+      log.debug(s"Starting cluster monitor of type $name")
       system.systemActorOf(
         Behaviors
-          .supervise(
-            OnClusterStartUp(
-              selfMember =>
-                ClusterSelfNodeEventsActor
-                  .apply(
-                    openTelemetryClusterMetricsMonitor,
-                    selfMember
-                  ),
-              None
-            )
-          )
+          .supervise(actor(openTelemetryClusterMetricsMonitor))
           .onFailure[Exception](SupervisorStrategy.restart),
-        "localSystemMemberMonitor"
+        name
       )
     }
-
-  def startClusterEventsMonitor(): Unit =
-    canStartCluster.fold {
-      log.error("ActorSystem is not properly configured to start cluster monitoring")
-    } { _ =>
-      log.debug("Starting reachability monitor")
-      ClusterSingleton(system)
-        .init(
-          SingletonActor(
-            Behaviors
-              .supervise(OnClusterStartUp(_ => ClusterEventsMonitor(openTelemetryClusterMetricsMonitor), None))
-              .onFailure[Exception](SupervisorStrategy.restart),
-            "MemberMonitoringActor"
-          )
-        )
-    }
+  }
 
   def startPersistenceMonitoring(): Unit = {
     log.debug("Starting PersistenceEventsListener")
 
-    val openTelemetryPersistenceMonitor = OpenTelemetryPersistenceMetricMonitor(instrumentationName, actorSystemConfig)
+    val openTelemetryPersistenceMonitor = CachingMonitor(
+      OpenTelemetryPersistenceMetricMonitor(instrumentationName, actorSystemConfig),
+      CachingConfig.fromConfig(actorSystemConfig, "persistence")
+    )
 
     system.systemActorOf(
       Behaviors
         .supervise(
-          PersistenceEventsActor.apply(
-            CommonRegexPathService,
-            InMemoryRecoveryStorage.empty,
-            InMemoryPersistStorage.empty,
-            openTelemetryPersistenceMonitor
-          )
+          WithSelfCleaningState
+            .clean(CleanableRecoveryStorage.withConfig(config.cleaning))
+            .every(config.cleaning.every)(rs =>
+              WithSelfCleaningState
+                .clean(CleanablePersistingStorage.withConfig(config.cleaning))
+                .every(config.cleaning.every) { ps =>
+                  PersistenceEventsActor.apply(
+                    openTelemetryPersistenceMonitor,
+                    rs,
+                    ps,
+                    CommonRegexPathService,
+                    clusterNodeName
+                  )
+                }
+            )
         )
         .onFailure[Exception](SupervisorStrategy.restart),
       "persistenceAgentMonitor"
@@ -227,14 +222,24 @@ class AkkaMonitoring(private val system: ActorSystem[_], val config: ClusterMoni
   def startHttpEventListener(): Unit = {
     log.info("Starting local http event listener")
 
-    val openTelemetryHttpMonitor = OpenTelemetryHttpMetricsMonitor(instrumentationName, actorSystemConfig)
-    val pathService              = CommonRegexPathService
+    val openTelemetryHttpMonitor = CachingMonitor(
+      OpenTelemetryHttpMetricsMonitor(instrumentationName, actorSystemConfig),
+      CachingConfig.fromConfig(actorSystemConfig, "http")
+    )
+    val pathService = CommonRegexPathService
 
     system.systemActorOf(
       Behaviors
-        .supervise(HttpEventsActor.apply(openTelemetryHttpMonitor, pathService))
+        .supervise(
+          WithSelfCleaningState
+            .clean(CleanableRequestStorage.withConfig(config.cleaning))
+            .every(config.cleaning.every)(rs =>
+              HttpEventsActor.apply(openTelemetryHttpMonitor, rs, pathService, clusterNodeName)
+            )
+        )
         .onFailure[Exception](SupervisorStrategy.restart),
       "httpEventMonitor"
     )
   }
+
 }

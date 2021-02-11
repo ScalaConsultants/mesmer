@@ -8,7 +8,7 @@ import io.scalac.extension.ClusterEventsMonitor.Command.MemberEventWrapper
 import io.scalac.extension.metric.ClusterMetricsMonitor
 import io.scalac.extension.model._
 
-object ClusterEventsMonitor {
+object ClusterEventsMonitor extends ClusterMonitorActor {
 
   sealed trait Command
 
@@ -16,30 +16,30 @@ object ClusterEventsMonitor {
     private[ClusterEventsMonitor] final case class MemberEventWrapper(event: MemberEvent) extends Command
   }
 
-  def apply(
-    clusterMonitor: ClusterMetricsMonitor
-  ): Behavior[Command] =
-    Behaviors.setup { context =>
-      val reachabilityAdapter = context.messageAdapter[MemberEvent](MemberEventWrapper.apply)
+  def apply(clusterMonitor: ClusterMetricsMonitor): Behavior[Command] =
+    OnClusterStartUp { selfMember =>
+      Behaviors.setup { context =>
+        val reachabilityAdapter = context.messageAdapter[MemberEvent](MemberEventWrapper.apply)
 
-      Cluster(context.system).subscriptions ! Subscribe(
-        reachabilityAdapter,
-        classOf[MemberEvent]
-      )
+        Cluster(context.system).subscriptions ! Subscribe(
+          reachabilityAdapter,
+          classOf[MemberEvent]
+        )
 
-      val selfNode = Cluster(context.system).selfMember.uniqueAddress.toNode
+        val selfNode = selfMember.uniqueAddress.toNode
 
-      val boundMonitor = clusterMonitor.bind(selfNode)
+        val boundMonitor = clusterMonitor.bind(selfNode)
 
-      boundMonitor.nodeDown.incValue(0L)
+        boundMonitor.nodeDown.incValue(0L)
 
-      Behaviors.receiveMessage {
-        case MemberEventWrapper(event) => {
-          event match {
-            case MemberDowned(_) => boundMonitor.nodeDown.incValue(1L)
-            case _               =>
+        Behaviors.receiveMessage {
+          case MemberEventWrapper(event) => {
+            event match {
+              case MemberDowned(_) => boundMonitor.nodeDown.incValue(1L)
+              case _               =>
+            }
+            Behaviors.same
           }
-          Behaviors.same
         }
       }
     }

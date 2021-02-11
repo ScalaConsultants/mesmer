@@ -1,8 +1,8 @@
 package io.scalac.agent.akka.http
 
 import io.scalac.agent.Agent.LoadingResult
-import io.scalac.agent.{Agent, AgentInstrumentation}
-import io.scalac.core.model.{Module, SupportedModules, SupportedVersion, Version}
+import io.scalac.agent.{ Agent, AgentInstrumentation }
+import io.scalac.core.model.{ Module, SupportedModules, SupportedVersion, Version }
 import net.bytebuddy.description.`type`.TypeDescription
 import net.bytebuddy.description.method.MethodDescription
 import net.bytebuddy.implementation.MethodDelegation
@@ -13,9 +13,9 @@ import org.slf4j.LoggerFactory
 object AkkaHttpAgent {
 
   // @ToDo tests all supported versions
-  private val defaultVersion    = "10.2.0"
-  private val supportedVersions = Seq(defaultVersion, "10.1.8").flatMap(Version.apply)
-  private val moduleName        = Module("akka-http")
+  private[http] val defaultVersion    = Version(10, 2, 0)
+  private[http] val supportedVersions = Seq(defaultVersion, Version(10, 1, 8))
+  private[http] val moduleName        = Module("akka-http")
 
   private[http] val logger = LoggerFactory.getLogger(AkkaHttpAgent.getClass)
 
@@ -52,7 +52,7 @@ object AkkaHttpAgent {
           "akka.http.scaladsl.HttpExt"
         )
       )
-      .transform { (builder, typeDescription, classLoader, _) =>
+      .transform { (builder, _, _, _) =>
         builder
           .method(
             (named[MethodDescription]("bindAndHandle")

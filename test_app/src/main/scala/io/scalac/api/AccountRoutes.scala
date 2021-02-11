@@ -3,18 +3,15 @@ package io.scalac.api
 import akka.actor.typed.scaladsl.AskPattern._
 import akka.actor.typed.{ ActorRef, ActorSystem }
 import akka.cluster.sharding.typed.ShardingEnvelope
-import akka.http.scaladsl.model.{ StatusCode, StatusCodes }
+import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server._
 import akka.util.Timeout
-
 import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport
-
 import io.scalac.domain.{ AccountStateActor, JsonCodecs, _ }
+
 import scala.language.postfixOps
 import scala.util.{ Failure, Success, Try }
-
-import akka.http.scaladsl.marshalling.ToEntityMarshaller
 
 class AccountRoutes(
   shardedRef: ActorRef[ShardingEnvelope[AccountStateActor.Command]]
@@ -32,10 +29,6 @@ class AccountRoutes(
           complete(StatusCodes.InternalServerError)
         }
       }
-  }
-
-  val testRoute: Route = path("api") {
-    complete("Hi")
   }
 
   val routes: Route = Route.seal(

@@ -3,21 +3,22 @@ package io.scalac.agent.akka.http
 import java.lang.reflect.Method
 import java.util.UUID
 
-import _root_.akka.http.scaladsl.model.{ HttpRequest, HttpResponse }
-import _root_.akka.http.scaladsl.server.{ ExceptionHandler, RejectionHandler, Route, RoutingLog }
-import _root_.akka.http.scaladsl.settings.{ ParserSettings, RoutingSettings, ServerSettings }
-import _root_.akka.stream.{ FlowShape, Materializer, SystemMaterializer }
+import _root_.akka.http.scaladsl.model.{HttpRequest, HttpResponse}
+import _root_.akka.http.scaladsl.server.{ExceptionHandler, RejectionHandler, Route, RoutingLog}
+import _root_.akka.http.scaladsl.settings.{ParserSettings, RoutingSettings, ServerSettings}
+import _root_.akka.stream.{FlowShape, Materializer, SystemMaterializer}
 import akka.actor.typed.scaladsl.adapter._
 import akka.event.LoggingAdapter
 import akka.http.scaladsl.Http.ServerBinding
-import akka.http.scaladsl.{ ConnectionContext, HttpExt }
-import akka.stream.scaladsl.{ Broadcast, Flow, GraphDSL, Source, Zip }
+import akka.http.scaladsl.{ConnectionContext, HttpExt}
+import akka.stream.scaladsl.{Broadcast, Flow, GraphDSL, Source, Zip}
 import io.scalac.agent.util.FunctionOps._
+import io.scalac.core.util.Timestamp
 import io.scalac.extension.event.EventBus
 import io.scalac.extension.event.HttpEvent._
 import net.bytebuddy.implementation.bind.annotation._
 
-import scala.concurrent.{ ExecutionContextExecutor, Future }
+import scala.concurrent.{ExecutionContextExecutor, Future}
 
 class RouteInstrumentation
 object RouteInstrumentation {
@@ -91,11 +92,13 @@ object HttpInstrumentation {
       outerRequest ~> zipRequest.in0
       idBroadcast ~> zipRequest.in1
 
+      System.nanoTime()
+
       zipRequest.out.map {
         case (request, id) => {
           val path   = request.uri.path.toString()
           val method = request.method.value
-          EventBus(system.toTyped).publishEvent(RequestStarted(id, System.currentTimeMillis(), path, method))
+          EventBus(system.toTyped).publishEvent(RequestStarted(id, Timestamp.create(), path, method))
           request
         }
       } ~> flow
@@ -105,7 +108,7 @@ object HttpInstrumentation {
 
       zipRespone.out.map {
         case (response, id) => {
-          EventBus(system.toTyped).publishEvent(RequestCompleted(id, System.currentTimeMillis()))
+          EventBus(system.toTyped).publishEvent(RequestCompleted(id, Timestamp.create()))
           response
         }
       } ~> outerResponse.in

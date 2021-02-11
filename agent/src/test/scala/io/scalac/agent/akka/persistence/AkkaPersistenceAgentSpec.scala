@@ -2,15 +2,16 @@ package io.scalac.agent.akka.persistence
 
 import java.util.UUID
 
-import _root_.akka.actor.testkit.typed.scaladsl.ScalaTestWithActorTestKit
+import _root_.akka.actor.testkit.typed.scaladsl.{ ScalaTestWithActorTestKit, TestProbe }
 import _root_.akka.actor.typed.receptionist.Receptionist
-import _root_.akka.actor.typed.receptionist.Receptionist.Register
+import _root_.akka.actor.typed.receptionist.Receptionist.{ Deregister, Register }
 import _root_.akka.util.Timeout
-import io.scalac.`extension`.persistenceServiceKey
+import io.scalac.extension.persistenceServiceKey
 import io.scalac.agent.utils.DummyEventSourcedActor
-import io.scalac.agent.utils.DummyEventSourcedActor.Command
+import io.scalac.agent.utils.DummyEventSourcedActor.{ DoNothing, Persist }
 import io.scalac.extension.event.PersistenceEvent
-import io.scalac.extension.event.PersistenceEvent.{ RecoveryFinished, RecoveryStarted }
+import io.scalac.extension.event.PersistenceEvent._
+import io.scalac.extension.util.ReceptionistOps
 import net.bytebuddy.agent.ByteBuddyAgent
 import net.bytebuddy.agent.builder.AgentBuilder
 import org.scalatest.concurrent.ScalaFutures
@@ -26,24 +27,71 @@ class AkkaPersistenceAgentSpec
     with Matchers
     with BeforeAndAfterAll
     with ScalaFutures
-    with OptionValues {
+    with OptionValues
+    with ReceptionistOps {
 
   implicit val askTimeout = Timeout(1.minute)
   override implicit val patienceConfig: PatienceConfig =
     PatienceConfig(scaled(Span(1, Minute)), scaled(Span(1, Second)))
 
-  "AkkaPersistenceAgent" should "intercept recovery time and store it in the agent state" in {
+  type Fixture = TestProbe[PersistenceEvent]
 
-    val id      = UUID.randomUUID()
+  def test(body: Fixture => Any): Any = {
     val monitor = createTestProbe[PersistenceEvent]
+    Receptionist(system).ref ! Register(persistenceServiceKey, monitor.ref)
+    onlyRef(monitor.ref, persistenceServiceKey)
+    body(monitor)
+    Receptionist(system).ref ! Deregister(persistenceServiceKey, monitor.ref)
+  }
+
+  "AkkaPersistenceAgent" should "generate only recovery events" in test { monitor =>
+    val id = UUID.randomUUID()
     Receptionist(system).ref ! Register(persistenceServiceKey, monitor.ref)
 
     val actor = system.systemActorOf(DummyEventSourcedActor(id), id.toString)
 
-    actor ! Command
+    actor ! DoNothing
 
     monitor.expectMessageType[RecoveryStarted]
     monitor.expectMessageType[RecoveryFinished]
+    monitor.expectNoMessage()
+  }
+
+  it should "generate recovery, persisting and snapshot events for single persist event" in test { monitor =>
+    val id = UUID.randomUUID()
+    Receptionist(system).ref ! Register(persistenceServiceKey, monitor.ref)
+
+    val actor = system.systemActorOf(DummyEventSourcedActor(id), id.toString)
+
+    actor ! Persist
+
+    monitor.expectMessageType[RecoveryStarted]
+    monitor.expectMessageType[RecoveryFinished]
+    monitor.expectMessageType[PersistingEventStarted]
+    monitor.expectMessageType[PersistingEventFinished]
+    monitor.expectMessageType[SnapshotCreated]
+  }
+
+  it should "generate recovery, persisting and snapshot events for multiple persist events" in test { monitor =>
+    val id = UUID.randomUUID()
+    Receptionist(system).ref ! Register(persistenceServiceKey, monitor.ref)
+    val persistEvents = List.fill(5)(Persist)
+
+    val actor = system.systemActorOf(DummyEventSourcedActor(id, 2), id.toString)
+
+    persistEvents.foreach(actor.tell)
+
+    monitor.expectMessageType[RecoveryStarted]
+    monitor.expectMessageType[RecoveryFinished]
+    for {
+      seqNo <- persistEvents.indices
+    } {
+      monitor.expectMessageType[PersistingEventStarted]
+      monitor.expectMessageType[PersistingEventFinished]
+      if (seqNo % 2 == 1) {
+        monitor.expectMessageType[SnapshotCreated]
+      }
+    }
   }
 
   override protected def beforeAll(): Unit = {
