@@ -92,7 +92,7 @@ object Dependencies {
   val reflection: String => Seq[ModuleID] = version => Seq("org.scala-lang" % "scala-reflect" % version)
 
   val prometheus = Seq(
-    "io.opentelemetry" % "opentelemetry-exporters-prometheus" % "0.9.1",
-    "fr.davit"         %% "akka-http-metrics-prometheus"      % "1.1.1"
+    "io.opentelemetry" % "opentelemetry-exporter-prometheus" % "0.13.1",
+    "fr.davit"         %% "akka-http-metrics-prometheus"     % "1.1.1"
   )
 }

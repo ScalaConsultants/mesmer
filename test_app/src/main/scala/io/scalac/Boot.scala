@@ -8,13 +8,12 @@ import akka.http.scaladsl.server.Directives.{ get, path, _ }
 import akka.http.scaladsl.server.Route
 import akka.management.scaladsl.AkkaManagement
 import akka.util.Timeout
-import com.newrelic.telemetry.opentelemetry.`export`.NewRelicExporters
 import com.typesafe.config.{ ConfigFactory, ConfigValueFactory }
 import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport
 import fr.davit.akka.http.metrics.core.scaladsl.server.HttpMetricsDirectives.metrics
 import fr.davit.akka.http.metrics.prometheus.marshalling.PrometheusMarshallers.{ marshaller => prommarsh }
 import fr.davit.akka.http.metrics.prometheus.{ PrometheusRegistry, PrometheusSettings }
-import io.opentelemetry.exporters.prometheus.PrometheusCollector
+import io.opentelemetry.exporter.prometheus.PrometheusCollector
 import io.opentelemetry.sdk.OpenTelemetrySdk
 import io.prometheus.client.{ Collector, CollectorRegistry }
 import io.scalac.api.AccountRoutes
@@ -47,7 +46,7 @@ object Boot extends App with FailFastCirceSupport with JsonCodecs {
     .resolve
 
   val collector: Collector = PrometheusCollector
-    .newBuilder()
+    .builder()
     .setMetricProducer(OpenTelemetrySdk.getGlobalMeterProvider.getMetricProducer)
     .build()
 
@@ -95,9 +94,6 @@ object Boot extends App with FailFastCirceSupport with JsonCodecs {
   sys.addShutdownHook {
     binding
       .flatMap(_.unbind())
-      .onComplete { _ =>
-        system.terminate()
-        NewRelicExporters.shutdown()
-      }
+      .onComplete(_ => system.terminate())
   }
 }
