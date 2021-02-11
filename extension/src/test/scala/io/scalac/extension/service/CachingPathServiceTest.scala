@@ -1,5 +1,6 @@
 package io.scalac.extension.service
 
+import io.scalac.extension.config.CachingConfig
 import io.scalac.extension.util.TestOps
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
@@ -8,7 +9,7 @@ class CachingPathServiceTest extends AnyFlatSpec with Matchers with PathServiceT
 
   private val cacheMax = 10
 
-  override def pathService: CachingPathService = new CachingPathService(cacheMax)
+  override def pathService: CachingPathService = new CachingPathService(CachingConfig(10))
 
   override lazy val testName: String = "CachingPathService"
 
