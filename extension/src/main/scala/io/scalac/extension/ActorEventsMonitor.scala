@@ -40,13 +40,12 @@ object ActorEventsMonitor {
     }
 
     def report(actor: ActorRef): Unit = {
-      // logger.trace(s"Reporting metrics of actor $actor")
       val bound = monitor.bind(Labels(actor.path.toStringWithoutAddress, node))
 
       // mailbox
       actorMetricsReader.mailboxSize(actor).foreach { mailboxSize =>
         bound.mailboxSize.setValue(mailboxSize)
-      // logger.trace(s"Recorded mailbox size for actor $actor: $mailboxSize")
+        logger.trace(s"Recorded mailbox size for actor $actor: $mailboxSize")
       }
 
       // ...
