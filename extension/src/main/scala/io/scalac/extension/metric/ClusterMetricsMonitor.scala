@@ -3,17 +3,17 @@ package io.scalac.extension.metric
 import io.scalac.extension.model.Node
 
 object ClusterMetricsMonitor {
-  trait BoundMonitor {
-    def shardPerRegions: MetricRecorder[Long]
-    def entityPerRegion: MetricRecorder[Long]
-    def shardRegionsOnNode: MetricRecorder[Long]
-    def reachableNodes: Counter[Long]
-    def unreachableNodes: Counter[Long]
-    def nodeDown: UpCounter[Long]
-  }
-}
 
-trait ClusterMetricsMonitor extends Bindable[Node] {
-  import ClusterMetricsMonitor._
-  override type Bound = BoundMonitor
+  type Labels = Node
+
+  trait BoundMonitor extends Synchronized with Bound {
+    def shardPerRegions(region: String): MetricObserver[Long]
+    def entityPerRegion(region: String): MetricObserver[Long]
+    def shardRegionsOnNode: MetricObserver[Long]
+    def entitiesOnNode: MetricObserver[Long]
+    def reachableNodes: Counter[Long] with Instrument[Long]
+    def unreachableNodes: Counter[Long] with Instrument[Long]
+    def nodeDown: UpCounter[Long] with Instrument[Long]
+  }
+
 }

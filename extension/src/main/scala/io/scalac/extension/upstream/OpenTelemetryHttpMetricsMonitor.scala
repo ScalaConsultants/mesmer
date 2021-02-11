@@ -1,9 +1,10 @@
 package io.scalac.extension.upstream
 
 import com.typesafe.config.Config
-import io.opentelemetry.OpenTelemetry
-import io.scalac.extension.metric.Metric._
-import io.scalac.extension.metric.{ HttpMetricMonitor, MetricRecorder, UpCounter }
+import io.opentelemetry.api.OpenTelemetry
+
+import io.scalac.extension.metric.HttpMetricMonitor
+import io.scalac.extension.upstream.opentelemetry._
 
 object OpenTelemetryHttpMetricsMonitor {
   case class MetricNames(
@@ -23,7 +24,7 @@ object OpenTelemetryHttpMetricsMonitor {
       val defaultCached = default
 
       config
-        .tryValue("io.scalac.akka-cluster-monitoring.http-metrics")(
+        .tryValue("io.scalac.akka-monitoring.metrics.http-metrics")(
           _.getConfig
         )
         .map { clusterMetricsConfig =>
@@ -48,25 +49,34 @@ class OpenTelemetryHttpMetricsMonitor(
   instrumentationName: String,
   metricNames: OpenTelemetryHttpMetricsMonitor.MetricNames
 ) extends HttpMetricMonitor {
-  import HttpMetricMonitor.{ BoundMonitor, _ }
 
-  private val requestTimeRequest = OpenTelemetry
-    .getMeter(instrumentationName)
+  import HttpMetricMonitor._
+
+  private val meter = OpenTelemetry
+    .getGlobalMeter(instrumentationName)
+
+  private val requestTimeRequest = meter
     .longValueRecorderBuilder(metricNames.requestDuration)
     .setDescription("Amount of ms request took to complete")
     .build()
 
-  private val requestUpDownCounter = OpenTelemetry
-    .getMeter(instrumentationName)
+  private val requestTotalCounter = meter
     .longCounterBuilder(metricNames.requestTotal)
     .setDescription("Amount of requests")
     .build()
 
-  override def bind(labels: Labels): HttpMetricMonitor.BoundMonitor = new BoundMonitor {
-    override val requestTime: MetricRecorder[Long] =
-      requestTimeRequest.bind(labels.toOpenTelemetry).toMetricRecorder()
+  def bind(labels: Labels): BoundMonitor = new HttpMetricsBoundMonitor(labels)
 
-    override val requestCounter: UpCounter[Long] =
-      requestUpDownCounter.bind(labels.toOpenTelemetry).toUpCounter()
+  class HttpMetricsBoundMonitor(labels: Labels) extends BoundMonitor with opentelemetry.Synchronized {
+    private val openTelemetryLabels = labels.toOpenTelemetry
+
+    override val requestTime = WrappedLongValueRecorder(requestTimeRequest, openTelemetryLabels)
+
+    override val requestCounter = WrappedCounter(requestTotalCounter, openTelemetryLabels)
+
+    override def unbind(): Unit = {
+      requestTime.unbind()
+      requestCounter.unbind()
+    }
   }
 }

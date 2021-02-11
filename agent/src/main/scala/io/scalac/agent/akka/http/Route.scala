@@ -13,6 +13,7 @@ import akka.http.scaladsl.Http.ServerBinding
 import akka.http.scaladsl.{ConnectionContext, HttpExt}
 import akka.stream.scaladsl.{Broadcast, Flow, GraphDSL, Source, Zip}
 import io.scalac.agent.util.FunctionOps._
+import io.scalac.core.util.Timestamp
 import io.scalac.extension.event.EventBus
 import io.scalac.extension.event.HttpEvent._
 import net.bytebuddy.implementation.bind.annotation._
@@ -74,14 +75,15 @@ object HttpInstrumentation {
 
     val newHandler = Flow.fromGraph[HttpRequest, HttpResponse, Any](GraphDSL.create() { implicit builder =>
       import GraphDSL.Implicits._
-      val outerRequest = builder.add(Flow[HttpRequest])
+      val outerRequest  = builder.add(Flow[HttpRequest])
       val outerResponse = builder.add(Flow[HttpResponse])
-      val flow = builder.add(handler)
-      val idGenerator = Source.repeat(())
+      val flow          = builder.add(handler)
+      val idGenerator = Source
+        .repeat(())
         .map(_ => UUID.randomUUID().toString)
 
       val zipRequest = builder.add(Zip[HttpRequest, String])
-      val zipRespone= builder.add(Zip[HttpResponse, String])
+      val zipRespone = builder.add(Zip[HttpResponse, String])
 
       val idBroadcast = builder.add(Broadcast[String](2))
 
@@ -90,26 +92,30 @@ object HttpInstrumentation {
       outerRequest ~> zipRequest.in0
       idBroadcast ~> zipRequest.in1
 
+      System.nanoTime()
+
       zipRequest.out.map {
         case (request, id) => {
-          EventBus(system.toTyped).publishEvent(RequestStarted(id, System.currentTimeMillis(), "", ""))
+          val path   = request.uri.path.toString()
+          val method = request.method.value
+          EventBus(system.toTyped).publishEvent(RequestStarted(id, Timestamp.create(), path, method))
           request
-        }} ~> flow
+        }
+      } ~> flow
 
       flow ~> zipRespone.in0
       idBroadcast ~> zipRespone.in1
 
       zipRespone.out.map {
         case (response, id) => {
-          EventBus(system.toTyped).publishEvent(RequestCompleted(id, System.currentTimeMillis()))
+          EventBus(system.toTyped).publishEvent(RequestCompleted(id, Timestamp.create()))
           response
         }
       } ~> outerResponse.in
 
-    FlowShape(outerRequest.in, outerResponse.out)
+      FlowShape(outerRequest.in, outerResponse.out)
 
-      })
-    println("DOING HTTP BINDING")
+    })
 
     method
       .invoke(

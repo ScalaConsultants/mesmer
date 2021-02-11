@@ -1,12 +1,12 @@
 package io.scalac.extension.metric
 
-trait Bindable[L] {
-
-  type Bound
-
-  def bind(lables: L): Bound
+trait Unbind {
+  def unbind(): Unit
 }
 
-object Bindable {
-  type Aux[L, B0] = Bindable[L] { type Bound = B0 }
+trait Bound extends Unbind
+
+trait Bindable[-L, +B <: Bound] extends (L => B) {
+  final def apply(labels: L): B = bind(labels)
+  def bind(labels: L): B
 }

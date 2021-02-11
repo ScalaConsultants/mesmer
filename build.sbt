@@ -1,17 +1,22 @@
 import Dependencies._
 import sbt.Package.{ MainClass, ManifestAttributes }
 
-ThisBuild / scalaVersion := "2.12.10"
+ThisBuild / scalaVersion := "2.13.4"
 ThisBuild / version := "0.1.0-SNAPSHOT"
 ThisBuild / organization := "io.scalac"
 ThisBuild / organizationName := "scalac"
+
+ThisBuild / dependencyOverrides ++= openTelemetryDependenciesOverrides
 
 def runWithAgent = Command.command("runWithAgent") { state =>
   val extracted = Project extract state
   val newState =
     extracted.appendWithSession(
       Seq(
-        run / javaOptions += s"-javaagent:${(agent / assembly).value.absolutePath}"
+        run / javaOptions ++= Seq(
+          s"-javaagent:${(agent / assembly).value.absolutePath}",
+          "-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=9999"
+        )
       ),
       state
     )
@@ -20,22 +25,27 @@ def runWithAgent = Command.command("runWithAgent") { state =>
   s
 }
 lazy val root = (project in file("."))
+//  .enablePlugins(MultiJvmPlugin)
   .settings(name := "akka-monitoring")
-  .aggregate(extension, agent, testApp)
+  .aggregate(extension, agent, testApp, core)
 
 lazy val core = (project in file("core"))
   .settings(
     name := "core",
-    libraryDependencies ++= akka ++ openTelemetryApi
+    libraryDependencies ++= akka ++ openTelemetryApi ++ scalatest ++ akkaTestkit
   )
 
 lazy val extension = (project in file("extension"))
-  .configs()
+  .enablePlugins(MultiJvmPlugin)
+  .configs(MultiJvm)
   .settings(
+    parallelExecution in Test := true,
     name := "akka-monitoring-extension",
-    libraryDependencies ++= akka ++ openTelemetryApi
+    libraryDependencies ++= akka ++ openTelemetryApi ++ akkaTestkit ++ scalatest ++ logback
+      .map(_ % Test) ++ akkaMultiNodeTestKit
+      ++ newRelicSdk ++ openTelemetrySdk
   )
-  .dependsOn(core)
+  .dependsOn(core % "compile->compile;test->test")
 
 val assemblyMergeStrategySettings = assembly / assemblyMergeStrategy := {
   case PathList("META-INF", "services", _ @_*)           => MergeStrategy.concat
@@ -59,7 +69,9 @@ val assemblyMergeStrategySettings = assembly / assemblyMergeStrategy := {
 lazy val agent = (project in file("agent"))
   .settings(
     name := "akka-monitoring-agent",
-    libraryDependencies ++= akka ++ byteBuddy ++ scalatest,
+    libraryDependencies ++= akka.map(_ % "provided") ++ byteBuddy ++ scalatest ++ akkaTestkit ++ slf4jApi ++ reflection(
+      scalaVersion.value
+    ),
     Compile / mainClass := Some("io.scalac.agent.Boot"),
     Compile / packageBin / packageOptions := {
       (Compile / packageBin / packageOptions).value.map {
@@ -70,21 +82,23 @@ lazy val agent = (project in file("agent"))
     },
     assembly / test := {},
     assembly / assemblyJarName := "scalac_agent.jar",
+    assembly / assemblyOption ~= { _.copy(includeScala = false) },
     assemblyMergeStrategySettings,
     Test / fork := true
   )
-  .dependsOn(core)
+  .dependsOn(
+    core % "provided->compile;test->test"
+  )
 
 lazy val testApp = (project in file("test_app"))
   .settings(
     name := "akka-monitoring-test-app",
-    libraryDependencies ++= akka ++ zio ++ circe ++ circeAkka ++ postgresDriver ++ akkaPersistance ++ slick ++ logback ++ newRelicSdk ++ akkaManagement ++ prometheus,
+    libraryDependencies ++= akka ++ scalatest ++ akkaTestkit ++ circe ++ circeAkka ++ postgresDriver ++ akkaPersistance ++ slick ++ logback ++ newRelicSdk ++ akkaManagement ++ prometheus,
     assemblyMergeStrategySettings,
     assembly / mainClass := Some("io.scalac.Boot"),
     assembly / assemblyJarName := "test_app.jar",
     resolvers += "Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots",
     run / fork := true,
-    run / connectInput := true,
     run / javaOptions ++= {
       val properties = System.getProperties
 

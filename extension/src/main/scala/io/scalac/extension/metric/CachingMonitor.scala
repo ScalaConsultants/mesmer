@@ -1,41 +1,42 @@
 package io.scalac.extension.metric
-import org.slf4j.LoggerFactory
+
+import java.util
 
 import scala.collection.mutable.{ Map => MutableMap }
+import scala.jdk.CollectionConverters._
 
-class CachingMonitor[L, B, T <: Bindable.Aux[L, B]](val monitor: T) extends Bindable[L] {
-  private[this] val logger = LoggerFactory.getLogger(this.getClass)
+import org.slf4j.LoggerFactory
 
-  private[this] val cachedMonitors: MutableMap[L, monitor.Bound] = MutableMap.empty
+import io.scalac.extension.config.CachingConfig
 
-  override type Bound = B
+case class CachingMonitor[L, B <: Bound](bindable: Bindable[L, B], config: CachingConfig = CachingConfig.empty)
+    extends Bindable[L, B] {
 
-  override final def bind(node: L): Bound =
-    cachedMonitors.getOrElse(node, updateMonitors(node, monitor.bind(node)))
+  import CachingMonitor.logger
 
-  protected def updateMonitors(labels: L, newMonitor: => Bound): Bound =
+  private[extension] val cachedMonitors: MutableMap[L, B] = {
+    val cacheAccessOrder = true // This constant must be hardcoded to ensure LRU policy
+    val loadFactor       = 0.75f
+    new util.LinkedHashMap[L, B](config.maxEntries, loadFactor, cacheAccessOrder) {
+      override def removeEldestEntry(eldest: util.Map.Entry[L, B]): Boolean =
+        if (size() > config.maxEntries) {
+          eldest.getValue.unbind()
+          true
+        } else false
+    }.asScala
+  }
+
+  final def bind(labels: L): B =
+    cachedMonitors.getOrElse(labels, updateMonitors(labels))
+
+  final private def updateMonitors(labels: L): B =
     cachedMonitors.getOrElseUpdate(labels, {
       logger.debug("Creating new monitor for lables {}", labels)
-      newMonitor
+      bindable(labels)
     })
-}
 
-class Dependent extends Bindable[Unit] {
-
-  override type Bound = BoundMonitor
-
-  override def bind(lables: Unit): Bound = new BoundMonitor {}
-
-  trait BoundMonitor {
-    def testBoundMonitor(): Unit = ()
-  }
 }
 
 object CachingMonitor {
-  /*
-   * Due to limitations of type interference this definition differ from CachingMonitor
-   */
-  implicit class CachingMonitorOps[L, B](monitor: Bindable.Aux[L, B]) {
-    def caching: Bindable.Aux[L, B] = new CachingMonitor[L, B, Bindable.Aux[L, B]](monitor)
-  }
+  private val logger = LoggerFactory.getLogger(CachingMonitor.getClass)
 }
