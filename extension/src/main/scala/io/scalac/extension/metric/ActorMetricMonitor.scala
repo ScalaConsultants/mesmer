@@ -7,6 +7,6 @@ import ActorMetricMonitor.Labels
 object ActorMetricMonitor {
   case class Labels(actorPath: Path, node: Option[Node])
   trait BoundMonitor extends Synchronized with Bound {
-    def mailboxSize: MetricRecorder[Long] with Instrument[Long]
+    def mailboxSize: MetricObserver[Long]
   }
 }

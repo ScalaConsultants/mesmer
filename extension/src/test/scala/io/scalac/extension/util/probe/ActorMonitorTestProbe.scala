@@ -1,18 +1,15 @@
 package io.scalac.extension.util.probe
 
 import scala.collection.mutable
-import scala.concurrent.duration.FiniteDuration
 
 import akka.actor.testkit.typed.scaladsl.TestProbe
 import akka.actor.typed.ActorSystem
 
-import io.scalac.extension.metric.{ ActorMetricMonitor, MetricRecorder }
-import io.scalac.extension.util.{ TestProbeAsynchronized, TestProbeSynchronized }
-import io.scalac.extension.util.probe.BoundTestProbe.MetricRecorderCommand
+import io.scalac.extension.metric.{ ActorMetricMonitor, MetricObserver }
+import io.scalac.extension.util.TestProbeSynchronized
+import io.scalac.extension.util.probe.BoundTestProbe.MetricObserverCommand
 
-class ActorMonitorTestProbe(val pingOffset: FiniteDuration)(implicit val actorSystem: ActorSystem[_])
-    extends ActorMetricMonitor
-    with TestProbeAsynchronized {
+class ActorMonitorTestProbe(implicit val actorSystem: ActorSystem[_]) extends ActorMetricMonitor {
 
   import ActorMetricMonitor._
 
@@ -22,11 +19,11 @@ class ActorMonitorTestProbe(val pingOffset: FiniteDuration)(implicit val actorSy
     bindsMap.getOrElseUpdate(labels, new TestBoundMonitor(TestProbe()))
   }
 
-  class TestBoundMonitor(val mailboxSizeProbe: TestProbe[MetricRecorderCommand])
+  class TestBoundMonitor(val mailboxSizeProbe: TestProbe[MetricObserverCommand])
       extends BoundMonitor
       with TestProbeSynchronized {
-    override val mailboxSize: MetricRecorder[Long] with AbstractTestProbeWrapper =
-      RecorderTestProbeWrapper(mailboxSizeProbe)
+    override val mailboxSize: MetricObserver[Long] with AbstractTestProbeWrapper =
+      ObserverTestProbeWrapper(mailboxSizeProbe)
     override def unbind(): Unit = ()
   }
 

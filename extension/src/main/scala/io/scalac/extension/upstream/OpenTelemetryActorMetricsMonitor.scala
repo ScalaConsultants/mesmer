@@ -5,7 +5,7 @@ import io.opentelemetry.api.OpenTelemetry
 import io.opentelemetry.api.common.Labels
 import io.opentelemetry.api.metrics.Meter
 
-import io.scalac.extension.metric.{ ActorMetricMonitor, MetricRecorder }
+import io.scalac.extension.metric.{ ActorMetricMonitor, MetricObserver, MetricRecorder }
 import io.scalac.extension.upstream.OpenTelemetryActorMetricsMonitor.MetricNames
 import io.scalac.extension.upstream.opentelemetry._
 
@@ -35,14 +35,14 @@ object OpenTelemetryActorMetricsMonitor {
 
 }
 
-class OpenTelemetryActorMetricsMonitor(instrumentationName: String, metricNames: MetricNames) extends {
-  protected val meter: Meter = OpenTelemetry.getGlobalMeter(instrumentationName)
-} with ActorMetricMonitor with OpenTelemetryAsynchronized {
+class OpenTelemetryActorMetricsMonitor(instrumentationName: String, metricNames: MetricNames)
+    extends ActorMetricMonitor {
+
+  private val meter = OpenTelemetry.getGlobalMeter(instrumentationName)
 
   private val mailboxSizeCounter = meter
-    .longValueRecorderBuilder(metricNames.mailboxSize)
+    .longValueObserverBuilder(metricNames.mailboxSize)
     .setDescription("Tracks the size of an Actor's mailbox")
-    .build()
 
   override def bind(labels: ActorMetricMonitor.Labels): OpenTelemetryBoundMonitor =
     new OpenTelemetryBoundMonitor(
@@ -51,11 +51,10 @@ class OpenTelemetryActorMetricsMonitor(instrumentationName: String, metricNames:
 
   class OpenTelemetryBoundMonitor(labels: Labels) extends ActorMetricMonitor.BoundMonitor with Synchronized {
 
-    override val mailboxSize: MetricRecorder[Long] with WrappedSynchronousInstrument[Long] =
-      WrappedLongValueRecorder(mailboxSizeCounter, labels)
+    override val mailboxSize: MetricObserver[Long] =
+      WrappedLongValueObserver(mailboxSizeCounter, labels)
 
-    override def unbind(): Unit =
-      mailboxSize.unbind()
+    override def unbind(): Unit = ()
 
   }
 

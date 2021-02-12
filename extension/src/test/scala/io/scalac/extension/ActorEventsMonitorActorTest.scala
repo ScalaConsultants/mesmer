@@ -1,6 +1,6 @@
 package io.scalac.extension
 
-import scala.concurrent.{ Await, ExecutionContext, Future }
+import scala.concurrent.Await
 import scala.concurrent.duration._
 
 import akka.actor.testkit.typed.scaladsl.ScalaTestWithActorTestKit
@@ -11,22 +11,23 @@ import org.scalatest.Inspectors
 import org.scalatest.flatspec.AnyFlatSpecLike
 import org.scalatest.matchers.should.Matchers
 
-import io.scalac.extension.ActorEventsMonitor.{ ActorTreeRunner, ReflectiveActorTreeRunner }
+import io.scalac.extension.ActorEventsMonitorActor.{ ActorTreeTraverser, ReflectiveActorTreeTraverser }
+import io.scalac.extension.actor.MutableActorMetricsStorage
 import io.scalac.extension.metric.ActorMetricMonitor
 import io.scalac.extension.util.TestConfig.localActorProvider
 import io.scalac.extension.util.probe.ActorMonitorTestProbe
-import io.scalac.extension.util.probe.BoundTestProbe.MetricRecorded
+import io.scalac.extension.util.probe.BoundTestProbe.{ MetricObserved, MetricRecorded }
 
-class ActorEventsMonitorTest
+class ActorEventsMonitorActorTest
     extends ScalaTestWithActorTestKit(localActorProvider)
     with AnyFlatSpecLike
     with Matchers
     with Inspectors {
 
-  testActorTreeRunner(ReflectiveActorTreeRunner)
+  testActorTreeRunner(ReflectiveActorTreeTraverser)
   testMonitor()
 
-  def testActorTreeRunner(actorTreeRunner: ActorTreeRunner): Unit = {
+  def testActorTreeRunner(actorTreeRunner: ActorTreeTraverser): Unit = {
 
     s"ActorTreeRunner instance (${actorTreeRunner.getClass.getName})" should "getRoot properly" in {
       val root = actorTreeRunner.getRootGuardian(system.classicSystem)
@@ -62,9 +63,12 @@ class ActorEventsMonitorTest
 
     implicit val system: ActorSystem[String] = createActorSystem()
     val pingOffset                           = 2.seconds
-    val monitor                              = new ActorMonitorTestProbe(pingOffset)
+    val monitor                              = new ActorMonitorTestProbe()
 
-    ActorEventsMonitor.start(monitor, system, None)
+    system.systemActorOf(
+      ActorEventsMonitorActor(monitor, None, pingOffset, MutableActorMetricsStorage.empty),
+      "actorEventsMonitorActor"
+    )
 
     "ActorEventsMonitor" should "record mailbox size" in {
       val n = 10
@@ -72,7 +76,7 @@ class ActorEventsMonitorTest
       for (_ <- 0 until n) system ! "Record it"
       val bound   = monitor.bind(ActorMetricMonitor.Labels("/user/actorB/idle", None))
       val records = bound.mailboxSizeProbe.receiveMessages(2, 3 * pingOffset)
-      records should contain(MetricRecorded(n))
+      records should contain(MetricObserved(n))
     }
 
     it should "terminate actorSystem" in {
