@@ -34,7 +34,7 @@ class DownTest extends MultiNodeSpec(ThreeNodesConfig) with ScalaTestMultiNodeSp
     }
 
     "start monitor" in {
-      system.log.error(s"Address, ${node(myself).address}")
+      system.log.error("Address, {}", node(myself).address)
       typedSystem.systemActorOf(ClusterSelfNodeEventsActor.apply(monitor), "monitor-test-1")
       ClusterSingleton(typedSystem)
         .init(

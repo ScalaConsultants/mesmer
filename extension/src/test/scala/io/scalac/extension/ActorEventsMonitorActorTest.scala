@@ -95,13 +95,13 @@ class ActorEventsMonitorActorTest
             val actorAA = ctx.spawn[String](Behaviors.setup { ctx =>
               import ctx.log
               Behaviors.receiveMessage { msg =>
-                log.info(s"[actorAA] received a message: $msg")
+                log.info("[actorAA] received a message: {}", msg)
                 Behaviors.same
               }
             }, "actorAA")
 
             Behaviors.receiveMessage { msg =>
-              log.info(s"[actorA] received a message: $msg")
+              log.info("[actorA] received a message: {}", msg)
               actorAA ! msg
               Behaviors.same
             }
@@ -129,7 +129,7 @@ class ActorEventsMonitorActorTest
             )
 
             Behaviors.receiveMessage { msg =>
-              log.info(s"[actorB] received a message: $msg")
+              log.info("[actorB] received a message: {}", msg)
               actorBIdle ! msg
               Behaviors.same
             }

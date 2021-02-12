@@ -21,7 +21,7 @@ object Agent {
         try {
           Thread.currentThread().getContextClassLoader.loadClass(className)
         } catch {
-          case _: ClassNotFoundException => loadingLogger.error(s"Couldn't load class ${className}")
+          case _: ClassNotFoundException => loadingLogger.error("Couldn't load class {}", className)
         }
       }
 

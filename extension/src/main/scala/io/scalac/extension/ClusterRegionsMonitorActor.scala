@@ -117,7 +117,7 @@ object ClusterRegionsMonitorActor extends ClusterMonitorActor {
     }
 
     private def runQuery(region: String): Future[RegionStats] = {
-      logger.debug(s"running query for region $region")
+      logger.debug("running query for region {}", region)
       (sharding.shardRegion(region) ? GetShardRegionStats)
         .mapTo[ShardRegionStats]
         .flatMap { regionStats =>

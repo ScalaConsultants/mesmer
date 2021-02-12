@@ -76,10 +76,10 @@ object AkkaMonitoring extends ExtensionId[AkkaMonitoring] {
           err => system.log.error(err),
           _ =>
             if (autoStart) {
-              system.log.info(s"Start monitoring module ${module.name}")
+              system.log.info("Start monitoring module {}", module.name)
               init(monitoring)
             } else
-              system.log.info(s"Supported version of ${module.name} detected, but auto-start is set to false")
+              system.log.info("Supported version of {} detected, but auto-start is set to false", module.name)
         )
 
     initModule(akkaActorModule, modulesSupport.akkaActor, config.autoStart.akkaActor, _.startActorMonitor())
@@ -106,10 +106,10 @@ object AkkaMonitoring extends ExtensionId[AkkaMonitoring] {
         system.log.error("Boot backend is set to true, but no configuration for backend found")
       } { backendConfig =>
         if (backendConfig.name.toLowerCase() == "newrelic") {
-          system.log.info(s"Starting NewRelic backend with config ${backendConfig}")
+          system.log.info("Starting NewRelic backend with config {}", backendConfig)
           startNewRelicBackend(backendConfig.region, backendConfig.apiKey, backendConfig.serviceName)
         } else
-          system.log.error(s"Backend ${backendConfig.name} not supported")
+          system.log.error("Backend {} not supported", backendConfig.name)
       }
     }
   }
@@ -199,9 +199,9 @@ class AkkaMonitoring(private val system: ActorSystem[_], val config: AkkaMonitor
   ): Unit = {
     val name = implicitly[ClassTag[T]].runtimeClass.getSimpleName
     clusterNodeName.fold {
-      log.error(s"ActorSystem is not properly configured to start cluster monitor of type $name")
+      log.error("ActorSystem is not properly configured to start cluster monitor of type {}", name)
     } { _ =>
-      log.debug(s"Starting cluster monitor of type $name")
+      log.debug("Starting cluster monitor of type {}", name)
       system.systemActorOf(
         Behaviors
           .supervise(actor(openTelemetryClusterMetricsMonitor))
