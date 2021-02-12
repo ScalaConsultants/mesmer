@@ -44,7 +44,8 @@ class ActorEventsMonitorActorTest
     }
 
     it should "getChildren properly from nested actor" in {
-      val system           = createActorSystem()
+      val system = createActorSystem()
+      Thread.sleep(100) // waiting system...
       val root             = actorTreeRunner.getRootGuardian(system.classicSystem)
       val children         = actorTreeRunner.getChildren(root)
       val guardian         = children.find(_.path.toStringWithoutAddress == "/user").get

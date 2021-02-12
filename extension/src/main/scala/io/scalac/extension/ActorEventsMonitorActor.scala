@@ -97,31 +97,35 @@ object ActorEventsMonitorActor {
   object ReflectiveActorTreeTraverser extends ActorTreeTraverser {
     import ReflectiveActorMonitorsUtils._
 
-    private val getSystemProviderReflectively = {
-      classOf[ActorSystem]
-        .getMethod("provider")
+    import java.lang.invoke.MethodType.methodType
+
+    private val actorRefProviderClass = classOf[ActorRefProvider]
+
+    private val providerMethodHandler = {
+      val mt = methodType(actorRefProviderClass)
+      lookup.findVirtual(classOf[ActorSystem], "provider", mt)
     }
 
-    private val getRootGuardianReflectively = {
-      classOf[ActorRefProvider]
-        .getMethod("rootGuardian")
+    private val rootGuardianMethodHandler = {
+      val mt = methodType(Class.forName("akka.actor.InternalActorRef"))
+      lookup.findVirtual(actorRefProviderClass, "rootGuardian", mt)
     }
 
-    private val getChildrenReflectively = {
-      actorRefWithCellClass
-        .getMethod("children")
+    private val childrenMethodHandler = {
+      val mt = methodType(classOf[immutable.Iterable[ActorRef]])
+      lookup.findVirtual(actorRefWithCellClass, "children", mt)
     }
 
     def getChildren(actor: ActorRef): immutable.Iterable[ActorRef] =
       if (isLocalActorRefWithCell(actor)) {
-        getChildrenReflectively.invoke(actor).asInstanceOf[immutable.Iterable[ActorRef]]
+        childrenMethodHandler.invoke(actor).asInstanceOf[immutable.Iterable[ActorRef]]
       } else {
         immutable.Iterable.empty
       }
 
     def getRootGuardian(system: ActorSystem): ActorRef = {
-      val provider = getSystemProviderReflectively.invoke(system)
-      getRootGuardianReflectively.invoke(provider).asInstanceOf[ActorRef]
+      val provider = providerMethodHandler.invoke(system)
+      rootGuardianMethodHandler.invoke(provider).asInstanceOf[ActorRef]
     }
   }
 
@@ -132,24 +136,37 @@ object ActorEventsMonitorActor {
   object ReflectiveActorMetricsReader extends ActorMetricsReader {
     import ReflectiveActorMonitorsUtils._
 
-    private val getNumberOfMessagesReflectively = cellClass.getDeclaredMethod("numberOfMessages")
+    import java.lang.invoke.MethodType.methodType
+
+    private val numberOfMessagesMethodHandler = {
+      val mt = methodType(classOf[Int])
+      lookup.findVirtual(cellClass, "numberOfMessages", mt)
+    }
 
     def mailboxSize(actor: ActorRef): Option[Int] =
       if (isLocalActorRefWithCell(actor)) {
-        val cell = underlyingReflectively.invoke(actor)
-        Some(getNumberOfMessagesReflectively.invoke(cell).asInstanceOf[Int])
+        val cell = underlyingMethodHandler.invoke(actor)
+        Some(numberOfMessagesMethodHandler.invoke(cell).asInstanceOf[Int])
       } else None
 
   }
 
   private object ReflectiveActorMonitorsUtils {
-    private[ActorEventsMonitorActor] val actorRefWithCellClass  = Class.forName("akka.actor.ActorRefWithCell")
-    private[ActorEventsMonitorActor] val cellClass              = Class.forName("akka.actor.Cell")
-    private[ActorEventsMonitorActor] val underlyingReflectively = actorRefWithCellClass.getDeclaredMethod("underlying")
-    private val isLocalReflectively                             = cellClass.getDeclaredMethod("isLocal")
+    import java.lang.invoke.MethodHandles.publicLookup
+    import java.lang.invoke.MethodType.methodType
+
+    private[ActorEventsMonitorActor] val lookup = publicLookup()
+
+    private[ActorEventsMonitorActor] val actorRefWithCellClass = Class.forName("akka.actor.ActorRefWithCell")
+    private[ActorEventsMonitorActor] val cellClass             = Class.forName("akka.actor.Cell")
+    private[ActorEventsMonitorActor] val underlyingMethodHandler =
+      lookup.findVirtual(actorRefWithCellClass, "underlying", methodType(cellClass))
+
+    private val isLocalMethodHandler = lookup.findVirtual(cellClass, "isLocal", methodType(classOf[Boolean]))
+
     def isLocalActorRefWithCell(actorRef: ActorRef): Boolean =
       actorRefWithCellClass.isInstance(actorRef) &&
-        isLocalReflectively.invoke(underlyingReflectively.invoke(actorRef)).asInstanceOf[Boolean]
+        isLocalMethodHandler.invoke(underlyingMethodHandler.invoke(actorRef)).asInstanceOf[Boolean]
   }
 
 }
