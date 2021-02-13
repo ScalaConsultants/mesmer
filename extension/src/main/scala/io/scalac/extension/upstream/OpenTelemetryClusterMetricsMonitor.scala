@@ -4,7 +4,7 @@ import com.typesafe.config.Config
 import io.opentelemetry.api.OpenTelemetry
 import io.opentelemetry.api.common.Labels
 
-import io.scalac.extension.metric._
+import io.scalac.extension.metric.{ ClusterMetricsMonitor, _ }
 import io.scalac.extension.model._
 import io.scalac.extension.upstream.OpenTelemetryClusterMetricsMonitor.MetricNames
 import io.scalac.extension.upstream.opentelemetry._
@@ -92,13 +92,17 @@ class OpenTelemetryClusterMetricsMonitor(instrumentationName: String, val metric
 
   private[this] val meter = OpenTelemetry.getGlobalMeter(instrumentationName)
 
-  private val shardsPerRegionRecorder = meter
-    .longValueObserverBuilder(metricNames.shardPerEntity)
-    .setDescription("Amount of shards in region")
+  private val shardsPerRegionRecorder = new LongValueObserverAdapter(
+    meter
+      .longValueObserverBuilder(metricNames.shardPerEntity)
+      .setDescription("Amount of shards in region")
+  )
 
-  private val entityPerRegionRecorder = meter
-    .longValueObserverBuilder(metricNames.entityPerRegion)
-    .setDescription("Amount of entities in region")
+  private val entityPerRegionRecorder = new LongValueObserverAdapter(
+    meter
+      .longValueObserverBuilder(metricNames.entityPerRegion)
+      .setDescription("Amount of entities in region")
+  )
 
   private val reachableNodeCounter = meter
     .longUpDownCounterBuilder(metricNames.reachableNodes)
@@ -110,31 +114,33 @@ class OpenTelemetryClusterMetricsMonitor(instrumentationName: String, val metric
     .setDescription("Amount of unreachable nodes")
     .build()
 
-  private val shardRegionsOnNodeRecorder = meter
-    .longValueObserverBuilder(metricNames.shardRegionsOnNode)
-    .setDescription("Amount of shard regions on node")
+  private val shardRegionsOnNodeRecorder = new LongValueObserverAdapter(
+    meter
+      .longValueObserverBuilder(metricNames.shardRegionsOnNode)
+      .setDescription("Amount of shard regions on node")
+  )
 
-  private val entitiesOnNodeObserver = meter
-    .longValueObserverBuilder(metricNames.entitiesOnNode)
-    .setDescription("Amount of entities on node")
+  private val entitiesOnNodeObserver = new LongValueObserverAdapter(
+    meter
+      .longValueObserverBuilder(metricNames.entitiesOnNode)
+      .setDescription("Amount of entities on node")
+  )
 
   private val nodeDownCounter = meter
     .longCounterBuilder(metricNames.nodeDown)
     .setDescription("Counter for node down events")
     .build()
 
-  override def bind(node: Node): ClusterBoundMonitor = {
-    val boundLabels = Labels.of("node", node)
-    new ClusterBoundMonitor(boundLabels)
-  }
+  override def bind(labels: ClusterMetricsMonitor.Labels): ClusterBoundMonitor =
+    new ClusterBoundMonitor(LabelsFactory.of(LabelNames.Node -> labels.node)(LabelNames.Region -> labels.region))
 
   class ClusterBoundMonitor(labels: Labels) extends ClusterMetricsMonitor.BoundMonitor with opentelemetry.Synchronized {
 
-    override def shardPerRegions(region: String): MetricObserver[Long] =
-      WrappedLongValueObserver(shardsPerRegionRecorder, addLabels("region" -> region))
+    override val shardPerRegions: MetricObserver[Long] =
+      WrappedLongValueObserver(shardsPerRegionRecorder, labels)
 
-    override def entityPerRegion(region: String): MetricObserver[Long] =
-      WrappedLongValueObserver(entityPerRegionRecorder, addLabels("region" -> region))
+    override val entityPerRegion: MetricObserver[Long] =
+      WrappedLongValueObserver(entityPerRegionRecorder, labels)
 
     override val shardRegionsOnNode: MetricObserver[Long] =
       WrappedLongValueObserver(shardRegionsOnNodeRecorder, labels)

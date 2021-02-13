@@ -24,7 +24,6 @@ class ActorEventsMonitorActor(
   actorMetricsReader: ActorMetricsReader = ReflectiveActorMetricsReader
 ) {
   import ctx.log
-
   import ActorEventsMonitorActor._
 
   def start(storage: ActorMetricStorage): Behavior[Command] =
@@ -152,10 +151,10 @@ object ActorEventsMonitorActor {
   }
 
   private object ReflectiveActorMonitorsUtils {
-    import java.lang.invoke.MethodHandles.publicLookup
+    import java.lang.invoke.MethodHandles
     import java.lang.invoke.MethodType.methodType
 
-    private[ActorEventsMonitorActor] val lookup = publicLookup()
+    private[ActorEventsMonitorActor] val lookup = MethodHandles.lookup()
 
     private[ActorEventsMonitorActor] val actorRefWithCellClass = Class.forName("akka.actor.ActorRefWithCell")
     private[ActorEventsMonitorActor] val cellClass             = Class.forName("akka.actor.Cell")
