@@ -4,7 +4,7 @@ import io.scalac.extension.model.Node
 
 object ClusterMetricsMonitor {
 
-  case class Labels(node: Node, region: Option[String]) {
+  case class Labels(node: Node, region: Option[String] = None) {
     def withRegion(region: String): Labels = copy(region = Some(region))
   }
 

@@ -35,7 +35,7 @@ object ClusterRegionsMonitorActor extends ClusterMonitorActor {
         val system = ctx.system
         import system.executionContext
 
-        val labels = Labels(selfMember.uniqueAddress.toNode, None)
+        val labels = Labels(selfMember.uniqueAddress.toNode)
         val bound  = monitor.bind(labels)
 
         val regions = new Regions(system, onCreateEntry = (region, entry) => {

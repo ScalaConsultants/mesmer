@@ -28,7 +28,7 @@ object ClusterEventsMonitor extends ClusterMonitorActor {
           classOf[MemberEvent]
         )
 
-        val boundMonitor = clusterMonitor.bind(Labels(selfMember.uniqueAddress.toNode, None))
+        val boundMonitor = clusterMonitor.bind(Labels(selfMember.uniqueAddress.toNode))
 
         boundMonitor.nodeDown.incValue(0L)
 

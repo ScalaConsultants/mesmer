@@ -41,7 +41,7 @@ object ClusterSelfNodeEventsActor extends ClusterMonitorActor {
 
         import Command._
 
-        val monitor = clusterMetricsMonitor.bind(Labels(selfMember.uniqueAddress.toNode, None))
+        val monitor = clusterMetricsMonitor.bind(Labels(selfMember.uniqueAddress.toNode))
         val cluster = Cluster(system)
 
         // bootstrap messages
