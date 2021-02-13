@@ -5,6 +5,7 @@ import scala.collection.mutable
 import akka.actor.testkit.typed.scaladsl.TestProbe
 import akka.actor.typed.ActorSystem
 
+import io.scalac.extension.metric.ActorMetricMonitor.BoundMonitor
 import io.scalac.extension.metric.{ ActorMetricMonitor, MetricObserver }
 import io.scalac.extension.util.TestProbeSynchronized
 import io.scalac.extension.util.probe.BoundTestProbe.MetricObserverCommand
@@ -12,6 +13,7 @@ import io.scalac.extension.util.probe.BoundTestProbe.MetricObserverCommand
 class ActorMonitorTestProbe(implicit val actorSystem: ActorSystem[_]) extends ActorMetricMonitor {
 
   import ActorMetricMonitor._
+  import ActorMonitorTestProbe._
 
   private val bindsMap = mutable.HashMap.empty[Labels, TestBoundMonitor]
 
@@ -19,12 +21,14 @@ class ActorMonitorTestProbe(implicit val actorSystem: ActorSystem[_]) extends Ac
     bindsMap.getOrElseUpdate(labels, new TestBoundMonitor(TestProbe()))
   }
 
-  class TestBoundMonitor(val mailboxSizeProbe: TestProbe[MetricObserverCommand])
+}
+
+object ActorMonitorTestProbe {
+  class TestBoundMonitor(val mailboxSizeProbe: TestProbe[MetricObserverCommand])(implicit actorSystem: ActorSystem[_])
       extends BoundMonitor
       with TestProbeSynchronized {
     override val mailboxSize: MetricObserver[Long] with AbstractTestProbeWrapper =
       ObserverTestProbeWrapper(mailboxSizeProbe)
     override def unbind(): Unit = ()
   }
-
 }

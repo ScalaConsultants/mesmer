@@ -3,7 +3,7 @@ package io.scalac.extension
 import scala.concurrent.Await
 import scala.concurrent.duration._
 
-import akka.actor.testkit.typed.scaladsl.ScalaTestWithActorTestKit
+import akka.actor.testkit.typed.FishingOutcome
 import akka.actor.typed.ActorSystem
 import akka.actor.typed.scaladsl.Behaviors
 
@@ -14,20 +14,17 @@ import org.scalatest.matchers.should.Matchers
 import io.scalac.extension.ActorEventsMonitorActor.{ ActorTreeTraverser, ReflectiveActorTreeTraverser }
 import io.scalac.extension.actor.MutableActorMetricsStorage
 import io.scalac.extension.metric.ActorMetricMonitor
-import io.scalac.extension.util.TestConfig.localActorProvider
 import io.scalac.extension.util.probe.ActorMonitorTestProbe
-import io.scalac.extension.util.probe.BoundTestProbe.{ MetricObserved, MetricRecorded }
+import io.scalac.extension.util.probe.ActorMonitorTestProbe.TestBoundMonitor
+import io.scalac.extension.util.probe.BoundTestProbe.MetricObserved
 
-class ActorEventsMonitorActorTest
-    extends ScalaTestWithActorTestKit(localActorProvider)
-    with AnyFlatSpecLike
-    with Matchers
-    with Inspectors {
+class ActorEventsMonitorActorTest extends AnyFlatSpecLike with Matchers with Inspectors {
 
   testActorTreeRunner(ReflectiveActorTreeTraverser)
   testMonitor()
 
   def testActorTreeRunner(actorTreeRunner: ActorTreeTraverser): Unit = {
+    val system = createActorSystem()
 
     s"ActorTreeRunner instance (${actorTreeRunner.getClass.getName})" should "getRoot properly" in {
       val root = actorTreeRunner.getRootGuardian(system.classicSystem)
@@ -44,7 +41,6 @@ class ActorEventsMonitorActorTest
     }
 
     it should "getChildren properly from nested actor" in {
-      val system = createActorSystem()
       Thread.sleep(100) // waiting system...
       val root             = actorTreeRunner.getRootGuardian(system.classicSystem)
       val children         = actorTreeRunner.getChildren(root)
@@ -58,32 +54,55 @@ class ActorEventsMonitorActorTest
       Await.ready(system.whenTerminated, 5.seconds)
     }
 
-  }
-
-  def testMonitor(): Unit = {
-
-    implicit val system: ActorSystem[String] = createActorSystem()
-    val pingOffset                           = 2.seconds
-    val monitor                              = new ActorMonitorTestProbe()
-
-    system.systemActorOf(
-      ActorEventsMonitorActor(monitor, None, pingOffset, MutableActorMetricsStorage.empty),
-      "actorEventsMonitorActor"
-    )
-
-    "ActorEventsMonitor" should "record mailbox size" in {
-      val n = 10
-      system ! "idle"
-      for (_ <- 0 until n) system ! "Record it"
-      val bound   = monitor.bind(ActorMetricMonitor.Labels("/user/actorB/idle", None))
-      val records = bound.mailboxSizeProbe.receiveMessages(2, 3 * pingOffset)
-      records should contain(MetricObserved(n))
-    }
-
     it should "terminate actorSystem" in {
       system.terminate()
       Await.ready(system.whenTerminated, 5.seconds)
     }
+
+  }
+
+  def testMonitor(): Unit = {
+
+    val pingOffset = 2.seconds
+
+    def test(block: (ActorMonitorTestProbe, ActorSystem[String]) => Unit): Unit = {
+      implicit val system: ActorSystem[String] = createActorSystem()
+
+      val monitor = new ActorMonitorTestProbe()
+
+      system.systemActorOf(
+        ActorEventsMonitorActor(monitor, None, pingOffset, MutableActorMetricsStorage.empty),
+        "actorEventsMonitorActor"
+      )
+      block(monitor, system)
+      system.terminate()
+      Await.ready(system.whenTerminated, 2.seconds)
+    }
+
+    "ActorEventsMonitor" should "record mailbox size" in test { (monitor, system) =>
+      val bound = monitor.bind(ActorMetricMonitor.Labels("/user/actorB/idle", None))
+      recordMailboxSize(10, bound, system)
+      bound.unbind()
+    }
+
+    it should "record mailbox size changes" in test { (monitor, system) =>
+      val bound = monitor.bind(ActorMetricMonitor.Labels("/user/actorB/idle", None))
+      recordMailboxSize(10, bound, system)
+      Thread.sleep(1000)
+      recordMailboxSize(42, bound, system)
+      bound.unbind()
+    }
+
+    def recordMailboxSize(n: Int, bound: TestBoundMonitor, system: ActorSystem[String]): Unit = {
+      system ! "idle"
+      for (_ <- 0 until n) system ! "Record it"
+      val records = bound.mailboxSizeProbe.fishForMessage(3 * pingOffset) {
+        case MetricObserved(`n`) => FishingOutcome.Complete
+        case _                   => FishingOutcome.ContinueAndIgnore
+      }
+      records.size should not be (0)
+    }
+
   }
 
   private def createActorSystem(): ActorSystem[String] =
@@ -144,7 +163,7 @@ class ActorEventsMonitorActorTest
           Behaviors.same
         }
       },
-      "testActorTreeRunner"
+      "actorEventsMonitorActorTest"
     )
 
 }
