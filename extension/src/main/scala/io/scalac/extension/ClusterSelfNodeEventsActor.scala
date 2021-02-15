@@ -16,6 +16,7 @@ import akka.cluster.UniqueAddress
 import akka.cluster.typed.{ Cluster, Subscribe }
 
 import io.scalac.extension.metric.ClusterMetricsMonitor
+import io.scalac.extension.metric.ClusterMetricsMonitor.Labels
 import io.scalac.extension.model.AkkaNodeOps
 
 class ClusterSelfNodeEventsActor
@@ -40,7 +41,7 @@ object ClusterSelfNodeEventsActor extends ClusterMonitorActor {
 
         import Command._
 
-        val monitor = clusterMetricsMonitor.bind(selfMember.uniqueAddress.toNode)
+        val monitor = clusterMetricsMonitor.bind(Labels(selfMember.uniqueAddress.toNode))
         val cluster = Cluster(system)
 
         // bootstrap messages

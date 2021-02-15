@@ -74,7 +74,12 @@ case class ObserverTestProbeWrapper(private val _probe: TestProbe[MetricObserver
 
   override def setUpdater(cb: MetricObserver.Result[Long] => Unit): Unit = {
     import system.executionContext
-    system.scheduler.scheduleWithFixedDelay(Ping / 2, Ping)(() => cb(value => _probe.ref ! MetricObserved(value)))
+    system.scheduler.scheduleWithFixedDelay(Ping / 2, Ping)(() =>
+      cb { value =>
+        println(s"send $value to ${probe.ref}")
+        _probe.ref ! MetricObserved(value)
+      }
+    )
   }
 
 }

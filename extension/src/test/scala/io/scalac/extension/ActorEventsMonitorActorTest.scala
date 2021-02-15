@@ -31,28 +31,31 @@ class ActorEventsMonitorTest
     with MonitorFixture
     with TestOps {
 
-  private val MonitorPingOffset = 2.seconds
+  private val PingOffset = 2.seconds
 
   type Monitor = ActorMonitorTestProbe
 
   override val serviceKey: ServiceKey[_] = actorServiceKey
 
-  override def createMonitor: ActorMonitorTestProbe = new ActorMonitorTestProbe(MonitorPingOffset)
+  override def createMonitor: ActorMonitorTestProbe = new ActorMonitorTestProbe
 
   override def setUp(monitor: ActorMonitorTestProbe, cache: Boolean): ActorRef[_] = {
-    ActorEventsMonitor.start(monitor, system, None)
     system.systemActorOf(
-      ActorEventsMonitor.Actor(if (cache) CachingMonitor(monitor) else monitor, None),
+      ActorEventsMonitorActor(
+        if (cache) CachingMonitor(monitor) else monitor, 
+        None, PingOffset, MutableActorMetricsStorage.empty
+      ),
       createUniqueId
     )
   }
 
-  testActorTreeRunner(ReflectiveActorTreeRunner)
+  testActorTreeRunner(ReflectiveActorTreeTraverser)
   testMonitor()
 
   private val underlyingSystem = system.asInstanceOf[ActorSystem[String]]
 
-  def testActorTreeRunner(actorTreeRunner: ActorTreeRunner): Unit = {
+  def testActorTreeRunner(actorTreeRunner: ActorTreeTraverser): Unit = {
+    val system = createActorSystem()
 
     s"ActorTreeRunner instance (${actorTreeRunner.getClass.getName})" should "getRoot properly" in {
       val root = actorTreeRunner.getRootGuardian(system.classicSystem)
@@ -79,22 +82,37 @@ class ActorEventsMonitorTest
       )
     }
 
+    it should "terminate actorSystem" in {
+      system.terminate()
+      Await.ready(system.whenTerminated, 5.seconds)
+    }
+
   }
 
   def testMonitor(): Unit = {
 
-    "ActorEventsMonitor" should "record mailbox size" in test { monitor =>
-      val n = 10
-      underlyingSystem ! "idle"
-      for (_ <- 0 until n) underlyingSystem ! "Record it"
-      val bound = monitor.bind(Labels("/user/actorB/idle", None))
-//      bound.mailboxSizeProbe
-//        .awaitAssert(bound.mailboxSizeProbe.expectMessage(MetricRecorded(n)), 3 * MonitorPingOffset)
-      val msgs = bound.mailboxSizeProbe.fishForMessage(3 * MonitorPingOffset) {
-        case MetricRecorded(`n`) => FishingOutcome.Complete
+    def recordMailboxSize(n: Int, bound: TestBoundMonitor, system: ActorSystem[String]): Unit = {
+      system ! "idle"
+      for (_ <- 0 until n) system ! "Record it"
+      val records = bound.mailboxSizeProbe.fishForMessage(3 * PingOffset) {
+        case MetricObserved(`n`) => FishingOutcome.Complete
         case _                   => FishingOutcome.ContinueAndIgnore
       }
-      msgs.size should not be (0)
+      records.size should not be (0)
+    }
+    
+    "ActorEventsMonitor" should "record mailbox size" in test { (monitor, system) =>
+      val bound = monitor.bind(ActorMetricMonitor.Labels("/user/actorB/idle", None))
+      recordMailboxSize(10, bound, system)
+      bound.unbind()
+    }
+
+    it should "record mailbox size changes" in test { (monitor, system) =>
+      val bound = monitor.bind(ActorMetricMonitor.Labels("/user/actorB/idle", None))
+      recordMailboxSize(10, bound, system)
+      Thread.sleep(1000)
+      recordMailboxSize(42, bound, system)
+      bound.unbind()
     }
 
     it should "record stash size" in test { monitor =>

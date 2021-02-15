@@ -4,11 +4,13 @@ import io.scalac.extension.model.Node
 
 object ClusterMetricsMonitor {
 
-  type Labels = Node
+  case class Labels(node: Node, region: Option[String] = None) {
+    def withRegion(region: String): Labels = copy(region = Some(region))
+  }
 
   trait BoundMonitor extends Synchronized with Bound {
-    def shardPerRegions(region: String): MetricObserver[Long]
-    def entityPerRegion(region: String): MetricObserver[Long]
+    def shardPerRegions: MetricObserver[Long]
+    def entityPerRegion: MetricObserver[Long]
     def shardRegionsOnNode: MetricObserver[Long]
     def entitiesOnNode: MetricObserver[Long]
     def reachableNodes: Counter[Long] with Instrument[Long]

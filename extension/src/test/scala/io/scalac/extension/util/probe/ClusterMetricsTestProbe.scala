@@ -2,10 +2,11 @@ package io.scalac.extension.util.probe
 
 import akka.actor.testkit.typed.scaladsl.TestProbe
 import akka.actor.typed.ActorSystem
+
+import io.scalac.extension.metric.ClusterMetricsMonitor.Labels
 import io.scalac.extension.metric._
-import io.scalac.extension.model.Node
+import io.scalac.extension.util.TestProbeSynchronized
 import io.scalac.extension.util.probe.BoundTestProbe._
-import io.scalac.extension.util.{ probe, TestProbeSynchronized }
 
 class ClusterMetricsTestProbe private (
   val shardPerRegionsProbe: TestProbe[MetricObserverCommand],
@@ -18,18 +19,16 @@ class ClusterMetricsTestProbe private (
 )(implicit system: ActorSystem[_])
     extends ClusterMetricsMonitor {
 
-  override def bind(node: Node): ClusterMetricsMonitor.BoundMonitor =
+  override def bind(node: Labels): ClusterMetricsMonitor.BoundMonitor =
     new ClusterMetricsMonitor.BoundMonitor with TestProbeSynchronized {
 
-      override def shardPerRegions(region: String): MetricObserver[Long] with AbstractTestProbeWrapper =
-        ObserverTestProbeWrapper(
-          shardPerRegionsProbe
-        )
+      override val shardPerRegions: MetricObserver[Long] with AbstractTestProbeWrapper = ObserverTestProbeWrapper(
+        shardPerRegionsProbe
+      )
 
-      override def entityPerRegion(region: String): MetricObserver[Long] with AbstractTestProbeWrapper =
-        ObserverTestProbeWrapper(
-          entityPerRegionProbe
-        )
+      override val entityPerRegion: MetricObserver[Long] with AbstractTestProbeWrapper = ObserverTestProbeWrapper(
+        entityPerRegionProbe
+      )
 
       override val shardRegionsOnNode: MetricObserver[Long] with AbstractTestProbeWrapper = ObserverTestProbeWrapper(
         shardRegionsOnNodeProbe
