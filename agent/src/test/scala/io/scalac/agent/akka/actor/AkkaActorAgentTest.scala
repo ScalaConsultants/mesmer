@@ -3,6 +3,7 @@ package io.scalac.agent.akka.actor
 import scala.concurrent.duration._
 
 import akka.actor.ActorPath
+import akka.actor.testkit.typed.FishingOutcome
 import akka.actor.testkit.typed.scaladsl.{ ScalaTestWithActorTestKit, TestProbe }
 import akka.actor.typed.Behavior
 import akka.actor.typed.receptionist.Receptionist
@@ -72,6 +73,17 @@ class AkkaActorAgentTest
     expectStashSize(1)
   }
 
+  def createExpectStashSize[T <: { def path: ActorPath }](monitor: Fixture, ref: T): Int => Unit =
+    createExpectStashSize(monitor, ref.path.toStringWithoutAddress)
+
+  def createExpectStashSize(monitor: Fixture, path: String): Int => Unit = { size =>
+    val msg = monitor.fishForMessage(2.seconds) {
+      case StashMeasurement(`size`, `path`) => FishingOutcome.Complete
+      case _                                => FishingOutcome.ContinueAndIgnore
+    }
+    msg.size should not be (0)
+  }
+
 }
 
 object AkkaActorAgentTest {
@@ -79,13 +91,6 @@ object AkkaActorAgentTest {
   import scala.language.reflectiveCalls
 
   type Fixture = TestProbe[ActorEvent]
-
-  def createExpectStashSize[T <: { def path: ActorPath }](monitor: Fixture, ref: T): Int => Unit =
-    createExpectStashSize(monitor, ref.path.toStringWithoutAddress)
-
-  def createExpectStashSize(monitor: Fixture, path: String): Int => Unit = { size =>
-    monitor.awaitAssert(monitor.expectMessage(5.seconds, StashMeasurement(size, path)))
-  }
 
   object ClassicStashActor {
     def props(): classic.Props = classic.Props(new ClassicStashActor)
