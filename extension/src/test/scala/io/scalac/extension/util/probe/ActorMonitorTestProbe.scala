@@ -6,9 +6,9 @@ import akka.actor.testkit.typed.scaladsl.TestProbe
 import akka.actor.typed.ActorSystem
 
 import io.scalac.extension.metric.ActorMetricMonitor.BoundMonitor
-import io.scalac.extension.metric.{ ActorMetricMonitor, MetricObserver }
+import io.scalac.extension.metric.{ ActorMetricMonitor, MetricObserver, MetricRecorder }
 import io.scalac.extension.util.TestProbeSynchronized
-import io.scalac.extension.util.probe.BoundTestProbe.MetricObserverCommand
+import io.scalac.extension.util.probe.BoundTestProbe.{ MetricObserverCommand, MetricRecorderCommand }
 
 class ActorMonitorTestProbe(implicit val actorSystem: ActorSystem[_]) extends ActorMetricMonitor {
 

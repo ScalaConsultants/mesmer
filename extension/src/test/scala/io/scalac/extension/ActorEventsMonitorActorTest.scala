@@ -13,49 +13,50 @@ import org.scalatest.Inspectors
 import org.scalatest.flatspec.AnyFlatSpecLike
 import org.scalatest.matchers.should.Matchers
 
-import io.scalac.extension.ActorEventsMonitor.{ ActorTreeRunner, ReflectiveActorTreeRunner }
+import io.scalac.extension.ActorEventsMonitorActor.{ ActorTreeTraverser, ReflectiveActorTreeTraverser }
+import io.scalac.extension.actor.MutableActorMetricsStorage
 import io.scalac.extension.event.ActorEvent.StashMeasurement
 import io.scalac.extension.event.EventBus
 import io.scalac.extension.metric.ActorMetricMonitor.Labels
-import io.scalac.extension.metric.CachingMonitor
+import io.scalac.extension.metric.{ ActorMetricMonitor, CachingMonitor }
 import io.scalac.extension.util.TestConfig
 import io.scalac.extension.util.probe.ActorMonitorTestProbe
-import io.scalac.extension.util.probe.BoundTestProbe.MetricRecorded
+import io.scalac.extension.util.probe.ActorMonitorTestProbe.TestBoundMonitor
+import io.scalac.extension.util.probe.BoundTestProbe.{ MetricObserved, MetricRecorded }
 import io.scalac.extension.util.{ MonitorFixture, TestOps }
 
-class ActorEventsMonitorTest
-    extends ScalaTestWithActorTestKit(ActorEventsMonitorTest.system)
+class ActorEventsMonitorActorTest
+    extends ScalaTestWithActorTestKit(ActorEventsMonitorActorTest.system)
     with AnyFlatSpecLike
     with Matchers
     with Inspectors
     with MonitorFixture
     with TestOps {
 
-  private val PingOffset = 2.seconds
-
   type Monitor = ActorMonitorTestProbe
 
+  private val PingOffset                 = 2.seconds
+  private val underlyingSystem           = system.asInstanceOf[ActorSystem[String]]
   override val serviceKey: ServiceKey[_] = actorServiceKey
 
   override def createMonitor: ActorMonitorTestProbe = new ActorMonitorTestProbe
 
-  override def setUp(monitor: ActorMonitorTestProbe, cache: Boolean): ActorRef[_] = {
+  override def setUp(monitor: ActorMonitorTestProbe, cache: Boolean): ActorRef[_] =
     system.systemActorOf(
       ActorEventsMonitorActor(
-        if (cache) CachingMonitor(monitor) else monitor, 
-        None, PingOffset, MutableActorMetricsStorage.empty
+        if (cache) CachingMonitor(monitor) else monitor,
+        None,
+        PingOffset,
+        MutableActorMetricsStorage.empty
       ),
       createUniqueId
     )
-  }
 
+  // ** MAIN **
   testActorTreeRunner(ReflectiveActorTreeTraverser)
   testMonitor()
 
-  private val underlyingSystem = system.asInstanceOf[ActorSystem[String]]
-
   def testActorTreeRunner(actorTreeRunner: ActorTreeTraverser): Unit = {
-    val system = createActorSystem()
 
     s"ActorTreeRunner instance (${actorTreeRunner.getClass.getName})" should "getRoot properly" in {
       val root = actorTreeRunner.getRootGuardian(system.classicSystem)
@@ -82,36 +83,31 @@ class ActorEventsMonitorTest
       )
     }
 
-    it should "terminate actorSystem" in {
-      system.terminate()
-      Await.ready(system.whenTerminated, 5.seconds)
-    }
-
   }
 
   def testMonitor(): Unit = {
 
-    def recordMailboxSize(n: Int, bound: TestBoundMonitor, system: ActorSystem[String]): Unit = {
-      system ! "idle"
-      for (_ <- 0 until n) system ! "Record it"
+    def recordMailboxSize(n: Int, bound: TestBoundMonitor): Unit = {
+      underlyingSystem ! "idle"
+      for (_ <- 0 until n) underlyingSystem ! "Record it"
       val records = bound.mailboxSizeProbe.fishForMessage(3 * PingOffset) {
         case MetricObserved(`n`) => FishingOutcome.Complete
         case _                   => FishingOutcome.ContinueAndIgnore
       }
       records.size should not be (0)
     }
-    
-    "ActorEventsMonitor" should "record mailbox size" in test { (monitor, system) =>
+
+    "ActorEventsMonitor" should "record mailbox size" in test { monitor =>
       val bound = monitor.bind(ActorMetricMonitor.Labels("/user/actorB/idle", None))
-      recordMailboxSize(10, bound, system)
+      recordMailboxSize(10, bound)
       bound.unbind()
     }
 
-    it should "record mailbox size changes" in test { (monitor, system) =>
+    it should "record mailbox size changes" in test { monitor =>
       val bound = monitor.bind(ActorMetricMonitor.Labels("/user/actorB/idle", None))
-      recordMailboxSize(10, bound, system)
+      recordMailboxSize(10, bound)
       Thread.sleep(1000)
-      recordMailboxSize(42, bound, system)
+      recordMailboxSize(42, bound)
       bound.unbind()
     }
 
@@ -164,7 +160,7 @@ class ActorEventsMonitorTest
 
 }
 
-object ActorEventsMonitorTest {
+object ActorEventsMonitorActorTest {
 
   val system: ActorSystem[String] = ActorSystem(
     Behaviors.setup[String] { ctx =>
