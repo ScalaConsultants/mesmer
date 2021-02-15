@@ -83,7 +83,10 @@ lazy val agent = (project in file("agent"))
     assembly / assemblyJarName := "scalac_agent.jar",
     assembly / assemblyOption ~= { _.copy(includeScala = false) },
     assemblyMergeStrategySettings,
-    Test / fork := true
+    Test / fork := true,
+    Test / javaOptions += {
+      s"-javaagent:${assembly.value.absolutePath}"
+    }
   )
   .dependsOn(
     core % "provided->compile;test->test"

@@ -10,14 +10,12 @@ import io.scalac.extension.event.EventBus
 
 trait StashInstrumentation {
 
-  protected def utils: StashInstrumentation.Utils
+  protected val utils: StashInstrumentation.Utils
 
   @OnMethodExit
   def onStashExit(@This stash: Any): Unit = {
-    val size    = utils.getStashSize(stash)
-    val ref     = utils.getActorRef(stash)
-    val context = utils.getContext(stash)
-    publish(size, ref, context)
+    import utils._
+    publish(getStashSize(stash), getActorRef(stash), getContext(stash))
   }
 
   protected def publish(size: Int, ref: ActorRef, context: ActorContext): Unit =

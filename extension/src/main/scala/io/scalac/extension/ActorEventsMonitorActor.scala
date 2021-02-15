@@ -30,15 +30,22 @@ object ActorEventsMonitorActor {
     actorMetricsReader: ActorMetricsReader = ReflectiveActorMetricsReader
   ): Behavior[Command] =
     Behaviors.setup { ctx =>
-      ctx.spawn(
-        AsyncMetricsActor(actorMonitor, node, pingOffset, storage, actorTreeTraverser, actorMetricsReader),
-        "asyncMetricsActor"
-      )
-      ctx.spawn(
+      val syncMetricsActor = ctx.spawn(
         SyncMetricsActor(actorMonitor, node),
         "syncMetricsActor"
       )
-      Behaviors.same
+      val asyncMetricsActor = ctx.spawn(
+        AsyncMetricsActor(actorMonitor, node, pingOffset, storage, actorTreeTraverser, actorMetricsReader),
+        "asyncMetricsActor"
+      )
+      Behaviors.receiveMessage {
+        case msg: SyncMetricsActor.SyncCommand =>
+          syncMetricsActor ! msg
+          Behaviors.same
+        case msg: AsyncMetricsActor.AsyncCommand =>
+          asyncMetricsActor ! msg
+          Behaviors.same
+      }
     }
 
   private object SyncMetricsActor {
@@ -109,22 +116,6 @@ object ActorEventsMonitorActor {
     def start(storage: ActorMetricStorage): Behavior[AsyncCommand] =
       updateActorMetrics(storage)
 
-    private def behavior(storage: ActorMetricStorage): Behavior[AsyncCommand] = {
-      registerUpdaters(storage)
-      Behaviors.receiveMessage {
-        case UpdateActorMetrics => updateActorMetrics(storage)
-      }
-    }
-
-    private def registerUpdaters(storage: ActorMetricStorage): Unit =
-      storage.foreach {
-        case (key, metrics) =>
-          metrics.mailboxSize.foreach { mailboxSize =>
-            log.trace("Registering a new updater for mailbox size for actor {} with value {}", key, mailboxSize)
-            monitor.bind(Labels(key, node)).mailboxSize.setUpdater(_.observe(mailboxSize))
-          }
-      }
-
     private def updateActorMetrics(storage: ActorMetricStorage): Behavior[AsyncCommand] = {
 
       def traverseActorTree(actor: ActorRef, storage: ActorMetricStorage): ActorMetricStorage =
@@ -146,6 +137,22 @@ object ActorEventsMonitorActor {
 
       behavior(nextStorage)
     }
+
+    private def behavior(storage: ActorMetricStorage): Behavior[AsyncCommand] = {
+      registerUpdaters(storage)
+      Behaviors.receiveMessage {
+        case UpdateActorMetrics => updateActorMetrics(storage)
+      }
+    }
+
+    private def registerUpdaters(storage: ActorMetricStorage): Unit =
+      storage.foreach {
+        case (key, metrics) =>
+          metrics.mailboxSize.foreach { mailboxSize =>
+            log.trace("Registering a new updater for mailbox size for actor {} with value {}", key, mailboxSize)
+            monitor.bind(Labels(key, node)).mailboxSize.setUpdater(_.observe(mailboxSize))
+          }
+      }
   }
 
   trait ActorTreeTraverser {

@@ -53,8 +53,8 @@ class ActorEventsMonitorActorTest
     )
 
   // ** MAIN **
-  testActorTreeRunner(ReflectiveActorTreeTraverser)
-  testMonitor()
+  // testActorTreeRunner(ReflectiveActorTreeTraverser)
+  // testMonitor()
 
   def testActorTreeRunner(actorTreeRunner: ActorTreeTraverser): Unit = {
 

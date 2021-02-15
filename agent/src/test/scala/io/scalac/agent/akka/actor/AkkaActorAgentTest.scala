@@ -7,13 +7,10 @@ import akka.actor.testkit.typed.scaladsl.{ ScalaTestWithActorTestKit, TestProbe 
 import akka.actor.typed.Behavior
 import akka.actor.typed.receptionist.Receptionist
 import akka.actor.typed.receptionist.Receptionist.{ Deregister, Register }
+import akka.actor.typed.scaladsl.adapter._
 import akka.actor.typed.scaladsl.{ Behaviors, StashBuffer }
 import akka.{ actor => classic }
-import akka.actor.typed.scaladsl.adapter._
 
-import net.bytebuddy.ByteBuddy
-import net.bytebuddy.agent.ByteBuddyAgent
-import net.bytebuddy.agent.builder.AgentBuilder
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.flatspec.AnyFlatSpecLike
 
@@ -30,15 +27,6 @@ class AkkaActorAgentTest
 
   import AkkaActorAgentTest._
 
-  override def beforeAll(): Unit = {
-    super.beforeAll()
-    val instrumentation = ByteBuddyAgent.install()
-    val builder = new AgentBuilder.Default()
-      .`with`(new ByteBuddy())
-    val modules = Map(AkkaActorAgent.moduleName -> AkkaActorAgent.defaultVersion)
-    AkkaActorAgent.agent.installOn(builder, instrumentation, modules)
-  }
-
   def test(body: Fixture => Any): Any = {
     val monitor = createTestProbe[ActorEvent]
     Receptionist(system).ref ! Register(actorServiceKey, monitor.ref)
@@ -48,8 +36,17 @@ class AkkaActorAgentTest
   }
 
   "AkkaActorAgent" should "record classic stash properly" in test { monitor =>
-    val stashActor                   = system.classicSystem.actorOf(ClassicStashActor.props())
-    val expectStashSize: Int => Unit = createExpectStashSize(monitor, stashActor)
+    val stashActor = system.systemActorOf(
+      Behaviors.setup[String] { ctx =>
+        val classic = ctx.actorOf(ClassicStashActor.props(), "stashActor")
+        Behaviors.receiveMessage { msg =>
+          classic ! msg
+          Behaviors.same
+        }
+      },
+      "classic"
+    )
+    val expectStashSize: Int => Unit = createExpectStashSize(monitor, "/system/classic/stashActor")
     stashActor ! "random"
     expectStashSize(1)
     stashActor ! "42"
@@ -83,9 +80,11 @@ object AkkaActorAgentTest {
 
   type Fixture = TestProbe[ActorEvent]
 
-  def createExpectStashSize[T <: { def path: ActorPath }](monitor: Fixture, ref: T): Int => Unit = {
-    val path = ref.path.toStringWithoutAddress
-    size => monitor.awaitAssert(monitor.expectMessage(2.seconds, StashMeasurement(size, path)))
+  def createExpectStashSize[T <: { def path: ActorPath }](monitor: Fixture, ref: T): Int => Unit =
+    createExpectStashSize(monitor, ref.path.toStringWithoutAddress)
+
+  def createExpectStashSize(monitor: Fixture, path: String): Int => Unit = { size =>
+    monitor.awaitAssert(monitor.expectMessage(5.seconds, StashMeasurement(size, path)))
   }
 
   object ClassicStashActor {

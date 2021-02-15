@@ -15,10 +15,6 @@ import com.typesafe.config.{ Config, ConfigFactory }
 import io.scalac.extension.httpServiceKey
 import io.scalac.extension.event.HttpEvent
 import io.scalac.extension.event.HttpEvent.{ RequestCompleted, RequestStarted }
-import net.bytebuddy.ByteBuddy
-import net.bytebuddy.agent.ByteBuddyAgent
-import net.bytebuddy.agent.builder.AgentBuilder
-import net.bytebuddy.dynamic.scaffold.TypeValidation
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
@@ -56,15 +52,4 @@ class AkkaHttpAgentTest extends AnyFlatSpec with ScalatestRouteTest with Matcher
     monitor.expectMessageType[RequestCompleted]
   }
 
-  override protected def beforeAll(): Unit = {
-    super.beforeAll()
-    val instrumentation = ByteBuddyAgent.install()
-
-    val builder = new AgentBuilder.Default()
-      .`with`(new ByteBuddy().`with`(TypeValidation.DISABLED))
-
-    val modules = Map(AkkaHttpAgent.moduleName -> AkkaHttpAgent.defaultVersion)
-
-    AkkaHttpAgent.agent.installOn(builder, instrumentation, modules)
-  }
 }

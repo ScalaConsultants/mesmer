@@ -1,13 +1,7 @@
 package io.scalac.agent.akka.actor
 
 import akka.actor.{ ActorContext, ActorRef }
-import akka.actor.typed.scaladsl.adapter._
 import akka.dispatch.Envelope
-
-import net.bytebuddy.asm.Advice._
-
-import io.scalac.extension.event.ActorEvent.StashMeasurement
-import io.scalac.extension.event.EventBus
 
 class ClassicStashInstrumentation
 object ClassicStashInstrumentation extends StashInstrumentation {
