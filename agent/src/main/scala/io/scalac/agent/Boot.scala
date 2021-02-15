@@ -1,13 +1,14 @@
 package io.scalac.agent
 
-import java.lang.instrument.Instrumentation
-
 import io.scalac.agent.akka.http.AkkaHttpAgent
 import io.scalac.agent.akka.persistence.AkkaPersistenceAgent
+import io.scalac.agent.akka.stream.AkkaStreamAgent
 import io.scalac.core.util.ModuleInfo
 import net.bytebuddy.ByteBuddy
 import net.bytebuddy.agent.builder.AgentBuilder
 import net.bytebuddy.dynamic.scaffold.TypeValidation
+
+import java.lang.instrument.Instrumentation
 
 object Boot {
 
@@ -21,7 +22,7 @@ object Boot {
       )
       .`with`(AgentBuilder.InstallationListener.StreamWriting.toSystemOut)
 
-    val allInstrumentations = AkkaPersistenceAgent.agent ++ AkkaHttpAgent.agent
+    val allInstrumentations = AkkaPersistenceAgent.agent ++ AkkaHttpAgent.agent ++ AkkaStreamAgent.agent
     val moduleInfo          = ModuleInfo.extractModulesInformation(Thread.currentThread().getContextClassLoader)
 
     allInstrumentations
