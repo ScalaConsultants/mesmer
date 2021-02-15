@@ -1,18 +1,21 @@
 package io.scalac.extension
 
-import scala.collection.immutable
-import scala.concurrent.duration._
-
 import akka.actor.typed.Behavior
+import akka.actor.typed.receptionist.Receptionist.Register
 import akka.actor.typed.scaladsl.{ ActorContext, Behaviors, TimerScheduler }
 import akka.actor.{ ActorRef, ActorRefProvider, ActorSystem }
-
+import io.scalac.core.Tag
 import io.scalac.core.util.Timestamp
+import io.scalac.extension.ActorEventsMonitorActor.Command.{ AddTag, UpdateActorMetrics }
 import io.scalac.extension.ActorEventsMonitorActor._
 import io.scalac.extension.actor.{ ActorMetricStorage, ActorMetrics }
+import io.scalac.extension.event.TagEvent
 import io.scalac.extension.metric.ActorMetricMonitor
 import io.scalac.extension.metric.ActorMetricMonitor.Labels
-import io.scalac.extension.model.Node
+import io.scalac.extension.model.{ ActorKey, Node }
+
+import scala.collection.{ immutable, mutable }
+import scala.concurrent.duration._
 
 class ActorEventsMonitorActor(
   monitor: ActorMetricMonitor,
@@ -23,8 +26,10 @@ class ActorEventsMonitorActor(
   actorTreeRunner: ActorTreeTraverser = ReflectiveActorTreeTraverser,
   actorMetricsReader: ActorMetricsReader = ReflectiveActorMetricsReader
 ) {
-  import ctx.log
   import ActorEventsMonitorActor._
+  import ctx.log
+
+  private[this] val actorTags: mutable.Map[ActorKey, mutable.Set[Tag]] = mutable.Map.empty
 
   def start(storage: ActorMetricStorage): Behavior[Command] =
     updateActorMetrics(storage)
@@ -32,7 +37,26 @@ class ActorEventsMonitorActor(
   private def behavior(storage: ActorMetricStorage): Behavior[Command] = {
     registerUpdaters(storage)
     Behaviors.receiveMessage {
-      case UpdateActorMetrics => updateActorMetrics(storage)
+      case UpdateActorMetrics =>
+        cleanTags(storage)
+        updateActorMetrics(storage)
+      case AddTag(ref, tag) =>
+        ctx.log.trace(s"Add tags {} for actor {}", tag, ref)
+        actorTags
+          .getOrElseUpdate(storage.actorToKey(ref), mutable.Set.empty)
+          .add(tag)
+        Behaviors.same
+    }
+  }
+
+  /**
+   * Clean tags that wasn't found in last actor tree traversal
+   * @param storage
+   */
+  private def cleanTags(storage: ActorMetricStorage): Unit = actorTags.keys.foreach { key =>
+    actorTags.updateWith(key) {
+      case s @ Some(_) if storage.has(key) => s
+      case _                               => None
     }
   }
 
@@ -41,6 +65,7 @@ class ActorEventsMonitorActor(
       case (key, metrics) =>
         metrics.mailboxSize.foreach { mailboxSize =>
           log.trace("Registering a new updater for mailbox size for actor {} with value {}", key, mailboxSize)
+          actorTags.get(key)
           monitor.bind(Labels(key, node)).mailboxSize.setUpdater(_.observe(mailboxSize))
         }
     }
@@ -71,7 +96,10 @@ class ActorEventsMonitorActor(
 object ActorEventsMonitorActor {
 
   sealed trait Command
-  final case object UpdateActorMetrics extends Command
+  object Command {
+    final case object UpdateActorMetrics                                                   extends Command
+    final private[ActorEventsMonitorActor] case class AddTag(actorRef: ActorRef, tag: Tag) extends Command
+  }
 
   def apply(
     actorMonitor: ActorMetricMonitor,
@@ -83,6 +111,9 @@ object ActorEventsMonitorActor {
   ): Behavior[Command] =
     Behaviors.setup { ctx =>
       Behaviors.withTimers { scheduler =>
+        ctx.system.receptionist ! Register(tagServiceKey, ctx.messageAdapter[TagEvent] {
+          case TagEvent(ref, tag) => AddTag(ref, tag)
+        })
         new ActorEventsMonitorActor(actorMonitor, node, pingOffset, ctx, scheduler, actorTreeRunner, actorMetricsReader)
           .start(storage)
       }
