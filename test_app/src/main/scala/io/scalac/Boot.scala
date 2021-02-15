@@ -92,7 +92,7 @@ object Boot extends App with FailFastCirceSupport with JsonCodecs {
 
     val binding = Http()
       .newServerAt(host, port)
-      .bind(accountRoutes.routes ~ metricsRoutes)
+      .bind(metricsRoutes ~ accountRoutes.routes)
 
     StdIn.readLine()
 
