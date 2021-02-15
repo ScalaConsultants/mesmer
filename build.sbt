@@ -41,9 +41,8 @@ lazy val extension = (project in file("extension"))
   .settings(
     parallelExecution in Test := true,
     name := "akka-monitoring-extension",
-    libraryDependencies ++= akka ++ openTelemetryApi ++ akkaTestkit ++ scalatest ++ logback
-      .map(_ % Test) ++ akkaMultiNodeTestKit
-      ++ newRelicSdk ++ openTelemetrySdk
+    libraryDependencies ++= akka ++ openTelemetryApi ++ akkaTestkit ++ scalatest ++ akkaMultiNodeTestKit ++ newRelicSdk ++ openTelemetrySdk ++
+      logback.map(_ % Test)
   )
   .dependsOn(core % "compile->compile;test->test")
 

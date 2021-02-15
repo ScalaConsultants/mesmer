@@ -50,7 +50,7 @@ object PersistenceEventsActor {
             recoveryStorage
               .recoveryFinished(finished)
               .fold {
-                ctx.log.error(s"Got recovery finished event for actor {} but no related recovery started found", path)
+                ctx.log.error("Got recovery finished event for actor {} but no related recovery started found", path)
                 Behaviors.same[Event]
               } {
                 case (storage, duration) => {
@@ -72,7 +72,7 @@ object PersistenceEventsActor {
               .persistEventFinished(finished)
               .fold {
                 ctx.log
-                  .error(s"Got persisting event finished for {} but no related initiated event found", persistenceId)
+                  .error("Got persisting event finished for {} but no related initiated event found", persistenceId)
                 Behaviors.same[Event]
               } {
                 case (storage, duration) => {

@@ -15,7 +15,7 @@ case class AkkaMonitoringConfig(
 
 case class BootSettings(metricsBackend: Boolean)
 
-case class AutoStartSettings(akkaHttp: Boolean, akkaPersistence: Boolean, akkaCluster: Boolean)
+case class AutoStartSettings(akkaActor: Boolean, akkaHttp: Boolean, akkaPersistence: Boolean, akkaCluster: Boolean)
 
 // TODO Wouldn't be better to set the uri instead of region?
 case class BackendSettings(name: String, region: String, apiKey: String, serviceName: String)
@@ -24,7 +24,7 @@ object AkkaMonitoringConfig {
 
   import config.ConfigurationUtils._
 
-  private val autoStartDefaults        = AutoStartSettings(akkaHttp = false, akkaCluster = false, akkaPersistence = false)
+  private val autoStartDefaults        = AutoStartSettings(akkaActor = false, akkaHttp = false, akkaCluster = false, akkaPersistence = false)
   private val bootSettingsDefaults     = BootSettings(false)
   private val cleaningSettingsDefaults = CleaningSettings(20.seconds, 5.second)
 
@@ -40,12 +40,13 @@ object AkkaMonitoringConfig {
         val autoStartSettings = monitoringConfig
           .tryValue("auto-start")(_.getConfig)
           .map { autoStartConfig =>
-            val akkaHttp = autoStartConfig.tryValue("akka-http")(_.getBoolean).getOrElse(autoStartDefaults.akkaHttp)
+            val akkaActor = autoStartConfig.tryValue("akka-actor")(_.getBoolean).getOrElse(autoStartDefaults.akkaActor)
+            val akkaHttp  = autoStartConfig.tryValue("akka-http")(_.getBoolean).getOrElse(autoStartDefaults.akkaHttp)
             val akkaPersistence =
               autoStartConfig.tryValue("akka-persistence")(_.getBoolean).getOrElse(autoStartDefaults.akkaPersistence)
             val akkaCluster =
               autoStartConfig.tryValue("akka-cluster")(_.getBoolean).getOrElse(autoStartDefaults.akkaCluster)
-            AutoStartSettings(akkaHttp, akkaPersistence, akkaCluster)
+            AutoStartSettings(akkaActor, akkaHttp, akkaPersistence, akkaCluster)
           }
           .getOrElse(autoStartDefaults)
 

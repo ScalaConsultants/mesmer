@@ -15,10 +15,11 @@ trait Counter[T] extends UpCounter[T] {
 }
 
 trait MetricObserver[T] extends Metric[T] {
-  def setUpdater(cb: MetricObserver.Result[T] => Unit)
+  def setUpdater(updater: MetricObserver.Updater[T])
 }
 
 object MetricObserver {
+  type Updater[T] = MetricObserver.Result[T] => Unit
   trait Result[T] {
     def observe(value: T): Unit
   }
