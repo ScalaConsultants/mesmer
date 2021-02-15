@@ -65,8 +65,12 @@ class ActorEventsMonitorActor(
       case (key, metrics) =>
         metrics.mailboxSize.foreach { mailboxSize =>
           log.trace("Registering a new updater for mailbox size for actor {} with value {}", key, mailboxSize)
-          actorTags.get(key)
-          monitor.bind(Labels(key, node)).mailboxSize.setUpdater(_.observe(mailboxSize))
+
+          val tags = actorTags.get(key).fold[Set[Tag]](Set.empty)(_.toSet)
+          monitor
+            .bind(Labels(key, node, tags))
+            .mailboxSize
+            .setUpdater(_.observe(mailboxSize))
         }
     }
 
