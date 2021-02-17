@@ -1,6 +1,6 @@
 package io.scalac.agent.akka.stream
 
-import akka.ExtendedActorMaterializerOps
+import akka.AkkaMirrorTypes
 import akka.actor.ActorRef
 import akka.actor.typed.scaladsl.adapter._
 import io.scalac.core.Tag
@@ -10,6 +10,6 @@ class PhasedFusingActorMeterializerAdvice
 object PhasedFusingActorMeterializerAdvice {
 
   @OnMethodExit
-  def getPhases(@Return ref: ActorRef, @This self: ExtendedActorMaterializerOps.Type): Unit =
+  def getPhases(@Return ref: ActorRef, @This self: AkkaMirrorTypes.ExtendedActorMaterializerMirror): Unit =
     EventBus(self.system.toTyped).publishEvent(TagEvent(ref, Tag.stream))
 }
