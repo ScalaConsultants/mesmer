@@ -30,7 +30,7 @@
 
     <logger name="akka" level="WARN"/>
     <logger name="slick" level="INFO"/>
-    <logger name="io.scalac.extension" level="TRACE"/>
+    <logger name="io.scalac.extension" level="INFO"/>
 
     <root level="INFO">
         <appender-ref ref="ASYNCFILE"/>

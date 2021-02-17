@@ -4,8 +4,8 @@ import akka.actor.typed.Behavior
 import akka.actor.typed.receptionist.Receptionist.Register
 import akka.actor.typed.scaladsl.{ ActorContext, Behaviors, TimerScheduler }
 import akka.actor.{ ActorRef, ActorRefProvider, ActorSystem }
-import io.scalac.core.Tag
 import io.scalac.core.util.Timestamp
+import io.scalac.core.{ PushMetrics, Tag }
 import io.scalac.extension.ActorEventsMonitorActor.Command.{ AddTag, UpdateActorMetrics }
 import io.scalac.extension.ActorEventsMonitorActor._
 import io.scalac.extension.actor.{ ActorMetricStorage, ActorMetrics }
@@ -31,6 +31,8 @@ class ActorEventsMonitorActor(
 
   private[this] val actorTags: mutable.Map[ActorKey, mutable.Set[Tag]] = mutable.Map.empty
 
+  private[this] var refs: List[ActorRef] = Nil
+
   def start(storage: ActorMetricStorage): Behavior[Command] =
     updateActorMetrics(storage)
 
@@ -42,6 +44,7 @@ class ActorEventsMonitorActor(
         updateActorMetrics(storage)
       case AddTag(ref, tag) =>
         ctx.log.trace(s"Add tags {} for actor {}", tag, ref)
+        refs ::= ref
         actorTags
           .getOrElseUpdate(storage.actorToKey(ref), mutable.Set.empty)
           .add(tag)
@@ -90,6 +93,9 @@ class ActorEventsMonitorActor(
       )
 
     traverseActorTree(actorTreeRunner.getRootGuardian(ctx.system.classicSystem), storage)
+
+    log.info("Pushing metrics to all stream actors")
+    refs.foreach(_ ! PushMetrics)
 
     scheduler.startSingleTimer(UpdateActorMetrics, pingOffset)
 

@@ -9,8 +9,5 @@ public class GraphInterpreterPushAdvice {
             @Advice.FieldValue(value = "pushCounter", readOnly = false) int counter
     ) {
         counter += 1;
-        if (counter % 10 == 0) {
-            System.out.println("Pushed next 10");
-        }
     }
 }

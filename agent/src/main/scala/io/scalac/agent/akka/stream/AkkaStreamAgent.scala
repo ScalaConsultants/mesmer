@@ -1,7 +1,7 @@
 package io.scalac.agent.akka.stream
 
-import akka.GraphInterpreterPushAdvice
 import akka.actor.Props
+import akka.{ ActorGraphInterpreterAdvice, GraphInterpreterPushAdvice }
 import io.scalac.agent.Agent.LoadingResult
 import io.scalac.agent.{ Agent, AgentInstrumentation }
 import io.scalac.core.model.{ Module, SupportedModules, SupportedVersion }
@@ -48,11 +48,30 @@ object AkkaStreamAgent {
             named[MethodDescription]("processPush")
           )
           .intercept(Advice.to(classOf[GraphInterpreterPushAdvice]))
+
       }
       .installOn(instrumentation)
     LoadingResult("akka.stream.impl.fusing.GraphInterpreter")
   }
 
-  val agent = Agent(phasedFusingActorMeterializerAgent, graphInterpreterAgent)
+  private val actorGraphInterpreterAgent = AgentInstrumentation(
+    "akka.stream.impl.fusing.ActorGraphInterpreter",
+    SupportedModules(moduleName, SupportedVersion.any)
+  ) { (agentBuilder, instrumentation, _) =>
+    val types = TypePool.Default.ofSystemLoader()
+    agentBuilder
+      .`type`(named[TypeDescription]("akka.stream.impl.fusing.ActorGraphInterpreter"))
+      .transform { (builder, _, _, _) =>
+        builder
+          .method(
+            named[MethodDescription]("receive")
+          )
+          .intercept(Advice.to(classOf[ActorGraphInterpreterAdvice]))
+      }
+      .installOn(instrumentation)
+    LoadingResult("akka.stream.impl.fusing.ActorGraphInterpreter")
+  }
+
+  val agent = Agent(phasedFusingActorMeterializerAgent, actorGraphInterpreterAgent, graphInterpreterAgent)
 
 }
