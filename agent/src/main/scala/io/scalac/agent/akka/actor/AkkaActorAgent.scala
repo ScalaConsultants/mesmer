@@ -31,15 +31,16 @@ object AkkaActorAgent {
         .transform { (builder, _, _, _) =>
           val advice = Advice.to(classOf[ClassicStashInstrumentation])
           builder
-            .method(named[MethodDescription]("stash"))
-            .intercept(advice)
-            .method(named[MethodDescription]("prepend"))
-            .intercept(advice)
-            .method(named[MethodDescription]("unstash"))
-            .intercept(advice)
-            .method(named[MethodDescription]("unstashAll").and(takesArguments[MethodDescription](1)))
-            .intercept(advice)
-            .method(named[MethodDescription]("clearStash"))
+            .method(
+              named[MethodDescription]("stash")
+                .or(named[MethodDescription]("prepend"))
+                .or(named[MethodDescription]("unstash"))
+                .or(
+                  named[MethodDescription]("unstashAll")
+                    .and(takesArguments[MethodDescription](1))
+                )
+                .or(named[MethodDescription]("clearStash"))
+            )
             .intercept(advice)
         }
         .installOn(instrumentation)
@@ -60,13 +61,14 @@ object AkkaActorAgent {
         .transform { (builder, _, _, _) =>
           val advice = Advice.to(classOf[TypeStashInstrumentation])
           builder
-            .method(named[MethodDescription]("stash"))
-            .intercept(advice)
-            .method(named[MethodDescription]("clear"))
-            .intercept(advice)
             .method(
-              named[MethodDescription]("unstash")
-                .and(takesArguments(classOf[Behavior[_]], classOf[Int], classOf[Function1[_, _]]))
+              named[MethodDescription]("stash")
+                .or(named[MethodDescription]("clear"))
+                .or(
+                  named[MethodDescription]("unstash")
+                  // since there're two `unstash` methods, we need to specify paramter types
+                    .and(takesArguments(classOf[Behavior[_]], classOf[Int], classOf[Function1[_, _]]))
+                )
             )
             .intercept(advice)
         }
