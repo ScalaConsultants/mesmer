@@ -1,0 +1,92 @@
+fullnameOverride: "monitoring"
+
+prometheusOperator:
+    tls:
+      enabled: false
+    admissionWebhooks:
+      enabled: false
+      
+defaultRules:
+  rules:
+    kubeApiserver: false #long rules evaluation times
+prometheus:
+  prometheusSpec:
+    query:
+      maxSamples: 100000000
+    serviceMonitorSelectorNilUsesHelmValues: false
+    ruleSelectorNilUsesHelmValues: false
+    retentionSize: 45GB
+    storageSpec:
+      volumeClaimTemplate:
+        spec:
+          accessModes: ["ReadWriteOnce"]
+          resources:
+            requests:
+              storage: 50Gi
+    additionalScrapeConfigs:
+    - job_name: accounts-app-metrics
+      scrape_interval: 60s
+      metrics_path: /metrics
+      static_configs:
+      - targets: ['testapp-service.accounts.svc.cluster.local:8081']
+      
+      
+
+  ingress:
+    enabled: true
+    hosts:
+        - prometheus.akka-metrics.scalac.io
+    annotations:
+      nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+      nginx.ingress.kubernetes.io/ssl-redirect: "true"
+      nginx.ingress.kubernetes.io/auth-type: basic
+      nginx.ingress.kubernetes.io/auth-secret: basic-auth
+
+alertmanager:
+    alertmanagerSpec:
+      replicas: 1
+    config:
+      #global:
+        #slack_api_url: ''
+      route:
+        # When a new group of alerts is created by an incoming alert, wait at
+        # least 'group_wait' to send the initial notification.
+        # This way ensures that you get multiple alerts for the same group that start
+        # firing shortly after another are batched together on the first
+        # notification.
+        group_wait: 30s
+        # When the first notification was sent, wait 'group_interval' to send a batch
+        # of new alerts that started firing for that group.
+        group_interval: 3m
+        # If an alert has successfully been sent, wait 'repeat_interval' to
+        # resend them.
+        repeat_interval: 30m
+    ingress:
+      enabled: true
+      hosts:
+        - alertmanager.akka-metrics.scalac.io
+      annotations:
+        nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+        nginx.ingress.kubernetes.io/ssl-redirect: "true"
+        nginx.ingress.kubernetes.io/auth-type: basic
+        nginx.ingress.kubernetes.io/auth-secret: basic-auth
+
+
+grafana:
+  replicas: 1
+  rbac:
+    pspUseAppArmor: false
+  ingress:
+    enabled: true
+    hosts:
+        - grafana.akka-metrics.scalac.io
+    annotations:
+      nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+      nginx.ingress.kubernetes.io/ssl-redirect: "true"
+kubeControllerManager:
+  enabled: false
+kubeScheduler:
+  enabled: false
+kubelet:
+  serviceMonitor:
+    https: false
