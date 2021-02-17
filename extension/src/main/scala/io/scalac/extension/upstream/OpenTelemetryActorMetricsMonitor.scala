@@ -3,21 +3,44 @@ package io.scalac.extension.upstream
 import com.typesafe.config.Config
 import io.opentelemetry.api.OpenTelemetry
 import io.opentelemetry.api.common.Labels
-import io.opentelemetry.api.metrics.{ AsynchronousInstrument, Meter }
 
-import io.scalac.extension.metric.{ ActorMetricMonitor, MetricObserver, MetricRecorder, Unbind }
+import io.scalac.extension.metric.{ ActorMetricMonitor, MetricObserver, MetricRecorder }
 import io.scalac.extension.upstream.OpenTelemetryActorMetricsMonitor.MetricNames
 import io.scalac.extension.upstream.opentelemetry._
 
 object OpenTelemetryActorMetricsMonitor {
 
   case class MetricNames(mailboxSize: String, stashSize: String)
-  object MetricNames
-      extends MetricNamesCompanion[MetricNames](
-        "io.scalac.akka-monitoring.metrics.actor-metrics",
-        Seq("mailbox-size", "stash-size")
-      ) {
-    override protected def argsApply(args: Seq[String]): MetricNames = apply(args.head, args(1))
+  object MetricNames {
+
+    def default: MetricNames =
+      MetricNames(
+        "mailbox_size",
+        "stash_size"
+      )
+
+    def fromConfig(config: Config): MetricNames = {
+      import io.scalac.extension.config.ConfigurationUtils._
+      val defaultCached = default
+
+      config
+        .tryValue("io.scalac.akka-monitoring.metrics.actor-metrics")(
+          _.getConfig
+        )
+        .map { clusterMetricsConfig =>
+          val mailboxSize = clusterMetricsConfig
+            .tryValue("mailbox-size")(_.getString)
+            .getOrElse(defaultCached.mailboxSize)
+
+          val stashSize = clusterMetricsConfig
+            .tryValue("stash-size")(_.getString)
+            .getOrElse(defaultCached.stashSize)
+
+          MetricNames(mailboxSize, stashSize)
+        }
+        .getOrElse(defaultCached)
+    }
+
   }
 
   def apply(instrumentationName: String, config: Config): OpenTelemetryActorMetricsMonitor =
