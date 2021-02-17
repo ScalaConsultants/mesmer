@@ -1,6 +1,7 @@
 package io.scalac.agent.akka.actor
 
-import java.lang.invoke.{ MethodHandles, MethodType }
+import java.lang.invoke.MethodHandles
+import java.lang.invoke.MethodType.methodType
 
 import akka.actor.{ ActorContext, ActorRef }
 
@@ -12,17 +13,14 @@ object ClassicStashInstrumentation extends StashInstrumentation {
 
     private val stashSupportClass = Class.forName("akka.actor.StashSupport")
 
-    private val theStashMethodHandle = {
-      val theStash = stashSupportClass.getDeclaredMethod("akka$actor$StashSupport$$theStash")
-      theStash.setAccessible(true)
-      lookup.unreflect(theStash)
-    }
+    private val theStashMethodHandle =
+      lookup.findVirtual(stashSupportClass, "akka$actor$StashSupport$$theStash", methodType(classOf[Vector[_]]))
 
     private val getSelfMethodHandle =
-      lookup.findVirtual(stashSupportClass, "self", MethodType.methodType(classOf[ActorRef]))
+      lookup.findVirtual(stashSupportClass, "self", methodType(classOf[ActorRef]))
 
     private val getContextMethodHandle =
-      lookup.findVirtual(stashSupportClass, "context", MethodType.methodType(classOf[ActorContext]))
+      lookup.findVirtual(stashSupportClass, "context", methodType(classOf[ActorContext]))
 
     def getStashSize(stashSupport: Any): Int =
       theStashMethodHandle.invoke(stashSupport).asInstanceOf[Vector[_]].length
