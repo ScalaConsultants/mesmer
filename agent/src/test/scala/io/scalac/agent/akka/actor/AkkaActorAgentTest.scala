@@ -12,7 +12,6 @@ import akka.actor.typed.scaladsl.adapter._
 import akka.actor.typed.scaladsl.{ Behaviors, StashBuffer }
 import akka.{ actor => classic }
 
-import org.scalatest.BeforeAndAfterAll
 import org.scalatest.flatspec.AnyFlatSpecLike
 
 import io.scalac.extension.actorServiceKey
@@ -23,7 +22,6 @@ import io.scalac.extension.util.ReceptionistOps
 class AkkaActorAgentTest
     extends ScalaTestWithActorTestKit(classic.ActorSystem("AkkaActorAgentTest").toTyped)
     with AnyFlatSpecLike
-    with BeforeAndAfterAll
     with ReceptionistOps {
 
   import AkkaActorAgentTest._
