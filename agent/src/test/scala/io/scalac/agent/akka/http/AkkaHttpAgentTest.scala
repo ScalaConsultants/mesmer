@@ -12,6 +12,7 @@ import akka.http.scaladsl.testkit.{ RouteTestTimeout, ScalatestRouteTest }
 import akka.util.Timeout
 
 import com.typesafe.config.{ Config, ConfigFactory }
+
 import io.scalac.extension.httpServiceKey
 import io.scalac.extension.event.HttpEvent
 import io.scalac.extension.event.HttpEvent.{ RequestCompleted, RequestStarted }
@@ -21,11 +22,28 @@ import org.scalatest.matchers.should.Matchers
 import scala.concurrent.duration._
 import scala.language.postfixOps
 
+import net.bytebuddy.ByteBuddy
+import net.bytebuddy.agent.ByteBuddyAgent
+import net.bytebuddy.agent.builder.AgentBuilder
+import net.bytebuddy.dynamic.scaffold.TypeValidation
+
+import io.scalac.agent.utils.AgentDetector
+
 class AkkaHttpAgentTest extends AnyFlatSpec with ScalatestRouteTest with Matchers with BeforeAndAfterAll {
 
   // implicit val askTimeout = Timeout(1 minute)
 
   override def testConfig: Config = ConfigFactory.load("application-test")
+
+  override protected def beforeAll(): Unit = {
+    super.beforeAll()
+    AgentDetector.ifAgentIsNotPresent {
+      val instrumentation = ByteBuddyAgent.install()
+      val builder         = new AgentBuilder.Default().`with`(new ByteBuddy().`with`(TypeValidation.DISABLED))
+      val modules         = Map(AkkaHttpAgent.moduleName -> AkkaHttpAgent.defaultVersion)
+      AkkaHttpAgent.agent.installOn(builder, instrumentation, modules)
+    }
+  }
 
   type Fixture = TestProbe[HttpEvent]
 

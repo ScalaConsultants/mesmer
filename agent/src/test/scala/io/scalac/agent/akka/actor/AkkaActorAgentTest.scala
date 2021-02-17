@@ -12,8 +12,12 @@ import akka.actor.typed.scaladsl.adapter._
 import akka.actor.typed.scaladsl.{ Behaviors, StashBuffer }
 import akka.{ actor => classic }
 
+import net.bytebuddy.agent.ByteBuddyAgent
+import net.bytebuddy.agent.builder.AgentBuilder
+import org.scalatest.BeforeAndAfterAll
 import org.scalatest.flatspec.AnyFlatSpecLike
 
+import io.scalac.agent.utils.AgentDetector
 import io.scalac.extension.actorServiceKey
 import io.scalac.extension.event.ActorEvent
 import io.scalac.extension.event.ActorEvent.StashMeasurement
@@ -22,9 +26,20 @@ import io.scalac.extension.util.ReceptionistOps
 class AkkaActorAgentTest
     extends ScalaTestWithActorTestKit(classic.ActorSystem("AkkaActorAgentTest").toTyped)
     with AnyFlatSpecLike
+    with BeforeAndAfterAll
     with ReceptionistOps {
 
   import AkkaActorAgentTest._
+
+  override def beforeAll(): Unit = {
+    super.beforeAll()
+    AgentDetector.ifAgentIsNotPresent {
+      val instrumentation = ByteBuddyAgent.install()
+      val builder         = new AgentBuilder.Default()
+      val modules         = Map(AkkaActorAgent.moduleName -> AkkaActorAgent.defaultVersion)
+      AkkaActorAgent.agent.installOn(builder, instrumentation, modules)
+    }
+  }
 
   def test(body: Fixture => Any): Any = {
     val monitor = createTestProbe[ActorEvent]

@@ -6,8 +6,9 @@ import _root_.akka.actor.testkit.typed.scaladsl.{ ScalaTestWithActorTestKit, Tes
 import _root_.akka.actor.typed.receptionist.Receptionist
 import _root_.akka.actor.typed.receptionist.Receptionist.{ Deregister, Register }
 import _root_.akka.util.Timeout
+
 import io.scalac.extension.persistenceServiceKey
-import io.scalac.agent.utils.DummyEventSourcedActor
+import io.scalac.agent.utils.{ AgentDetector, DummyEventSourcedActor }
 import io.scalac.agent.utils.DummyEventSourcedActor.{ DoNothing, Persist }
 import io.scalac.extension.event.PersistenceEvent
 import io.scalac.extension.event.PersistenceEvent._
@@ -17,8 +18,11 @@ import org.scalatest.flatspec.AnyFlatSpecLike
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.time.{ Minute, Second, Span }
 import org.scalatest.{ BeforeAndAfterAll, OptionValues }
-
 import scala.concurrent.duration._
+
+import net.bytebuddy.agent.ByteBuddyAgent
+import net.bytebuddy.agent.builder.AgentBuilder
+
 class AkkaPersistenceAgentSpec
     extends ScalaTestWithActorTestKit
     with AnyFlatSpecLike
@@ -33,6 +37,16 @@ class AkkaPersistenceAgentSpec
     PatienceConfig(scaled(Span(1, Minute)), scaled(Span(1, Second)))
 
   type Fixture = TestProbe[PersistenceEvent]
+
+  override protected def beforeAll(): Unit = {
+    super.beforeAll()
+    AgentDetector.ifAgentIsNotPresent {
+      val instrumentation = ByteBuddyAgent.install()
+      val builder         = new AgentBuilder.Default()
+      val modules         = Map(AkkaPersistenceAgent.moduleName -> AkkaPersistenceAgent.defaultVersion)
+      AkkaPersistenceAgent.agent.installOn(builder, instrumentation, modules)
+    }
+  }
 
   def test(body: Fixture => Any): Any = {
     val monitor = createTestProbe[PersistenceEvent]
