@@ -18,7 +18,7 @@ trait StashInstrumentation {
     publish(getStashSize(stash), getActorRef(stash), getContext(stash))
   }
 
-  protected def publish(size: Int, ref: ActorRef, context: ActorContext): Unit =
+  @inline protected def publish(size: Int, ref: ActorRef, context: ActorContext): Unit =
     EventBus(context.system.toTyped).publishEvent(StashMeasurement(size, ref.path.toStringWithoutAddress))
 
 }
