@@ -13,16 +13,18 @@ object TypeStashInstrumentation extends StashInstrumentation {
 
     private val stashBufferImplClass = Class.forName("akka.actor.typed.internal.StashBufferImpl")
 
-    private val sizeReflectively =
+    private val sizeMethodHandle =
       lookup.findVirtual(stashBufferImplClass, "size", methodType(classOf[Int]))
 
+    // Disclaimer:  The way we access the context of and StashBufferImpl is a quite ugly because it's an private constructor param.
+    //              We discovered its name during the debug and we aren't sure if this pattern is consistent through the compiler variations and versions.
     private val contextReflectively =
       stashBufferImplClass.getDeclaredField("akka$actor$typed$internal$StashBufferImpl$$ctx")
 
     private val getClassicContextMethodHandle =
       lookup.findVirtual(classOf[ClassicActorContextProvider], "classicActorContext", methodType(classOf[ActorContext]))
 
-    def getStashSize(stash: Any): Int = sizeReflectively.invoke(stash).asInstanceOf[Int]
+    def getStashSize(stash: Any): Int = sizeMethodHandle.invoke(stash).asInstanceOf[Int]
 
     def getActorRef(stash: Any): ActorRef = getContext(stash).self
 

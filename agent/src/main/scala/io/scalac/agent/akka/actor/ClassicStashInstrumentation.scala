@@ -13,6 +13,8 @@ object ClassicStashInstrumentation extends StashInstrumentation {
 
     private val stashSupportClass = Class.forName("akka.actor.StashSupport")
 
+    // Disclaimer:  The way we access the stash vector of and StashSupport is a quite ugly because it's an private field.
+    //              We discovered its name during the debug and we aren't sure if this pattern is consistent through the compiler variations and versions.
     private val theStashMethodHandle =
       lookup.findVirtual(stashSupportClass, "akka$actor$StashSupport$$theStash", methodType(classOf[Vector[_]]))
 
