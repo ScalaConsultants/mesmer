@@ -5,6 +5,7 @@ import scala.concurrent.duration._
 import io.scalac.core.util.Timestamp
 
 class CachedQueryResult[T] private (q: => T, validBy: FiniteDuration = 1.second) {
+  @volatile
   private var lastUpdate: Option[Timestamp] = None
   private var currentValue: Option[T]       = None
 
@@ -15,8 +16,8 @@ class CachedQueryResult[T] private (q: => T, validBy: FiniteDuration = 1.second)
     if (needUpdate) {
       synchronized {
         if (needUpdate) {
-          lastUpdate = Some(now)
           currentValue = Some(q)
+          lastUpdate = Some(now)
         }
       }
     }
