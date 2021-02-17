@@ -6,7 +6,7 @@ import akka.{ actor => classic }
 class TypeStashInstrumentation
 object TypeStashInstrumentation extends StashInstrumentation {
 
-  protected val utils: StashInstrumentation.Utils = new StashInstrumentation.Utils {
+  protected val extractor: StashInstrumentation.Extractor = new StashInstrumentation.Extractor {
     private val stashBufferImplClass = Class.forName("akka.actor.typed.internal.StashBufferImpl")
 
     private val sizeReflectively = stashBufferImplClass.getDeclaredMethod("size")
