@@ -37,28 +37,28 @@ class AkkaActorAgentTest
   "AkkaActorAgent" should "record classic stash properly" in test { monitor =>
     val stashActor                   = system.classicSystem.actorOf(ClassicStashActor.props(), "stashActor")
     val expectStashSize: Int => Unit = createExpectStashSize(monitor, "/user/stashActor")
-    stashActor ! "random"
+    stashActor ! Message("random")
     expectStashSize(1)
-    stashActor ! "42"
+    stashActor ! Message("42")
     expectStashSize(2)
-    stashActor ! "open"
+    stashActor ! Open
     expectStashSize(0)
-    stashActor ! "close"
-    stashActor ! "emanuel"
+    stashActor ! Close
+    stashActor ! Message("emanuel")
     expectStashSize(1)
   }
 
   it should "record typed stash properly" in test { monitor =>
     val stashActor                   = system.systemActorOf(TypedStash(10), "typedStashActor")
     val expectStashSize: Int => Unit = createExpectStashSize(monitor, stashActor)
-    stashActor ! "random"
+    stashActor ! Message("random")
     expectStashSize(1)
-    stashActor ! "42"
+    stashActor ! Message("42")
     expectStashSize(2)
-    stashActor ! "open"
+    stashActor ! Open
     expectStashSize(0)
-    stashActor ! "close"
-    stashActor ! "emanuel"
+    stashActor ! Close
+    stashActor ! Message("emanuel")
     expectStashSize(1)
   }
 
@@ -81,48 +81,54 @@ object AkkaActorAgentTest {
 
   type Fixture = TestProbe[ActorEvent]
 
+  sealed trait Command
+  final case object Open                 extends Command
+  final case object Close                extends Command
+  final case class Message(text: String) extends Command
+
   object ClassicStashActor {
     def props(): classic.Props = classic.Props(new ClassicStashActor)
   }
   class ClassicStashActor extends classic.Actor with classic.Stash {
     def receive: Receive = {
-      case "open" =>
+      case Open =>
         unstashAll()
         context
           .become({
-            case "close" =>
+            case Close =>
               context.unbecome()
-            case msg =>
+            case Message(msg) =>
               println(s"[working on] $msg")
           })
-      case msg =>
-        println(s"[stash] $msg")
+      case Message(text) =>
+        println(s"[stash] $text")
         stash()
     }
   }
 
   object TypedStash {
-    def apply(capacity: Int): Behavior[String] =
+    def apply(capacity: Int): Behavior[Command] =
       Behaviors.withStash(capacity)(buffer => new TypedStash(buffer).closed())
   }
 
-  class TypedStash(buffer: StashBuffer[String]) {
-    private def closed(): Behavior[String] =
-      Behaviors.receiveMessage {
-        case "open" =>
+  class TypedStash(buffer: StashBuffer[Command]) {
+    private def closed(): Behavior[Command] =
+      Behaviors.receiveMessagePartial {
+        case Open =>
           buffer.unstashAll(open())
-        case msg =>
-          println(s"[typed] [stashing] $msg")
-          buffer.stash(msg)
+        case message @ Message(text) =>
+          println(s"[typed] [stashing] $text")
+          buffer.stash(message)
           Behaviors.same
       }
-    private def open(): Behavior[String] = Behaviors.receiveMessage {
-      case "close" =>
-        closed()
-      case msg =>
-        println(s"[typed] [working on] $msg")
-        Behaviors.same
-    }
+    private def open(): Behavior[Command] =
+      Behaviors.receiveMessagePartial {
+        case Close =>
+          closed()
+        case Message(msg) =>
+          println(s"[typed] [working on] $msg")
+          Behaviors.same
+      }
 
   }
 
