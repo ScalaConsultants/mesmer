@@ -1,6 +1,5 @@
 package io.scalac.extension
 
-import scala.concurrent.Await
 import scala.concurrent.duration._
 
 import akka.actor.testkit.typed.FishingOutcome
@@ -25,8 +24,10 @@ import io.scalac.extension.util.probe.ActorMonitorTestProbe.TestBoundMonitor
 import io.scalac.extension.util.probe.BoundTestProbe.{ MetricObserved, MetricRecorded }
 import io.scalac.extension.util.{ MonitorFixture, TestOps }
 
+import ActorEventsMonitorActorTest._
+
 class ActorEventsMonitorActorTest
-    extends ScalaTestWithActorTestKit(ActorEventsMonitorActorTest.system)
+    extends ScalaTestWithActorTestKit(testSystem)
     with AnyFlatSpecLike
     with Matchers
     with Inspectors
@@ -36,7 +37,7 @@ class ActorEventsMonitorActorTest
   type Monitor = ActorMonitorTestProbe
 
   private val PingOffset                 = 2.seconds
-  private val underlyingSystem           = system.asInstanceOf[ActorSystem[String]]
+  private val underlyingSystem           = system.asInstanceOf[ActorSystem[Command]]
   override val serviceKey: ServiceKey[_] = actorServiceKey
 
   override def createMonitor: ActorMonitorTestProbe = new ActorMonitorTestProbe
@@ -53,8 +54,8 @@ class ActorEventsMonitorActorTest
     )
 
   // ** MAIN **
-  // testActorTreeRunner(ReflectiveActorTreeTraverser)
-  // testMonitor()
+  testActorTreeRunner(ReflectiveActorTreeTraverser)
+  testMonitor()
 
   def testActorTreeRunner(actorTreeRunner: ActorTreeTraverser): Unit = {
 
@@ -88,8 +89,8 @@ class ActorEventsMonitorActorTest
   def testMonitor(): Unit = {
 
     def recordMailboxSize(n: Int, bound: TestBoundMonitor): Unit = {
-      underlyingSystem ! "idle"
-      for (_ <- 0 until n) underlyingSystem ! "Record it"
+      underlyingSystem ! Idle
+      for (_ <- 0 until n) underlyingSystem ! Message("Record it")
       val records = bound.mailboxSizeProbe.fishForMessage(3 * PingOffset) {
         case MetricObserved(`n`) => FishingOutcome.Complete
         case _                   => FishingOutcome.ContinueAndIgnore
@@ -116,43 +117,43 @@ class ActorEventsMonitorActorTest
       val bound      = monitor.bind(Labels(stashActor.ref.path.toStringWithoutAddress, None))
       def stashMeasurement(size: Int): Unit =
         EventBus(system).publishEvent(StashMeasurement(size, stashActor.ref.path.toStringWithoutAddress))
-      stashActor ! "random"
+      stashActor ! Message("random")
       stashMeasurement(1)
       bound.stashSizeProbe.awaitAssert(bound.stashSizeProbe.expectMessage(MetricRecorded(1)))
-      stashActor ! "42"
+      stashActor ! Message("42")
       stashMeasurement(2)
       bound.stashSizeProbe.awaitAssert(bound.stashSizeProbe.expectMessage(MetricRecorded(2)))
-      stashActor ! "open"
+      stashActor ! Open
       stashMeasurement(0)
       bound.stashSizeProbe.awaitAssert(bound.stashSizeProbe.expectMessage(MetricRecorded(0)))
-      stashActor ! "close"
-      stashActor ! "emanuel"
+      stashActor ! Close
+      stashActor ! Message("emanuel")
       stashMeasurement(1)
       bound.stashSizeProbe.awaitAssert(bound.stashSizeProbe.expectMessage(MetricRecorded(1)))
     }
   }
 
   object StashActor {
-    def apply(capacity: Int): Behavior[String] =
+    def apply(capacity: Int): Behavior[Command] =
       Behaviors.withStash(capacity)(buffer => new StashActor(buffer).closed())
   }
 
-  class StashActor(buffer: StashBuffer[String]) {
-    private def closed(): Behavior[String] =
-      Behaviors.receiveMessage {
-        case "open" =>
+  class StashActor(buffer: StashBuffer[Command]) {
+    private def closed(): Behavior[Command] =
+      Behaviors.receiveMessagePartial {
+        case Open =>
           buffer.unstashAll(open())
-        case msg =>
-          println(s"[typed] [stashing] $msg")
+        case msg @ Message(text) =>
+          println(s"[typed] [stashing] {}", text)
           buffer.stash(msg)
           Behaviors.same
       }
 
-    private def open(): Behavior[String] = Behaviors.receiveMessage {
-      case "close" =>
+    private def open(): Behavior[Command] = Behaviors.receiveMessagePartial {
+      case Close =>
         closed()
-      case msg =>
-        println(s"[typed] [working on] $msg")
+      case Message(text) =>
+        println(s"[typed] [working on] {}", text)
         Behaviors.same
     }
 
@@ -162,29 +163,34 @@ class ActorEventsMonitorActorTest
 
 object ActorEventsMonitorActorTest {
 
-  val system: ActorSystem[String] = ActorSystem(
-    Behaviors.setup[String] { ctx =>
-      val actorA = ctx.spawn[String](
-        Behaviors.setup[String] { ctx =>
+  sealed trait Command
+  final case object Idle                 extends Command
+  final case object Open                 extends Command
+  final case object Close                extends Command
+  final case class Message(text: String) extends Command
+
+  val testSystem: ActorSystem[Command] = ActorSystem(
+    Behaviors.setup[Command] { ctx =>
+      val actorA = ctx.spawn[Command](
+        Behaviors.setup[Command] { ctx =>
           import ctx.log
           Behaviors.receiveMessage { msg =>
-            log.info(s"[actorA] received a message: $msg")
-
+            log.info(s"[actorA] received a message: {}", msg)
             Behaviors.same
           }
         },
         "actorA"
       )
 
-      val actorB = ctx.spawn[String](
+      val actorB = ctx.spawn[Command](
         Behaviors.setup { ctx =>
           import ctx.log
 
-          val actorBIdle = ctx.spawn[String](
+          val actorBIdle = ctx.spawn[Command](
             Behaviors.setup { ctx =>
               import ctx.log
               Behaviors.receiveMessage {
-                case "idle" =>
+                case Idle =>
                   log.info("[idle] ...")
                   Thread.sleep(5.seconds.toMillis)
                   Behaviors.same
@@ -195,18 +201,18 @@ object ActorEventsMonitorActorTest {
             "idle"
           )
 
-          Behaviors.receiveMessage { msg =>
-            log.info(s"[actorB] received a message: $msg")
-            actorBIdle ! msg
+          Behaviors.receiveMessage { cmd =>
+            log.info(s"[actorB] received a message: {}", cmd)
+            actorBIdle ! cmd
             Behaviors.same
           }
         },
         "actorB"
       )
 
-      Behaviors.receiveMessage { msg =>
-        actorA ! msg
-        actorB ! msg
+      Behaviors.receiveMessage { cmd =>
+        actorA ! cmd
+        actorB ! cmd
         Behaviors.same
       }
     },
