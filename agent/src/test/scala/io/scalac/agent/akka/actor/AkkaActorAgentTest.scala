@@ -16,7 +16,7 @@ import net.bytebuddy.agent.ByteBuddyAgent
 import net.bytebuddy.agent.builder.AgentBuilder
 import org.scalatest.flatspec.AnyFlatSpecLike
 
-import io.scalac.agent.utils.AgentLoaderOps
+import io.scalac.agent.utils.DynamicAgentLoaderOps
 import io.scalac.extension.actorServiceKey
 import io.scalac.extension.event.ActorEvent
 import io.scalac.extension.event.ActorEvent.StashMeasurement
@@ -26,7 +26,7 @@ class AkkaActorAgentTest
     extends ScalaTestWithActorTestKit(classic.ActorSystem("AkkaActorAgentTest").toTyped)
     with AnyFlatSpecLike
     with ReceptionistOps
-    with AgentLoaderOps {
+    with DynamicAgentLoaderOps {
 
   import AkkaActorAgentTest._
 

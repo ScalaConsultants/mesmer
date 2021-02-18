@@ -21,12 +21,12 @@ import net.bytebuddy.dynamic.scaffold.TypeValidation
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
-import io.scalac.agent.utils.AgentLoaderOps
+import io.scalac.agent.utils.DynamicAgentLoaderOps
 import io.scalac.extension.event.HttpEvent
 import io.scalac.extension.event.HttpEvent.{ RequestCompleted, RequestStarted }
 import io.scalac.extension.httpServiceKey
 
-class AkkaHttpAgentTest extends AnyFlatSpec with ScalatestRouteTest with Matchers with AgentLoaderOps {
+class AkkaHttpAgentTest extends AnyFlatSpec with ScalatestRouteTest with Matchers with DynamicAgentLoaderOps {
 
   // implicit val askTimeout = Timeout(1 minute)
 

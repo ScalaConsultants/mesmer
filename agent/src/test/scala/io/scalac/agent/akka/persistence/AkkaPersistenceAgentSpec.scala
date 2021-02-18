@@ -18,7 +18,7 @@ import org.scalatest.matchers.should.Matchers
 import org.scalatest.time.{ Minute, Second, Span }
 
 import io.scalac.agent.utils.DummyEventSourcedActor.{ DoNothing, Persist }
-import io.scalac.agent.utils.{ AgentLoaderOps, DummyEventSourcedActor }
+import io.scalac.agent.utils.{ DummyEventSourcedActor, DynamicAgentLoaderOps }
 import io.scalac.extension.event.PersistenceEvent
 import io.scalac.extension.event.PersistenceEvent._
 import io.scalac.extension.persistenceServiceKey
@@ -31,7 +31,7 @@ class AkkaPersistenceAgentSpec
     with ScalaFutures
     with OptionValues
     with ReceptionistOps
-    with AgentLoaderOps {
+    with DynamicAgentLoaderOps {
 
   implicit val askTimeout = Timeout(1.minute)
   override implicit val patienceConfig: PatienceConfig =
