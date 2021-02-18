@@ -62,19 +62,26 @@ case class RecorderTestProbeWrapper(private val _probe: TestProbe[MetricRecorder
   override def setValue(value: Long): Unit = _probe.ref ! MetricRecorded(value)
 }
 
-case class ObserverTestProbeWrapper(private val _probe: TestProbe[MetricObserverCommand])(
+case class ObserverTestProbeWrapper(probe: TestProbe[MetricObserverCommand])(
   implicit system: ActorSystem[_]
 ) extends AbstractTestProbeWrapper
     with MetricObserver[Long] {
 
-  val Ping = 5.seconds
+  private val Ping = 5.seconds
 
   override type Cmd = MetricObserverCommand
-  override def probe: TestProbe[MetricObserverCommand] = _probe
 
   override def setUpdater(cb: MetricObserver.Result[Long] => Unit): Unit = {
     import system.executionContext
-    system.scheduler.scheduleWithFixedDelay(Ping / 2, Ping)(() => cb(value => _probe.ref ! MetricObserved(value)))
+    system.scheduler.scheduleWithFixedDelay(Ping / 2, Ping)(() => cb(value => probe.ref ! MetricObserved(value)))
   }
 
+}
+
+case class ObserverOnceTestProbeWrapper(probe: TestProbe[MetricObserverCommand])(implicit system: ActorSystem[_])
+    extends AbstractTestProbeWrapper
+    with MetricObserver[Long] {
+  override type Cmd = MetricObserverCommand
+  override def setUpdater(cb: MetricObserver.Result[Long] => Unit): Unit =
+    cb(value => probe.ref ! MetricObserved(value))
 }

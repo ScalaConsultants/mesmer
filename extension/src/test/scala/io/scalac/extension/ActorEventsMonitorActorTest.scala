@@ -54,7 +54,7 @@ class ActorEventsMonitorActorTest
     )
 
   // ** MAIN **
-  testActorTreeRunner(ReflectiveActorTreeTraverser)
+//  testActorTreeRunner(ReflectiveActorTreeTraverser)
   testMonitor()
 
   def testActorTreeRunner(actorTreeRunner: ActorTreeTraverser): Unit = {
@@ -107,7 +107,7 @@ class ActorEventsMonitorActorTest
     it should "record mailbox size changes" in test { monitor =>
       val bound = monitor.bind(ActorMetricMonitor.Labels("/user/actorB/idle", None))
       recordMailboxSize(10, bound)
-      Thread.sleep(1000)
+      Thread.sleep((IdleTime + 1.second).toMillis)
       recordMailboxSize(42, bound)
       bound.unbind()
     }
@@ -163,6 +163,8 @@ class ActorEventsMonitorActorTest
 
 object ActorEventsMonitorActorTest {
 
+  val IdleTime: FiniteDuration = 3.seconds
+
   sealed trait Command
   final case object Idle                 extends Command
   final case object Open                 extends Command
@@ -192,7 +194,7 @@ object ActorEventsMonitorActorTest {
               Behaviors.receiveMessage {
                 case Idle =>
                   log.info("[idle] ...")
-                  Thread.sleep(5.seconds.toMillis)
+                  Thread.sleep(IdleTime.toMillis)
                   Behaviors.same
                 case _ =>
                   Behaviors.same

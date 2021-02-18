@@ -3,7 +3,7 @@ package io.scalac.extension
 import scala.collection.immutable
 import scala.concurrent.duration._
 
-import akka.actor.typed.Behavior
+import akka.actor.typed.{ Behavior, SupervisorStrategy }
 import akka.actor.typed.receptionist.Receptionist
 import akka.actor.typed.receptionist.Receptionist.Register
 import akka.actor.typed.scaladsl.{ ActorContext, Behaviors, TimerScheduler }
@@ -31,13 +31,23 @@ object ActorEventsMonitorActor {
   ): Behavior[Command] =
     Behaviors.setup { ctx =>
       val syncMetricsActor = ctx.spawn(
-        SyncMetricsActor(actorMonitor, node),
+        Behaviors
+          .supervise(
+            SyncMetricsActor(actorMonitor, node)
+          )
+          .onFailure(SupervisorStrategy.restart),
         "syncMetricsActor"
       )
       val asyncMetricsActor = ctx.spawn(
-        AsyncMetricsActor(actorMonitor, node, pingOffset, storage, actorTreeTraverser, actorMetricsReader),
+        Behaviors
+          .supervise(
+            AsyncMetricsActor(actorMonitor, node, pingOffset, storage, actorTreeTraverser, actorMetricsReader)
+          )
+          .onFailure(SupervisorStrategy.restart),
         "asyncMetricsActor"
       )
+      ctx.watch(syncMetricsActor)
+      ctx.watch(asyncMetricsActor)
       Behaviors.receiveMessage {
         case msg: SyncMetricsActor.SyncCommand =>
           syncMetricsActor ! msg

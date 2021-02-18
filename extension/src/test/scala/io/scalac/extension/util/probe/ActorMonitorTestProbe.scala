@@ -31,7 +31,7 @@ object ActorMonitorTestProbe {
       extends BoundMonitor
       with TestProbeSynchronized {
     override val mailboxSize: MetricObserver[Long] with AbstractTestProbeWrapper =
-      ObserverTestProbeWrapper(mailboxSizeProbe)
+      ObserverOnceTestProbeWrapper(mailboxSizeProbe)
     override val stashSize: MetricRecorder[Long] with AbstractTestProbeWrapper =
       RecorderTestProbeWrapper(stashSizeProbe)
     override def unbind(): Unit = ()
