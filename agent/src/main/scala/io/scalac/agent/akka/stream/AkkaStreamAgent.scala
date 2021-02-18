@@ -9,12 +9,14 @@ import net.bytebuddy.asm.Advice
 import net.bytebuddy.description.`type`.TypeDescription
 import net.bytebuddy.description.method.MethodDescription
 import net.bytebuddy.matcher.ElementMatchers._
-import net.bytebuddy.pool.TypePool
 
 object AkkaStreamAgent {
 
   private[stream] val moduleName = Module("akka-stream")
 
+  /**
+   * actorOf methods is called when island decide to materialize itself
+   */
   private val phasedFusingActorMeterializerAgent = AgentInstrumentation(
     "akka.stream.impl.PhasedFusingActorMaterializer",
     SupportedModules(moduleName, SupportedVersion.any)
@@ -37,13 +39,10 @@ object AkkaStreamAgent {
     "akka.stream.impl.fusing.GraphInterpreter",
     SupportedModules(moduleName, SupportedVersion.any)
   ) { (agentBuilder, instrumentation, _) =>
-    val types = TypePool.Default.ofSystemLoader()
     agentBuilder
       .`type`(named[TypeDescription]("akka.stream.impl.fusing.GraphInterpreter"))
       .transform { (builder, _, _, _) =>
         builder
-          .defineField("pushCounter", classOf[Int])
-          .defineField("pullCounter", classOf[Int])
           .method(
             named[MethodDescription]("processPush")
           )
@@ -54,11 +53,28 @@ object AkkaStreamAgent {
     LoadingResult("akka.stream.impl.fusing.GraphInterpreter")
   }
 
+  private val graphInterpreterConnectionAgent = {
+    val target = "akka.stream.impl.fusing.GraphInterpreter$Connection"
+    AgentInstrumentation(
+      target,
+      SupportedModules(moduleName, SupportedVersion.any)
+    ) { (agentBuilder, instrumentation, _) =>
+      agentBuilder
+        .`type`(named[TypeDescription](target))
+        .transform { (builder, _, _, _) =>
+          builder
+            .defineField("pushCounter", classOf[Int]) // java specification guarantee starting from 0
+            .defineField("pullCounter", classOf[Int])
+        }
+        .installOn(instrumentation)
+      LoadingResult(target)
+    }
+  }
+
   private val actorGraphInterpreterAgent = AgentInstrumentation(
     "akka.stream.impl.fusing.ActorGraphInterpreter",
     SupportedModules(moduleName, SupportedVersion.any)
   ) { (agentBuilder, instrumentation, _) =>
-    val types = TypePool.Default.ofSystemLoader()
     agentBuilder
       .`type`(named[TypeDescription]("akka.stream.impl.fusing.ActorGraphInterpreter"))
       .transform { (builder, _, _, _) =>
@@ -72,6 +88,11 @@ object AkkaStreamAgent {
     LoadingResult("akka.stream.impl.fusing.ActorGraphInterpreter")
   }
 
-  val agent = Agent(phasedFusingActorMeterializerAgent, actorGraphInterpreterAgent, graphInterpreterAgent)
+  val agent = Agent(
+    phasedFusingActorMeterializerAgent,
+    actorGraphInterpreterAgent,
+    graphInterpreterAgent,
+    graphInterpreterConnectionAgent
+  )
 
 }

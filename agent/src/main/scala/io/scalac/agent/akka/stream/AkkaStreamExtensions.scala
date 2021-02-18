@@ -26,6 +26,8 @@ object AkkaStreamExtensions {
     lookup().findVirtual(actorInterpreter, "activeInterpreters", methodType(classOf[Set[GraphInterpreterShellMirror]]))
   }
 
+//  private def connections(GraphInterpreterShellMirror mirror:)
+
   def addCollectionReceive(
     receive: PartialFunction[Any, Unit],
     self: AnyRef
@@ -33,11 +35,15 @@ object AkkaStreamExtensions {
     receive.orElse {
       case PushMetrics => {
 
-        shells.invoke(self).asInstanceOf[Set[GraphInterpreterShellMirror]].map(_.interpreter).foreach { inter =>
-          val push = graphInterpreterPushCounter.invoke(inter).asInstanceOf[Int]
-          val pull = graphInterpreterPullCounter.invoke(inter).asInstanceOf[Int]
-          println(s"${inter}: push ${push}, pull ${pull}")
-        }
+        shells
+          .invoke(self)
+          .asInstanceOf[Set[GraphInterpreterShellMirror]]
+          .map(_.interpreter)
+          .flatMap(_.connections)
+          .foreach { conn =>
+            val (push, pull) = ConnectionOps.getCounterValues(conn)
+            println(s"${conn}: push: ${push}, pull: ${pull}")
+          }
       }
     }
 
