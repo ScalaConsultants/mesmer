@@ -9,7 +9,7 @@ import akka.actor.typed.Behavior
 import akka.actor.typed.receptionist.Receptionist
 import akka.actor.typed.receptionist.Receptionist.{ Deregister, Register }
 import akka.actor.typed.scaladsl.adapter._
-import akka.actor.typed.scaladsl.{ Behaviors, StashBuffer }
+import akka.actor.typed.scaladsl.{ ActorContext, Behaviors, StashBuffer }
 import akka.{ actor => classic }
 
 import net.bytebuddy.agent.ByteBuddyAgent
@@ -104,7 +104,7 @@ object AkkaActorAgentTest {
   object ClassicStashActor {
     def props(): classic.Props = classic.Props(new ClassicStashActor)
   }
-  class ClassicStashActor extends classic.Actor with classic.Stash {
+  class ClassicStashActor extends classic.Actor with classic.Stash with classic.ActorLogging {
     def receive: Receive = {
       case Open =>
         unstashAll()
@@ -112,27 +112,28 @@ object AkkaActorAgentTest {
           .become({
             case Close =>
               context.unbecome()
-            case Message(msg) =>
-              println(s"[working on] $msg")
+            case Message(text) =>
+              log.warning(s"[working on] {}", text)
           })
       case Message(text) =>
-        println(s"[stash] $text")
+        log.warning(s"[stash] {}", text)
         stash()
     }
   }
 
   object TypedStash {
     def apply(capacity: Int): Behavior[Command] =
-      Behaviors.withStash(capacity)(buffer => new TypedStash(buffer).closed())
+      Behaviors.setup(ctx => Behaviors.withStash(capacity)(buffer => new TypedStash(ctx, buffer).closed()))
   }
 
-  class TypedStash(buffer: StashBuffer[Command]) {
+  class TypedStash(ctx: ActorContext[Command], buffer: StashBuffer[Command]) {
+    import ctx.log
     private def closed(): Behavior[Command] =
       Behaviors.receiveMessagePartial {
         case Open =>
           buffer.unstashAll(open())
         case message @ Message(text) =>
-          println(s"[typed] [stashing] $text")
+          log.warn(s"[typed] [stashing] {}", text)
           buffer.stash(message)
           Behaviors.same
       }
@@ -140,8 +141,8 @@ object AkkaActorAgentTest {
       Behaviors.receiveMessagePartial {
         case Close =>
           closed()
-        case Message(msg) =>
-          println(s"[typed] [working on] $msg")
+        case Message(text) =>
+          log.warn(s"[typed] [working on] {}", text)
           Behaviors.same
       }
 

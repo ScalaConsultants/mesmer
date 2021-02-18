@@ -1,32 +1,25 @@
 package io.scalac.agent.akka.actor
 
+import akka.actor.typed.{ ActorRef, ActorSystem }
+import akka.actor.typed.scaladsl.ActorContext
 import akka.actor.typed.scaladsl.adapter._
-import akka.actor.{ ActorContext, ActorRef }
+import akka.{ actor => classic }
 
 import net.bytebuddy.asm.Advice.{ OnMethodExit, This }
 
 import io.scalac.extension.event.ActorEvent.StashMeasurement
 import io.scalac.extension.event.EventBus
-
-trait StashInstrumentation {
-
-  protected val extractor: StashInstrumentation.Extractor
-
-  @OnMethodExit
-  def onStashExit(@This stash: Any): Unit = {
-    import extractor._
-    publish(getStashSize(stash), getActorRef(stash), getContext(stash))
-  }
-
-  @inline protected def publish(size: Int, ref: ActorRef, context: ActorContext): Unit =
-    EventBus(context.system.toTyped).publishEvent(StashMeasurement(size, ref.path.toStringWithoutAddress))
-
-}
+import StashInstrumentation._
 
 object StashInstrumentation {
-  trait Extractor {
-    def getStashSize(stash: Any): Int
-    def getActorRef(stash: Any): ActorRef
-    def getContext(stash: Any): ActorContext
-  }
+
+  @inline private[actor] def publish(size: Int, ref: classic.ActorRef, context: classic.ActorContext): Unit =
+    publish(size, ref.path.toStringWithoutAddress, context.system.toTyped)
+
+  @inline private[actor] def publish(size: Int, ref: ActorRef[_], context: ActorContext[_]): Unit =
+    publish(size, ref.path.toStringWithoutAddress, context.system)
+
+  @inline private def publish(size: Int, path: String, system: ActorSystem[_]): Unit =
+    EventBus(system).publishEvent(StashMeasurement(size, path))
+
 }

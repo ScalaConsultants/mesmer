@@ -59,7 +59,7 @@ object AkkaActorAgent {
           named[TypeDescription](targetClassName)
         )
         .transform { (builder, _, _, _) =>
-          val advice = Advice.to(classOf[TypeStashInstrumentation])
+          val advice = Advice.to(classOf[TypedStashInstrumentation])
           builder
             .method(
               named[MethodDescription]("stash")
