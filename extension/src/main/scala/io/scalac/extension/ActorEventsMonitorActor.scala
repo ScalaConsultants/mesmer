@@ -9,7 +9,7 @@ import akka.actor.{ ActorRef, ActorRefProvider, ActorSystem }
 
 import io.scalac.core.util.Timestamp
 import io.scalac.extension.ActorEventsMonitorActor._
-import io.scalac.extension.actor.{ ActorMetricStorage, ActorMetrics }
+import io.scalac.extension.actor.{ ActorKey, ActorMetricStorage, ActorMetrics }
 import io.scalac.extension.metric.{ ActorMetricMonitor, Unbind }
 import io.scalac.extension.metric.ActorMetricMonitor.Labels
 import io.scalac.extension.model.Node
@@ -26,21 +26,19 @@ class ActorEventsMonitorActor(
   import ctx.log
   import ActorEventsMonitorActor._
 
-  def start(storage: ActorMetricStorage): Behavior[Command] =
-    updateActorMetrics(storage, Map.empty)
+  // TODO There are opportunities for improvements of memory consumption and immutability performance.
 
-  private def updateActorMetrics(storage: ActorMetricStorage, unbinds: Map[String, Unbind]): Behavior[Command] = {
+  def start(state: State): Behavior[Command] =
+    updateActorMetrics(state)
 
-    def traverseActorTree(
-      actor: ActorRef,
-      storage: ActorMetricStorage,
-      unbinds: Map[String, Unbind]
-    ): (ActorMetricStorage, Map[String, Unbind]) =
+  private def updateActorMetrics(state: State): Behavior[Command] = {
+
+    def traverseActorTree(actor: ActorRef, state: State): State =
       actorTreeRunner
         .getChildren(actor)
         .foldLeft(
-          (storage.save(actor, collect(actor)), unbinds - storage.actorToKey(actor))
-        ) { case ((accStorage, accUnbinds), children) => traverseActorTree(children, accStorage, accUnbinds) }
+          State(state.storage.save(actor, collect(actor)), state.unbinds - state.storage.actorToKey(actor))
+        ) { case (stateAcc, children) => traverseActorTree(children, stateAcc) }
 
     def collect(actorRef: ActorRef): ActorMetrics =
       ActorMetrics(
@@ -48,34 +46,33 @@ class ActorEventsMonitorActor(
         timestamp = Timestamp.create()
       )
 
-    val (nextStorage, nextUnbinds) =
-      traverseActorTree(actorTreeRunner.getRootGuardian(ctx.system.classicSystem), storage, unbinds)
+    val nextState = traverseActorTree(actorTreeRunner.getRootGuardian(ctx.system.classicSystem), state)
 
     scheduler.startSingleTimer(UpdateActorMetrics, pingOffset)
 
-    behavior(nextStorage, nextUnbinds)
+    behavior(nextState)
   }
 
-  private def behavior(storage: ActorMetricStorage, unbinds: Map[String, Unbind]): Behavior[Command] = {
-    log.trace("Unbind these actors: {}", unbinds.keys.mkString("[", ",", "]"))
-    unbinds.values.foreach(_.unbind())
-    val nextStorage = unbinds.keys.foldLeft(storage)(_.remove(_))
-    val nextUnbinds = registerUpdaters(storage)
+  private def behavior(state: State): Behavior[Command] = {
+    // side-effects
+    state.unbinds.values.foreach(_.unbind())
+    val nextStorage = state.unbinds.keys.foldLeft(state.storage)(_.remove(_))
+    val nextUnbinds = registerUpdaters(state.storage)
+    val nextState   = State(nextStorage, nextUnbinds)
     Behaviors.receiveMessage {
-      case UpdateActorMetrics => updateActorMetrics(nextStorage, nextUnbinds)
+      case UpdateActorMetrics => updateActorMetrics(nextState)
     }
   }
 
-  private def registerUpdaters(storage: ActorMetricStorage): Map[String, Unbind] =
+  private def registerUpdaters(storage: ActorMetricStorage): Map[ActorKey, Unbind] =
     storage.map {
       case (key, metrics) =>
-        var bind: Option[ActorMetricMonitor.BoundMonitor] = None
-        metrics.mailboxSize.foreach { mailboxSize =>
+        metrics.mailboxSize.fold[Option[(ActorKey, Unbind)]](None) { mailboxSize =>
           log.trace("Registering a new updater for mailbox size for actor {} with value {}", key, mailboxSize)
-          bind = Some(monitor.bind(Labels(key, node)))
-          bind.get.mailboxSize.setUpdater(_.observe(mailboxSize))
+          val bind = monitor.bind(Labels(key, node))
+          bind.mailboxSize.setUpdater(_.observe(mailboxSize))
+          Some((key, bind))
         }
-        bind.map((key, _))
     }.collect { case Some(bind) => bind }.toMap
 
 }
@@ -84,6 +81,8 @@ object ActorEventsMonitorActor {
 
   sealed trait Command
   final case object UpdateActorMetrics extends Command
+
+  private case class State(storage: ActorMetricStorage, unbinds: Map[ActorKey, Unbind])
 
   def apply(
     actorMonitor: ActorMetricMonitor,
@@ -96,7 +95,7 @@ object ActorEventsMonitorActor {
     Behaviors.setup { ctx =>
       Behaviors.withTimers { scheduler =>
         new ActorEventsMonitorActor(actorMonitor, node, pingOffset, ctx, scheduler, actorTreeRunner, actorMetricsReader)
-          .start(storage)
+          .start(State(storage, Map.empty))
       }
     }
 
