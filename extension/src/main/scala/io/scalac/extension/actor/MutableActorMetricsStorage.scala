@@ -10,10 +10,15 @@ class MutableActorMetricsStorage private[actor] (override val buffer: mutable.Ma
     extends MutableStorage[ActorKey, ActorMetrics]
     with ActorMetricStorage {
 
-  def foreach(f: ((ActorKey, ActorMetrics)) => Unit): Unit = buffer.foreach(f)
+  def map[T](f: ((ActorKey, ActorMetrics)) => T): Iterable[T] = buffer.map(f)
 
   def save(actorRef: ActorRef, metrics: ActorMetrics): ActorMetricStorage = {
     buffer(actorToKey(actorRef)) = metrics
+    this
+  }
+
+  def remove(key: ActorKey): ActorMetricStorage = {
+    buffer.remove(key)
     this
   }
 }
