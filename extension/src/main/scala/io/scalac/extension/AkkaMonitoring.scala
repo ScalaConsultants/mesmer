@@ -173,10 +173,7 @@ class AkkaMonitoring(private val system: ActorSystem[_], val config: AkkaMonitor
 
   def startActorMonitor(): Unit = {
     log.debug("Starting actor monitor")
-    val monitor = CachingMonitor(
-      OpenTelemetryActorMetricsMonitor(instrumentationName, actorSystemConfig),
-      CachingConfig.fromConfig(actorSystemConfig, "actor")
-    )
+    val monitor = OpenTelemetryActorMetricsMonitor(instrumentationName, actorSystemConfig)
     system.systemActorOf(
       Behaviors
         .supervise(
