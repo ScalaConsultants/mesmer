@@ -1,6 +1,7 @@
 package io.scalac.agent.akka.stream
 
 import akka.actor.Props
+import akka.stream.GraphStageIslandAdvice
 import akka.{ ActorGraphInterpreterAdvice, GraphInterpreterPushAdvice }
 import io.scalac.agent.Agent.LoadingResult
 import io.scalac.agent.{ Agent, AgentInstrumentation }
@@ -11,6 +12,18 @@ import net.bytebuddy.description.method.MethodDescription
 import net.bytebuddy.matcher.ElementMatchers._
 
 object AkkaStreamAgent {
+
+  val pf: PartialFunction[Any, Unit] = {
+    case blah: String => println("sth")
+  }
+
+  pf.isDefinedAt()
+
+  final class ConnectionAggregation() {
+    private[this] var pushCounter: Long = _
+    private[this] var pullCounter: Long = _
+  }
+
 
   private[stream] val moduleName = Module("akka-stream")
 
@@ -63,8 +76,8 @@ object AkkaStreamAgent {
         .`type`(named[TypeDescription](target))
         .transform { (builder, _, _, _) =>
           builder
-            .defineField("pushCounter", classOf[Int]) // java specification guarantee starting from 0
-            .defineField("pullCounter", classOf[Int])
+            .defineField("pushCounter", classOf[Long]) // java specification guarantee starting from 0
+            .defineField("pullCounter", classOf[Long])
         }
         .installOn(instrumentation)
       LoadingResult(target)
@@ -88,11 +101,33 @@ object AkkaStreamAgent {
     LoadingResult("akka.stream.impl.fusing.ActorGraphInterpreter")
   }
 
+  private val graphStageIslandAgent = {
+    val target = "akka.stream.impl.GraphStageIsland"
+    AgentInstrumentation(
+      target,
+      SupportedModules(moduleName, SupportedVersion.any)
+    ) { (agentBuilder, instrumentation, _) =>
+      agentBuilder
+        .`type`(named[TypeDescription](target))
+        .transform { (builder, _, _, _) =>
+          builder
+            .visit(
+              Advice
+                .to(classOf[GraphStageIslandAdvice])
+                .on(named[MethodDescription]("materializeAtomic"))
+            )
+        }
+        .installOn(instrumentation)
+      LoadingResult(target)
+    }
+  }
+
   val agent = Agent(
     phasedFusingActorMeterializerAgent,
     actorGraphInterpreterAgent,
     graphInterpreterAgent,
-    graphInterpreterConnectionAgent
+    graphInterpreterConnectionAgent,
+    graphStageIslandAgent
   )
 
 }
