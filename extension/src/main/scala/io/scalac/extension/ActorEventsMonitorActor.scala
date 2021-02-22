@@ -4,14 +4,15 @@ import akka.actor.typed.Behavior
 import akka.actor.typed.receptionist.Receptionist.Register
 import akka.actor.typed.scaladsl.{ ActorContext, Behaviors, TimerScheduler }
 import akka.actor.{ ActorRef, ActorRefProvider, ActorSystem }
+import io.scalac.core.Tag
 import io.scalac.core.util.Timestamp
-import io.scalac.core.{ PushMetrics, Tag }
 import io.scalac.extension.ActorEventsMonitorActor.Command.{ AddTag, UpdateActorMetrics }
 import io.scalac.extension.ActorEventsMonitorActor._
+import io.scalac.extension.AkkaStreamMonitoring.StartStreamCollection
 import io.scalac.extension.actor.{ ActorMetricStorage, ActorMetrics }
 import io.scalac.extension.event.TagEvent
-import io.scalac.extension.metric.ActorMetricMonitor
 import io.scalac.extension.metric.ActorMetricMonitor.Labels
+import io.scalac.extension.metric.{ ActorMetricMonitor, StreamMetricsMonitor }
 import io.scalac.extension.model.{ ActorKey, Node }
 
 import scala.collection.{ immutable, mutable }
@@ -23,6 +24,7 @@ class ActorEventsMonitorActor(
   pingOffset: FiniteDuration,
   ctx: ActorContext[Command],
   scheduler: TimerScheduler[Command],
+  streamMonitor: StreamMetricsMonitor,
   actorTreeRunner: ActorTreeTraverser = ReflectiveActorTreeTraverser,
   actorMetricsReader: ActorMetricsReader = ReflectiveActorMetricsReader
 ) {
@@ -33,6 +35,8 @@ class ActorEventsMonitorActor(
 
   private[this] var refs: List[ActorRef] = Nil
 
+  private[this] val streamRef = ctx.spawn(AkkaStreamMonitoring.apply(streamMonitor), "stream-monitor")
+
   def start(storage: ActorMetricStorage): Behavior[Command] =
     updateActorMetrics(storage)
 
@@ -41,6 +45,7 @@ class ActorEventsMonitorActor(
     Behaviors.receiveMessage {
       case UpdateActorMetrics =>
         cleanTags(storage)
+        cleanRefs(storage)
         updateActorMetrics(storage)
       case AddTag(ref, tag) =>
         ctx.log.trace(s"Add tags {} for actor {}", tag, ref)
@@ -62,6 +67,9 @@ class ActorEventsMonitorActor(
       case _                               => None
     }
   }
+
+  private def cleanRefs(storage: ActorMetricStorage): Unit =
+    refs = refs.filter(ref => storage.has(storage.actorToKey(ref)))
 
   private def registerUpdaters(storage: ActorMetricStorage): Unit =
     storage.foreach {
@@ -94,8 +102,7 @@ class ActorEventsMonitorActor(
 
     traverseActorTree(actorTreeRunner.getRootGuardian(ctx.system.classicSystem), storage)
 
-    log.info("Pushing metrics to all stream actors")
-    refs.foreach(_ ! PushMetrics)
+    streamRef ! StartStreamCollection(refs.toSet)
 
     scheduler.startSingleTimer(UpdateActorMetrics, pingOffset)
 
@@ -116,6 +123,7 @@ object ActorEventsMonitorActor {
     node: Option[Node],
     pingOffset: FiniteDuration,
     storage: ActorMetricStorage,
+    streamMonitor: StreamMetricsMonitor,
     actorTreeRunner: ActorTreeTraverser = ReflectiveActorTreeTraverser,
     actorMetricsReader: ActorMetricsReader = ReflectiveActorMetricsReader
   ): Behavior[Command] =
@@ -124,8 +132,16 @@ object ActorEventsMonitorActor {
         ctx.system.receptionist ! Register(tagServiceKey, ctx.messageAdapter[TagEvent] {
           case TagEvent(ref, tag) => AddTag(ref, tag)
         })
-        new ActorEventsMonitorActor(actorMonitor, node, pingOffset, ctx, scheduler, actorTreeRunner, actorMetricsReader)
-          .start(storage)
+        new ActorEventsMonitorActor(
+          actorMonitor,
+          node,
+          pingOffset,
+          ctx,
+          scheduler,
+          streamMonitor,
+          actorTreeRunner,
+          actorMetricsReader
+        ).start(storage)
       }
     }
 

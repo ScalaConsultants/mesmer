@@ -2,10 +2,10 @@ package io.scalac.agent.akka.stream
 
 import akka.actor.Props
 import akka.stream.GraphStageIslandAdvice
-import akka.{ ActorGraphInterpreterAdvice, GraphInterpreterPushAdvice }
+import akka.{ActorGraphInterpreterAdvice, GraphInterpreterPullAdvice, GraphInterpreterPushAdvice}
 import io.scalac.agent.Agent.LoadingResult
-import io.scalac.agent.{ Agent, AgentInstrumentation }
-import io.scalac.core.model.{ Module, SupportedModules, SupportedVersion }
+import io.scalac.agent.{Agent, AgentInstrumentation}
+import io.scalac.core.model.{Module, SupportedModules, SupportedVersion}
 import net.bytebuddy.asm.Advice
 import net.bytebuddy.description.`type`.TypeDescription
 import net.bytebuddy.description.method.MethodDescription
@@ -23,7 +23,6 @@ object AkkaStreamAgent {
     private[this] var pushCounter: Long = _
     private[this] var pullCounter: Long = _
   }
-
 
   private[stream] val moduleName = Module("akka-stream")
 
@@ -60,6 +59,10 @@ object AkkaStreamAgent {
             named[MethodDescription]("processPush")
           )
           .intercept(Advice.to(classOf[GraphInterpreterPushAdvice]))
+          .method(
+            named[MethodDescription]("processPull")
+          )
+          .intercept(Advice.to(classOf[GraphInterpreterPullAdvice]))
 
       }
       .installOn(instrumentation)

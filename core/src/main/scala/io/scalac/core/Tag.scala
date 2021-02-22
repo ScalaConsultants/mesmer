@@ -11,7 +11,16 @@ sealed trait Tag {
 object Tag {
   def stream: Tag = StreamTag
 
-  private object StreamTag extends Tag {
+
+  private case object StreamTag extends Tag {
     override lazy val serialize: Seq[(String, String)] = Seq(("stream", "true"))
+  }
+
+  case class StageName(name: String) extends Tag {
+    override def serialize: Seq[(String, String)] = Seq(("stage_name", name))
+  }
+
+  case class StreamName(name: String) extends Tag {
+    override def serialize: Seq[(String, String)] = Seq(("stream_name", name))
   }
 }
