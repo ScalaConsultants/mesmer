@@ -31,11 +31,8 @@ sealed abstract class MetricObserverBuilderAdapter[R <: AsynchronousInstrument.R
     .setUpdater(updateAll)
     .build()
 
-  def createObserver(labels: Labels): WrappedMetricObserver[T] = {
-    val ref = new WrappedMetricObserver[T](labels)
-    observers.put(labels, ref)
-    ref
-  }
+  def createObserver(labels: Labels): WrappedMetricObserver[T] =
+    observers.getOrElseUpdate(labels, new WrappedMetricObserver[T](labels))
 
   def removeObserver(labels: Labels): Unit =
     observers.remove(labels)
