@@ -11,6 +11,7 @@ import io.scalac.agent.Agent.LoadingResult
 import io.scalac.agent.{ Agent, AgentInstrumentation }
 import io.scalac.core.model._
 import io.scalac.core.support.ModulesSupport
+import io.scalac.core.util.Timestamp
 
 object AkkaActorAgent {
 
@@ -25,9 +26,7 @@ object AkkaActorAgent {
       SupportedModules(moduleName, version)
     ) { (agentBuilder, instrumentation, _) =>
       agentBuilder
-        .`type`(
-          named[TypeDescription](targetClassName)
-        )
+        .`type`(named[TypeDescription](targetClassName))
         .transform { (builder, _, _, _) =>
           val advice = Advice.to(classOf[ClassicStashInstrumentation])
           builder
@@ -55,9 +54,7 @@ object AkkaActorAgent {
       SupportedModules(moduleName, version)
     ) { (agentBuilder, instrumentation, _) =>
       agentBuilder
-        .`type`(
-          named[TypeDescription](targetClassName)
-        )
+        .`type`(named[TypeDescription](targetClassName))
         .transform { (builder, _, _, _) =>
           val advice = Advice.to(classOf[TypedStashInstrumentation])
           builder
@@ -77,6 +74,64 @@ object AkkaActorAgent {
     }
   }
 
-  val agent = Agent(classicStashInstrumentation, typedStashInstrumentation)
+  private val mailboxTimeTimestampInstrumentation = {
+    val targetClassName = "akka.dispatch.Envelope"
+    AgentInstrumentation(
+      targetClassName,
+      SupportedModules(moduleName, version)
+    ) { (agentBuilder, instrumentation, _) =>
+      agentBuilder
+        .`type`(named[TypeDescription](targetClassName))
+        .transform((builder, _, _, _) => builder.defineField(EnvelopeOps.TimestampVarName, classOf[Timestamp]))
+        .installOn(instrumentation)
+      LoadingResult(targetClassName)
+    }
+  }
+
+  private val mailboxTimeSendMessageInstrumentation = {
+    val targetClassName = "akka.actor.dungeon.Dispatch"
+    AgentInstrumentation(
+      targetClassName,
+      SupportedModules(moduleName, version)
+    ) { (agentBuilder, instrumentation, _) =>
+      agentBuilder
+        .`type`(named[TypeDescription](targetClassName))
+        .transform { (builder, _, _, _) =>
+          builder
+            .method(
+              named[MethodDescription]("sendMessage").and(takesArgument(0, Class.forName("akka.dispatch.Envelope")))
+            )
+            .intercept(Advice.to(classOf[ActorCellSendMessageInstrumentation]))
+        }
+        .installOn(instrumentation)
+      LoadingResult(targetClassName)
+    }
+  }
+
+  private val mailboxTimeDequeueInstrumentation = {
+    val targetClassName = "akka.dispatch.Mailbox"
+    AgentInstrumentation(
+      targetClassName,
+      SupportedModules(moduleName, version)
+    ) { (agentBuilder, instrumentation, _) =>
+      agentBuilder
+        .`type`(named[TypeDescription](targetClassName))
+        .transform { (builder, _, _, _) =>
+          builder
+            .method(named[MethodDescription]("dequeue"))
+            .intercept(Advice.to(classOf[MailboxDequeueInstrumentation]))
+        }
+        .installOn(instrumentation)
+      LoadingResult(targetClassName)
+    }
+  }
+
+  val agent = Agent(
+    classicStashInstrumentation,
+    typedStashInstrumentation,
+    mailboxTimeTimestampInstrumentation,
+    mailboxTimeSendMessageInstrumentation,
+    mailboxTimeDequeueInstrumentation
+  )
 
 }

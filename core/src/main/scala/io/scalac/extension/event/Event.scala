@@ -1,5 +1,7 @@
 package io.scalac.extension.event
 
+import scala.concurrent.duration.FiniteDuration
+
 import io.scalac.core.util.Timestamp
 
 sealed trait AbstractEvent { self =>
@@ -11,7 +13,8 @@ sealed trait ActorEvent extends AbstractEvent {
 }
 
 object ActorEvent {
-  final case class StashMeasurement(size: Int, path: String) extends ActorEvent
+  final case class StashMeasurement(size: Int, path: String)       extends ActorEvent
+  final case class MailboxTime(time: FiniteDuration, path: String) extends ActorEvent
 }
 
 sealed trait PersistenceEvent extends AbstractEvent {

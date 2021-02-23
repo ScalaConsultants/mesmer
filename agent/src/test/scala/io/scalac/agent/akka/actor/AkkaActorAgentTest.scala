@@ -32,8 +32,11 @@ class AkkaActorAgentTest
 
   def loadAgent(): Unit = {
     val instrumentation = ByteBuddyAgent.install()
-    val builder         = new AgentBuilder.Default()
-    val modules         = Map(AkkaActorAgent.moduleName -> AkkaActorAgent.defaultVersion)
+    val builder = new AgentBuilder.Default()
+      .`with`(new AgentBuilder.InitializationStrategy.SelfInjection.Eager())
+      .`with`(AgentBuilder.Listener.StreamWriting.toSystemOut.withErrorsOnly())
+      .`with`(AgentBuilder.InstallationListener.StreamWriting.toSystemOut)
+    val modules = Map(AkkaActorAgent.moduleName -> AkkaActorAgent.defaultVersion)
     AkkaActorAgent.agent.installOn(builder, instrumentation, modules)
   }
 

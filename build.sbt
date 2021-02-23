@@ -86,9 +86,10 @@ lazy val agent = (project in file("agent"))
     assembly / assemblyOption ~= { _.copy(includeScala = false) },
     assemblyMergeStrategySettings,
     Test / fork := true,
-    Test / javaOptions += {
-      s"-javaagent:${assembly.value.absolutePath}"
-    }
+    Test / javaOptions ++= Seq(
+      s"-javaagent:${assembly.value.absolutePath}",
+      "-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=9999"
+    )
   )
   .dependsOn(
     core % "provided->compile;test->test"
