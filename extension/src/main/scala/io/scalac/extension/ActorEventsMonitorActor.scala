@@ -30,9 +30,9 @@ class ActorEventsMonitorActor(
   // TODO There are opportunities for improvements of memory consumption and immutability performance.
 
   def start(state: State): Behavior[Command] =
-    updateActorMetrics(state)
+    update(state)
 
-  private def updateActorMetrics(state: State): Behavior[Command] = {
+  private def update(state: State): Behavior[Command] = {
 
     @tailrec
     def traverseActorTree(actors: List[ActorRef], state: State): State = actors match {
@@ -56,17 +56,17 @@ class ActorEventsMonitorActor(
 
     scheduler.startSingleTimer(UpdateActorMetrics, pingOffset)
 
-    behavior(nextState)
+    waiting(nextState)
   }
 
-  private def behavior(state: State): Behavior[Command] = {
+  private def waiting(state: State): Behavior[Command] = {
     // side-effects
     state.unbinds.values.foreach(_.unbind())
     val nextStorage = state.unbinds.keys.foldLeft(state.storage)(_.remove(_))
     val nextUnbinds = registerUpdaters(state.storage)
     val nextState   = State(nextStorage, nextUnbinds)
     Behaviors.receiveMessage {
-      case UpdateActorMetrics => updateActorMetrics(nextState)
+      case UpdateActorMetrics => update(nextState)
     }
   }
 
