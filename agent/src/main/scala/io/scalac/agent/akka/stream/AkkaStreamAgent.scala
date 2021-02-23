@@ -2,7 +2,7 @@ package io.scalac.agent.akka.stream
 
 import akka.actor.Props
 import akka.stream.GraphStageIslandAdvice
-import akka.{ActorGraphInterpreterAdvice, GraphInterpreterPullAdvice, GraphInterpreterPushAdvice}
+import akka.{ActorGraphInterpreterAdvice}
 import io.scalac.agent.Agent.LoadingResult
 import io.scalac.agent.{Agent, AgentInstrumentation}
 import io.scalac.core.model.{Module, SupportedModules, SupportedVersion}
