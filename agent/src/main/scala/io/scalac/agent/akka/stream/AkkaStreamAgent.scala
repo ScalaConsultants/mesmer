@@ -13,17 +13,6 @@ import net.bytebuddy.matcher.ElementMatchers._
 
 object AkkaStreamAgent {
 
-  val pf: PartialFunction[Any, Unit] = {
-    case blah: String => println("sth")
-  }
-
-  pf.isDefinedAt()
-
-  final class ConnectionAggregation() {
-    private[this] var pushCounter: Long = _
-    private[this] var pullCounter: Long = _
-  }
-
   private[stream] val moduleName = Module("akka-stream")
 
   /**
