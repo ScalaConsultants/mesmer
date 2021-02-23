@@ -3,7 +3,7 @@ package io.scalac.extension.metric
 import io.opentelemetry.api.common.{ Labels => OpenTelemetryLabels }
 import io.scalac.extension.model._
 
-object StreamMetricsMonitor {
+object StreamOperatorMetricsMonitor {
 
   case class Labels(
     node: Option[Node],
@@ -21,8 +21,10 @@ object StreamMetricsMonitor {
   }
 
   trait BoundMonitor extends Bound {
-    def operatorProcessedMessages: UpCounter[Long]
-    def runningStreams: MetricRecorder[Long]
+    def processedMessages: UpCounter[Long]
+    def connections: Counter[Long]
   }
 
 }
+
+//object

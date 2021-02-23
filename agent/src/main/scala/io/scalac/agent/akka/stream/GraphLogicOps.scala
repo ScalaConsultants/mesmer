@@ -13,6 +13,5 @@ object GraphLogicOps {
 
     def stageName: StageName =
       StageName(logic.attributes.get[Name](Name(logic.toString)).n)
-
   }
 }

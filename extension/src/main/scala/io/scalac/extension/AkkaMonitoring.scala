@@ -173,7 +173,7 @@ class AkkaMonitoring(private val system: ActorSystem[_], val config: AkkaMonitor
       CachingConfig.fromConfig(actorSystemConfig, "actor")
     )
     val streamMonitor = CachingMonitor(
-      OpenTelemetryStreamMetricsMonitor(instrumentationName, actorSystemConfig),
+      OpenTelemetryStreamOperatorMetricsMonitor(instrumentationName, actorSystemConfig),
       CachingConfig.fromConfig(actorSystemConfig, "actor")
     )
     system.systemActorOf(

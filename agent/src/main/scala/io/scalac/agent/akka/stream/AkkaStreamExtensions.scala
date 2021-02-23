@@ -48,6 +48,13 @@ object AkkaStreamExtensions extends Lookup {
 
             ConnectionStats(in, out, push, pull)
           }
+        shells
+          .invoke(self)
+          .asInstanceOf[Set[GraphInterpreterShellMirror]]
+          .flatMap(_.logics)
+          .map(logic => {
+            logic.stageName
+          })
 
         EventBus(self.context.system.toTyped).publishEvent(ActorInterpreterStats(self.context.self, stats, None))
       }

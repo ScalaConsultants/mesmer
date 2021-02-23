@@ -9,8 +9,8 @@ import io.scalac.core.akka.model.PushMetrics
 import io.scalac.core.model.ConnectionStats
 import io.scalac.extension.AkkaStreamMonitoring.{Command, StartStreamCollection, StatsReceived}
 import io.scalac.extension.event.ActorInterpreterStats
-import io.scalac.extension.metric.StreamMetricsMonitor
-import io.scalac.extension.metric.StreamMetricsMonitor.Labels
+import io.scalac.extension.metric.StreamOperatorMetricsMonitor
+import io.scalac.extension.metric.StreamOperatorMetricsMonitor.Labels
 import io.scalac.extension.model.Direction._
 object AkkaStreamMonitoring {
 
@@ -20,12 +20,12 @@ object AkkaStreamMonitoring {
 
   case class StartStreamCollection(refs: Set[ActorRef]) extends Command
 
-  def apply(streamMonitor: StreamMetricsMonitor): Behavior[Command] =
+  def apply(streamMonitor: StreamOperatorMetricsMonitor): Behavior[Command] =
     Behaviors.setup(ctx => new AkkaStreamMonitoring(ctx, streamMonitor))
 
 }
 
-class AkkaStreamMonitoring(context: ActorContext[Command], streamMonitor: StreamMetricsMonitor)
+class AkkaStreamMonitoring(context: ActorContext[Command], streamMonitor: StreamOperatorMetricsMonitor)
     extends AbstractBehavior[Command](context) {
 
   private val _context = context
@@ -65,7 +65,7 @@ class AkkaStreamMonitoring(context: ActorContext[Command], streamMonitor: Stream
               case (outName, count) =>
                 val labels = Labels(None, None, inName.name, In, outName.name)
 
-                streamMonitor.bind(labels).operatorProcessedMessages.incValue(count)
+                streamMonitor.bind(labels).processedMessages.incValue(count)
             }
       }
 
@@ -79,7 +79,7 @@ class AkkaStreamMonitoring(context: ActorContext[Command], streamMonitor: Stream
               case (inName, count) =>
                 val labels = Labels(None, None, outName.name, Out, inName.name)
 
-                streamMonitor.bind(labels).operatorProcessedMessages.incValue(count)
+                streamMonitor.bind(labels).processedMessages.incValue(count)
             }
       }
     }
@@ -98,7 +98,6 @@ class AkkaStreamMonitoring(context: ActorContext[Command], streamMonitor: Stream
           }(prev => connectionStats = Some(prev ++ connections))
 
           if (refsLeft.isEmpty) {
-//            connectionStats.foreach(all => all.foreach(conn => log.debug("ConnectionStats {}", conn)))
             log.info("Finished collecting stats")
             recordAll()
             this

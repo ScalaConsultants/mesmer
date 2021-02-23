@@ -12,7 +12,7 @@ import io.scalac.extension.AkkaStreamMonitoring.StartStreamCollection
 import io.scalac.extension.actor.{ActorMetricStorage, ActorMetrics}
 import io.scalac.extension.event.TagEvent
 import io.scalac.extension.metric.ActorMetricMonitor.Labels
-import io.scalac.extension.metric.{ActorMetricMonitor, StreamMetricsMonitor}
+import io.scalac.extension.metric.{ActorMetricMonitor, StreamOperatorMetricsMonitor}
 import io.scalac.extension.model.{ActorKey, Node}
 
 import scala.collection.{immutable, mutable}
