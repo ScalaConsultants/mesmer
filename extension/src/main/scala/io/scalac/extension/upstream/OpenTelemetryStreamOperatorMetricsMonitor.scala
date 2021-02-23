@@ -52,9 +52,9 @@ class OpenTelemetryStreamOperatorMetricsMonitor(instrumentationName: String, met
     .setDescription("Amount of connections in operator")
     .build()
 
-  override def bind(labels: Labels): BoundMonitor = new StreamMetricsBoundMonitor(labels)
+  override def bind(labels: Labels): BoundMonitor = new StreamOperatorMetricsBoundMonitor(labels)
 
-  class StreamMetricsBoundMonitor(labels: Labels) extends BoundMonitor {
+  class StreamOperatorMetricsBoundMonitor(labels: Labels) extends BoundMonitor {
     private val openTelemetryLabels = labels.toOpenTelemetry
 
     override val processedMessages = WrappedCounter(operatorProcessed, openTelemetryLabels)

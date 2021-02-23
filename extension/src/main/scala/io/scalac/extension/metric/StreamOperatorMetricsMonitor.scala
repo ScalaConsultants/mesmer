@@ -8,12 +8,12 @@ object StreamOperatorMetricsMonitor {
   case class Labels(
     node: Option[Node],
     stream: Option[String],
-    operation: String,
+    operator: String,
     direction: Direction,
     connectionWith: String
   ) {
     def toOpenTelemetry: OpenTelemetryLabels = {
-      val required: Seq[String] = Seq("operation", operation, "connectionWith", connectionWith) ++ direction.serialize
+      val required: Seq[String] = Seq("operator", operator, "connectionWith", connectionWith) ++ direction.serialize
       val optional: Seq[String] =
         node.map(n => Seq("node", n)).getOrElse(Seq.empty) ++ stream.map(n => Seq("stream", n)).getOrElse(Seq.empty)
       OpenTelemetryLabels.of(optional ++ required: _*)

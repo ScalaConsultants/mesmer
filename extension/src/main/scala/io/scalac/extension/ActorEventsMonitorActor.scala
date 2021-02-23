@@ -24,7 +24,7 @@ class ActorEventsMonitorActor(
   pingOffset: FiniteDuration,
   ctx: ActorContext[Command],
   scheduler: TimerScheduler[Command],
-  streamMonitor: StreamMetricsMonitor,
+  streamMonitor: StreamOperatorMetricsMonitor,
   actorTreeRunner: ActorTreeTraverser = ReflectiveActorTreeTraverser,
   actorMetricsReader: ActorMetricsReader = ReflectiveActorMetricsReader
 ) {
@@ -123,7 +123,7 @@ object ActorEventsMonitorActor {
     node: Option[Node],
     pingOffset: FiniteDuration,
     storage: ActorMetricStorage,
-    streamMonitor: StreamMetricsMonitor,
+    streamMonitor: StreamOperatorMetricsMonitor,
     actorTreeRunner: ActorTreeTraverser = ReflectiveActorTreeTraverser,
     actorMetricsReader: ActorMetricsReader = ReflectiveActorMetricsReader
   ): Behavior[Command] =

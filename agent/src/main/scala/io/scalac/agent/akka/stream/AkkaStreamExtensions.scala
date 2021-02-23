@@ -6,7 +6,7 @@ import akka.actor.typed.scaladsl.adapter._
 import akka.stream.GraphLogicOps._
 import io.scalac.core.akka.model.PushMetrics
 import io.scalac.core.invoke.Lookup
-import io.scalac.core.model.ConnectionStats
+import io.scalac.core.model._
 import io.scalac.extension.event.{ ActorInterpreterStats, EventBus }
 
 import java.lang.invoke.MethodType._
@@ -37,23 +37,24 @@ object AkkaStreamExtensions extends Lookup {
   ): PartialFunction[Any, Unit] =
     receive.orElse {
       case PushMetrics => {
-        val stats = shells
+        val currentShells = shells
           .invoke(self)
           .asInstanceOf[Set[GraphInterpreterShellMirror]]
-          .flatMap(_.connections)
+
+
+        val stats = currentShells.flatMap(_.connections)
           .map { connection =>
             val (push, pull) = ConnectionOps.getAndResetCounterValues(connection)
-            val in           = connection.inOwner.stageName
-            val out          = connection.outOwner.stageName
+            val in           = connection.inOwner.streamUniqueStageName
+            val out          = connection.outOwner.streamUniqueStageName
 
             ConnectionStats(in, out, push, pull)
           }
-        shells
-          .invoke(self)
-          .asInstanceOf[Set[GraphInterpreterShellMirror]]
+
+        val logics = currentShells
           .flatMap(_.logics)
           .map(logic => {
-            logic.stageName
+            StageStats
           })
 
         EventBus(self.context.system.toTyped).publishEvent(ActorInterpreterStats(self.context.self, stats, None))
