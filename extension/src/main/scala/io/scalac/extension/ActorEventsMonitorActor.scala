@@ -47,40 +47,30 @@ final class ActorEventsMonitorActor(
   private[this] val unbinds = mutable.Map.empty[ActorKey, Unbind]
 
   // start
-  restart()
-
-  private def restart(): Unit = {
-    setTimeout()
-    streamRef ! StartStreamCollection(refs.toSet)
-  }
+  setTimeout()
 
   override def onSignal: PartialFunction[Signal, Behavior[Command]] = {
-    case PreRestart =>
-      restart()
-      this
-    case PostStop =>
+    case PostStop | PreRestart =>
       storage.clear()
       unbinds.clear()
+      actorTags.clear()
+      refs = Nil
       this
   }
 
   def onMessage(msg: Command): Behavior[Command] = msg match {
     case UpdateActorMetrics =>
-      cleanTags(storage)
-      cleanRefs(storage)
-
+      cleanTags()
+      cleanRefs()
       update()
-      setTimeout()
-
+      setTimeout() // loop
       this
-
     case AddTag(ref, tag) =>
       ctx.log.trace(s"Add tags {} for actor {}", tag, ref)
       refs ::= ref
       actorTags
         .getOrElseUpdate(storage.actorToKey(ref), mutable.Set.empty)
         .add(tag)
-
       this
   }
 
@@ -88,14 +78,15 @@ final class ActorEventsMonitorActor(
    * Clean tags that wasn't found in last actor tree traversal
    * @param storage
    */
-  private def cleanTags(storage: ActorMetricStorage): Unit = actorTags.keys.foreach { key =>
-    actorTags.updateWith(key) {
-      case s @ Some(_) if storage.has(key) => s
-      case _                               => None
+  private def cleanTags(): Unit =
+    actorTags.keys.foreach { key =>
+      actorTags.updateWith(key) {
+        case s @ Some(_) if storage.has(key) => s
+        case _                               => None
+      }
     }
-  }
 
-  private def cleanRefs(storage: ActorMetricStorage): Unit =
+  private def cleanRefs(): Unit =
     refs = refs.filter(ref => storage.has(storage.actorToKey(ref)))
 
   private def update(): Unit = {
@@ -122,10 +113,13 @@ final class ActorEventsMonitorActor(
   }
 
   private def runSideEffects(): Unit = {
+    startStreamCollection()
     callUnbinds()
     resetStorage()
     registerUpdaters()
   }
+
+  private def startStreamCollection(): Unit = streamRef ! StartStreamCollection(refs.toSet)
 
   private def callUnbinds(): Unit = unbinds.foreach(_._2.unbind())
 
