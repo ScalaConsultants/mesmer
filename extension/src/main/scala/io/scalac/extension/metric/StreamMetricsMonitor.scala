@@ -9,11 +9,11 @@ object StreamMetricsMonitor {
     node: Option[Node],
     stream: Option[String],
     operation: String,
-    direction: String,
+    direction: Direction,
     connectionWith: String
   ) {
     def toOpenTelemetry: OpenTelemetryLabels = {
-      val required: Seq[String] = Seq("operation", operation, "direction", direction, "connectionWith", connectionWith)
+      val required: Seq[String] = Seq("operation", operation, "connectionWith", connectionWith) ++ direction.serialize
       val optional: Seq[String] =
         node.map(n => Seq("node", n)).getOrElse(Seq.empty) ++ stream.map(n => Seq("stream", n)).getOrElse(Seq.empty)
       OpenTelemetryLabels.of(optional ++ required: _*)

@@ -11,7 +11,7 @@ import io.scalac.extension.AkkaStreamMonitoring.{Command, StartStreamCollection,
 import io.scalac.extension.event.ActorInterpreterStats
 import io.scalac.extension.metric.StreamMetricsMonitor
 import io.scalac.extension.metric.StreamMetricsMonitor.Labels
-
+import io.scalac.extension.model.Direction._
 object AkkaStreamMonitoring {
 
   sealed trait Command
@@ -63,7 +63,7 @@ class AkkaStreamMonitoring(context: ActorContext[Command], streamMonitor: Stream
             .mapValues(_.foldLeft(0L)(_ + _.push))
             .foreach {
               case (outName, count) =>
-                val labels = Labels(None, None, inName.name, "in", outName.name)
+                val labels = Labels(None, None, inName.name, In, outName.name)
 
                 streamMonitor.bind(labels).operatorProcessedMessages.incValue(count)
             }
@@ -77,7 +77,7 @@ class AkkaStreamMonitoring(context: ActorContext[Command], streamMonitor: Stream
             .mapValues(_.foldLeft(0L)(_ + _.pull))
             .foreach {
               case (inName, count) =>
-                val labels = Labels(None, None, outName.name, "out", inName.name)
+                val labels = Labels(None, None, outName.name, Out, inName.name)
 
                 streamMonitor.bind(labels).operatorProcessedMessages.incValue(count)
             }
