@@ -12,11 +12,12 @@ import akka.actor.typed.scaladsl.adapter._
 import akka.actor.typed.scaladsl.{ ActorContext, Behaviors, StashBuffer }
 import akka.{ actor => classic }
 
+import net.bytebuddy.ByteBuddy
 import net.bytebuddy.agent.ByteBuddyAgent
 import net.bytebuddy.agent.builder.AgentBuilder
+import org.scalatest.BeforeAndAfterAll
 import org.scalatest.flatspec.AnyFlatSpecLike
 
-import io.scalac.agent.utils.DynamicAgentLoaderOps
 import io.scalac.extension.actorServiceKey
 import io.scalac.extension.event.ActorEvent
 import io.scalac.extension.event.ActorEvent.StashMeasurement
@@ -26,16 +27,19 @@ class AkkaActorAgentTest
     extends ScalaTestWithActorTestKit(classic.ActorSystem("AkkaActorAgentTest").toTyped)
     with AnyFlatSpecLike
     with ReceptionistOps
-    with DynamicAgentLoaderOps {
+    with BeforeAndAfterAll {
 
   import AkkaActorAgentTest._
 
-  def loadAgent(): Unit = {
+  override def beforeAll(): Unit = {
+    super.beforeAll()
     val instrumentation = ByteBuddyAgent.install()
-    val builder = new AgentBuilder.Default()
-      .`with`(new AgentBuilder.InitializationStrategy.SelfInjection.Eager())
-      .`with`(AgentBuilder.Listener.StreamWriting.toSystemOut.withErrorsOnly())
-      .`with`(AgentBuilder.InstallationListener.StreamWriting.toSystemOut)
+    val builder =
+      new AgentBuilder.Default()
+        .`with`(AgentBuilder.Listener.StreamWriting.toSystemOut.withErrorsOnly())
+        .`with`(AgentBuilder.RedefinitionStrategy.RETRANSFORMATION)
+        .`with`(AgentBuilder.TypeStrategy.Default.REDEFINE)
+        .`with`(AgentBuilder.InitializationStrategy.NoOp.INSTANCE)
     val modules = Map(AkkaActorAgent.moduleName -> AkkaActorAgent.defaultVersion)
     AkkaActorAgent.agent.installOn(builder, instrumentation, modules)
   }

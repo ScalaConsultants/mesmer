@@ -18,21 +18,22 @@ import net.bytebuddy.ByteBuddy
 import net.bytebuddy.agent.ByteBuddyAgent
 import net.bytebuddy.agent.builder.AgentBuilder
 import net.bytebuddy.dynamic.scaffold.TypeValidation
+import org.scalatest.BeforeAndAfterAll
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
-import io.scalac.agent.utils.DynamicAgentLoaderOps
 import io.scalac.extension.event.HttpEvent
 import io.scalac.extension.event.HttpEvent.{ RequestCompleted, RequestStarted }
 import io.scalac.extension.httpServiceKey
 
-class AkkaHttpAgentTest extends AnyFlatSpec with ScalatestRouteTest with Matchers with DynamicAgentLoaderOps {
+class AkkaHttpAgentTest extends AnyFlatSpec with ScalatestRouteTest with Matchers with BeforeAndAfterAll {
 
   // implicit val askTimeout = Timeout(1 minute)
 
   override def testConfig: Config = ConfigFactory.load("application-test")
 
-  def loadAgent(): Unit = {
+  override def beforeAll(): Unit = {
+    super.beforeAll()
     val instrumentation = ByteBuddyAgent.install()
     val builder         = new AgentBuilder.Default().`with`(new ByteBuddy().`with`(TypeValidation.DISABLED))
     val modules         = Map(AkkaHttpAgent.moduleName -> AkkaHttpAgent.defaultVersion)

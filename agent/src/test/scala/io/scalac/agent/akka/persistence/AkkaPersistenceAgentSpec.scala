@@ -11,14 +11,14 @@ import _root_.akka.util.Timeout
 
 import net.bytebuddy.agent.ByteBuddyAgent
 import net.bytebuddy.agent.builder.AgentBuilder
-import org.scalatest.OptionValues
+import org.scalatest.{ BeforeAndAfterAll, OptionValues }
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.flatspec.AnyFlatSpecLike
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.time.{ Minute, Second, Span }
 
 import io.scalac.agent.utils.DummyEventSourcedActor.{ DoNothing, Persist }
-import io.scalac.agent.utils.{ DummyEventSourcedActor, DynamicAgentLoaderOps }
+import io.scalac.agent.utils.DummyEventSourcedActor
 import io.scalac.extension.event.PersistenceEvent
 import io.scalac.extension.event.PersistenceEvent._
 import io.scalac.extension.persistenceServiceKey
@@ -31,7 +31,7 @@ class AkkaPersistenceAgentSpec
     with ScalaFutures
     with OptionValues
     with ReceptionistOps
-    with DynamicAgentLoaderOps {
+    with BeforeAndAfterAll {
 
   implicit val askTimeout = Timeout(1.minute)
   override implicit val patienceConfig: PatienceConfig =
@@ -39,7 +39,8 @@ class AkkaPersistenceAgentSpec
 
   type Fixture = TestProbe[PersistenceEvent]
 
-  def loadAgent(): Unit = {
+  override def beforeAll(): Unit = {
+    super.beforeAll()
     val instrumentation = ByteBuddyAgent.install()
     val builder         = new AgentBuilder.Default()
     val modules         = Map(AkkaPersistenceAgent.moduleName -> AkkaPersistenceAgent.defaultVersion)
