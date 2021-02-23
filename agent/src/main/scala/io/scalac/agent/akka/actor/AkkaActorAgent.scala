@@ -2,6 +2,7 @@ package io.scalac.agent.akka.actor
 
 import akka.actor.typed.Behavior
 
+import net.bytebuddy.ByteBuddy
 import net.bytebuddy.asm.Advice
 import net.bytebuddy.description.`type`.TypeDescription
 import net.bytebuddy.description.method.MethodDescription
@@ -31,17 +32,18 @@ object AkkaActorAgent {
         .transform { (builder, _, _, _) =>
           val advice = Advice.to(classOf[ClassicStashInstrumentation])
           builder
-            .method(
-              named[MethodDescription]("stash")
-                .or(named[MethodDescription]("prepend"))
-                .or(named[MethodDescription]("unstash"))
-                .or(
-                  named[MethodDescription]("unstashAll")
-                    .and(takesArguments[MethodDescription](1))
-                )
-                .or(named[MethodDescription]("clearStash"))
+            .visit(
+              advice.on(
+                named[MethodDescription]("stash")
+                  .or(named[MethodDescription]("prepend"))
+                  .or(named[MethodDescription]("unstash"))
+                  .or(
+                    named[MethodDescription]("unstashAll")
+                      .and(takesArguments[MethodDescription](1))
+                  )
+                  .or(named[MethodDescription]("clearStash"))
+              )
             )
-            .intercept(advice)
         }
         .installOn(instrumentation)
       LoadingResult(targetClassName)
@@ -61,16 +63,27 @@ object AkkaActorAgent {
         .transform { (builder, _, _, _) =>
           val advice = Advice.to(classOf[TypedStashInstrumentation])
           builder
-            .method(
-              named[MethodDescription]("stash")
-                .or(named[MethodDescription]("clear"))
-                .or(
-                  named[MethodDescription]("unstash")
-                  // since there're two `unstash` methods, we need to specify paramter types
-                    .and(takesArguments(classOf[Behavior[_]], classOf[Int], classOf[Function1[_, _]]))
-                )
+            .visit(
+              advice.on(
+                named[MethodDescription]("stash")
+                  .or(named[MethodDescription]("clear"))
+                  .or(
+                    named[MethodDescription]("unstash")
+                    // since there're two `unstash` methods, we need to specify parameter types
+                      .and(takesArguments(classOf[Behavior[_]], classOf[Int], classOf[Function1[_, _]]))
+                  )
+              )
             )
-            .intercept(advice)
+//            .method(
+//              named[MethodDescription]("stash")
+//                .or(named[MethodDescription]("clear"))
+//                .or(
+//                  named[MethodDescription]("unstash")
+//                  // since there're two `unstash` methods, we need to specify parameter types
+//                    .and(takesArguments(classOf[Behavior[_]], classOf[Int], classOf[Function1[_, _]]))
+//                )
+//            )
+//            .intercept(advice)
         }
         .installOn(instrumentation)
       LoadingResult(targetClassName)
