@@ -2,10 +2,11 @@ package io.scalac.extension
 
 import scala.annotation.tailrec
 import scala.collection.immutable
+import scala.collection.mutable
 import scala.concurrent.duration._
 
-import akka.actor.typed.Behavior
-import akka.actor.typed.scaladsl.{ ActorContext, Behaviors, TimerScheduler }
+import akka.actor.typed.{ Behavior, PostStop, PreRestart, Signal }
+import akka.actor.typed.scaladsl.{ AbstractBehavior, ActorContext, Behaviors, TimerScheduler }
 import akka.actor.{ ActorRef, ActorRefProvider, ActorSystem }
 
 import io.scalac.core.util.Timestamp
@@ -15,35 +16,54 @@ import io.scalac.extension.metric.{ ActorMetricMonitor, Unbind }
 import io.scalac.extension.metric.ActorMetricMonitor.Labels
 import io.scalac.extension.model.Node
 
-class ActorEventsMonitorActor(
+final class ActorEventsMonitorActor(
   monitor: ActorMetricMonitor,
   node: Option[Node],
   pingOffset: FiniteDuration,
+  private var storage: ActorMetricStorage,
   ctx: ActorContext[Command],
   scheduler: TimerScheduler[Command],
   actorTreeRunner: ActorTreeTraverser = ReflectiveActorTreeTraverser,
   actorMetricsReader: ActorMetricsReader = ReflectiveActorMetricsReader
-) {
+) extends AbstractBehavior[Command](ctx) {
   import ctx.log
   import ActorEventsMonitorActor._
 
-  // TODO There are opportunities for improvements of memory consumption and immutability performance.
+  // Disclaimer:
+  // Due to the compute intensiveness of traverse the actors tree,
+  // we're using AbstractBehavior, mutable state and var in intention to boost our performance.
 
-  def start(state: State): Behavior[Command] =
-    update(state)
+  private val unbinds = mutable.Map.empty[ActorKey, Unbind]
 
-  private def update(state: State): Behavior[Command] = {
+  setTimeout() // first call
+
+  override def onSignal: PartialFunction[Signal, Behavior[Command]] = {
+    case PreRestart =>
+      setTimeout()
+      this
+    case PostStop =>
+      storage.clear()
+      unbinds.clear()
+      this
+  }
+
+  def onMessage(msg: Command): Behavior[Command] = msg match {
+    case UpdateActorMetrics =>
+      update()
+      setTimeout()
+      this
+  }
+
+  private def update(): Unit = {
 
     @tailrec
-    def traverseActorTree(actors: List[ActorRef], state: State): State = actors match {
-      case Nil => state
+    def traverseActorTree(actors: List[ActorRef]): Unit = actors match {
+      case Nil =>
       case h :: t =>
-        val nextState = State(
-          state.storage.save(h, collect(h)),
-          state.unbinds - state.storage.actorToKey(h)
-        )
+        storage = storage.save(h, collect(h))
+        unbinds.remove(storage.actorToKey(h))
         val nextActors = t ++ actorTreeRunner.getChildren(h)
-        traverseActorTree(nextActors, nextState)
+        traverseActorTree(nextActors)
     }
 
     def collect(actorRef: ActorRef): ActorMetrics =
@@ -52,34 +72,33 @@ class ActorEventsMonitorActor(
         timestamp = Timestamp.create()
       )
 
-    val nextState = traverseActorTree(actorTreeRunner.getRootGuardian(ctx.system.classicSystem) :: Nil, state)
+    traverseActorTree(actorTreeRunner.getRootGuardian(ctx.system.classicSystem) :: Nil)
 
-    scheduler.startSingleTimer(UpdateActorMetrics, pingOffset)
-
-    waiting(nextState)
+    runSideEffects()
   }
 
-  private def waiting(state: State): Behavior[Command] = {
-    // side-effects
-    state.unbinds.values.foreach(_.unbind())
-    val nextStorage = state.unbinds.keys.foldLeft(state.storage)(_.remove(_))
-    val nextUnbinds = registerUpdaters(state.storage)
-    val nextState   = State(nextStorage, nextUnbinds)
-    Behaviors.receiveMessage {
-      case UpdateActorMetrics => update(nextState)
-    }
+  private def runSideEffects(): Unit = {
+    callUnbinds()
+    resetStorage()
+    registerUpdaters()
   }
 
-  private def registerUpdaters(storage: ActorMetricStorage): Map[ActorKey, Unbind] =
-    storage.map {
+  private def callUnbinds(): Unit = unbinds.foreach(_._2.unbind())
+
+  private def resetStorage(): Unit = storage = unbinds.keys.foldLeft(storage)(_.remove(_))
+
+  private def registerUpdaters(): Unit =
+    storage.foreach {
       case (key, metrics) =>
-        metrics.mailboxSize.fold[Option[(ActorKey, Unbind)]](None) { mailboxSize =>
+        metrics.mailboxSize.foreach { mailboxSize =>
           log.trace("Registering a new updater for mailbox size for actor {} with value {}", key, mailboxSize)
           val bind = monitor.bind(Labels(key, node))
           bind.mailboxSize.setUpdater(_.observe(mailboxSize))
-          Some((key, bind))
+          unbinds.put(key, bind)
         }
-    }.collect { case Some(bind) => bind }.toMap
+    }
+
+  private def setTimeout(): Unit = scheduler.startSingleTimer(UpdateActorMetrics, pingOffset)
 
 }
 
@@ -87,8 +106,6 @@ object ActorEventsMonitorActor {
 
   sealed trait Command
   final case object UpdateActorMetrics extends Command
-
-  private case class State(storage: ActorMetricStorage, unbinds: Map[ActorKey, Unbind])
 
   def apply(
     actorMonitor: ActorMetricMonitor,
@@ -100,8 +117,16 @@ object ActorEventsMonitorActor {
   ): Behavior[Command] =
     Behaviors.setup { ctx =>
       Behaviors.withTimers { scheduler =>
-        new ActorEventsMonitorActor(actorMonitor, node, pingOffset, ctx, scheduler, actorTreeRunner, actorMetricsReader)
-          .start(State(storage, Map.empty))
+        new ActorEventsMonitorActor(
+          actorMonitor,
+          node,
+          pingOffset,
+          storage,
+          ctx,
+          scheduler,
+          actorTreeRunner,
+          actorMetricsReader
+        )
       }
     }
 
