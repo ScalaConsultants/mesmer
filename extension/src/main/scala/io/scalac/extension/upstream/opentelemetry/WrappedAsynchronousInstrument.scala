@@ -33,15 +33,12 @@ sealed abstract class MetricObserverBuilderAdapter[R <: AsynchronousInstrument.R
 
   def createObserver(labels: Labels): WrappedMetricObserver[T] = {
     val ref = new WrappedMetricObserver[T](labels)
-    synchronized {
-      observers.put(labels, ref)
-    }
+    observers.put(labels, ref)
     ref
   }
 
-  def removeObserver(labels: Labels): Unit = synchronized {
+  def removeObserver(labels: Labels): Unit =
     observers.remove(labels)
-  }
 
   private def updateAll(result: R): Unit = {
     val wrapped = wrapper(result)
@@ -54,9 +51,8 @@ final class WrappedMetricObserver[T](labels: Labels) extends MetricObserver[T] {
 
   private var valueUpdater: Option[MetricObserver.Updater[T]] = None
 
-  def setUpdater(updater: MetricObserver.Updater[T]): Unit = synchronized {
+  def setUpdater(updater: MetricObserver.Updater[T]): Unit =
     valueUpdater = Some(updater)
-  }
 
   def update(result: WrappedResult[T]): Unit =
     valueUpdater.foreach(updater => updater(value => result(value, labels)))
