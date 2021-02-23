@@ -97,7 +97,7 @@ final class ActorEventsMonitorActor(
       case h :: t =>
         storage = storage.save(h, collect(h))
         unbinds.remove(storage.actorToKey(h))
-        val nextActors = t ++ actorTreeRunner.getChildren(h)
+        val nextActors = t.prependedAll(actorTreeRunner.getChildren(h))
         traverseActorTree(nextActors)
     }
 
