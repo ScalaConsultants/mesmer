@@ -1,5 +1,6 @@
 package io.scalac.extension
 
+import scala.annotation.tailrec
 import scala.collection.immutable
 import scala.concurrent.duration._
 
@@ -33,12 +34,17 @@ class ActorEventsMonitorActor(
 
   private def updateActorMetrics(state: State): Behavior[Command] = {
 
-    def traverseActorTree(actor: ActorRef, state: State): State =
-      actorTreeRunner
-        .getChildren(actor)
-        .foldLeft(
-          State(state.storage.save(actor, collect(actor)), state.unbinds - state.storage.actorToKey(actor))
-        ) { case (stateAcc, children) => traverseActorTree(children, stateAcc) }
+    @tailrec
+    def traverseActorTree(actors: List[ActorRef], state: State): State = actors match {
+      case Nil => state
+      case h :: t =>
+        val nextState = State(
+          state.storage.save(h, collect(h)),
+          state.unbinds - state.storage.actorToKey(h)
+        )
+        val nextActors = t ++ actorTreeRunner.getChildren(h)
+        traverseActorTree(nextActors, nextState)
+    }
 
     def collect(actorRef: ActorRef): ActorMetrics =
       ActorMetrics(
@@ -46,7 +52,7 @@ class ActorEventsMonitorActor(
         timestamp = Timestamp.create()
       )
 
-    val nextState = traverseActorTree(actorTreeRunner.getRootGuardian(ctx.system.classicSystem), state)
+    val nextState = traverseActorTree(actorTreeRunner.getRootGuardian(ctx.system.classicSystem) :: Nil, state)
 
     scheduler.startSingleTimer(UpdateActorMetrics, pingOffset)
 
