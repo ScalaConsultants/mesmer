@@ -1,18 +1,22 @@
 package io.scalac.extension
 
-import scala.collection.immutable
-import scala.concurrent.duration._
-
 import akka.actor.typed.Behavior
-import akka.actor.typed.scaladsl.{ ActorContext, Behaviors, TimerScheduler }
-import akka.actor.{ ActorRef, ActorRefProvider, ActorSystem }
-
+import akka.actor.typed.receptionist.Receptionist.Register
+import akka.actor.typed.scaladsl.{ActorContext, Behaviors, TimerScheduler}
+import akka.actor.{ActorRef, ActorRefProvider, ActorSystem}
+import io.scalac.core.model.Tag
 import io.scalac.core.util.Timestamp
+import io.scalac.extension.ActorEventsMonitorActor.Command.{AddTag, UpdateActorMetrics}
 import io.scalac.extension.ActorEventsMonitorActor._
-import io.scalac.extension.actor.{ ActorMetricStorage, ActorMetrics }
-import io.scalac.extension.metric.ActorMetricMonitor
+import io.scalac.extension.AkkaStreamMonitoring.StartStreamCollection
+import io.scalac.extension.actor.{ActorMetricStorage, ActorMetrics}
+import io.scalac.extension.event.TagEvent
 import io.scalac.extension.metric.ActorMetricMonitor.Labels
-import io.scalac.extension.model.Node
+import io.scalac.extension.metric.{ActorMetricMonitor, StreamMetricsMonitor}
+import io.scalac.extension.model.{ActorKey, Node}
+
+import scala.collection.{immutable, mutable}
+import scala.concurrent.duration._
 
 class ActorEventsMonitorActor(
   monitor: ActorMetricMonitor,
@@ -20,11 +24,18 @@ class ActorEventsMonitorActor(
   pingOffset: FiniteDuration,
   ctx: ActorContext[Command],
   scheduler: TimerScheduler[Command],
+  streamMonitor: StreamMetricsMonitor,
   actorTreeRunner: ActorTreeTraverser = ReflectiveActorTreeTraverser,
   actorMetricsReader: ActorMetricsReader = ReflectiveActorMetricsReader
 ) {
-  import ctx.log
   import ActorEventsMonitorActor._
+  import ctx.log
+
+  private[this] val actorTags: mutable.Map[ActorKey, mutable.Set[Tag]] = mutable.Map.empty
+
+  private[this] var refs: List[ActorRef] = Nil
+
+  private[this] val streamRef = ctx.spawn(AkkaStreamMonitoring.apply(streamMonitor), "stream-monitor")
 
   def start(storage: ActorMetricStorage): Behavior[Command] =
     updateActorMetrics(storage)
@@ -32,16 +43,45 @@ class ActorEventsMonitorActor(
   private def behavior(storage: ActorMetricStorage): Behavior[Command] = {
     registerUpdaters(storage)
     Behaviors.receiveMessage {
-      case UpdateActorMetrics => updateActorMetrics(storage)
+      case UpdateActorMetrics =>
+        cleanTags(storage)
+        cleanRefs(storage)
+        updateActorMetrics(storage)
+      case AddTag(ref, tag) =>
+        ctx.log.trace(s"Add tags {} for actor {}", tag, ref)
+        refs ::= ref
+        actorTags
+          .getOrElseUpdate(storage.actorToKey(ref), mutable.Set.empty)
+          .add(tag)
+        Behaviors.same
     }
   }
+
+  /**
+   * Clean tags that wasn't found in last actor tree traversal
+   * @param storage
+   */
+  private def cleanTags(storage: ActorMetricStorage): Unit = actorTags.keys.foreach { key =>
+    actorTags.updateWith(key) {
+      case s @ Some(_) if storage.has(key) => s
+      case _                               => None
+    }
+  }
+
+  private def cleanRefs(storage: ActorMetricStorage): Unit =
+    refs = refs.filter(ref => storage.has(storage.actorToKey(ref)))
 
   private def registerUpdaters(storage: ActorMetricStorage): Unit =
     storage.foreach {
       case (key, metrics) =>
         metrics.mailboxSize.foreach { mailboxSize =>
           log.trace("Registering a new updater for mailbox size for actor {} with value {}", key, mailboxSize)
-          monitor.bind(Labels(key, node)).mailboxSize.setUpdater(_.observe(mailboxSize))
+
+          val tags = actorTags.get(key).fold[Set[Tag]](Set.empty)(_.toSet)
+          monitor
+            .bind(Labels(key, node, tags))
+            .mailboxSize
+            .setUpdater(_.observe(mailboxSize))
         }
     }
 
@@ -62,6 +102,8 @@ class ActorEventsMonitorActor(
 
     traverseActorTree(actorTreeRunner.getRootGuardian(ctx.system.classicSystem), storage)
 
+    streamRef ! StartStreamCollection(refs.toSet)
+
     scheduler.startSingleTimer(UpdateActorMetrics, pingOffset)
 
     behavior(storage)
@@ -71,20 +113,35 @@ class ActorEventsMonitorActor(
 object ActorEventsMonitorActor {
 
   sealed trait Command
-  final case object UpdateActorMetrics extends Command
+  object Command {
+    final case object UpdateActorMetrics                                                   extends Command
+    final private[ActorEventsMonitorActor] case class AddTag(actorRef: ActorRef, tag: Tag) extends Command
+  }
 
   def apply(
     actorMonitor: ActorMetricMonitor,
     node: Option[Node],
     pingOffset: FiniteDuration,
     storage: ActorMetricStorage,
+    streamMonitor: StreamMetricsMonitor,
     actorTreeRunner: ActorTreeTraverser = ReflectiveActorTreeTraverser,
     actorMetricsReader: ActorMetricsReader = ReflectiveActorMetricsReader
   ): Behavior[Command] =
     Behaviors.setup { ctx =>
       Behaviors.withTimers { scheduler =>
-        new ActorEventsMonitorActor(actorMonitor, node, pingOffset, ctx, scheduler, actorTreeRunner, actorMetricsReader)
-          .start(storage)
+        ctx.system.receptionist ! Register(tagServiceKey, ctx.messageAdapter[TagEvent] {
+          case TagEvent(ref, tag) => AddTag(ref, tag)
+        })
+        new ActorEventsMonitorActor(
+          actorMonitor,
+          node,
+          pingOffset,
+          ctx,
+          scheduler,
+          streamMonitor,
+          actorTreeRunner,
+          actorMetricsReader
+        ).start(storage)
       }
     }
 
