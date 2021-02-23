@@ -1,4 +1,4 @@
-package io.scalac.core
+package io.scalac.core.model
 
 sealed trait Tag {
   def serialize: Seq[(String, String)]

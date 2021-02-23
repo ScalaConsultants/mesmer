@@ -4,11 +4,11 @@ import akka.AkkaMirrorTypes._
 import akka.actor.Actor
 import akka.actor.typed.scaladsl.adapter._
 import akka.stream.GraphLogicOps._
-import io.scalac.core.PushMetrics
+import io.scalac.core.akka.model.PushMetrics
 import io.scalac.core.invoke.Lookup
-import io.scalac.extension.event.{ ActorInterpreterStats, ConnectionStats, EventBus }
+import io.scalac.core.model.ConnectionStats
+import io.scalac.extension.event.{ ActorInterpreterStats, EventBus }
 
-import java.lang.invoke.MethodHandles._
 import java.lang.invoke.MethodType._
 object AkkaStreamExtensions extends Lookup {
 

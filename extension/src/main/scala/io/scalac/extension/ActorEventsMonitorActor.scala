@@ -2,20 +2,20 @@ package io.scalac.extension
 
 import akka.actor.typed.Behavior
 import akka.actor.typed.receptionist.Receptionist.Register
-import akka.actor.typed.scaladsl.{ ActorContext, Behaviors, TimerScheduler }
-import akka.actor.{ ActorRef, ActorRefProvider, ActorSystem }
-import io.scalac.core.Tag
+import akka.actor.typed.scaladsl.{ActorContext, Behaviors, TimerScheduler}
+import akka.actor.{ActorRef, ActorRefProvider, ActorSystem}
+import io.scalac.core.model.Tag
 import io.scalac.core.util.Timestamp
-import io.scalac.extension.ActorEventsMonitorActor.Command.{ AddTag, UpdateActorMetrics }
+import io.scalac.extension.ActorEventsMonitorActor.Command.{AddTag, UpdateActorMetrics}
 import io.scalac.extension.ActorEventsMonitorActor._
 import io.scalac.extension.AkkaStreamMonitoring.StartStreamCollection
-import io.scalac.extension.actor.{ ActorMetricStorage, ActorMetrics }
+import io.scalac.extension.actor.{ActorMetricStorage, ActorMetrics}
 import io.scalac.extension.event.TagEvent
 import io.scalac.extension.metric.ActorMetricMonitor.Labels
-import io.scalac.extension.metric.{ ActorMetricMonitor, StreamMetricsMonitor }
-import io.scalac.extension.model.{ ActorKey, Node }
+import io.scalac.extension.metric.{ActorMetricMonitor, StreamMetricsMonitor}
+import io.scalac.extension.model.{ActorKey, Node}
 
-import scala.collection.{ immutable, mutable }
+import scala.collection.{immutable, mutable}
 import scala.concurrent.duration._
 
 class ActorEventsMonitorActor(

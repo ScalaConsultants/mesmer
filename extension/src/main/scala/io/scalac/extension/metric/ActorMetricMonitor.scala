@@ -1,6 +1,6 @@
 package io.scalac.extension.metric
 
-import io.scalac.core.Tag
+import io.scalac.core.model.Tag
 import io.scalac.extension.model.{Node, Path}
 
 object ActorMetricMonitor {

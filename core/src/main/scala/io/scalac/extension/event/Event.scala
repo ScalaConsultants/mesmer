@@ -1,8 +1,8 @@
 package io.scalac.extension.event
 
 import akka.actor.ActorRef
-import io.scalac.core.Tag
-import io.scalac.core.Tag.StageName
+import io.scalac.core.model.Tag.StageName
+import io.scalac.core.model.{ ConnectionStats, Tag }
 import io.scalac.core.util.Timestamp
 
 sealed trait AbstractEvent { self =>
@@ -40,10 +40,6 @@ object HttpEvent {
 final case class TagEvent(ref: ActorRef, tag: Tag) extends AbstractEvent {
   override type Service = TagEvent
 }
-
-case class ConnectionStats(inName: StageName, outName: StageName, pull: Long, push: Long)
-
-//case class ActorStageStats(tags: Set[Tag], in: Seq[ConnectionStats], out: Seq[ConnectionStats])
 
 final case class ActorInterpreterStats(
   self: ActorRef,

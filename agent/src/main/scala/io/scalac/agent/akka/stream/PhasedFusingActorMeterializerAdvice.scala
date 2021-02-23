@@ -3,10 +3,11 @@ package io.scalac.agent.akka.stream
 import akka.AkkaMirrorTypes
 import akka.actor.ActorRef
 import akka.actor.typed.scaladsl.adapter._
-import io.scalac.core.Tag
-import io.scalac.extension.event.{ EventBus, TagEvent }
+import io.scalac.core.model.Tag
+import io.scalac.extension.event.{EventBus, TagEvent}
 import net.bytebuddy.asm.Advice._
 class PhasedFusingActorMeterializerAdvice
+
 object PhasedFusingActorMeterializerAdvice {
 
   @OnMethodExit
