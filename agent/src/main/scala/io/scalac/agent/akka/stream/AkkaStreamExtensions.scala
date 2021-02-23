@@ -5,29 +5,30 @@ import akka.actor.Actor
 import akka.actor.typed.scaladsl.adapter._
 import akka.stream.GraphLogicOps._
 import io.scalac.core.PushMetrics
+import io.scalac.core.invoke.Lookup
 import io.scalac.extension.event.{ ActorInterpreterStats, ConnectionStats, EventBus }
 
 import java.lang.invoke.MethodHandles._
 import java.lang.invoke.MethodType._
-object AkkaStreamExtensions {
+object AkkaStreamExtensions extends Lookup {
 
   private lazy val graphInterpreterClass = Class.forName("akka.stream.impl.fusing.GraphInterpreter")
 
   private lazy val graphInterpreterPushCounter = {
     val field = graphInterpreterClass.getDeclaredField("pushCounter")
     field.setAccessible(true)
-    lookup().unreflectGetter(field)
+    lookup.unreflectGetter(field)
   }
 
   private lazy val graphInterpreterPullCounter = {
     val field = graphInterpreterClass.getDeclaredField("pullCounter")
     field.setAccessible(true)
-    lookup().unreflectGetter(field)
+    lookup.unreflectGetter(field)
   }
 
   private lazy val shells = {
     val actorInterpreter = Class.forName("akka.stream.impl.fusing.ActorGraphInterpreter")
-    lookup().findVirtual(actorInterpreter, "activeInterpreters", methodType(classOf[Set[GraphInterpreterShellMirror]]))
+    lookup.findVirtual(actorInterpreter, "activeInterpreters", methodType(classOf[Set[GraphInterpreterShellMirror]]))
   }
 
   def addCollectionReceive(

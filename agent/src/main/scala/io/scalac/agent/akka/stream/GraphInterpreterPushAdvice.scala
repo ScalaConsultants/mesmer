@@ -3,6 +3,7 @@ import io.scalac.agent.akka.stream.ConnectionOps._
 import net.bytebuddy.asm.Advice._
 
 class GraphInterpreterPushAdvice
+
 object GraphInterpreterPushAdvice {
 
   @OnMethodEnter
@@ -11,6 +12,7 @@ object GraphInterpreterPushAdvice {
 }
 
 class GraphInterpreterPullAdvice
+
 object GraphInterpreterPullAdvice {
 
   @OnMethodEnter

@@ -1,7 +1,7 @@
 package io.scalac.agent.akka.stream
-import java.lang.invoke.MethodHandles._
+import io.scalac.core.invoke.Lookup
 
-object ConnectionOps {
+object ConnectionOps extends Lookup {
 
   lazy val PullCounterVarName = "pullCounter"
   lazy val PushCounterVarName = "pushCounter"
@@ -11,13 +11,13 @@ object ConnectionOps {
   lazy val (pushHandleGetter, pushHandleSetter) = {
     val field = connectionClass.getDeclaredField(PushCounterVarName)
     field.setAccessible(true) // might not be necessary
-    (lookup().unreflectGetter(field), lookup().unreflectSetter(field))
+    (lookup.unreflectGetter(field), lookup.unreflectSetter(field))
   }
 
   lazy val (pullHandleGetter, pullHandleSetter) = {
     val field = connectionClass.getDeclaredField(PullCounterVarName)
     field.setAccessible(true) // might not be necessary
-    (lookup().unreflectGetter(field), lookup().unreflectSetter(field))
+    (lookup.unreflectGetter(field), lookup.unreflectSetter(field))
   }
 
   def incrementPushCounter(connection: AnyRef): Unit =
@@ -30,7 +30,7 @@ object ConnectionOps {
     pushHandleGetter.invoke(connection).asInstanceOf[Long]
 
   /**
-   * Use method handles to extract values stored in syntetic fields
+   * Use method handles to extract values stored in synthetic fields
    * @param connection
    * @return respectively push and pull counter values
    */
