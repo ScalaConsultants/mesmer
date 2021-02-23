@@ -68,7 +68,8 @@ val assemblyMergeStrategySettings = assembly / assemblyMergeStrategy := {
 lazy val agent = (project in file("agent"))
   .settings(
     name := "akka-monitoring-agent",
-    libraryDependencies ++= akka.map(_ % "provided") ++ byteBuddy ++ scalatest ++ akkaTestkit ++ slf4jApi ++ reflection(
+    libraryDependencies ++= akka
+      .map(_ % "test;provided") ++ byteBuddy ++ scalatest ++ akkaTestkit ++ slf4jApi ++ reflection(
       scalaVersion.value
     ),
     Compile / mainClass := Some("io.scalac.agent.Boot"),

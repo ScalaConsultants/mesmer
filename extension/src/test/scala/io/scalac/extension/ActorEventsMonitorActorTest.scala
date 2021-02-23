@@ -68,10 +68,11 @@ class ActorEventsMonitorActorTest extends AnyFlatSpecLike with Matchers with Ins
     def test(block: (ActorMonitorTestProbe, ActorSystem[String]) => Unit): Unit = {
       implicit val system: ActorSystem[String] = createActorSystem()
 
-      val monitor = new ActorMonitorTestProbe(pingOffset)
+      val monitor   = new ActorMonitorTestProbe(pingOffset)
+      val streamRef = system.systemActorOf(Behaviors.ignore[AkkaStreamMonitoring.Command], "streamMonitor")
 
       system.systemActorOf(
-        ActorEventsMonitorActor(monitor, None, pingOffset, MutableActorMetricsStorage.empty),
+        ActorEventsMonitorActor(monitor, None, pingOffset, MutableActorMetricsStorage.empty, streamRef),
         "actorEventsMonitorActor"
       )
       try {
