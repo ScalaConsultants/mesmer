@@ -42,7 +42,7 @@ object AkkaStreamExtensions extends Lookup {
           .asInstanceOf[Set[GraphInterpreterShellMirror]]
           .flatMap(_.connections)
           .map { connection =>
-            val (push, pull) = ConnectionOps.getCounterValues(connection)
+            val (push, pull) = ConnectionOps.getAndResetCounterValues(connection)
             val in           = connection.inOwner.stageName
             val out          = connection.outOwner.stageName
 
