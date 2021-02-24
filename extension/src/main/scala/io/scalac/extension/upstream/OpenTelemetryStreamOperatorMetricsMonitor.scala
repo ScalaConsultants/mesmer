@@ -4,14 +4,18 @@ import com.typesafe.config.Config
 import io.opentelemetry.api.OpenTelemetry
 import io.scalac.extension.metric.StreamOperatorMetricsMonitor
 import io.scalac.extension.upstream.OpenTelemetryStreamOperatorMetricsMonitor.MetricNames
-import io.scalac.extension.upstream.opentelemetry.{ WrappedCounter, WrappedUpDownCounter }
+import io.scalac.extension.upstream.opentelemetry.{ WrappedCounter, WrappedLongValueRecorder, WrappedUpDownCounter }
 
 object OpenTelemetryStreamOperatorMetricsMonitor {
-  case class MetricNames(operatorProcessed: String, connections: String)
+  case class MetricNames(operatorProcessed: String, connections: String, runningOperators: String)
 
   object MetricNames {
     private val defaults: MetricNames =
-      MetricNames("akka_streams_operator_processed_total", "akka_streams_operator_connections")
+      MetricNames(
+        "akka_streams_operator_processed_total",
+        "akka_streams_operator_connections",
+        "akka_streams_running_operators"
+      )
 
     def fromConfig(config: Config): MetricNames = {
       import io.scalac.extension.config.ConfigurationUtils._
@@ -25,7 +29,11 @@ object OpenTelemetryStreamOperatorMetricsMonitor {
           .tryValue("operator-connections")(_.getString)
           .getOrElse(defaults.connections)
 
-        MetricNames(operatorProcessed, operatorConnections)
+        val runningOperators = streamMetricsConfig
+          .tryValue("running-operators")(_.getString)
+          .getOrElse(defaults.runningOperators)
+
+        MetricNames(operatorProcessed, operatorConnections, runningOperators)
       }
     }.getOrElse(defaults)
   }
@@ -52,6 +60,11 @@ class OpenTelemetryStreamOperatorMetricsMonitor(instrumentationName: String, met
     .setDescription("Amount of connections in operator")
     .build()
 
+  private val runningOperatorsRecorder = meter
+    .longValueRecorderBuilder(metricNames.runningOperators)
+    .setDescription("Amount of running operators")
+    .build()
+
   override def bind(labels: Labels): BoundMonitor = new StreamOperatorMetricsBoundMonitor(labels)
 
   class StreamOperatorMetricsBoundMonitor(labels: Labels) extends BoundMonitor {
@@ -62,9 +75,12 @@ class OpenTelemetryStreamOperatorMetricsMonitor(instrumentationName: String, met
     override val connections =
       WrappedUpDownCounter(operatorConnectionsGauge, openTelemetryLabels)
 
+    override val operators = WrappedLongValueRecorder(runningOperatorsRecorder, openTelemetryLabels)
+
     override def unbind(): Unit = {
       connections.unbind()
       processedMessages.unbind()
+      operators.unbind()
     }
   }
 }

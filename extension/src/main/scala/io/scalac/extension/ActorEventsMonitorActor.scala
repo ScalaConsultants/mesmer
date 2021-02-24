@@ -46,9 +46,10 @@ class ActorEventsMonitorActor(
     registerUpdaters(storage)
     Behaviors.receiveMessage {
       case UpdateActorMetrics =>
+        val next = updateActorMetrics(storage)
         cleanTags(storage)
         cleanRefs(storage)
-        updateActorMetrics(storage)
+        next
       case AddTag(ref, tag) =>
         ctx.log.trace(s"Add tags {} for actor {}", tag, ref)
         refs ::= ref
@@ -71,7 +72,7 @@ class ActorEventsMonitorActor(
   }
 
   private def cleanRefs(storage: ActorMetricStorage): Unit =
-    refs = refs.filter(ref => storage.has(storage.actorToKey(ref)))
+    refs = refs.filter(ref =>  storage.has(storage.actorToKey(ref)))
 
   private def registerUpdaters(storage: ActorMetricStorage): Unit =
     storage.foreach {

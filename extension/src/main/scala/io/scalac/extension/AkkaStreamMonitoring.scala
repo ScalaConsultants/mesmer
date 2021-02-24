@@ -6,7 +6,7 @@ import akka.actor.typed.scaladsl.adapter._
 import akka.actor.typed.scaladsl.{ AbstractBehavior, ActorContext, Behaviors, TimerScheduler }
 import akka.actor.typed.{ Behavior, Terminated }
 import io.scalac.core.akka.model.PushMetrics
-import io.scalac.core.model.ConnectionStats
+import io.scalac.core.model._
 import io.scalac.extension.AkkaStreamMonitoring.{ CollectionTimeout, Command, StartStreamCollection, StatsReceived }
 import io.scalac.extension.event.ActorInterpreterStats
 import io.scalac.extension.metric.StreamMetricMonitor.{ Labels => GlobalLabels }
@@ -15,6 +15,7 @@ import io.scalac.extension.metric.{ StreamMetricMonitor, StreamOperatorMetricsMo
 import io.scalac.extension.model.Direction._
 import io.scalac.extension.model._
 
+import scala.collection.mutable
 import scala.concurrent.duration.{ FiniteDuration, _ }
 
 object AkkaStreamMonitoring {
@@ -52,7 +53,9 @@ class AkkaStreamMonitoring(
   import ctx._
 
   private[this] var connectionStats: Option[Set[ConnectionStats]] = None
-  private[this] val globalStreamMonitor                           = streamMonitor.bind(GlobalLabels(node))
+  private[this] val connectionGraph: mutable.Map[StageInfo, Set[ConnectionStats]] =
+    mutable.Map.empty
+  private[this] val globalStreamMonitor = streamMonitor.bind(GlobalLabels(node))
 
   system.receptionist ! Register(streamServiceKey, messageAdapter(StatsReceived.apply))
 
@@ -60,6 +63,7 @@ class AkkaStreamMonitoring(
     case StartStreamCollection(refs) if refs.nonEmpty =>
       log.info("Start stream stats collection")
       scheduler.startSingleTimer(CollectionTimeout, CollectionTimeout, timeout)
+
 
       refs.foreach { ref =>
         watch(ref)
@@ -86,48 +90,41 @@ class AkkaStreamMonitoring(
 
   // TODO optimize this!
   def recordAll(): Unit =
-    connectionStats.foreach { stats =>
-      stats.groupBy(_.inName).foreach {
-        case (inName, stats) =>
-          stats
-            .groupBy(_.outName)
-            .view
-            .mapValues(_.foldLeft(0L)(_ + _.push))
-            .foreach {
-              case (outName, count) =>
-                val labels = Labels(None, None, inName.name, In, outName.name)
+    connectionGraph.foreach {
+      case (StageInfo(stageName, streamName), in) =>
+        in.groupBy(_.outName).foreach {
+          case (upstream, connections) =>
+            val push   = connections.foldLeft(0L)(_ + _.push)
+            val labels = Labels(stageName, node, Some(streamName.name), Some(upstream.name, In))
 
-                streamOperatorMonitor.bind(labels).processedMessages.incValue(count)
-            }
-      }
+            streamOperatorMonitor
+              .bind(labels)
+              .processedMessages
+              .incValue(push)
+        }
+        val labels = Labels(stageName, node, Some(streamName.name), None)
+        streamOperatorMonitor
+          .bind(labels)
+          .operators
+          .setValue(1L)
 
-      stats.groupBy(_.outName).foreach {
-        case (outName, stats) =>
-          stats
-            .groupBy(_.inName)
-            .view
-            .mapValues(_.foldLeft(0L)(_ + _.pull))
-            .foreach {
-              case (inName, count) =>
-                val labels = Labels(None, None, outName.name, Out, inName.name)
-
-                streamOperatorMonitor.bind(labels).processedMessages.incValue(count)
-            }
-      }
     }
 
   def collecting(refs: Set[ActorRef]): Behavior[Command] =
     Behaviors
       .receiveMessage[Command] {
-        case StatsReceived(ActorInterpreterStats(ref, info, connections, _)) =>
+        case StatsReceived(ActorInterpreterStats(ref, stageInfo, connections, _)) =>
           val refsLeft = refs - ref
           log.trace("Received stats from {}", ref)
 
+          val stages = stageInfo.map { info =>
+            val in = connections.filter(_.inName == info.stageName)
+            (info, in)
+          }.toMap
+
           unwatch(ref)
 
-          connectionStats.fold[Unit] {
-            connectionStats = Some(connections)
-          }(prev => connectionStats = Some(prev ++ connections))
+          connectionGraph ++= stages
 
           if (refsLeft.isEmpty) {
             log.debug("Finished collecting stats")
@@ -140,6 +137,7 @@ class AkkaStreamMonitoring(
 
         case CollectionTimeout =>
           log.warn("Collecting stats from running streams timeout")
+          refs.foreach(ref => unwatch(ref))
           recordAll() // we record data gathered so far nevertheless
           this
         // TODO handle this case better

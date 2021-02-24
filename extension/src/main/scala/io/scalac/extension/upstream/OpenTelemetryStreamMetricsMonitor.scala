@@ -43,7 +43,7 @@ class OpenTelemetryStreamMetricMonitor(instrumentationName: String, metricNames:
     .getGlobalMeter(instrumentationName)
 
   private val runningStreamsRecorder = meter
-    .longValueRecorderBuilder(metricNames.streamActors)
+    .longValueRecorderBuilder(metricNames.runningStreams)
     .setDescription("Amount of running streams on a system")
     .build()
 

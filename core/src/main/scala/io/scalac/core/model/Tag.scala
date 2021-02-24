@@ -17,6 +17,10 @@ object Tag {
 
   sealed trait StageName extends Tag {
     def name: String
+    def nameOnly: StageName = this match {
+      case _: StageNameImpl               => this
+      case StreamUniqueStageName(name, _) => StageNameImpl(name)
+    }
   }
 
   object StageName {
@@ -30,13 +34,15 @@ object Tag {
     override lazy val serialize: Seq[(String, String)] = StageName.serializeName(name)
   }
 
-  private final case class StreamUniqueStageName(private val _name: String, id: Int) extends StageName {
-    override lazy val name: String = s"${_name}/${id}"
+  private final case class StreamUniqueStageName(override val name: String, id: Int) extends StageName {
 
-    override lazy val serialize: Seq[(String, String)] = Seq("id" -> id.toString)
+    val streamUniqueName = s"$name/$id" // we use slash as this character will not appear in actor name
+
+    override lazy val serialize: Seq[(String, String)] =
+      StageName.serializeName(name) ++ Seq("stream_unique_name" -> streamUniqueName)
   }
 
   final case class StreamName(name: String) extends Tag {
-    override def serialize: Seq[(String, String)] = StageName.serializeName(name) ++ Seq(("stream_name", name))
+    override def serialize: Seq[(String, String)] = Seq(("stream_name", name))
   }
 }

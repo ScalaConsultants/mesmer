@@ -11,9 +11,9 @@ package object model {
 
   sealed trait Direction {
     import Direction._
-    def serialize: Seq[String] = this match {
-      case Out => Seq("direction", "out")
-      case In  => Seq("direction", "in")
+    def serialize: (String, String) = this match {
+      case Out => ("direction", "out")
+      case In  => ("direction", "in")
     }
   }
 
