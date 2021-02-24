@@ -2,20 +2,20 @@ package io.scalac.extension
 
 import akka.actor.typed.Behavior
 import akka.actor.typed.receptionist.Receptionist.Register
-import akka.actor.typed.scaladsl.{ActorContext, Behaviors, TimerScheduler}
-import akka.actor.{ActorRef, ActorRefProvider, ActorSystem}
+import akka.actor.typed.scaladsl.{ ActorContext, Behaviors, TimerScheduler }
+import akka.actor.{ ActorRef, ActorRefProvider, ActorSystem }
 import io.scalac.core.model.Tag
 import io.scalac.core.util.Timestamp
-import io.scalac.extension.ActorEventsMonitorActor.Command.{AddTag, UpdateActorMetrics}
+import io.scalac.extension.ActorEventsMonitorActor.Command.{ AddTag, UpdateActorMetrics }
 import io.scalac.extension.ActorEventsMonitorActor._
 import io.scalac.extension.AkkaStreamMonitoring.StartStreamCollection
-import io.scalac.extension.actor.{ActorMetricStorage, ActorMetrics}
+import io.scalac.extension.actor.{ ActorMetricStorage, ActorMetrics }
 import io.scalac.extension.event.TagEvent
 import io.scalac.extension.metric.ActorMetricMonitor.Labels
-import io.scalac.extension.metric.{ActorMetricMonitor, StreamOperatorMetricsMonitor}
-import io.scalac.extension.model.{ActorKey, Node}
+import io.scalac.extension.metric.{ ActorMetricMonitor, StreamMetricMonitor, StreamOperatorMetricsMonitor }
+import io.scalac.extension.model.{ ActorKey, Node }
 
-import scala.collection.{immutable, mutable}
+import scala.collection.{ immutable, mutable }
 import scala.concurrent.duration._
 
 class ActorEventsMonitorActor(
@@ -24,7 +24,8 @@ class ActorEventsMonitorActor(
   pingOffset: FiniteDuration,
   ctx: ActorContext[Command],
   scheduler: TimerScheduler[Command],
-  streamMonitor: StreamOperatorMetricsMonitor,
+  streamOperatorMonitor: StreamOperatorMetricsMonitor,
+  streamMonitor: StreamMetricMonitor,
   actorTreeRunner: ActorTreeTraverser = ReflectiveActorTreeTraverser,
   actorMetricsReader: ActorMetricsReader = ReflectiveActorMetricsReader
 ) {
@@ -35,7 +36,8 @@ class ActorEventsMonitorActor(
 
   private[this] var refs: List[ActorRef] = Nil
 
-  private[this] val streamRef = ctx.spawn(AkkaStreamMonitoring.apply(streamMonitor), "stream-monitor")
+  private[this] val streamRef =
+    ctx.spawn(AkkaStreamMonitoring.apply(streamOperatorMonitor, streamMonitor, node), "stream-monitor")
 
   def start(storage: ActorMetricStorage): Behavior[Command] =
     updateActorMetrics(storage)
@@ -123,7 +125,8 @@ object ActorEventsMonitorActor {
     node: Option[Node],
     pingOffset: FiniteDuration,
     storage: ActorMetricStorage,
-    streamMonitor: StreamOperatorMetricsMonitor,
+    streamOperatorMonitor: StreamOperatorMetricsMonitor,
+    streamMonitor: StreamMetricMonitor,
     actorTreeRunner: ActorTreeTraverser = ReflectiveActorTreeTraverser,
     actorMetricsReader: ActorMetricsReader = ReflectiveActorMetricsReader
   ): Behavior[Command] =
@@ -138,6 +141,7 @@ object ActorEventsMonitorActor {
           pingOffset,
           ctx,
           scheduler,
+          streamOperatorMonitor,
           streamMonitor,
           actorTreeRunner,
           actorMetricsReader

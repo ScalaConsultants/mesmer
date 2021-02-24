@@ -172,8 +172,13 @@ class AkkaMonitoring(private val system: ActorSystem[_], val config: AkkaMonitor
       OpenTelemetryActorMetricsMonitor(instrumentationName, actorSystemConfig),
       CachingConfig.fromConfig(actorSystemConfig, "actor")
     )
-    val streamMonitor = CachingMonitor(
+    val streamOperatorMonitor = CachingMonitor(
       OpenTelemetryStreamOperatorMetricsMonitor(instrumentationName, actorSystemConfig),
+      CachingConfig.fromConfig(actorSystemConfig, "actor")
+    )
+
+    val streamMonitor = CachingMonitor(
+      OpenTelemetryStreamMetricMonitor(instrumentationName, actorSystemConfig),
       CachingConfig.fromConfig(actorSystemConfig, "actor")
     )
     system.systemActorOf(
@@ -182,7 +187,7 @@ class AkkaMonitoring(private val system: ActorSystem[_], val config: AkkaMonitor
           WithSelfCleaningState
             .clean(CleanableActorMetricsStorage.withConfig(config.cleaning))
             .every(config.cleaning.every)(storage =>
-              ActorEventsMonitorActor(monitor, clusterNodeName, ExportInterval, storage, streamMonitor)
+              ActorEventsMonitorActor(monitor, clusterNodeName, ExportInterval, storage, streamOperatorMonitor, streamMonitor)
             )
         )
         .onFailure(SupervisorStrategy.restart),
