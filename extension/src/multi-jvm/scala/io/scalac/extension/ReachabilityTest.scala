@@ -23,9 +23,10 @@ class ReachabilityTest extends MultiNodeSpec(ThreeNodesConfig) with ScalaTestMul
 
   implicit val typedSystem: ActorSystem[Nothing] = system.toTyped
 
-  val monitor = ClusterMetricsTestProbe()
+  val monitor = ClusterMetricsTestProbe(5.seconds)
 
   import ThreeNodesConfig._
+
   "Reachability test" should {
     "Wait for all nodes to join the cluster" in {
       Cluster(system) join node(node1).address

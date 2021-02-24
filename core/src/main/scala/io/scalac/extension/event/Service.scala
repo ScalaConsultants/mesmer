@@ -31,4 +31,11 @@ object Service {
 
   implicit val httpService: Service[HttpEvent] = Service(httpServiceKey)
 
+  implicit val tagService: Service[TagEvent] = Service(tagServiceKey)
+
+
+  implicit val streamService: Service[ActorInterpreterStats] = Service(streamServiceKey)
+
+
+
 }

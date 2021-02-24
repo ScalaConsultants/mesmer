@@ -1,66 +1,57 @@
 package io.scalac.extension.upstream.opentelemetry
 
 import io.opentelemetry.api.common.Labels
-import io.opentelemetry.api.metrics.AsynchronousInstrument.LongResult
-import io.opentelemetry.api.metrics.{ AsynchronousInstrument, LongValueObserver }
+import io.opentelemetry.api.metrics.AsynchronousInstrument.{ DoubleResult, LongResult }
+import io.opentelemetry.api.metrics.{ AsynchronousInstrument, DoubleValueObserver, LongValueObserver }
 
 import io.scalac.extension.metric.MetricObserver
 
-final case class WrappedLongValueObserver(adapter: LongValueObserverAdapter, labels: Labels)
-    extends MetricObserver[Long] {
-
-  private val ref = adapter.put(labels)
-
-  def setUpdater(updater: MetricObserver.Updater[Long]): Unit = ref.set(updater)
-
+private object Defs {
+  type WrappedResult[T]    = (T, Labels) => Unit
+  type ResultWrapper[R, T] = R => WrappedResult[T]
+  val longResultWrapper: ResultWrapper[LongResult, Long]       = result => result.observe
+  val doubleResultWrapper: ResultWrapper[DoubleResult, Double] = result => result.observe
 }
+import Defs._
 
-final class LongValueObserverAdapter(builder: LongValueObserver.Builder) {
+final class LongMetricObserverBuilderAdapter(builder: LongValueObserver.Builder)
+    extends MetricObserverBuilderAdapter[LongResult, Long](builder, longResultWrapper)
 
-  private val updaters = collection.mutable.HashMap.empty[Labels, LongValueUpdaterRef]
+final class DoubleMetricObserverBuilderAdapter(builder: DoubleValueObserver.Builder)
+    extends MetricObserverBuilderAdapter[DoubleResult, Double](builder, doubleResultWrapper)
+
+sealed abstract class MetricObserverBuilderAdapter[R <: AsynchronousInstrument.Result, T](
+  builder: AsynchronousInstrument.Builder[R],
+  wrapper: ResultWrapper[R, T]
+) {
+
+  private val observers = collection.mutable.HashMap.empty[Labels, WrappedMetricObserver[T]]
 
   builder
     .setUpdater(updateAll)
     .build()
 
-  def put(labels: Labels): LongValueUpdaterRef = {
-    val ref = new LongValueUpdaterRef(labels)
-    synchronized {
-      updaters.put(labels, ref)
-    }
-    ref
-  }
+  def createObserver(labels: Labels): WrappedMetricObserver[T] =
+    observers.getOrElseUpdate(labels, new WrappedMetricObserver[T](labels))
 
-  def remove(labels: Labels): Unit = {
-    updaters.values.foreach(_.unset())
-    synchronized {
-      updaters.remove(labels)
-    }
-  }
+  def removeObserver(labels: Labels): Unit =
+    observers.remove(labels)
 
-  private def updateAll(result: LongResult): Unit =
-    updaters.values.foreach(_.update(result))
+  private def updateAll(result: R): Unit = {
+    val wrapped = wrapper(result)
+    observers.values.foreach(_.update(wrapped))
+  }
 
 }
 
-private trait LongValueUpdater extends (LongResult => Unit)
+final class WrappedMetricObserver[T](labels: Labels) extends MetricObserver[T] {
 
-final class LongValueUpdaterRef(labels: Labels) {
+  private var valueUpdater: Option[MetricObserver.Updater[T]] = None
 
-  private var longValueUpdater: Option[LongValueUpdater] = None
+  def setUpdater(updater: MetricObserver.Updater[T]): Unit =
+    valueUpdater = Some(updater)
 
-  def set(updater: MetricObserver.Updater[Long]): Unit = synchronized {
-    longValueUpdater = Some(adapt(updater))
-  }
-
-  def unset(): Unit = synchronized {
-    longValueUpdater = None
-  }
-
-  def update(result: AsynchronousInstrument.LongResult): Unit =
-    longValueUpdater.foreach(_.apply(result))
-
-  private def adapt(updater: MetricObserver.Updater[Long]): LongValueUpdater =
-    result => updater(value => result.observe(value, labels))
+  def update(result: WrappedResult[T]): Unit =
+    valueUpdater.foreach(updater => updater(value => result(value, labels)))
 
 }
