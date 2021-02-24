@@ -2,10 +2,10 @@ package io.scalac.agent.akka.actor
 
 import akka.actor.typed.Behavior
 
-import net.bytebuddy.ByteBuddy
 import net.bytebuddy.asm.Advice
 import net.bytebuddy.description.`type`.TypeDescription
 import net.bytebuddy.description.method.MethodDescription
+import net.bytebuddy.description.modifier.Visibility
 import net.bytebuddy.matcher.ElementMatchers._
 
 import io.scalac.agent.Agent.LoadingResult
@@ -71,16 +71,6 @@ object AkkaActorAgent {
                   )
               )
             )
-//            .method(
-//              named[MethodDescription]("stash")
-//                .or(named[MethodDescription]("clear"))
-//                .or(
-//                  named[MethodDescription]("unstash")
-//                  // since there're two `unstash` methods, we need to specify parameter types
-//                    .and(takesArguments(classOf[Behavior[_]], classOf[Int], classOf[Function1[_, _]]))
-//                )
-//            )
-//            .intercept(advice)
         }
         .installOn(instrumentation)
       LoadingResult(targetClassName)
@@ -95,7 +85,9 @@ object AkkaActorAgent {
     ) { (agentBuilder, instrumentation, _) =>
       agentBuilder
         .`type`(named[TypeDescription](targetClassName))
-        .transform((builder, _, _, _) => builder.defineField(EnvelopeOps.TimestampVarName, classOf[Timestamp]))
+        .transform { (builder, _, _, _) =>
+          builder.defineField(EnvelopeOps.TimestampVarName, classOf[Timestamp], Visibility.PUBLIC)
+        }
         .installOn(instrumentation)
       LoadingResult(targetClassName)
     }
@@ -111,10 +103,14 @@ object AkkaActorAgent {
         .`type`(named[TypeDescription](targetClassName))
         .transform { (builder, _, _, _) =>
           builder
-            .method(
-              named[MethodDescription]("sendMessage").and(takesArgument(0, Class.forName("akka.dispatch.Envelope")))
+            .visit(
+              Advice
+                .to(classOf[ActorCellSendMessageInstrumentation])
+                .on(
+                  named[MethodDescription]("sendMessage")
+                    .and(takesArgument(0, named[TypeDescription]("akka.dispatch.Envelope")))
+                )
             )
-            .intercept(Advice.to(classOf[ActorCellSendMessageInstrumentation]))
         }
         .installOn(instrumentation)
       LoadingResult(targetClassName)
@@ -131,8 +127,37 @@ object AkkaActorAgent {
         .`type`(named[TypeDescription](targetClassName))
         .transform { (builder, _, _, _) =>
           builder
-            .method(named[MethodDescription]("dequeue"))
-            .intercept(Advice.to(classOf[MailboxDequeueInstrumentation]))
+            .visit(
+              Advice
+                .to(classOf[MailboxDequeueInstrumentation])
+                .on(named[MethodDescription]("dequeue"))
+            )
+        }
+        .installOn(instrumentation)
+      LoadingResult(targetClassName)
+    }
+  }
+
+  val actorCellInstrumentation = {
+    val targetClassName = "akka.actor.ActorCell"
+    AgentInstrumentation(
+      targetClassName,
+      SupportedModules(moduleName, version)
+    ) { (agentBuilder, instrumentation, _) =>
+      agentBuilder
+        .`type`(named[TypeDescription](targetClassName))
+        .transform { (builder, _, _, _) =>
+          builder
+            .defineField(
+              MailboxTimesHolder.MailboxTimesVar,
+              classOf[MailboxTimesHolder.MailboxTimesType],
+              Visibility.PUBLIC
+            )
+            .visit(
+              Advice
+                .to(classOf[ActorCellConstructorInstrumentation])
+                .on(isConstructor)
+            )
         }
         .installOn(instrumentation)
       LoadingResult(targetClassName)
@@ -144,7 +169,8 @@ object AkkaActorAgent {
     typedStashInstrumentation,
     mailboxTimeTimestampInstrumentation,
     mailboxTimeSendMessageInstrumentation,
-    mailboxTimeDequeueInstrumentation
+    mailboxTimeDequeueInstrumentation,
+    actorCellInstrumentation
   )
 
 }

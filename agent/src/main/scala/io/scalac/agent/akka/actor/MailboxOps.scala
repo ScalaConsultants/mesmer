@@ -12,6 +12,7 @@ object MailboxOps {
     lookup.unreflectGetter(field)
   }
 
-  def getActor(mailbox: Object): Object = actorGetterHandler.invoke(mailbox)
+  @inline def getActor(mailbox: Object): Object =
+    actorGetterHandler.invoke(mailbox)
 
 }
