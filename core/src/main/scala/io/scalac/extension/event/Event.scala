@@ -13,8 +13,7 @@ sealed trait ActorEvent extends AbstractEvent {
 }
 
 object ActorEvent {
-  final case class StashMeasurement(size: Int, path: String)       extends ActorEvent
-  final case class MailboxTime(time: FiniteDuration, path: String) extends ActorEvent
+  final case class StashMeasurement(size: Int, path: String) extends ActorEvent
 }
 
 sealed trait PersistenceEvent extends AbstractEvent {
