@@ -1,3 +1,4 @@
+#ingress-nginx/ingress-nginx
 controller:
   # publishService required to Allow ELB Alias for DNS registration w/ external-dns
   publishService:

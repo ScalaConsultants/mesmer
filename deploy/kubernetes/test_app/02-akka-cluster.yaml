@@ -16,6 +16,9 @@ spec:
       labels:
         app: accounts
         actorSystemName: accounts
+      annotations:
+         prometheus.io/scrape: 'true'
+         prometheus.io/port: '8080'
     spec:
       containers:
         - name: accounts
