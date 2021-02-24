@@ -14,10 +14,9 @@
     <appender name="ASYNCSTDOUT" class="ch.qos.logback.classic.AsyncAppender">
         <appender-ref ref="STDOUT"/>
     </appender>
-    <logger name="io.scalac.agent.actor" level="DEBUG"/>
     <logger name="io.scalac.extension.event.ReceptionistBasedEventBus" level="OFF"/>
 
-    <root level="WARN">
+    <root level="DEBUG">
         <appender-ref ref="STDOUT"/>
     </root>
 
