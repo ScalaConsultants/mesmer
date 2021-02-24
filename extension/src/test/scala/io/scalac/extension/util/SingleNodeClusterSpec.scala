@@ -23,8 +23,9 @@ import org.scalatest.{ Assertion, AsyncTestSuite }
 
 trait SingleNodeClusterSpec extends AsyncTestSuite {
 
-  protected val portGenerator: PortGenerator = PortGeneratorImpl
-  implicit val timeout: Timeout              = 30 seconds
+  protected val portGenerator: PortGenerator       = PortGeneratorImpl
+  implicit val timeout: Timeout                    = 30 seconds
+  protected val collectMetricsPing: FiniteDuration = 2 seconds
 
   type Fixture[C[_], T] =
     (ActorSystem[Nothing], Member, C[ActorRef[ShardingEnvelope[T]]], ClusterMetricsTestProbe, C[String])
@@ -76,7 +77,7 @@ trait SingleNodeClusterSpec extends AsyncTestSuite {
         sharding.init(entity)
       }
 
-      val clusterProbe = ClusterMetricsTestProbe()(system)
+      val clusterProbe = ClusterMetricsTestProbe(collectMetricsPing)(system)
 
       Function.untupled(test)(system, cluster.selfMember, refs, clusterProbe, entityNames)
     }

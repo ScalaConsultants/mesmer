@@ -1,14 +1,17 @@
 package io.scalac.extension
 
-import akka.actor.ActorRef
 import akka.actor.typed.receptionist.Receptionist.Register
+import akka.actor.typed.scaladsl.AskPattern._
 import akka.actor.typed.scaladsl.adapter._
 import akka.actor.typed.scaladsl.{ AbstractBehavior, ActorContext, Behaviors, TimerScheduler }
 import akka.actor.typed.{ Behavior, Terminated }
+import akka.actor.{ typed, ActorRef }
+import akka.util.Timeout
 import io.scalac.core.akka.model.PushMetrics
 import io.scalac.core.model._
-import io.scalac.extension.AkkaStreamMonitoring.{ CollectionTimeout, Command, StartStreamCollection, StatsReceived }
+import io.scalac.extension.AkkaStreamMonitoring._
 import io.scalac.extension.event.ActorInterpreterStats
+import io.scalac.extension.metric.MetricObserver.LazyResult
 import io.scalac.extension.metric.StreamMetricMonitor.{ Labels => GlobalLabels }
 import io.scalac.extension.metric.StreamOperatorMetricsMonitor.Labels
 import io.scalac.extension.metric.{ StreamMetricMonitor, StreamOperatorMetricsMonitor }
@@ -16,6 +19,7 @@ import io.scalac.extension.model.Direction._
 import io.scalac.extension.model._
 
 import scala.collection.mutable
+import scala.concurrent.Await
 import scala.concurrent.duration.{ FiniteDuration, _ }
 
 object AkkaStreamMonitoring {
@@ -25,6 +29,9 @@ object AkkaStreamMonitoring {
   private case class StatsReceived(actorInterpreterStats: ActorInterpreterStats) extends Command
 
   case class StartStreamCollection(refs: Set[ActorRef]) extends Command
+
+  private case class CollectOperators(resultCallback: LazyResult[Long, Labels], replyTo: typed.ActorRef[Unit])
+      extends Command
 
   private[AkkaStreamMonitoring] case object CollectionTimeout extends Command
 
@@ -41,6 +48,8 @@ object AkkaStreamMonitoring {
 
 }
 
+case class SnapshotEntry(stage: StageInfo, value: Long, direction: Direction, connectedWith: String)
+
 class AkkaStreamMonitoring(
   ctx: ActorContext[Command],
   streamOperatorMonitor: StreamOperatorMetricsMonitor,
@@ -52,10 +61,19 @@ class AkkaStreamMonitoring(
 
   import ctx._
 
+  implicit val executionContext                   = system.executionContext
+  implicit val _timeout: Timeout                  = 2.seconds
+  implicit val system: typed.ActorSystem[Nothing] = ctx.system
+  // set updater to self
+  streamOperatorMonitor.operators
+    .setUpdater(result => Await.result(self.ask[Unit](ref => CollectOperators(result, ref)), 1.second)) // really not cool way to do it
+
   private[this] var connectionStats: Option[Set[ConnectionStats]] = None
   private[this] val connectionGraph: mutable.Map[StageInfo, Set[ConnectionStats]] =
     mutable.Map.empty
   private[this] val globalStreamMonitor = streamMonitor.bind(GlobalLabels(node))
+
+  private[this] var stageSnapshot: Option[Seq[SnapshotEntry]] = None
 
   system.receptionist ! Register(streamServiceKey, messageAdapter(StatsReceived.apply))
 
@@ -63,7 +81,6 @@ class AkkaStreamMonitoring(
     case StartStreamCollection(refs) if refs.nonEmpty =>
       log.info("Start stream stats collection")
       scheduler.startSingleTimer(CollectionTimeout, CollectionTimeout, timeout)
-
 
       refs.foreach { ref =>
         watch(ref)
@@ -75,6 +92,15 @@ class AkkaStreamMonitoring(
       this
     case StatsReceived(_) =>
       log.warn("Received stream running statistics after timeout")
+      this
+    case CollectOperators(result, ref) =>
+      stageSnapshot.foreach(_.foreach {
+        case SnapshotEntry(stage, value, direction, connectedWith) =>
+          log.info("Reporting data of stage {}", stage)
+          val labels = Labels(stage.stageName, node, Some(stage.streamName.name), Some(connectedWith -> direction))
+          result.observe(value, labels)
+      })
+      ref ! ()
       this
   }
 
@@ -90,25 +116,14 @@ class AkkaStreamMonitoring(
 
   // TODO optimize this!
   def recordAll(): Unit =
-    connectionGraph.foreach {
-      case (StageInfo(stageName, streamName), in) =>
-        in.groupBy(_.outName).foreach {
+    this.stageSnapshot = Some(connectionGraph.flatMap {
+      case (info @ StageInfo(stageName, streamName), in) =>
+        in.groupBy(_.outName).map {
           case (upstream, connections) =>
-            val push   = connections.foldLeft(0L)(_ + _.push)
-            val labels = Labels(stageName, node, Some(streamName.name), Some(upstream.name, In))
-
-            streamOperatorMonitor
-              .bind(labels)
-              .processedMessages
-              .incValue(push)
+            val push = connections.foldLeft(0L)(_ + _.push)
+            SnapshotEntry(info, push, In, upstream.name)
         }
-        val labels = Labels(stageName, node, Some(streamName.name), None)
-        streamOperatorMonitor
-          .bind(labels)
-          .operators
-          .setValue(1L)
-
-    }
+    }.toSeq)
 
   def collecting(refs: Set[ActorRef]): Behavior[Command] =
     Behaviors
@@ -144,7 +159,15 @@ class AkkaStreamMonitoring(
         case StartStreamCollection(_) =>
           log.debug("Another collection started but previous didn't finish")
           Behaviors.same
-
+        case CollectOperators(result, ref) =>
+          stageSnapshot.foreach(_.foreach {
+            case SnapshotEntry(stage, value, direction, connectedWith) =>
+              log.info("Reporting data of stage {}", stage)
+              val labels = Labels(stage.stageName, node, Some(stage.streamName.name), Some(connectedWith -> direction))
+              result.observe(value, labels)
+          })
+          ref ! ()
+          Behaviors.same
       }
       .receiveSignal {
         case (_, Terminated(ref)) =>

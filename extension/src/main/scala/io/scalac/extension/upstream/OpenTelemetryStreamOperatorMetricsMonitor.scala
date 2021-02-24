@@ -3,8 +3,9 @@ package io.scalac.extension.upstream
 import com.typesafe.config.Config
 import io.opentelemetry.api.OpenTelemetry
 import io.scalac.extension.metric.StreamOperatorMetricsMonitor
+import io.scalac.extension.metric.StreamOperatorMetricsMonitor.Labels
 import io.scalac.extension.upstream.OpenTelemetryStreamOperatorMetricsMonitor.MetricNames
-import io.scalac.extension.upstream.opentelemetry.{ WrappedCounter, WrappedLongValueRecorder, WrappedUpDownCounter }
+import io.scalac.extension.upstream.opentelemetry._
 
 object OpenTelemetryStreamOperatorMetricsMonitor {
   case class MetricNames(operatorProcessed: String, connections: String, runningOperators: String)
@@ -45,42 +46,21 @@ object OpenTelemetryStreamOperatorMetricsMonitor {
 class OpenTelemetryStreamOperatorMetricsMonitor(instrumentationName: String, metricNames: MetricNames)
     extends StreamOperatorMetricsMonitor {
 
-  import StreamOperatorMetricsMonitor._
+  private implicit val labelsConverter: OpenTelemetryLabelsConverter[StreamOperatorMetricsMonitor.Labels] =
+    _.toOpenTelemetry
 
   private val meter = OpenTelemetry
     .getGlobalMeter(instrumentationName)
 
-  private val operatorProcessed = meter
-    .longCounterBuilder(metricNames.operatorProcessed)
-    .setDescription("Amount of messages process by operator")
-    .build()
+  override val processedMessages = new LazyWrappedMetricUpdater[Labels](
+    meter
+      .longSumObserverBuilder(metricNames.operatorProcessed)
+      .setDescription("Amount of messages process by operator")
+  )
 
-  private val operatorConnectionsGauge = meter
-    .longUpDownCounterBuilder(metricNames.connections)
-    .setDescription("Amount of connections in operator")
-    .build()
-
-  private val runningOperatorsRecorder = meter
-    .longValueRecorderBuilder(metricNames.runningOperators)
-    .setDescription("Amount of running operators")
-    .build()
-
-  override def bind(labels: Labels): BoundMonitor = new StreamOperatorMetricsBoundMonitor(labels)
-
-  class StreamOperatorMetricsBoundMonitor(labels: Labels) extends BoundMonitor {
-    private val openTelemetryLabels = labels.toOpenTelemetry
-
-    override val processedMessages = WrappedCounter(operatorProcessed, openTelemetryLabels)
-
-    override val connections =
-      WrappedUpDownCounter(operatorConnectionsGauge, openTelemetryLabels)
-
-    override val operators = WrappedLongValueRecorder(runningOperatorsRecorder, openTelemetryLabels)
-
-    override def unbind(): Unit = {
-      connections.unbind()
-      processedMessages.unbind()
-      operators.unbind()
-    }
-  }
+  override val operators = new LazyWrappedMetricUpdater[Labels](
+    meter
+      .longUpDownSumObserverBuilder(metricNames.runningOperators)
+      .setDescription("Amount of running operators in a system")
+  )
 }

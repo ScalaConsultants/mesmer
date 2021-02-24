@@ -29,12 +29,10 @@ object StreamOperatorMetricsMonitor {
       OpenTelemetryLabels.of(optional ++ required: _*)
     }
   }
+}
 
-  //TODO split processedMessages into processTime, processMessages and demand
-  trait BoundMonitor extends Bound {
-    def processedMessages: UpCounter[Long]
-    def connections: Counter[Long]
-    def operators: MetricRecorder[Long]
-  }
-
+//TODO split processedMessages into processTime, processMessages and demand
+trait StreamOperatorMetricsMonitor {
+  def processedMessages: LazyMetricObserver[Long, StreamOperatorMetricsMonitor.Labels]
+  def operators: LazyMetricObserver[Long, StreamOperatorMetricsMonitor.Labels]
 }

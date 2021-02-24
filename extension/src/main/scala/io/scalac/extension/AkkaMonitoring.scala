@@ -168,26 +168,33 @@ class AkkaMonitoring(private val system: ActorSystem[_], val config: AkkaMonitor
 
   def startActorMonitor(): Unit = {
     log.debug("Starting actor monitor")
-    val monitor = CachingMonitor(
-      OpenTelemetryActorMetricsMonitor(instrumentationName, actorSystemConfig),
-      CachingConfig.fromConfig(actorSystemConfig, "actor")
-    )
-    val streamOperatorMonitor = CachingMonitor(
-      OpenTelemetryStreamOperatorMetricsMonitor(instrumentationName, actorSystemConfig),
-      CachingConfig.fromConfig(actorSystemConfig, "actor")
-    )
+
+    val streamOperatorMonitor =
+      OpenTelemetryStreamOperatorMetricsMonitor(instrumentationName, actorSystemConfig)
+
+    val actorMonitor = OpenTelemetryActorMetricsMonitor(instrumentationName, actorSystemConfig)
 
     val streamMonitor = CachingMonitor(
       OpenTelemetryStreamMetricMonitor(instrumentationName, actorSystemConfig),
-      CachingConfig.fromConfig(actorSystemConfig, "actor")
+      CachingConfig.fromConfig(actorSystemConfig, "stream")
     )
+
+    val streamMonitorRef = system.systemActorOf(
+      Behaviors
+        .supervise(
+          AkkaStreamMonitoring(streamOperatorMonitor, streamMonitor, clusterNodeName)
+        )
+        .onFailure(SupervisorStrategy.restart),
+      "streamMonitor"
+    )
+
     system.systemActorOf(
       Behaviors
         .supervise(
           WithSelfCleaningState
             .clean(CleanableActorMetricsStorage.withConfig(config.cleaning))
             .every(config.cleaning.every)(storage =>
-              ActorEventsMonitorActor(monitor, clusterNodeName, ExportInterval, storage, streamOperatorMonitor, streamMonitor)
+              ActorEventsMonitorActor(actorMonitor, clusterNodeName, ExportInterval, storage, streamMonitorRef)
             )
         )
         .onFailure(SupervisorStrategy.restart),
