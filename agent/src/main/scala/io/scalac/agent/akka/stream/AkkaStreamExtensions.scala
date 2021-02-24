@@ -7,6 +7,7 @@ import akka.stream.GraphLogicOps._
 import io.scalac.core.akka.model.PushMetrics
 import io.scalac.core.invoke.Lookup
 import io.scalac.core.model._
+import io.scalac.core.util.stream.streamNameFromActorRef
 import io.scalac.extension.event.{ ActorInterpreterStats, EventBus }
 
 import java.lang.invoke.MethodType._
@@ -41,23 +42,20 @@ object AkkaStreamExtensions extends Lookup {
           .invoke(self)
           .asInstanceOf[Set[GraphInterpreterShellMirror]]
 
+        val stats = currentShells.flatMap(_.connections).map { connection =>
+          val (push, pull) = ConnectionOps.getAndResetCounterValues(connection)
+          val in           = connection.inOwner.streamUniqueStageName
+          val out          = connection.outOwner.streamUniqueStageName
 
-        val stats = currentShells.flatMap(_.connections)
-          .map { connection =>
-            val (push, pull) = ConnectionOps.getAndResetCounterValues(connection)
-            val in           = connection.inOwner.streamUniqueStageName
-            val out          = connection.outOwner.streamUniqueStageName
+          ConnectionStats(in, out, push, pull)
+        }
 
-            ConnectionStats(in, out, push, pull)
-          }
-
-        val logics = currentShells
+        val ref = self.context.self
+        val stageInfo = currentShells
           .flatMap(_.logics)
-          .map(logic => {
-            StageStats
-          })
+          .map(logic => StageInfo(logic.streamUniqueStageName, streamNameFromActorRef(ref)))
 
-        EventBus(self.context.system.toTyped).publishEvent(ActorInterpreterStats(self.context.self, stats, None))
+        EventBus(self.context.system.toTyped).publishEvent(ActorInterpreterStats(ref, stageInfo, stats, None))
       }
     }
 

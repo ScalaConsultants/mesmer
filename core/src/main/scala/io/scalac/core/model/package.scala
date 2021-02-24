@@ -1,11 +1,11 @@
 package io.scalac.core
 
-import io.scalac.core.model.Tag.StageName
+import io.scalac.core.model.Tag.{StageName, StreamName}
 
 package object model {
 
   case class ConnectionStats(inName: StageName, outName: StageName, pull: Long, push: Long)
 
-  case class StageStats(stageName: StageName, outputConnections: Int, inputConnections: Int)
+  case class StageInfo(stageName: StageName, streamName: StreamName)
 
 }

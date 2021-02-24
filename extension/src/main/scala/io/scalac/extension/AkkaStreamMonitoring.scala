@@ -119,7 +119,7 @@ class AkkaStreamMonitoring(
   def collecting(refs: Set[ActorRef]): Behavior[Command] =
     Behaviors
       .receiveMessage[Command] {
-        case StatsReceived(ActorInterpreterStats(ref, connections, _)) =>
+        case StatsReceived(ActorInterpreterStats(ref, info, connections, _)) =>
           val refsLeft = refs - ref
           log.trace("Received stats from {}", ref)
 

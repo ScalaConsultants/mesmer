@@ -2,7 +2,7 @@ package io.scalac.extension.event
 
 import akka.actor.ActorRef
 import io.scalac.core.model.Tag.StageName
-import io.scalac.core.model.{ ConnectionStats, Tag }
+import io.scalac.core.model._
 import io.scalac.core.util.Timestamp
 
 sealed trait AbstractEvent { self =>
@@ -43,6 +43,7 @@ final case class TagEvent(ref: ActorRef, tag: Tag) extends AbstractEvent {
 
 final case class ActorInterpreterStats(
   self: ActorRef,
+  stageInfo: Set[StageInfo],
   connectionStats: Set[ConnectionStats],
   streamName: Option[StageName]
 ) extends AbstractEvent {
