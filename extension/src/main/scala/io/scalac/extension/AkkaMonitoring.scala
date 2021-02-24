@@ -1,24 +1,14 @@
 package io.scalac.extension
 
-import java.net.URI
-import java.util.Collections
-
-import scala.concurrent.duration._
-import scala.language.postfixOps
-import scala.reflect.ClassTag
-import scala.util.Try
-
 import akka.actor.ExtendedActorSystem
 import akka.actor.typed._
 import akka.actor.typed.scaladsl.Behaviors
 import akka.cluster.Cluster
 import akka.util.Timeout
-
 import com.newrelic.telemetry.Attributes
 import com.newrelic.telemetry.opentelemetry.`export`.NewRelicMetricExporter
 import io.opentelemetry.sdk.OpenTelemetrySdk
 import io.opentelemetry.sdk.metrics.`export`.IntervalMetricReader
-
 import io.scalac.core.model.{ Module, SupportedVersion, Version }
 import io.scalac.core.support.ModulesSupport
 import io.scalac.core.util.ModuleInfo
@@ -31,6 +21,13 @@ import io.scalac.extension.model._
 import io.scalac.extension.persistence.{ CleanablePersistingStorage, CleanableRecoveryStorage }
 import io.scalac.extension.service.CommonRegexPathService
 import io.scalac.extension.upstream._
+
+import java.net.URI
+import java.util.Collections
+import scala.concurrent.duration._
+import scala.language.postfixOps
+import scala.reflect.ClassTag
+import scala.util.Try
 
 object AkkaMonitoring extends ExtensionId[AkkaMonitoring] {
 
@@ -58,9 +55,8 @@ object AkkaMonitoring extends ExtensionId[AkkaMonitoring] {
     modules: Modules,
     modulesSupport: ModulesSupport
   ): Unit = {
-    import monitoring.system
-
     import ModulesSupport._
+    import monitoring.system
 
     def initModule(
       module: Module,
@@ -141,9 +137,8 @@ object AkkaMonitoring extends ExtensionId[AkkaMonitoring] {
 }
 
 class AkkaMonitoring(private val system: ActorSystem[_], val config: AkkaMonitoringConfig) extends Extension {
-  import system.log
-
   import AkkaMonitoring.ExportInterval
+  import system.log
 
   private val instrumentationName = "scalac_akka_metrics"
   private val actorSystemConfig   = system.settings.config
@@ -173,17 +168,30 @@ class AkkaMonitoring(private val system: ActorSystem[_], val config: AkkaMonitor
 
   def startActorMonitor(): Unit = {
     log.debug("Starting actor monitor")
-    val monitor = CachingMonitor(
-      OpenTelemetryActorMetricsMonitor(instrumentationName, actorSystemConfig),
-      CachingConfig.fromConfig(actorSystemConfig, "actor")
+
+    val actorMonitor = OpenTelemetryActorMetricsMonitor(instrumentationName, actorSystemConfig)
+
+    val streamMonitor = CachingMonitor(
+      OpenTelemetryStreamMetricsMonitor(instrumentationName, actorSystemConfig),
+      CachingConfig.fromConfig(actorSystemConfig, "stream")
     )
+
+    val streamMonitorRef = system.systemActorOf(
+      Behaviors
+        .supervise(
+          AkkaStreamMonitoring(streamMonitor)
+        )
+        .onFailure(SupervisorStrategy.restart),
+      "streamMonitor"
+    )
+
     system.systemActorOf(
       Behaviors
         .supervise(
           WithSelfCleaningState
             .clean(CleanableActorMetricsStorage.withConfig(config.cleaning))
             .every(config.cleaning.every)(storage =>
-              ActorEventsMonitorActor(monitor, clusterNodeName, ExportInterval, storage)
+              ActorEventsMonitorActor(actorMonitor, clusterNodeName, ExportInterval, storage, streamMonitorRef)
             )
         )
         .onFailure(SupervisorStrategy.restart),

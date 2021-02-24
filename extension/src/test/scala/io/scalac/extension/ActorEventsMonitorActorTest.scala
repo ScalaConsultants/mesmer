@@ -40,7 +40,7 @@ class ActorEventsMonitorActorTest
   private val underlyingSystem           = system.asInstanceOf[ActorSystem[Command]]
   override val serviceKey: ServiceKey[_] = actorServiceKey
 
-  override def createMonitor: ActorMonitorTestProbe = new ActorMonitorTestProbe
+  override def createMonitor: ActorMonitorTestProbe = new ActorMonitorTestProbe(PingOffset)
 
   override def setUp(monitor: ActorMonitorTestProbe, cache: Boolean): ActorRef[_] =
     system.systemActorOf(
@@ -48,13 +48,14 @@ class ActorEventsMonitorActorTest
         if (cache) CachingMonitor(monitor) else monitor,
         None,
         PingOffset,
-        MutableActorMetricsStorage.empty
+        MutableActorMetricsStorage.empty,
+        system.systemActorOf(Behaviors.ignore[AkkaStreamMonitoring.Command], createUniqueId)
       ),
       createUniqueId
     )
 
   // ** MAIN **
-//  testActorTreeRunner(ReflectiveActorTreeTraverser)
+  testActorTreeRunner(ReflectiveActorTreeTraverser)
   testMonitor()
 
   def testActorTreeRunner(actorTreeRunner: ActorTreeTraverser): Unit = {
@@ -112,6 +113,16 @@ class ActorEventsMonitorActorTest
       bound.unbind()
     }
 
+    it should "dead actors should not report" in test { monitor =>
+      // record mailbox for a cycle
+      val bound = monitor.bind(ActorMetricMonitor.Labels("/user/actorA/stop", None))
+      bound.mailboxSizeProbe.expectMessageType[MetricObserved](2 * PingOffset)
+      // send poison pill to kill actor
+      underlyingSystem ! Stop
+      Thread.sleep(PingOffset.toMillis)
+      bound.mailboxSizeProbe.expectNoMessage()
+    }
+
     it should "record stash size" in test { monitor =>
       val stashActor = system.systemActorOf(StashActor(10), "stashActor")
       val bound      = monitor.bind(Labels(stashActor.ref.path.toStringWithoutAddress, None))
@@ -131,6 +142,7 @@ class ActorEventsMonitorActorTest
       stashMeasurement(1)
       bound.stashSizeProbe.awaitAssert(bound.stashSizeProbe.expectMessage(MetricRecorded(1)))
     }
+
   }
 
   object StashActor {
@@ -169,6 +181,7 @@ object ActorEventsMonitorActorTest {
   final case object Idle                 extends Command
   final case object Open                 extends Command
   final case object Close                extends Command
+  final case object Stop                 extends Command
   final case class Message(text: String) extends Command
 
   val testSystem: ActorSystem[Command] = ActorSystem(
@@ -176,8 +189,24 @@ object ActorEventsMonitorActorTest {
       val actorA = ctx.spawn[Command](
         Behaviors.setup[Command] { ctx =>
           import ctx.log
+
+          val actorAStop = ctx.spawn[Command](
+            Behaviors.setup { ctx =>
+              import ctx.log
+              Behaviors.receiveMessage {
+                case Stop =>
+                  Behaviors.stopped
+                case msg =>
+                  log.info(s"[actorA] received a message: {}", msg)
+                  Behaviors.same
+              }
+            },
+            "stop"
+          )
+
           Behaviors.receiveMessage { msg =>
             log.info(s"[actorA] received a message: {}", msg)
+            actorAStop ! msg
             Behaviors.same
           }
         },

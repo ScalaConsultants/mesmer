@@ -53,7 +53,7 @@ class OpenTelemetryActorMetricsMonitor(instrumentationName: String, metricNames:
 
   private val meter = OpenTelemetry.getGlobalMeter(instrumentationName)
 
-  private val mailboxSizeObserver = new LongValueObserverAdapter(
+  private val mailboxSizeObserver = new LongMetricObserverBuilderAdapter(
     meter
       .longValueObserverBuilder(metricNames.mailboxSize)
       .setDescription("Tracks the size of an Actor's mailbox")
@@ -66,19 +66,21 @@ class OpenTelemetryActorMetricsMonitor(instrumentationName: String, metricNames:
 
   override def bind(labels: ActorMetricMonitor.Labels): OpenTelemetryBoundMonitor =
     new OpenTelemetryBoundMonitor(
-      LabelsFactory.of(LabelNames.ActorPath -> labels.actorPath)(LabelNames.Node -> labels.node)
+      LabelsFactory.of((LabelNames.ActorPath -> labels.actorPath) +: labels.tags.toSeq.flatMap(_.serialize): _*)(
+        LabelNames.Node -> labels.node
+      )
     )
 
   class OpenTelemetryBoundMonitor(labels: Labels) extends ActorMetricMonitor.BoundMonitor with Synchronized {
 
     override val mailboxSize: MetricObserver[Long] =
-      WrappedLongValueObserver(mailboxSizeObserver, labels)
+      mailboxSizeObserver.createObserver(labels)
 
     override val stashSize: MetricRecorder[Long] with WrappedSynchronousInstrument[Long] =
       WrappedLongValueRecorder(stashSizeCounter, labels)
 
     override def unbind(): Unit = {
-      mailboxSizeObserver.remove(labels)
+      mailboxSizeObserver.removeObserver(labels)
       stashSize.unbind()
     }
 

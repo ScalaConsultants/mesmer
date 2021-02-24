@@ -11,5 +11,6 @@ package object metric {
   type HttpMetricMonitor        = Bindable[HttpMetricMonitor.Labels, HttpMetricMonitor.BoundMonitor]
   type PersistenceMetricMonitor = Bindable[PersistenceMetricMonitor.Labels, PersistenceMetricMonitor.BoundMonitor]
   type ClusterMetricsMonitor    = Bindable[ClusterMetricsMonitor.Labels, ClusterMetricsMonitor.BoundMonitor]
+  type StreamMetricsMonitor     = Bindable[StreamMetricsMonitor.Labels, StreamMetricsMonitor.BoundMonitor]
 
 }
