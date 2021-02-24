@@ -68,15 +68,18 @@ class ActorEventsMonitorActorTest extends AnyFlatSpecLike with Matchers with Ins
     def test(block: (ActorMonitorTestProbe, ActorSystem[String]) => Unit): Unit = {
       implicit val system: ActorSystem[String] = createActorSystem()
 
-      val monitor = new ActorMonitorTestProbe()
+      val monitor   = new ActorMonitorTestProbe(pingOffset)
+      val streamRef = system.systemActorOf(Behaviors.ignore[AkkaStreamMonitoring.Command], "streamMonitor")
 
       system.systemActorOf(
-        ActorEventsMonitorActor(monitor, None, pingOffset, MutableActorMetricsStorage.empty),
+        ActorEventsMonitorActor(monitor, None, pingOffset, MutableActorMetricsStorage.empty, streamRef),
         "actorEventsMonitorActor"
       )
-      block(monitor, system)
-      system.terminate()
-      Await.ready(system.whenTerminated, 2.seconds)
+      try {
+        block(monitor, system)
+      } finally {
+        system.terminate()
+      }
     }
 
     "ActorEventsMonitor" should "record mailbox size" in test { (monitor, system) =>
@@ -93,10 +96,20 @@ class ActorEventsMonitorActorTest extends AnyFlatSpecLike with Matchers with Ins
       bound.unbind()
     }
 
+    it should "dead actors should not report" in test { (monitor, system) =>
+      // record mailbox for a cycle
+      val bound = monitor.bind(ActorMetricMonitor.Labels("/user/actorA/actorAA", None))
+      bound.mailboxSizeProbe.expectMessageType[MetricObserved](2 * pingOffset)
+      // send poison pill to kill actor
+      system ! "stop"
+      Thread.sleep(pingOffset.toMillis)
+      bound.mailboxSizeProbe.expectNoMessage()
+    }
+
     def recordMailboxSize(n: Int, bound: TestBoundMonitor, system: ActorSystem[String]): Unit = {
       system ! "idle"
       for (_ <- 0 until n) system ! "Record it"
-      val records = bound.mailboxSizeProbe.fishForMessage(3 * pingOffset) {
+      val records = bound.mailboxSizeProbe.fishForMessage(2 * pingOffset) {
         case MetricObserved(`n`) => FishingOutcome.Complete
         case _                   => FishingOutcome.ContinueAndIgnore
       }
@@ -112,13 +125,18 @@ class ActorEventsMonitorActorTest extends AnyFlatSpecLike with Matchers with Ins
           Behaviors.setup[String] { ctx =>
             import ctx.log
 
-            val actorAA = ctx.spawn[String](Behaviors.setup { ctx =>
-              import ctx.log
-              Behaviors.receiveMessage { msg =>
-                log.info("[actorAA] received a message: {}", msg)
-                Behaviors.same
-              }
-            }, "actorAA")
+            val actorAA = ctx.spawn[String](
+              Behaviors.setup { ctx =>
+                import ctx.log
+                Behaviors.receiveMessage {
+                  case "stop" => Behaviors.stopped
+                  case msg =>
+                    log.info("[actorAA] received a message: {}", msg)
+                    Behaviors.same
+                }
+              },
+              "actorAA"
+            )
 
             Behaviors.receiveMessage { msg =>
               log.info("[actorA] received a message: {}", msg)

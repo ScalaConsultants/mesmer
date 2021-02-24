@@ -18,6 +18,16 @@ class MutableActorMetricsStorage private[actor] (override val buffer: mutable.Ma
     buffer(actorToKey(actorRef)) = metrics
     this
   }
+
+  def remove(key: ActorKey): ActorMetricStorage = {
+    buffer.remove(key)
+    this
+  }
+
+  def clear(): ActorMetricStorage = {
+    buffer.clear()
+    this
+  }
 }
 
 object MutableActorMetricsStorage {
