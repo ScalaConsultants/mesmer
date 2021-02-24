@@ -60,25 +60,18 @@ object ActorEventsMonitorActor {
       )
       ctx.watch(syncMetricsActor)
       ctx.watch(asyncMetricsActor)
-      Behaviors.receiveMessage {
-        case msg: SyncMetricsActor.SyncCommand =>
-          syncMetricsActor ! msg
-          Behaviors.same
-        case msg: AsyncMetricsActor.AsyncCommand =>
-          asyncMetricsActor ! msg
-          Behaviors.same
-      }
+      Behaviors.ignore
     }
 
   private object SyncMetricsActor {
-    sealed trait SyncCommand extends Command
-    object SyncCommand {
+    private[ActorEventsMonitorActor] sealed trait SyncCommand          extends Command
+    private final case class ActorEventWrapper(actorEvent: ActorEvent) extends SyncCommand
+    private object ActorEventWrapper {
       def receiveMessage(f: ActorEvent => Behavior[SyncCommand]): Behavior[SyncCommand] =
         Behaviors.receiveMessage[SyncCommand] {
           case ActorEventWrapper(actorEvent) => f(actorEvent)
         }
     }
-    final case class ActorEventWrapper(actorEvent: ActorEvent) extends SyncCommand
 
     def apply(monitor: ActorMetricMonitor, node: Option[Node]): Behavior[SyncCommand] =
       Behaviors.setup[SyncCommand](ctx => new SyncMetricsActor(monitor, node, ctx).start())
@@ -97,7 +90,7 @@ object ActorEventsMonitorActor {
       messageAdapter(ActorEventWrapper.apply)
     )
 
-    def start(): Behavior[SyncCommand] = SyncCommand.receiveMessage {
+    def start(): Behavior[SyncCommand] = ActorEventWrapper.receiveMessage {
       case StashMeasurement(size, path) =>
         log.trace(s"Recorded stash size for actor $path: $size")
         monitor.bind(Labels(path, node)).stashSize.setValue(size)
@@ -107,9 +100,9 @@ object ActorEventsMonitorActor {
 
   private object AsyncMetricsActor {
 
-    sealed trait AsyncCommand                                     extends Command
-    final case object UpdateActorMetrics                          extends AsyncCommand
-    final case class AddTag(actorRef: classic.ActorRef, tag: Tag) extends AsyncCommand
+    private[AsyncMetricsActor] sealed trait AsyncCommand                  extends Command
+    private final case object UpdateActorMetrics                          extends AsyncCommand
+    private final case class AddTag(actorRef: classic.ActorRef, tag: Tag) extends AsyncCommand
 
     def apply(
       actorMonitor: ActorMetricMonitor,
@@ -140,6 +133,7 @@ object ActorEventsMonitorActor {
         }
       }
   }
+
   private class AsyncMetricsActor private (
     monitor: ActorMetricMonitor,
     node: Option[Node],
