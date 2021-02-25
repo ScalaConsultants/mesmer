@@ -8,6 +8,7 @@ import net.bytebuddy.ByteBuddy
 import net.bytebuddy.agent.builder.AgentBuilder
 import net.bytebuddy.dynamic.scaffold.TypeValidation
 
+import io.scalac.agent.akka.actor.AkkaActorAgent
 import java.lang.instrument.Instrumentation
 
 object Boot {
@@ -22,7 +23,7 @@ object Boot {
       )
       .`with`(AgentBuilder.InstallationListener.StreamWriting.toSystemOut)
 
-    val allInstrumentations = AkkaPersistenceAgent.agent ++ AkkaHttpAgent.agent ++ AkkaStreamAgent.agent
+    val allInstrumentations = AkkaPersistenceAgent.agent ++ AkkaHttpAgent.agent ++ AkkaStreamAgent.agent ++ AkkaActorAgent.agent
     val moduleInfo          = ModuleInfo.extractModulesInformation(Thread.currentThread().getContextClassLoader)
 
     allInstrumentations
