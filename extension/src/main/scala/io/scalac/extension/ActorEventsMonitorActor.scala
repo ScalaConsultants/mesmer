@@ -241,15 +241,11 @@ object ActorEventsMonitorActor {
     private def registerUpdaters(): Unit =
       storage.foreach {
         case (key, metrics) =>
-          // TODO It might exists a better way to do that
-          var _bind: ActorMetricMonitor.BoundMonitor = null
-          def bind = {
-            if (_bind == null) {
-              val tags = actorTags.get(key).fold[Set[Tag]](Set.empty)(_.toSet)
-              _bind = monitor.bind(Labels(key, node, tags))
-              unbinds.put(key, _bind)
-            }
-            _bind
+          lazy val bind = {
+            val tags = actorTags.get(key).fold[Set[Tag]](Set.empty)(_.toSet)
+            val bind = monitor.bind(Labels(key, node, tags))
+            unbinds.put(key, bind)
+            bind
           }
 
           metrics.mailboxSize.foreach { mailboxSize =>

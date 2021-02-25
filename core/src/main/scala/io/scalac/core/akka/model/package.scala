@@ -11,8 +11,7 @@ package object model {
 
   type MailboxTime = Long // opaque
   object MailboxTime {
-    def apply(time: FiniteDuration): MailboxTime =
-      time.toMillis
+    def apply(time: FiniteDuration): MailboxTime = time.toMillis
   }
 
 }
