@@ -19,7 +19,7 @@ class ActorMonitorTestProbe(ping: FiniteDuration)(implicit val actorSystem: Acto
   private val bindsMap = mutable.HashMap.empty[Labels, TestBoundMonitor]
 
   override def bind(labels: Labels): TestBoundMonitor = synchronized {
-    bindsMap.getOrElseUpdate(labels, new TestBoundMonitor(TestProbe(), TestProbe(), ping))
+    bindsMap.getOrElseUpdate(labels, new TestBoundMonitor(TestProbe(), TestProbe(), TestProbe(), ping))
   }
 
 }
@@ -28,16 +28,21 @@ object ActorMonitorTestProbe {
   import ActorMetricMonitor._
   class TestBoundMonitor(
     val mailboxSizeProbe: TestProbe[MetricObserverCommand],
+    val mailboxTimeAvgProbe: TestProbe[MetricObserverCommand],
     val stashSizeProbe: TestProbe[MetricRecorderCommand],
     ping: FiniteDuration
   )(implicit actorSystem: ActorSystem[_])
       extends BoundMonitor
       with TestProbeSynchronized {
-    override val mailboxSize: MetricObserver[Long] with CancellableTestProbeWrapper =
+    val mailboxSize: MetricObserver[Long] with CancellableTestProbeWrapper =
       ObserverTestProbeWrapper(mailboxSizeProbe, ping)
-    override val stashSize: MetricRecorder[Long] with AbstractTestProbeWrapper =
+    val mailboxTimeAvg: MetricObserver[Long] with CancellableTestProbeWrapper =
+      ObserverTestProbeWrapper(mailboxTimeAvgProbe, ping)
+    val stashSize: MetricRecorder[Long] with AbstractTestProbeWrapper =
       RecorderTestProbeWrapper(stashSizeProbe)
-    override def unbind(): Unit =
+    override def unbind(): Unit = {
       mailboxSize.cancel()
+      mailboxTimeAvg.cancel()
+    }
   }
 }

@@ -1,4 +1,4 @@
-package io.scalac.agent.akka.http
+package io.scalac.agent.akka
 
 import scala.concurrent.duration._
 import scala.language.postfixOps
@@ -14,10 +14,6 @@ import akka.http.scaladsl.server.Route
 import akka.http.scaladsl.testkit.{ RouteTestTimeout, ScalatestRouteTest }
 
 import com.typesafe.config.{ Config, ConfigFactory }
-import net.bytebuddy.ByteBuddy
-import net.bytebuddy.agent.ByteBuddyAgent
-import net.bytebuddy.agent.builder.AgentBuilder
-import net.bytebuddy.dynamic.scaffold.TypeValidation
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
@@ -32,13 +28,13 @@ class AkkaHttpAgentTest extends AnyFlatSpec with ScalatestRouteTest with Matcher
 
   override def testConfig: Config = ConfigFactory.load("application-test")
 
-  override def beforeAll(): Unit = {
-    super.beforeAll()
-    val instrumentation = ByteBuddyAgent.install()
-    val builder         = new AgentBuilder.Default().`with`(new ByteBuddy().`with`(TypeValidation.DISABLED))
-    val modules         = Map(AkkaHttpAgent.moduleName -> AkkaHttpAgent.defaultVersion)
-    AkkaHttpAgent.agent.installOn(builder, instrumentation, modules)
-  }
+  override def beforeAll(): Unit =
+    installAgent
+//    super.beforeAll()
+//    val instrumentation = ByteBuddyAgent.install()
+//    val builder         = new AgentBuilder.Default().`with`(new ByteBuddy().`with`(TypeValidation.DISABLED))
+//    val modules         = Map(AkkaHttpAgent.moduleName -> AkkaHttpAgent.defaultVersion)
+//    AkkaHttpAgent.agent.installOn(builder, instrumentation, modules)
 
   type Fixture = TestProbe[HttpEvent]
 

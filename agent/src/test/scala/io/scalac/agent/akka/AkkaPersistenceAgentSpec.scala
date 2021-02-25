@@ -1,4 +1,4 @@
-package io.scalac.agent.akka.persistence
+package io.scalac.agent.akka
 
 import java.util.UUID
 
@@ -9,16 +9,14 @@ import _root_.akka.actor.typed.receptionist.Receptionist
 import _root_.akka.actor.typed.receptionist.Receptionist.{ Deregister, Register }
 import _root_.akka.util.Timeout
 
-import net.bytebuddy.agent.ByteBuddyAgent
-import net.bytebuddy.agent.builder.AgentBuilder
-import org.scalatest.{ BeforeAndAfterAll, OptionValues }
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.flatspec.AnyFlatSpecLike
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.time.{ Minute, Second, Span }
+import org.scalatest.{ BeforeAndAfterAll, OptionValues }
 
-import io.scalac.agent.utils.DummyEventSourcedActor.{ DoNothing, Persist }
 import io.scalac.agent.utils.DummyEventSourcedActor
+import io.scalac.agent.utils.DummyEventSourcedActor.{ DoNothing, Persist }
 import io.scalac.extension.event.PersistenceEvent
 import io.scalac.extension.event.PersistenceEvent._
 import io.scalac.extension.persistenceServiceKey
@@ -39,13 +37,13 @@ class AkkaPersistenceAgentSpec
 
   type Fixture = TestProbe[PersistenceEvent]
 
-  override def beforeAll(): Unit = {
-    super.beforeAll()
-    val instrumentation = ByteBuddyAgent.install()
-    val builder         = new AgentBuilder.Default()
-    val modules         = Map(AkkaPersistenceAgent.moduleName -> AkkaPersistenceAgent.defaultVersion)
-    AkkaPersistenceAgent.agent.installOn(builder, instrumentation, modules)
-  }
+  override def beforeAll(): Unit =
+    installAgent
+//    super.beforeAll()
+//    val instrumentation = ByteBuddyAgent.install()
+//    val builder         = new AgentBuilder.Default()
+//    val modules         = Map(AkkaPersistenceAgent.moduleName -> AkkaPersistenceAgent.defaultVersion)
+//    AkkaPersistenceAgent.agent.installOn(builder, instrumentation, modules)
 
   def test(body: Fixture => Any): Any = {
     val monitor = createTestProbe[PersistenceEvent]

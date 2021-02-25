@@ -2,10 +2,10 @@ package io.scalac.agent.akka.stream
 
 import akka.actor.Props
 import akka.stream.GraphStageIslandAdvice
-import akka.{ActorGraphInterpreterAdvice}
+import akka.{ ActorGraphInterpreterAdvice }
 import io.scalac.agent.Agent.LoadingResult
-import io.scalac.agent.{Agent, AgentInstrumentation}
-import io.scalac.core.model.{Module, SupportedModules, SupportedVersion}
+import io.scalac.agent.{ Agent, AgentInstrumentation }
+import io.scalac.core.model.{ Module, SupportedModules, SupportedVersion }
 import net.bytebuddy.asm.Advice
 import net.bytebuddy.description.`type`.TypeDescription
 import net.bytebuddy.description.method.MethodDescription
@@ -13,7 +13,7 @@ import net.bytebuddy.matcher.ElementMatchers._
 
 object AkkaStreamAgent {
 
-  private[stream] val moduleName = Module("akka-stream")
+  private[akka] val moduleName = Module("akka-stream")
 
   /**
    * actorOf methods is called when island decide to materialize itself

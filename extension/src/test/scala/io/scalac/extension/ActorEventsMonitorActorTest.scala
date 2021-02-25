@@ -12,19 +12,24 @@ import org.scalatest.Inspectors
 import org.scalatest.flatspec.AnyFlatSpecLike
 import org.scalatest.matchers.should.Matchers
 
-import io.scalac.extension.ActorEventsMonitorActor.{ ActorTreeTraverser, ReflectiveActorTreeTraverser }
-import io.scalac.extension.actor.MutableActorMetricsStorage
+import io.scalac.core.util.{ ActorPathOps, Timestamp }
+import io.scalac.extension.ActorEventsMonitorActor.{
+  ActorMetricsReader,
+  ActorTreeTraverser,
+  ReflectiveActorMetricsReader,
+  ReflectiveActorTreeTraverser
+}
+import io.scalac.extension.ActorEventsMonitorActorTest._
+import io.scalac.extension.actor.{ ActorMetrics, MutableActorMetricsStorage }
 import io.scalac.extension.event.ActorEvent.StashMeasurement
 import io.scalac.extension.event.EventBus
 import io.scalac.extension.metric.ActorMetricMonitor.Labels
-import io.scalac.extension.metric.{ ActorMetricMonitor, CachingMonitor }
-import io.scalac.extension.util.TestConfig
+import io.scalac.extension.metric.Distribution.LongDistribution
+import io.scalac.extension.metric.{ ActorMetricMonitor, CachingMonitor, Distribution }
 import io.scalac.extension.util.probe.ActorMonitorTestProbe
 import io.scalac.extension.util.probe.ActorMonitorTestProbe.TestBoundMonitor
 import io.scalac.extension.util.probe.BoundTestProbe.{ MetricObserved, MetricRecorded }
-import io.scalac.extension.util.{ MonitorFixture, TestOps }
-
-import ActorEventsMonitorActorTest._
+import io.scalac.extension.util.{ MonitorFixture, TestConfig, TestOps }
 
 class ActorEventsMonitorActorTest
     extends ScalaTestWithActorTestKit(testSystem)
@@ -49,7 +54,8 @@ class ActorEventsMonitorActorTest
         None,
         PingOffset,
         MutableActorMetricsStorage.empty,
-        system.systemActorOf(Behaviors.ignore[AkkaStreamMonitoring.Command], createUniqueId)
+        system.systemActorOf(Behaviors.ignore[AkkaStreamMonitoring.Command], createUniqueId),
+        actorMetricsReader = TestActorMetricsReader
       ),
       createUniqueId
     )
@@ -62,13 +68,13 @@ class ActorEventsMonitorActorTest
 
     s"ActorTreeRunner instance (${actorTreeRunner.getClass.getName})" should "getRoot properly" in {
       val root = actorTreeRunner.getRootGuardian(system.classicSystem)
-      root.path.toStringWithoutAddress should be("/")
+      ActorPathOps.getPathString(root) should be("/")
     }
 
     it should "getChildren properly" in {
       val root     = actorTreeRunner.getRootGuardian(system.classicSystem)
       val children = actorTreeRunner.getChildren(root)
-      children.map(_.path.toStringWithoutAddress) should contain theSameElementsAs (Set(
+      children.map(ActorPathOps.getPathString) should contain theSameElementsAs (Set(
         "/system",
         "/user"
       ))
@@ -77,9 +83,9 @@ class ActorEventsMonitorActorTest
     it should "getChildren properly from nested actor" in {
       val root             = actorTreeRunner.getRootGuardian(system.classicSystem)
       val children         = actorTreeRunner.getChildren(root)
-      val guardian         = children.find(_.path.toStringWithoutAddress == "/user").get
+      val guardian         = children.find(c => ActorPathOps.getPathString(c) == "/user").get
       val guardianChildren = actorTreeRunner.getChildren(guardian)
-      guardianChildren.map(_.path.toStringWithoutAddress) should contain theSameElementsAs Set(
+      guardianChildren.map(ActorPathOps.getPathString) should contain theSameElementsAs Set(
         "/user/actorA",
         "/user/actorB"
       )
@@ -89,24 +95,14 @@ class ActorEventsMonitorActorTest
 
   def testMonitor(): Unit = {
 
-    def recordMailboxSize(n: Int, bound: TestBoundMonitor): Unit = {
-      underlyingSystem ! Idle
-      for (_ <- 0 until n) underlyingSystem ! Message("Record it")
-      val records = bound.mailboxSizeProbe.fishForMessage(3 * PingOffset) {
-        case MetricObserved(`n`) => FishingOutcome.Complete
-        case _                   => FishingOutcome.ContinueAndIgnore
-      }
-      records.size should not be (0)
-    }
-
     "ActorEventsMonitor" should "record mailbox size" in test { monitor =>
-      val bound = monitor.bind(ActorMetricMonitor.Labels("/user/actorB/idle", None))
+      val bound = monitor.bind(ActorMetricMonitor.Labels("/user/actorB/idle"))
       recordMailboxSize(10, bound)
       bound.unbind()
     }
 
     it should "record mailbox size changes" in test { monitor =>
-      val bound = monitor.bind(ActorMetricMonitor.Labels("/user/actorB/idle", None))
+      val bound = monitor.bind(ActorMetricMonitor.Labels("/user/actorB/idle"))
       recordMailboxSize(10, bound)
       Thread.sleep((IdleTime + 1.second).toMillis)
       recordMailboxSize(42, bound)
@@ -114,20 +110,19 @@ class ActorEventsMonitorActorTest
     }
 
     it should "dead actors should not report" in test { monitor =>
-      // record mailbox for a cycle
-      val bound = monitor.bind(ActorMetricMonitor.Labels("/user/actorA/stop", None))
+      val bound = monitor.bind(ActorMetricMonitor.Labels("/user/actorA/stop"))
       bound.mailboxSizeProbe.expectMessageType[MetricObserved](2 * PingOffset)
-      // send poison pill to kill actor
       underlyingSystem ! Stop
       Thread.sleep(PingOffset.toMillis)
       bound.mailboxSizeProbe.expectNoMessage()
+      bound.unbind()
     }
 
-    it should "record stash size" in test { monitor =>
+    it should "record stash size" in testCaching { monitor =>
       val stashActor = system.systemActorOf(StashActor(10), "stashActor")
-      val bound      = monitor.bind(Labels(stashActor.ref.path.toStringWithoutAddress, None))
+      val bound      = monitor.bind(Labels(ActorPathOps.getPathString(stashActor)))
       def stashMeasurement(size: Int): Unit =
-        EventBus(system).publishEvent(StashMeasurement(size, stashActor.ref.path.toStringWithoutAddress))
+        EventBus(system).publishEvent(StashMeasurement(size, ActorPathOps.getPathString(stashActor)))
       stashActor ! Message("random")
       stashMeasurement(1)
       bound.stashSizeProbe.awaitAssert(bound.stashSizeProbe.expectMessage(MetricRecorded(1)))
@@ -141,6 +136,28 @@ class ActorEventsMonitorActorTest
       stashActor ! Message("emanuel")
       stashMeasurement(1)
       bound.stashSizeProbe.awaitAssert(bound.stashSizeProbe.expectMessage(MetricRecorded(1)))
+    }
+
+    it should "record average mailbox time" in test { monitor =>
+      val bound = monitor.bind(ActorMetricMonitor.Labels("/user/actorB/idle"))
+      underlyingSystem ! Idle
+      underlyingSystem ! Message("Test")
+      val msgs = bound.mailboxTimeAvgProbe.fishForMessage(3 * IdleTime) {
+        case MetricObserved(n) if n > 0 => FishingOutcome.Complete
+        case _                          => FishingOutcome.ContinueAndIgnore
+      }
+      msgs.size should not be (0)
+      bound.unbind()
+    }
+
+    def recordMailboxSize(n: Int, bound: TestBoundMonitor): Unit = {
+      underlyingSystem ! Idle
+      for (_ <- 0 until n) underlyingSystem ! Message("Record it")
+      val records = bound.mailboxSizeProbe.fishForMessage(3 * PingOffset) {
+        case MetricObserved(`n`) => FishingOutcome.Complete
+        case _                   => FishingOutcome.ContinueAndIgnore
+      }
+      records.size should not be (0)
     }
 
   }
@@ -175,7 +192,18 @@ class ActorEventsMonitorActorTest
 
 object ActorEventsMonitorActorTest {
 
-  val IdleTime: FiniteDuration = 3.seconds
+  val IdleTime: FiniteDuration = 2.seconds
+
+  val TestActorMetricsReader: ActorMetricsReader = { actor =>
+    val entry = Distribution.Entry(IdleTime.toMillis, Timestamp.create())
+    Some(
+      ActorMetrics(
+        mailboxSize = ReflectiveActorMetricsReader.readMailboxSize(actor),
+        mailboxTimeDist = Some(new LongDistribution(Seq(entry))),
+        timestamp = Timestamp.create()
+      )
+    )
+  }
 
   sealed trait Command
   final case object Idle                 extends Command
@@ -214,29 +242,31 @@ object ActorEventsMonitorActorTest {
       )
 
       val actorB = ctx.spawn[Command](
-        Behaviors.setup { ctx =>
-          import ctx.log
+        Behaviors.setup {
+          ctx =>
+            import ctx.log
 
-          val actorBIdle = ctx.spawn[Command](
-            Behaviors.setup { ctx =>
-              import ctx.log
-              Behaviors.receiveMessage {
-                case Idle =>
-                  log.info("[idle] ...")
-                  Thread.sleep(IdleTime.toMillis)
-                  Behaviors.same
-                case _ =>
-                  Behaviors.same
-              }
-            },
-            "idle"
-          )
+            val actorBIdle = ctx.spawn[Command](
+              Behaviors.setup { ctx =>
+                import ctx.log
+                Behaviors.receiveMessage {
+                  case Idle =>
+                    log.info("[actorB/Idle] ...")
+                    Thread.sleep(IdleTime.toMillis)
+                    Behaviors.same
+                  case cmd =>
+                    log.info(s"[actorB/Idle] received a message: {}", cmd)
+                    Behaviors.same
+                }
+              },
+              "idle"
+            )
 
-          Behaviors.receiveMessage { cmd =>
-            log.info(s"[actorB] received a message: {}", cmd)
-            actorBIdle ! cmd
-            Behaviors.same
-          }
+            Behaviors.receiveMessage { cmd =>
+              log.info(s"[actorB] received a message: {}", cmd)
+              actorBIdle ! cmd
+              Behaviors.same
+            }
         },
         "actorB"
       )
