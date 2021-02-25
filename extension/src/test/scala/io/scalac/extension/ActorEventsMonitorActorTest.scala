@@ -45,6 +45,9 @@ class ActorEventsMonitorActorTest
   private val underlyingSystem           = system.asInstanceOf[ActorSystem[Command]]
   override val serviceKey: ServiceKey[_] = actorServiceKey
 
+  override def testSameOrParent(ref: ActorRef[_], parent: ActorRef[_]): Boolean =
+    ActorPathOps.getPathString(ref).startsWith(ActorPathOps.getPathString(parent))
+
   override def createMonitor: ActorMonitorTestProbe = new ActorMonitorTestProbe(PingOffset)
 
   override def setUp(monitor: ActorMonitorTestProbe, cache: Boolean): ActorRef[_] =
