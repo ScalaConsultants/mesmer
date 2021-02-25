@@ -258,7 +258,7 @@ object ActorEventsMonitorActor {
           }
 
           metrics.mailboxTimeDist.foreach { dist =>
-            val avgTime = dist.agvValue
+            val avgTime = dist.agv
             log.trace("Registering a new updater for average mailbox time for actor {} with value {}", key, avgTime)
             bind.mailboxTimeAvg.setUpdater(_.observe(avgTime))
           }
@@ -357,12 +357,9 @@ object ActorEventsMonitorActor {
       numberOfMessagesMethodHandler.invoke(cell).asInstanceOf[Int]
 
     private def mailboxTimeDist(cell: Object): Option[LongDistribution] = {
-      val entries = MailboxTimesHolder.takeTimes(cell).map(timeToEntry)
+      val entries = MailboxTimesHolder.takeTimes(cell)
       Option.when(entries.nonEmpty)(new LongDistribution(entries))
     }
-
-    private def timeToEntry(mbt: MailboxTime): Distribution.Entry[Long] =
-      Distribution.Entry(mbt.time.toMillis, mbt.timestamp)
 
   }
 

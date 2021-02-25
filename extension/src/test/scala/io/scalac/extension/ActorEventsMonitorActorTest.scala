@@ -20,7 +20,7 @@ import io.scalac.extension.ActorEventsMonitorActor.{
   ReflectiveActorTreeTraverser
 }
 import io.scalac.extension.ActorEventsMonitorActorTest._
-import io.scalac.extension.actor.{ ActorMetrics, MutableActorMetricsStorage }
+import io.scalac.extension.actor.{ ActorMetrics, MailboxTime, MutableActorMetricsStorage }
 import io.scalac.extension.event.ActorEvent.StashMeasurement
 import io.scalac.extension.event.EventBus
 import io.scalac.extension.metric.ActorMetricMonitor.Labels
@@ -198,7 +198,7 @@ object ActorEventsMonitorActorTest {
   val IdleTime: FiniteDuration = 2.seconds
 
   val TestActorMetricsReader: ActorMetricsReader = { actor =>
-    val entry = Distribution.Entry(IdleTime.toMillis, Timestamp.create())
+    val entry = MailboxTime(IdleTime, Timestamp.create())
     Some(
       ActorMetrics(
         mailboxSize = ReflectiveActorMetricsReader.readMailboxSize(actor),
