@@ -61,11 +61,11 @@ class AkkaStreamMonitoring(
 
   import ctx._
 
-  implicit val executionContext                   = system.executionContext
-  implicit val _timeout: Timeout                  = 2.seconds
-  implicit val system: typed.ActorSystem[Nothing] = ctx.system
+  implicit lazy val system: typed.ActorSystem[Nothing] = ctx.system
+  implicit lazy val executionContext                   = system.executionContext
+  implicit lazy val _timeout: Timeout                  = 2.seconds
   // set updater to self
-  streamOperatorMonitor.operators
+  streamOperatorMonitor.processedMessages
     .setUpdater(result => Await.result(self.ask[Unit](ref => CollectOperators(result, ref)), 1.second)) // really not cool way to do it
 
   private[this] var connectionStats: Option[Set[ConnectionStats]] = None

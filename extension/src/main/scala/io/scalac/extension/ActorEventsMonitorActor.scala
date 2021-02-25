@@ -58,13 +58,13 @@ final class ActorEventsMonitorActor(
 
   def onMessage(msg: Command): Behavior[Command] = msg match {
     case UpdateActorMetrics =>
+      update()
       cleanTags()
       cleanRefs()
-      update()
       setTimeout() // loop
       this
     case AddTag(ref, tag) =>
-      ctx.log.trace(s"Add tags {} for actor {}", tag, ref)
+      ctx.log.info(s"Add tags {} for actor {}", tag, ref)
       refs ::= ref
       actorTags
         .getOrElseUpdate(storage.actorToKey(ref), mutable.Set.empty)
