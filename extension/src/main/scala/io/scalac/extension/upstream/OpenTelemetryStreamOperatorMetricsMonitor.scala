@@ -60,7 +60,7 @@ class OpenTelemetryStreamOperatorMetricsMonitor(instrumentationName: String, met
 
   override val operators = new LazyWrappedMetricUpdater[Labels](
     meter
-      .longUpDownSumObserverBuilder(metricNames.runningOperators)
+      .longValueObserverBuilder(metricNames.runningOperators)
       .setDescription("Amount of running operators in a system")
   )
 }
