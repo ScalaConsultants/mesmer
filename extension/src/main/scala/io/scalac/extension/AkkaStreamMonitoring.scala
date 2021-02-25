@@ -50,12 +50,12 @@ object AkkaStreamMonitoring {
       )
     )
 
+  private case class SnapshotEntry(stage: UniqueStageInfo, value: Long, direction: Direction, connectedWith: String)
+
+  //stage info name should be unique across same running actor
+  private case class UniqueStageInfo(ref: ActorRef, info: StageInfo)
+
 }
-
-case class SnapshotEntry(stage: UniqueStageInfo, value: Long, direction: Direction, connectedWith: String)
-
-//stage info name should be unique across same running actor
-case class UniqueStageInfo(ref: ActorRef, info: StageInfo)
 
 class AkkaStreamMonitoring(
   ctx: ActorContext[Command],
@@ -71,7 +71,7 @@ class AkkaStreamMonitoring(
   implicit lazy val system: typed.ActorSystem[Nothing] = ctx.system
   implicit lazy val executionContext                   = system.executionContext
   implicit lazy val _timeout: Timeout                  = 2.seconds
-  
+
   // set updater to self
   streamOperatorMonitor.processedMessages
     .setUpdater(result => Await.result(self.ask[Unit](ref => CollectProcessed(result, ref)), 1.second)) // really not cool way to do it
