@@ -23,7 +23,7 @@ class ReachabilityTest extends MultiNodeSpec(ThreeNodesConfig) with ScalaTestMul
 
   implicit val typedSystem: ActorSystem[Nothing] = system.toTyped
 
-  val monitor = ClusterMetricsTestProbe()
+  val monitor = ClusterMetricsTestProbe(2.seconds)
 
   import ThreeNodesConfig._
   "Reachability test" should {

@@ -92,6 +92,7 @@ class AkkaStreamMonitoring(
       log.info("Start stream stats collection")
       scheduler.startSingleTimer(CollectionTimeout, CollectionTimeout, timeout)
 
+      updateRunningStreams(refs)
       refs.foreach { ref =>
         watch(ref)
         ref ! PushMetrics

@@ -10,6 +10,12 @@ import org.scalatest.{ Inside, LoneElement, Suite }
 
 trait ReceptionistOps extends ScalaTestWithActorTestKit with TestOps with Eventually with Inside with LoneElement {
   this: Suite =>
+
+  /**
+   * Waits until ref is only service for serviceKey
+   * @param ref
+   * @param serviceKey
+   */
   def onlyRef(ref: ActorRef[_], serviceKey: ServiceKey[_]): Unit = eventually {
     val result = Receptionist(system).ref.ask[Listing](reply => Receptionist.find(serviceKey, reply)).futureValue
     inside(result) {
