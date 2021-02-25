@@ -33,7 +33,7 @@ object OpenTelemetryActorMetricsMonitor {
             .tryValue("mailbox-size")(_.getString)
             .getOrElse(defaultCached.mailboxSize)
 
-          val mailboxTimeAvg = clusterMetricsConfig
+          val mailboxTime = clusterMetricsConfig
             .tryValue("mailbox-time")(_.getString)
             .getOrElse(defaultCached.mailboxTime)
 
@@ -41,7 +41,7 @@ object OpenTelemetryActorMetricsMonitor {
             .tryValue("stash-size")(_.getString)
             .getOrElse(defaultCached.stashSize)
 
-          MetricNames(mailboxSize, mailboxTimeAvg, stashSize)
+          MetricNames(mailboxSize, mailboxTime, stashSize)
         }
         .getOrElse(defaultCached)
     }
@@ -93,7 +93,7 @@ class OpenTelemetryActorMetricsMonitor(instrumentationName: String, metricNames:
     val stashSize: MetricRecorder[Long] with WrappedSynchronousInstrument[Long] =
       WrappedLongValueRecorder(stashSizeCounter, labels)
 
-    override def unbind(): Unit = {
+    def unbind(): Unit = {
       mailboxSizeObserver.removeObserver(labels)
       stashSize.unbind()
     }
