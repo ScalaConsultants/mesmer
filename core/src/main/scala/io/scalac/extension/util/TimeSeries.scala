@@ -1,11 +1,10 @@
-package io.scalac.extension.metric
+package io.scalac.extension.util
 
 import scala.collection.mutable
 
-import io.scalac.core.model.Entry
 import io.scalac.core.util.Timestamp
 
-sealed abstract class Distribution[T, Avg](data: Seq[Entry[T]])(implicit n: Numeric[T]) {
+sealed abstract class TimeSeries[T, Avg](data: Seq[TimeSeries.Entry[T]])(implicit n: Numeric[T]) {
   private lazy val values = data.map(_.value)
 
   def min: T   = values.min
@@ -23,9 +22,14 @@ sealed abstract class Distribution[T, Avg](data: Seq[Entry[T]])(implicit n: Nume
 
 }
 
-object Distribution {
+object TimeSeries {
 
-  final class LongDistribution(data: Seq[Entry[Long]]) extends Distribution[Long, Long](data) {
+  trait Entry[T] {
+    def value: T
+    def timestamp: Timestamp
+  }
+
+  final class LongTimeSeries(data: Seq[Entry[Long]]) extends TimeSeries[Long, Long](data) {
     protected def div(v: Long, n: Int): Long = if (n == 0) 0 else v / n
   }
 

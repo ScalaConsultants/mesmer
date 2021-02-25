@@ -19,9 +19,9 @@ import io.scalac.extension.actor.{ ActorMetricStorage, ActorMetrics, MailboxTime
 import io.scalac.extension.event.{ ActorEvent, TagEvent }
 import io.scalac.extension.event.ActorEvent.StashMeasurement
 import io.scalac.extension.metric.ActorMetricMonitor.Labels
-import io.scalac.extension.metric.Distribution.LongDistribution
-import io.scalac.extension.metric.{ ActorMetricMonitor, Distribution, Unbind }
+import io.scalac.extension.metric.{ ActorMetricMonitor, Unbind }
 import io.scalac.extension.model.{ ActorKey, Node }
+import io.scalac.extension.util.TimeSeries.LongTimeSeries
 
 object ActorEventsMonitorActor {
 
@@ -257,8 +257,8 @@ object ActorEventsMonitorActor {
             bind.mailboxSize.setUpdater(_.observe(mailboxSize))
           }
 
-          metrics.mailboxTimeDist.foreach { dist =>
-            val avgTime = dist.agv
+          metrics.mailboxTimeSeries.foreach { ts =>
+            val avgTime = ts.agv
             log.trace("Registering a new updater for average mailbox time for actor {} with value {}", key, avgTime)
             bind.mailboxTimeAvg.setUpdater(_.observe(avgTime))
           }
@@ -356,9 +356,9 @@ object ActorEventsMonitorActor {
     private def mailboxSize(cell: Object): Int =
       numberOfMessagesMethodHandler.invoke(cell).asInstanceOf[Int]
 
-    private def mailboxTimeDist(cell: Object): Option[LongDistribution] = {
+    private def mailboxTimeDist(cell: Object): Option[LongTimeSeries] = {
       val entries = MailboxTimesHolder.takeTimes(cell)
-      Option.when(entries.nonEmpty)(new LongDistribution(entries))
+      Option.when(entries.nonEmpty)(new LongTimeSeries(entries))
     }
 
   }

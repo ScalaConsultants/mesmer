@@ -24,8 +24,8 @@ import io.scalac.extension.actor.{ ActorMetrics, MailboxTime, MutableActorMetric
 import io.scalac.extension.event.ActorEvent.StashMeasurement
 import io.scalac.extension.event.EventBus
 import io.scalac.extension.metric.ActorMetricMonitor.Labels
-import io.scalac.extension.metric.Distribution.LongDistribution
-import io.scalac.extension.metric.{ ActorMetricMonitor, CachingMonitor, Distribution }
+import io.scalac.extension.metric.{ ActorMetricMonitor, CachingMonitor }
+import io.scalac.extension.util.TimeSeries.LongTimeSeries
 import io.scalac.extension.util.probe.ActorMonitorTestProbe
 import io.scalac.extension.util.probe.ActorMonitorTestProbe.TestBoundMonitor
 import io.scalac.extension.util.probe.BoundTestProbe.{ MetricObserved, MetricRecorded }
@@ -202,7 +202,7 @@ object ActorEventsMonitorActorTest {
     Some(
       ActorMetrics(
         mailboxSize = ReflectiveActorMetricsReader.readMailboxSize(actor),
-        mailboxTimeDist = Some(new LongDistribution(Seq(entry))),
+        mailboxTimeSeries = Some(new LongTimeSeries(Seq(entry))),
         timestamp = Timestamp.create()
       )
     )
