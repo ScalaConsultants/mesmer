@@ -12,16 +12,16 @@ import akka.{ actor => classic }
 
 import org.slf4j.LoggerFactory
 
+import io.scalac.core.akka.model.MailboxTime
 import io.scalac.core.model.Tag
 import io.scalac.core.util.Timestamp
 import io.scalac.extension.AkkaStreamMonitoring.StartStreamCollection
-import io.scalac.extension.actor.{ ActorMetricStorage, ActorMetrics, MailboxTime, MailboxTimesHolder }
+import io.scalac.extension.actor.{ ActorMetricStorage, ActorMetrics, MailboxTimeHolder }
 import io.scalac.extension.event.{ ActorEvent, TagEvent }
 import io.scalac.extension.event.ActorEvent.StashMeasurement
 import io.scalac.extension.metric.ActorMetricMonitor.Labels
 import io.scalac.extension.metric.{ ActorMetricMonitor, Unbind }
 import io.scalac.extension.model.{ ActorKey, Node }
-import io.scalac.extension.util.TimeSeries.LongTimeSeries
 
 object ActorEventsMonitorActor {
 
@@ -257,10 +257,9 @@ object ActorEventsMonitorActor {
             bind.mailboxSize.setUpdater(_.observe(mailboxSize))
           }
 
-          metrics.mailboxTimeSeries.foreach { ts =>
-            val avgTime = ts.agv
-            log.trace("Registering a new updater for average mailbox time for actor {} with value {}", key, avgTime)
-            bind.mailboxTimeAvg.setUpdater(_.observe(avgTime))
+          metrics.mailboxTime.foreach { mailboxTime =>
+            log.trace("Registering a new updater for average mailbox time for actor {} with value {}", key, mailboxTime)
+            bind.mailboxTime.setUpdater(_.observe(mailboxTime))
           }
 
       }
@@ -331,7 +330,7 @@ object ActorEventsMonitorActor {
           val cell = underlyingMethodHandler.invoke(actor)
           ActorMetrics(
             safeRead(mailboxSize(cell)),
-            safeRead(mailboxTimeDist(cell)).flatten,
+            safeRead(mailboxTime(cell)).flatten,
             Timestamp.create()
           )
         }
@@ -356,10 +355,8 @@ object ActorEventsMonitorActor {
     private def mailboxSize(cell: Object): Int =
       numberOfMessagesMethodHandler.invoke(cell).asInstanceOf[Int]
 
-    private def mailboxTimeDist(cell: Object): Option[LongTimeSeries] = {
-      val entries = MailboxTimesHolder.takeTimes(cell)
-      Option.when(entries.nonEmpty)(new LongTimeSeries(entries))
-    }
+    private def mailboxTime(cell: Object): Option[MailboxTime] =
+      MailboxTimeHolder.getTime(cell)
 
   }
 

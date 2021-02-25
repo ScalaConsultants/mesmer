@@ -7,7 +7,7 @@ object ActorMetricMonitor {
   case class Labels(actorPath: Path, node: Option[Node] = None, tags: Set[Tag] = Set.empty)
   trait BoundMonitor extends Synchronized with Bound {
     def mailboxSize: MetricObserver[Long]
-    def mailboxTimeAvg: MetricObserver[Long]
+    def mailboxTime: MetricObserver[Long]
     def stashSize: MetricRecorder[Long] with Instrument[Long]
   }
 }

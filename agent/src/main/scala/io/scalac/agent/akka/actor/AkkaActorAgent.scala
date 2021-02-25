@@ -10,10 +10,11 @@ import net.bytebuddy.matcher.ElementMatchers._
 
 import io.scalac.agent.Agent.LoadingResult
 import io.scalac.agent.{ Agent, AgentInstrumentation }
+import io.scalac.core.akka.model.MailboxTime
 import io.scalac.core.model._
 import io.scalac.core.support.ModulesSupport
 import io.scalac.core.util.Timestamp
-import io.scalac.extension.actor.MailboxTimesHolder
+import io.scalac.extension.actor.MailboxTimeHolder
 
 object AkkaActorAgent {
 
@@ -152,14 +153,9 @@ object AkkaActorAgent {
         .transform { (builder, _, _, _) =>
           builder
             .defineField(
-              MailboxTimesHolder.MailboxTimesVar,
-              classOf[MailboxTimesHolder.MailboxTimesType],
+              MailboxTimeHolder.MailboxTimesVar,
+              classOf[MailboxTime],
               Visibility.PUBLIC
-            )
-            .visit(
-              Advice
-                .to(classOf[ActorCellConstructorInstrumentation])
-                .on(isConstructor)
             )
         }
         .installOn(instrumentation)

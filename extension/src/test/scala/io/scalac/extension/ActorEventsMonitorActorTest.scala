@@ -13,6 +13,7 @@ import org.scalatest.flatspec.AnyFlatSpecLike
 import org.scalatest.matchers.should.Matchers
 
 import io.scalac.core.util.{ ActorPathOps, Timestamp }
+import io.scalac.core.akka.model.MailboxTime
 import io.scalac.extension.ActorEventsMonitorActor.{
   ActorMetricsReader,
   ActorTreeTraverser,
@@ -20,12 +21,11 @@ import io.scalac.extension.ActorEventsMonitorActor.{
   ReflectiveActorTreeTraverser
 }
 import io.scalac.extension.ActorEventsMonitorActorTest._
-import io.scalac.extension.actor.{ ActorMetrics, MailboxTime, MutableActorMetricsStorage }
+import io.scalac.extension.actor.{ ActorMetrics, MutableActorMetricsStorage }
 import io.scalac.extension.event.ActorEvent.StashMeasurement
 import io.scalac.extension.event.EventBus
 import io.scalac.extension.metric.ActorMetricMonitor.Labels
 import io.scalac.extension.metric.{ ActorMetricMonitor, CachingMonitor }
-import io.scalac.extension.util.TimeSeries.LongTimeSeries
 import io.scalac.extension.util.probe.ActorMonitorTestProbe
 import io.scalac.extension.util.probe.ActorMonitorTestProbe.TestBoundMonitor
 import io.scalac.extension.util.probe.BoundTestProbe.{ MetricObserved, MetricRecorded }
@@ -53,7 +53,7 @@ class ActorEventsMonitorActorTest
   override def setUp(monitor: ActorMonitorTestProbe, cache: Boolean): ActorRef[_] =
     system.systemActorOf(
       ActorEventsMonitorActor(
-        if (cache) CachingMonitor(monitor) else monitor,
+        monitor,
         None,
         PingOffset,
         MutableActorMetricsStorage.empty,
@@ -121,7 +121,7 @@ class ActorEventsMonitorActorTest
       bound.unbind()
     }
 
-    it should "record stash size" in testCaching { monitor =>
+    it should "record stash size" in test { monitor =>
       val stashActor = system.systemActorOf(StashActor(10), "stashActor")
       val bound      = monitor.bind(Labels(ActorPathOps.getPathString(stashActor)))
       def stashMeasurement(size: Int): Unit =
@@ -198,11 +198,10 @@ object ActorEventsMonitorActorTest {
   val IdleTime: FiniteDuration = 2.seconds
 
   val TestActorMetricsReader: ActorMetricsReader = { actor =>
-    val entry = MailboxTime(IdleTime, Timestamp.create())
     Some(
       ActorMetrics(
         mailboxSize = ReflectiveActorMetricsReader.readMailboxSize(actor),
-        mailboxTimeSeries = Some(new LongTimeSeries(Seq(entry))),
+        mailboxTime = Some(MailboxTime(IdleTime)),
         timestamp = Timestamp.create()
       )
     )

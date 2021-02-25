@@ -10,13 +10,13 @@ import io.scalac.extension.upstream.opentelemetry._
 
 object OpenTelemetryActorMetricsMonitor {
 
-  case class MetricNames(mailboxSize: String, mailboxTimeAvg: String, stashSize: String)
+  case class MetricNames(mailboxSize: String, mailboxTime: String, stashSize: String)
   object MetricNames {
 
     def default: MetricNames =
       MetricNames(
         "mailbox_size",
-        "mailbox_time_avg",
+        "mailbox_time",
         "stash_size"
       )
 
@@ -34,8 +34,8 @@ object OpenTelemetryActorMetricsMonitor {
             .getOrElse(defaultCached.mailboxSize)
 
           val mailboxTimeAvg = clusterMetricsConfig
-            .tryValue("mailbox-time-avg")(_.getString)
-            .getOrElse(defaultCached.mailboxTimeAvg)
+            .tryValue("mailbox-time")(_.getString)
+            .getOrElse(defaultCached.mailboxTime)
 
           val stashSize = clusterMetricsConfig
             .tryValue("stash-size")(_.getString)
@@ -64,10 +64,10 @@ class OpenTelemetryActorMetricsMonitor(instrumentationName: String, metricNames:
       .setDescription("Tracks the size of an Actor's mailbox")
   )
 
-  private val avgMailboxTimeObserver = new LongMetricObserverBuilderAdapter(
+  private val mailboxTimeObserver = new LongMetricObserverBuilderAdapter(
     meter
-      .longValueObserverBuilder(metricNames.mailboxTimeAvg)
-      .setDescription("Tracks the average time of an message in an Actor's mailbox")
+      .longValueObserverBuilder(metricNames.mailboxTime)
+      .setDescription("Tracks the time of an message in an Actor's mailbox")
   )
 
   private val stashSizeCounter = meter
@@ -87,8 +87,8 @@ class OpenTelemetryActorMetricsMonitor(instrumentationName: String, metricNames:
     val mailboxSize: MetricObserver[Long] =
       mailboxSizeObserver.createObserver(labels)
 
-    val mailboxTimeAvg: MetricObserver[Long] =
-      avgMailboxTimeObserver.createObserver(labels)
+    val mailboxTime: MetricObserver[Long] =
+      mailboxTimeObserver.createObserver(labels)
 
     val stashSize: MetricRecorder[Long] with WrappedSynchronousInstrument[Long] =
       WrappedLongValueRecorder(stashSizeCounter, labels)

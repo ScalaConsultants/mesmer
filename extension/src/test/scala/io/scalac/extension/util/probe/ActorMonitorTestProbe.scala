@@ -36,13 +36,13 @@ object ActorMonitorTestProbe {
       with TestProbeSynchronized {
     val mailboxSize: MetricObserver[Long] with CancellableTestProbeWrapper =
       ObserverTestProbeWrapper(mailboxSizeProbe, ping)
-    val mailboxTimeAvg: MetricObserver[Long] with CancellableTestProbeWrapper =
+    val mailboxTime: MetricObserver[Long] with CancellableTestProbeWrapper =
       ObserverTestProbeWrapper(mailboxTimeAvgProbe, ping)
     val stashSize: MetricRecorder[Long] with AbstractTestProbeWrapper =
       RecorderTestProbeWrapper(stashSizeProbe)
     override def unbind(): Unit = {
       mailboxSize.cancel()
-      mailboxTimeAvg.cancel()
+      mailboxTime.cancel()
     }
   }
 }
