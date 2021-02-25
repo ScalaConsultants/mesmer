@@ -30,11 +30,6 @@ class AkkaHttpAgentTest extends AnyFlatSpec with ScalatestRouteTest with Matcher
 
   override def beforeAll(): Unit =
     installAgent
-//    super.beforeAll()
-//    val instrumentation = ByteBuddyAgent.install()
-//    val builder         = new AgentBuilder.Default().`with`(new ByteBuddy().`with`(TypeValidation.DISABLED))
-//    val modules         = Map(AkkaHttpAgent.moduleName -> AkkaHttpAgent.defaultVersion)
-//    AkkaHttpAgent.agent.installOn(builder, instrumentation, modules)
 
   type Fixture = TestProbe[HttpEvent]
 

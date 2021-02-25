@@ -39,11 +39,6 @@ class AkkaPersistenceAgentSpec
 
   override def beforeAll(): Unit =
     installAgent
-//    super.beforeAll()
-//    val instrumentation = ByteBuddyAgent.install()
-//    val builder         = new AgentBuilder.Default()
-//    val modules         = Map(AkkaPersistenceAgent.moduleName -> AkkaPersistenceAgent.defaultVersion)
-//    AkkaPersistenceAgent.agent.installOn(builder, instrumentation, modules)
 
   def test(body: Fixture => Any): Any = {
     val monitor = createTestProbe[PersistenceEvent]
