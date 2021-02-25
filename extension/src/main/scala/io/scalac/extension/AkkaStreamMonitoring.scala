@@ -3,11 +3,11 @@ package io.scalac.extension
 import akka.actor.ActorRef
 import akka.actor.typed.receptionist.Receptionist.Register
 import akka.actor.typed.scaladsl.adapter._
-import akka.actor.typed.scaladsl.{AbstractBehavior, ActorContext, Behaviors}
-import akka.actor.typed.{Behavior, Terminated}
+import akka.actor.typed.scaladsl.{ AbstractBehavior, ActorContext, Behaviors }
+import akka.actor.typed.{ Behavior, Terminated }
 import io.scalac.core.akka.model.PushMetrics
 import io.scalac.core.model.ConnectionStats
-import io.scalac.extension.AkkaStreamMonitoring.{Command, StartStreamCollection, StatsReceived}
+import io.scalac.extension.AkkaStreamMonitoring.{ Command, StartStreamCollection, StatsReceived }
 import io.scalac.extension.event.ActorInterpreterStats
 import io.scalac.extension.metric.StreamMetricsMonitor
 import io.scalac.extension.metric.StreamMetricsMonitor.Labels
@@ -44,7 +44,7 @@ class AkkaStreamMonitoring(context: ActorContext[Command], streamMonitor: Stream
       }
       collect(refs)
     case StartStreamCollection(_) => {
-      log.error(s"StartStreamCollection with empty refs")
+      log.warn(s"StartStreamCollection with empty refs")
       this
     }
     case any =>

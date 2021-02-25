@@ -1,4 +1,4 @@
-package io.scalac.agent.akka.actor
+package io.scalac.extension.actor
 
 import java.lang.invoke.MethodHandles
 
@@ -26,6 +26,12 @@ object MailboxTimesHolder {
 
   @inline def addTime(actorCell: Object, time: FiniteDuration): Unit =
     mailboxTimes(actorCell) += MailboxTime(time)
+
+  @inline def takeTimes(actorCell: Object): Array[MailboxTime] = {
+    val times = getTimes(actorCell)
+    clearTimes(actorCell)
+    times
+  }
 
   @inline def getTimes(actorCell: Object): Array[MailboxTime] =
     mailboxTimes(actorCell).toArray

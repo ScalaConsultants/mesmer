@@ -13,6 +13,7 @@ import io.scalac.agent.{ Agent, AgentInstrumentation }
 import io.scalac.core.model._
 import io.scalac.core.support.ModulesSupport
 import io.scalac.core.util.Timestamp
+import io.scalac.extension.actor.MailboxTimesHolder
 
 object AkkaActorAgent {
 
@@ -29,19 +30,20 @@ object AkkaActorAgent {
       agentBuilder
         .`type`(named[TypeDescription](targetClassName))
         .transform { (builder, _, _, _) =>
-          val advice = Advice.to(classOf[ClassicStashInstrumentation])
           builder
             .visit(
-              advice.on(
-                named[MethodDescription]("stash")
-                  .or(named[MethodDescription]("prepend"))
-                  .or(named[MethodDescription]("unstash"))
-                  .or(
-                    named[MethodDescription]("unstashAll")
-                      .and(takesArguments[MethodDescription](1))
-                  )
-                  .or(named[MethodDescription]("clearStash"))
-              )
+              Advice
+                .to(classOf[ClassicStashInstrumentation])
+                .on(
+                  named[MethodDescription]("stash")
+                    .or(named[MethodDescription]("prepend"))
+                    .or(named[MethodDescription]("unstash"))
+                    .or(
+                      named[MethodDescription]("unstashAll")
+                        .and(takesArguments[MethodDescription](1))
+                    )
+                    .or(named[MethodDescription]("clearStash"))
+                )
             )
         }
         .installOn(instrumentation)
@@ -58,18 +60,19 @@ object AkkaActorAgent {
       agentBuilder
         .`type`(named[TypeDescription](targetClassName))
         .transform { (builder, _, _, _) =>
-          val advice = Advice.to(classOf[TypedStashInstrumentation])
           builder
             .visit(
-              advice.on(
-                named[MethodDescription]("stash")
-                  .or(named[MethodDescription]("clear"))
-                  .or(
-                    named[MethodDescription]("unstash")
-                    // since there're two `unstash` methods, we need to specify parameter types
-                      .and(takesArguments(classOf[Behavior[_]], classOf[Int], classOf[Function1[_, _]]))
-                  )
-              )
+              Advice
+                .to(classOf[TypedStashInstrumentation])
+                .on(
+                  named[MethodDescription]("stash")
+                    .or(named[MethodDescription]("clear"))
+                    .or(
+                      named[MethodDescription]("unstash")
+                      // since there're two `unstash` methods, we need to specify parameter types
+                        .and(takesArguments(classOf[Behavior[_]], classOf[Int], classOf[Function1[_, _]]))
+                    )
+                )
             )
         }
         .installOn(instrumentation)
@@ -138,7 +141,7 @@ object AkkaActorAgent {
     }
   }
 
-  val actorCellInstrumentation = {
+  private val mailboxTimeActorCellInstrumentation = {
     val targetClassName = "akka.actor.ActorCell"
     AgentInstrumentation(
       targetClassName,
@@ -170,7 +173,7 @@ object AkkaActorAgent {
     mailboxTimeTimestampInstrumentation,
     mailboxTimeSendMessageInstrumentation,
     mailboxTimeDequeueInstrumentation,
-    actorCellInstrumentation
+    mailboxTimeActorCellInstrumentation
   )
 
 }

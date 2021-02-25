@@ -10,12 +10,13 @@ import io.scalac.extension.upstream.opentelemetry._
 
 object OpenTelemetryActorMetricsMonitor {
 
-  case class MetricNames(mailboxSize: String, stashSize: String)
+  case class MetricNames(mailboxSize: String, mailboxTimeAvg: String, stashSize: String)
   object MetricNames {
 
     def default: MetricNames =
       MetricNames(
         "mailbox_size",
+        "mailbox_time_avg",
         "stash_size"
       )
 
@@ -32,11 +33,15 @@ object OpenTelemetryActorMetricsMonitor {
             .tryValue("mailbox-size")(_.getString)
             .getOrElse(defaultCached.mailboxSize)
 
+          val mailboxTimeAvg = clusterMetricsConfig
+            .tryValue("mailbox-time-avg")(_.getString)
+            .getOrElse(defaultCached.mailboxTimeAvg)
+
           val stashSize = clusterMetricsConfig
             .tryValue("stash-size")(_.getString)
             .getOrElse(defaultCached.stashSize)
 
-          MetricNames(mailboxSize, stashSize)
+          MetricNames(mailboxSize, mailboxTimeAvg, stashSize)
         }
         .getOrElse(defaultCached)
     }
@@ -59,6 +64,12 @@ class OpenTelemetryActorMetricsMonitor(instrumentationName: String, metricNames:
       .setDescription("Tracks the size of an Actor's mailbox")
   )
 
+  private val avgMailboxTimeObserver = new LongMetricObserverBuilderAdapter(
+    meter
+      .longValueObserverBuilder(metricNames.mailboxTimeAvg)
+      .setDescription("Tracks the average time of an message in an Actor's mailbox")
+  )
+
   private val stashSizeCounter = meter
     .longValueRecorderBuilder(metricNames.stashSize)
     .setDescription("Tracks the size of an Actor's stash")
@@ -73,10 +84,13 @@ class OpenTelemetryActorMetricsMonitor(instrumentationName: String, metricNames:
 
   class OpenTelemetryBoundMonitor(labels: Labels) extends ActorMetricMonitor.BoundMonitor with Synchronized {
 
-    override val mailboxSize: MetricObserver[Long] =
+    val mailboxSize: MetricObserver[Long] =
       mailboxSizeObserver.createObserver(labels)
 
-    override val stashSize: MetricRecorder[Long] with WrappedSynchronousInstrument[Long] =
+    val mailboxTimeAvg: MetricObserver[Long] =
+      avgMailboxTimeObserver.createObserver(labels)
+
+    val stashSize: MetricRecorder[Long] with WrappedSynchronousInstrument[Long] =
       WrappedLongValueRecorder(stashSizeCounter, labels)
 
     override def unbind(): Unit = {

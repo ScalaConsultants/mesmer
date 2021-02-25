@@ -12,12 +12,11 @@ import io.scalac.extension.event.EventBus
 object StashInstrumentation {
 
   @inline private[actor] def publish(size: Int, ref: classic.ActorRef, context: classic.ActorContext): Unit =
-    publish(size, ActorPathOps.getPathString(ref), context.system.toTyped)
+    EventBus(context.system.toTyped).publishEvent(StashMeasurement(size, ActorPathOps.getPathString(ref)))
 
-  @inline private[actor] def publish(size: Int, ref: ActorRef[_], context: ActorContext[_]): Unit =
-    publish(size, ActorPathOps.getPathString(ref), context.system)
-
-  @inline private def publish(size: Int, path: String, system: ActorSystem[_]): Unit =
-    EventBus(system).publishEvent(StashMeasurement(size, path))
+  @inline private[actor] def publish(size: Int, ref: ActorRef[_], context: ActorContext[_]): Unit = {
+    val pubRef = EventBus(context.system).refFor[StashMeasurement]
+    if (pubRef != ref) pubRef ! StashMeasurement(size, ActorPathOps.getPathString(ref))
+  }
 
 }
