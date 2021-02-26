@@ -1,11 +1,9 @@
 package io.scalac.extension
 
+import akka.actor.ActorRef
 import akka.actor.typed._
-import akka.actor.typed.scaladsl.AskPattern._
 import akka.actor.typed.scaladsl.adapter._
 import akka.actor.typed.scaladsl.{ AbstractBehavior, ActorContext, Behaviors, TimerScheduler }
-import akka.actor.{ typed, ActorRef }
-import akka.util.Timeout
 import io.scalac.core.akka.model.PushMetrics
 import io.scalac.core.model._
 import io.scalac.core.util.stream.streamNameFromActorRef
@@ -18,9 +16,9 @@ import io.scalac.extension.metric.{ StreamMetricMonitor, StreamOperatorMetricsMo
 import io.scalac.extension.model.Direction._
 import io.scalac.extension.model._
 
+import java.util.concurrent.atomic.AtomicReference
 import scala.annotation.tailrec
 import scala.collection.mutable
-import scala.concurrent.Await
 import scala.concurrent.duration.{ FiniteDuration, _ }
 
 object AkkaStreamMonitoring {
@@ -30,12 +28,6 @@ object AkkaStreamMonitoring {
   private case class StatsReceived(actorInterpreterStats: ActorInterpreterStats) extends Command
 
   case class StartStreamCollection(refs: Set[ActorRef]) extends Command
-
-  private case class CollectProcessed(resultCallback: LazyResult[Long, Labels], replyTo: typed.ActorRef[Unit])
-      extends Command
-
-  private case class CollectOperators(resultCallback: LazyResult[Long, Labels], replyTo: typed.ActorRef[Unit])
-      extends Command
 
   private[AkkaStreamMonitoring] case object CollectionTimeout extends Command
 
@@ -51,10 +43,6 @@ object AkkaStreamMonitoring {
     )
 
   private case class SnapshotEntry(stage: StageInfo, value: Long, direction: Direction, connectedWith: String)
-
-  //stage info name should be unique across same running actor
-  private case class UniqueStageInfo(ref: ActorRef, info: StageInfo)
-
 }
 
 class AkkaStreamMonitoring(
@@ -71,21 +59,21 @@ class AkkaStreamMonitoring(
 
   import ctx._
 
-  implicit lazy val system: typed.ActorSystem[Nothing] = ctx.system
-  implicit lazy val executionContext                   = system.executionContext
-  implicit lazy val _timeout: Timeout                  = 2.seconds
+  private[this] val snapshot = new AtomicReference[Option[Seq[SnapshotEntry]]](None)
 
-  operationsBoundMonitor.processedMessages
-    .setUpdater(result => Await.result(self.ask[Unit](ref => CollectProcessed(result, ref)), 1.second)) // really not cool way to do it
+  operationsBoundMonitor.processedMessages.setUpdater { result =>
+    val state = snapshot.get()
+    observeProcessed(result, state)
+  }
 
-  operationsBoundMonitor.operators
-    .setUpdater(result => Await.result(self.ask[Unit](ref => CollectOperators(result, ref)), 1.second)) // really not cool way to do it
+  operationsBoundMonitor.operators.setUpdater { result =>
+    val state = snapshot.get()
+    observeOperators(result, state)
+  }
 
   private[this] val connectionGraph: mutable.Map[StageInfo, Set[ConnectionStats]] =
     mutable.Map.empty
   private[this] val globalStreamMonitor = streamMonitor.bind(GlobalLabels(node))
-
-  private[this] var stageSnapshot: Option[Seq[SnapshotEntry]] = None
 
   private val metricsAdapter = messageAdapter[ActorInterpreterStats](StatsReceived.apply)
 
@@ -106,39 +94,7 @@ class AkkaStreamMonitoring(
     case StatsReceived(_) =>
       log.warn("Received stream running statistics after timeout")
       this
-    case CollectProcessed(result, ref) =>
-      observeProcessed(result, ref)
-      this
-    case CollectOperators(result, ref) =>
-      observeOperators(result, ref)
-      this
 
-  }
-
-  def observeProcessed(result: LazyResult[Long, Labels], ref: typed.ActorRef[Unit]): Unit = {
-    log.debug("Reporting processed messages")
-    stageSnapshot.foreach(_.foreach {
-      case SnapshotEntry(stageInfo, value, direction, connectedWith) =>
-        log.trace("Reporting data of stage {}", stageInfo)
-        val labels =
-          Labels(stageInfo.stageName, node, Some(stageInfo.streamName.name), Some(connectedWith -> direction))
-        result.observe(value, labels)
-    })
-    ref ! ()
-  }
-
-  def observeOperators(result: LazyResult[Long, Labels], ref: typed.ActorRef[Unit]): Unit = {
-    log.debug("Reporting running operators")
-    stageSnapshot.foreach(_.groupBy(_.stage.streamName).foreach {
-      case (streamName, snapshots) =>
-        snapshots.groupBy(_.stage.stageName).foreach {
-          case (stageName, elems) =>
-            val labels = Labels(stageName, node, Some(streamName.name), None)
-            log.info("Report operator for {} - {}", stageName, elems.size)
-            result.observe(elems.size, labels)
-        }
-    })
-    ref ! ()
   }
 
   def updateRunningStreams(refs: Set[ActorRef]): Unit = {
@@ -150,14 +106,14 @@ class AkkaStreamMonitoring(
 
   // TODO optimize this!
   def captureState(): Unit =
-    this.stageSnapshot = Some(connectionGraph.flatMap {
+    this.snapshot.set(Some(connectionGraph.flatMap {
       case (info, in) =>
         in.groupBy(_.outName).map {
           case (upstream, connections) =>
             val push = connections.foldLeft(0L)(_ + _.push)
             SnapshotEntry(info, push, In, upstream.name)
         }
-    }.toSeq)
+    }.toSeq))
 
   private def findWithIndex(stage: StageInfo, connections: Array[ConnectionStats]): (Set[ConnectionStats], Set[Int]) = {
     val indexSet: mutable.Set[Int]                   = mutable.Set.empty
@@ -218,12 +174,6 @@ class AkkaStreamMonitoring(
         case StartStreamCollection(_) =>
           log.debug("Another collection started but previous didn't finish")
           Behaviors.same
-        case CollectProcessed(result, ref) =>
-          observeProcessed(result, ref)
-          Behaviors.same
-        case CollectOperators(result, ref) =>
-          observeOperators(result, ref)
-          this
       }
       .receiveSignal {
         case (_, Terminated(ref)) =>
@@ -231,6 +181,24 @@ class AkkaStreamMonitoring(
           collecting(refs - ref.toClassic)
 
       }
+
+  private def observeProcessed(result: LazyResult[Long, Labels], snapshot: Option[Seq[SnapshotEntry]]): Unit =
+    snapshot.foreach(_.foreach {
+      case SnapshotEntry(stageInfo, value, direction, connectedWith) =>
+        val labels =
+          Labels(stageInfo.stageName, node, Some(stageInfo.streamName.name), Some(connectedWith -> direction))
+        result.observe(value, labels)
+    })
+
+  private def observeOperators(result: LazyResult[Long, Labels], snapshot: Option[Seq[SnapshotEntry]]): Unit =
+    snapshot.foreach(_.groupBy(_.stage.streamName).foreach {
+      case (streamName, snapshots) =>
+        snapshots.groupBy(_.stage.stageName).foreach {
+          case (stageName, elems) =>
+            val labels = Labels(stageName, node, Some(streamName.name), None)
+            result.observe(elems.size, labels)
+        }
+    })
 
   override def onSignal: PartialFunction[Signal, Behavior[Command]] = {
     case PreRestart =>
