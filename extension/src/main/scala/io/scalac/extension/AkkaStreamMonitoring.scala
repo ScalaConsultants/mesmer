@@ -4,7 +4,7 @@ import akka.actor.typed.receptionist.Receptionist.Register
 import akka.actor.typed.scaladsl.AskPattern._
 import akka.actor.typed.scaladsl.adapter._
 import akka.actor.typed.scaladsl.{ AbstractBehavior, ActorContext, Behaviors, TimerScheduler }
-import akka.actor.typed.{ Behavior, Terminated }
+import akka.actor.typed._
 import akka.actor.{ typed, ActorRef }
 import akka.util.Timeout
 import io.scalac.core.akka.model.PushMetrics
@@ -68,6 +68,7 @@ class AkkaStreamMonitoring(
 ) extends AbstractBehavior[Command](ctx) {
 
   val indexCache: mutable.Map[StageInfo, Set[Int]] = mutable.Map.empty
+  val operationsBoundMonitor                       = streamOperatorMonitor.bind()
 
   import ctx._
 
@@ -75,11 +76,10 @@ class AkkaStreamMonitoring(
   implicit lazy val executionContext                   = system.executionContext
   implicit lazy val _timeout: Timeout                  = 2.seconds
 
-  // set updater to self
-  streamOperatorMonitor.processedMessages
+  operationsBoundMonitor.processedMessages
     .setUpdater(result => Await.result(self.ask[Unit](ref => CollectProcessed(result, ref)), 1.second)) // really not cool way to do it
 
-  streamOperatorMonitor.operators
+  operationsBoundMonitor.operators
     .setUpdater(result => Await.result(self.ask[Unit](ref => CollectOperators(result, ref)), 1.second)) // really not cool way to do it
 
   private[this] val connectionGraph: mutable.Map[StageInfo, Set[ConnectionStats]] =
@@ -160,19 +160,6 @@ class AkkaStreamMonitoring(
         }
     }.toSeq)
 
-  private def findConnectionIndexes(stage: StageInfo, connections: Array[ConnectionStats]): Set[Int] = {
-    val indexSet: mutable.Set[Int] = mutable.Set.empty
-    @tailrec
-    def findInArray(index: Int): Set[Int] =
-      if (index >= connections.length) indexSet.toSet
-      else {
-        if (connections(index).inName == stage.stageName)
-          indexSet += index
-        findInArray(index + 1)
-      }
-    findInArray(0)
-  }
-
   private def findWithIndex(stage: StageInfo, connections: Array[ConnectionStats]): (Set[ConnectionStats], Set[Int]) = {
     val indexSet: mutable.Set[Int]                   = mutable.Set.empty
     val connectionsSet: mutable.Set[ConnectionStats] = mutable.Set.empty
@@ -245,4 +232,13 @@ class AkkaStreamMonitoring(
           collecting(refs - ref.toClassic)
 
       }
+
+  override def onSignal: PartialFunction[Signal, Behavior[Command]] = {
+    case PreRestart =>
+      operationsBoundMonitor.unbind()
+      this
+    case PostStop =>
+      operationsBoundMonitor.unbind()
+      this
+  }
 }

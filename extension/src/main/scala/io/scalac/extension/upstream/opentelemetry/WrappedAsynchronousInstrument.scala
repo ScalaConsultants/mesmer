@@ -6,6 +6,8 @@ import io.opentelemetry.api.metrics.{ AsynchronousInstrument, _ }
 import io.scalac.extension.metric.MetricObserver.LazyUpdater
 import io.scalac.extension.metric.{ LazyMetricObserver, MetricObserver }
 
+import java.util.UUID
+
 private object Defs {
   type WrappedResult[T]    = (T, Labels) => Unit
   type ResultWrapper[R, T] = R => WrappedResult[T]
@@ -49,6 +51,40 @@ sealed abstract class MetricObserverBuilderAdapter[R <: AsynchronousInstrument.R
   }
 }
 
+final class LazyLongSumObserverBuilderAdapter[L: OpenTelemetryLabelsConverter](builder: LongSumObserver.Builder)
+    extends LazyMetricObserverBuilderAdapter(builder, longResultWrapper)
+
+final class LazyLongValueObserverBuilderAdapter[L: OpenTelemetryLabelsConverter](builder: LongValueObserver.Builder)
+    extends LazyMetricObserverBuilderAdapter(builder, longResultWrapper)
+
+trait ObserverHandle {
+  def unbindObserver(): Unit
+}
+
+sealed abstract class LazyMetricObserverBuilderAdapter[R <: AsynchronousInstrument.Result, T, L](
+  builder: AsynchronousInstrument.Builder[R],
+  wrapper: ResultWrapper[R, T]
+)(implicit openTelemetryLabelsConverter: OpenTelemetryLabelsConverter[L]) {
+
+  private val observers = collection.mutable.HashMap.empty[UUID, LazyWrappedMetricUpdater[T, L]]
+
+  builder
+    .setUpdater(updateAll)
+    .build()
+
+  def createObserver(): (ObserverHandle, LazyWrappedMetricUpdater[T, L]) = {
+    val uuid     = UUID.randomUUID()
+    val observer = new LazyWrappedMetricUpdater[T, L]
+    observers.put(uuid, observer)
+    (() => observers.remove(uuid), observer)
+  }
+
+  private def updateAll(result: R): Unit = {
+    val wrapped = wrapper(result)
+    observers.values.foreach(_.update(wrapped))
+  }
+}
+
 final class WrappedMetricObserver[T](labels: Labels) extends MetricObserver[T] {
 
   private var valueUpdater: Option[MetricObserver.Updater[T]] = None
@@ -62,16 +98,15 @@ final class WrappedMetricObserver[T](labels: Labels) extends MetricObserver[T] {
 
 trait OpenTelemetryLabelsConverter[L] extends (L => Labels)
 
-final class LazyWrappedMetricUpdater[L: OpenTelemetryLabelsConverter](
-  val builder: AsynchronousInstrument.Builder[LongResult]
-) extends LazyMetricObserver[Long, L] {
-  private[this] var instrument: Option[AsynchronousInstrument] = None
-  override def setUpdater(updater: LazyUpdater[Long, L]): Unit =
-    instrument.fold {
-      instrument = Some(builder.setUpdater { consumer =>
-        updater { (result, labels) =>
-          consumer.observe(result, implicitly[OpenTelemetryLabelsConverter[L]].apply(labels))
-        }
-      }.build())
-    }(_ => ())
+final class LazyWrappedMetricUpdater[T, L: OpenTelemetryLabelsConverter] extends LazyMetricObserver[T, L] {
+
+  private var valueUpdater: Option[LazyUpdater[T, L]] = None
+
+  def setUpdater(updater: LazyUpdater[T, L]): Unit =
+    valueUpdater = Some(updater)
+
+  def update(result: WrappedResult[T]): Unit =
+    valueUpdater.foreach(updater =>
+      updater((value: T, labels: L) => result(value, implicitly[OpenTelemetryLabelsConverter[L]].apply(labels)))
+    )
 }

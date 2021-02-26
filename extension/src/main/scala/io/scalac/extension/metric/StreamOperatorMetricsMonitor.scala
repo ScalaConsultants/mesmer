@@ -18,8 +18,8 @@ object StreamOperatorMetricsMonitor {
       }
       val connected = connectedWith.fold[Seq[String]](Seq.empty) {
         case (name, direction) =>
-          val (directionHeader, dirctionValue) = direction.serialize
-          Seq("connected_with", name, directionHeader, dirctionValue)
+          val (directionHeader, directionValue) = direction.serialize
+          Seq("connected_with", name, directionHeader, directionValue)
       }
 
       val optional: Seq[String] =
@@ -29,10 +29,12 @@ object StreamOperatorMetricsMonitor {
       OpenTelemetryLabels.of(optional ++ required: _*)
     }
   }
+
+  //TODO split processedMessages into processTime, processMessages and demand
+  trait BoundMonitor extends Bound {
+    def processedMessages: LazyMetricObserver[Long, StreamOperatorMetricsMonitor.Labels]
+    def operators: LazyMetricObserver[Long, StreamOperatorMetricsMonitor.Labels]
+  }
 }
 
-//TODO split processedMessages into processTime, processMessages and demand
-trait StreamOperatorMetricsMonitor {
-  def processedMessages: LazyMetricObserver[Long, StreamOperatorMetricsMonitor.Labels]
-  def operators: LazyMetricObserver[Long, StreamOperatorMetricsMonitor.Labels]
-}
+

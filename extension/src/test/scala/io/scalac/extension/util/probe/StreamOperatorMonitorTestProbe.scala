@@ -3,8 +3,8 @@ package io.scalac.extension.util.probe
 import akka.actor.testkit.typed.scaladsl.TestProbe
 import akka.actor.typed.ActorSystem
 import io.scalac.extension.metric.StreamMetricMonitor.BoundMonitor
-import io.scalac.extension.metric.{ MetricRecorder, StreamMetricMonitor, StreamOperatorMetricsMonitor }
-import io.scalac.extension.util.probe.BoundTestProbe.{ LazyMetricsObserved, MetricRecorderCommand }
+import io.scalac.extension.metric.{LazyMetricObserver, MetricRecorder, StreamMetricMonitor, StreamOperatorMetricsMonitor}
+import io.scalac.extension.util.probe.BoundTestProbe.{LazyMetricsObserved, MetricRecorderCommand}
 
 import scala.concurrent.duration.FiniteDuration
 
@@ -15,9 +15,14 @@ class StreamOperatorMonitorTestProbe(
 )(implicit val system: ActorSystem[_])
     extends StreamOperatorMetricsMonitor {
 
-  override def processedMessages = LazyObserverTestProbeWrapper(processedTestProbe, ping)
 
-  override def operators = LazyObserverTestProbeWrapper(runningOperators, ping)
+  override def bind(): StreamOperatorMetricsMonitor.BoundMonitor = new StreamOperatorMetricsMonitor.BoundMonitor {
+    override def processedMessages = LazyObserverTestProbeWrapper(processedTestProbe, ping)
+
+    override def operators = LazyObserverTestProbeWrapper(runningOperators, ping)
+
+    override def unbind(): Unit = ()
+  }
 }
 
 object StreamOperatorMonitorTestProbe {

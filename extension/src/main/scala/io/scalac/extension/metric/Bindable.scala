@@ -11,3 +11,7 @@ trait Bindable[-L, +B <: Bound] extends (L => B) {
   def bind(labels: L): B
 }
 
+trait EmptyBind[B <: Bound] extends Bindable[Unit, B] {
+  final def bind(labels: Unit): B = this.bind()
+  def bind(): B
+}
