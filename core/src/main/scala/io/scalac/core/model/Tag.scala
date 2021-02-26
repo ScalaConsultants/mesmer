@@ -39,10 +39,10 @@ object Tag {
     val streamUniqueName = s"$name/$id" // we use slash as this character will not appear in actor name
 
     override lazy val serialize: Seq[(String, String)] =
-      StageName.serializeName(name) ++ Seq("stream_unique_name" -> streamUniqueName)
+      StageName.serializeName(name) ++ Seq("stage_unique_name" -> streamUniqueName)
   }
 
-  final case class StreamName(name: String) extends Tag {
+  final case class StreamName(name: String, islandId: String) extends Tag {
     override def serialize: Seq[(String, String)] = Seq(("stream_name", name))
   }
 }

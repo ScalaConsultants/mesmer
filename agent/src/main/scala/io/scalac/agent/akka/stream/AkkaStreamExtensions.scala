@@ -8,7 +8,7 @@ import io.scalac.core.akka.model.PushMetrics
 import io.scalac.core.invoke.Lookup
 import io.scalac.core.model._
 import io.scalac.core.util.stream.streamNameFromActorRef
-import io.scalac.extension.event.{ ActorInterpreterStats, EventBus }
+import io.scalac.extension.event.{ActorInterpreterStats, EventBus}
 
 import java.lang.invoke.MethodType._
 object AkkaStreamExtensions extends Lookup {
@@ -34,28 +34,32 @@ object AkkaStreamExtensions extends Lookup {
 
   def addCollectionReceive(
     receive: PartialFunction[Any, Unit],
-    self: Actor
+    thiz: Actor
   ): PartialFunction[Any, Unit] =
     receive.orElse {
       case PushMetrics => {
+
+        val streamName = streamNameFromActorRef(thiz.context.self)
+
         val currentShells = shells
-          .invoke(self)
+          .invoke(thiz)
           .asInstanceOf[Set[GraphInterpreterShellMirror]]
 
-        val stats = currentShells.flatMap(_.connections).map { connection =>
-          val (push, pull) = ConnectionOps.getAndResetCounterValues(connection)
-          val in           = connection.inOwner.streamUniqueStageName
-          val out          = connection.outOwner.streamUniqueStageName
+        val stats = currentShells.map { shell =>
+          val connections =shell.connections.map { connection =>
+            val (push, pull) = ConnectionOps.getAndResetCounterValues(connection)
+            val in           = connection.inOwner.streamUniqueStageName
+            val out          = connection.outOwner.streamUniqueStageName
 
-          ConnectionStats(in, out, push, pull)
+            ConnectionStats(in, out, push, pull)
+          }
+          val stageInfo = shell.logics.map(logic => StageInfo(logic.streamUniqueStageName, streamName))
+          (stageInfo, connections)
         }
 
-        val ref = self.context.self
-        val stageInfo = currentShells
-          .flatMap(_.logics)
-          .map(logic => StageInfo(logic.streamUniqueStageName, streamNameFromActorRef(ref)))
+        val self = thiz.context.self
 
-        EventBus(self.context.system.toTyped).publishEvent(ActorInterpreterStats(ref, stageInfo, stats, None))
+        EventBus(thiz.context.system.toTyped).publishEvent(ActorInterpreterStats(self, streamName, stats))
       }
     }
 

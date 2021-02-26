@@ -73,5 +73,5 @@ final class LazyWrappedMetricUpdater[L: OpenTelemetryLabelsConverter](
           consumer.observe(result, implicitly[OpenTelemetryLabelsConverter[L]].apply(labels))
         }
       }.build())
-    }(_ => throw new IllegalStateException("Update function can be set only once"))
+    }(_ => ())
 }

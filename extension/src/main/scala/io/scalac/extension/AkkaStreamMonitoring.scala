@@ -19,6 +19,7 @@ import io.scalac.extension.metric.{ StreamMetricMonitor, StreamOperatorMetricsMo
 import io.scalac.extension.model.Direction._
 import io.scalac.extension.model._
 
+import scala.annotation.tailrec
 import scala.collection.mutable
 import scala.concurrent.Await
 import scala.concurrent.duration.{ FiniteDuration, _ }
@@ -50,7 +51,7 @@ object AkkaStreamMonitoring {
       )
     )
 
-  private case class SnapshotEntry(stage: UniqueStageInfo, value: Long, direction: Direction, connectedWith: String)
+  private case class SnapshotEntry(stage: StageInfo, value: Long, direction: Direction, connectedWith: String)
 
   //stage info name should be unique across same running actor
   private case class UniqueStageInfo(ref: ActorRef, info: StageInfo)
@@ -66,6 +67,8 @@ class AkkaStreamMonitoring(
   timeout: FiniteDuration = 2.seconds
 ) extends AbstractBehavior[Command](ctx) {
 
+  val indexCache: mutable.Map[StageInfo, Set[Int]] = mutable.Map.empty
+
   import ctx._
 
   implicit lazy val system: typed.ActorSystem[Nothing] = ctx.system
@@ -79,7 +82,7 @@ class AkkaStreamMonitoring(
   streamOperatorMonitor.operators
     .setUpdater(result => Await.result(self.ask[Unit](ref => CollectOperators(result, ref)), 1.second)) // really not cool way to do it
 
-  private[this] val connectionGraph: mutable.Map[UniqueStageInfo, Set[ConnectionStats]] =
+  private[this] val connectionGraph: mutable.Map[StageInfo, Set[ConnectionStats]] =
     mutable.Map.empty
   private[this] val globalStreamMonitor = streamMonitor.bind(GlobalLabels(node))
 
@@ -116,7 +119,7 @@ class AkkaStreamMonitoring(
   def observeProcessed(result: LazyResult[Long, Labels], ref: typed.ActorRef[Unit]): Unit = {
     log.debug("Reporting processed messages")
     stageSnapshot.foreach(_.foreach {
-      case SnapshotEntry(UniqueStageInfo(_, stageInfo), value, direction, connectedWith) =>
+      case SnapshotEntry(stageInfo, value, direction, connectedWith) =>
         log.trace("Reporting data of stage {}", stageInfo)
         val labels =
           Labels(stageInfo.stageName, node, Some(stageInfo.streamName.name), Some(connectedWith -> direction))
@@ -127,9 +130,9 @@ class AkkaStreamMonitoring(
 
   def observeOperators(result: LazyResult[Long, Labels], ref: typed.ActorRef[Unit]): Unit = {
     log.debug("Reporting running operators")
-    stageSnapshot.foreach(_.groupBy(_.stage.info.streamName).foreach {
+    stageSnapshot.foreach(_.groupBy(_.stage.streamName).foreach {
       case (streamName, snapshots) =>
-        snapshots.groupBy(_.stage.info.stageName).foreach {
+        snapshots.groupBy(_.stage.stageName).foreach {
           case (stageName, elems) =>
             val labels = Labels(stageName, node, Some(streamName.name), None)
             log.info("Report operator for {} - {}", stageName, elems.size)
@@ -157,19 +160,57 @@ class AkkaStreamMonitoring(
         }
     }.toSeq)
 
+  private def findConnectionIndexes(stage: StageInfo, connections: Array[ConnectionStats]): Set[Int] = {
+    val indexSet: mutable.Set[Int] = mutable.Set.empty
+    @tailrec
+    def findInArray(index: Int): Set[Int] =
+      if (index >= connections.length) indexSet.toSet
+      else {
+        if (connections(index).inName == stage.stageName)
+          indexSet += index
+        findInArray(index + 1)
+      }
+    findInArray(0)
+  }
+
+  private def findWithIndex(stage: StageInfo, connections: Array[ConnectionStats]): (Set[ConnectionStats], Set[Int]) = {
+    val indexSet: mutable.Set[Int]                   = mutable.Set.empty
+    val connectionsSet: mutable.Set[ConnectionStats] = mutable.Set.empty
+    @tailrec
+    def findInArray(index: Int): (Set[ConnectionStats], Set[Int]) =
+      if (index >= connections.length) (connectionsSet.toSet, indexSet.toSet)
+      else {
+        val connection = connections(index)
+        if (connection.inName == stage.stageName) {
+          connectionsSet += connection
+          indexSet += index
+        }
+        findInArray(index + 1)
+      }
+    findInArray(0)
+  }
+
   def collecting(refs: Set[ActorRef]): Behavior[Command] =
     Behaviors
       .receiveMessage[Command] {
-        case StatsReceived(ActorInterpreterStats(ref, stageInfo, connections, _)) =>
+        case StatsReceived(ActorInterpreterStats(ref, streamName, shellInfo)) =>
           val refsLeft = refs - ref
-          log.trace("Received stats from {}", ref)
-
-          val stages = stageInfo.map { info =>
-            val in = connections.filter(_.inName == info.stageName)
-            (UniqueStageInfo(ref, info), in)
-          }.toMap
 
           unwatch(ref)
+
+          val stages = (for {
+            (stagesInfo, connections) <- shellInfo
+            stage                     <- stagesInfo
+          } yield {
+            val stageConnections = indexCache
+              .get(stage)
+              .fold {
+                val (wiredConnections, indexes) = findWithIndex(stage, connections)
+                indexCache.put(stage, indexes)
+                wiredConnections
+              }(indexes => indexes.map(connections.apply))
+            stage -> stageConnections
+          }).toMap
 
           connectionGraph ++= stages
 

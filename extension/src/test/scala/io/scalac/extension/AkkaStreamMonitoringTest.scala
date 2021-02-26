@@ -49,7 +49,7 @@ class AkkaStreamMonitoringTest
   ): Behavior[PushMetrics.type] = Behaviors.receive {
     case (ctx, PushMetrics) =>
       monitor.foreach(_ ! PushMetrics)
-      EventBus(system).publishEvent(ActorInterpreterStats(ctx.self.toClassic, stageInfo, connectionStats, streamName))
+      EventBus(system).publishEvent(ActorInterpreterStats(ctx.self.toClassic, null, null))
       Behaviors.same
   }
 
