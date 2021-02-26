@@ -37,7 +37,7 @@ object AkkaStreamExtensions extends Lookup {
     thiz: Actor
   ): PartialFunction[Any, Unit] =
     receive.orElse {
-      case PushMetrics => {
+      case PushMetrics(replyTo) => {
 
         val streamName = streamNameFromActorRef(thiz.context.self)
 
@@ -59,7 +59,7 @@ object AkkaStreamExtensions extends Lookup {
 
         val self = thiz.context.self
 
-        EventBus(thiz.context.system.toTyped).publishEvent(ActorInterpreterStats(self, streamName, stats))
+        replyTo ! ActorInterpreterStats(self, streamName, stats)
       }
     }
 

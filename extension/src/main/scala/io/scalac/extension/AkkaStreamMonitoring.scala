@@ -1,10 +1,9 @@
 package io.scalac.extension
 
-import akka.actor.typed.receptionist.Receptionist.Register
+import akka.actor.typed._
 import akka.actor.typed.scaladsl.AskPattern._
 import akka.actor.typed.scaladsl.adapter._
 import akka.actor.typed.scaladsl.{ AbstractBehavior, ActorContext, Behaviors, TimerScheduler }
-import akka.actor.typed._
 import akka.actor.{ typed, ActorRef }
 import akka.util.Timeout
 import io.scalac.core.akka.model.PushMetrics
@@ -88,7 +87,7 @@ class AkkaStreamMonitoring(
 
   private[this] var stageSnapshot: Option[Seq[SnapshotEntry]] = None
 
-  system.receptionist ! Register(streamServiceKey, messageAdapter(StatsReceived.apply))
+  private val metricsAdapter = messageAdapter[ActorInterpreterStats](StatsReceived.apply)
 
   override def onMessage(msg: Command): Behavior[Command] = msg match {
     case StartStreamCollection(refs) if refs.nonEmpty =>
@@ -98,7 +97,7 @@ class AkkaStreamMonitoring(
       updateRunningStreams(refs)
       refs.foreach { ref =>
         watch(ref)
-        ref ! PushMetrics
+        ref ! PushMetrics(metricsAdapter.toClassic)
       }
       collecting(refs)
     case StartStreamCollection(_) =>
@@ -145,7 +144,7 @@ class AkkaStreamMonitoring(
   def updateRunningStreams(refs: Set[ActorRef]): Unit = {
 
     globalStreamMonitor.streamActors.setValue(refs.size)
-    val streams = refs.map(streamNameFromActorRef).size
+    val streams = refs.map(streamNameFromActorRef).map(_.name).size
     globalStreamMonitor.runningStreams.setValue(streams)
   }
 
