@@ -5,8 +5,8 @@ import akka.actor.typed._
 import akka.actor.typed.scaladsl.adapter._
 import akka.actor.typed.scaladsl.{ AbstractBehavior, ActorContext, Behaviors, TimerScheduler }
 import io.scalac.core.akka.model.PushMetrics
+import io.scalac.core.model.Tag.StreamName
 import io.scalac.core.model._
-import io.scalac.core.util.stream.streamNameFromActorRef
 import io.scalac.extension.AkkaStreamMonitoring._
 import io.scalac.extension.event.ActorInterpreterStats
 import io.scalac.extension.metric.MetricObserver.LazyResult
@@ -55,11 +55,24 @@ class AkkaStreamMonitoring(
 ) extends AbstractBehavior[Command](ctx) {
 
   val indexCache: mutable.Map[StageInfo, Set[Int]] = mutable.Map.empty
-  val operationsBoundMonitor                       = streamOperatorMonitor.bind()
+  private val operationsBoundMonitor               = streamOperatorMonitor.bind()
+  private val boundStreamMonitor                   = streamMonitor.bind(GlobalLabels(node))
 
   import ctx._
 
-  private[this] val snapshot = new AtomicReference[Option[Seq[SnapshotEntry]]](None)
+  private[this] val snapshot       = new AtomicReference[Option[Seq[SnapshotEntry]]](None)
+  private[this] val runningActors  = new AtomicReference[Option[Int]](None)
+  private[this] val runningStreams = new AtomicReference[Option[Int]](None)
+
+  boundStreamMonitor.runningStreams.setUpdater { result =>
+    val streams = runningStreams.get()
+    streams.foreach(value => result.observe(value)) // if none no result is set
+  }
+
+  boundStreamMonitor.streamActors.setUpdater { result =>
+    val actors = runningActors.get()
+    actors.foreach(value => result.observe(value)) // if none no result is set
+  }
 
   operationsBoundMonitor.processedMessages.setUpdater { result =>
     val state = snapshot.get()
@@ -73,7 +86,6 @@ class AkkaStreamMonitoring(
 
   private[this] val connectionGraph: mutable.Map[StageInfo, Set[ConnectionStats]] =
     mutable.Map.empty
-  private[this] val globalStreamMonitor = streamMonitor.bind(GlobalLabels(node))
 
   private val metricsAdapter = messageAdapter[ActorInterpreterStats](StatsReceived.apply)
 
@@ -82,12 +94,11 @@ class AkkaStreamMonitoring(
       log.info("Start stream stats collection")
       scheduler.startSingleTimer(CollectionTimeout, CollectionTimeout, timeout)
 
-      updateRunningStreams(refs)
       refs.foreach { ref =>
         watch(ref)
         ref ! PushMetrics(metricsAdapter.toClassic)
       }
-      collecting(refs)
+      collecting(refs, Set.empty)
     case StartStreamCollection(_) =>
       log.error(s"StartStreamCollection with empty refs")
       this
@@ -96,11 +107,11 @@ class AkkaStreamMonitoring(
       this
   }
 
-  def updateRunningStreams(refs: Set[ActorRef]): Unit = {
-
-    globalStreamMonitor.streamActors.setValue(refs.size)
-    val streams = refs.map(streamNameFromActorRef).map(_.name).size
-    globalStreamMonitor.runningStreams.setValue(streams)
+  def captureGlobalStats(names: Set[StreamName]): Unit = {
+    val actors  = names.size
+    val streams = names.map(_.name).size
+    runningActors.set(Some(actors))
+    runningStreams.set(Some(streams))
   }
 
   // TODO optimize this!
@@ -131,7 +142,7 @@ class AkkaStreamMonitoring(
     findInArray(0)
   }
 
-  def collecting(refs: Set[ActorRef]): Behavior[Command] =
+  def collecting(refs: Set[ActorRef], names: Set[StreamName]): Behavior[Command] =
     Behaviors
       .receiveMessage[Command] {
         case StatsReceived(ActorInterpreterStats(ref, streamName, shellInfo)) =>
@@ -158,15 +169,17 @@ class AkkaStreamMonitoring(
           if (refsLeft.isEmpty) {
             log.debug("Finished collecting stats")
             scheduler.cancel(CollectionTimeout)
+            captureGlobalStats(names + streamName)
             captureState()
             this
           } else {
-            collecting(refsLeft)
+            collecting(refsLeft, names + streamName)
           }
 
         case CollectionTimeout =>
           log.warn("Collecting stats from running streams timeout")
           refs.foreach(ref => unwatch(ref))
+          captureGlobalStats(names)
           captureState() // we record data gathered so far nevertheless
           this
         // TODO handle this case better
@@ -178,8 +191,8 @@ class AkkaStreamMonitoring(
         signalHandler
           .orElse[Signal, Behavior[Command]] {
             case Terminated(ref) =>
-              log.debug("Stream ref {} terminated", ref)
-              collecting(refs - ref.toClassic)
+              log.debug("Stream ref {} terminated during metric collection", ref)
+              collecting(refs - ref.toClassic, names)
           }
           .compose[(ActorContext[Command], Signal)] {
             case (_, signal) => signal

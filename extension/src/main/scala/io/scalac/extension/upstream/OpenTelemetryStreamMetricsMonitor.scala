@@ -2,9 +2,9 @@ package io.scalac.extension.upstream
 
 import com.typesafe.config.Config
 import io.opentelemetry.api.OpenTelemetry
-import io.scalac.extension.metric.{ MetricRecorder, StreamMetricMonitor }
+import io.scalac.extension.metric.StreamMetricMonitor
 import io.scalac.extension.upstream.OpenTelemetryStreamMetricMonitor.MetricNames
-import io.scalac.extension.upstream.opentelemetry.WrappedLongValueRecorder
+import io.scalac.extension.upstream.opentelemetry.LongMetricObserverBuilderAdapter
 
 object OpenTelemetryStreamMetricMonitor {
   case class MetricNames(runningStreams: String, streamActors: String)
@@ -42,28 +42,29 @@ class OpenTelemetryStreamMetricMonitor(instrumentationName: String, metricNames:
   private val meter = OpenTelemetry
     .getGlobalMeter(instrumentationName)
 
-  private val runningStreamsRecorder = meter
-    .longValueRecorderBuilder(metricNames.runningStreams)
-    .setDescription("Amount of running streams on a system")
-    .build()
+  private val runningStreamsRecorder = new LongMetricObserverBuilderAdapter(
+    meter
+      .longValueObserverBuilder(metricNames.runningStreams)
+      .setDescription("Amount of running streams on a system")
+  )
 
-  private val streamActorsRecorder = meter
-    .longValueRecorderBuilder(metricNames.streamActors)
-    .setDescription("Amount of actors running streams on a system")
-    .build()
+  private val streamActorsRecorder = new LongMetricObserverBuilderAdapter(
+    meter
+      .longValueObserverBuilder(metricNames.streamActors)
+      .setDescription("Amount of actors running streams on a system")
+  )
 
   override def bind(labels: Labels): BoundMonitor = new StreamMetricsBoundMonitor(labels)
 
   class StreamMetricsBoundMonitor(labels: Labels) extends BoundMonitor {
     private val openTelemetryLabels = labels.toOpenTelemetry
 
-    override val runningStreams =
-      WrappedLongValueRecorder(runningStreamsRecorder, openTelemetryLabels)
+    override val runningStreams = runningStreamsRecorder.createObserver(openTelemetryLabels)
 
-    override val streamActors: MetricRecorder[Long] =
-      WrappedLongValueRecorder(streamActorsRecorder, openTelemetryLabels)
+    override val streamActors = streamActorsRecorder.createObserver(openTelemetryLabels)
 
     override def unbind(): Unit =
-      runningStreams.unbind()
+      runningStreamsRecorder.removeObserver(openTelemetryLabels)
+    streamActorsRecorder.removeObserver(openTelemetryLabels)
   }
 }

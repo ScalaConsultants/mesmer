@@ -17,8 +17,8 @@ object StreamMetricMonitor {
   }
 
   trait BoundMonitor extends Bound {
-    def runningStreams: MetricRecorder[Long]
-    def streamActors: MetricRecorder[Long]
+    def runningStreams: MetricObserver[Long]
+    def streamActors: MetricObserver[Long]
   }
 
 }

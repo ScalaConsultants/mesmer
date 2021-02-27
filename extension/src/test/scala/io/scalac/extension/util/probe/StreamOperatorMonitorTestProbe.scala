@@ -3,8 +3,8 @@ package io.scalac.extension.util.probe
 import akka.actor.testkit.typed.scaladsl.TestProbe
 import akka.actor.typed.ActorSystem
 import io.scalac.extension.metric.StreamMetricMonitor.BoundMonitor
-import io.scalac.extension.metric.{LazyMetricObserver, MetricRecorder, StreamMetricMonitor, StreamOperatorMetricsMonitor}
-import io.scalac.extension.util.probe.BoundTestProbe.{LazyMetricsObserved, MetricRecorderCommand}
+import io.scalac.extension.metric.{ MetricObserver, StreamMetricMonitor, StreamOperatorMetricsMonitor }
+import io.scalac.extension.util.probe.BoundTestProbe.{ LazyMetricsObserved, MetricObserverCommand }
 
 import scala.concurrent.duration.FiniteDuration
 
@@ -14,7 +14,6 @@ class StreamOperatorMonitorTestProbe(
   ping: FiniteDuration
 )(implicit val system: ActorSystem[_])
     extends StreamOperatorMetricsMonitor {
-
 
   override def bind(): StreamOperatorMetricsMonitor.BoundMonitor = new StreamOperatorMetricsMonitor.BoundMonitor {
     override def processedMessages = LazyObserverTestProbeWrapper(processedTestProbe, ping)
@@ -37,22 +36,24 @@ object StreamOperatorMonitorTestProbe {
 }
 
 class StreamMonitorTestProbe(
-  val runningStreamsProbe: TestProbe[MetricRecorderCommand],
-  val streamActorsProbe: TestProbe[MetricRecorderCommand]
-) extends StreamMetricMonitor {
+  val runningStreamsProbe: TestProbe[MetricObserverCommand],
+  val streamActorsProbe: TestProbe[MetricObserverCommand],
+  ping: FiniteDuration
+)(implicit val system: ActorSystem[_])
+    extends StreamMetricMonitor {
   override def bind(labels: StreamMetricMonitor.Labels): StreamMetricMonitor.BoundMonitor = new BoundMonitor {
-    override def runningStreams: MetricRecorder[Long] = RecorderTestProbeWrapper(runningStreamsProbe)
+    override def runningStreams: MetricObserver[Long] = ObserverTestProbeWrapper(runningStreamsProbe, ping)
 
-    override def streamActors: MetricRecorder[Long] = RecorderTestProbeWrapper(streamActorsProbe)
+    override def streamActors: MetricObserver[Long] = ObserverTestProbeWrapper(streamActorsProbe, ping)
 
     override def unbind(): Unit = ()
   }
 }
 
 object StreamMonitorTestProbe {
-  def apply()(implicit system: ActorSystem[_]): StreamMonitorTestProbe = {
-    val runningStream     = TestProbe[MetricRecorderCommand]
-    val streamActorsProbe = TestProbe[MetricRecorderCommand]
-    new StreamMonitorTestProbe(runningStream, streamActorsProbe)
+  def apply(ping: FiniteDuration)(implicit system: ActorSystem[_]): StreamMonitorTestProbe = {
+    val runningStream     = TestProbe[MetricObserverCommand]
+    val streamActorsProbe = TestProbe[MetricObserverCommand]
+    new StreamMonitorTestProbe(runningStream, streamActorsProbe, ping)
   }
 }

@@ -1,21 +1,21 @@
 package io.scalac.extension
 
 import akka.actor.PoisonPill
-import akka.actor.testkit.typed.scaladsl.{ScalaTestWithActorTestKit, TestProbe}
+import akka.actor.testkit.typed.scaladsl.{ ScalaTestWithActorTestKit, TestProbe }
 import akka.actor.typed.receptionist.ServiceKey
 import akka.actor.typed.scaladsl.Behaviors
 import akka.actor.typed.scaladsl.adapter._
-import akka.actor.typed.{ActorRef, Behavior}
-import akka.{actor => classic}
+import akka.actor.typed.{ ActorRef, Behavior }
+import akka.{ actor => classic }
 import io.scalac.core.akka.model.PushMetrics
-import io.scalac.core.model.Tag.{StageName, StreamName}
-import io.scalac.core.model.{ConnectionStats, StageInfo}
+import io.scalac.core.model.Tag.StreamName
+import io.scalac.core.model.{ ConnectionStats, StageInfo }
 import io.scalac.extension.AkkaStreamMonitoring.StartStreamCollection
 import io.scalac.extension.event.ActorInterpreterStats
 import io.scalac.extension.util.TestConfig.localActorProvider
-import io.scalac.extension.util.probe.BoundTestProbe.MetricRecorded
-import io.scalac.extension.util.probe.{StreamMonitorTestProbe, StreamOperatorMonitorTestProbe}
-import io.scalac.extension.util.{MonitorFixture, TerminationRegistryOps, TestOps}
+import io.scalac.extension.util.probe.BoundTestProbe.{ MetricObserved, MetricRecorded }
+import io.scalac.extension.util.probe.{ StreamMonitorTestProbe, StreamOperatorMonitorTestProbe }
+import io.scalac.extension.util.{ MonitorFixture, TerminationRegistryOps, TestOps }
 import org.scalatest._
 import org.scalatest.concurrent.Eventually
 import org.scalatest.flatspec.AnyFlatSpecLike
@@ -39,18 +39,19 @@ class AkkaStreamMonitoringTest
 
   override type Monitor = (StreamOperatorMonitorTestProbe, StreamMonitorTestProbe)
   override type Command = AkkaStreamMonitoring.Command
-  val OperationsPing = 1.seconds
+  val OperationsPing                                       = 1.seconds
+  val ReceiveWait                                          = OperationsPing * 3
   override protected val serviceKey: Option[ServiceKey[_]] = None
 
   def akkaStreamActorBehavior(
     stageInfo: Set[StageInfo],
     connectionStats: Set[ConnectionStats],
-    streamName: Option[StageName],
+    streamName: StreamName,
     monitor: Option[ActorRef[PushMetrics]]
   ): Behavior[PushMetrics] = Behaviors.receive {
     case (ctx, pm @ PushMetrics(ref)) =>
       monitor.foreach(_ ! pm)
-      ref ! ActorInterpreterStats(ctx.self.toClassic, StreamName("foo", "bar"), Set.empty)
+      ref ! ActorInterpreterStats(ctx.self.toClassic, streamName, Set.empty)
       Behaviors.same
   }
 
@@ -58,7 +59,7 @@ class AkkaStreamMonitoringTest
 
   override protected def createMonitor: Monitor = {
     val operations = StreamOperatorMonitorTestProbe(OperationsPing)
-    val global     = StreamMonitorTestProbe()
+    val global     = StreamMonitorTestProbe(OperationsPing)
     (operations, global)
   }
 
@@ -70,7 +71,7 @@ class AkkaStreamMonitoringTest
     case ((_, _), sut) =>
       val probes = List.fill(5)(TestProbe[PushMetrics]())
       val refs = probes
-        .map(probe => akkaStreamActorBehavior(Set.empty, Set.empty, None, Some(probe.ref)))
+        .map(probe => akkaStreamActorBehavior(Set.empty, Set.empty, StreamName(randomString(10), "1"), Some(probe.ref)))
         .map(behavior => system.systemActorOf(behavior, createUniqueId).toClassic)
 
       sut ! StartStreamCollection(refs.toSet)
@@ -85,13 +86,14 @@ class AkkaStreamMonitoringTest
       val ExpectedCount = 5
       val refs = generateUniqueString(ExpectedCount, 10).zipWithIndex.map {
         case (name, index) =>
-          val behavior = akkaStreamActorBehavior(Set.empty, Set.empty, None, None)
+          val streamName = StreamName(s"$name-$index", s"$index")
+          val behavior   = akkaStreamActorBehavior(Set.empty, Set.empty, streamName, None)
           system.systemActorOf(behavior, s"$name-$index-$index-${randomString(10)}").toClassic
       }
 
       sut ! StartStreamCollection(refs.toSet)
 
-      global.streamActorsProbe.receiveMessage(2.seconds) shouldBe (MetricRecorded(ExpectedCount))
+      global.streamActorsProbe.receiveMessage(ReceiveWait) shouldBe (MetricObserved(ExpectedCount))
 
       cleanActors(refs)
   }
@@ -102,16 +104,18 @@ class AkkaStreamMonitoringTest
       val ActorPerStream = 3
       val refs = generateUniqueString(ExpectedCount, 10).zipWithIndex.flatMap {
         case (name, index) =>
-          val behavior = akkaStreamActorBehavior(Set.empty, Set.empty, None, None)
+
           List.tabulate(ActorPerStream) { streamId =>
+            val streamName = StreamName(s"$name-$index", s"$streamId")
+            val behavior   = akkaStreamActorBehavior(Set.empty, Set.empty, streamName, None)
             system.systemActorOf(behavior, s"$name-$index-$streamId-${randomString(10)}").toClassic
           }
       }
 
       sut ! StartStreamCollection(refs.toSet)
 
-      global.runningStreamsProbe.receiveMessage(2.seconds) shouldBe (MetricRecorded(ExpectedCount))
-      global.streamActorsProbe.receiveMessage(2.seconds) shouldBe (MetricRecorded(ExpectedCount * ActorPerStream))
+      global.runningStreamsProbe.receiveMessage(2.seconds) shouldBe (MetricObserved(ExpectedCount))
+      global.streamActorsProbe.receiveMessage(2.seconds) shouldBe (MetricObserved(ExpectedCount * ActorPerStream))
 
       cleanActors(refs)
   }
@@ -121,7 +125,9 @@ class AkkaStreamMonitoringTest
       val ExpectedCount = 5
       val refs = generateUniqueString(ExpectedCount, 10).zipWithIndex.map {
         case (name, index) =>
-          val behavior = akkaStreamActorBehavior(Set.empty, Set.empty, None, None)
+          val streamName = StreamName(s"$name-$index", s"$index")
+
+          val behavior = akkaStreamActorBehavior(Set.empty, Set.empty, streamName, None)
 
           system.systemActorOf(behavior, s"$name-$index-$index-${randomString(10)}").toClassic
       }
