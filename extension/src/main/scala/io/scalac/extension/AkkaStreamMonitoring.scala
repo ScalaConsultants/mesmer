@@ -94,7 +94,6 @@ class AkkaStreamMonitoring(
     case StatsReceived(_) =>
       log.warn("Received stream running statistics after timeout")
       this
-
   }
 
   def updateRunningStreams(refs: Set[ActorRef]): Unit = {
@@ -175,12 +174,17 @@ class AkkaStreamMonitoring(
           log.debug("Another collection started but previous didn't finish")
           Behaviors.same
       }
-      .receiveSignal {
-        case (_, Terminated(ref)) =>
-          log.debug("Stream ref {} terminated", ref)
-          collecting(refs - ref.toClassic)
-
-      }
+      .receiveSignal(
+        signalHandler
+          .orElse[Signal, Behavior[Command]] {
+            case Terminated(ref) =>
+              log.debug("Stream ref {} terminated", ref)
+              collecting(refs - ref.toClassic)
+          }
+          .compose[(ActorContext[Command], Signal)] {
+            case (_, signal) => signal
+          }
+      )
 
   private def observeProcessed(result: LazyResult[Long, Labels], snapshot: Option[Seq[SnapshotEntry]]): Unit =
     snapshot.foreach(_.foreach {
@@ -200,7 +204,9 @@ class AkkaStreamMonitoring(
         }
     })
 
-  override def onSignal: PartialFunction[Signal, Behavior[Command]] = {
+  override def onSignal: PartialFunction[Signal, Behavior[Command]] = signalHandler
+
+  private def signalHandler: PartialFunction[Signal, Behavior[Command]] = {
     case PreRestart =>
       operationsBoundMonitor.unbind()
       this
