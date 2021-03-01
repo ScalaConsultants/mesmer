@@ -16,7 +16,7 @@
     </appender>
     <logger name="io.scalac.extension.event.ReceptionistBasedEventBus" level="OFF"/>
 
-    <root level="DEBUG">
+    <root level="INFO">
         <appender-ref ref="STDOUT"/>
     </root>
 
