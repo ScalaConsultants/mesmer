@@ -14,8 +14,8 @@ object GraphLogicOps {
      * Creates StageName tag that is unique across this stream materialization
      * @return
      */
-    def streamUniqueStageName: StageName =
-      StageName(logic.attributes.nameLifted.getOrElse("unknown"), logic.stageId)
+    def streamUniqueStageName: Option[StageName] =
+      logic.attributes.nameLifted.map(name => StageName(name, logic.stageId))
 
     def inputConnections: Int = logic.inCount
 

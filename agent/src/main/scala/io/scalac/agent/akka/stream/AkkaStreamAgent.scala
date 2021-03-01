@@ -68,8 +68,8 @@ object AkkaStreamAgent {
         .`type`(named[TypeDescription](target))
         .transform { (builder, _, _, _) =>
           builder
-            .defineField("pushCounter", classOf[Long]) // java specification guarantee starting from 0
-            .defineField("pullCounter", classOf[Long])
+            .defineField(ConnectionOps.PushCounterVarName, classOf[Long]) // java specification guarantee starting from 0
+            .defineField(ConnectionOps.PullCounterVarName, classOf[Long])
         }
         .installOn(instrumentation)
       LoadingResult(target)
