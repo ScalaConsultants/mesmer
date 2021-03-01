@@ -92,7 +92,7 @@ class AkkaStreamMonitoring(
 
   override def onMessage(msg: Command): Behavior[Command] = msg match {
     case StartStreamCollection(refs) if refs.nonEmpty =>
-      log.info("Start stream stats collection")
+      log.debug("Start stream stats collection")
       scheduler.startSingleTimer(CollectionTimeout, CollectionTimeout, timeout)
 
       refs.foreach { ref =>
@@ -101,7 +101,7 @@ class AkkaStreamMonitoring(
       }
       collecting(refs, Set.empty)
     case StartStreamCollection(_) =>
-      log.error(s"StartStreamCollection with empty refs")
+      log.warn(s"StartStreamCollection with empty refs")
       this
     case StatsReceived(_) =>
       log.warn("Received stream running statistics after timeout")
