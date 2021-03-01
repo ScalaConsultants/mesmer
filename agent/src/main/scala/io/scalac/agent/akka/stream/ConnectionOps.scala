@@ -34,11 +34,7 @@ object ConnectionOps extends Lookup {
    * @param connection
    * @return respectively push and pull counter values
    */
-  def getAndResetCounterValues(connection: AnyRef): (Long, Long) = {
-    val values =
-      (pushHandleGetter.invoke(connection).asInstanceOf[Long], pullHandleGetter.invoke(connection).asInstanceOf[Long])
-
-    values
-  }
+  def getAndResetCounterValues(connection: AnyRef): (Long, Long) =
+    (pushHandleGetter.invoke(connection).asInstanceOf[Long], pullHandleGetter.invoke(connection).asInstanceOf[Long])
 
 }

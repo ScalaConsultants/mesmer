@@ -190,7 +190,7 @@ class AkkaStreamMonitoring(
           this
         // TODO handle this case better
         case StartStreamCollection(_) =>
-          log.debug("Another collection started but previous didn't finish")
+          log.warn("Another collection started but previous didn't finish")
           Behaviors.same
       }
       .receiveSignal(

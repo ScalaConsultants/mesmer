@@ -64,7 +64,7 @@ final class ActorEventsMonitorActor(
       setTimeout() // loop
       this
     case AddTag(ref, tag) =>
-      ctx.log.info(s"Add tags {} for actor {}", tag, ref)
+      ctx.log.debug(s"Add tags {} for actor {}", tag, ref)
       refs ::= ref
       actorTags
         .getOrElseUpdate(storage.actorToKey(ref), mutable.Set.empty)
