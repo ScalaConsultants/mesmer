@@ -128,7 +128,8 @@ class AkkaStreamMonitoring(
             val data = StageData(push, In, upstream.name)
             SnapshotEntry(info, Some(data))
         }
-      case (info, _) => Seq(SnapshotEntry(info, None)) // takes into account sources
+      case (info, _) =>
+        Seq(SnapshotEntry(info, None)) // takes into account sources
     }.toSeq))
 
   private def findWithIndex(stage: StageInfo, connections: Array[ConnectionStats]): (Set[ConnectionStats], Set[Int]) = {
@@ -167,6 +168,9 @@ class AkkaStreamMonitoring(
                 indexCache.put(stage, indexes)
                 wiredConnections
               }(indexes => indexes.map(connections.apply))
+
+            if (stage.terminal)
+              log.info("Stage {} is terminal with {} connections", stage, stageConnections.size)
             stage -> stageConnections
           }).toMap
 
@@ -177,6 +181,7 @@ class AkkaStreamMonitoring(
             scheduler.cancel(CollectionTimeout)
             captureGlobalStats(names + streamName)
             captureState()
+            connectionGraph.clear()
             this
           } else {
             collecting(refsLeft, names + streamName)
@@ -187,6 +192,7 @@ class AkkaStreamMonitoring(
           refs.foreach(ref => unwatch(ref))
           captureGlobalStats(names)
           captureState() // we record data gathered so far nevertheless
+          connectionGraph.clear()
           this
         // TODO handle this case better
         case StartStreamCollection(_) =>
@@ -209,7 +215,13 @@ class AkkaStreamMonitoring(
     snapshot.foreach(_.foreach {
       case SnapshotEntry(stageInfo, Some(StageData(value, direction, connectedWith))) =>
         val labels =
-          Labels(stageInfo.stageName, stageInfo.subStreamName.streamName, node, Some(connectedWith -> direction))
+          Labels(
+            stageInfo.stageName,
+            stageInfo.subStreamName.streamName,
+            stageInfo.terminal,
+            node,
+            Some(connectedWith -> direction)
+          )
         result.observe(value, labels)
       case _ => // ignore sources as those will be covered by demand metrics
     })
@@ -219,7 +231,7 @@ class AkkaStreamMonitoring(
       case (streamName, snapshots) =>
         snapshots.groupBy(_.stage.stageName.nameOnly).foreach {
           case (stageName, elems) =>
-            val labels = Labels(stageName, streamName, node, None)
+            val labels = Labels(stageName, streamName, false, node, None)
             result.observe(elems.size, labels)
         }
     })

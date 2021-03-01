@@ -29,6 +29,7 @@ object AkkaStreamExtensions extends Lookup {
         val currentShells = shells
           .invoke(thiz)
           .asInstanceOf[Set[GraphInterpreterShellMirror]]
+        var terminalFound = false
 
         val stats = currentShells.map { shell =>
           val connections = shell.connections.flatMap { connection =>
@@ -40,8 +41,20 @@ object AkkaStreamExtensions extends Lookup {
             } yield ConnectionStats(in, out, push, pull)
           }
 
-          val stageInfo = shell.logics.flatMap(_.streamUniqueStageName.map(StageInfo(_, subStreamName)))
+          val stageInfo = shell.logics.flatMap { logic =>
+            val isTerminal =
+              if (terminalFound) false
+              else {
+                val terminal = logic.isTerminal
+                if (terminal) {
+                  terminalFound = true
+                }
+                terminal
+              }
+            logic.streamUniqueStageName.map(StageInfo(_, subStreamName, isTerminal))
+          }
           stageInfo -> connections
+
         }
 
         val self = thiz.context.self

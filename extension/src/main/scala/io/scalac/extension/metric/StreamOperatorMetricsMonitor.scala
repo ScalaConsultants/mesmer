@@ -9,13 +9,16 @@ object StreamOperatorMetricsMonitor {
   case class Labels(
     operator: StageName,
     stream: StreamName,
+    terminal: Boolean,
     node: Option[Node],
     connectedWith: Option[(String, Direction)]
   ) {
     def toOpenTelemetry: OpenTelemetryLabels = {
+      val terminalLabels = if (terminal) Seq("terminal", "true") else Seq.empty
+
       val required: Seq[String] = (operator.serialize ++ stream.serialize).flatMap {
         case (name, value) => Seq(name, value)
-      }
+      } ++ terminalLabels
       val connected = connectedWith.fold[Seq[String]](Seq.empty) {
         case (name, direction) =>
           val (directionHeader, directionValue) = direction.serialize
