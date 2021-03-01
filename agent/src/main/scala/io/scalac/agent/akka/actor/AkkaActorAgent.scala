@@ -89,9 +89,7 @@ object AkkaActorAgent {
     ) { (agentBuilder, instrumentation, _) =>
       agentBuilder
         .`type`(named[TypeDescription](targetClassName))
-        .transform { (builder, _, _, _) =>
-          builder.defineField(EnvelopeOps.TimestampVarName, classOf[Timestamp], Visibility.PUBLIC)
-        }
+        .transform((builder, _, _, _) => builder.defineField(EnvelopeOps.TimestampVarName, classOf[Timestamp]))
         .installOn(instrumentation)
       LoadingResult(targetClassName)
     }
@@ -154,8 +152,7 @@ object AkkaActorAgent {
           builder
             .defineField(
               MailboxTimeHolder.MailboxTimesVar,
-              classOf[MailboxTime],
-              Visibility.PUBLIC
+              classOf[MailboxTime]
             )
         }
         .installOn(instrumentation)
