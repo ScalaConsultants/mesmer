@@ -14,9 +14,7 @@ object StashInstrumentation {
   @inline private[actor] def publish(size: Int, ref: classic.ActorRef, context: classic.ActorContext): Unit =
     EventBus(context.system.toTyped).publishEvent(StashMeasurement(size, ActorPathOps.getPathString(ref)))
 
-  @inline private[actor] def publish(size: Int, ref: ActorRef[_], context: ActorContext[_]): Unit = {
-    val pubRef = EventBus(context.system).refFor[StashMeasurement]
-    if (pubRef != ref) pubRef ! StashMeasurement(size, ActorPathOps.getPathString(ref))
-  }
+  @inline private[actor] def publish(size: Int, ref: ActorRef[_], context: ActorContext[_]): Unit =
+    EventBus(context.system).publishEvent(StashMeasurement(size, ActorPathOps.getPathString(ref)))
 
 }

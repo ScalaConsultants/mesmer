@@ -15,7 +15,6 @@ import scala.language.postfixOps
 
 trait EventBus extends Extension {
   def publishEvent[T <: AbstractEvent](event: T)(implicit service: Service[event.Service]): Unit
-  def refFor[T <: AbstractEvent](implicit service: Service[T#Service]): ActorRef[T#Service]
 }
 
 object EventBus extends ExtensionId[EventBus] {
@@ -79,8 +78,6 @@ private[event] class ReceptionistBasedEventBus(
   private[this] val serviceBuffers = MutableTypedMap[AbstractService, ServiceMapFunc]
 
   def publishEvent[T <: AbstractEvent](event: T)(implicit service: Service[event.Service]): Unit = ref ! event
-
-  def refFor[T <: AbstractEvent](implicit service: Service[T#Service]): ActorRef[T#Service] = ref
 
   @inline private def ref[S](implicit service: Service[S]): ActorRef[S] =
     serviceBuffers.getOrCreate(service) {

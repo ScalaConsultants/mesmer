@@ -5,7 +5,6 @@ import akka.actor.typed.Behavior
 import net.bytebuddy.asm.Advice
 import net.bytebuddy.description.`type`.TypeDescription
 import net.bytebuddy.description.method.MethodDescription
-import net.bytebuddy.description.modifier.Visibility
 import net.bytebuddy.matcher.ElementMatchers._
 
 import io.scalac.agent.Agent.LoadingResult
@@ -65,14 +64,15 @@ object AkkaActorAgent {
             .visit(
               Advice
                 .to(classOf[TypedStashInstrumentation])
+                .on(named[MethodDescription]("stash"))
+            )
+            .visit(
+              Advice
+                .to(classOf[TypedUnstashInstrumentation])
                 .on(
-                  named[MethodDescription]("stash")
-                    .or(named[MethodDescription]("clear"))
-                    .or(
-                      named[MethodDescription]("unstash")
-                      // since there're two `unstash` methods, we need to specify parameter types
-                        .and(takesArguments(classOf[Behavior[_]], classOf[Int], classOf[Function1[_, _]]))
-                    )
+                  named[MethodDescription]("unstash")
+                  // since there're two `unstash` methods, we need to specify parameter types
+                    .and(takesArguments(classOf[Behavior[_]], classOf[Int], classOf[Function1[_, _]]))
                 )
             )
         }
