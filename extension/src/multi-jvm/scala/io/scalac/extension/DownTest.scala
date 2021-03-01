@@ -23,9 +23,9 @@ class DownTestMultiJvmNode3 extends DownTest
 class DownTest extends MultiNodeSpec(ThreeNodesConfig) with ScalaTestMultiNodeSpec with Inspectors {
   override def initialParticipants: Int = 3
 
-  val monitor = ClusterMetricsTestProbe(2.seconds)
-
   implicit val typedSystem: ActorSystem[Nothing] = system.toTyped
+
+  val monitor = ClusterMetricsTestProbe(5.seconds)
 
   "Node down" should {
     "Wait for all nodes to join the cluster" in {

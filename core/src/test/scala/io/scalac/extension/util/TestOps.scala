@@ -10,6 +10,14 @@ trait TestOps {
 
   def createUniqueId: String = UUID.randomUUID().toString
 
+  def sameOrParent(parent: ActorRef[_]): Matcher[ActorRef[_]] = ref => {
+    MatchResult(
+      testSameOrParent(ref, parent),
+      s"${parent} is not same or parent of ${ref}",
+      s"${parent} is same as or parent of ${ref}"
+    )
+  }
+
   def randomString(length: Int): String = {
     val array: Array[Byte] = Array.fill(length)((Random.nextInt(26) + 97).toByte)
     new String(array)
@@ -28,10 +36,7 @@ trait TestOps {
       .take(amount)
       .toSeq
 
-  def sameOrParent(ref: ActorRef[_]): Matcher[ActorRef[_]] = left => {
-    val test = ref.path == left.path || left.path.parent == ref.path
-
-    MatchResult(test, s"${ref} is not same or parent of ${left}", s"${ref} is same as or parent of ${left}")
-  }
+  protected def testSameOrParent(ref: ActorRef[_], parent: ActorRef[_]): Boolean =
+    parent.path == ref.path || ref.path.parent == parent.path
 
 }
