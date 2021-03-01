@@ -15,7 +15,7 @@ object MailboxDequeueInstrumentation {
     Option(envelope).map(computeTime).foreach(add(mailbox))
 
   @inline def computeTime(envelope: Object): FiniteDuration =
-    new FiniteDuration(Timestamp.create().interval(EnvelopeOps.getTimestamp(envelope)), MILLISECONDS)
+    FiniteDuration(Timestamp.create().interval(EnvelopeOps.getTimestamp(envelope)), MILLISECONDS)
 
   @inline def add(mailbox: Object)(time: FiniteDuration): Unit =
     MailboxTimeHolder.setTime(MailboxOps.getActor(mailbox), time)
