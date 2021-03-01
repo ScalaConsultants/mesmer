@@ -10,9 +10,6 @@ object GraphLogicOps {
     def inConnections(): Array[Connection] =
       logic.portToConn.take(logic.inCount)
 
-    def stageName: StageName =
-      StageName(logic.attributes.nameOrDefault("unknown"))
-
     /**
      * Creates StageName tag that is unique across this stream materialization
      * @return

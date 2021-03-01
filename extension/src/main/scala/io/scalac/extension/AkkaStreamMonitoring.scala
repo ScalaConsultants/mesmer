@@ -5,7 +5,7 @@ import akka.actor.typed._
 import akka.actor.typed.scaladsl.adapter._
 import akka.actor.typed.scaladsl.{ AbstractBehavior, ActorContext, Behaviors, TimerScheduler }
 import io.scalac.core.akka.model.PushMetrics
-import io.scalac.core.model.Tag.StreamName
+import io.scalac.core.model.Tag.SubStreamName
 import io.scalac.core.model._
 import io.scalac.extension.AkkaStreamMonitoring._
 import io.scalac.extension.event.ActorInterpreterStats
@@ -108,9 +108,9 @@ class AkkaStreamMonitoring(
       this
   }
 
-  def captureGlobalStats(names: Set[StreamName]): Unit = {
+  def captureGlobalStats(names: Set[SubStreamName]): Unit = {
     val actors  = names.size
-    val streams = names.map(_.name).size
+    val streams = names.map(_.streamName).size
     runningActors.set(Some(actors))
     runningStreams.set(Some(streams))
   }
@@ -145,7 +145,7 @@ class AkkaStreamMonitoring(
     findInArray(0)
   }
 
-  def collecting(refs: Set[ActorRef], names: Set[StreamName]): Behavior[Command] =
+  def collecting(refs: Set[ActorRef], names: Set[SubStreamName]): Behavior[Command] =
     Behaviors
       .receiveMessage[Command] {
         case StatsReceived(ActorInterpreterStats(ref, streamName, shellInfo)) =>
@@ -206,17 +206,17 @@ class AkkaStreamMonitoring(
     snapshot.foreach(_.foreach {
       case SnapshotEntry(stageInfo, Some(StageData(value, direction, connectedWith))) =>
         val labels =
-          Labels(stageInfo.stageName, node, Some(stageInfo.streamName.name), Some(connectedWith -> direction))
+          Labels(stageInfo.stageName, stageInfo.subStreamName.streamName, node, Some(connectedWith -> direction))
         result.observe(value, labels)
       case _ => // ignore sources as those will be covered by demand metrics
     })
 
   private def observeOperators(result: LazyResult[Long, Labels], snapshot: Option[Seq[SnapshotEntry]]): Unit =
-    snapshot.foreach(_.groupBy(_.stage.streamName.name).foreach {
+    snapshot.foreach(_.groupBy(_.stage.subStreamName.streamName).foreach {
       case (streamName, snapshots) =>
         snapshots.groupBy(_.stage.stageName.nameOnly).foreach {
           case (stageName, elems) =>
-            val labels = Labels(stageName, node, Some(streamName), None)
+            val labels = Labels(stageName, streamName, node, None)
             result.observe(elems.size, labels)
         }
     })

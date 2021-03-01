@@ -8,7 +8,7 @@ import akka.actor.typed.scaladsl.adapter._
 import akka.actor.typed.{ ActorRef, Behavior }
 import akka.{ actor => classic }
 import io.scalac.core.akka.model.PushMetrics
-import io.scalac.core.model.Tag.{ StageName, StreamName }
+import io.scalac.core.model.Tag.{ StageName, SubStreamName }
 import io.scalac.core.model._
 import io.scalac.extension.AkkaStreamMonitoring.StartStreamCollection
 import io.scalac.extension.event.ActorInterpreterStats
@@ -49,10 +49,10 @@ class AkkaStreamMonitoringTest
 
   override protected val serviceKey: Option[ServiceKey[_]] = None
 
-  def singleActorLinearShellInfo(streamName: StreamName, flowCount: Int, push: Long, pull: Long): ShellInfo = {
-    val source = StageInfo(StageName(SourceName, 0), streamName)
-    val sink   = StageInfo(StageName(SinkName, flowCount + 1), streamName)
-    val flows  = List.tabulate(flowCount)(id => StageInfo(StageName(FlowName, id + 1), streamName))
+  def singleActorLinearShellInfo(subStreamName: SubStreamName, flowCount: Int, push: Long, pull: Long): ShellInfo = {
+    val source = StageInfo(StageName(SourceName, 0), subStreamName)
+    val sink   = StageInfo(StageName(SinkName, flowCount + 1), subStreamName)
+    val flows  = List.tabulate(flowCount)(id => StageInfo(StageName(FlowName, id + 1), subStreamName))
 
     val connections = (flows.tail :+ sink)
       .scanLeft(ConnectionStats(flows.head.stageName, source.stageName, pull, push)) {
@@ -65,12 +65,12 @@ class AkkaStreamMonitoringTest
 
   def akkaStreamActorBehavior(
     shellInfo: Set[ShellInfo],
-    streamName: StreamName,
+    subStream: SubStreamName,
     monitor: Option[ActorRef[PushMetrics]]
   ): Behavior[PushMetrics] = Behaviors.receive {
     case (ctx, pm @ PushMetrics(ref)) =>
       monitor.foreach(_ ! pm)
-      ref ! ActorInterpreterStats(ctx.self.toClassic, streamName, shellInfo)
+      ref ! ActorInterpreterStats(ctx.self.toClassic, subStream, shellInfo)
       Behaviors.same
   }
 
@@ -90,7 +90,7 @@ class AkkaStreamMonitoringTest
     case ((_, _), sut) =>
       val probes = List.fill(5)(TestProbe[PushMetrics]())
       val refs = probes
-        .map(probe => akkaStreamActorBehavior(Set.empty, StreamName(randomString(10), "1"), Some(probe.ref)))
+        .map(probe => akkaStreamActorBehavior(Set.empty, SubStreamName(randomString(10), "1"), Some(probe.ref)))
         .map(behavior => system.systemActorOf(behavior, createUniqueId).toClassic)
 
       sut ! StartStreamCollection(refs.toSet)
@@ -105,7 +105,7 @@ class AkkaStreamMonitoringTest
       val ExpectedCount = 5
       val refs = generateUniqueString(ExpectedCount, 10).zipWithIndex.map {
         case (name, index) =>
-          val streamName = StreamName(s"$name-$index", s"$index")
+          val streamName = SubStreamName(s"$name-$index", s"$index")
           val behavior   = akkaStreamActorBehavior(Set.empty, streamName, None)
           system.systemActorOf(behavior, s"$name-$index-$index-${randomString(10)}").toClassic
       }
@@ -124,7 +124,7 @@ class AkkaStreamMonitoringTest
       val refs = generateUniqueString(ExpectedCount, 10).zipWithIndex.flatMap {
         case (name, index) =>
           List.tabulate(ActorPerStream) { streamId =>
-            val streamName = StreamName(s"$name-$index", s"$streamId")
+            val streamName = SubStreamName(s"$name-$index", s"$streamId")
             val behavior   = akkaStreamActorBehavior(Set.empty, streamName, None)
             system.systemActorOf(behavior, s"$name-$index-$streamId-${randomString(10)}").toClassic
           }
@@ -147,7 +147,7 @@ class AkkaStreamMonitoringTest
 
       val refs = generateUniqueString(ExpectedCount, 10).zipWithIndex.map {
         case (name, index) =>
-          val streamName = StreamName(s"$name-$index", "0")
+          val streamName = SubStreamName(s"$name-$index", "0")
 
           val linearShellInfo = singleActorLinearShellInfo(streamName, Flows, Push, Pull)
 

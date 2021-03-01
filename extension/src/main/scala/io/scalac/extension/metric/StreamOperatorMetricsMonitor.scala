@@ -8,12 +8,12 @@ object StreamOperatorMetricsMonitor {
 
   case class Labels(
     operator: StageName,
+    stream: StreamName,
     node: Option[Node],
-    stream: Option[String],
     connectedWith: Option[(String, Direction)]
   ) {
     def toOpenTelemetry: OpenTelemetryLabels = {
-      val required: Seq[String] = operator.serialize.flatMap {
+      val required: Seq[String] = (operator.serialize ++ stream.serialize).flatMap {
         case (name, value) => Seq(name, value)
       }
       val connected = connectedWith.fold[Seq[String]](Seq.empty) {
@@ -23,9 +23,7 @@ object StreamOperatorMetricsMonitor {
       }
 
       val optional: Seq[String] =
-        node.map(n => Seq("node", n)).getOrElse(Seq.empty) ++ stream
-          .map(n => Seq("stream", n))
-          .getOrElse(Seq.empty) ++ connected
+        node.map(n => Seq("node", n)).getOrElse(Seq.empty) ++ connected
       OpenTelemetryLabels.of(optional ++ required: _*)
     }
   }
@@ -36,5 +34,3 @@ object StreamOperatorMetricsMonitor {
     def operators: LazyMetricObserver[Long, StreamOperatorMetricsMonitor.Labels]
   }
 }
-
-

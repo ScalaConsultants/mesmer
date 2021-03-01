@@ -1,7 +1,7 @@
 package io.scalac.extension.event
 
 import akka.actor.ActorRef
-import io.scalac.core.model.Tag.StreamName
+import io.scalac.core.model.Tag.SubStreamName
 import io.scalac.core.model._
 import io.scalac.core.util.Timestamp
 
@@ -43,7 +43,7 @@ final case class TagEvent(ref: ActorRef, tag: Tag) extends AbstractEvent {
 
 final case class ActorInterpreterStats(
   ref: ActorRef,
-  streamName: StreamName,
+  streamName: SubStreamName,
   shellInfo: Set[ShellInfo]
 ) extends AbstractEvent {
   override type Service = ActorInterpreterStats

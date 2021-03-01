@@ -14,14 +14,14 @@ object stream {
    * @param ref
    * @return
    */
-  def streamNameFromActorRef(ref: ActorRef): StreamName = {
+  def subStreamNameFromActorRef(ref: ActorRef): SubStreamName = {
     @tailrec
     def findName(segments: List[String], offset: Int, actorName: String): List[String] =
       if (segments.size >= 3) {
         segments
       } else {
-        var id      = actorName.indexOf('-', offset)
-        if(id < 0) {
+        var id = actorName.indexOf('-', offset)
+        if (id < 0) {
           id = actorName.length
         }
         val segment = actorName.substring(offset, id)
@@ -29,6 +29,6 @@ object stream {
       }
 
     val islandId :: matId :: matName :: Nil = findName(Nil, 0, ref.path.name)
-    StreamName(s"$matName-$matId", islandId)
+    SubStreamName(s"$matName-$matId", islandId)
   }
 }
