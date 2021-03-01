@@ -3,22 +3,22 @@ package io.scalac.extension.util.probe
 import akka.actor.testkit.typed.scaladsl.TestProbe
 import akka.actor.typed.ActorSystem
 import io.scalac.extension.metric.StreamMetricMonitor.BoundMonitor
-import io.scalac.extension.metric.{ MetricObserver, StreamMetricMonitor, StreamOperatorMetricsMonitor }
-import io.scalac.extension.util.probe.BoundTestProbe.{ LazyMetricsObserved, MetricObserverCommand }
+import io.scalac.extension.metric.{MetricObserver, StreamMetricMonitor, StreamOperatorMetricsMonitor}
+import io.scalac.extension.util.probe.BoundTestProbe.{LazyMetricsObserved, MetricObserverCommand}
 
 import scala.concurrent.duration.FiniteDuration
 
 class StreamOperatorMonitorTestProbe(
-  val processedTestProbe: TestProbe[LazyMetricsObserved[StreamOperatorMetricsMonitor.Labels]],
-  val runningOperators: TestProbe[LazyMetricsObserved[StreamOperatorMetricsMonitor.Labels]],
-  ping: FiniteDuration
+                                      val processedTestProbe: TestProbe[LazyMetricsObserved[StreamOperatorMetricsMonitor.Labels]],
+                                      val runningOperatorsTestProbe: TestProbe[LazyMetricsObserved[StreamOperatorMetricsMonitor.Labels]],
+                                      ping: FiniteDuration
 )(implicit val system: ActorSystem[_])
     extends StreamOperatorMetricsMonitor {
 
   override def bind(): StreamOperatorMetricsMonitor.BoundMonitor = new StreamOperatorMetricsMonitor.BoundMonitor {
     override def processedMessages = LazyObserverTestProbeWrapper(processedTestProbe, ping)
 
-    override def operators = LazyObserverTestProbeWrapper(runningOperators, ping)
+    override def operators = LazyObserverTestProbeWrapper(runningOperatorsTestProbe, ping)
 
     override def unbind(): Unit = ()
   }

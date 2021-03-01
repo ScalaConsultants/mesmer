@@ -8,16 +8,17 @@ import akka.actor.typed.scaladsl.adapter._
 import akka.actor.typed.{ ActorRef, Behavior }
 import akka.{ actor => classic }
 import io.scalac.core.akka.model.PushMetrics
-import io.scalac.core.model.Tag.StreamName
-import io.scalac.core.model.{ ConnectionStats, StageInfo }
+import io.scalac.core.model.Tag.{ StageName, StreamName }
+import io.scalac.core.model._
 import io.scalac.extension.AkkaStreamMonitoring.StartStreamCollection
 import io.scalac.extension.event.ActorInterpreterStats
 import io.scalac.extension.util.TestConfig.localActorProvider
-import io.scalac.extension.util.probe.BoundTestProbe.{ MetricObserved, MetricRecorded }
+import io.scalac.extension.util.probe.BoundTestProbe.{ LazyMetricsObserved, MetricObserved }
 import io.scalac.extension.util.probe.{ StreamMonitorTestProbe, StreamOperatorMonitorTestProbe }
 import io.scalac.extension.util.{ MonitorFixture, TerminationRegistryOps, TestOps }
 import org.scalatest._
 import org.scalatest.concurrent.Eventually
+import org.scalatest.enablers.Emptiness.emptinessOfOption
 import org.scalatest.flatspec.AnyFlatSpecLike
 import org.scalatest.matchers.should.Matchers
 
@@ -39,19 +40,37 @@ class AkkaStreamMonitoringTest
 
   override type Monitor = (StreamOperatorMonitorTestProbe, StreamMonitorTestProbe)
   override type Command = AkkaStreamMonitoring.Command
-  val OperationsPing                                       = 1.seconds
-  val ReceiveWait                                          = OperationsPing * 3
+  val OperationsPing = 1.seconds
+  val ReceiveWait    = OperationsPing * 3
+  val SourceName     = "sourceSingle"
+  val SinkName       = "sinkIgnore"
+  val FlowName       = "map"
+  val StagesNames    = Seq(SourceName, SinkName, FlowName)
+
   override protected val serviceKey: Option[ServiceKey[_]] = None
 
+  def singleActorLinearShellInfo(streamName: StreamName, flowCount: Int, push: Long, pull: Long): ShellInfo = {
+    val source = StageInfo(StageName(SourceName, 0), streamName)
+    val sink   = StageInfo(StageName(SinkName, flowCount + 1), streamName)
+    val flows  = List.tabulate(flowCount)(id => StageInfo(StageName(FlowName, id + 1), streamName))
+
+    val connections = (flows.tail :+ sink)
+      .scanLeft(ConnectionStats(flows.head.stageName, source.stageName, pull, push)) {
+        case (ConnectionStats(in, _, _, _), next) => ConnectionStats(next.stageName, in, pull, push)
+      }
+
+    (source +: flows :+ sink).toArray -> connections.toArray
+
+  }
+
   def akkaStreamActorBehavior(
-    stageInfo: Set[StageInfo],
-    connectionStats: Set[ConnectionStats],
+    shellInfo: Set[ShellInfo],
     streamName: StreamName,
     monitor: Option[ActorRef[PushMetrics]]
   ): Behavior[PushMetrics] = Behaviors.receive {
     case (ctx, pm @ PushMetrics(ref)) =>
       monitor.foreach(_ ! pm)
-      ref ! ActorInterpreterStats(ctx.self.toClassic, streamName, Set.empty)
+      ref ! ActorInterpreterStats(ctx.self.toClassic, streamName, shellInfo)
       Behaviors.same
   }
 
@@ -71,7 +90,7 @@ class AkkaStreamMonitoringTest
     case ((_, _), sut) =>
       val probes = List.fill(5)(TestProbe[PushMetrics]())
       val refs = probes
-        .map(probe => akkaStreamActorBehavior(Set.empty, Set.empty, StreamName(randomString(10), "1"), Some(probe.ref)))
+        .map(probe => akkaStreamActorBehavior(Set.empty, StreamName(randomString(10), "1"), Some(probe.ref)))
         .map(behavior => system.systemActorOf(behavior, createUniqueId).toClassic)
 
       sut ! StartStreamCollection(refs.toSet)
@@ -87,7 +106,7 @@ class AkkaStreamMonitoringTest
       val refs = generateUniqueString(ExpectedCount, 10).zipWithIndex.map {
         case (name, index) =>
           val streamName = StreamName(s"$name-$index", s"$index")
-          val behavior   = akkaStreamActorBehavior(Set.empty, Set.empty, streamName, None)
+          val behavior   = akkaStreamActorBehavior(Set.empty, streamName, None)
           system.systemActorOf(behavior, s"$name-$index-$index-${randomString(10)}").toClassic
       }
 
@@ -104,10 +123,9 @@ class AkkaStreamMonitoringTest
       val ActorPerStream = 3
       val refs = generateUniqueString(ExpectedCount, 10).zipWithIndex.flatMap {
         case (name, index) =>
-
           List.tabulate(ActorPerStream) { streamId =>
             val streamName = StreamName(s"$name-$index", s"$streamId")
-            val behavior   = akkaStreamActorBehavior(Set.empty, Set.empty, streamName, None)
+            val behavior   = akkaStreamActorBehavior(Set.empty, streamName, None)
             system.systemActorOf(behavior, s"$name-$index-$streamId-${randomString(10)}").toClassic
           }
       }
@@ -120,18 +138,37 @@ class AkkaStreamMonitoringTest
       cleanActors(refs)
   }
 
-  it should "collect amount of messages processed" in testWithRef {
+  it should "collect amount of messages processed and operators" in testWithRef {
     case ((operations, _), sut) =>
       val ExpectedCount = 5
+      val Flows         = 2
+      val Push          = 11L
+      val Pull          = 9L
+
       val refs = generateUniqueString(ExpectedCount, 10).zipWithIndex.map {
         case (name, index) =>
-          val streamName = StreamName(s"$name-$index", s"$index")
+          val streamName = StreamName(s"$name-$index", "0")
 
-          val behavior = akkaStreamActorBehavior(Set.empty, Set.empty, streamName, None)
+          val linearShellInfo = singleActorLinearShellInfo(streamName, Flows, Push, Pull)
+
+          val behavior = akkaStreamActorBehavior(Set(linearShellInfo), streamName, None)
 
           system.systemActorOf(behavior, s"$name-$index-$index-${randomString(10)}").toClassic
       }
+
       sut ! StartStreamCollection(refs.toSet)
+
+      val operators =
+        operations.runningOperatorsTestProbe.receiveMessages(ExpectedCount * StagesNames.size, OperationsPing)
+      val processed = operations.processedTestProbe.receiveMessages(ExpectedCount * (Flows + 1), OperationsPing)
+
+      forAll(processed)(inside(_) {
+        case LazyMetricsObserved(value, labels) =>
+          value shouldBe Push
+          labels.node shouldBe empty
+      })
+
+      operators.map(_.labels.operator.name).distinct should contain theSameElementsAs StagesNames
 
       cleanActors(refs)
   }

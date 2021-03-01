@@ -42,7 +42,8 @@ object AkkaStreamMonitoring {
       )
     )
 
-  private case class SnapshotEntry(stage: StageInfo, value: Long, direction: Direction, connectedWith: String)
+  private final case class StageData(value: Long, direction: Direction, connectedWith: String)
+  private final case class SnapshotEntry(stage: StageInfo, data: Option[StageData])
 }
 
 class AkkaStreamMonitoring(
@@ -117,12 +118,14 @@ class AkkaStreamMonitoring(
   // TODO optimize this!
   def captureState(): Unit =
     this.snapshot.set(Some(connectionGraph.flatMap {
-      case (info, in) =>
+      case (info, in) if in.nonEmpty =>
         in.groupBy(_.outName).map {
           case (upstream, connections) =>
             val push = connections.foldLeft(0L)(_ + _.push)
-            SnapshotEntry(info, push, In, upstream.name)
+            val data = StageData(push, In, upstream.name)
+            SnapshotEntry(info, Some(data))
         }
+      case (info, _) => Seq(SnapshotEntry(info, None)) // takes into account sources
     }.toSeq))
 
   private def findWithIndex(stage: StageInfo, connections: Array[ConnectionStats]): (Set[ConnectionStats], Set[Int]) = {
@@ -201,18 +204,19 @@ class AkkaStreamMonitoring(
 
   private def observeProcessed(result: LazyResult[Long, Labels], snapshot: Option[Seq[SnapshotEntry]]): Unit =
     snapshot.foreach(_.foreach {
-      case SnapshotEntry(stageInfo, value, direction, connectedWith) =>
+      case SnapshotEntry(stageInfo, Some(StageData(value, direction, connectedWith))) =>
         val labels =
           Labels(stageInfo.stageName, node, Some(stageInfo.streamName.name), Some(connectedWith -> direction))
         result.observe(value, labels)
+      case _ => // ignore sources as those will be covered by demand metrics
     })
 
   private def observeOperators(result: LazyResult[Long, Labels], snapshot: Option[Seq[SnapshotEntry]]): Unit =
-    snapshot.foreach(_.groupBy(_.stage.streamName).foreach {
+    snapshot.foreach(_.groupBy(_.stage.streamName.name).foreach {
       case (streamName, snapshots) =>
-        snapshots.groupBy(_.stage.stageName).foreach {
+        snapshots.groupBy(_.stage.stageName.nameOnly).foreach {
           case (stageName, elems) =>
-            val labels = Labels(stageName, node, Some(streamName.name), None)
+            val labels = Labels(stageName, node, Some(streamName), None)
             result.observe(elems.size, labels)
         }
     })
