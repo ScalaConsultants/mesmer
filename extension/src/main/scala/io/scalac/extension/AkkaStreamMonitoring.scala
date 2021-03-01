@@ -8,6 +8,7 @@ import io.scalac.core.akka.model.PushMetrics
 import io.scalac.core.model.Tag.SubStreamName
 import io.scalac.core.model._
 import io.scalac.extension.AkkaStreamMonitoring._
+import io.scalac.extension.config.ConfigurationUtils._
 import io.scalac.extension.event.ActorInterpreterStats
 import io.scalac.extension.metric.MetricObserver.LazyResult
 import io.scalac.extension.metric.StreamMetricMonitor.{ Labels => GlobalLabels }
@@ -20,6 +21,7 @@ import java.util.concurrent.atomic.AtomicReference
 import scala.annotation.tailrec
 import scala.collection.mutable
 import scala.concurrent.duration.{ FiniteDuration, _ }
+import scala.jdk.DurationConverters._
 
 object AkkaStreamMonitoring {
 
@@ -51,9 +53,10 @@ class AkkaStreamMonitoring(
   streamOperatorMonitor: StreamOperatorMetricsMonitor,
   streamMonitor: StreamMetricMonitor,
   scheduler: TimerScheduler[Command],
-  node: Option[Node],
-  timeout: FiniteDuration = 2.seconds
+  node: Option[Node]
 ) extends AbstractBehavior[Command](ctx) {
+
+  private val Timeout: FiniteDuration = streamCollectionTimeout
 
   val indexCache: mutable.Map[StageInfo, Set[Int]] = mutable.Map.empty
   private val operationsBoundMonitor               = streamOperatorMonitor.bind()
@@ -93,7 +96,7 @@ class AkkaStreamMonitoring(
   override def onMessage(msg: Command): Behavior[Command] = msg match {
     case StartStreamCollection(refs) if refs.nonEmpty =>
       log.debug("Start stream stats collection")
-      scheduler.startSingleTimer(CollectionTimeout, CollectionTimeout, timeout)
+      scheduler.startSingleTimer(CollectionTimeout, CollectionTimeout, Timeout)
 
       refs.foreach { ref =>
         watch(ref)
@@ -231,4 +234,10 @@ class AkkaStreamMonitoring(
       operationsBoundMonitor.unbind()
       this
   }
+
+  private def streamCollectionTimeout: FiniteDuration =
+    ctx.system.settings.config
+      .tryValue("io.scalac.scalac.akka-monitoring.timeouts.query-region-stats")(_.getDuration)
+      .map(_.toScala)
+      .getOrElse(2.seconds)
 }
