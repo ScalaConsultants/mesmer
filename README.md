@@ -1,3 +1,5 @@
+![Scala CI](https://github.com/ScalaConsultants/mesmer-akka-agent/workflows/Scala%20CI/badge.svg)
+
 # Mesmer Akka Agent
 
 # Architecture 
