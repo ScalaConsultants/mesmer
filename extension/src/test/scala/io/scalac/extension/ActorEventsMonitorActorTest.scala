@@ -1,30 +1,25 @@
 package io.scalac.extension
 
-import scala.concurrent.duration._
-
 import akka.actor.testkit.typed.FishingOutcome
 import akka.actor.testkit.typed.scaladsl.ScalaTestWithActorTestKit
-import akka.actor.typed.receptionist.ServiceKey
 import akka.actor.typed.scaladsl.{ Behaviors, StashBuffer }
 import akka.actor.typed.{ ActorRef, ActorSystem, Behavior }
-
-import org.scalatest.Inspectors
-import org.scalatest.flatspec.AnyFlatSpecLike
-import org.scalatest.matchers.should.Matchers
-
 import io.scalac.extension.ActorEventsMonitorActor.{ ActorTreeTraverser, ReflectiveActorTreeTraverser }
+import io.scalac.extension.ActorEventsMonitorActorTest._
 import io.scalac.extension.actor.MutableActorMetricsStorage
 import io.scalac.extension.event.ActorEvent.StashMeasurement
 import io.scalac.extension.event.EventBus
 import io.scalac.extension.metric.ActorMetricMonitor.Labels
 import io.scalac.extension.metric.{ ActorMetricMonitor, CachingMonitor }
-import io.scalac.extension.util.TestConfig
 import io.scalac.extension.util.probe.ActorMonitorTestProbe
 import io.scalac.extension.util.probe.ActorMonitorTestProbe.TestBoundMonitor
 import io.scalac.extension.util.probe.BoundTestProbe.{ MetricObserved, MetricRecorded }
-import io.scalac.extension.util.{ MonitorFixture, TestOps }
+import io.scalac.extension.util.{ MonitorFixture, TestConfig, TestOps }
+import org.scalatest.Inspectors
+import org.scalatest.flatspec.AnyFlatSpecLike
+import org.scalatest.matchers.should.Matchers
 
-import ActorEventsMonitorActorTest._
+import scala.concurrent.duration._
 
 class ActorEventsMonitorActorTest
     extends ScalaTestWithActorTestKit(testSystem)
@@ -35,17 +30,19 @@ class ActorEventsMonitorActorTest
     with TestOps {
 
   type Monitor = ActorMonitorTestProbe
+  type Command = ActorEventsMonitorActor.Command
+  type ActorCommand = ActorEventsMonitorActorTest.Command
 
-  private val PingOffset                 = 2.seconds
-  private val underlyingSystem           = system.asInstanceOf[ActorSystem[Command]]
-  override val serviceKey: ServiceKey[_] = actorServiceKey
+  private val PingOffset       = 2.seconds
+  private val underlyingSystem = system.asInstanceOf[ActorSystem[ActorCommand]]
+  override val serviceKey      = Some(actorServiceKey)
 
   override def testSameOrParent(ref: ActorRef[_], parent: ActorRef[_]): Boolean =
     ref.path.toStringWithoutAddress.startsWith(parent.path.toStringWithoutAddress)
 
   override def createMonitor: ActorMonitorTestProbe = new ActorMonitorTestProbe(PingOffset)
 
-  override def setUp(monitor: ActorMonitorTestProbe, cache: Boolean): ActorRef[_] =
+  override def setUp(monitor: ActorMonitorTestProbe, cache: Boolean): ActorRef[Command] =
     system.systemActorOf(
       ActorEventsMonitorActor(
         if (cache) CachingMonitor(monitor) else monitor,
@@ -149,12 +146,12 @@ class ActorEventsMonitorActorTest
   }
 
   object StashActor {
-    def apply(capacity: Int): Behavior[Command] =
+    def apply(capacity: Int): Behavior[ActorCommand] =
       Behaviors.withStash(capacity)(buffer => new StashActor(buffer).closed())
   }
 
-  class StashActor(buffer: StashBuffer[Command]) {
-    private def closed(): Behavior[Command] =
+  class StashActor(buffer: StashBuffer[ActorCommand]) {
+    private def closed(): Behavior[ActorCommand] =
       Behaviors.receiveMessagePartial {
         case Open =>
           buffer.unstashAll(open())
@@ -164,7 +161,7 @@ class ActorEventsMonitorActorTest
           Behaviors.same
       }
 
-    private def open(): Behavior[Command] = Behaviors.receiveMessagePartial {
+    private def open(): Behavior[ActorCommand] = Behaviors.receiveMessagePartial {
       case Close =>
         closed()
       case Message(text) =>

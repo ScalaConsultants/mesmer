@@ -1,12 +1,10 @@
 package io.scalac.extension
 
 import akka.actor.testkit.typed.scaladsl.ScalaTestWithActorTestKit
-import akka.actor.typed.ActorRef
-import akka.actor.typed.receptionist.ServiceKey
-
 import io.scalac.core.util.Timestamp
 import io.scalac.extension.event.EventBus
 import io.scalac.extension.event.PersistenceEvent._
+import io.scalac.extension.metric.CachingMonitor
 import io.scalac.extension.metric.PersistenceMetricMonitor.Labels
 import io.scalac.extension.persistence.{ ImmutablePersistStorage, ImmutableRecoveryStorage }
 import io.scalac.extension.util.TestConfig.localActorProvider
@@ -16,11 +14,9 @@ import io.scalac.extension.util.{ IdentityPathService, MonitorFixture }
 import org.scalatest._
 import org.scalatest.flatspec.AnyFlatSpecLike
 import org.scalatest.matchers.should.Matchers
+
 import scala.concurrent.duration._
 import scala.language.postfixOps
-
-import io.scalac.extension.config.CachingConfig
-import io.scalac.extension.metric.CachingMonitor
 
 class PersistenceEventsActorTest
     extends ScalaTestWithActorTestKit(localActorProvider)
@@ -29,10 +25,11 @@ class PersistenceEventsActorTest
     with Inspectors
     with MonitorFixture {
   override type Monitor = PersistenceMetricTestProbe
+  override type Command = PersistenceEventsActor.Event
 
   override protected def createMonitor: Monitor = new PersistenceMetricTestProbe()
 
-  override protected def setUp(monitor: Monitor, cache: Boolean): ActorRef[_] =
+  override protected def setUp(monitor: Monitor, cache: Boolean) =
     system.systemActorOf(
       PersistenceEventsActor(
         if (cache) CachingMonitor(monitor) else monitor,
@@ -69,7 +66,7 @@ class PersistenceEventsActorTest
       globalCounter.expectNoMessage(globalCounter.remaining)
     }
 
-  override protected val serviceKey: ServiceKey[_] = persistenceServiceKey
+  override protected val serviceKey = Some(persistenceServiceKey)
 
   "PersistenceEventsActor" should "capture recovery time" in test { monitor =>
     val expectedLabels = Labels(None, "/some/path", createUniqueId)

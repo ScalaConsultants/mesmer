@@ -1,24 +1,23 @@
 package io.scalac.extension
 
-import scala.annotation.tailrec
-import scala.collection.{ immutable, mutable }
-import scala.concurrent.duration._
-
-import akka.actor.typed.{ ActorRef, Behavior, PostStop, PreRestart, Signal, SupervisorStrategy }
+import akka.actor.typed._
 import akka.actor.typed.receptionist.Receptionist
 import akka.actor.typed.receptionist.Receptionist.Register
 import akka.actor.typed.scaladsl.{ AbstractBehavior, ActorContext, Behaviors, TimerScheduler }
 import akka.{ actor => classic }
-
 import io.scalac.core.model.Tag
 import io.scalac.core.util.Timestamp
 import io.scalac.extension.AkkaStreamMonitoring.StartStreamCollection
 import io.scalac.extension.actor.{ ActorMetricStorage, ActorMetrics }
-import io.scalac.extension.event.{ ActorEvent, TagEvent }
 import io.scalac.extension.event.ActorEvent.StashMeasurement
+import io.scalac.extension.event.{ ActorEvent, TagEvent }
 import io.scalac.extension.metric.ActorMetricMonitor.Labels
 import io.scalac.extension.metric.{ ActorMetricMonitor, Unbind }
 import io.scalac.extension.model.{ ActorKey, Node }
+
+import scala.annotation.tailrec
+import scala.collection.{ immutable, mutable }
+import scala.concurrent.duration._
 
 object ActorEventsMonitorActor {
 
@@ -149,9 +148,8 @@ object ActorEventsMonitorActor {
     // Due to the compute intensiveness of traverse the actors tree,
     // we're using AbstractBehavior, mutable state and var in intention to boost our performance.
 
-    import ctx.log
-
     import AsyncMetricsActor._
+    import ctx.log
 
     private[this] val actorTags: mutable.Map[ActorKey, mutable.Set[Tag]] = mutable.Map.empty
 
@@ -173,9 +171,9 @@ object ActorEventsMonitorActor {
 
     def onMessage(msg: AsyncCommand): Behavior[AsyncCommand] = msg match {
       case UpdateActorMetrics =>
+        update()
         cleanTags()
         cleanRefs()
-        update()
         setTimeout() // loop
         this
       case AddTag(ref, tag) =>
@@ -259,9 +257,9 @@ object ActorEventsMonitorActor {
   }
 
   object ReflectiveActorTreeTraverser extends ActorTreeTraverser {
-    import java.lang.invoke.MethodType.methodType
-
     import ReflectiveActorMonitorsUtils._
+
+    import java.lang.invoke.MethodType.methodType
 
     private val actorRefProviderClass = classOf[classic.ActorRefProvider]
 
@@ -298,9 +296,9 @@ object ActorEventsMonitorActor {
   }
 
   object ReflectiveActorMetricsReader extends ActorMetricsReader {
-    import java.lang.invoke.MethodType.methodType
-
     import ReflectiveActorMonitorsUtils._
+
+    import java.lang.invoke.MethodType.methodType
 
     private val numberOfMessagesMethodHandler = {
       val mt = methodType(classOf[Int])
