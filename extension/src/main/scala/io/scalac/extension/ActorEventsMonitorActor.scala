@@ -11,7 +11,7 @@ import org.slf4j.LoggerFactory
 import io.scalac.core.model.Tag
 import io.scalac.core.util.Timestamp
 import io.scalac.extension.AkkaStreamMonitoring.StartStreamCollection
-import io.scalac.extension.actor.{ ActorMetricStorage, ActorMetrics, MailboxTimeHolder }
+import io.scalac.extension.actor.{ ActorMetricStorage, ActorMetrics, MailboxTime, MailboxTimeHolder }
 import io.scalac.extension.event.{ ActorEvent, TagEvent }
 import io.scalac.extension.event.ActorEvent.StashMeasurement
 import io.scalac.extension.event.{ ActorEvent, TagEvent }
@@ -20,7 +20,6 @@ import io.scalac.extension.metric.{ ActorMetricMonitor, Unbind }
 import io.scalac.extension.model.{ ActorKey, Node }
 import io.scalac.extension.util.AggMetric.LongValueAggMetric
 import io.scalac.extension.util.TimeSeries.LongTimeSeries
-
 import scala.annotation.tailrec
 import scala.collection.{ immutable, mutable }
 import scala.concurrent.duration._
@@ -217,9 +216,19 @@ object ActorEventsMonitorActor {
       }
 
       def read(actorRef: classic.ActorRef): Unit = {
-        actorMetricsReader.read(actorRef).foreach(metrics => storage = storage.save(actorRef, metrics))
+        actorMetricsReader
+          .read(actorRef)
+          .map(rawToActorMetrics)
+          .foreach(metrics => storage = storage.save(actorRef, metrics))
         unbinds.remove(storage.actorToKey(actorRef))
       }
+
+      def rawToActorMetrics(raw: RawActorMetrics): ActorMetrics =
+        ActorMetrics(
+          raw.mailboxSize,
+          raw.mailboxTimes.filter(_.nonEmpty).map(ts => LongValueAggMetric.fromTimeSeries(new LongTimeSeries(ts))),
+          Timestamp.create()
+        )
 
       traverseActorTree(actorTreeRunner.getRootGuardian(ctx.system.classicSystem) :: Nil)
 
@@ -255,7 +264,7 @@ object ActorEventsMonitorActor {
           }
 
           metrics.mailboxTime.foreach { mailboxTime =>
-            log.trace("Registering a new updater for average mailbox time for actor {} with value {}", key, mailboxTime)
+            log.trace("Registering a new updaters for mailbox time for actor {} with value {}", key, mailboxTime)
             bind.mailboxTimeAvg.setUpdater(_.observe(mailboxTime.avg))
             bind.mailboxTimeMin.setUpdater(_.observe(mailboxTime.min))
             bind.mailboxTimeMax.setUpdater(_.observe(mailboxTime.max))
@@ -308,8 +317,10 @@ object ActorEventsMonitorActor {
   }
 
   trait ActorMetricsReader {
-    def read(actor: classic.ActorRef): Option[ActorMetrics]
+    def read(actor: classic.ActorRef): Option[RawActorMetrics]
   }
+
+  case class RawActorMetrics(mailboxSize: Option[Int], mailboxTimes: Option[Array[MailboxTime]])
 
   object ReflectiveActorMetricsReader extends ActorMetricsReader {
     import ReflectiveActorMonitorsUtils._
@@ -323,14 +334,13 @@ object ActorEventsMonitorActor {
       lookup.findVirtual(cellClass, "numberOfMessages", mt)
     }
 
-    def read(actor: classic.ActorRef): Option[ActorMetrics] =
+    def read(actor: classic.ActorRef): Option[RawActorMetrics] =
       Option
         .when(isLocalActorRefWithCell(actor)) {
           val cell = underlyingMethodHandler.invoke(actor)
-          ActorMetrics(
+          RawActorMetrics(
             safeRead(mailboxSize(cell)),
-            safeRead(mailboxTime(cell)).flatten,
-            Timestamp.create()
+            safeRead(mailboxTimes(cell)).flatten
           )
         }
 
@@ -354,10 +364,8 @@ object ActorEventsMonitorActor {
     private def mailboxSize(cell: Object): Int =
       numberOfMessagesMethodHandler.invoke(cell).asInstanceOf[Int]
 
-    private def mailboxTime(cell: Object): Option[LongValueAggMetric] =
-      MailboxTimeHolder
-        .takeTimes(cell)
-        .map(ts => LongValueAggMetric.fromTimeSeries(new LongTimeSeries(ts)))
+    private def mailboxTimes(cell: Object): Option[Array[MailboxTime]] =
+      MailboxTimeHolder.takeTimes(cell)
 
   }
 

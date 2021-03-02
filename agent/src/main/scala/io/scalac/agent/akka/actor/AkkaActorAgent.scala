@@ -153,6 +153,11 @@ object AkkaActorAgent {
               MailboxTimeHolder.MailboxTimesVar,
               classOf[MailboxTimeHolder.MailboxTimesType]
             )
+            .visit(
+              Advice
+                .to(classOf[ActorCellConstructorInstrumentation])
+                .on(isConstructor[MethodDescription])
+            )
         }
         .installOn(instrumentation)
       LoadingResult(targetClassName)

@@ -7,20 +7,20 @@ import scala.concurrent.duration.FiniteDuration
 
 object MailboxTimeHolder {
 
-  private lazy val holderClass = Class.forName("akka.actor.ActorCell")
-
   type MailboxTimesType = mutable.ArrayBuffer[MailboxTime]
 
   val MailboxTimesVar = "mailboxTimes"
 
   private lazy val lookup = MethodHandles.publicLookup()
 
-  private lazy val mailboxTimesGetterHandler =
-    lookup.findGetter(holderClass, MailboxTimesVar, classOf[MailboxTimesType])
-
-  private lazy val mailboxTimesSetterHandler =
-    lookup.findSetter(holderClass, MailboxTimesVar, classOf[MailboxTimesType])
-
+  private lazy val (mailboxTimesGetterHandler, mailboxTimesSetterHandler) = {
+    val field = Class.forName("akka.actor.ActorCell").getDeclaredField(MailboxTimesVar)
+    field.setAccessible(true)
+    (
+      lookup.unreflectGetter(field),
+      lookup.unreflectSetter(field)
+    )
+  }
   @inline def setTimes(actorCell: Object): Unit =
     mailboxTimesSetterHandler.invoke(actorCell, mutable.ArrayBuffer.empty[MailboxTime])
 

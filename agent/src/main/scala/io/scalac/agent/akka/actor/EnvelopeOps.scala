@@ -10,13 +10,13 @@ object EnvelopeOps {
 
   val TimestampVarName = "timestamp"
 
-  private lazy val lookup = MethodHandles.publicLookup()
+  private lazy val lookup = MethodHandles.lookup()
   private lazy val (timestampGetterHandler, timestampSetterHandler) = {
-    val timestampClass = classOf[Timestamp]
-    val envelopeClass  = classOf[Envelope]
+    val field = classOf[Envelope].getDeclaredField(TimestampVarName)
+    field.setAccessible(true)
     (
-      lookup.findGetter(envelopeClass, TimestampVarName, timestampClass),
-      lookup.findSetter(envelopeClass, TimestampVarName, timestampClass)
+      lookup.unreflectGetter(field),
+      lookup.unreflectSetter(field)
     )
   }
 
