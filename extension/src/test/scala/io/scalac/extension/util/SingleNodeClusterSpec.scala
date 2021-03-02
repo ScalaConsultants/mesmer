@@ -18,14 +18,17 @@ import akka.cluster.typed.{ Cluster, SelfUp, Subscribe }
 import akka.util.Timeout
 
 import com.typesafe.config.{ Config, ConfigFactory, ConfigValueFactory }
+
 import io.scalac.extension.util.probe.ClusterMetricsTestProbe
 import org.scalatest.{ Assertion, AsyncTestSuite }
 
+import io.scalac.extension.util.probe.ObserverCollector.CommonCollectorImpl
+
 trait SingleNodeClusterSpec extends AsyncTestSuite {
 
-  protected val portGenerator: PortGenerator       = PortGeneratorImpl
-  implicit val timeout: Timeout                    = 30 seconds
-  protected val collectMetricsPing: FiniteDuration = 2 seconds
+  protected val portGenerator: PortGenerator = PortGeneratorImpl
+  implicit val timeout: Timeout              = 30 seconds
+  protected val pingOffset: FiniteDuration   = 1 seconds
 
   type Fixture[C[_], T] =
     (ActorSystem[Nothing], Member, C[ActorRef[ShardingEnvelope[T]]], ClusterMetricsTestProbe, C[String])
@@ -64,7 +67,7 @@ trait SingleNodeClusterSpec extends AsyncTestSuite {
     }
 
     def runTest(
-      system: ActorSystem[Nothing],
+      implicit system: ActorSystem[Nothing],
       entityNames: List[String],
       cluster: Cluster,
       sharding: ClusterSharding
@@ -77,7 +80,9 @@ trait SingleNodeClusterSpec extends AsyncTestSuite {
         sharding.init(entity)
       }
 
-      val clusterProbe = ClusterMetricsTestProbe(collectMetricsPing)(system)
+      val collector: CommonCollectorImpl = new CommonCollectorImpl(pingOffset)
+
+      val clusterProbe = ClusterMetricsTestProbe(collector)
 
       Function.untupled(test)(system, cluster.selfMember, refs, clusterProbe, entityNames)
     }
@@ -86,15 +91,23 @@ trait SingleNodeClusterSpec extends AsyncTestSuite {
       cluster.subscriptions.ask[SelfUp](reply => Subscribe(reply, classOf[SelfUp]))
 
     for {
+
       (regions, _system, cluster, sharding) <- initAkka()
-      system                                = _system
-      _                                     <- onClusterStart(cluster)(system)
-      assertion <- runTest(system, regions, cluster, sharding).andThen {
-                    case _ =>
-                      portGenerator.releasePort(port)
-                      system.terminate()
-                  }
+
+      system = _system
+
+      _ <- onClusterStart(cluster)(system)
+
+      assertion <- {
+        runTest(system, regions, cluster, sharding).andThen {
+          case _ =>
+            portGenerator.releasePort(port)
+            system.terminate()
+        }
+      }
+
       _ <- system.whenTerminated
+
     } yield assertion
 
   }

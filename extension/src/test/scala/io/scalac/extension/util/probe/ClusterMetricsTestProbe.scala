@@ -1,7 +1,5 @@
 package io.scalac.extension.util.probe
 
-import scala.concurrent.duration.FiniteDuration
-
 import akka.actor.testkit.typed.scaladsl.TestProbe
 import akka.actor.typed.ActorSystem
 
@@ -18,23 +16,23 @@ class ClusterMetricsTestProbe private (
   val reachableNodesProbe: TestProbe[CounterCommand],
   val unreachableNodesProbe: TestProbe[CounterCommand],
   val nodeDownProbe: TestProbe[CounterCommand],
-  ping: FiniteDuration
+  collector: ObserverCollector
 )(implicit system: ActorSystem[_])
     extends ClusterMetricsMonitor {
 
   override def bind(node: Labels): ClusterMetricsMonitor.BoundMonitor =
     new ClusterMetricsMonitor.BoundMonitor with TestProbeSynchronized {
 
-      private type CustomMetricObserver =
-        MetricObserver[Long] with AbstractTestProbeWrapper with CancellableTestProbeWrapper
+      private type CustomMetricObserver = MetricObserver[Long] with AbstractTestProbeWrapper
 
-      override val shardPerRegions: CustomMetricObserver = ObserverTestProbeWrapper(shardPerRegionsProbe, ping)
+      override val shardPerRegions: CustomMetricObserver = ObserverTestProbeWrapper(shardPerRegionsProbe, collector)
 
-      override val entityPerRegion: CustomMetricObserver = ObserverTestProbeWrapper(entityPerRegionProbe, ping)
+      override val entityPerRegion: CustomMetricObserver = ObserverTestProbeWrapper(entityPerRegionProbe, collector)
 
-      override val shardRegionsOnNode: CustomMetricObserver = ObserverTestProbeWrapper(shardRegionsOnNodeProbe, ping)
+      override val shardRegionsOnNode: CustomMetricObserver =
+        ObserverTestProbeWrapper(shardRegionsOnNodeProbe, collector)
 
-      override val entitiesOnNode: CustomMetricObserver = ObserverTestProbeWrapper(entitiesOnNodeProbe, ping)
+      override val entitiesOnNode: CustomMetricObserver = ObserverTestProbeWrapper(entitiesOnNodeProbe, collector)
 
       override val reachableNodes: Counter[Long] with AbstractTestProbeWrapper = CounterTestProbeWrapper(
         reachableNodesProbe
@@ -48,16 +46,16 @@ class ClusterMetricsTestProbe private (
         CounterTestProbeWrapper(nodeDownProbe)
 
       override def unbind(): Unit = {
-        shardPerRegions.cancel()
-        entityPerRegion.cancel()
-        shardRegionsOnNode.cancel()
-        entitiesOnNode.cancel()
+        collector.finish(shardPerRegionsProbe)
+        collector.finish(entityPerRegionProbe)
+        collector.finish(shardRegionsOnNodeProbe)
+        collector.finish(entitiesOnNodeProbe)
       }
     }
 }
 
 object ClusterMetricsTestProbe {
-  def apply(ping: FiniteDuration)(implicit system: ActorSystem[_]): ClusterMetricsTestProbe = {
+  def apply(collector: ObserverCollector)(implicit system: ActorSystem[_]): ClusterMetricsTestProbe = {
     val shardPerRegionsProbe    = TestProbe[MetricObserverCommand]("shardPerRegionsProbe")
     val entityPerRegionProbe    = TestProbe[MetricObserverCommand]("entityPerRegionProbe")
     val shardRegionsOnNodeProbe = TestProbe[MetricObserverCommand]("shardRegionsOnNodeProbe")
@@ -73,7 +71,7 @@ object ClusterMetricsTestProbe {
       reachableNodesProbe,
       unreachableNodesProbe,
       nodeDownProbe,
-      ping
+      collector
     )
   }
 }

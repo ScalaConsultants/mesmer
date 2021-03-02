@@ -1,73 +1,72 @@
 package io.scalac.extension
 
-import akka.actor.testkit.typed.scaladsl.ScalaTestWithActorTestKit
-import akka.actor.typed.ActorRef
-import akka.actor.typed.receptionist.ServiceKey
+import scala.concurrent.duration._
+import scala.language.postfixOps
 
-import io.scalac.core.util.Timestamp
-import io.scalac.extension.event.EventBus
-import io.scalac.extension.event.HttpEvent.{ RequestCompleted, RequestStarted }
-import io.scalac.extension.http.MutableRequestStorage
-import io.scalac.extension.metric.HttpMetricMonitor.Labels
-import io.scalac.extension.util.TestConfig.localActorProvider
-import io.scalac.extension.util.probe.BoundTestProbe._
-import io.scalac.extension.util.probe.HttpMetricsTestProbe
-import io.scalac.extension.util.{ IdentityPathService, MonitorFixture, TerminationRegistryOps, TestOps }
+import akka.actor.typed.receptionist.ServiceKey
+import akka.actor.typed.{ ActorSystem, Behavior }
+
 import org.scalatest._
 import org.scalatest.concurrent.Eventually
 import org.scalatest.flatspec.AnyFlatSpecLike
 import org.scalatest.matchers.should.Matchers
-import scala.concurrent.duration._
-import scala.language.postfixOps
 
-import io.scalac.extension.config.CachingConfig
+import io.scalac.core.util.Timestamp
+import io.scalac.extension.HttpEventsActorTest.TestCaseContext
+import io.scalac.extension.event.EventBus
+import io.scalac.extension.event.HttpEvent.{ RequestCompleted, RequestStarted }
+import io.scalac.extension.http.MutableRequestStorage
 import io.scalac.extension.metric.CachingMonitor
+import io.scalac.extension.metric.HttpMetricMonitor.Labels
+import io.scalac.extension.util.TestCase.{ MonitorTestCaseContext, MonitorWithService }
+import io.scalac.extension.util._
+import io.scalac.extension.util.probe.BoundTestProbe._
+import io.scalac.extension.util.probe.HttpMetricsTestProbe
 
 class HttpEventsActorTest
-    extends ScalaTestWithActorTestKit(localActorProvider)
-    with AnyFlatSpecLike
+    extends AnyFlatSpecLike
     with Matchers
     with Inspectors
     with Eventually
     with OptionValues
     with Inside
     with BeforeAndAfterAll
-    with TerminationRegistryOps
     with LoneElement
-    with TestOps
-    with MonitorFixture {
+    with TestOps {
 
-  override type Monitor = HttpMetricsTestProbe
-
-  override protected def createMonitor: Monitor = new HttpMetricsTestProbe()
-
-  override protected def setUp(monitor: Monitor, cache: Boolean): ActorRef[_] =
-    system.systemActorOf(
+  val testCaseFactory = new MonitorWithService[HttpMetricsTestProbe, TestCaseContext] {
+    protected def createMonitorBehavior(implicit context: TestCaseContext): Behavior[_] =
       HttpEventsActor(
-        if (cache) CachingMonitor(monitor) else monitor,
+        if (context.caching) CachingMonitor(monitor) else monitor,
         MutableRequestStorage.empty,
         IdentityPathService
-      ),
-      createUniqueId
-    )
+      )
 
-  override protected val serviceKey: ServiceKey[_] = httpServiceKey
+    protected val serviceKey: ServiceKey[_] = httpServiceKey
 
-  def requestStarted(id: String, labels: Labels): Unit = EventBus(system).publishEvent(
-    RequestStarted(id, Timestamp.create(), labels.path, labels.method)
-  )
+    protected def createMonitor(implicit s: ActorSystem[_]): HttpMetricsTestProbe =
+      new HttpMetricsTestProbe()
 
-  def requestCompleted(id: String): Unit =
+    protected def createContext(monitor: HttpMetricsTestProbe)(implicit s: ActorSystem[_]): TestCaseContext =
+      TestCaseContext(monitor)
+  }
+
+  import testCaseFactory._
+
+  def requestStarted(id: String, labels: Labels)(implicit ctx: TestCaseContext): Unit =
+    EventBus(system).publishEvent(RequestStarted(id, Timestamp.create(), labels.path, labels.method))
+
+  def requestCompleted(id: String)(implicit ctx: TestCaseContext): Unit =
     EventBus(system).publishEvent(RequestCompleted(id, Timestamp.create()))
 
-  "HttpEventsActor" should "collect metrics for single request" in test { monitor =>
+  "HttpEventsActor" should "collect metrics for single request" in testCase { implicit c =>
     val expectedLabels = Labels(None, "/api/v1/test", "GET")
 
     val id = createUniqueId
     requestStarted(id, expectedLabels)
     Thread.sleep(1050)
     requestCompleted(id)
-    eventually(monitor.boundSize shouldBe 1)
+    eventually(monitor.boundSize shouldBe 1)(patienceConfig, implicitly, implicitly)
 
     monitor.boundLabels should contain theSameElementsAs (Seq(expectedLabels))
     val boundProbes = monitor.probes(expectedLabels)
@@ -78,7 +77,7 @@ class HttpEventsActorTest
     }
   }
 
-  it should "reuse monitors for same labels" in testCaching { monitor =>
+  it should "reuse monitors for same labels" in testCaseWith(_.withCaching) { implicit c =>
     val expectedLabels = List(Labels(None, "/api/v1/test", "GET"), Labels(None, "/api/v2/test", "POST"))
     val requestCount   = 10
 
@@ -95,7 +94,7 @@ class HttpEventsActorTest
     monitor.binds should be(2)
   }
 
-  it should "collect metric for several concurrent requests" in testCaching { monitor =>
+  it should "collect metric for several concurrent requests" in testCaseWith(_.withCaching) { implicit c =>
     val labels   = List.fill(10)(createUniqueId).map(id => Labels(None, id, "GET"))
     val requests = labels.map(l => createUniqueId -> l).toMap
     requests.foreach(Function.tupled(requestStarted))
@@ -118,6 +117,16 @@ class HttpEventsActorTest
         case MetricRecorded(value) => value shouldBe 1000L +- 100L
       }
     }
+  }
+
+}
+
+object HttpEventsActorTest {
+
+  case class TestCaseContext(monitor: HttpMetricsTestProbe, caching: Boolean = false)(
+    implicit val system: ActorSystem[_]
+  ) extends MonitorTestCaseContext[HttpMetricsTestProbe] {
+    def withCaching: TestCaseContext = copy(caching = true)
   }
 
 }

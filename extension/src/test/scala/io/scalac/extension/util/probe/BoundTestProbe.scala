@@ -62,40 +62,14 @@ case class RecorderTestProbeWrapper(private val _probe: TestProbe[MetricRecorder
   override def setValue(value: Long): Unit = _probe.ref ! MetricRecorded(value)
 }
 
-trait CancellableTestProbeWrapper {
-  def cancel(): Unit
-}
-
-case class ObserverTestProbeWrapper(probe: TestProbe[MetricObserverCommand], ping: FiniteDuration)(
+case class ObserverTestProbeWrapper(probe: TestProbe[MetricObserverCommand], collector: ObserverCollector)(
   implicit system: ActorSystem[_]
 ) extends AbstractTestProbeWrapper
-    with MetricObserver[Long]
-    with CancellableTestProbeWrapper {
-
-  private var cb: Option[MetricObserver.Updater[Long]] = None
-  private var schedule: Option[Cancellable]            = None
+    with MetricObserver[Long] {
 
   type Cmd = MetricObserverCommand
 
-  def setUpdater(cb: MetricObserver.Updater[Long]): Unit = {
-    if (this.cb.isEmpty) scheduleUpdates()
-    this.cb = Some(cb)
-  }
-
-  private def scheduleUpdates(): Unit = {
-    import system.executionContext
-    schedule.foreach(_.cancel())
-    schedule = Some(
-      system.scheduler.scheduleWithFixedDelay(ping / 2, ping)(() =>
-        cb.foreach(_.apply(value => probe.ref ! MetricObserved(value)))
-      )
-    )
-  }
-
-  def cancel(): Unit = {
-    schedule.foreach(_.cancel())
-    schedule = None
-    cb = None
-  }
+  def setUpdater(cb: MetricObserver.Updater[Long]): Unit =
+    collector.update(probe, () => cb(value => probe.ref ! MetricObserved(value)))
 
 }
