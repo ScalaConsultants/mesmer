@@ -1,18 +1,20 @@
-# akka-monitoring
+![Scala CI](https://github.com/ScalaConsultants/mesmer-akka-agent/workflows/Scala%20CI/badge.svg)
+
+# Mesmer Akka Agent
 
 # Architecture 
 
-See [overview](https://github.com/ScalaConsultants/akka-monitoring/blob/main/extension_overview.png).
+See [overview](https://github.com/ScalaConsultants/mesmer-akka-agent/blob/main/extension_overview.png).
 
-Akka monitoring is an Akka extension allowing to monitor Akka ecosystem telemetry data and events.
+Mesmer Akka Agent is an Akka extension allowing to monitor Akka ecosystem telemetry data and events.
 
 # OpenTelemetry
 
-Akka extension uses [OpenTelemetry](https://opentelemetry.io/) to allow end user choose where data will be stored. This means that application using Akka extension should include OpenTelemetry SDK and configure appropriate exporter. If no exporter is configured, default NOOP exporter is in use.
+Mesmer Akka Agent uses [OpenTelemetry](https://opentelemetry.io/) to allow end user choose where data will be stored. This means that application using this extension should include OpenTelemetry SDK and configure appropriate exporter. If no exporter is configured, default NOOP exporter is in use.
 
 # Local testing
 
-`test_app` subproject contains an example application that uses Akka Cluster sharding and with Akka metrics extension.
+`test_app` subproject contains an example application that uses Akka Cluster sharding with Mesmer Akka Agent extension.
 
 ## Database setup
 

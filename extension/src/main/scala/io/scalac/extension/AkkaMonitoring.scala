@@ -1,42 +1,38 @@
 package io.scalac.extension
 
-import java.net.URI
-import java.util.Collections
-
-import scala.concurrent.duration._
-import scala.language.postfixOps
-import scala.reflect.ClassTag
-import scala.util.Try
-
 import akka.actor.ExtendedActorSystem
-import akka.actor.typed.scaladsl.Behaviors
 import akka.actor.typed._
+import akka.actor.typed.scaladsl.Behaviors
 import akka.cluster.Cluster
-import akka.cluster.typed.{ ClusterSingleton, SingletonActor }
 import akka.util.Timeout
-
 import com.newrelic.telemetry.Attributes
 import com.newrelic.telemetry.opentelemetry.`export`.NewRelicMetricExporter
 import io.opentelemetry.sdk.OpenTelemetrySdk
 import io.opentelemetry.sdk.metrics.`export`.IntervalMetricReader
-
 import io.scalac.core.model.{ Module, SupportedVersion, Version }
 import io.scalac.core.support.ModulesSupport
 import io.scalac.core.util.ModuleInfo
 import io.scalac.core.util.ModuleInfo.Modules
+import io.scalac.extension.actor.CleanableActorMetricsStorage
 import io.scalac.extension.config.{ AkkaMonitoringConfig, CachingConfig }
 import io.scalac.extension.http.CleanableRequestStorage
 import io.scalac.extension.metric.CachingMonitor
 import io.scalac.extension.model._
 import io.scalac.extension.persistence.{ CleanablePersistingStorage, CleanableRecoveryStorage }
 import io.scalac.extension.service.CommonRegexPathService
-import io.scalac.extension.upstream.{
-  OpenTelemetryClusterMetricsMonitor,
-  OpenTelemetryHttpMetricsMonitor,
-  OpenTelemetryPersistenceMetricMonitor
-}
+import io.scalac.extension.upstream._
+
+import java.net.URI
+import java.util.Collections
+import scala.concurrent.duration._
+import scala.language.postfixOps
+import scala.reflect.ClassTag
+import scala.util.Try
 
 object AkkaMonitoring extends ExtensionId[AkkaMonitoring] {
+
+  private val ExportInterval = 5.seconds
+
   override def createExtension(system: ActorSystem[_]): AkkaMonitoring = {
     val config  = AkkaMonitoringConfig.apply(system.settings.config)
     val monitor = new AkkaMonitoring(system, config)
@@ -59,9 +55,8 @@ object AkkaMonitoring extends ExtensionId[AkkaMonitoring] {
     modules: Modules,
     modulesSupport: ModulesSupport
   ): Unit = {
-    import monitoring.system
-
     import ModulesSupport._
+    import monitoring.system
 
     def initModule(
       module: Module,
@@ -77,12 +72,13 @@ object AkkaMonitoring extends ExtensionId[AkkaMonitoring] {
           err => system.log.error(err),
           _ =>
             if (autoStart) {
-              system.log.info(s"Start monitoring module ${module.name}")
+              system.log.info("Start monitoring module {}", module.name)
               init(monitoring)
             } else
-              system.log.info(s"Supported version of ${module.name} detected, but auto-start is set to false")
+              system.log.info("Supported version of {} detected, but auto-start is set to false", module.name)
         )
 
+    initModule(akkaActorModule, modulesSupport.akkaActor, config.autoStart.akkaActor, _.startActorMonitor())
     initModule(akkaHttpModule, modulesSupport.akkaHttp, config.autoStart.akkaHttp, _.startHttpEventListener())
     initModule(
       akkaClusterTypedModule,
@@ -106,10 +102,10 @@ object AkkaMonitoring extends ExtensionId[AkkaMonitoring] {
         system.log.error("Boot backend is set to true, but no configuration for backend found")
       } { backendConfig =>
         if (backendConfig.name.toLowerCase() == "newrelic") {
-          system.log.info(s"Starting NewRelic backend with config ${backendConfig}")
+          system.log.info("Starting NewRelic backend with config {}", backendConfig)
           startNewRelicBackend(backendConfig.region, backendConfig.apiKey, backendConfig.serviceName)
         } else
-          system.log.error(s"Backend ${backendConfig.name} not supported")
+          system.log.error("Backend {} not supported", backendConfig.name)
       }
     }
   }
@@ -134,13 +130,14 @@ object AkkaMonitoring extends ExtensionId[AkkaMonitoring] {
       .setMetricProducers(
         Collections.singleton(OpenTelemetrySdk.getGlobalMeterProvider.getMetricProducer)
       )
-      .setExportIntervalMillis(5000)
+      .setExportIntervalMillis(ExportInterval.toMillis)
       .setMetricExporter(newRelicExporter)
       .build()
   }
 }
 
 class AkkaMonitoring(private val system: ActorSystem[_], val config: AkkaMonitoringConfig) extends Extension {
+  import AkkaMonitoring.ExportInterval
   import system.log
 
   private val instrumentationName = "scalac_akka_metrics"
@@ -169,6 +166,42 @@ class AkkaMonitoring(private val system: ActorSystem[_], val config: AkkaMonitor
     }, Some.apply)
   }
 
+  def startActorMonitor(): Unit = {
+    log.debug("Starting actor monitor")
+
+    val streamOperatorMonitor =
+      OpenTelemetryStreamOperatorMetricsMonitor(instrumentationName, actorSystemConfig)
+
+    val actorMonitor = OpenTelemetryActorMetricsMonitor(instrumentationName, actorSystemConfig)
+
+    val streamMonitor = CachingMonitor(
+      OpenTelemetryStreamMetricMonitor(instrumentationName, actorSystemConfig),
+      CachingConfig.fromConfig(actorSystemConfig, "stream")
+    )
+
+    val streamMonitorRef = system.systemActorOf(
+      Behaviors
+        .supervise(
+          AkkaStreamMonitoring(streamOperatorMonitor, streamMonitor, clusterNodeName)
+        )
+        .onFailure(SupervisorStrategy.restart),
+      "streamMonitor"
+    )
+
+    system.systemActorOf(
+      Behaviors
+        .supervise(
+          WithSelfCleaningState
+            .clean(CleanableActorMetricsStorage.withConfig(config.cleaning))
+            .every(config.cleaning.every)(storage =>
+              ActorEventsMonitorActor(actorMonitor, clusterNodeName, ExportInterval, storage, streamMonitorRef)
+            )
+        )
+        .onFailure(SupervisorStrategy.restart),
+      "actorMonitor"
+    )
+  }
+
   def startSelfMemberMonitor(): Unit = startClusterMonitor(ClusterSelfNodeEventsActor)
 
   def startClusterEventsMonitor(): Unit = startClusterMonitor(ClusterEventsMonitor)
@@ -180,9 +213,9 @@ class AkkaMonitoring(private val system: ActorSystem[_], val config: AkkaMonitor
   ): Unit = {
     val name = implicitly[ClassTag[T]].runtimeClass.getSimpleName
     clusterNodeName.fold {
-      log.error(s"ActorSystem is not properly configured to start cluster monitor of type $name")
+      log.error("ActorSystem is not properly configured to start cluster monitor of type {}", name)
     } { _ =>
-      log.debug(s"Starting cluster monitor of type $name")
+      log.debug("Starting cluster monitor of type {}", name)
       system.systemActorOf(
         Behaviors
           .supervise(actor(openTelemetryClusterMetricsMonitor))

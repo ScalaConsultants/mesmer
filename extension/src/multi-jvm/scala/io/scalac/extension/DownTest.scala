@@ -25,7 +25,7 @@ class DownTest extends MultiNodeSpec(ThreeNodesConfig) with ScalaTestMultiNodeSp
 
   implicit val typedSystem: ActorSystem[Nothing] = system.toTyped
 
-  val monitor = ClusterMetricsTestProbe()
+  val monitor = ClusterMetricsTestProbe(5.seconds)
 
   "Node down" should {
     "Wait for all nodes to join the cluster" in {
@@ -34,7 +34,7 @@ class DownTest extends MultiNodeSpec(ThreeNodesConfig) with ScalaTestMultiNodeSp
     }
 
     "start monitor" in {
-      system.log.error(s"Address, ${node(myself).address}")
+      system.log.error("Address, {}", node(myself).address)
       typedSystem.systemActorOf(ClusterSelfNodeEventsActor.apply(monitor), "monitor-test-1")
       ClusterSingleton(typedSystem)
         .init(

@@ -1,22 +1,21 @@
 package io.scalac.extension
 
-import scala.concurrent.duration._
-import scala.concurrent.{ ExecutionContext, Future }
-import scala.jdk.DurationConverters.JavaDurationOps
-
 import akka.actor.typed.scaladsl.Behaviors
 import akka.actor.typed.{ ActorSystem, Behavior }
 import akka.cluster.sharding.ShardRegion.{ GetShardRegionStats, ShardRegionStats }
 import akka.cluster.sharding.{ ClusterSharding, ShardRegion }
 import akka.pattern.ask
 import akka.util.Timeout
-
-import org.slf4j.LoggerFactory
-
 import io.scalac.extension.config.ConfigurationUtils.ConfigOps
 import io.scalac.extension.metric.ClusterMetricsMonitor
+import io.scalac.extension.metric.ClusterMetricsMonitor.Labels
 import io.scalac.extension.model.AkkaNodeOps
 import io.scalac.extension.util.CachedQueryResult
+import org.slf4j.LoggerFactory
+
+import scala.concurrent.duration._
+import scala.concurrent.{ ExecutionContext, Future }
+import scala.jdk.DurationConverters.JavaDurationOps
 
 class ClusterRegionsMonitorActor
 object ClusterRegionsMonitorActor extends ClusterMonitorActor {
@@ -28,18 +27,20 @@ object ClusterRegionsMonitorActor extends ClusterMonitorActor {
 
   private val logger = LoggerFactory.getLogger(classOf[ClusterRegionsMonitorActor])
 
-  def apply(clusterMetricsMonitor: ClusterMetricsMonitor): Behavior[Command] =
+  def apply(monitor: ClusterMetricsMonitor): Behavior[Command] =
     OnClusterStartUp { selfMember =>
       Behaviors.setup { ctx =>
         val system = ctx.system
         import system.executionContext
 
-        val monitor = clusterMetricsMonitor.bind(selfMember.uniqueAddress.toNode)
+        val labels = Labels(selfMember.uniqueAddress.toNode)
+        val bound  = monitor.bind(labels)
 
         val regions = new Regions(system, onCreateEntry = (region, entry) => {
 
-          monitor
-            .entityPerRegion(region)
+          val regionBound = monitor.bind(labels.withRegion(region))
+
+          regionBound.entityPerRegion
             .setUpdater(result =>
               entry.get.foreach { regionStats =>
                 val entities = regionStats.values.sum
@@ -48,8 +49,7 @@ object ClusterRegionsMonitorActor extends ClusterMonitorActor {
               }
             )
 
-          monitor
-            .shardPerRegions(region)
+          regionBound.shardPerRegions
             .setUpdater(result =>
               entry.get.foreach { regionStats =>
                 val shards = regionStats.size
@@ -60,7 +60,7 @@ object ClusterRegionsMonitorActor extends ClusterMonitorActor {
 
         })
 
-        monitor.entitiesOnNode.setUpdater { result =>
+        bound.entitiesOnNode.setUpdater { result =>
           regions.regionStats.map { regionsStats =>
             val entities = regionsStats.view.values.flatMap(_.values).sum
             result.observe(entities)
@@ -68,7 +68,7 @@ object ClusterRegionsMonitorActor extends ClusterMonitorActor {
           }
         }
 
-        monitor.shardRegionsOnNode.setUpdater { result =>
+        bound.shardRegionsOnNode.setUpdater { result =>
           result.observe(regions.size)
           logger.trace("Recorded amount of regions on node {}", regions)
         }
@@ -117,7 +117,7 @@ object ClusterRegionsMonitorActor extends ClusterMonitorActor {
     }
 
     private def runQuery(region: String): Future[RegionStats] = {
-      logger.debug(s"running query for region $region")
+      logger.debug("running query for region {}", region)
       (sharding.shardRegion(region) ? GetShardRegionStats)
         .mapTo[ShardRegionStats]
         .flatMap { regionStats =>

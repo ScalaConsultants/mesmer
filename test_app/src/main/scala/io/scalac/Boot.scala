@@ -79,7 +79,7 @@ object Boot extends App with FailFastCirceSupport with JsonCodecs {
   AkkaManagement(system)
     .start()
     .onComplete {
-      case Success(value)     => logger.info(s"Started akka management on uri: ${value}")
+      case Success(value)     => logger.info("Started akka management on uri: {}", value)
       case Failure(exception) => logger.error("Coundn't start akka management", exception)
     }
 

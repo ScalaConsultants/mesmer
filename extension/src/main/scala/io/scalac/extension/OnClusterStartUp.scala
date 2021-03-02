@@ -28,7 +28,7 @@ object OnClusterStartUp {
           Behaviors.withStash(1024) { stash =>
             Behaviors.receiveMessage {
               case Timeout =>
-                ctx.log.warn(s"Initialization timed out")
+                ctx.log.warn("Initialization timed out")
                 Behaviors.stopped
               case Initialized(_) =>
                 ctx.log.info("Cluster initialized")
