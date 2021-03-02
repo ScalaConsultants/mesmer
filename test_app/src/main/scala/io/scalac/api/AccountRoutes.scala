@@ -12,6 +12,7 @@ import io.scalac.domain.{ AccountStateActor, JsonCodecs, _ }
 
 import scala.language.postfixOps
 import scala.util.Success
+import java.util.UUID
 
 class AccountRoutes(
   shardedRef: ActorRef[ShardingEnvelope[AccountStateActor.Command]]
@@ -19,14 +20,23 @@ class AccountRoutes(
     extends FailFastCirceSupport
     with JsonCodecs {
 
+  import AccountStateActor.Command._
+  import AccountStateActor.Reply._
+
   val testRoute: Route = path("api") {
     complete("Hi")
   }
 
   val routes: Route = pathPrefix("api" / "v1" / "account" / JavaUUID) { uuid =>
+    concat(
+      getBalance(uuid), 
+      withdraw(uuid), 
+      deposit(uuid)
+    ) 
+  }
+
+  private def getBalance(uuid: UUID) = 
     (pathPrefix("balance") & pathEndOrSingleSlash & get) {
-      import AccountStateActor.Command._
-      import AccountStateActor.Reply._
       onComplete(
         shardedRef.ask[AccountStateActor.Reply](ref => ShardingEnvelope(uuid.toString, GetBalance(ref)))
       ) {
@@ -34,35 +44,33 @@ class AccountRoutes(
           complete(StatusCodes.OK, Account(uuid, balance))
         case _ => complete(StatusCodes.InternalServerError)
       }
-    } ~ (pathPrefix("withdraw" / DoubleNumber) & pathEndOrSingleSlash) { amount =>
-      (put | post) {
-        import AccountStateActor.Command._
-        import AccountStateActor.Reply._
-        onComplete(
-          shardedRef.ask[AccountStateActor.Reply](ref => ShardingEnvelope(uuid.toString, Withdraw(ref, amount)))
-        ) {
-          case Success(CurrentBalance(balance)) =>
-            complete(StatusCodes.Created, Account(uuid, balance))
-          case Success(InsufficientFunds) =>
-            complete(
-              StatusCodes.Conflict,
-              ApplicationError("insufficient funds")
-            )
-          case _ => complete(StatusCodes.InternalServerError)
-        }
-      }
-    } ~ (pathPrefix("deposit" / DoubleNumber) & pathEndOrSingleSlash) { amount =>
-      (put | post) {
-        import AccountStateActor.Command._
-        import AccountStateActor.Reply._
-        onComplete(
-          shardedRef.ask[AccountStateActor.Reply](ref => ShardingEnvelope(uuid.toString, Deposit(ref, amount)))
-        ) {
-          case Success(CurrentBalance(balance)) =>
-            complete(StatusCodes.Created, Account(uuid, balance))
-          case _ => complete(StatusCodes.InternalServerError)
-        }
+    }
+
+  private def withdraw(uuid: UUID) = 
+    (pathPrefix("withdraw" / DoubleNumber) & pathEndOrSingleSlash & (put | post)) { amount =>
+      onComplete(
+        shardedRef.ask[AccountStateActor.Reply](ref => ShardingEnvelope(uuid.toString, Withdraw(ref, amount)))
+      ) {
+        case Success(CurrentBalance(balance)) =>
+          complete(StatusCodes.Created, Account(uuid, balance))
+        case Success(InsufficientFunds) =>
+          complete(
+            StatusCodes.Conflict,
+            ApplicationError("insufficient funds")
+          )
+        case _ => complete(StatusCodes.InternalServerError)
       }
     }
-  }
+
+  private def deposit(uuid: UUID) =
+    (pathPrefix("deposit" / DoubleNumber) & pathEndOrSingleSlash & (put | post)) { amount =>
+      onComplete(
+        shardedRef.ask[AccountStateActor.Reply](ref => ShardingEnvelope(uuid.toString, Deposit(ref, amount)))
+      ) {
+        case Success(CurrentBalance(balance)) =>
+          complete(StatusCodes.Created, Account(uuid, balance))
+        case _ => complete(StatusCodes.InternalServerError)
+      }
+    }
+
 }
