@@ -9,7 +9,6 @@ import net.bytebuddy.matcher.ElementMatchers._
 
 import io.scalac.agent.Agent.LoadingResult
 import io.scalac.agent.{ Agent, AgentInstrumentation }
-import io.scalac.core.akka.model.MailboxTime
 import io.scalac.core.model._
 import io.scalac.core.support.ModulesSupport
 import io.scalac.core.util.Timestamp
@@ -152,7 +151,7 @@ object AkkaActorAgent {
           builder
             .defineField(
               MailboxTimeHolder.MailboxTimesVar,
-              classOf[MailboxTime]
+              classOf[MailboxTimeHolder.MailboxTimesType]
             )
         }
         .installOn(instrumentation)

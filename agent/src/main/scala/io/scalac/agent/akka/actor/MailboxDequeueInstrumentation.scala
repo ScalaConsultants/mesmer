@@ -18,6 +18,6 @@ object MailboxDequeueInstrumentation {
     FiniteDuration(Timestamp.create().interval(EnvelopeOps.getTimestamp(envelope)), MILLISECONDS)
 
   @inline def add(mailbox: Object)(time: FiniteDuration): Unit =
-    MailboxTimeHolder.setTime(MailboxOps.getActor(mailbox), time)
+    MailboxTimeHolder.addTime(MailboxOps.getActor(mailbox), time)
 
 }

@@ -10,13 +10,21 @@ import io.scalac.extension.upstream.opentelemetry._
 
 object OpenTelemetryActorMetricsMonitor {
 
-  case class MetricNames(mailboxSize: String, mailboxTime: String, stashSize: String)
+  case class MetricNames(
+    mailboxSize: String,
+    mailboxTimeAvg: String,
+    mailboxTimeMin: String,
+    mailboxTimeMax: String,
+    stashSize: String
+  )
   object MetricNames {
 
     def default: MetricNames =
       MetricNames(
         "mailbox_size",
-        "mailbox_time",
+        "mailbox_time_avg",
+        "mailbox_time_min",
+        "mailbox_time_max",
         "stash_size"
       )
 
@@ -33,15 +41,23 @@ object OpenTelemetryActorMetricsMonitor {
             .tryValue("mailbox-size")(_.getString)
             .getOrElse(defaultCached.mailboxSize)
 
-          val mailboxTime = clusterMetricsConfig
-            .tryValue("mailbox-time")(_.getString)
-            .getOrElse(defaultCached.mailboxTime)
+          val mailboxTimeAvg = clusterMetricsConfig
+            .tryValue("mailbox-time-avg")(_.getString)
+            .getOrElse(defaultCached.mailboxTimeAvg)
+
+          val mailboxTimeMin = clusterMetricsConfig
+            .tryValue("mailbox-time-min")(_.getString)
+            .getOrElse(defaultCached.mailboxTimeMin)
+
+          val mailboxTimeMax = clusterMetricsConfig
+            .tryValue("mailbox-time-max")(_.getString)
+            .getOrElse(defaultCached.mailboxTimeMax)
 
           val stashSize = clusterMetricsConfig
             .tryValue("stash-size")(_.getString)
             .getOrElse(defaultCached.stashSize)
 
-          MetricNames(mailboxSize, mailboxTime, stashSize)
+          MetricNames(mailboxSize, mailboxTimeAvg, mailboxTimeMin, mailboxTimeMax, stashSize)
         }
         .getOrElse(defaultCached)
     }
@@ -64,10 +80,22 @@ class OpenTelemetryActorMetricsMonitor(instrumentationName: String, metricNames:
       .setDescription("Tracks the size of an Actor's mailbox")
   )
 
-  private val mailboxTimeObserver = new LongMetricObserverBuilderAdapter(
+  private val mailboxTimeAvgObserver = new LongMetricObserverBuilderAdapter(
     meter
-      .longValueObserverBuilder(metricNames.mailboxTime)
-      .setDescription("Tracks the time of an message in an Actor's mailbox")
+      .longValueObserverBuilder(metricNames.mailboxTimeAvg)
+      .setDescription("Tracks the average time of an message in an Actor's mailbox")
+  )
+
+  private val mailboxTimeMinObserver = new LongMetricObserverBuilderAdapter(
+    meter
+      .longValueObserverBuilder(metricNames.mailboxTimeMin)
+      .setDescription("Tracks the minimum time of an message in an Actor's mailbox")
+  )
+
+  private val mailboxTimeMaxObserver = new LongMetricObserverBuilderAdapter(
+    meter
+      .longValueObserverBuilder(metricNames.mailboxTimeMax)
+      .setDescription("Tracks the maximum time of an message in an Actor's mailbox")
   )
 
   private val stashSizeCounter = meter
@@ -87,8 +115,14 @@ class OpenTelemetryActorMetricsMonitor(instrumentationName: String, metricNames:
     val mailboxSize: MetricObserver[Long] =
       mailboxSizeObserver.createObserver(labels)
 
-    val mailboxTime: MetricObserver[Long] =
-      mailboxTimeObserver.createObserver(labels)
+    val mailboxTimeAvg: MetricObserver[Long] =
+      mailboxTimeAvgObserver.createObserver(labels)
+
+    val mailboxTimeMin: MetricObserver[Long] =
+      mailboxTimeMinObserver.createObserver(labels)
+
+    val mailboxTimeMax: MetricObserver[Long] =
+      mailboxTimeMaxObserver.createObserver(labels)
 
     val stashSize: MetricRecorder[Long] with WrappedSynchronousInstrument[Long] =
       WrappedLongValueRecorder(stashSizeCounter, labels)

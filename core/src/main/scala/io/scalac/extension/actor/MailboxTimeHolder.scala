@@ -2,28 +2,44 @@ package io.scalac.extension.actor
 
 import java.lang.invoke.MethodHandles
 
+import scala.collection.mutable
 import scala.concurrent.duration.FiniteDuration
-
-import io.scalac.core.akka.model.MailboxTime
 
 object MailboxTimeHolder {
 
   private lazy val holderClass = Class.forName("akka.actor.ActorCell")
 
+  type MailboxTimesType = mutable.ArrayBuffer[MailboxTime]
+
   val MailboxTimesVar = "mailboxTimes"
 
   private lazy val lookup = MethodHandles.publicLookup()
 
-  private lazy val mailboxTimeGetterHandler =
-    lookup.findGetter(holderClass, MailboxTimesVar, classOf[MailboxTime])
+  private lazy val mailboxTimesGetterHandler =
+    lookup.findGetter(holderClass, MailboxTimesVar, classOf[MailboxTimesType])
 
-  private lazy val mailboxTimeSetterHandler =
-    lookup.findSetter(holderClass, MailboxTimesVar, classOf[MailboxTime])
+  private lazy val mailboxTimesSetterHandler =
+    lookup.findSetter(holderClass, MailboxTimesVar, classOf[MailboxTimesType])
 
-  @inline def setTime(actorCell: Object, time: FiniteDuration): Unit =
-    mailboxTimeSetterHandler.invoke(actorCell, time.toMillis)
+  @inline def setTimes(actorCell: Object): Unit =
+    mailboxTimesSetterHandler.invoke(actorCell, mutable.ArrayBuffer.empty[MailboxTime])
 
-  @inline def getTime(actorCell: Object): Option[MailboxTime] =
-    Option(mailboxTimeGetterHandler.invoke(actorCell)).map(_.asInstanceOf[MailboxTime])
+  @inline def addTime(actorCell: Object, time: FiniteDuration): Unit =
+    mailboxTimes(actorCell).foreach(_ += MailboxTime(time))
+
+  @inline def takeTimes(actorCell: Object): Option[Array[MailboxTime]] = {
+    val times = getTimes(actorCell)
+    clearTimes(actorCell)
+    times
+  }
+
+  @inline def getTimes(actorCell: Object): Option[Array[MailboxTime]] =
+    mailboxTimes(actorCell).map(_.toArray)
+
+  @inline def clearTimes(actorCell: Object): Unit =
+    mailboxTimes(actorCell).foreach(_.clear())
+
+  @inline private def mailboxTimes(actorCell: Object): Option[MailboxTimesType] =
+    Option(mailboxTimesGetterHandler.invoke(actorCell)).map(_.asInstanceOf[MailboxTimesType])
 
 }

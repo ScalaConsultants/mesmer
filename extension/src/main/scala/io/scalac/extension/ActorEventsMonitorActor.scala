@@ -12,7 +12,6 @@ import akka.{ actor => classic }
 
 import org.slf4j.LoggerFactory
 
-import io.scalac.core.akka.model.MailboxTime
 import io.scalac.core.model.Tag
 import io.scalac.core.util.Timestamp
 import io.scalac.extension.AkkaStreamMonitoring.StartStreamCollection
@@ -22,6 +21,8 @@ import io.scalac.extension.event.ActorEvent.StashMeasurement
 import io.scalac.extension.metric.ActorMetricMonitor.Labels
 import io.scalac.extension.metric.{ ActorMetricMonitor, Unbind }
 import io.scalac.extension.model.{ ActorKey, Node }
+import io.scalac.extension.util.AggMetric.LongValueAggMetric
+import io.scalac.extension.util.TimeSeries.LongTimeSeries
 
 object ActorEventsMonitorActor {
 
@@ -255,7 +256,9 @@ object ActorEventsMonitorActor {
 
           metrics.mailboxTime.foreach { mailboxTime =>
             log.trace("Registering a new updater for average mailbox time for actor {} with value {}", key, mailboxTime)
-            bind.mailboxTime.setUpdater(_.observe(mailboxTime))
+            bind.mailboxTimeAvg.setUpdater(_.observe(mailboxTime.avg))
+            bind.mailboxTimeMin.setUpdater(_.observe(mailboxTime.min))
+            bind.mailboxTimeMax.setUpdater(_.observe(mailboxTime.max))
           }
 
       }
@@ -351,8 +354,10 @@ object ActorEventsMonitorActor {
     private def mailboxSize(cell: Object): Int =
       numberOfMessagesMethodHandler.invoke(cell).asInstanceOf[Int]
 
-    private def mailboxTime(cell: Object): Option[MailboxTime] =
-      MailboxTimeHolder.getTime(cell)
+    private def mailboxTime(cell: Object): Option[LongValueAggMetric] =
+      MailboxTimeHolder
+        .takeTimes(cell)
+        .map(ts => LongValueAggMetric.fromTimeSeries(new LongTimeSeries(ts)))
 
   }
 
