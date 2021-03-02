@@ -18,9 +18,9 @@ object AkkaStreamExtensions extends Lookup {
   }
 
   def addCollectionReceive(
-    receive: PartialFunction[Any, Unit],
+    receive: Actor.Receive,
     thiz: Actor
-  ): PartialFunction[Any, Unit] =
+  ): Actor.Receive =
     receive.orElse {
       case PushMetrics(replyTo) => {
 
