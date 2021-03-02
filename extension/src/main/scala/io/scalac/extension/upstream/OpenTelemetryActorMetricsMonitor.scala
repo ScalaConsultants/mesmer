@@ -129,6 +129,9 @@ class OpenTelemetryActorMetricsMonitor(instrumentationName: String, metricNames:
 
     def unbind(): Unit = {
       mailboxSizeObserver.removeObserver(labels)
+      mailboxTimeAvgObserver.removeObserver(labels)
+      mailboxTimeMinObserver.removeObserver(labels)
+      mailboxTimeMaxObserver.removeObserver(labels)
       stashSize.unbind()
     }
 
