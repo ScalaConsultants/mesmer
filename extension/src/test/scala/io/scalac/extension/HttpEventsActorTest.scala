@@ -12,13 +12,13 @@ import org.scalatest.flatspec.AnyFlatSpecLike
 import org.scalatest.matchers.should.Matchers
 
 import io.scalac.core.util.Timestamp
-import io.scalac.extension.HttpEventsActorTest.TestCaseContext
 import io.scalac.extension.event.EventBus
-import io.scalac.extension.event.HttpEvent.{RequestCompleted, RequestStarted}
+import io.scalac.extension.event.HttpEvent.{ RequestCompleted, RequestStarted }
 import io.scalac.extension.http.MutableRequestStorage
 import io.scalac.extension.metric.CachingMonitor
 import io.scalac.extension.metric.HttpMetricMonitor.Labels
-import io.scalac.extension.util.TestCase.{ MonitorTestCaseContext, MonitorWithService }
+import io.scalac.extension.util.TestCase.MonitorTestCaseContext.BasicContext
+import io.scalac.extension.util.TestCase.MonitorWithServiceWithBasicContextTestCaseFactory
 import io.scalac.extension.util._
 import io.scalac.extension.util.probe.BoundTestProbe._
 import io.scalac.extension.util.probe.HttpMetricsTestProbe
@@ -34,8 +34,8 @@ class HttpEventsActorTest
     with LoneElement
     with TestOps {
 
-  val testCaseFactory = new MonitorWithService[HttpMetricsTestProbe, TestCaseContext] {
-    protected def createMonitorBehavior(implicit context: TestCaseContext): Behavior[_] =
+  val testCaseFactory = new MonitorWithServiceWithBasicContextTestCaseFactory[HttpMetricsTestProbe] {
+    protected def createMonitorBehavior(implicit context: BasicContext[HttpMetricsTestProbe]): Behavior[_] =
       HttpEventsActor(
         if (context.caching) CachingMonitor(monitor) else monitor,
         MutableRequestStorage.empty,
@@ -46,17 +46,14 @@ class HttpEventsActorTest
 
     protected def createMonitor(implicit s: ActorSystem[_]): HttpMetricsTestProbe =
       new HttpMetricsTestProbe()
-
-    protected def createContext(monitor: HttpMetricsTestProbe)(implicit s: ActorSystem[_]): TestCaseContext =
-      TestCaseContext(monitor)
   }
 
   import testCaseFactory._
 
-  def requestStarted(id: String, labels: Labels)(implicit ctx: TestCaseContext): Unit =
+  def requestStarted(id: String, labels: Labels)(implicit ctx: BasicContext[HttpMetricsTestProbe]): Unit =
     EventBus(system).publishEvent(RequestStarted(id, Timestamp.create(), labels.path, labels.method))
 
-  def requestCompleted(id: String)(implicit ctx: TestCaseContext): Unit =
+  def requestCompleted(id: String)(implicit ctx: BasicContext[HttpMetricsTestProbe]): Unit =
     EventBus(system).publishEvent(RequestCompleted(id, Timestamp.create()))
 
   "HttpEventsActor" should "collect metrics for single request" in testCase { implicit c =>
@@ -117,16 +114,6 @@ class HttpEventsActorTest
         case MetricRecorded(value) => value shouldBe 1000L +- 100L
       }
     }
-  }
-
-}
-
-object HttpEventsActorTest {
-
-  case class TestCaseContext(monitor: HttpMetricsTestProbe, caching: Boolean = false)(
-    implicit val system: ActorSystem[_]
-  ) extends MonitorTestCaseContext[HttpMetricsTestProbe] {
-    def withCaching: TestCaseContext = copy(caching = true)
   }
 
 }

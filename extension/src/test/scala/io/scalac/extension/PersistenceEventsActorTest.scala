@@ -11,21 +11,21 @@ import org.scalatest.flatspec.AnyFlatSpecLike
 import org.scalatest.matchers.should.Matchers
 
 import io.scalac.core.util.Timestamp
-import io.scalac.extension.PersistenceEventsActorTest.TestCaseContext
 import io.scalac.extension.event.EventBus
 import io.scalac.extension.event.PersistenceEvent._
 import io.scalac.extension.metric.CachingMonitor
 import io.scalac.extension.metric.PersistenceMetricMonitor.Labels
 import io.scalac.extension.persistence.{ ImmutablePersistStorage, ImmutableRecoveryStorage }
 import io.scalac.extension.util.IdentityPathService
-import io.scalac.extension.util.TestCase.{ MonitorTestCaseContext, MonitorWithService }
+import io.scalac.extension.util.TestCase.MonitorTestCaseContext.BasicContext
+import io.scalac.extension.util.TestCase.MonitorWithServiceWithBasicContextTestCaseFactory
 import io.scalac.extension.util.probe.BoundTestProbe.{ Inc, MetricRecorded }
 import io.scalac.extension.util.probe.PersistenceMetricTestProbe
 
 class PersistenceEventsActorTest extends AnyFlatSpecLike with Matchers with Inspectors {
 
-  val testCaseFactory = new MonitorWithService[PersistenceMetricTestProbe, TestCaseContext] {
-    protected def createMonitorBehavior(implicit context: TestCaseContext): Behavior[_] =
+  val testCaseFactory = new MonitorWithServiceWithBasicContextTestCaseFactory[PersistenceMetricTestProbe] {
+    protected def createMonitorBehavior(implicit context: BasicContext[PersistenceMetricTestProbe]): Behavior[_] =
       PersistenceEventsActor(
         if (context.caching) CachingMonitor(monitor) else monitor,
         ImmutableRecoveryStorage.empty,
@@ -38,29 +38,27 @@ class PersistenceEventsActorTest extends AnyFlatSpecLike with Matchers with Insp
     protected def createMonitor(implicit system: ActorSystem[_]): PersistenceMetricTestProbe =
       new PersistenceMetricTestProbe()
 
-    protected def createContext(monitor: PersistenceMetricTestProbe)(implicit s: ActorSystem[_]): TestCaseContext =
-      TestCaseContext(monitor)
   }
 
   import testCaseFactory._
 
-  def recoveryStarted(labels: Labels)(implicit ctx: TestCaseContext): Unit =
+  def recoveryStarted(labels: Labels)(implicit ctx: BasicContext[PersistenceMetricTestProbe]): Unit =
     EventBus(system).publishEvent(RecoveryStarted(labels.path, labels.persistenceId, Timestamp.create()))
 
-  def recoveryFinished(labels: Labels)(implicit ctx: TestCaseContext): Unit =
+  def recoveryFinished(labels: Labels)(implicit ctx: BasicContext[PersistenceMetricTestProbe]): Unit =
     EventBus(system).publishEvent(RecoveryFinished(labels.path, labels.persistenceId, Timestamp.create()))
 
-  def persistEventStarted(seqNo: Long, labels: Labels)(implicit ctx: TestCaseContext): Unit =
+  def persistEventStarted(seqNo: Long, labels: Labels)(implicit ctx: BasicContext[PersistenceMetricTestProbe]): Unit =
     EventBus(system).publishEvent(
       PersistingEventStarted(labels.path, labels.persistenceId, seqNo, Timestamp.create())
     )
 
-  def persistEventFinished(seqNo: Long, labels: Labels)(implicit ctx: TestCaseContext): Unit =
+  def persistEventFinished(seqNo: Long, labels: Labels)(implicit ctx: BasicContext[PersistenceMetricTestProbe]): Unit =
     EventBus(system).publishEvent(
       PersistingEventFinished(labels.path, labels.persistenceId, seqNo, Timestamp.create())
     )
 
-  def snapshotCreated(seqNo: Long, labels: Labels)(implicit ctx: TestCaseContext): Unit =
+  def snapshotCreated(seqNo: Long, labels: Labels)(implicit ctx: BasicContext[PersistenceMetricTestProbe]): Unit =
     EventBus(system).publishEvent(SnapshotCreated(labels.path, labels.persistenceId, seqNo, Timestamp.create()))
 
   def expectMetricsUpdates(monitor: PersistenceMetricTestProbe, amount: Int): Unit =
@@ -213,14 +211,4 @@ class PersistenceEventsActorTest extends AnyFlatSpecLike with Matchers with Insp
       }
     }
   }
-}
-
-object PersistenceEventsActorTest {
-
-  case class TestCaseContext(monitor: PersistenceMetricTestProbe, caching: Boolean = false)(
-    implicit val system: ActorSystem[_]
-  ) extends MonitorTestCaseContext[PersistenceMetricTestProbe] {
-    def withCaching: TestCaseContext = copy(caching = true)
-  }
-
 }

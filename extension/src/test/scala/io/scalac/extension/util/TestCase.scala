@@ -16,11 +16,11 @@ object TestCase {
     protected def startEnv(): E
     protected def stopEnv(implicit env: E): Unit
     protected def createContext(implicit env: E): C
-    protected def setUp(context: C): Unit
+    protected def setUp(context: C): Unit = {}
 
     // DSL for `import factory._`
     // TODO When we move to Scala 3, let's take advantage of context-functions to build smt as follow:
-    // testCase { 
+    // testCase {
     //    monitor.bind(...)
     //    system.systemActorOf
     // }
@@ -51,7 +51,10 @@ object TestCase {
     implicit val system: ActorSystem[_]
   }
   object MonitorTestCaseContext {
-    final case class Basic[+M](monitor: M)(implicit val system: ActorSystem[_]) extends MonitorTestCaseContext[M]
+    final case class BasicContext[+M](monitor: M, caching: Boolean = false)(implicit val system: ActorSystem[_])
+        extends MonitorTestCaseContext[M] {
+      def withCaching: BasicContext[M] = copy(caching = true)
+    }
   }
 
   trait MonitorTestCaseFactory[M, C <: MonitorTestCaseContext[M]]
@@ -62,27 +65,33 @@ object TestCase {
 
     protected final def startEnv(): ActorSystem[_] =
       ActorSystem[Nothing](Behaviors.ignore, createUniqueId, TestConfig.localActorProvider)
-
     protected final def stopEnv(implicit env: ActorSystem[_]): Unit    = TestKit.shutdownActorSystem(env.classicSystem)
     protected final def createContext(implicit env: ActorSystem[_]): C = createContext(createMonitor(env))(env)
+
   }
 
-  trait MonitorWithService[M, C <: MonitorTestCaseContext[M]]
+  trait MonitorWithServiceTestCaseFactory[M, C <: MonitorTestCaseContext[M]]
       extends MonitorTestCaseFactory[M, C]
       with ReceptionistOps {
     protected def createMonitorBehavior(implicit context: C): Behavior[_]
     protected val serviceKey: ServiceKey[_]
     protected implicit val timeout: Timeout = 1.seconds
-    protected def setUp(context: C): Unit = {
+    protected override def setUp(context: C): Unit = {
+      super.setUp(context)
       val monitorBehavior = createMonitorBehavior(context)
       val monitorActor    = context.system.systemActorOf(monitorBehavior, createUniqueId)
       onlyRef(monitorActor, serviceKey)(context.system, timeout)
     }
   }
 
-  trait MonitorWithServiceWithBasicContext[M] extends MonitorWithService[M, MonitorTestCaseContext.Basic[M]] {
-    final protected def createContext(monitor: M)(implicit system: ActorSystem[_]): MonitorTestCaseContext.Basic[M] =
-      MonitorTestCaseContext.Basic(monitor)
+  trait Monitor
+
+  trait MonitorWithServiceWithBasicContextTestCaseFactory[M]
+      extends MonitorWithServiceTestCaseFactory[M, MonitorTestCaseContext.BasicContext[M]] {
+    final protected def createContext(
+      monitor: M
+    )(implicit system: ActorSystem[_]): MonitorTestCaseContext.BasicContext[M] =
+      MonitorTestCaseContext.BasicContext(monitor)
   }
 
 }

@@ -1,55 +1,65 @@
 package io.scalac.extension
 
-import akka.actor.PoisonPill
-import akka.actor.testkit.typed.scaladsl.{ ScalaTestWithActorTestKit, TestProbe }
+import scala.concurrent.duration._
+
+import akka.actor.testkit.typed.scaladsl.TestProbe
 import akka.actor.typed.receptionist.ServiceKey
 import akka.actor.typed.scaladsl.Behaviors
 import akka.actor.typed.scaladsl.adapter._
-import akka.actor.typed.{ ActorRef, Behavior }
-import akka.{ actor => classic }
+import akka.actor.typed.{ ActorRef, ActorSystem, Behavior }
 
-import io.scalac.core.akka.model.PushMetrics
-import io.scalac.core.model.Tag.{ StageName, SubStreamName }
-import io.scalac.core.model._
-import io.scalac.extension.AkkaStreamMonitoring.StartStreamCollection
-import io.scalac.extension.event.ActorInterpreterStats
-import io.scalac.extension.util.TestConfig.localActorProvider
-import io.scalac.extension.util.probe.BoundTestProbe.{ LazyMetricsObserved, MetricObserved }
-import io.scalac.extension.util.probe.{ StreamMonitorTestProbe, StreamOperatorMonitorTestProbe }
-import io.scalac.extension.util.{ MonitorFixture, TerminationRegistryOps, TestOps }
 import org.scalatest._
 import org.scalatest.concurrent.Eventually
 import org.scalatest.enablers.Emptiness.emptinessOfOption
 import org.scalatest.flatspec.AnyFlatSpecLike
 import org.scalatest.matchers.should.Matchers
-import scala.concurrent.duration._
 
+import io.scalac.core.akka.model.PushMetrics
+import io.scalac.core.model.Tag.{ StageName, SubStreamName }
+import io.scalac.core.model._
+import io.scalac.extension.AkkaStreamMonitoring.StartStreamCollection
+import io.scalac.extension.AkkaStreamMonitoringTest._
+import io.scalac.extension.event.ActorInterpreterStats
+import io.scalac.extension.util.TestCase.{ MonitorTestCaseContext, MonitorTestCaseFactory }
+import io.scalac.extension.util.probe.BoundTestProbe.{ LazyMetricsObserved, MetricObserved }
 import io.scalac.extension.util.probe.ObserverCollector.CommonCollectorImpl
+import io.scalac.extension.util.probe.{ StreamMonitorTestProbe, StreamOperatorMonitorTestProbe }
+import io.scalac.extension.util.TestOps
 
 class AkkaStreamMonitoringTest
-    extends ScalaTestWithActorTestKit(localActorProvider)
-    with AnyFlatSpecLike
+    extends AnyFlatSpecLike
     with Matchers
     with Inspectors
     with Eventually
     with OptionValues
     with Inside
     with BeforeAndAfterAll
-    with TerminationRegistryOps
     with LoneElement
-    with TestOps
-    with MonitorFixture {
+    with TestOps {
 
-  override type Monitor = (StreamOperatorMonitorTestProbe, StreamMonitorTestProbe)
-  override type Command = AkkaStreamMonitoring.Command
-  val OperationsPing = 1.seconds
-  val ReceiveWait    = OperationsPing * 3
-  val SourceName     = "sourceSingle"
-  val SinkName       = "sinkIgnore"
-  val FlowName       = "map"
-  val StagesNames    = Seq(SourceName, SinkName, FlowName)
+  private val OperationsPing = 1.seconds
+  private val ReceiveWait    = OperationsPing * 3
+  private val SourceName     = "sourceSingle"
+  private val SinkName       = "sinkIgnore"
+  private val FlowName       = "map"
+  private val StagesNames    = Seq(SourceName, SinkName, FlowName)
 
-  override protected val serviceKey: Option[ServiceKey[_]] = None
+  val testCaseFactory = new MonitorTestCaseFactory[Monitor, TestCaseContext] {
+
+    override protected def createMonitor(implicit system: ActorSystem[_]): Monitor =
+      (
+        StreamOperatorMonitorTestProbe(new CommonCollectorImpl(OperationsPing)),
+        StreamMonitorTestProbe(new CommonCollectorImpl(OperationsPing))
+      )
+
+    override protected def createContext(monitor: Monitor)(implicit system: ActorSystem[_]): TestCaseContext = {
+      val (operations, global) = monitor
+      val ref                  = system.systemActorOf(AkkaStreamMonitoring(operations, global, None), createUniqueId)
+      TestCaseContext(monitor, ref)
+    }
+  }
+
+  import testCaseFactory._
 
   def singleActorLinearShellInfo(subStreamName: SubStreamName, flowCount: Int, push: Long, pull: Long): ShellInfo = {
     val source = StageInfo(StageName(SourceName, 0), subStreamName)
@@ -62,7 +72,6 @@ class AkkaStreamMonitoringTest
       }
 
     (source +: flows :+ sink).toArray -> connections.toArray
-
   }
 
   def akkaStreamActorBehavior(
@@ -76,103 +85,93 @@ class AkkaStreamMonitoringTest
       Behaviors.same
   }
 
-  def cleanActors(refs: Seq[classic.ActorRef]): Unit = refs.foreach(_ ! PoisonPill)
+  def sut(implicit c: TestCaseContext): ActorRef[AkkaStreamMonitoring.Command] = c.ref
+  def global(implicit c: TestCaseContext): StreamMonitorTestProbe              = c.monitor._2
+  def operations(implicit c: TestCaseContext): StreamOperatorMonitorTestProbe  = c.monitor._1
 
-  override protected def createMonitor: Monitor = {
-    val operations = StreamOperatorMonitorTestProbe(new CommonCollectorImpl(OperationsPing))
-    val global     = StreamMonitorTestProbe(new CommonCollectorImpl(OperationsPing))
-    (operations, global)
+  "AkkaStreamMonitoring" should "ask all received refs for metrics" in testCase { implicit c =>
+    val probes = List.fill(5)(TestProbe[PushMetrics]())
+    val refs = probes
+      .map(probe => akkaStreamActorBehavior(Set.empty, SubStreamName(randomString(10), "1"), Some(probe.ref)))
+      .map(behavior => system.systemActorOf(behavior, createUniqueId).toClassic)
+
+    sut ! StartStreamCollection(refs.toSet)
+
+    forAll(probes)(_.expectMessageType[PushMetrics])
   }
 
-  override protected def setUp(monitor: Monitor, cache: Boolean): ActorRef[Command] = monitor match {
-    case (operations, global) => system.systemActorOf(AkkaStreamMonitoring(operations, global, None), createUniqueId)
+  it should "publish amount of actors running stream" in testCase { implicit c =>
+    val ExpectedCount = 5
+    val refs = generateUniqueString(ExpectedCount, 10).zipWithIndex.map {
+      case (name, index) =>
+        val streamName = SubStreamName(s"$name-$index", s"$index")
+        val behavior   = akkaStreamActorBehavior(Set.empty, streamName, None)
+        system.systemActorOf(behavior, s"$name-$index-$index-${randomString(10)}").toClassic
+    }
+
+    sut ! StartStreamCollection(refs.toSet)
+
+    global.streamActorsProbe.receiveMessage(ReceiveWait) shouldBe (MetricObserved(ExpectedCount))
   }
 
-  "AkkaStreamMonitoring" should "ask all received refs for metrics" in testWithRef {
-    case ((_, _), sut) =>
-      val probes = List.fill(5)(TestProbe[PushMetrics]())
-      val refs = probes
-        .map(probe => akkaStreamActorBehavior(Set.empty, SubStreamName(randomString(10), "1"), Some(probe.ref)))
-        .map(behavior => system.systemActorOf(behavior, createUniqueId).toClassic)
-
-      sut ! StartStreamCollection(refs.toSet)
-
-      forAll(probes)(_.expectMessageType[PushMetrics])
-
-      cleanActors(refs)
-  }
-
-  it should "publish amount of actors running stream" in testWithRef {
-    case ((_, global), sut) =>
-      val ExpectedCount = 5
-      val refs = generateUniqueString(ExpectedCount, 10).zipWithIndex.map {
-        case (name, index) =>
-          val streamName = SubStreamName(s"$name-$index", s"$index")
+  it should "publish amount of running streams" in testCase { implicit c =>
+    val ExpectedCount  = 5
+    val ActorPerStream = 3
+    val refs = generateUniqueString(ExpectedCount, 10).zipWithIndex.flatMap {
+      case (name, index) =>
+        List.tabulate(ActorPerStream) { streamId =>
+          val streamName = SubStreamName(s"$name-$index", s"$streamId")
           val behavior   = akkaStreamActorBehavior(Set.empty, streamName, None)
-          system.systemActorOf(behavior, s"$name-$index-$index-${randomString(10)}").toClassic
-      }
+          system.systemActorOf(behavior, s"$name-$index-$streamId-${randomString(10)}").toClassic
+        }
+    }
 
-      sut ! StartStreamCollection(refs.toSet)
+    sut ! StartStreamCollection(refs.toSet)
 
-      global.streamActorsProbe.receiveMessage(ReceiveWait) shouldBe (MetricObserved(ExpectedCount))
-
-      cleanActors(refs)
+    global.runningStreamsProbe.receiveMessage(2.seconds) shouldBe (MetricObserved(ExpectedCount))
+    global.streamActorsProbe.receiveMessage(2.seconds) shouldBe (MetricObserved(ExpectedCount * ActorPerStream))
   }
 
-  it should "publish amount of running streams" in testWithRef {
-    case ((_, global), sut) =>
-      val ExpectedCount  = 5
-      val ActorPerStream = 3
-      val refs = generateUniqueString(ExpectedCount, 10).zipWithIndex.flatMap {
-        case (name, index) =>
-          List.tabulate(ActorPerStream) { streamId =>
-            val streamName = SubStreamName(s"$name-$index", s"$streamId")
-            val behavior   = akkaStreamActorBehavior(Set.empty, streamName, None)
-            system.systemActorOf(behavior, s"$name-$index-$streamId-${randomString(10)}").toClassic
-          }
-      }
+  it should "collect amount of messages processed and operators" in testCase { implicit c =>
+    val ExpectedCount = 5
+    val Flows         = 2
+    val Push          = 11L
+    val Pull          = 9L
 
-      sut ! StartStreamCollection(refs.toSet)
+    val refs = generateUniqueString(ExpectedCount, 10).zipWithIndex.map {
+      case (name, index) =>
+        val streamName = SubStreamName(s"$name-$index", "0")
 
-      global.runningStreamsProbe.receiveMessage(2.seconds) shouldBe (MetricObserved(ExpectedCount))
-      global.streamActorsProbe.receiveMessage(2.seconds) shouldBe (MetricObserved(ExpectedCount * ActorPerStream))
+        val linearShellInfo = singleActorLinearShellInfo(streamName, Flows, Push, Pull)
 
-      cleanActors(refs)
+        val behavior = akkaStreamActorBehavior(Set(linearShellInfo), streamName, None)
+
+        system.systemActorOf(behavior, s"$name-$index-$index-${randomString(10)}").toClassic
+    }
+
+    sut ! StartStreamCollection(refs.toSet)
+
+    val operators =
+      operations.runningOperatorsTestProbe.receiveMessages(ExpectedCount * StagesNames.size, OperationsPing)
+    val processed = operations.processedTestProbe.receiveMessages(ExpectedCount * (Flows + 1), OperationsPing)
+
+    forAll(processed)(inside(_) {
+      case LazyMetricsObserved(value, labels) =>
+        value shouldBe Push
+        labels.node shouldBe empty
+    })
+
+    operators.map(_.labels.operator.name).distinct should contain theSameElementsAs StagesNames
   }
 
-  it should "collect amount of messages processed and operators" in testWithRef {
-    case ((operations, _), sut) =>
-      val ExpectedCount = 5
-      val Flows         = 2
-      val Push          = 11L
-      val Pull          = 9L
+}
 
-      val refs = generateUniqueString(ExpectedCount, 10).zipWithIndex.map {
-        case (name, index) =>
-          val streamName = SubStreamName(s"$name-$index", "0")
+object AkkaStreamMonitoringTest {
 
-          val linearShellInfo = singleActorLinearShellInfo(streamName, Flows, Push, Pull)
+  type Monitor = (StreamOperatorMonitorTestProbe, StreamMonitorTestProbe)
 
-          val behavior = akkaStreamActorBehavior(Set(linearShellInfo), streamName, None)
-
-          system.systemActorOf(behavior, s"$name-$index-$index-${randomString(10)}").toClassic
-      }
-
-      sut ! StartStreamCollection(refs.toSet)
-
-      val operators =
-        operations.runningOperatorsTestProbe.receiveMessages(ExpectedCount * StagesNames.size, OperationsPing)
-      val processed = operations.processedTestProbe.receiveMessages(ExpectedCount * (Flows + 1), OperationsPing)
-
-      forAll(processed)(inside(_) {
-        case LazyMetricsObserved(value, labels) =>
-          value shouldBe Push
-          labels.node shouldBe empty
-      })
-
-      operators.map(_.labels.operator.name).distinct should contain theSameElementsAs StagesNames
-
-      cleanActors(refs)
-  }
+  case class TestCaseContext(monitor: Monitor, ref: ActorRef[AkkaStreamMonitoring.Command])(
+    implicit val system: ActorSystem[_]
+  ) extends MonitorTestCaseContext[Monitor]
 
 }

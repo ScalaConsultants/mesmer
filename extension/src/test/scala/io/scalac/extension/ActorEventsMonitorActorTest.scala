@@ -34,7 +34,7 @@ class ActorEventsMonitorActorTest extends AnyFlatSpecLike with Matchers with Ins
 
   private val pingOffset: FiniteDuration = 1.seconds
 
-  private val testCaseFactory = new MonitorWithServiceWithBasicContext[ActorMonitorTestProbe] {
+  private val testCaseFactory = new MonitorWithServiceWithBasicContextTestCaseFactory[ActorMonitorTestProbe] {
 
     protected val serviceKey: ServiceKey[_] = actorServiceKey
 
@@ -42,7 +42,7 @@ class ActorEventsMonitorActorTest extends AnyFlatSpecLike with Matchers with Ins
       new ActorMonitorTestProbe(new CommonCollectorImpl(pingOffset))
 
     protected def createMonitorBehavior(
-      implicit context: MonitorTestCaseContext.Basic[ActorMonitorTestProbe]
+      implicit context: MonitorTestCaseContext.BasicContext[ActorMonitorTestProbe]
     ): Behavior[_] =
       ActorEventsMonitorActor(
         context.monitor,
