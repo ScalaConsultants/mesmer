@@ -3,10 +3,10 @@ import io.scalac.core.invoke.Lookup
 
 object ConnectionOps extends Lookup {
 
-  lazy val PullCounterVarName = "pullCounter"
-  lazy val PushCounterVarName = "pushCounter"
+  val PullCounterVarName = "pullCounter"
+  val PushCounterVarName = "pushCounter"
 
-  private val connectionClass = Class.forName("akka.stream.impl.fusing.GraphInterpreter$Connection")
+  private lazy val connectionClass = Class.forName("akka.stream.impl.fusing.GraphInterpreter$Connection")
 
   lazy val (pushHandleGetter, pushHandleSetter) = {
     val field = connectionClass.getDeclaredField(PushCounterVarName)
@@ -34,7 +34,7 @@ object ConnectionOps extends Lookup {
    * @param connection
    * @return respectively push and pull counter values
    */
-  def getCounterValues(connection: AnyRef): (Long, Long) =
+  def getAndResetCounterValues(connection: AnyRef): (Long, Long) =
     (pushHandleGetter.invoke(connection).asInstanceOf[Long], pullHandleGetter.invoke(connection).asInstanceOf[Long])
 
 }

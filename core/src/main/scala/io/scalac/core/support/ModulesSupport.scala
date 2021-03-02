@@ -6,6 +6,7 @@ import io.scalac.core.model.{ Module, SupportedVersion }
 trait ModulesSupport {
   def akkaActor: SupportedVersion
   def akkaHttp: SupportedVersion
+  def akkaStream: SupportedVersion
   def akkaPersistenceTyped: SupportedVersion
   def akkaClusterTyped: SupportedVersion
 }
@@ -16,6 +17,7 @@ object ModulesSupport extends ModulesSupport {
   val akkaPersistenceTypedModule = Module("akka-persistence-typed")
   val akkaActorTypedModule       = Module("akka-actor-typed")
   val akkaActorModule            = Module("akka-actor")
+  val akkaStreamModule            = Module("akka-stream")
 
   override def akkaActor: SupportedVersion = majors("2").and(minors("6")).and(patches("8"))
 
@@ -26,4 +28,6 @@ object ModulesSupport extends ModulesSupport {
   override def akkaPersistenceTyped: SupportedVersion = majors("2").and(minors("6")).and(patches("8"))
 
   override def akkaClusterTyped: SupportedVersion = majors("2").and(minors("6")).and(patches("8"))
+
+  override def akkaStream: SupportedVersion = majors("2").and(minors("6")).and(patches("8"))
 }

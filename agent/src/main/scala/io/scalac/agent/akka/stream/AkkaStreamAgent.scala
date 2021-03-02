@@ -1,8 +1,8 @@
 package io.scalac.agent.akka.stream
 
+import akka.ActorGraphInterpreterAdvice
 import akka.actor.Props
 import akka.stream.GraphStageIslandAdvice
-import akka.{ ActorGraphInterpreterAdvice }
 import io.scalac.agent.Agent.LoadingResult
 import io.scalac.agent.{ Agent, AgentInstrumentation }
 import io.scalac.core.model.{ Module, SupportedModules, SupportedVersion }
@@ -68,8 +68,11 @@ object AkkaStreamAgent {
         .`type`(named[TypeDescription](target))
         .transform { (builder, _, _, _) =>
           builder
-            .defineField("pushCounter", classOf[Long]) // java specification guarantee starting from 0
-            .defineField("pullCounter", classOf[Long])
+            .defineField(
+              ConnectionOps.PullCounterVarName,
+              classOf[Long]
+            ) // java specification guarantee starting from 0
+            .defineField(ConnectionOps.PushCounterVarName, classOf[Long])
         }
         .installOn(instrumentation)
       LoadingResult(target)

@@ -56,7 +56,7 @@ object ActorMonitorTestProbe {
       ObserverTestProbeWrapper(mailboxTimeMinProbe, collector)
     val mailboxTimeMax: MetricObserver[Long] =
       ObserverTestProbeWrapper(mailboxTimeMaxProbe, collector)
-    val stashSize: MetricRecorder[Long] with AbstractTestProbeWrapper =
+    val stashSize: MetricRecorder[Long] with SyncTestProbeWrapper =
       RecorderTestProbeWrapper(stashSizeProbe)
     override def unbind(): Unit = {
       collector.finish(mailboxSizeProbe)

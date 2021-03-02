@@ -14,7 +14,7 @@ import org.scalatest.matchers.should.Matchers
 import io.scalac.core.util.Timestamp
 import io.scalac.extension.HttpEventsActorTest.TestCaseContext
 import io.scalac.extension.event.EventBus
-import io.scalac.extension.event.HttpEvent.{ RequestCompleted, RequestStarted }
+import io.scalac.extension.event.HttpEvent.{RequestCompleted, RequestStarted}
 import io.scalac.extension.http.MutableRequestStorage
 import io.scalac.extension.metric.CachingMonitor
 import io.scalac.extension.metric.HttpMetricMonitor.Labels

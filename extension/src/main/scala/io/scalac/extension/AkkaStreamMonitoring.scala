@@ -1,16 +1,27 @@
 package io.scalac.extension
 
 import akka.actor.ActorRef
-import akka.actor.typed.receptionist.Receptionist.Register
+import akka.actor.typed._
 import akka.actor.typed.scaladsl.adapter._
-import akka.actor.typed.scaladsl.{ AbstractBehavior, ActorContext, Behaviors }
-import akka.actor.typed.{ Behavior, Terminated }
+import akka.actor.typed.scaladsl.{ AbstractBehavior, ActorContext, Behaviors, TimerScheduler }
 import io.scalac.core.akka.model.PushMetrics
-import io.scalac.core.model.ConnectionStats
-import io.scalac.extension.AkkaStreamMonitoring.{ Command, StartStreamCollection, StatsReceived }
+import io.scalac.core.model.Tag.SubStreamName
+import io.scalac.core.model._
+import io.scalac.extension.AkkaStreamMonitoring._
+import io.scalac.extension.config.ConfigurationUtils._
 import io.scalac.extension.event.ActorInterpreterStats
-import io.scalac.extension.metric.StreamMetricsMonitor
-import io.scalac.extension.metric.StreamMetricsMonitor.Labels
+import io.scalac.extension.metric.MetricObserver.LazyResult
+import io.scalac.extension.metric.StreamMetricMonitor.{ Labels => GlobalLabels }
+import io.scalac.extension.metric.StreamOperatorMetricsMonitor.Labels
+import io.scalac.extension.metric.{ StreamMetricMonitor, StreamOperatorMetricsMonitor }
+import io.scalac.extension.model.Direction._
+import io.scalac.extension.model._
+
+import java.util.concurrent.atomic.AtomicReference
+import scala.annotation.tailrec
+import scala.collection.mutable
+import scala.concurrent.duration.{ FiniteDuration, _ }
+import scala.jdk.DurationConverters._
 
 object AkkaStreamMonitoring {
 
@@ -20,102 +31,216 @@ object AkkaStreamMonitoring {
 
   case class StartStreamCollection(refs: Set[ActorRef]) extends Command
 
-  def apply(streamMonitor: StreamMetricsMonitor): Behavior[Command] =
-    Behaviors.setup(ctx => new AkkaStreamMonitoring(ctx, streamMonitor))
+  private[AkkaStreamMonitoring] case object CollectionTimeout extends Command
 
+  def apply(
+    streamOperatorMonitor: StreamOperatorMetricsMonitor,
+    streamMonitor: StreamMetricMonitor,
+    node: Option[Node]
+  ): Behavior[Command] =
+    Behaviors.setup(ctx =>
+      Behaviors.withTimers(scheduler =>
+        new AkkaStreamMonitoring(ctx, streamOperatorMonitor, streamMonitor, scheduler, node)
+      )
+    )
+
+  private final case class StageData(value: Long, direction: Direction, connectedWith: String)
+  private final case class SnapshotEntry(stage: StageInfo, data: Option[StageData])
 }
 
-class AkkaStreamMonitoring(context: ActorContext[Command], streamMonitor: StreamMetricsMonitor)
-    extends AbstractBehavior[Command](context) {
+class AkkaStreamMonitoring(
+  ctx: ActorContext[Command],
+  streamOperatorMonitor: StreamOperatorMetricsMonitor,
+  streamMonitor: StreamMetricMonitor,
+  scheduler: TimerScheduler[Command],
+  node: Option[Node]
+) extends AbstractBehavior[Command](ctx) {
 
-  private val _context = context
-  import _context._
+  private val Timeout: FiniteDuration = streamCollectionTimeout
 
-  private[this] var connectionStats: Option[Set[ConnectionStats]] = None
+  val indexCache: mutable.Map[StageInfo, Set[Int]] = mutable.Map.empty
+  private val operationsBoundMonitor               = streamOperatorMonitor.bind()
+  private val boundStreamMonitor                   = streamMonitor.bind(GlobalLabels(node))
 
-  system.receptionist ! Register(streamServiceKey, messageAdapter(StatsReceived.apply))
+  import ctx._
+
+  private[this] val snapshot       = new AtomicReference[Option[Seq[SnapshotEntry]]](None)
+  private[this] val runningActors  = new AtomicReference[Option[Int]](None)
+  private[this] val runningStreams = new AtomicReference[Option[Int]](None)
+
+  boundStreamMonitor.runningStreams.setUpdater { result =>
+    val streams = runningStreams.get()
+    streams.foreach(value => result.observe(value)) // if none no result is set
+  }
+
+  boundStreamMonitor.streamActors.setUpdater { result =>
+    val actors = runningActors.get()
+    actors.foreach(value => result.observe(value)) // if none no result is set
+  }
+
+  operationsBoundMonitor.processedMessages.setUpdater { result =>
+    val state = snapshot.get()
+    observeProcessed(result, state)
+  }
+
+  operationsBoundMonitor.operators.setUpdater { result =>
+    val state = snapshot.get()
+    observeOperators(result, state)
+  }
+
+  private[this] val connectionGraph: mutable.Map[StageInfo, Set[ConnectionStats]] =
+    mutable.Map.empty
+
+  private val metricsAdapter = messageAdapter[ActorInterpreterStats](StatsReceived.apply)
 
   override def onMessage(msg: Command): Behavior[Command] = msg match {
     case StartStreamCollection(refs) if refs.nonEmpty =>
-      log.info("Start stream stats collection")
+      log.debug("Start stream stats collection")
+      scheduler.startSingleTimer(CollectionTimeout, CollectionTimeout, Timeout)
+
       refs.foreach { ref =>
         watch(ref)
-        ref ! PushMetrics
+        ref ! PushMetrics(metricsAdapter.toClassic)
       }
-      collect(refs)
-    case StartStreamCollection(_) => {
+      collecting(refs, Set.empty)
+    case StartStreamCollection(_) =>
       log.warn(s"StartStreamCollection with empty refs")
       this
-    }
-    case any =>
-      log.info("Received message {}", any)
+    case StatsReceived(_) =>
+      log.warn("Received stream running statistics after timeout")
+      this
+    case CollectionTimeout =>
+      log.warn("[UNPLANNED SITUATION] CollectionTimeout on main behavior")
       this
   }
 
+  def captureGlobalStats(names: Set[SubStreamName]): Unit = {
+    val actors  = names.size
+    val streams = names.map(_.streamName).size
+    runningActors.set(Some(actors))
+    runningStreams.set(Some(streams))
+  }
+
   // TODO optimize this!
-  def recordAll(): Unit =
-    connectionStats.foreach { stats =>
-      stats.groupBy(_.inName).foreach {
-        case (inName, stats) =>
-          stats
-            .groupBy(_.outName)
-            .view
-            .mapValues(_.foldLeft(0L)(_ + _.push))
-            .foreach {
-              case (outName, count) =>
-                val labels = Labels(None, None, inName.name, "in", outName.name)
+  def captureState(): Unit =
+    this.snapshot.set(Some(connectionGraph.flatMap {
+      case (info, in) if in.nonEmpty =>
+        in.groupBy(_.outName).map {
+          case (upstream, connections) =>
+            val push = connections.foldLeft(0L)(_ + _.push)
+            val data = StageData(push, In, upstream.name)
+            SnapshotEntry(info, Some(data))
+        }
+      case (info, _) => Seq(SnapshotEntry(info, None)) // takes into account sources
+    }.toSeq))
 
-                streamMonitor.bind(labels).operatorProcessedMessages.incValue(count)
-            }
+  private def findWithIndex(stage: StageInfo, connections: Array[ConnectionStats]): (Set[ConnectionStats], Set[Int]) = {
+    val indexSet: mutable.Set[Int]                   = mutable.Set.empty
+    val connectionsSet: mutable.Set[ConnectionStats] = mutable.Set.empty
+    @tailrec
+    def findInArray(index: Int): (Set[ConnectionStats], Set[Int]) =
+      if (index >= connections.length) (connectionsSet.toSet, indexSet.toSet)
+      else {
+        val connection = connections(index)
+        if (connection.inName == stage.stageName) {
+          connectionsSet += connection
+          indexSet += index
+        }
+        findInArray(index + 1)
       }
+    findInArray(0)
+  }
 
-      stats.groupBy(_.outName).foreach {
-        case (outName, stats) =>
-          stats
-            .groupBy(_.inName)
-            .view
-            .mapValues(_.foldLeft(0L)(_ + _.pull))
-            .foreach {
-              case (inName, count) =>
-                val labels = Labels(None, None, outName.name, "out", inName.name)
-
-                streamMonitor.bind(labels).operatorProcessedMessages.incValue(count)
-            }
-      }
-    }
-
-  def collect(refs: Set[ActorRef]): Behavior[Command] =
+  def collecting(refs: Set[ActorRef], names: Set[SubStreamName]): Behavior[Command] =
     Behaviors
       .receiveMessage[Command] {
-        case StatsReceived(ActorInterpreterStats(self, connections, _)) => {
-          val refsLeft = refs - self
-          log.trace("Received stats from {}", self)
+        case StatsReceived(ActorInterpreterStats(ref, streamName, shellInfo)) =>
+          val refsLeft = refs - ref
 
-          unwatch(self)
+          unwatch(ref)
 
-          connectionStats.fold[Unit] {
-            connectionStats = Some(connections)
-          }(prev => connectionStats = Some(prev ++ connections))
+          val stages = (for {
+            (stagesInfo, connections) <- shellInfo
+            stage                     <- stagesInfo
+          } yield {
+            val stageConnections = indexCache
+              .get(stage)
+              .fold {
+                val (wiredConnections, indexes) = findWithIndex(stage, connections)
+                indexCache.put(stage, indexes)
+                wiredConnections
+              }(indexes => indexes.map(connections.apply))
+            stage -> stageConnections
+          }).toMap
+
+          connectionGraph ++= stages
 
           if (refsLeft.isEmpty) {
-//            connectionStats.foreach(all => all.foreach(conn => log.debug("ConnectionStats {}", conn)))
-            log.info("Finished collecting stats")
-            recordAll()
+            log.debug("Finished collecting stats")
+            scheduler.cancel(CollectionTimeout)
+            captureGlobalStats(names + streamName)
+            captureState()
             this
           } else {
-            collect(refsLeft)
+            collecting(refsLeft, names + streamName)
           }
-        }
+
+        case CollectionTimeout =>
+          log.warn("Collecting stats from running streams timeout")
+          refs.foreach(ref => unwatch(ref))
+          captureGlobalStats(names)
+          captureState() // we record data gathered so far nevertheless
+          this
         // TODO handle this case better
-        case StartStreamCollection(_) => {
-          log.debug("Another collection started but previous didn't finish")
+        case StartStreamCollection(_) =>
+          log.warn("Another collection started but previous didn't finish")
           Behaviors.same
-        }
       }
-      .receiveSignal {
-        case (_, Terminated(ref)) => {
-          log.debug("Stream ref {} terminated", ref)
-          collect(refs - ref.toClassic)
+      .receiveSignal(
+        signalHandler
+          .orElse[Signal, Behavior[Command]] {
+            case Terminated(ref) =>
+              log.debug("Stream ref {} terminated during metric collection", ref)
+              collecting(refs - ref.toClassic, names)
+          }
+          .compose[(ActorContext[Command], Signal)] {
+            case (_, signal) => signal
+          }
+      )
+
+  private def observeProcessed(result: LazyResult[Long, Labels], snapshot: Option[Seq[SnapshotEntry]]): Unit =
+    snapshot.foreach(_.foreach {
+      case SnapshotEntry(stageInfo, Some(StageData(value, direction, connectedWith))) =>
+        val labels =
+          Labels(stageInfo.stageName, stageInfo.subStreamName.streamName, node, Some(connectedWith -> direction))
+        result.observe(value, labels)
+      case _ => // ignore sources as those will be covered by demand metrics
+    })
+
+  private def observeOperators(result: LazyResult[Long, Labels], snapshot: Option[Seq[SnapshotEntry]]): Unit =
+    snapshot.foreach(_.groupBy(_.stage.subStreamName.streamName).foreach {
+      case (streamName, snapshots) =>
+        snapshots.groupBy(_.stage.stageName.nameOnly).foreach {
+          case (stageName, elems) =>
+            val labels = Labels(stageName, streamName, node, None)
+            result.observe(elems.size, labels)
         }
-      }
+    })
+
+  override def onSignal: PartialFunction[Signal, Behavior[Command]] = signalHandler
+
+  private def signalHandler: PartialFunction[Signal, Behavior[Command]] = {
+    case PreRestart =>
+      operationsBoundMonitor.unbind()
+      this
+    case PostStop =>
+      operationsBoundMonitor.unbind()
+      this
+  }
+
+  private def streamCollectionTimeout: FiniteDuration =
+    ctx.system.settings.config
+      .tryValue("io.scalac.scalac.akka-monitoring.timeouts.query-region-stats")(_.getDuration)
+      .map(_.toScala)
+      .getOrElse(2.seconds)
 }

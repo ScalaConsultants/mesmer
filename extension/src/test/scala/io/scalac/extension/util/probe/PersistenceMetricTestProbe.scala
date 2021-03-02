@@ -67,19 +67,19 @@ class PersistenceMetricTestProbe(implicit val system: ActorSystem[_])
     val snapshotProbe: TestProbe[CounterCommand]
   ) extends PersistenceMetricMonitor.BoundMonitor
       with TestProbeSynchronized {
-    override def recoveryTime: AbstractTestProbeWrapper with MetricRecorder[Long] =
+    override def recoveryTime: SyncTestProbeWrapper with MetricRecorder[Long] =
       RecorderTestProbeWrapper(recoveryTimeProbe)
 
-    override def recoveryTotal: AbstractTestProbeWrapper with UpCounter[Long] =
+    override def recoveryTotal: SyncTestProbeWrapper with UpCounter[Long] =
       CounterTestProbeWrapper(recoveryTotalProbe, Some(globalCounter))
 
-    override def persistentEvent: AbstractTestProbeWrapper with MetricRecorder[Long] =
+    override def persistentEvent: SyncTestProbeWrapper with MetricRecorder[Long] =
       RecorderTestProbeWrapper(persistentEventProbe)
 
-    override def persistentEventTotal: AbstractTestProbeWrapper with UpCounter[Long] =
+    override def persistentEventTotal: SyncTestProbeWrapper with UpCounter[Long] =
       CounterTestProbeWrapper(persistentEventTotalProbe, Some(globalCounter))
 
-    override def snapshot: AbstractTestProbeWrapper with UpCounter[Long] =
+    override def snapshot: SyncTestProbeWrapper with UpCounter[Long] =
       CounterTestProbeWrapper(snapshotProbe, Some(globalCounter))
 
     override def unbind(): Unit = ()

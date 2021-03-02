@@ -23,7 +23,7 @@ class ClusterMetricsTestProbe private (
   override def bind(node: Labels): ClusterMetricsMonitor.BoundMonitor =
     new ClusterMetricsMonitor.BoundMonitor with TestProbeSynchronized {
 
-      private type CustomMetricObserver = MetricObserver[Long] with AbstractTestProbeWrapper
+      private type CustomMetricObserver = MetricObserver[Long] with AsyncTestProbe[_]
 
       override val shardPerRegions: CustomMetricObserver = ObserverTestProbeWrapper(shardPerRegionsProbe, collector)
 
@@ -34,15 +34,15 @@ class ClusterMetricsTestProbe private (
 
       override val entitiesOnNode: CustomMetricObserver = ObserverTestProbeWrapper(entitiesOnNodeProbe, collector)
 
-      override val reachableNodes: Counter[Long] with AbstractTestProbeWrapper = CounterTestProbeWrapper(
+      override val reachableNodes: Counter[Long] with SyncTestProbeWrapper = CounterTestProbeWrapper(
         reachableNodesProbe
       )
 
-      override val unreachableNodes: Counter[Long] with AbstractTestProbeWrapper = CounterTestProbeWrapper(
+      override val unreachableNodes: Counter[Long] with SyncTestProbeWrapper = CounterTestProbeWrapper(
         unreachableNodesProbe
       )
 
-      override val nodeDown: UpCounter[Long] with AbstractTestProbeWrapper =
+      override val nodeDown: UpCounter[Long] with SyncTestProbeWrapper =
         CounterTestProbeWrapper(nodeDownProbe)
 
       override def unbind(): Unit = {

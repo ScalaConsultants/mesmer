@@ -1,11 +1,8 @@
 package io.scalac.extension.util.probe
 
-import scala.concurrent.duration._
-
-import akka.actor.Cancellable
 import akka.actor.testkit.typed.scaladsl.TestProbe
-import akka.actor.typed.ActorSystem
 
+import io.scalac.extension.metric.MetricObserver.Updater
 import io.scalac.extension.metric._
 import io.scalac.extension.util.probe.BoundTestProbe._
 
@@ -25,6 +22,8 @@ object BoundTestProbe {
 
   case class MetricObserved(value: Long) extends MetricObserverCommand
 
+  final case class LazyMetricsObserved[L](value: Long, labels: L)
+
 }
 
 sealed trait AbstractTestProbeWrapper {
@@ -32,10 +31,12 @@ sealed trait AbstractTestProbeWrapper {
   def probe: TestProbe[Cmd]
 }
 
+sealed trait SyncTestProbeWrapper extends AbstractTestProbeWrapper
+
 case class CounterTestProbeWrapper(
   private val _probe: TestProbe[CounterCommand],
   private val supervisor: Option[TestProbe[CounterCommand]] = None
-) extends AbstractTestProbeWrapper
+) extends SyncTestProbeWrapper
     with Counter[Long]
     with UpCounter[Long] {
   override type Cmd = CounterCommand
@@ -53,7 +54,7 @@ case class CounterTestProbeWrapper(
 }
 
 case class RecorderTestProbeWrapper(private val _probe: TestProbe[MetricRecorderCommand])
-    extends AbstractTestProbeWrapper
+    extends SyncTestProbeWrapper
     with MetricRecorder[Long] {
   override type Cmd = MetricRecorderCommand
 
@@ -62,14 +63,35 @@ case class RecorderTestProbeWrapper(private val _probe: TestProbe[MetricRecorder
   override def setValue(value: Long): Unit = _probe.ref ! MetricRecorded(value)
 }
 
-case class ObserverTestProbeWrapper(probe: TestProbe[MetricObserverCommand], collector: ObserverCollector)(
-  implicit system: ActorSystem[_]
-) extends AbstractTestProbeWrapper
+sealed trait AsyncTestProbe[T] extends AbstractTestProbeWrapper {
+
+  def probe: TestProbe[Cmd]
+  def collector: ObserverCollector
+
+  protected def handleCallback(value: T): Unit
+
+  def setUpdater(callback: T): Unit =
+    collector.update(probe, () => handleCallback(callback))
+}
+
+case class ObserverTestProbeWrapper(probe: TestProbe[MetricObserverCommand], collector: ObserverCollector)
+    extends AsyncTestProbe[MetricObserver.Updater[Long]]
     with MetricObserver[Long] {
 
   type Cmd = MetricObserverCommand
 
-  def setUpdater(cb: MetricObserver.Updater[Long]): Unit =
-    collector.update(probe, () => cb(value => probe.ref ! MetricObserved(value)))
+  protected def handleCallback(updater: Updater[Long]): Unit =
+    updater(value => probe.ref ! MetricObserved(value))
+
+}
+
+case class LazyObserverTestProbeWrapper[L](probe: TestProbe[LazyMetricsObserved[L]], collector: ObserverCollector)
+    extends AsyncTestProbe[MetricObserver.LazyUpdater[Long, L]]
+    with LazyMetricObserver[Long, L] {
+
+  type Cmd = LazyMetricsObserved[L]
+
+  protected def handleCallback(updater: MetricObserver.LazyUpdater[Long, L]): Unit =
+    updater((value, labels) => probe.ref ! LazyMetricsObserved(value, labels))
 
 }
