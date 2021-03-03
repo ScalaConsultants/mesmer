@@ -2,8 +2,7 @@ package io.scalac.extension
 
 import scala.concurrent.duration._
 
-import akka.actor.testkit.typed.scaladsl.TestProbe
-import akka.actor.typed.receptionist.ServiceKey
+import akka.actor.testkit.typed.scaladsl.{ ScalaTestWithActorTestKit, TestProbe }
 import akka.actor.typed.scaladsl.Behaviors
 import akka.actor.typed.scaladsl.adapter._
 import akka.actor.typed.{ ActorRef, ActorSystem, Behavior }
@@ -18,16 +17,21 @@ import io.scalac.core.akka.model.PushMetrics
 import io.scalac.core.model.Tag.{ StageName, SubStreamName }
 import io.scalac.core.model._
 import io.scalac.extension.AkkaStreamMonitoring.StartStreamCollection
-import io.scalac.extension.AkkaStreamMonitoringTest._
 import io.scalac.extension.event.ActorInterpreterStats
-import io.scalac.extension.util.TestCase.{ MonitorTestCaseContext, MonitorTestCaseFactory }
+import io.scalac.extension.util.TestCase.{
+  AbstractMonitorTestCaseFactory,
+  MonitorTestCaseContext,
+  NoSetupTestCaseFactory,
+  ProvidedActorSystemTestCaseFactory
+}
 import io.scalac.extension.util.probe.BoundTestProbe.{ LazyMetricsObserved, MetricObserved }
 import io.scalac.extension.util.probe.ObserverCollector.CommonCollectorImpl
 import io.scalac.extension.util.probe.{ StreamMonitorTestProbe, StreamOperatorMonitorTestProbe }
-import io.scalac.extension.util.TestOps
+import io.scalac.extension.util.{ TestConfig, TestOps }
 
 class AkkaStreamMonitoringTest
-    extends AnyFlatSpecLike
+    extends ScalaTestWithActorTestKit(TestConfig.localActorProvider)
+    with AnyFlatSpecLike
     with Matchers
     with Inspectors
     with Eventually
@@ -36,7 +40,12 @@ class AkkaStreamMonitoringTest
     with BeforeAndAfterAll
     with LoneElement
     with TestOps
-    with MonitorTestCaseFactory[Monitor, TestCaseContext] {
+    with AbstractMonitorTestCaseFactory
+    with ProvidedActorSystemTestCaseFactory
+    with NoSetupTestCaseFactory {
+
+  type Monitor = (StreamOperatorMonitorTestProbe, StreamMonitorTestProbe)
+  type Context = TestCaseContext
 
   private val OperationsPing = 1.seconds
   private val ReceiveWait    = OperationsPing * 3
@@ -51,7 +60,9 @@ class AkkaStreamMonitoringTest
       StreamMonitorTestProbe(new CommonCollectorImpl(OperationsPing))
     )
 
-  override protected def createContext(monitor: Monitor)(implicit system: ActorSystem[_]): TestCaseContext = {
+  override protected def createContextFromMonitor(
+    monitor: Monitor
+  )(implicit system: ActorSystem[_]): Context = {
     val (operations, global) = monitor
     val ref                  = system.systemActorOf(AkkaStreamMonitoring(operations, global, None), createUniqueId)
     TestCaseContext(monitor, ref)
@@ -159,12 +170,6 @@ class AkkaStreamMonitoringTest
 
     operators.map(_.labels.operator.name).distinct should contain theSameElementsAs StagesNames
   }
-
-}
-
-object AkkaStreamMonitoringTest {
-
-  type Monitor = (StreamOperatorMonitorTestProbe, StreamMonitorTestProbe)
 
   case class TestCaseContext(monitor: Monitor, ref: ActorRef[AkkaStreamMonitoring.Command])(
     implicit val system: ActorSystem[_]

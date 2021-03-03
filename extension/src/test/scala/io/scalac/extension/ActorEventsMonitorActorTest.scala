@@ -7,6 +7,7 @@ import akka.actor.testkit.typed.scaladsl.TestProbe
 import akka.actor.typed.receptionist.ServiceKey
 import akka.actor.typed.scaladsl.{ Behaviors, StashBuffer }
 import akka.actor.typed.{ ActorRef, ActorSystem, Behavior }
+import akka.util.Timeout
 
 import org.scalatest.Inspectors
 import org.scalatest.flatspec.AnyFlatSpecLike
@@ -29,9 +30,13 @@ class ActorEventsMonitorActorTest
     extends AnyFlatSpecLike
     with Matchers
     with Inspectors
-    with MonitorWithServiceWithBasicContextTestCaseFactory[ActorMonitorTestProbe] {
+    with MonitorWithBasicContextAndServiceTestCaseFactory
+    with FreshActorSystemTestCaseFactory {
+
+  type Monitor = ActorMonitorTestProbe
 
   private val pingOffset: FiniteDuration = 1.seconds
+  implicit def timeout: Timeout          = pingOffset
 
   protected val serviceKey: ServiceKey[_] = actorServiceKey
 
@@ -39,14 +44,14 @@ class ActorEventsMonitorActorTest
     new ActorMonitorTestProbe(new CommonCollectorImpl(pingOffset))
 
   protected def createMonitorBehavior(
-    implicit context: MonitorTestCaseContext.BasicContext[ActorMonitorTestProbe]
+    implicit c: MonitorTestCaseContext.BasicContext[ActorMonitorTestProbe]
   ): Behavior[_] =
     ActorEventsMonitorActor(
-      context.monitor,
+      monitor,
       None,
       pingOffset,
       MutableActorMetricsStorage.empty,
-      context.system.systemActorOf(Behaviors.ignore[AkkaStreamMonitoring.Command], createUniqueId),
+      system.systemActorOf(Behaviors.ignore[AkkaStreamMonitoring.Command], createUniqueId),
       actorMetricsReader = TestActorMetricsReader,
       actorTreeTraverser = TestActorTreeTraverser
     )

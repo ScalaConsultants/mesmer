@@ -1,46 +1,68 @@
 package io.scalac.extension.util
 
-import scala.concurrent.duration._
-
-import akka.actor.typed.{ ActorSystem, Behavior }
+import akka.actor.PoisonPill
+import akka.actor.typed.{ ActorRef, ActorSystem, Behavior }
 import akka.actor.typed.receptionist.ServiceKey
 import akka.actor.typed.scaladsl.Behaviors
 import akka.testkit.TestKit
 import akka.util.Timeout
 
-import org.scalatest.Suite
-
 object TestCase {
 
-  trait TestCaseFactory[E, C] {
-    protected def startEnv(): E
-    protected def stopEnv(implicit env: E): Unit
-    protected def createContext(implicit env: E): C
-    protected def setUp(context: C): Unit = {}
+  trait TestCaseFactory {
+    protected type Env
+    protected type Context
+    protected type Setup
 
-    // DSL for `import factory._`
-    // TODO When we move to Scala 3, let's take advantage of context-functions to build smt as follow:
-    // testCase {
-    //    monitor.bind(...)
-    //    system.systemActorOf
-    // }
-    // i.e., without `implicit c => `
+    protected def startEnv(): Env
+    protected def stopEnv(env: Env): Unit
+    protected def createContext(env: Env): Context
+    protected def setUp(context: Context): Setup
+    protected def setDown(setup: Setup): Unit
 
-    def testCaseWith[T](hackContext: C => C)(tc: C => T): T = {
-      val env = startEnv()
-      val ctx = hackContext(createContext(env))
-      setUp(ctx)
+    // DSL
+
+    def testCaseWith[T](hackContext: Context => Context)(tc: Context => T): T = {
+      val env    = startEnv()
+      val ctx    = hackContext(createContext(env))
+      val setup  = setUp(ctx)
       val result = tc(ctx)
+      setDown(setup)
       stopEnv(env)
       result
     }
 
-    def testCase[T](tc: C => T): T =
+    def testCase[T](tc: Context => T): T =
       testCaseWith(identity)(tc)
 
   }
 
   // Test Impl
+
+  trait ActorSystemEnvTestCaseFactory extends TestCaseFactory {
+    type Env = ActorSystem[_]
+  }
+
+  trait FreshActorSystemTestCaseFactory extends ActorSystemEnvTestCaseFactory with TestOps {
+
+    // overrides
+    protected final def startEnv(): ActorSystem[_] =
+      ActorSystem[Nothing](Behaviors.ignore, createUniqueId, TestConfig.localActorProvider)
+    protected final def stopEnv(env: ActorSystem[_]): Unit = TestKit.shutdownActorSystem(env.classicSystem)
+
+    // DSL
+    implicit def system(implicit context: MonitorTestCaseContext[_]): ActorSystem[_] = context.system
+  }
+
+  trait ProvidedActorSystemTestCaseFactory extends ActorSystemEnvTestCaseFactory {
+
+    // add-on api
+    implicit def system: ActorSystem[_]
+
+    // overrides
+    protected final def startEnv(): ActorSystem[_]         = system
+    protected final def stopEnv(env: ActorSystem[_]): Unit = {}
+  }
 
   trait MonitorTestCaseContext[+M] {
     val monitor: M
@@ -53,44 +75,68 @@ object TestCase {
     }
   }
 
-  trait MonitorTestCaseFactory[M, C <: MonitorTestCaseContext[M]]
-      extends TestCaseFactory[ActorSystem[_], C]
-      with TestOps {
-    protected def createMonitor(implicit system: ActorSystem[_]): M
-    protected def createContext(monitor: M)(implicit system: ActorSystem[_]): C
+  trait AbstractMonitorTestCaseFactory extends ActorSystemEnvTestCaseFactory {
+    type Monitor
+    type Context <: MonitorTestCaseContext[Monitor]
 
-    protected final def startEnv(): ActorSystem[_] =
-      ActorSystem[Nothing](Behaviors.ignore, createUniqueId, TestConfig.localActorProvider)
-    protected final def stopEnv(implicit env: ActorSystem[_]): Unit    = TestKit.shutdownActorSystem(env.classicSystem)
-    protected final def createContext(implicit env: ActorSystem[_]): C = createContext(createMonitor(env))(env)
+    // add-on api
+    protected def createMonitor(implicit system: ActorSystem[_]): Monitor
+    protected def createContextFromMonitor(monitor: Monitor)(implicit system: ActorSystem[_]): Context
+
+    // overrides
+    protected final def createContext(env: ActorSystem[_]): Context =
+      createContextFromMonitor(createMonitor(env))(env)
 
     // DSL
-    def monitor(implicit context: C): M                                              = context.monitor
-    implicit def system(implicit context: MonitorTestCaseContext[_]): ActorSystem[_] = context.system
+    def monitor(implicit context: Context): Monitor = context.monitor
   }
 
-  trait MonitorWithServiceTestCaseFactory[M, C <: MonitorTestCaseContext[M]]
-      extends MonitorTestCaseFactory[M, C]
-      with ReceptionistOps {
-    protected def createMonitorBehavior(implicit context: C): Behavior[_]
+  trait MonitorWithServiceTestCaseFactory extends AbstractMonitorTestCaseFactory with ReceptionistOps {
+
+    type Setup = ActorRef[_]
+
+    // add-on api
+    protected def createMonitorBehavior(implicit context: Context): Behavior[_]
     protected val serviceKey: ServiceKey[_]
-    protected implicit val timeout: Timeout = 1.seconds
-    protected override def setUp(context: C): Unit = {
-      super.setUp(context)
+    implicit def timeout: Timeout
+
+    // overrides
+    override final protected def setUp(context: Context): ActorRef[_] = {
       val monitorBehavior = createMonitorBehavior(context)
       val monitorActor    = context.system.systemActorOf(monitorBehavior, createUniqueId)
       onlyRef(monitorActor, serviceKey)(context.system, timeout)
+      monitorActor
     }
+
+    override final protected def setDown(setup: ActorRef[_]): Unit =
+      setup.unsafeUpcast[Any] ! PoisonPill
   }
 
-  trait Monitor
+  import MonitorTestCaseContext.BasicContext
 
-  trait MonitorWithServiceWithBasicContextTestCaseFactory[M]
-      extends MonitorWithServiceTestCaseFactory[M, MonitorTestCaseContext.BasicContext[M]] {
-    final protected def createContext(
-      monitor: M
-    )(implicit system: ActorSystem[_]): MonitorTestCaseContext.BasicContext[M] =
-      MonitorTestCaseContext.BasicContext(monitor)
+  trait MonitorWithBasicContextTestCaseFactory extends AbstractMonitorTestCaseFactory {
+    type Context = BasicContext[Monitor]
+    // overrides
+    final protected def createContextFromMonitor(
+      monitor: Monitor
+    )(implicit system: ActorSystem[_]): BasicContext[Monitor] =
+      BasicContext(monitor)
   }
+
+  trait NoSetupTestCaseFactory extends TestCaseFactory {
+    type Setup = Unit
+    protected final def setDown(setup: Setup): Unit   = {}
+    protected final def setUp(context: Context): Unit = {}
+  }
+
+  // common types as aliases...
+  // basic context + service + provided
+  trait CommonMonitorTestFactory
+      extends MonitorWithBasicContextAndServiceTestCaseFactory
+      with ProvidedActorSystemTestCaseFactory
+
+  trait MonitorWithBasicContextAndServiceTestCaseFactory
+      extends MonitorWithBasicContextTestCaseFactory
+      with MonitorWithServiceTestCaseFactory
 
 }

@@ -3,6 +3,7 @@ package io.scalac.extension
 import scala.concurrent.duration._
 import scala.language.postfixOps
 
+import akka.actor.testkit.typed.scaladsl.ScalaTestWithActorTestKit
 import akka.actor.typed.receptionist.ServiceKey
 import akka.actor.typed.{ ActorSystem, Behavior }
 
@@ -18,13 +19,14 @@ import io.scalac.extension.http.MutableRequestStorage
 import io.scalac.extension.metric.CachingMonitor
 import io.scalac.extension.metric.HttpMetricMonitor.Labels
 import io.scalac.extension.util.TestCase.MonitorTestCaseContext.BasicContext
-import io.scalac.extension.util.TestCase.MonitorWithServiceWithBasicContextTestCaseFactory
+import io.scalac.extension.util.TestCase.CommonMonitorTestFactory
 import io.scalac.extension.util._
 import io.scalac.extension.util.probe.BoundTestProbe._
 import io.scalac.extension.util.probe.HttpMetricsTestProbe
 
 class HttpEventsActorTest
-    extends AnyFlatSpecLike
+    extends ScalaTestWithActorTestKit(TestConfig.localActorProvider)
+    with AnyFlatSpecLike
     with Matchers
     with Inspectors
     with Eventually
@@ -33,7 +35,9 @@ class HttpEventsActorTest
     with BeforeAndAfterAll
     with LoneElement
     with TestOps
-    with MonitorWithServiceWithBasicContextTestCaseFactory[HttpMetricsTestProbe] {
+    with CommonMonitorTestFactory {
+
+  type Monitor = HttpMetricsTestProbe
 
   protected val serviceKey: ServiceKey[_] = httpServiceKey
 
@@ -44,7 +48,7 @@ class HttpEventsActorTest
       IdentityPathService
     )
 
-  protected def createMonitor(implicit s: ActorSystem[_]): HttpMetricsTestProbe = new HttpMetricsTestProbe()
+  protected def createMonitor(implicit s: ActorSystem[_]): HttpMetricsTestProbe = new HttpMetricsTestProbe()(s)
 
   def requestStarted(id: String, labels: Labels)(implicit ctx: BasicContext[HttpMetricsTestProbe]): Unit =
     EventBus(system).publishEvent(RequestStarted(id, Timestamp.create(), labels.path, labels.method))

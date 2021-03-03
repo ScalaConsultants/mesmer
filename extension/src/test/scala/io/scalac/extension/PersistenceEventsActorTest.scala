@@ -3,6 +3,7 @@ package io.scalac.extension
 import scala.concurrent.duration._
 import scala.language.postfixOps
 
+import akka.actor.testkit.typed.scaladsl.ScalaTestWithActorTestKit
 import akka.actor.typed.receptionist.ServiceKey
 import akka.actor.typed.{ ActorSystem, Behavior }
 
@@ -16,17 +17,20 @@ import io.scalac.extension.event.PersistenceEvent._
 import io.scalac.extension.metric.CachingMonitor
 import io.scalac.extension.metric.PersistenceMetricMonitor.Labels
 import io.scalac.extension.persistence.{ ImmutablePersistStorage, ImmutableRecoveryStorage }
-import io.scalac.extension.util.IdentityPathService
+import io.scalac.extension.util.{ IdentityPathService, TestConfig }
 import io.scalac.extension.util.TestCase.MonitorTestCaseContext.BasicContext
-import io.scalac.extension.util.TestCase.MonitorWithServiceWithBasicContextTestCaseFactory
+import io.scalac.extension.util.TestCase.CommonMonitorTestFactory
 import io.scalac.extension.util.probe.BoundTestProbe.{ Inc, MetricRecorded }
 import io.scalac.extension.util.probe.PersistenceMetricTestProbe
 
 class PersistenceEventsActorTest
-    extends AnyFlatSpecLike
+    extends ScalaTestWithActorTestKit(TestConfig.localActorProvider)
+    with AnyFlatSpecLike
     with Matchers
     with Inspectors
-    with MonitorWithServiceWithBasicContextTestCaseFactory[PersistenceMetricTestProbe] {
+    with CommonMonitorTestFactory {
+
+  type Monitor = PersistenceMetricTestProbe
 
   protected val serviceKey: ServiceKey[_] = persistenceServiceKey
 
