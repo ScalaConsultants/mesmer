@@ -15,6 +15,7 @@ object OpenTelemetryActorMetricsMonitor {
     mailboxTimeAvg: String,
     mailboxTimeMin: String,
     mailboxTimeMax: String,
+    mailboxTimeSum: String,
     stashSize: String
   )
   object MetricNames {
@@ -25,6 +26,7 @@ object OpenTelemetryActorMetricsMonitor {
         "mailbox_time_avg",
         "mailbox_time_min",
         "mailbox_time_max",
+        "mailbox_time_sum",
         "stash_size"
       )
 
@@ -53,11 +55,15 @@ object OpenTelemetryActorMetricsMonitor {
             .tryValue("mailbox-time-max")(_.getString)
             .getOrElse(defaultCached.mailboxTimeMax)
 
+          val mailboxTimeSum = clusterMetricsConfig
+            .tryValue("mailbox-time-sum")(_.getString)
+            .getOrElse(defaultCached.mailboxTimeSum)
+
           val stashSize = clusterMetricsConfig
             .tryValue("stash-size")(_.getString)
             .getOrElse(defaultCached.stashSize)
 
-          MetricNames(mailboxSize, mailboxTimeAvg, mailboxTimeMin, mailboxTimeMax, stashSize)
+          MetricNames(mailboxSize, mailboxTimeAvg, mailboxTimeMin, mailboxTimeMax, mailboxTimeSum, stashSize)
         }
         .getOrElse(defaultCached)
     }
@@ -98,6 +104,12 @@ class OpenTelemetryActorMetricsMonitor(instrumentationName: String, metricNames:
       .setDescription("Tracks the maximum time of an message in an Actor's mailbox")
   )
 
+  private val mailboxTimeSumObserver = new LongMetricObserverBuilderAdapter(
+    meter
+      .longValueObserverBuilder(metricNames.mailboxTimeSum)
+      .setDescription("Tracks the sum time of the messages in an Actor's mailbox")
+  )
+
   private val stashSizeCounter = meter
     .longValueRecorderBuilder(metricNames.stashSize)
     .setDescription("Tracks the size of an Actor's stash")
@@ -124,6 +136,9 @@ class OpenTelemetryActorMetricsMonitor(instrumentationName: String, metricNames:
     val mailboxTimeMax: MetricObserver[Long] =
       mailboxTimeMaxObserver.createObserver(labels)
 
+    val mailboxTimeSum: MetricObserver[Long] =
+      mailboxTimeSumObserver.createObserver(labels)
+
     val stashSize: MetricRecorder[Long] with WrappedSynchronousInstrument[Long] =
       WrappedLongValueRecorder(stashSizeCounter, labels)
 
@@ -132,6 +147,7 @@ class OpenTelemetryActorMetricsMonitor(instrumentationName: String, metricNames:
       mailboxTimeAvgObserver.removeObserver(labels)
       mailboxTimeMinObserver.removeObserver(labels)
       mailboxTimeMaxObserver.removeObserver(labels)
+      mailboxTimeSumObserver.removeObserver(labels)
       stashSize.unbind()
     }
 

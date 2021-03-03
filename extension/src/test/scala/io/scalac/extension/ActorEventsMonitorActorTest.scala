@@ -123,6 +123,12 @@ class ActorEventsMonitorActorTest
     bound.unbind()
   }
 
+  it should "record sum mailbox time" in testCase { implicit c =>
+    val bound = monitor.bind(Labels("/"))
+    recordMailboxTime(FakeMailboxTimes.reduce(_ + _), bound.mailboxTimeSumProbe)
+    bound.unbind()
+  }
+
   def recordMailboxSize(n: Int, bound: TestBoundMonitor): Unit = {
     FakeMailboxSize = n
     bound.mailboxSizeProbe.expectMessage(3 * pingOffset, MetricObserved(n))
@@ -137,6 +143,8 @@ object ActorEventsMonitorActorTest {
 
   var FakeMailboxSize = 10
   var FakeMailboxTime = 1.second
+  // min: FakeMailboxTime / 2, avg: FakeMailboxTime, max: 2 * MailboxTime
+  val FakeMailboxTimes = Array(FakeMailboxTime / 2, FakeMailboxTime / 2, 2 * FakeMailboxTime)
 
   val TestActorTreeTraverser: ActorTreeTraverser = ReflectiveActorTreeTraverser
 
@@ -144,14 +152,7 @@ object ActorEventsMonitorActorTest {
     Some(
       RawActorMetrics(
         mailboxSize = Some(FakeMailboxSize),
-        mailboxTimes = Some(
-          // min: FakeMailboxTime / 2, avg: FakeMailboxTime, max: 2 * MailboxTime
-          Array(
-            MailboxTime(FakeMailboxTime / 2),
-            MailboxTime(FakeMailboxTime / 2),
-            MailboxTime(2 * FakeMailboxTime)
-          )
-        )
+        mailboxTimes = Some(FakeMailboxTimes.map(MailboxTime))
       )
     )
   }

@@ -268,6 +268,7 @@ object ActorEventsMonitorActor {
             bind.mailboxTimeAvg.setUpdater(_.observe(mailboxTime.avg))
             bind.mailboxTimeMin.setUpdater(_.observe(mailboxTime.min))
             bind.mailboxTimeMax.setUpdater(_.observe(mailboxTime.max))
+            bind.mailboxTimeSum.setUpdater(_.observe(mailboxTime.sum))
           }
 
       }

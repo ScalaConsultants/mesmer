@@ -10,9 +10,9 @@ sealed trait AggMetric[T, Avg] {
 
 object AggMetric {
 
-  case class LongValueAggMetric(min: Long, max: Long, avg: Long) extends AggMetric[Long, Long]
+  case class LongValueAggMetric(min: Long, max: Long, avg: Long, sum: Long) extends AggMetric[Long, Long]
   object LongValueAggMetric {
-    def fromTimeSeries(ts: LongTimeSeries): LongValueAggMetric = LongValueAggMetric(ts.min, ts.max, ts.avg)
+    def fromTimeSeries(ts: LongTimeSeries): LongValueAggMetric = LongValueAggMetric(ts.min, ts.max, ts.avg, ts.sum)
   }
 
 }
