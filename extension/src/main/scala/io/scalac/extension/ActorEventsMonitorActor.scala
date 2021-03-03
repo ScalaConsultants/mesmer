@@ -226,7 +226,7 @@ object ActorEventsMonitorActor {
       def rawToActorMetrics(raw: RawActorMetrics): ActorMetrics =
         ActorMetrics(
           raw.mailboxSize,
-          raw.mailboxTimes.filter(_.nonEmpty).map(ts => LongValueAggMetric.fromTimeSeries(new LongTimeSeries(ts))),
+          raw.mailboxTimes.withFilter(_.nonEmpty).map(ts => LongValueAggMetric.fromTimeSeries(new LongTimeSeries(ts))),
           Timestamp.create()
         )
 
