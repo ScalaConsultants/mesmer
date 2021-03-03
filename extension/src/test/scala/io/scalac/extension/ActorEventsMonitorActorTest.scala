@@ -141,10 +141,10 @@ class ActorEventsMonitorActorTest
 
 object ActorEventsMonitorActorTest {
 
-  var FakeMailboxSize = 10
-  var FakeMailboxTime = 1.second
-  // min: FakeMailboxTime / 2, avg: FakeMailboxTime, max: 2 * MailboxTime
-  val FakeMailboxTimes = Array(FakeMailboxTime / 2, FakeMailboxTime / 2, 2 * FakeMailboxTime)
+  private var FakeMailboxSize  = 10
+  private var FakeMailboxTime  = 1.second
+  private val FakeMailboxTimes = Array(FakeMailboxTime / 2, FakeMailboxTime / 2, 2 * FakeMailboxTime)
+  // min: FakeMailboxTime / 2  |  avg: FakeMailboxTime  |  max: 2 * MailboxTime
 
   val TestActorTreeTraverser: ActorTreeTraverser = ReflectiveActorTreeTraverser
 
@@ -152,7 +152,7 @@ object ActorEventsMonitorActorTest {
     Some(
       RawActorMetrics(
         mailboxSize = Some(FakeMailboxSize),
-        mailboxTimes = Some(FakeMailboxTimes.map(MailboxTime))
+        mailboxTimes = Some(FakeMailboxTimes.map(MailboxTime(_)))
       )
     )
   }
