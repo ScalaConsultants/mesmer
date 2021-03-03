@@ -22,25 +22,24 @@ import io.scalac.extension.util.TestCase.MonitorWithServiceWithBasicContextTestC
 import io.scalac.extension.util.probe.BoundTestProbe.{ Inc, MetricRecorded }
 import io.scalac.extension.util.probe.PersistenceMetricTestProbe
 
-class PersistenceEventsActorTest extends AnyFlatSpecLike with Matchers with Inspectors {
+class PersistenceEventsActorTest
+    extends AnyFlatSpecLike
+    with Matchers
+    with Inspectors
+    with MonitorWithServiceWithBasicContextTestCaseFactory[PersistenceMetricTestProbe] {
 
-  val testCaseFactory = new MonitorWithServiceWithBasicContextTestCaseFactory[PersistenceMetricTestProbe] {
-    protected def createMonitorBehavior(implicit context: BasicContext[PersistenceMetricTestProbe]): Behavior[_] =
-      PersistenceEventsActor(
-        if (context.caching) CachingMonitor(monitor) else monitor,
-        ImmutableRecoveryStorage.empty,
-        ImmutablePersistStorage.empty,
-        IdentityPathService
-      )
+  protected val serviceKey: ServiceKey[_] = persistenceServiceKey
 
-    protected val serviceKey: ServiceKey[_] = persistenceServiceKey
+  protected def createMonitorBehavior(implicit context: BasicContext[PersistenceMetricTestProbe]): Behavior[_] =
+    PersistenceEventsActor(
+      if (context.caching) CachingMonitor(monitor) else monitor,
+      ImmutableRecoveryStorage.empty,
+      ImmutablePersistStorage.empty,
+      IdentityPathService
+    )
 
-    protected def createMonitor(implicit system: ActorSystem[_]): PersistenceMetricTestProbe =
-      new PersistenceMetricTestProbe()
-
-  }
-
-  import testCaseFactory._
+  protected def createMonitor(implicit system: ActorSystem[_]): PersistenceMetricTestProbe =
+    new PersistenceMetricTestProbe()
 
   def recoveryStarted(labels: Labels)(implicit ctx: BasicContext[PersistenceMetricTestProbe]): Unit =
     EventBus(system).publishEvent(RecoveryStarted(labels.path, labels.persistenceId, Timestamp.create()))

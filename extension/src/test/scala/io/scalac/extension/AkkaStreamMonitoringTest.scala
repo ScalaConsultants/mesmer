@@ -35,7 +35,8 @@ class AkkaStreamMonitoringTest
     with Inside
     with BeforeAndAfterAll
     with LoneElement
-    with TestOps {
+    with TestOps
+    with MonitorTestCaseFactory[Monitor, TestCaseContext] {
 
   private val OperationsPing = 1.seconds
   private val ReceiveWait    = OperationsPing * 3
@@ -44,22 +45,17 @@ class AkkaStreamMonitoringTest
   private val FlowName       = "map"
   private val StagesNames    = Seq(SourceName, SinkName, FlowName)
 
-  val testCaseFactory = new MonitorTestCaseFactory[Monitor, TestCaseContext] {
+  override protected def createMonitor(implicit system: ActorSystem[_]): Monitor =
+    (
+      StreamOperatorMonitorTestProbe(new CommonCollectorImpl(OperationsPing)),
+      StreamMonitorTestProbe(new CommonCollectorImpl(OperationsPing))
+    )
 
-    override protected def createMonitor(implicit system: ActorSystem[_]): Monitor =
-      (
-        StreamOperatorMonitorTestProbe(new CommonCollectorImpl(OperationsPing)),
-        StreamMonitorTestProbe(new CommonCollectorImpl(OperationsPing))
-      )
-
-    override protected def createContext(monitor: Monitor)(implicit system: ActorSystem[_]): TestCaseContext = {
-      val (operations, global) = monitor
-      val ref                  = system.systemActorOf(AkkaStreamMonitoring(operations, global, None), createUniqueId)
-      TestCaseContext(monitor, ref)
-    }
+  override protected def createContext(monitor: Monitor)(implicit system: ActorSystem[_]): TestCaseContext = {
+    val (operations, global) = monitor
+    val ref                  = system.systemActorOf(AkkaStreamMonitoring(operations, global, None), createUniqueId)
+    TestCaseContext(monitor, ref)
   }
-
-  import testCaseFactory._
 
   def singleActorLinearShellInfo(subStreamName: SubStreamName, flowCount: Int, push: Long, pull: Long): ShellInfo = {
     val source = StageInfo(StageName(SourceName, 0), subStreamName)

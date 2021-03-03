@@ -12,54 +12,47 @@ import org.scalatest.Inspectors
 import org.scalatest.flatspec.AnyFlatSpecLike
 import org.scalatest.matchers.should.Matchers
 
-import io.scalac.core.util.{ ActorPathOps, Timestamp }
-import io.scalac.extension.ActorEventsMonitorActor.{
-  ActorMetricsReader,
-  ActorTreeTraverser,
-  ReflectiveActorTreeTraverser
-}
+import io.scalac.core.util.ActorPathOps
+import io.scalac.extension.ActorEventsMonitorActor._
 import io.scalac.extension.ActorEventsMonitorActorTest._
-import io.scalac.extension.actor.{ ActorMetrics, MutableActorMetricsStorage }
+import io.scalac.extension.actor.{ MailboxTime, MutableActorMetricsStorage }
 import io.scalac.extension.event.ActorEvent.StashMeasurement
 import io.scalac.extension.event.EventBus
 import io.scalac.extension.metric.ActorMetricMonitor.Labels
-import io.scalac.extension.util.AggMetric.LongValueAggMetric
 import io.scalac.extension.util.TestCase._
 import io.scalac.extension.util.probe.ActorMonitorTestProbe
 import io.scalac.extension.util.probe.ActorMonitorTestProbe.TestBoundMonitor
 import io.scalac.extension.util.probe.BoundTestProbe.{ MetricObserved, MetricObserverCommand, MetricRecorded }
 import io.scalac.extension.util.probe.ObserverCollector.CommonCollectorImpl
 
-class ActorEventsMonitorActorTest extends AnyFlatSpecLike with Matchers with Inspectors {
+class ActorEventsMonitorActorTest
+    extends AnyFlatSpecLike
+    with Matchers
+    with Inspectors
+    with MonitorWithServiceWithBasicContextTestCaseFactory[ActorMonitorTestProbe] {
 
   private val pingOffset: FiniteDuration = 1.seconds
 
-  private val testCaseFactory = new MonitorWithServiceWithBasicContextTestCaseFactory[ActorMonitorTestProbe] {
+  protected val serviceKey: ServiceKey[_] = actorServiceKey
 
-    protected val serviceKey: ServiceKey[_] = actorServiceKey
+  protected def createMonitor(implicit system: ActorSystem[_]): ActorMonitorTestProbe =
+    new ActorMonitorTestProbe(new CommonCollectorImpl(pingOffset))
 
-    protected def createMonitor(implicit system: ActorSystem[_]): ActorMonitorTestProbe =
-      new ActorMonitorTestProbe(new CommonCollectorImpl(pingOffset))
+  protected def createMonitorBehavior(
+    implicit context: MonitorTestCaseContext.BasicContext[ActorMonitorTestProbe]
+  ): Behavior[_] =
+    ActorEventsMonitorActor(
+      context.monitor,
+      None,
+      pingOffset,
+      MutableActorMetricsStorage.empty,
+      context.system.systemActorOf(Behaviors.ignore[AkkaStreamMonitoring.Command], createUniqueId),
+      actorMetricsReader = TestActorMetricsReader,
+      actorTreeTraverser = TestActorTreeTraverser
+    )
 
-    protected def createMonitorBehavior(
-      implicit context: MonitorTestCaseContext.BasicContext[ActorMonitorTestProbe]
-    ): Behavior[_] =
-      ActorEventsMonitorActor(
-        context.monitor,
-        None,
-        pingOffset,
-        MutableActorMetricsStorage.empty,
-        context.system.systemActorOf(Behaviors.ignore[AkkaStreamMonitoring.Command], createUniqueId),
-        actorMetricsReader = TestActorMetricsReader,
-        actorTreeTraverser = TestActorTreeTraverser
-      )
-
-    override protected def testSameOrParent(ref: ActorRef[_], parent: ActorRef[_]): Boolean =
-      ActorPathOps.getPathString(ref).startsWith(ActorPathOps.getPathString(parent))
-
-  }
-
-  import testCaseFactory._
+  override protected def testSameOrParent(ref: ActorRef[_], parent: ActorRef[_]): Boolean =
+    ActorPathOps.getPathString(ref).startsWith(ActorPathOps.getPathString(parent))
 
   "ActorEventsMonitor" should "record mailbox size" in testCase { implicit c =>
     val bound = monitor.bind(Labels("/"))
@@ -109,45 +102,51 @@ class ActorEventsMonitorActorTest extends AnyFlatSpecLike with Matchers with Ins
 
   it should "record avg mailbox time" in testCase { implicit c =>
     val bound = monitor.bind(Labels("/"))
-    recordMailboxTime(MailboxTime, bound.mailboxTimeAvgProbe)
+    recordMailboxTime(FakeMailboxTime, bound.mailboxTimeAvgProbe)
     bound.unbind()
   }
 
   it should "record min mailbox time" in testCase { implicit c =>
     val bound = monitor.bind(Labels("/"))
-    recordMailboxTime(MailboxTime / 2, bound.mailboxTimeMinProbe)
+    recordMailboxTime(FakeMailboxTime / 2, bound.mailboxTimeMinProbe)
     bound.unbind()
   }
 
   it should "record max mailbox time" in testCase { implicit c =>
     val bound = monitor.bind(Labels("/"))
-    recordMailboxTime(MailboxTime * 2, bound.mailboxTimeMaxProbe)
+    recordMailboxTime(FakeMailboxTime * 2, bound.mailboxTimeMaxProbe)
     bound.unbind()
   }
 
   def recordMailboxSize(n: Int, bound: TestBoundMonitor): Unit = {
-    MailboxSize = n
+    FakeMailboxSize = n
     bound.mailboxSizeProbe.expectMessage(3 * pingOffset, MetricObserved(n))
   }
 
-  def recordMailboxTime(t: Int, probe: TestProbe[MetricObserverCommand]): Unit =
-    probe.expectMessage(3 * pingOffset, MetricObserved(t))
+  def recordMailboxTime(d: FiniteDuration, probe: TestProbe[MetricObserverCommand]): Unit =
+    probe.expectMessage(3 * pingOffset, MetricObserved(d.toMillis))
 
 }
 
 object ActorEventsMonitorActorTest {
 
-  var MailboxSize = 10
-  var MailboxTime = 1000
+  var FakeMailboxSize = 10
+  var FakeMailboxTime = 1.second
 
   val TestActorTreeTraverser: ActorTreeTraverser = ReflectiveActorTreeTraverser
 
   val TestActorMetricsReader: ActorMetricsReader = { _ =>
     Some(
-      ActorMetrics(
-        mailboxSize = Some(MailboxSize),
-        mailboxTime = Some(LongValueAggMetric(MailboxTime / 2, 2 * MailboxTime, MailboxTime)),
-        timestamp = Timestamp.create()
+      RawActorMetrics(
+        mailboxSize = Some(FakeMailboxSize),
+        mailboxTimes = Some(
+          // min: FakeMailboxTime / 2, avg: FakeMailboxTime, max: 2 * MailboxTime
+          Array(
+            MailboxTime(FakeMailboxTime / 2),
+            MailboxTime(FakeMailboxTime / 2),
+            MailboxTime(2 * FakeMailboxTime)
+          )
+        )
       )
     )
   }

@@ -32,23 +32,19 @@ class HttpEventsActorTest
     with Inside
     with BeforeAndAfterAll
     with LoneElement
-    with TestOps {
+    with TestOps
+    with MonitorWithServiceWithBasicContextTestCaseFactory[HttpMetricsTestProbe] {
 
-  val testCaseFactory = new MonitorWithServiceWithBasicContextTestCaseFactory[HttpMetricsTestProbe] {
-    protected def createMonitorBehavior(implicit context: BasicContext[HttpMetricsTestProbe]): Behavior[_] =
-      HttpEventsActor(
-        if (context.caching) CachingMonitor(monitor) else monitor,
-        MutableRequestStorage.empty,
-        IdentityPathService
-      )
+  protected val serviceKey: ServiceKey[_] = httpServiceKey
 
-    protected val serviceKey: ServiceKey[_] = httpServiceKey
+  protected def createMonitorBehavior(implicit context: BasicContext[HttpMetricsTestProbe]): Behavior[_] =
+    HttpEventsActor(
+      if (context.caching) CachingMonitor(monitor) else monitor,
+      MutableRequestStorage.empty,
+      IdentityPathService
+    )
 
-    protected def createMonitor(implicit s: ActorSystem[_]): HttpMetricsTestProbe =
-      new HttpMetricsTestProbe()
-  }
-
-  import testCaseFactory._
+  protected def createMonitor(implicit s: ActorSystem[_]): HttpMetricsTestProbe = new HttpMetricsTestProbe()
 
   def requestStarted(id: String, labels: Labels)(implicit ctx: BasicContext[HttpMetricsTestProbe]): Unit =
     EventBus(system).publishEvent(RequestStarted(id, Timestamp.create(), labels.path, labels.method))

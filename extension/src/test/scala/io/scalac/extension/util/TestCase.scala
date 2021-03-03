@@ -38,10 +38,6 @@ object TestCase {
     def testCase[T](tc: C => T): T =
       testCaseWith(identity)(tc)
 
-    def monitor[M](implicit context: MonitorTestCaseContext[M]): M = context.monitor
-
-    implicit def system(implicit context: MonitorTestCaseContext[_]): ActorSystem[_] = context.system
-
   }
 
   // Test Impl
@@ -68,6 +64,9 @@ object TestCase {
     protected final def stopEnv(implicit env: ActorSystem[_]): Unit    = TestKit.shutdownActorSystem(env.classicSystem)
     protected final def createContext(implicit env: ActorSystem[_]): C = createContext(createMonitor(env))(env)
 
+    // DSL
+    def monitor(implicit context: C): M                                              = context.monitor
+    implicit def system(implicit context: MonitorTestCaseContext[_]): ActorSystem[_] = context.system
   }
 
   trait MonitorWithServiceTestCaseFactory[M, C <: MonitorTestCaseContext[M]]
