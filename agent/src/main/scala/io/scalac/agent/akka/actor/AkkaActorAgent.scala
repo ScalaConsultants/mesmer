@@ -153,6 +153,10 @@ object AkkaActorAgent {
               MailboxTimeHolder.MailboxTimesVar,
               classOf[MailboxTimeHolder.MailboxTimesType]
             )
+            .defineField(
+              MailboxTimeHolder.MailboxTimeAggVar,
+              classOf[MailboxTimeHolder.MailboxTimeAgg]
+            )
             .visit(
               Advice
                 .to(classOf[ActorCellConstructorInstrumentation])

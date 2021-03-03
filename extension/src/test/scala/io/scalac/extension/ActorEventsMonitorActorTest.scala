@@ -16,11 +16,13 @@ import org.scalatest.matchers.should.Matchers
 import io.scalac.core.util.ActorPathOps
 import io.scalac.extension.ActorEventsMonitorActor._
 import io.scalac.extension.ActorEventsMonitorActorTest._
-import io.scalac.extension.actor.{ MailboxTime, MutableActorMetricsStorage }
+import io.scalac.extension.actor.{ ActorMetrics, MailboxTime, MutableActorMetricsStorage }
 import io.scalac.extension.event.ActorEvent.StashMeasurement
 import io.scalac.extension.event.EventBus
 import io.scalac.extension.metric.ActorMetricMonitor.Labels
+import io.scalac.extension.util.AggMetric.LongValueAggMetric
 import io.scalac.extension.util.TestCase._
+import io.scalac.extension.util.TimeSeries.LongTimeSeries
 import io.scalac.extension.util.probe.ActorMonitorTestProbe
 import io.scalac.extension.util.probe.ActorMonitorTestProbe.TestBoundMonitor
 import io.scalac.extension.util.probe.BoundTestProbe.{ MetricObserved, MetricObserverCommand, MetricRecorded }
@@ -150,9 +152,9 @@ object ActorEventsMonitorActorTest {
 
   val TestActorMetricsReader: ActorMetricsReader = { _ =>
     Some(
-      RawActorMetrics(
+      ActorMetrics(
         mailboxSize = Some(FakeMailboxSize),
-        mailboxTimes = Some(FakeMailboxTimes.map(MailboxTime(_)))
+        mailboxTime = Some(LongValueAggMetric.fromTimeSeries(new LongTimeSeries(FakeMailboxTimes.map(MailboxTime(_)))))
       )
     )
   }

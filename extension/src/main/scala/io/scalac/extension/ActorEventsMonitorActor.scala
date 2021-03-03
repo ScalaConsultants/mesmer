@@ -1,5 +1,9 @@
 package io.scalac.extension
 
+import scala.annotation.tailrec
+import scala.collection.{ immutable, mutable }
+import scala.concurrent.duration._
+
 import akka.actor.typed._
 import akka.actor.typed.receptionist.Receptionist
 import akka.actor.typed.receptionist.Receptionist.Register
@@ -9,20 +13,14 @@ import akka.{ actor => classic }
 import org.slf4j.LoggerFactory
 
 import io.scalac.core.model.Tag
-import io.scalac.core.util.Timestamp
 import io.scalac.extension.AkkaStreamMonitoring.StartStreamCollection
-import io.scalac.extension.actor.{ ActorMetricStorage, ActorMetrics, MailboxTime, MailboxTimeHolder }
-import io.scalac.extension.event.{ ActorEvent, TagEvent }
+import io.scalac.extension.actor.{ ActorMetricStorage, ActorMetrics, MailboxTimeHolder }
 import io.scalac.extension.event.ActorEvent.StashMeasurement
 import io.scalac.extension.event.{ ActorEvent, TagEvent }
 import io.scalac.extension.metric.ActorMetricMonitor.Labels
 import io.scalac.extension.metric.{ ActorMetricMonitor, Unbind }
 import io.scalac.extension.model.{ ActorKey, Node }
 import io.scalac.extension.util.AggMetric.LongValueAggMetric
-import io.scalac.extension.util.TimeSeries.LongTimeSeries
-import scala.annotation.tailrec
-import scala.collection.{ immutable, mutable }
-import scala.concurrent.duration._
 
 object ActorEventsMonitorActor {
 
@@ -86,8 +84,9 @@ object ActorEventsMonitorActor {
     node: Option[Node],
     ctx: ActorContext[SyncMetricsActor.SyncCommand]
   ) {
-    import SyncMetricsActor._
     import ctx.{ log, messageAdapter, system }
+
+    import SyncMetricsActor._
 
     Receptionist(system).ref ! Register(
       actorServiceKey,
@@ -153,8 +152,9 @@ object ActorEventsMonitorActor {
     // Due to the compute intensiveness of traverse the actors tree,
     // we're using AbstractBehavior, mutable state and var in intention to boost our performance.
 
-    import AsyncMetricsActor._
     import ctx.log
+
+    import AsyncMetricsActor._
 
     private[this] val actorTags: mutable.Map[ActorKey, mutable.Set[Tag]] = mutable.Map.empty
 
@@ -218,17 +218,9 @@ object ActorEventsMonitorActor {
       def read(actorRef: classic.ActorRef): Unit = {
         actorMetricsReader
           .read(actorRef)
-          .map(rawToActorMetrics)
           .foreach(metrics => storage = storage.save(actorRef, metrics))
         unbinds.remove(storage.actorToKey(actorRef))
       }
-
-      def rawToActorMetrics(raw: RawActorMetrics): ActorMetrics =
-        ActorMetrics(
-          raw.mailboxSize,
-          raw.mailboxTimes.withFilter(_.nonEmpty).map(ts => LongValueAggMetric.fromTimeSeries(new LongTimeSeries(ts))),
-          Timestamp.create()
-        )
 
       traverseActorTree(actorTreeRunner.getRootGuardian(ctx.system.classicSystem) :: Nil)
 
@@ -283,9 +275,9 @@ object ActorEventsMonitorActor {
   }
 
   object ReflectiveActorTreeTraverser extends ActorTreeTraverser {
-    import ReflectiveActorMonitorsUtils._
-
     import java.lang.invoke.MethodType.methodType
+
+    import ReflectiveActorMonitorsUtils._
 
     private val actorRefProviderClass = classOf[classic.ActorRefProvider]
 
@@ -318,15 +310,13 @@ object ActorEventsMonitorActor {
   }
 
   trait ActorMetricsReader {
-    def read(actor: classic.ActorRef): Option[RawActorMetrics]
+    def read(actor: classic.ActorRef): Option[ActorMetrics]
   }
 
-  case class RawActorMetrics(mailboxSize: Option[Int], mailboxTimes: Option[Array[MailboxTime]])
-
   object ReflectiveActorMetricsReader extends ActorMetricsReader {
-    import ReflectiveActorMonitorsUtils._
-
     import java.lang.invoke.MethodType.methodType
+
+    import ReflectiveActorMonitorsUtils._
 
     private val logger = LoggerFactory.getLogger(getClass)
 
@@ -335,13 +325,13 @@ object ActorEventsMonitorActor {
       lookup.findVirtual(cellClass, "numberOfMessages", mt)
     }
 
-    def read(actor: classic.ActorRef): Option[RawActorMetrics] =
+    def read(actor: classic.ActorRef): Option[ActorMetrics] =
       Option
         .when(isLocalActorRefWithCell(actor)) {
           val cell = underlyingMethodHandler.invoke(actor)
-          RawActorMetrics(
+          ActorMetrics(
             safeRead(mailboxSize(cell)),
-            safeRead(mailboxTimes(cell)).flatten
+            safeRead(mailboxTime(cell)).flatten
           )
         }
 
@@ -365,8 +355,8 @@ object ActorEventsMonitorActor {
     private def mailboxSize(cell: Object): Int =
       numberOfMessagesMethodHandler.invoke(cell).asInstanceOf[Int]
 
-    private def mailboxTimes(cell: Object): Option[Array[MailboxTime]] =
-      MailboxTimeHolder.takeTimes(cell)
+    private def mailboxTime(cell: Object): Option[LongValueAggMetric] =
+      MailboxTimeHolder.getAgg(cell)
 
   }
 
