@@ -13,11 +13,11 @@ import org.slf4j.LoggerFactory
 object AkkaHttpAgent {
 
   // @ToDo tests all supported versions
-  private[akka] val defaultVersion    = Version(10, 2, 0)
-  private[akka] val supportedVersions = Seq(defaultVersion, Version(10, 1, 8))
-  private[akka] val moduleName        = Module("akka-http")
+  private[http] val defaultVersion    = Version(10, 2, 0)
+  private[http] val supportedVersions = Seq(defaultVersion, Version(10, 1, 8))
+  private[http] val moduleName        = Module("akka-http")
 
-  private[akka] val logger = LoggerFactory.getLogger(AkkaHttpAgent.getClass)
+  private[http] val logger = LoggerFactory.getLogger(AkkaHttpAgent.getClass)
 
   private val routeAgent = AgentInstrumentation(
     "akka.http.scaladsl.server.Route$",

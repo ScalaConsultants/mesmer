@@ -8,6 +8,7 @@ import net.bytebuddy.dynamic.scaffold.TypeValidation
 import io.scalac.agent.akka.actor.AkkaActorAgent
 import io.scalac.agent.akka.http.AkkaHttpAgent
 import io.scalac.agent.akka.persistence.AkkaPersistenceAgent
+import io.scalac.core.util.ModuleInfo
 
 package object akka {
 
@@ -16,11 +17,8 @@ package object akka {
     new AgentBuilder.Default()
       .`with`(new ByteBuddy().`with`(TypeValidation.DISABLED))
       .`with`(AgentBuilder.Listener.StreamWriting.toSystemOut.withTransformationsOnly())
-  private val modules = Map(
-    AkkaActorAgent.moduleName       -> AkkaActorAgent.defaultVersion,
-    AkkaHttpAgent.moduleName        -> AkkaHttpAgent.defaultVersion,
-    AkkaPersistenceAgent.moduleName -> AkkaPersistenceAgent.defaultVersion
-  )
+
+  private val modules = ModuleInfo.extractModulesInformation(Thread.currentThread().getContextClassLoader)
 
   private val allInstrumentations =
     AkkaPersistenceAgent.agent ++ AkkaHttpAgent.agent ++ AkkaActorAgent.agent
