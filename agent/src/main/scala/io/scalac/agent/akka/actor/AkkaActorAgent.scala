@@ -1,5 +1,6 @@
 package io.scalac.agent.akka.actor
 
+import akka.actor.Actor
 import akka.actor.typed.Behavior
 
 import net.bytebuddy.asm.Advice
@@ -12,7 +13,7 @@ import io.scalac.agent.{ Agent, AgentInstrumentation }
 import io.scalac.core.model._
 import io.scalac.core.support.ModulesSupport
 import io.scalac.core.util.Timestamp
-import io.scalac.extension.actor.MailboxTimeHolder
+import io.scalac.extension.actor.{ MailboxTimeHolder, ProcessedMessagesHolder }
 
 object AkkaActorAgent {
 
@@ -139,7 +140,7 @@ object AkkaActorAgent {
     }
   }
 
-  private val mailboxTimeActorCellInstrumentation = {
+  private val actorCellInstrumentation = {
     val targetClassName = "akka.actor.ActorCell"
     AgentInstrumentation(
       targetClassName,
@@ -151,16 +152,25 @@ object AkkaActorAgent {
           builder
             .defineField(
               MailboxTimeHolder.MailboxTimesVar,
-              classOf[MailboxTimeHolder.MailboxTimesType]
+              classOf[MailboxTimeHolder.MailboxTimes]
             )
             .defineField(
               MailboxTimeHolder.MailboxTimeAggVar,
               classOf[MailboxTimeHolder.MailboxTimeAgg]
             )
+            .defineField(
+              ProcessedMessagesHolder.ProcessedMessagesVar,
+              classOf[Long]
+            )
             .visit(
               Advice
                 .to(classOf[ActorCellConstructorInstrumentation])
                 .on(isConstructor[MethodDescription])
+            )
+            .visit(
+              Advice
+                .to(classOf[ActorCellBecomeInstrumentation])
+                .on(named[MethodDescription]("become").and(takesArgument(0, classOf[Actor.Receive])))
             )
         }
         .installOn(instrumentation)
@@ -174,7 +184,7 @@ object AkkaActorAgent {
     mailboxTimeTimestampInstrumentation,
     mailboxTimeSendMessageInstrumentation,
     mailboxTimeDequeueInstrumentation,
-    mailboxTimeActorCellInstrumentation
+    actorCellInstrumentation
   )
 
 }

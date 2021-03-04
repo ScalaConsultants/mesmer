@@ -14,7 +14,7 @@ import org.slf4j.LoggerFactory
 
 import io.scalac.core.model.Tag
 import io.scalac.extension.AkkaStreamMonitoring.StartStreamCollection
-import io.scalac.extension.actor.{ ActorMetricStorage, ActorMetrics, MailboxTimeHolder }
+import io.scalac.extension.actor.{ ActorMetricStorage, ActorMetrics, MailboxTimeHolder, ProcessedMessagesHolder }
 import io.scalac.extension.event.ActorEvent.StashMeasurement
 import io.scalac.extension.event.{ ActorEvent, TagEvent }
 import io.scalac.extension.metric.ActorMetricMonitor.Labels
@@ -263,6 +263,10 @@ object ActorEventsMonitorActor {
             bind.mailboxTimeSum.setUpdater(_.observe(mailboxTime.sum))
           }
 
+          metrics.processedMessages.foreach { pm =>
+            log.trace("Registering a new updater for processed messages for actor {} with value {}", key, pm)
+            bind.processedMessages.setUpdater(_.observe(pm))
+          }
       }
 
     private def setTimeout(): Unit = scheduler.startSingleTimer(UpdateActorMetrics, pingOffset)
@@ -331,17 +335,10 @@ object ActorEventsMonitorActor {
           val cell = underlyingMethodHandler.invoke(actor)
           ActorMetrics(
             safeRead(mailboxSize(cell)),
-            safeRead(mailboxTime(cell)).flatten
+            mailboxTime(cell),
+            processedMessages(cell)
           )
         }
-
-    private[extension] def readMailboxSize(actor: classic.ActorRef): Option[Int] =
-      Option
-        .when(isLocalActorRefWithCell(actor)) {
-          val cell = underlyingMethodHandler.invoke(actor)
-          safeRead(mailboxSize(cell))
-        }
-        .flatten
 
     private def safeRead[T](value: => T): Option[T] =
       try {
@@ -357,6 +354,9 @@ object ActorEventsMonitorActor {
 
     private def mailboxTime(cell: Object): Option[LongValueAggMetric] =
       MailboxTimeHolder.getAgg(cell)
+
+    private def processedMessages(cell: Object): Option[Long] =
+      ProcessedMessagesHolder.take(cell)
 
   }
 

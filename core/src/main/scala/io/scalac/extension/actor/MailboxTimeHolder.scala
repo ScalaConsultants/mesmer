@@ -10,15 +10,13 @@ import io.scalac.extension.util.TimeSeries.LongTimeSeries
 
 object MailboxTimeHolder {
 
-  type MailboxTimesType = mutable.ArrayBuffer[MailboxTime]
-  type MailboxTimeAgg   = LongValueAggMetric
+  type MailboxTimes   = mutable.ArrayBuffer[MailboxTime]
+  type MailboxTimeAgg = LongValueAggMetric
 
-  val MailboxTimesVar   = "mailboxTimes"
-  val MailboxTimeAggVar = "mailboxTimeAgg"
+  final val MailboxTimesVar   = "mailboxTimes"
+  final val MailboxTimeAggVar = "mailboxTimeAgg"
 
   private val AggSizeToAgg = 100
-
-  private lazy val lookup = MethodHandles.publicLookup()
 
   private lazy val (
     mailboxTimesGetterHandler,
@@ -31,6 +29,7 @@ object MailboxTimeHolder {
     val mailboxTimeAggField = actorCellClass.getDeclaredField(MailboxTimeAggVar)
     mailboxTimesField.setAccessible(true)
     mailboxTimeAggField.setAccessible(true)
+    val lookup = MethodHandles.publicLookup()
     (
       lookup.unreflectGetter(mailboxTimesField),
       lookup.unreflectSetter(mailboxTimesField),
@@ -45,7 +44,7 @@ object MailboxTimeHolder {
   @inline def addTime(actorCell: Object, time: FiniteDuration): Unit =
     mailboxTimes(actorCell).foreach(times => checkSizeToAgg(actorCell, times += MailboxTime(time)))
 
-  @inline private def checkSizeToAgg(actorCell: Object, times: MailboxTimesType): Unit =
+  @inline private def checkSizeToAgg(actorCell: Object, times: MailboxTimes): Unit =
     if (times.size >= AggSizeToAgg) {
       aggregate(actorCell, times.toArray)
       clearTimes(times)
@@ -86,13 +85,13 @@ object MailboxTimeHolder {
   @inline private def clearTimes(actorCell: Object): Unit =
     mailboxTimes(actorCell).foreach(clearTimes)
 
-  @inline private def clearTimes(times: MailboxTimesType): Unit = times.clear()
+  @inline private def clearTimes(times: MailboxTimes): Unit = times.clear()
 
   @inline private def clearAgg(actorCell: Object): Unit =
     mailboxTimeAggSetterHandler.invoke(actorCell, null)
 
-  @inline private def mailboxTimes(actorCell: Object): Option[MailboxTimesType] =
-    Option(mailboxTimesGetterHandler.invoke(actorCell)).map(_.asInstanceOf[MailboxTimesType])
+  @inline private def mailboxTimes(actorCell: Object): Option[MailboxTimes] =
+    Option(mailboxTimesGetterHandler.invoke(actorCell)).map(_.asInstanceOf[MailboxTimes])
 
   @inline private def mailboxTimeAgg(actorCell: Object): Option[MailboxTimeAgg] =
     Option(mailboxTimeAggGetterHandler.invoke(actorCell)).map(_.asInstanceOf[MailboxTimeAgg])

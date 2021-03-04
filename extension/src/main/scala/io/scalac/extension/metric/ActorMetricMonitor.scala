@@ -13,5 +13,6 @@ object ActorMetricMonitor {
     def mailboxTimeMax: MetricObserver[Long]
     def mailboxTimeSum: MetricObserver[Long]
     def stashSize: MetricRecorder[Long] with Instrument[Long]
+    def processedMessages: MetricObserver[Long]
   }
 }
