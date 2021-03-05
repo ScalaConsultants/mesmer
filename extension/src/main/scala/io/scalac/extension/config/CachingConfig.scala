@@ -16,7 +16,7 @@ object CachingConfig {
     (
       for {
         cachingConfig <- config.tryValue(s"io.scalac.akka-monitoring.caching.$module")(_.getConfig)
-        maxEntries    = cachingConfig.tryValue("max-entries")(_.getInt).getOrElse(DefaultSize)
+        maxEntries = cachingConfig.tryValue("max-entries")(_.getInt).getOrElse(DefaultSize)
       } yield CachingConfig(maxEntries)
     ).getOrElse(CachingConfig.empty)
 

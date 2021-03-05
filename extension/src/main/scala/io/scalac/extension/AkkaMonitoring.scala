@@ -155,16 +155,18 @@ class AkkaMonitoring(private val system: ActorSystem[_], val config: AkkaMonitor
       case e                         => e.getMessage
     }.filterOrElse(_.isInstance(ref), s"Ref ${ref} is not instance of ${fqcn}").map(_ => ())
 
-  private lazy val clusterNodeName: Option[Node] = {
+  private lazy val clusterNodeName: Option[Node] =
     (for {
-      _       <- reflectiveIsInstanceOf("akka.actor.typed.internal.adapter.ActorSystemAdapter", system)
+      _ <- reflectiveIsInstanceOf("akka.actor.typed.internal.adapter.ActorSystemAdapter", system)
       classic = system.classicSystem.asInstanceOf[ExtendedActorSystem]
-      _       <- reflectiveIsInstanceOf("akka.cluster.ClusterActorRefProvider", classic.provider)
-    } yield Cluster(classic).selfUniqueAddress.toNode).fold(message => {
-      log.error(message)
-      None
-    }, Some.apply)
-  }
+      _ <- reflectiveIsInstanceOf("akka.cluster.ClusterActorRefProvider", classic.provider)
+    } yield Cluster(classic).selfUniqueAddress.toNode).fold(
+      message => {
+        log.error(message)
+        None
+      },
+      Some.apply
+    )
 
   def startActorMonitor(): Unit = {
     log.debug("Starting actor monitor")

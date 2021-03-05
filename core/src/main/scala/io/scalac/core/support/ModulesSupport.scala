@@ -17,7 +17,7 @@ object ModulesSupport extends ModulesSupport {
   val akkaPersistenceTypedModule = Module("akka-persistence-typed")
   val akkaActorTypedModule       = Module("akka-actor-typed")
   val akkaActorModule            = Module("akka-actor")
-  val akkaStreamModule            = Module("akka-stream")
+  val akkaStreamModule           = Module("akka-stream")
 
   override def akkaActor: SupportedVersion = majors("2").and(minors("6")).and(patches("8"))
 

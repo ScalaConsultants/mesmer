@@ -71,7 +71,7 @@ object AkkaActorAgent {
                 .to(classOf[TypedUnstashInstrumentation])
                 .on(
                   named[MethodDescription]("unstash")
-                  // since there're two `unstash` methods, we need to specify parameter types
+                    // since there're two `unstash` methods, we need to specify parameter types
                     .and(takesArguments(classOf[Behavior[_]], classOf[Int], classOf[Function1[_, _]]))
                 )
             )

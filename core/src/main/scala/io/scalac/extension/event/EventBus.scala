@@ -66,8 +66,8 @@ object ReceptionistBasedEventBus {
 
 }
 
-private[event] class ReceptionistBasedEventBus(
-  implicit val system: ActorSystem[_],
+private[event] class ReceptionistBasedEventBus(implicit
+  val system: ActorSystem[_],
   val ec: ExecutionContext,
   val timeout: Timeout
 ) extends EventBus {

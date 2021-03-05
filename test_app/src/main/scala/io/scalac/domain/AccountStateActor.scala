@@ -1,14 +1,14 @@
 package io.scalac.domain
 
 import java.io.IOException
-import java.{util => ju}
+import java.{ util => ju }
 
 import akka.actor.typed.scaladsl.Behaviors
-import akka.actor.typed.{ActorRef, Behavior}
-import akka.persistence.typed.scaladsl.{Effect, EventSourcedBehavior, RetentionCriteria}
-import akka.persistence.typed.{PersistenceId, SnapshotCompleted}
-import io.scalac.domain.AccountStateActor.Event.{MoneyDeposit, MoneyWithdrawn}
-import io.scalac.domain.AccountStateActor.Reply.{CurrentBalance, InsufficientFunds}
+import akka.actor.typed.{ ActorRef, Behavior }
+import akka.persistence.typed.scaladsl.{ Effect, EventSourcedBehavior, RetentionCriteria }
+import akka.persistence.typed.{ PersistenceId, SnapshotCompleted }
+import io.scalac.domain.AccountStateActor.Event.{ MoneyDeposit, MoneyWithdrawn }
+import io.scalac.domain.AccountStateActor.Reply.{ CurrentBalance, InsufficientFunds }
 import io.scalac.serialization.SerializableMessage
 
 object AccountStateActor {
@@ -46,7 +46,7 @@ object AccountStateActor {
       command match {
         case GetBalance(replyTo) =>
           Effect.none.thenReply(replyTo)(state => CurrentBalance(state.balance))
-        case Withdraw(replyTo, value) => {
+        case Withdraw(replyTo, value) =>
           if (value <= balance && value > 0.0) {
             Effect
               .persist(MoneyWithdrawn(value))
@@ -54,15 +54,13 @@ object AccountStateActor {
           } else {
             Effect.none.thenReply(replyTo)(_ => InsufficientFunds)
           }
-        }
-        case Deposit(replyTo, value) => {
+        case Deposit(replyTo, value) =>
           val effect = if (value > 0.0) {
             Effect.persist[Event, AccountState](MoneyDeposit(value))
           } else Effect.none[Event, AccountState]
 
           effect
             .thenReply(replyTo)(state => CurrentBalance(state.balance))
-        }
       }
 
     def eventHandler(event: Event): AccountState = event match {

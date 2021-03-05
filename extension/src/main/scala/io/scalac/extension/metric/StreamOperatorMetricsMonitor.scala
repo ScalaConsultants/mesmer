@@ -13,13 +13,12 @@ object StreamOperatorMetricsMonitor {
     connectedWith: Option[(String, Direction)]
   ) {
     def toOpenTelemetry: OpenTelemetryLabels = {
-      val required: Seq[String] = (operator.serialize ++ stream.serialize).flatMap {
-        case (name, value) => Seq(name, value)
+      val required: Seq[String] = (operator.serialize ++ stream.serialize).flatMap { case (name, value) =>
+        Seq(name, value)
       }
-      val connected = connectedWith.fold[Seq[String]](Seq.empty) {
-        case (name, direction) =>
-          val (directionHeader, directionValue) = direction.serialize
-          Seq("connected_with", name, directionHeader, directionValue)
+      val connected = connectedWith.fold[Seq[String]](Seq.empty) { case (name, direction) =>
+        val (directionHeader, directionValue) = direction.serialize
+        Seq("connected_with", name, directionHeader, directionValue)
       }
 
       val optional: Seq[String] =
