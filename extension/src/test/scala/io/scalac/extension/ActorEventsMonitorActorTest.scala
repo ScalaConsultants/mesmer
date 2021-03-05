@@ -131,6 +131,12 @@ class ActorEventsMonitorActorTest
     bound.unbind()
   }
 
+  it should "record processed messages" in testCase { implicit c =>
+    val bound = monitor.bind(Labels("/"))
+    bound.processedMessagesProbe.expectMessage(3 * pingOffset, MetricObserved(FakeProcessedMessages))
+    bound.unbind()
+  }
+
   def recordMailboxSize(n: Int, bound: TestBoundMonitor): Unit = {
     FakeMailboxSize = n
     bound.mailboxSizeProbe.expectMessage(3 * pingOffset, MetricObserved(n))
@@ -143,18 +149,19 @@ class ActorEventsMonitorActorTest
 
 object ActorEventsMonitorActorTest {
 
-  private var FakeMailboxSize  = 10
-  private var FakeMailboxTime  = 1.second
-  private val FakeMailboxTimes = Array(FakeMailboxTime / 2, FakeMailboxTime / 2, 2 * FakeMailboxTime)
-  // min: FakeMailboxTime / 2  |  avg: FakeMailboxTime  |  max: 2 * MailboxTime
-
+  private var FakeMailboxSize                    = 10
+  private val FakeMailboxTime                    = 1.second
+  private val FakeMailboxTimes                   = Array(FakeMailboxTime / 2, FakeMailboxTime / 2, 2 * FakeMailboxTime)
   val TestActorTreeTraverser: ActorTreeTraverser = ReflectiveActorTreeTraverser
+  // min: FakeMailboxTime / 2  |  avg: FakeMailboxTime  |  max: 2 * MailboxTime
+  private val FakeProcessedMessages = 10
 
-  val TestActorMetricsReader: ActorMetricsReader = { _ =>
+  val TestActorMetricsReader: ActorMetricsReader = { actor =>
     Some(
       ActorMetrics(
         mailboxSize = Some(FakeMailboxSize),
-        mailboxTime = Some(LongValueAggMetric.fromTimeSeries(new LongTimeSeries(FakeMailboxTimes.map(MailboxTime(_)))))
+        mailboxTime = Some(LongValueAggMetric.fromTimeSeries(new LongTimeSeries(FakeMailboxTimes.map(MailboxTime(_))))),
+        processedMessages = Some(FakeProcessedMessages)
       )
     )
   }

@@ -29,6 +29,7 @@ class ActorMonitorTestProbe(collector: ObserverCollector)(implicit val actorSyst
         TestProbe("mailbox-time-max-probe"),
         TestProbe("mailbox-time-sum-probe"),
         TestProbe("stash-size-probe"),
+        TestProbe("processed-messages-probe"),
         collector,
         () => bindsMap.remove(labels)
       )
@@ -45,6 +46,7 @@ object ActorMonitorTestProbe {
     val mailboxTimeMaxProbe: TestProbe[MetricObserverCommand],
     val mailboxTimeSumProbe: TestProbe[MetricObserverCommand],
     val stashSizeProbe: TestProbe[MetricRecorderCommand],
+    val processedMessagesProbe: TestProbe[MetricObserverCommand],
     collector: ObserverCollector,
     onUnbind: () => Unit
   )(implicit actorSystem: ActorSystem[_])
@@ -62,12 +64,15 @@ object ActorMonitorTestProbe {
       ObserverTestProbeWrapper(mailboxTimeSumProbe, collector)
     val stashSize: MetricRecorder[Long] with SyncTestProbeWrapper =
       RecorderTestProbeWrapper(stashSizeProbe)
+    val processedMessages: MetricObserver[Long] =
+      ObserverTestProbeWrapper(processedMessagesProbe, collector)
     override def unbind(): Unit = {
       collector.finish(mailboxSizeProbe)
       collector.finish(mailboxTimeAvgProbe)
       collector.finish(mailboxTimeMinProbe)
       collector.finish(mailboxTimeMaxProbe)
       collector.finish(mailboxTimeSumProbe)
+      collector.finish(processedMessagesProbe)
       onUnbind()
     }
   }
