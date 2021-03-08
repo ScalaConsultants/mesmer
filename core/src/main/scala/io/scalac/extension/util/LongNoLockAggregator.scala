@@ -9,10 +9,8 @@ import java.util.concurrent.locks.ReentrantLock
 import scala.collection.mutable.ListBuffer
 import scala.jdk.CollectionConverters._
 
-final class LongNoLockAggregator() {
-
-  private final val maxSize                 = 100
-  private final val compactionRemainingSize = 25
+// TODO Can we generalize it?
+final class LongNoLockAggregator(val maxSize: Int = 100, val compactionRemainingSize: Int = 25) {
 
   private[this] val aggRef        = new AtomicReference[Option[LongValueAggMetric]](None)
   private[this] val reentrantLock = new ReentrantLock()
@@ -30,10 +28,21 @@ final class LongNoLockAggregator() {
     }
   }
 
+  def fetch(): Option[LongValueAggMetric] = {
+    val snapshot = aggRef.get()
+    if (compacting) { // producer is compacting queue, return stale data
+      snapshot
+    } else {
+      if (failFastCompact()) {
+        aggRef.get()
+      } else snapshot
+    }
+  }
+
   /**
    * Compact that will try once to acquire the lock
    */
-  def failFastCompact(): Boolean =
+  private def failFastCompact(): Boolean =
     if (queue.size() > 0 && reentrantLock.tryLock()) {
       try {
         compacting = true
@@ -47,15 +56,4 @@ final class LongNoLockAggregator() {
         true
       } finally reentrantLock.unlock()
     } else false
-
-  def fetch(): Option[LongValueAggMetric] = {
-    val snapshot = aggRef.get()
-    if (compacting) { // producer is compacting queue, return stale data
-      snapshot
-    } else {
-      if (failFastCompact()) {
-        aggRef.get()
-      } else snapshot
-    }
-  }
 }
