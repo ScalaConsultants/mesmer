@@ -31,17 +31,17 @@ object TerminationRegistry {
         .receiveMessage[Command] {
           case Watch(ref, replyTo) =>
             if (watched.contains(ref)) {
-              ctx.log.warn(s"Already watching actor ${ref} ")
+              ctx.log.warn("Already watching actor {}", ref)
               replyTo.foreach(_ ! AkcImpl)
               Behaviors.same
             } else {
-              ctx.log.debug(s"Start watching ${ref}")
+              ctx.log.debug("Start watching {}", ref)
               ctx.watch(ref)
               replyTo.foreach(_ ! AkcImpl)
               watch(watched + ref, waitFor, terminated)
             }
           case WaitForTermination(ref, replyTo) =>
-            ctx.log.debug(s"Wait for termination of ${ref}")
+            ctx.log.debug("Wait for termination of {}", ref)
             if (terminated.contains(ref)) {
               replyTo ! AkcImpl
               watch(watched, waitFor, terminated - ref)
@@ -63,11 +63,11 @@ object TerminationRegistry {
         }
         .receiveSignal {
           case (_, Terminated(ref)) if watched.contains(ref) => {
-            ctx.log.debug(s"Actor ${ref} terminated")
+            ctx.log.debug("Actor {} terminated", ref)
             watch(watched - ref, waitFor, terminated + ref)
           }
           case (_, Terminated(ref)) if waitFor.keySet.contains(ref) => {
-            ctx.log.debug(s"Actor ${ref} terminated")
+            ctx.log.debug("Actor {} terminated", ref)
             waitFor.get(ref).foreach(_ ! AkcImpl)
             watch(watched, waitFor - ref, terminated)
           }

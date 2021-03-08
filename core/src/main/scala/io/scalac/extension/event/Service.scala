@@ -25,8 +25,17 @@ object Service {
     override val serviceKey: ServiceKey[T] = key
   }
 
+  implicit val actorService: Service[ActorEvent] = Service(actorServiceKey)
+
   implicit val persistenceService: Service[PersistenceEvent] = Service(persistenceServiceKey)
 
   implicit val httpService: Service[HttpEvent] = Service(httpServiceKey)
+
+  implicit val tagService: Service[TagEvent] = Service(tagServiceKey)
+
+
+  implicit val streamService: Service[ActorInterpreterStats] = Service(streamServiceKey)
+
+
 
 }

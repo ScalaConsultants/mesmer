@@ -64,7 +64,7 @@ object HttpEventsActor {
                   val monitor         = httpMetricMonitor.bind(monitorBoundary)
 
                   monitor.requestTime.setValue(requestDuration)
-                  ctx.log.debug(s"request ${id} finished in {} millis", requestDuration)
+                  ctx.log.debug("request {} finished in {} millis", id, requestDuration)
                   monitorHttp(storage)
               }
           }
@@ -77,7 +77,7 @@ object HttpEventsActor {
               } {
                 case (storage, started) =>
                   val requestDuration = started.timestamp.interval(timestamp)
-                  ctx.log.error(s"request ${id} failed after {} millis", requestDuration)
+                  ctx.log.error("request {} failed after {} millis", id, requestDuration)
                   monitorHttp(storage)
               }
           }

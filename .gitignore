@@ -3,3 +3,6 @@
 target/
 .bsp/
 .idea/
+*.jar
+*.log.*
+*.sh

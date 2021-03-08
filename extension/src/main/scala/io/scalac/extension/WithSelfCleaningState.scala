@@ -1,7 +1,7 @@
 package io.scalac.extension
 
 import akka.actor.typed.scaladsl.Behaviors
-import akka.actor.typed.{Behavior, BehaviorInterceptor, TypedActorContext}
+import akka.actor.typed.{ Behavior, BehaviorInterceptor, TypedActorContext }
 import io.scalac.extension.resource.SelfCleaning
 
 import scala.concurrent.duration._
@@ -23,7 +23,7 @@ object WithSelfCleaningState {
       target: BehaviorInterceptor.ReceiveTarget[C]
     ): Behavior[C] = msg match {
       case CleanResource(tag) if tag == _tag => {
-        ctx.asScala.log.debug(s"Cleaning up resource ${tag}")
+        ctx.asScala.log.debug("Cleaning up resource {}", tag)
         resource.clean()
         Behaviors.same
       }

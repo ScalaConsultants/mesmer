@@ -1,12 +1,12 @@
 package io.scalac.extension.util.probe
 
 import scala.concurrent.duration._
-import scala.concurrent.{ ExecutionContext, Future }
 
+import akka.actor.Cancellable
 import akka.actor.testkit.typed.scaladsl.TestProbe
 import akka.actor.typed.ActorSystem
 
-import io.scalac.extension.metric.{ Counter, MetricObserver, MetricRecorder, UpCounter }
+import io.scalac.extension.metric._
 import io.scalac.extension.util.probe.BoundTestProbe._
 
 object BoundTestProbe {
@@ -62,19 +62,40 @@ case class RecorderTestProbeWrapper(private val _probe: TestProbe[MetricRecorder
   override def setValue(value: Long): Unit = _probe.ref ! MetricRecorded(value)
 }
 
-case class ObserverTestProbeWrapper(private val _probe: TestProbe[MetricObserverCommand])(
+trait CancellableTestProbeWrapper {
+  def cancel(): Unit
+}
+
+case class ObserverTestProbeWrapper(probe: TestProbe[MetricObserverCommand], ping: FiniteDuration)(
   implicit system: ActorSystem[_]
 ) extends AbstractTestProbeWrapper
-    with MetricObserver[Long] {
+    with MetricObserver[Long]
+    with CancellableTestProbeWrapper {
 
-  val Ping = 5.seconds
+  private var cb: Option[MetricObserver.Updater[Long]] = None
+  private var schedule: Option[Cancellable]            = None
 
-  override type Cmd = MetricObserverCommand
-  override def probe: TestProbe[MetricObserverCommand] = _probe
+  type Cmd = MetricObserverCommand
 
-  override def setUpdater(cb: MetricObserver.Result[Long] => Unit): Unit = {
+  def setUpdater(cb: MetricObserver.Updater[Long]): Unit = {
+    if (this.cb.isEmpty) scheduleUpdates()
+    this.cb = Some(cb)
+  }
+
+  private def scheduleUpdates(): Unit = {
     import system.executionContext
-    system.scheduler.scheduleWithFixedDelay(Ping / 2, Ping)(() => cb(value => _probe.ref ! MetricObserved(value)))
+    schedule.foreach(_.cancel())
+    schedule = Some(
+      system.scheduler.scheduleWithFixedDelay(ping / 2, ping)(() =>
+        cb.foreach(_.apply(value => probe.ref ! MetricObserved(value)))
+      )
+    )
+  }
+
+  def cancel(): Unit = {
+    schedule.foreach(_.cancel())
+    schedule = None
+    cb = None
   }
 
 }

@@ -3,10 +3,8 @@ package io.scalac.extension.util
 import akka.actor.PoisonPill
 import akka.actor.testkit.typed.scaladsl.ScalaTestWithActorTestKit
 import akka.actor.typed.ActorRef
-import akka.actor.typed.receptionist.Receptionist.Listing
-import akka.actor.typed.receptionist.{ Receptionist, ServiceKey }
-import akka.actor.typed.scaladsl.AskPattern._
-import org.scalatest.concurrent.Eventually
+import akka.actor.typed.receptionist.ServiceKey
+
 import org.scalatest.{ Inside, LoneElement, Suite }
 
 trait MonitorFixture

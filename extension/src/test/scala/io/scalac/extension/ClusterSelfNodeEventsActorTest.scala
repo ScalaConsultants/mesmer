@@ -26,7 +26,7 @@ class ClusterSelfNodeEventsActorTest
     case (system, _, ref, monitor, _) =>
       system.systemActorOf(ClusterRegionsMonitorActor.apply(monitor), "sut")
       for (i <- 0 until 10) ref ! ShardingEnvelope(s"test_$i", Create)
-      val messages = monitor.entityPerRegionProbe.receiveMessages(2, 15 seconds)
+      val messages = monitor.entityPerRegionProbe.receiveMessages(2, 3 * collectMetricsPing)
       messages should contain(MetricObserved(10))
   }
 
@@ -34,7 +34,7 @@ class ClusterSelfNodeEventsActorTest
     case (system, _, ref, monitor, _) =>
       system.systemActorOf(ClusterRegionsMonitorActor.apply(monitor), "sut")
       for (i <- 0 until 10) ref ! ShardingEnvelope(s"test_$i", Create)
-      val messages = monitor.shardPerRegionsProbe.receiveMessages(2, 15 seconds)
+      val messages = monitor.shardPerRegionsProbe.receiveMessages(2, 3 * collectMetricsPing)
       forAtLeast(1, messages)(
         _ should matchPattern {
           case MetricObserved(value) if value > 0 =>
@@ -46,7 +46,7 @@ class ClusterSelfNodeEventsActorTest
     case (system, _, ref, monitor, _) =>
       system.systemActorOf(ClusterRegionsMonitorActor.apply(monitor), "sut")
       for (i <- 0 until 10) ref ! ShardingEnvelope(s"test_$i", Create)
-      val messages = monitor.entitiesOnNodeProbe.receiveMessages(2, 15 seconds)
+      val messages = monitor.entitiesOnNodeProbe.receiveMessages(2, 3 * collectMetricsPing)
       messages should contain(MetricObserved(10))
   }
 
@@ -55,7 +55,7 @@ class ClusterSelfNodeEventsActorTest
       system.systemActorOf(ClusterRegionsMonitorActor.apply(monitor), "sut")
       val eventBus = EventBus(system)
       for (i <- 0 until 10) refs(i % refs.length) ! ShardingEnvelope(s"test_$i", Create)
-      val messages = monitor.entitiesOnNodeProbe.receiveMessages(2, 15 seconds)
+      val messages = monitor.entitiesOnNodeProbe.receiveMessages(2, 3 * collectMetricsPing)
       messages should contain(MetricObserved(10))
   }
 

@@ -9,6 +9,7 @@ import akka.http.scaladsl.server.Route
 import akka.management.cluster.bootstrap.ClusterBootstrap
 import akka.management.scaladsl.AkkaManagement
 import akka.util.Timeout
+
 import com.typesafe.config.{ ConfigFactory, ConfigValueFactory }
 import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport
 import fr.davit.akka.http.metrics.core.scaladsl.server.HttpMetricsDirectives.metrics
@@ -17,15 +18,17 @@ import fr.davit.akka.http.metrics.prometheus.{ PrometheusRegistry, PrometheusSet
 import io.opentelemetry.exporter.prometheus.PrometheusCollector
 import io.opentelemetry.sdk.OpenTelemetrySdk
 import io.prometheus.client.{ Collector, CollectorRegistry }
+
 import io.scalac.api.AccountRoutes
 import io.scalac.domain.{ AccountStateActor, JsonCodecs }
 import org.slf4j.LoggerFactory
-
 import java.{ util => ju }
+
 import scala.concurrent.duration._
 import scala.io.StdIn
 import scala.jdk.CollectionConverters._
 import scala.language.postfixOps
+import scala.util.{ Failure, Success }
 
 object Boot extends App with FailFastCirceSupport with JsonCodecs {
   val logger = LoggerFactory.getLogger(Boot.getClass)
@@ -37,6 +40,7 @@ object Boot extends App with FailFastCirceSupport with JsonCodecs {
       ConfigValueFactory
         .fromMap(Map("host" -> "localhost", "port" -> 8080, "systemName" -> "Accounts").asJava)
     )
+    .resolve
 
   def startUp(local: Boolean): Unit = {
     val baseConfig =
@@ -68,7 +72,10 @@ object Boot extends App with FailFastCirceSupport with JsonCodecs {
     implicit val executionContext = system.executionContext
     implicit val timeout: Timeout = 10 seconds
 
-    AkkaManagement(system).start()
+    AkkaManagement(system).start().onComplete {
+      case Success(value)     => logger.info("Started akka management on uri: {}", value)
+      case Failure(exception) => logger.error("Couldn't start akka management", exception)
+    }
 
     if (!local) {
       ClusterBootstrap(system).start()
