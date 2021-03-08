@@ -26,7 +26,7 @@ def runWithAgent = Command.command("runWithAgent") { state =>
 }
 lazy val root = (project in file("."))
 //  .enablePlugins(MultiJvmPlugin)
-  .settings(name := "akka-monitoring")
+  .settings(name := "mesmer-akka-agent")
   .aggregate(extension, agent, testApp, core)
 
 lazy val core = (project in file("core"))
@@ -94,7 +94,7 @@ lazy val agent = (project in file("agent"))
 
 lazy val testApp = (project in file("test_app"))
   .settings(
-    name := "akka-monitoring-test-app",
+    name := "mesmer-akka-test-app",
     libraryDependencies ++= akka ++ scalatest ++ akkaTestkit ++ circe ++ circeAkka ++ postgresDriver ++ akkaPersistance ++ slick ++ logback ++ newRelicSdk ++ akkaManagement,
     assemblyMergeStrategySettings,
     assembly / mainClass := Some("io.scalac.Boot"),
