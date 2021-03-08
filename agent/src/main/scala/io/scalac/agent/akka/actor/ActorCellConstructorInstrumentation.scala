@@ -9,6 +9,6 @@ object ActorCellConstructorInstrumentation {
 
   @OnMethodExit
   def onEnter(@This actorCell: Object): Unit =
-    Option(actorCell).foreach(MailboxTimeHolder.setTimes)
+    Option(actorCell).foreach(MailboxTimeHolder.setAggregator)
 
 }
