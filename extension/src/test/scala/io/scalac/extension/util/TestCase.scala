@@ -128,7 +128,7 @@ object TestCase {
 
   trait NoSetupTestCaseFactory extends TestCaseFactory {
     type Setup = Unit
-    protected final def tearDown(setup: Setup): Unit   = {}
+    protected final def tearDown(setup: Setup): Unit  = {}
     protected final def setUp(context: Context): Unit = {}
   }
 
