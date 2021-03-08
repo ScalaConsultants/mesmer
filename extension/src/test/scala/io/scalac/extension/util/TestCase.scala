@@ -18,7 +18,7 @@ object TestCase {
     protected def stopEnv(env: Env): Unit
     protected def createContext(env: Env): Context
     protected def setUp(context: Context): Setup
-    protected def setDown(setup: Setup): Unit
+    protected def tearDown(setup: Setup): Unit
 
     // DSL
 
@@ -27,7 +27,7 @@ object TestCase {
       val ctx    = hackContext(createContext(env))
       val setup  = setUp(ctx)
       val result = tc(ctx)
-      setDown(setup)
+      tearDown(setup)
       stopEnv(env)
       result
     }
@@ -108,7 +108,7 @@ object TestCase {
       monitorActor
     }
 
-    override final protected def setDown(setup: ActorRef[_]): Unit =
+    override final protected def tearDown(setup: ActorRef[_]): Unit =
       setup.unsafeUpcast[Any] ! PoisonPill
   }
 
@@ -125,7 +125,7 @@ object TestCase {
 
   trait NoSetupTestCaseFactory extends TestCaseFactory {
     type Setup = Unit
-    protected final def setDown(setup: Setup): Unit   = {}
+    protected final def tearDown(setup: Setup): Unit  = {}
     protected final def setUp(context: Context): Unit = {}
   }
 
