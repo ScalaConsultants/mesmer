@@ -151,10 +151,6 @@ object AkkaActorAgent {
         .transform { (builder, _, _, _) =>
           builder
             .defineField(
-              MailboxTimeHolder.MailboxTimesVar,
-              classOf[MailboxTimeHolder.MailboxTimes]
-            )
-            .defineField(
               MailboxTimeHolder.MailboxTimeAggVar,
               classOf[MailboxTimeHolder.MailboxTimeAgg]
             )
