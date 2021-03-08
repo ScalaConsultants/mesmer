@@ -16,7 +16,7 @@ object TypedStashInstrumentation {
     @Argument(0) msg: Any
   ): Unit =
     Option(msg)
-    // to avoid stash measurement loop; strong assumption about publishing and event bus
+      // to avoid stash measurement loop; strong assumption about publishing and event bus
       .filterNot(_.isInstanceOf[StashMeasurement])
       .foreach(_ => StashInstrumentation.publish(size, ctx.self, ctx))
 

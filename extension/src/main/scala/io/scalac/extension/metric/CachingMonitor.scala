@@ -30,9 +30,11 @@ case class CachingMonitor[L, B <: Bound](bindable: Bindable[L, B], config: Cachi
     cachedMonitors.getOrElse(labels, updateMonitors(labels))
 
   final private def updateMonitors(labels: L): B =
-    cachedMonitors.getOrElseUpdate(labels, {
-      logger.debug("Creating new monitor for lables {}", labels)
-      bindable(labels)
-    })
+    cachedMonitors.getOrElseUpdate(
+      labels, {
+        logger.debug("Creating new monitor for lables {}", labels)
+        bindable(labels)
+      }
+    )
 
 }

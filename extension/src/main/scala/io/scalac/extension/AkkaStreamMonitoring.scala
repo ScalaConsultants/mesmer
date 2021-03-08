@@ -125,11 +125,10 @@ class AkkaStreamMonitoring(
   def captureState(): Unit =
     this.snapshot.set(Some(connectionGraph.flatMap {
       case (info, in) if in.nonEmpty =>
-        in.groupBy(_.outName).map {
-          case (upstream, connections) =>
-            val push = connections.foldLeft(0L)(_ + _.push)
-            val data = StageData(push, In, upstream.name)
-            SnapshotEntry(info, Some(data))
+        in.groupBy(_.outName).map { case (upstream, connections) =>
+          val push = connections.foldLeft(0L)(_ + _.push)
+          val data = StageData(push, In, upstream.name)
+          SnapshotEntry(info, Some(data))
         }
       case (info, _) => Seq(SnapshotEntry(info, None)) // takes into account sources
     }.toSeq))
@@ -198,13 +197,12 @@ class AkkaStreamMonitoring(
       }
       .receiveSignal(
         signalHandler
-          .orElse[Signal, Behavior[Command]] {
-            case Terminated(ref) =>
-              log.debug("Stream ref {} terminated during metric collection", ref)
-              collecting(refs - ref.toClassic, names)
+          .orElse[Signal, Behavior[Command]] { case Terminated(ref) =>
+            log.debug("Stream ref {} terminated during metric collection", ref)
+            collecting(refs - ref.toClassic, names)
           }
-          .compose[(ActorContext[Command], Signal)] {
-            case (_, signal) => signal
+          .compose[(ActorContext[Command], Signal)] { case (_, signal) =>
+            signal
           }
       )
 
@@ -218,13 +216,11 @@ class AkkaStreamMonitoring(
     })
 
   private def observeOperators(result: LazyResult[Long, Labels], snapshot: Option[Seq[SnapshotEntry]]): Unit =
-    snapshot.foreach(_.groupBy(_.stage.subStreamName.streamName).foreach {
-      case (streamName, snapshots) =>
-        snapshots.groupBy(_.stage.stageName.nameOnly).foreach {
-          case (stageName, elems) =>
-            val labels = Labels(stageName, streamName, node, None)
-            result.observe(elems.size, labels)
-        }
+    snapshot.foreach(_.groupBy(_.stage.subStreamName.streamName).foreach { case (streamName, snapshots) =>
+      snapshots.groupBy(_.stage.stageName.nameOnly).foreach { case (stageName, elems) =>
+        val labels = Labels(stageName, streamName, node, None)
+        result.observe(elems.size, labels)
+      }
     })
 
   override def onSignal: PartialFunction[Signal, Behavior[Command]] = signalHandler

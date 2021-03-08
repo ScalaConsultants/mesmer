@@ -1,8 +1,8 @@
 package io.scalac.agent.util
 
-import java.time.{Duration, Instant}
+import java.time.{ Duration, Instant }
 
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.{ ExecutionContext, Future }
 import scala.util.Success
 
 trait FunctionOps {
@@ -16,11 +16,9 @@ trait FunctionOps {
     val before = Instant.now()
     val result = function(input)
 
-    result.andThen {
-      case Success(_) => {
-        val millis = Duration.between(before, Instant.now()).toMillis
-        consumer(millis)
-      }
+    result.andThen { case Success(_) =>
+      val millis = Duration.between(before, Instant.now()).toMillis
+      consumer(millis)
     }
   }
 }
@@ -29,8 +27,7 @@ object FunctionOps extends FunctionOps {
   implicit class FutureFunctionOps[T, R](value: T => Future[R]) {
     def latency(
       consumer: Long => Unit
-    )(implicit ec: ExecutionContext): T => Future[R] = {
+    )(implicit ec: ExecutionContext): T => Future[R] =
       futureCallbackLatency(value, consumer)
-    }
   }
 }

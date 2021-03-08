@@ -21,33 +21,30 @@ object AkkaStreamExtensions extends Lookup {
     receive: Actor.Receive,
     thiz: Actor
   ): Actor.Receive =
-    receive.orElse {
-      case PushMetrics(replyTo) => {
+    receive.orElse { case PushMetrics(replyTo) =>
+      val subStreamName = subStreamNameFromActorRef(thiz.context.self)
 
-        val subStreamName = subStreamNameFromActorRef(thiz.context.self)
+      val currentShells = shells
+        .invoke(thiz)
+        .asInstanceOf[Set[GraphInterpreterShellMirror]]
 
-        val currentShells = shells
-          .invoke(thiz)
-          .asInstanceOf[Set[GraphInterpreterShellMirror]]
+      val stats = currentShells.map { shell =>
+        val connections = shell.connections.flatMap { connection =>
+          val (push, pull) = ConnectionOps.getAndResetCounterValues(connection)
 
-        val stats = currentShells.map { shell =>
-          val connections = shell.connections.flatMap { connection =>
-            val (push, pull) = ConnectionOps.getAndResetCounterValues(connection)
-
-            for {
-              in  <- connection.inOwner.streamUniqueStageName
-              out <- connection.outOwner.streamUniqueStageName
-            } yield ConnectionStats(in, out, push, pull)
-          }
-
-          val stageInfo = shell.logics.flatMap(_.streamUniqueStageName.map(StageInfo(_, subStreamName)))
-          stageInfo -> connections
+          for {
+            in  <- connection.inOwner.streamUniqueStageName
+            out <- connection.outOwner.streamUniqueStageName
+          } yield ConnectionStats(in, out, push, pull)
         }
 
-        val self = thiz.context.self
-
-        replyTo ! ActorInterpreterStats(self, subStreamName, stats)
+        val stageInfo = shell.logics.flatMap(_.streamUniqueStageName.map(StageInfo(_, subStreamName)))
+        stageInfo -> connections
       }
+
+      val self = thiz.context.self
+
+      replyTo ! ActorInterpreterStats(self, subStreamName, stats)
     }
 
 }

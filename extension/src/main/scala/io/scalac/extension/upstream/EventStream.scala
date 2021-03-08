@@ -6,9 +6,9 @@ import akka.http.scaladsl.Http
 import akka.http.scaladsl.coding.Gzip
 import akka.http.scaladsl.model._
 import akka.http.scaladsl.model.headers.HttpEncodings.gzip
-import akka.http.scaladsl.model.headers.{RawHeader, `Content-Encoding`}
+import akka.http.scaladsl.model.headers.{ `Content-Encoding`, RawHeader }
 import akka.stream.scaladsl._
-import akka.stream.{OverflowStrategy, QueueOfferResult}
+import akka.stream.{ OverflowStrategy, QueueOfferResult }
 import akka.util.ByteString
 import com.typesafe.config.Config
 import io.scalac.extension.config.ConfigurationUtils._
@@ -25,8 +25,8 @@ trait EventStream[-T] {
   def push(event: T): Future[Unit]
 }
 
-class NewRelicEventStream(val config: NewRelicConfig)(
-  implicit val system: ActorSystem
+class NewRelicEventStream(val config: NewRelicConfig)(implicit
+  val system: ActorSystem
 ) extends EventStream[Event] {
   import config._
   import system.dispatcher
@@ -38,9 +38,8 @@ class NewRelicEventStream(val config: NewRelicConfig)(
   private def createEntity(
     clusterChangedEvents: Seq[Event]
   ): HttpEntity.Strict = {
-    val rawJson = clusterChangedEvents.map {
-      case ClusterChangedEvent(status, node) =>
-        s"""{"eventType":"statusChanged","status":"${status}","node":"${node}"}"""
+    val rawJson = clusterChangedEvents.map { case ClusterChangedEvent(status, node) =>
+      s"""{"eventType":"statusChanged","status":"${status}","node":"${node}"}"""
     }.mkString("[", ",", "]")
 
     val payload = Gzip.encode(ByteString(rawJson))
@@ -97,7 +96,7 @@ object NewRelicEventStream {
     def fromConfig(config: Config): Either[String, NewRelicConfig] =
       for {
         nrConfig <- config
-                     .tryValue("newrelic")(_.getConfig)
+          .tryValue("newrelic")(_.getConfig)
         apiKey    <- nrConfig.tryValue("api_key")(_.getString)
         accountId <- nrConfig.tryValue("account_id")(_.getString)
       } yield NewRelicConfig(apiKey, accountId)

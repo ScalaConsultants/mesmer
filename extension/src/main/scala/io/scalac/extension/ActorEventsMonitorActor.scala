@@ -70,8 +70,8 @@ object ActorEventsMonitorActor {
     private final case class ActorEventWrapper(actorEvent: ActorEvent) extends SyncCommand
     private object ActorEventWrapper {
       def receiveMessage(f: ActorEvent => Behavior[SyncCommand]): Behavior[SyncCommand] =
-        Behaviors.receiveMessage[SyncCommand] {
-          case ActorEventWrapper(actorEvent) => f(actorEvent)
+        Behaviors.receiveMessage[SyncCommand] { case ActorEventWrapper(actorEvent) =>
+          f(actorEvent)
         }
     }
 
@@ -93,11 +93,10 @@ object ActorEventsMonitorActor {
       messageAdapter(ActorEventWrapper.apply)
     )
 
-    def start(): Behavior[SyncCommand] = ActorEventWrapper.receiveMessage {
-      case StashMeasurement(size, path) =>
-        log.trace(s"Recorded stash size for actor $path: $size")
-        monitor.bind(Labels(path, node)).stashSize.setValue(size)
-        Behaviors.same
+    def start(): Behavior[SyncCommand] = ActorEventWrapper.receiveMessage { case StashMeasurement(size, path) =>
+      log.trace(s"Recorded stash size for actor $path: $size")
+      monitor.bind(Labels(path, node)).stashSize.setValue(size)
+      Behaviors.same
     }
   }
 
@@ -117,9 +116,12 @@ object ActorEventsMonitorActor {
       actorMetricsReader: ActorMetricsReader = ReflectiveActorMetricsReader
     ): Behavior[AsyncCommand] =
       Behaviors.setup[AsyncCommand] { ctx =>
-        ctx.system.receptionist ! Register(tagServiceKey, ctx.messageAdapter[TagEvent] {
-          case TagEvent(ref, tag) => AddTag(ref, tag)
-        })
+        ctx.system.receptionist ! Register(
+          tagServiceKey,
+          ctx.messageAdapter[TagEvent] { case TagEvent(ref, tag) =>
+            AddTag(ref, tag)
+          }
+        )
 
         Behaviors.withTimers[AsyncCommand] { scheduler =>
           new AsyncMetricsActor(
@@ -165,13 +167,12 @@ object ActorEventsMonitorActor {
     // start
     setTimeout()
 
-    override def onSignal: PartialFunction[Signal, Behavior[AsyncCommand]] = {
-      case PostStop | PreRestart =>
-        storage.clear()
-        unbinds.clear()
-        actorTags.clear()
-        refs = Nil
-        this
+    override def onSignal: PartialFunction[Signal, Behavior[AsyncCommand]] = { case PostStop | PreRestart =>
+      storage.clear()
+      unbinds.clear()
+      actorTags.clear()
+      refs = Nil
+      this
     }
 
     def onMessage(msg: AsyncCommand): Behavior[AsyncCommand] = msg match {
@@ -241,27 +242,26 @@ object ActorEventsMonitorActor {
     private def resetStorage(): Unit = storage = unbinds.keys.foldLeft(storage)(_.remove(_))
 
     private def registerUpdaters(): Unit =
-      storage.foreach {
-        case (key, metrics) =>
-          lazy val bind = {
-            val tags = actorTags.get(key).fold[Set[Tag]](Set.empty)(_.toSet)
-            val bind = monitor.bind(Labels(key, node, tags))
-            unbinds.put(key, bind)
-            bind
-          }
+      storage.foreach { case (key, metrics) =>
+        lazy val bind = {
+          val tags = actorTags.get(key).fold[Set[Tag]](Set.empty)(_.toSet)
+          val bind = monitor.bind(Labels(key, node, tags))
+          unbinds.put(key, bind)
+          bind
+        }
 
-          metrics.mailboxSize.foreach { mailboxSize =>
-            log.trace("Registering a new updater for mailbox size for actor {} with value {}", key, mailboxSize)
-            bind.mailboxSize.setUpdater(_.observe(mailboxSize))
-          }
+        metrics.mailboxSize.foreach { mailboxSize =>
+          log.trace("Registering a new updater for mailbox size for actor {} with value {}", key, mailboxSize)
+          bind.mailboxSize.setUpdater(_.observe(mailboxSize))
+        }
 
-          metrics.mailboxTime.foreach { mailboxTime =>
-            log.trace("Registering a new updaters for mailbox time for actor {} with value {}", key, mailboxTime)
-            bind.mailboxTimeAvg.setUpdater(_.observe(mailboxTime.avg))
-            bind.mailboxTimeMin.setUpdater(_.observe(mailboxTime.min))
-            bind.mailboxTimeMax.setUpdater(_.observe(mailboxTime.max))
-            bind.mailboxTimeSum.setUpdater(_.observe(mailboxTime.sum))
-          }
+        metrics.mailboxTime.foreach { mailboxTime =>
+          log.trace("Registering a new updaters for mailbox time for actor {} with value {}", key, mailboxTime)
+          bind.mailboxTimeAvg.setUpdater(_.observe(mailboxTime.avg))
+          bind.mailboxTimeMin.setUpdater(_.observe(mailboxTime.min))
+          bind.mailboxTimeMax.setUpdater(_.observe(mailboxTime.max))
+          bind.mailboxTimeSum.setUpdater(_.observe(mailboxTime.sum))
+        }
 
       }
 
@@ -344,9 +344,8 @@ object ActorEventsMonitorActor {
         .flatten
 
     private def safeRead[T](value: => T): Option[T] =
-      try {
-        Some(value)
-      } catch {
+      try Some(value)
+      catch {
         case ex: Throwable =>
           logger.warn("Fail to read metric value", ex)
           None
