@@ -1,17 +1,10 @@
 package io.scalac.extension
 
-import scala.annotation.tailrec
-import scala.collection.{ immutable, mutable }
-import scala.concurrent.duration._
-
 import akka.actor.typed._
 import akka.actor.typed.receptionist.Receptionist
 import akka.actor.typed.receptionist.Receptionist.Register
 import akka.actor.typed.scaladsl.{ AbstractBehavior, ActorContext, Behaviors, TimerScheduler }
 import akka.{ actor => classic }
-
-import org.slf4j.LoggerFactory
-
 import io.scalac.core.model.Tag
 import io.scalac.extension.AkkaStreamMonitoring.StartStreamCollection
 import io.scalac.extension.actor.{ ActorMetricStorage, ActorMetrics, MailboxTimeHolder }
@@ -21,6 +14,11 @@ import io.scalac.extension.metric.ActorMetricMonitor.Labels
 import io.scalac.extension.metric.{ ActorMetricMonitor, Unbind }
 import io.scalac.extension.model.{ ActorKey, Node }
 import io.scalac.extension.util.AggMetric.LongValueAggMetric
+import org.slf4j.LoggerFactory
+
+import scala.annotation.tailrec
+import scala.collection.{ immutable, mutable }
+import scala.concurrent.duration._
 
 object ActorEventsMonitorActor {
 
@@ -84,9 +82,8 @@ object ActorEventsMonitorActor {
     node: Option[Node],
     ctx: ActorContext[SyncMetricsActor.SyncCommand]
   ) {
-    import ctx.{ log, messageAdapter, system }
-
     import SyncMetricsActor._
+    import ctx.{ log, messageAdapter, system }
 
     Receptionist(system).ref ! Register(
       actorServiceKey,
@@ -152,9 +149,8 @@ object ActorEventsMonitorActor {
     // Due to the compute intensiveness of traverse the actors tree,
     // we're using AbstractBehavior, mutable state and var in intention to boost our performance.
 
-    import ctx.log
-
     import AsyncMetricsActor._
+    import ctx.log
 
     private[this] val actorTags: mutable.Map[ActorKey, mutable.Set[Tag]] = mutable.Map.empty
 
@@ -275,9 +271,9 @@ object ActorEventsMonitorActor {
   }
 
   object ReflectiveActorTreeTraverser extends ActorTreeTraverser {
-    import java.lang.invoke.MethodType.methodType
-
     import ReflectiveActorMonitorsUtils._
+
+    import java.lang.invoke.MethodType.methodType
 
     private val actorRefProviderClass = classOf[classic.ActorRefProvider]
 
@@ -314,9 +310,9 @@ object ActorEventsMonitorActor {
   }
 
   object ReflectiveActorMetricsReader extends ActorMetricsReader {
-    import java.lang.invoke.MethodType.methodType
-
     import ReflectiveActorMonitorsUtils._
+
+    import java.lang.invoke.MethodType.methodType
 
     private val logger = LoggerFactory.getLogger(getClass)
 
@@ -355,8 +351,7 @@ object ActorEventsMonitorActor {
     private def mailboxSize(cell: Object): Int =
       numberOfMessagesMethodHandler.invoke(cell).asInstanceOf[Int]
 
-    private def mailboxTime(cell: Object): Option[LongValueAggMetric] =
-      MailboxTimeHolder.getAgg(cell)
+    private def mailboxTime(cell: Object): Option[LongValueAggMetric] = MailboxTimeHolder.getMetrics(cell)
 
   }
 

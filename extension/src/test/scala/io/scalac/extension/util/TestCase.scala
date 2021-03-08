@@ -9,6 +9,9 @@ import akka.util.Timeout
 
 object TestCase {
 
+  /**
+   * This i
+   */
   trait TestCaseFactory {
     protected type Env
     protected type Context
