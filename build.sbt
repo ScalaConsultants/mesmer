@@ -14,6 +14,8 @@ def runWithAgent = Command.command("runWithAgent") { state =>
     extracted.appendWithSession(
       Seq(
         run / javaOptions ++= Seq(
+          "-Denv=local",
+          "-Dconfig.resource=local/application.conf",
           s"-javaagent:${(agent / assembly).value.absolutePath}",
           "-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=9999"
         )
@@ -117,7 +119,7 @@ lazy val testApp = (project in file("test_app"))
       jar -> "scalac.agent.jar"
     },
     dockerEnvVars := {
-      Map("JAVA_OPTS" -> s"-javaagent:/opt/docker/scalac.agent.jar")
+      Map("JAVA_OPTS" -> s"-javaagent:/opt/docker/scalac.agent.jar -Dconfig.resource=dev/application.conf")
     },
     dockerExposedPorts ++= Seq(8080),
     Docker / dockerRepository := {
