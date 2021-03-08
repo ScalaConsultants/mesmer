@@ -2,7 +2,7 @@ package io.scalac.extension.util
 
 import io.scalac.extension.util.TimeSeries.LongTimeSeries
 
-sealed trait AggMetric[@specialized T, @specialized Avg] {
+sealed trait AggMetric[@specialized(Long) T, @specialized(Long) Avg] {
   def min: T
   def max: T
   def sum: T
