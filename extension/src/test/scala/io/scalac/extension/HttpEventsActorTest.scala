@@ -3,14 +3,20 @@ package io.scalac.extension
 import akka.actor.testkit.typed.scaladsl.ScalaTestWithActorTestKit
 import io.scalac.core.util.Timestamp
 import io.scalac.extension.event.EventBus
-import io.scalac.extension.event.HttpEvent.{RequestCompleted, RequestStarted}
+import io.scalac.extension.event.HttpEvent.{ RequestCompleted, RequestStarted }
 import io.scalac.extension.http.MutableRequestStorage
 import io.scalac.extension.metric.CachingMonitor
 import io.scalac.extension.metric.HttpMetricMonitor.Labels
 import io.scalac.extension.util.TestConfig.localActorProvider
 import io.scalac.extension.util.probe.BoundTestProbe._
 import io.scalac.extension.util.probe.HttpMetricsTestProbe
-import io.scalac.extension.util.{AnyCommandMonitorFixture, IdentityPathService, MonitorFixture, TerminationRegistryOps, TestOps}
+import io.scalac.extension.util.{
+  AnyCommandMonitorFixture,
+  IdentityPathService,
+  MonitorFixture,
+  TerminationRegistryOps,
+  TestOps
+}
 import org.scalatest._
 import org.scalatest.concurrent.Eventually
 import org.scalatest.flatspec.AnyFlatSpecLike
@@ -71,8 +77,8 @@ class HttpEventsActorTest
     val boundProbes = monitor.probes(expectedLabels)
 
     boundProbes.value.requestCounterProbe.receiveMessage() should be(Inc(1L))
-    inside(boundProbes.value.requestTimeProbe.receiveMessage()) {
-      case MetricRecorded(value) => value shouldBe 1000L +- 100L
+    inside(boundProbes.value.requestTimeProbe.receiveMessage()) { case MetricRecorded(value) =>
+      value shouldBe 1000L +- 100L
     }
   }
 
@@ -112,8 +118,8 @@ class HttpEventsActorTest
         requestCounterProbe.receiveMessage() should be(Inc(1L))
         requestCounterProbe.expectNoMessage(requestCounterProbe.remaining)
       }
-      inside(requestTimeProbe.receiveMessage()) {
-        case MetricRecorded(value) => value shouldBe 1000L +- 100L
+      inside(requestTimeProbe.receiveMessage()) { case MetricRecorded(value) =>
+        value shouldBe 1000L +- 100L
       }
     }
   }

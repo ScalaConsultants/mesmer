@@ -14,8 +14,8 @@ object CommonRegexPathService extends PathService {
     path
       .split('/')
       .map { segment =>
-        detectionChain.find {
-          case (regex, _) => regex.findPrefixOf(segment).isDefined
+        detectionChain.find { case (regex, _) =>
+          regex.findPrefixOf(segment).isDefined
         }.map(_._2).getOrElse(segment)
       }
       .mkString("", "/", if (path.endsWith("/")) "/" else "")

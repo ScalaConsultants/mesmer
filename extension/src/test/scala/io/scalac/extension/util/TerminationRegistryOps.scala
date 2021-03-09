@@ -3,9 +3,9 @@ package io.scalac.extension.util
 import akka.actor.testkit.typed.scaladsl.ScalaTestWithActorTestKit
 import akka.actor.typed.ActorRef
 import akka.actor.typed.scaladsl.AskPattern._
-import io.scalac.extension.util.TerminationRegistry.{Ack, WaitForTermination}
+import io.scalac.extension.util.TerminationRegistry.{ Ack, WaitForTermination }
 import org.scalatest.concurrent.ScalaFutures
-import org.scalatest.{BeforeAndAfterAll, Suite}
+import org.scalatest.{ BeforeAndAfterAll, Suite }
 
 import scala.concurrent.duration._
 import scala.language.postfixOps

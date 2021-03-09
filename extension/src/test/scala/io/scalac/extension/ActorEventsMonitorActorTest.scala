@@ -29,8 +29,8 @@ class ActorEventsMonitorActorTest
     with MonitorFixture
     with TestOps {
 
-  type Monitor = ActorMonitorTestProbe
-  type Command = ActorEventsMonitorActor.Command
+  type Monitor      = ActorMonitorTestProbe
+  type Command      = ActorEventsMonitorActor.Command
   type ActorCommand = ActorEventsMonitorActorTest.Command
 
   private val PingOffset       = 2.seconds

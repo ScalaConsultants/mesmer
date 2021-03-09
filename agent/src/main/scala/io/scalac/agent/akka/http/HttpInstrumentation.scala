@@ -57,23 +57,19 @@ object HttpInstrumentation {
 
       System.nanoTime()
 
-      zipRequest.out.map {
-        case (request, id) => {
-          val path   = request.uri.path.toString()
-          val method = request.method.value
-          EventBus(system.toTyped).publishEvent(RequestStarted(id, Timestamp.create(), path, method))
-          request
-        }
+      zipRequest.out.map { case (request, id) =>
+        val path   = request.uri.path.toString()
+        val method = request.method.value
+        EventBus(system.toTyped).publishEvent(RequestStarted(id, Timestamp.create(), path, method))
+        request
       } ~> flow
 
       flow ~> zipRespone.in0
       idBroadcast ~> zipRespone.in1
 
-      zipRespone.out.map {
-        case (response, id) => {
-          EventBus(system.toTyped).publishEvent(RequestCompleted(id, Timestamp.create()))
-          response
-        }
+      zipRespone.out.map { case (response, id) =>
+        EventBus(system.toTyped).publishEvent(RequestCompleted(id, Timestamp.create()))
+        response
       } ~> outerResponse.in
 
       FlowShape(outerRequest.in, outerResponse.out)

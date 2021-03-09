@@ -29,6 +29,13 @@ import scala.language.postfixOps
 import scala.reflect.ClassTag
 import scala.util.Try
 
+import java.net.URI
+import java.util.Collections
+import scala.concurrent.duration._
+import scala.language.postfixOps
+import scala.reflect.ClassTag
+import scala.util.Try
+
 object AkkaMonitoring extends ExtensionId[AkkaMonitoring] {
 
   private val ExportInterval = 5.seconds
@@ -155,16 +162,18 @@ class AkkaMonitoring(private val system: ActorSystem[_], val config: AkkaMonitor
       case e                         => e.getMessage
     }.filterOrElse(_.isInstance(ref), s"Ref ${ref} is not instance of ${fqcn}").map(_ => ())
 
-  private lazy val clusterNodeName: Option[Node] = {
+  private lazy val clusterNodeName: Option[Node] =
     (for {
-      _       <- reflectiveIsInstanceOf("akka.actor.typed.internal.adapter.ActorSystemAdapter", system)
+      _ <- reflectiveIsInstanceOf("akka.actor.typed.internal.adapter.ActorSystemAdapter", system)
       classic = system.classicSystem.asInstanceOf[ExtendedActorSystem]
-      _       <- reflectiveIsInstanceOf("akka.cluster.ClusterActorRefProvider", classic.provider)
-    } yield Cluster(classic).selfUniqueAddress.toNode).fold(message => {
-      log.error(message)
-      None
-    }, Some.apply)
-  }
+      _ <- reflectiveIsInstanceOf("akka.cluster.ClusterActorRefProvider", classic.provider)
+    } yield Cluster(classic).selfUniqueAddress.toNode).fold(
+      message => {
+        log.error(message)
+        None
+      },
+      Some.apply
+    )
 
   def startActorMonitor(): Unit = {
     log.debug("Starting actor monitor")

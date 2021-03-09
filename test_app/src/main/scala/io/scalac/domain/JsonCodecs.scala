@@ -1,10 +1,10 @@
 package io.scalac.domain
 
 import io.circe.generic.semiauto._
-import io.circe.{Codec, Encoder, Json}
+import io.circe.{ Codec, Encoder, Json }
 
 trait JsonCodecs {
-  implicit val accountCodec: Codec[Account]                  = deriveCodec
+  implicit val accountCodec: Codec[Account]                   = deriveCodec
   implicit val applicationErrorCodec: Codec[ApplicationError] = deriveCodec
 
   protected implicit class EncoderOps[T: Encoder](value: T) {

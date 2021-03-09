@@ -41,86 +41,80 @@ class AccountStateActorTest
     persistentTestKit.clearAll()
   }
 
-  "StateActor" should "have 0.0 balance after initialized" in test {
-    case (uuid, probe) =>
-      val accountState = testKit.spawn(AccountStateActor.apply(uuid))
-      accountState ! GetBalance(probe.ref)
-      probe.expectMessage(CurrentBalance(0.0))
-      persistentTestKit.expectNothingPersisted(uuid.toString, persistenceTimeout)
+  "StateActor" should "have 0.0 balance after initialized" in test { case (uuid, probe) =>
+    val accountState = testKit.spawn(AccountStateActor.apply(uuid))
+    accountState ! GetBalance(probe.ref)
+    probe.expectMessage(CurrentBalance(0.0))
+    persistentTestKit.expectNothingPersisted(uuid.toString, persistenceTimeout)
   }
 
-  it should "not allow balance to fall below 0.0" in test {
-    case (uuid, probe) =>
-      val accountState = testKit.spawn(AccountStateActor.apply(uuid))
+  it should "not allow balance to fall below 0.0" in test { case (uuid, probe) =>
+    val accountState = testKit.spawn(AccountStateActor.apply(uuid))
 
-      accountState ! Withdraw(probe.ref, 100.0)
-      accountState ! GetBalance(probe.ref)
+    accountState ! Withdraw(probe.ref, 100.0)
+    accountState ! GetBalance(probe.ref)
 
-      probe.expectMessage(InsufficientFunds)
-      probe.expectMessage(CurrentBalance(0.0))
-      persistentTestKit.expectNothingPersisted(uuid.toString, persistenceTimeout)
+    probe.expectMessage(InsufficientFunds)
+    probe.expectMessage(CurrentBalance(0.0))
+    persistentTestKit.expectNothingPersisted(uuid.toString, persistenceTimeout)
   }
 
-  it should "return sum of all deposits" in test {
-    case (uuid, probe) =>
-      val accountState = testKit.spawn(AccountStateActor.apply(uuid))
+  it should "return sum of all deposits" in test { case (uuid, probe) =>
+    val accountState = testKit.spawn(AccountStateActor.apply(uuid))
 
-      // don't allow it to be zero
-      val deposits = List.fill(10)(Random.nextInt(100) + 1).map(_.toDouble)
+    // don't allow it to be zero
+    val deposits = List.fill(10)(Random.nextInt(100) + 1).map(_.toDouble)
 
-      for {
-        value <- deposits
-      } {
-        accountState ! Deposit(system.ignoreRef, value)
-        persistentTestKit.expectNextPersisted(uuid.toString, MoneyDeposit(value))
-      }
+    for {
+      value <- deposits
+    } {
+      accountState ! Deposit(system.ignoreRef, value)
+      persistentTestKit.expectNextPersisted(uuid.toString, MoneyDeposit(value))
+    }
 
-      accountState ! GetBalance(probe.ref)
+    accountState ! GetBalance(probe.ref)
 
-      probe.expectMessage(CurrentBalance(deposits.sum))
+    probe.expectMessage(CurrentBalance(deposits.sum))
   }
 
-  it should "return current value for sequence of deposits and withdrawals" in test {
-    case (uuid, probe) =>
-      val accountState = testKit.spawn(AccountStateActor.apply(uuid))
+  it should "return current value for sequence of deposits and withdrawals" in test { case (uuid, probe) =>
+    val accountState = testKit.spawn(AccountStateActor.apply(uuid))
 
-      val deposits = List.fill(10)(Random.nextInt(100) + 1).map(_.toDouble)
+    val deposits = List.fill(10)(Random.nextInt(100) + 1).map(_.toDouble)
 
-      val withdraws = Random.shuffle(deposits).tail
+    val withdraws = Random.shuffle(deposits).tail
 
-      val depositCommands = deposits.map(value => Deposit(system.ignoreRef, value) -> MoneyDeposit(value))
+    val depositCommands = deposits.map(value => Deposit(system.ignoreRef, value) -> MoneyDeposit(value))
 
-      val withdrawCommands = withdraws.map(value => Withdraw(system.ignoreRef, value) -> MoneyWithdrawn(value))
+    val withdrawCommands = withdraws.map(value => Withdraw(system.ignoreRef, value) -> MoneyWithdrawn(value))
 
-      val commands = depositCommands ++ withdrawCommands
+    val commands = depositCommands ++ withdrawCommands
 
-      commands.foreach {
-        case (command, expectedEvent) =>
-          accountState ! command
-          persistentTestKit.expectNextPersisted(uuid.toString, expectedEvent)
-      }
+    commands.foreach { case (command, expectedEvent) =>
+      accountState ! command
+      persistentTestKit.expectNextPersisted(uuid.toString, expectedEvent)
+    }
 
-      accountState ! GetBalance(probe.ref)
+    accountState ! GetBalance(probe.ref)
 
-      val expectedBalance = deposits.sum - withdraws.sum
+    val expectedBalance = deposits.sum - withdraws.sum
 
-      probe.expectMessage(CurrentBalance(expectedBalance))
+    probe.expectMessage(CurrentBalance(expectedBalance))
   }
 
-  it should "not persist anything when deposit / withdrawal value is 0.0" in test {
-    case (uuid, probe) =>
-      val expectedBalance = 1778.0
-      val accountState    = testKit.spawn(AccountStateActor(uuid))
-      accountState ! Deposit(system.ignoreRef, expectedBalance)
+  it should "not persist anything when deposit / withdrawal value is 0.0" in test { case (uuid, probe) =>
+    val expectedBalance = 1778.0
+    val accountState    = testKit.spawn(AccountStateActor(uuid))
+    accountState ! Deposit(system.ignoreRef, expectedBalance)
 
-      accountState ! Deposit(system.ignoreRef, 0.0)
-      accountState ! Withdraw(system.ignoreRef, 0.0)
+    accountState ! Deposit(system.ignoreRef, 0.0)
+    accountState ! Withdraw(system.ignoreRef, 0.0)
 
-      accountState ! GetBalance(probe.ref)
+    accountState ! GetBalance(probe.ref)
 
-      probe.expectMessage(CurrentBalance(expectedBalance))
-      persistentTestKit.expectNextPersisted(uuid.toString, MoneyDeposit(expectedBalance))
-      persistentTestKit.expectNothingPersisted(uuid.toString, persistenceTimeout)
+    probe.expectMessage(CurrentBalance(expectedBalance))
+    persistentTestKit.expectNextPersisted(uuid.toString, MoneyDeposit(expectedBalance))
+    persistentTestKit.expectNothingPersisted(uuid.toString, persistenceTimeout)
   }
 
 }

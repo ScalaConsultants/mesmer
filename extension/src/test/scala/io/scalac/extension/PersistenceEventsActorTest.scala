@@ -77,8 +77,8 @@ class PersistenceEventsActorTest
     monitor.boundLabels should have size (1)
     val probes = monitor.boundLabels.flatMap(monitor.probes).loneElement
     probes.recoveryTotalProbe.receiveMessage() should be(Inc(1L))
-    inside(probes.recoveryTimeProbe.receiveMessage()) {
-      case MetricRecorded(value) => value should be(1000L +- 100)
+    inside(probes.recoveryTimeProbe.receiveMessage()) { case MetricRecorded(value) =>
+      value should be(1000L +- 100)
     }
   }
 
@@ -92,8 +92,8 @@ class PersistenceEventsActorTest
     monitor.boundLabels should have size (1)
     val probes = monitor.boundLabels.flatMap(monitor.probes).loneElement
     probes.persistentEventTotalProbe.receiveMessage() should be(Inc(1L))
-    inside(probes.persistentEventProbe.receiveMessage()) {
-      case MetricRecorded(value) => value should be(1000L +- 100)
+    inside(probes.persistentEventProbe.receiveMessage()) { case MetricRecorded(value) =>
+      value should be(1000L +- 100)
     }
   }
 
@@ -154,8 +154,8 @@ class PersistenceEventsActorTest
     allProbes should have size (expectedLabels.size)
     forAll(allProbes) { probes =>
       probes.persistentEventTotalProbe.receiveMessage() should be(Inc(1L))
-      inside(probes.persistentEventProbe.receiveMessage()) {
-        case MetricRecorded(value) => value should be(1000L +- 100L)
+      inside(probes.persistentEventProbe.receiveMessage()) { case MetricRecorded(value) =>
+        value should be(1000L +- 100L)
       }
     }
   }
@@ -195,15 +195,15 @@ class PersistenceEventsActorTest
     forAll(allProbes) { probes =>
       forAll(probes.persistentEventTotalProbe.receiveMessages(seqNbs.size))(_ should be(Inc(1L)))
       forAll(probes.persistentEventProbe.receiveMessages(seqNbs.size))(mr =>
-        inside(mr) {
-          case MetricRecorded(value) => value should be(expectedPersistEventTime +- 100L)
+        inside(mr) { case MetricRecorded(value) =>
+          value should be(expectedPersistEventTime +- 100L)
         }
       )
       forAll(probes.snapshotProbe.receiveMessages(seqNbs.size))(_ should be(Inc(1L)))
 
       probes.recoveryTotalProbe.receiveMessage() should be(Inc(1L))
-      inside(probes.recoveryTimeProbe.receiveMessage()) {
-        case MetricRecorded(value) => value should be(expectedRecoveryTime +- 100L)
+      inside(probes.recoveryTimeProbe.receiveMessage()) { case MetricRecorded(value) =>
+        value should be(expectedRecoveryTime +- 100L)
       }
     }
   }

@@ -37,7 +37,6 @@ class Timestamp(private[Timestamp] val value: Long) extends AnyVal {
 object Timestamp {
 
   /**
-   *
    * @return new [[Timestamp]] instance representing current point of execution. Should be called before and after
    *         measured code is executed
    */

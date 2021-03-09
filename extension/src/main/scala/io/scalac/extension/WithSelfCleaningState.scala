@@ -22,11 +22,10 @@ object WithSelfCleaningState {
       msg: Any,
       target: BehaviorInterceptor.ReceiveTarget[C]
     ): Behavior[C] = msg match {
-      case CleanResource(tag) if tag == _tag => {
+      case CleanResource(tag) if tag == _tag =>
         ctx.asScala.log.debug("Cleaning up resource {}", tag)
         resource.clean()
         Behaviors.same
-      }
       case internal: C @unchecked => target.apply(ctx, internal)
     }
   }

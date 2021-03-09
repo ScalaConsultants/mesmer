@@ -24,7 +24,8 @@ object AkkaMonitoringConfig {
 
   import config.ConfigurationUtils._
 
-  private val autoStartDefaults        = AutoStartSettings(akkaActor = false, akkaHttp = false, akkaCluster = false, akkaPersistence = false)
+  private val autoStartDefaults =
+    AutoStartSettings(akkaActor = false, akkaHttp = false, akkaCluster = false, akkaPersistence = false)
   private val bootSettingsDefaults     = BootSettings(false)
   private val cleaningSettingsDefaults = CleaningSettings(20.seconds, 5.second)
 

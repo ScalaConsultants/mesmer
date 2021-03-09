@@ -32,14 +32,12 @@ object ClusterEventsMonitor extends ClusterMonitorActor {
 
         boundMonitor.nodeDown.incValue(0L)
 
-        Behaviors.receiveMessage {
-          case MemberEventWrapper(event) => {
-            event match {
-              case MemberDowned(_) => boundMonitor.nodeDown.incValue(1L)
-              case _               =>
-            }
-            Behaviors.same
+        Behaviors.receiveMessage { case MemberEventWrapper(event) =>
+          event match {
+            case MemberDowned(_) => boundMonitor.nodeDown.incValue(1L)
+            case _               =>
           }
+          Behaviors.same
         }
       }
     }
