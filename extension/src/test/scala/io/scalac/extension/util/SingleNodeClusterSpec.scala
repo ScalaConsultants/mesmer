@@ -66,8 +66,8 @@ trait SingleNodeClusterSpec extends AsyncTestSuite {
       (entityNames, system, cluster, sharding)
     }
 
-    def runTest(
-      implicit system: ActorSystem[Nothing],
+    def runTest(implicit
+      system: ActorSystem[Nothing],
       entityNames: List[String],
       cluster: Cluster,
       sharding: ClusterSharding
@@ -98,13 +98,11 @@ trait SingleNodeClusterSpec extends AsyncTestSuite {
 
       _ <- onClusterStart(cluster)(system)
 
-      assertion <- {
-        runTest(system, regions, cluster, sharding).andThen {
-          case _ =>
-            portGenerator.releasePort(port)
-            system.terminate()
+      assertion <-
+        runTest(system, regions, cluster, sharding).andThen { case _ =>
+          portGenerator.releasePort(port)
+          system.terminate()
         }
-      }
 
       _ <- system.whenTerminated
 

@@ -161,8 +161,8 @@ class PersistenceEventsActorTest
       allProbes should have size (expectedLabels.size)
       forAll(allProbes) { probes =>
         probes.persistentEventTotalProbe.receiveMessage() should be(Inc(1L))
-        inside(probes.persistentEventProbe.receiveMessage()) {
-          case MetricRecorded(value) => value should be(1000L +- 100L)
+        inside(probes.persistentEventProbe.receiveMessage()) { case MetricRecorded(value) =>
+          value should be(1000L +- 100L)
         }
       }
   }

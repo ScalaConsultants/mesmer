@@ -63,7 +63,7 @@ object TestCase {
     implicit def system: ActorSystem[_]
 
     // overrides
-    protected final def startEnv(): ActorSystem[_]         = system
+    protected final def startEnv(): ActorSystem[_] = system
     protected final def stopEnv(env: ActorSystem[_]): Unit = {}
   }
 
@@ -128,7 +128,7 @@ object TestCase {
 
   trait NoSetupTestCaseFactory extends TestCaseFactory {
     type Setup = Unit
-    protected final def tearDown(setup: Setup): Unit  = {}
+    protected final def tearDown(setup: Setup): Unit = {}
     protected final def setUp(context: Context): Unit = {}
   }
 
