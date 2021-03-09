@@ -23,6 +23,6 @@ object GraphLogicOps {
 
     def outputConnections: Int = logic.inCount
 
-    def isTerminal: Boolean = logic.attributes.get[TerminalSink.type].isDefined
+    def isTerminal: Boolean = logic.attributes.contains(TerminalSink)
   }
 }

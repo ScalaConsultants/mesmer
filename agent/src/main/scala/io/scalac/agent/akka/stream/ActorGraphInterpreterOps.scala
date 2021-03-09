@@ -10,7 +10,7 @@ import io.scalac.core.util.stream.subStreamNameFromActorRef
 import io.scalac.extension.event.ActorInterpreterStats
 
 import java.lang.invoke.MethodType._
-object AkkaStreamExtensions extends Lookup {
+object ActorGraphInterpreterOps extends Lookup {
 
   private lazy val shells = {
     val actorInterpreter = Class.forName("akka.stream.impl.fusing.ActorGraphInterpreter")
