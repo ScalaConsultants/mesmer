@@ -27,6 +27,7 @@ class CachedQueryResult[T] private (q: => T, validBy: FiniteDuration = 1.second)
   private def needUpdate: Boolean = lastUpdate.forall(lu => now > lu + validBy)
   private def now: Timestamp      = Timestamp.create()
 }
+
 object CachedQueryResult {
   def apply[T](q: => T): CachedQueryResult[T]                       = new CachedQueryResult(q)
   def by[T](validBy: FiniteDuration)(q: => T): CachedQueryResult[T] = new CachedQueryResult(q, validBy)

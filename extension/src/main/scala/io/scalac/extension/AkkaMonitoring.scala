@@ -176,17 +176,20 @@ class AkkaMonitoring(private val system: ActorSystem[_], val config: AkkaMonitor
   def startActorMonitor(): Unit = {
     log.debug("Starting actor monitor")
 
+    val streamOperatorMonitor =
+      OpenTelemetryStreamOperatorMetricsMonitor(instrumentationName, actorSystemConfig)
+
     val actorMonitor = OpenTelemetryActorMetricsMonitor(instrumentationName, actorSystemConfig)
 
     val streamMonitor = CachingMonitor(
-      OpenTelemetryStreamMetricsMonitor(instrumentationName, actorSystemConfig),
+      OpenTelemetryStreamMetricMonitor(instrumentationName, actorSystemConfig),
       CachingConfig.fromConfig(actorSystemConfig, "stream")
     )
 
     val streamMonitorRef = system.systemActorOf(
       Behaviors
         .supervise(
-          AkkaStreamMonitoring(streamMonitor)
+          AkkaStreamMonitoring(streamOperatorMonitor, streamMonitor, clusterNodeName)
         )
         .onFailure(SupervisorStrategy.restart),
       "streamMonitor"

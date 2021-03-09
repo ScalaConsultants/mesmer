@@ -2,29 +2,15 @@ package io.scalac.agent.akka.stream
 
 import akka.AkkaMirrorTypes._
 import akka.actor.Actor
-import akka.actor.typed.scaladsl.adapter._
 import akka.stream.GraphLogicOps._
 import io.scalac.core.akka.model.PushMetrics
 import io.scalac.core.invoke.Lookup
-import io.scalac.core.model.ConnectionStats
-import io.scalac.extension.event.{ ActorInterpreterStats, EventBus }
+import io.scalac.core.model._
+import io.scalac.core.util.stream.subStreamNameFromActorRef
+import io.scalac.extension.event.ActorInterpreterStats
 
 import java.lang.invoke.MethodType._
 object AkkaStreamExtensions extends Lookup {
-
-  private lazy val graphInterpreterClass = Class.forName("akka.stream.impl.fusing.GraphInterpreter")
-
-  private lazy val graphInterpreterPushCounter = {
-    val field = graphInterpreterClass.getDeclaredField("pushCounter")
-    field.setAccessible(true)
-    lookup.unreflectGetter(field)
-  }
-
-  private lazy val graphInterpreterPullCounter = {
-    val field = graphInterpreterClass.getDeclaredField("pullCounter")
-    field.setAccessible(true)
-    lookup.unreflectGetter(field)
-  }
 
   private lazy val shells = {
     val actorInterpreter = Class.forName("akka.stream.impl.fusing.ActorGraphInterpreter")
@@ -32,24 +18,35 @@ object AkkaStreamExtensions extends Lookup {
   }
 
   def addCollectionReceive(
-    receive: PartialFunction[Any, Unit],
-    self: Actor
-  ): PartialFunction[Any, Unit] =
+    receive: Actor.Receive,
+    thiz: Actor
+  ): Actor.Receive =
     receive.orElse {
-      case PushMetrics => {
-        val stats = shells
-          .invoke(self)
-          .asInstanceOf[Set[GraphInterpreterShellMirror]]
-          .flatMap(_.connections)
-          .map { connection =>
-            val (push, pull) = ConnectionOps.getCounterValues(connection)
-            val in           = connection.inOwner.stageName
-            val out          = connection.outOwner.stageName
+      case PushMetrics(replyTo) => {
 
-            ConnectionStats(in, out, push, pull)
+        val subStreamName = subStreamNameFromActorRef(thiz.context.self)
+
+        val currentShells = shells
+          .invoke(thiz)
+          .asInstanceOf[Set[GraphInterpreterShellMirror]]
+
+        val stats = currentShells.map { shell =>
+          val connections = shell.connections.flatMap { connection =>
+            val (push, pull) = ConnectionOps.getAndResetCounterValues(connection)
+
+            for {
+              in  <- connection.inOwner.streamUniqueStageName
+              out <- connection.outOwner.streamUniqueStageName
+            } yield ConnectionStats(in, out, push, pull)
           }
 
-        EventBus(self.context.system.toTyped).publishEvent(ActorInterpreterStats(self.context.self, stats, None))
+          val stageInfo = shell.logics.flatMap(_.streamUniqueStageName.map(StageInfo(_, subStreamName)))
+          stageInfo -> connections
+        }
+
+        val self = thiz.context.self
+
+        replyTo ! ActorInterpreterStats(self, subStreamName, stats)
       }
     }
 
