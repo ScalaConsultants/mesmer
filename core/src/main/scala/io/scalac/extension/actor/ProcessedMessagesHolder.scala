@@ -1,6 +1,7 @@
 package io.scalac.extension.actor
 
 import java.lang.invoke.MethodHandles
+import java.util.concurrent.atomic.AtomicLong
 
 object ProcessedMessagesHolder {
 
@@ -14,21 +15,18 @@ object ProcessedMessagesHolder {
     (lookup.unreflectGetter(field), lookup.unreflectSetter(field))
   }
 
+  @inline def setCounter(actorCell: Object): Unit =
+    processedMessagesSetterHandler.invoke(actorCell, new AtomicLong())
+
   @inline def inc(actorCell: Object): Unit =
-    get(actorCell).foreach(current => processedMessagesSetterHandler.invoke(actorCell, current + 1))
+    get(actorCell).foreach(_.getAndIncrement())
 
   @inline def take(actorCell: Object): Option[Long] =
     get(actorCell)
-      .filter(_ > 0)
-      .map { current =>
-        clear(actorCell)
-        current
-      }
+      .filter(_.get() > 0)
+      .map(_.getAndSet(0))
 
-  @inline private final def get(actorCell: Object): Option[Long] =
-    Option(actorCell).map(processedMessagesGetterHandler.invoke(_)).map(_.asInstanceOf[Long])
-
-  @inline private final def clear(actorCell: Object): Unit =
-    processedMessagesSetterHandler.invoke(actorCell, 0)
+  @inline private final def get(actorCell: Object): Option[AtomicLong] =
+    Option(actorCell).map(processedMessagesGetterHandler.invoke(_)).map(_.asInstanceOf[AtomicLong])
 
 }

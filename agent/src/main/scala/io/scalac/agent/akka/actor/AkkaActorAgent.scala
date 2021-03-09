@@ -1,5 +1,7 @@
 package io.scalac.agent.akka.actor
 
+import java.util.concurrent.atomic.AtomicLong
+
 import akka.actor.Actor
 import akka.actor.typed.Behavior
 
@@ -156,7 +158,7 @@ object AkkaActorAgent {
             )
             .defineField(
               ProcessedMessagesHolder.ProcessedMessagesVar,
-              classOf[Long]
+              classOf[AtomicLong]
             )
             .visit(
               Advice
