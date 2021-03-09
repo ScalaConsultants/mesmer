@@ -1,8 +1,8 @@
 *.class
 *.log
 target/
-.idea/
 .bsp/
+.idea/
 *.jar
 *.log.*
 *.sh

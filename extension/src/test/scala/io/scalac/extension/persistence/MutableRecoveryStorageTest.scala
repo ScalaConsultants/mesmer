@@ -17,15 +17,14 @@ class MutableRecoveryStorageTest extends AnyFlatSpec with Matchers with TestOps 
     Function.untupled(body)(buffer, sut)
   }
 
-  "MutableRecoveryStorage" should "add started events to internal buffer" in test {
-    case (buffer, sut) =>
-      val events = List.fill(10) {
-        val id = createUniqueId
-        RecoveryStarted(s"/some/path/${id}", id, Timestamp.create())
-      }
-      events.foreach(sut.recoveryStarted)
-      buffer should have size (events.size)
-      buffer.values should contain theSameElementsAs (events)
+  "MutableRecoveryStorage" should "add started events to internal buffer" in test { case (buffer, sut) =>
+    val events = List.fill(10) {
+      val id = createUniqueId
+      RecoveryStarted(s"/some/path/${id}", id, Timestamp.create())
+    }
+    events.foreach(sut.recoveryStarted)
+    buffer should have size (events.size)
+    buffer.values should contain theSameElementsAs (events)
   }
 
   it should "remove started event from internal buffer when corresponding finish event is fired" in test {
@@ -44,16 +43,15 @@ class MutableRecoveryStorageTest extends AnyFlatSpec with Matchers with TestOps 
       buffer.values should contain theSameElementsAs (events.drop(finished.size))
   }
 
-  it should "return same storage instance with correct latency" in test {
-    case (_, sut) =>
-      val id              = createUniqueId
-      val startTimestamp  = Timestamp.create()
-      val path            = s"/some/path/${id}"
-      val expectedLatency = 1234L
-      sut.recoveryStarted(RecoveryStarted(path, id, startTimestamp))
-      val Some((resultStorage, latency)) =
-        sut.recoveryFinished(RecoveryFinished(path, id, startTimestamp.plus(expectedLatency.millis)))
-      resultStorage should be theSameInstanceAs (sut)
-      latency should be(expectedLatency)
+  it should "return same storage instance with correct latency" in test { case (_, sut) =>
+    val id              = createUniqueId
+    val startTimestamp  = Timestamp.create()
+    val path            = s"/some/path/${id}"
+    val expectedLatency = 1234L
+    sut.recoveryStarted(RecoveryStarted(path, id, startTimestamp))
+    val Some((resultStorage, latency)) =
+      sut.recoveryFinished(RecoveryFinished(path, id, startTimestamp.plus(expectedLatency.millis)))
+    resultStorage should be theSameInstanceAs (sut)
+    latency should be(expectedLatency)
   }
 }

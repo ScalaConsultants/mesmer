@@ -85,11 +85,10 @@ class AkkaStreamMonitoringTest
     shellInfo: Set[ShellInfo],
     subStream: SubStreamName,
     monitor: Option[ActorRef[PushMetrics]]
-  ): Behavior[PushMetrics] = Behaviors.receive {
-    case (ctx, pm @ PushMetrics(ref)) =>
-      monitor.foreach(_ ! pm)
-      ref ! ActorInterpreterStats(ctx.self.toClassic, subStream, shellInfo)
-      Behaviors.same
+  ): Behavior[PushMetrics] = Behaviors.receive { case (ctx, pm @ PushMetrics(ref)) =>
+    monitor.foreach(_ ! pm)
+    ref ! ActorInterpreterStats(ctx.self.toClassic, subStream, shellInfo)
+    Behaviors.same
   }
 
   def sut(implicit c: TestCaseContext): ActorRef[AkkaStreamMonitoring.Command] = c.ref

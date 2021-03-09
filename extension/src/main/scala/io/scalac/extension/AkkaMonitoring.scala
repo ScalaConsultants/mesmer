@@ -29,6 +29,13 @@ import scala.language.postfixOps
 import scala.reflect.ClassTag
 import scala.util.Try
 
+import java.net.URI
+import java.util.Collections
+import scala.concurrent.duration._
+import scala.language.postfixOps
+import scala.reflect.ClassTag
+import scala.util.Try
+
 object AkkaMonitoring extends ExtensionId[AkkaMonitoring] {
 
   private val ExportInterval = 5.seconds

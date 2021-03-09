@@ -14,6 +14,8 @@ def runWithAgent = Command.command("runWithAgent") { state =>
     extracted.appendWithSession(
       Seq(
         run / javaOptions ++= Seq(
+          "-Denv=local",
+          "-Dconfig.resource=local/application.conf",
           s"-javaagent:${(agent / assembly).value.absolutePath}",
           "-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=9999"
         )
@@ -24,6 +26,7 @@ def runWithAgent = Command.command("runWithAgent") { state =>
     Project.extract(newState).runInputTask(Compile / run, "", newState)
   s
 }
+
 lazy val root = (project in file("."))
 //  .enablePlugins(MultiJvmPlugin)
   .settings(name := "mesmer-akka-agent")
@@ -93,9 +96,10 @@ lazy val agent = (project in file("agent"))
   )
 
 lazy val testApp = (project in file("test_app"))
+  .enablePlugins(JavaAppPackaging, DockerPlugin, UniversalPlugin)
   .settings(
     name := "mesmer-akka-test-app",
-    libraryDependencies ++= akka ++ scalatest ++ akkaTestkit ++ circe ++ circeAkka ++ postgresDriver ++ akkaPersistance ++ slick ++ logback ++ newRelicSdk ++ akkaManagement,
+    libraryDependencies ++= akka ++ scalatest ++ akkaTestkit ++ circe ++ circeAkka ++ postgresDriver ++ akkaPersistance ++ slick ++ logback ++ newRelicSdk ++ akkaManagement ++ prometheus,
     assemblyMergeStrategySettings,
     assembly / mainClass := Some("io.scalac.Boot"),
     assembly / assemblyJarName := "test_app.jar",
@@ -109,6 +113,25 @@ lazy val testApp = (project in file("test_app"))
         (key, value) <- properties.asScala.toList if value.nonEmpty
       } yield s"-D$key=$value")
     },
-    commands += runWithAgent
+    commands += runWithAgent,
+    Universal / mappings += {
+      val jar = (agent / assembly).value
+      jar -> "scalac.agent.jar"
+    },
+    dockerEnvVars := {
+      Map("JAVA_OPTS" -> s"-javaagent:/opt/docker/scalac.agent.jar -Dconfig.resource=dev/application.conf")
+    },
+    dockerExposedPorts ++= Seq(8080),
+    Docker / dockerRepository := {
+      sys.env.get("DOCKER_REPO")
+    },
+    Docker / dockerRepository := {
+      sys.env.get("DOCKER_USER")
+    },
+    Docker / packageName := {
+      val old = (Docker / packageName).value
+      sys.env.getOrElse("DOCKER_PACKAGE_NAME", old)
+    },
+    dockerUpdateLatest := true
   )
-  .dependsOn(extension, agent)
+  .dependsOn(extension)

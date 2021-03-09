@@ -113,9 +113,8 @@ trait SingleNodeClusterSpec extends AsyncTestSuite {
   }
 
   def setup[T: ClassTag](behavior: String => Behavior[T])(test: Fixture[Id, T] => Assertion): Future[Assertion] =
-    setupN(behavior, n = 1) {
-      case (system, member, Seq(ref), probe, Seq(shading)) =>
-        test(system, member, ref, probe, shading)
+    setupN(behavior, n = 1) { case (system, member, Seq(ref), probe, Seq(shading)) =>
+      test(system, member, ref, probe, shading)
     }
 
 }

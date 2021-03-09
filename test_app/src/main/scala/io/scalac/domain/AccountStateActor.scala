@@ -76,8 +76,7 @@ object AccountStateActor {
         AccountState(0.0),
         (state, command) => state.commandHandler(command),
         (state, event) => state.eventHandler(event)
-      )
-        .withRetention(RetentionCriteria.snapshotEvery(2, 2))
+      ).withRetention(RetentionCriteria.snapshotEvery(2, 2))
 
     }
 }
