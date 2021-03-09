@@ -15,7 +15,7 @@ import io.scalac.agent.{ Agent, AgentInstrumentation }
 import io.scalac.core.model._
 import io.scalac.core.support.ModulesSupport
 import io.scalac.core.util.Timestamp
-import io.scalac.extension.actor.{ MailboxTimeHolder, ProcessedMessagesHolder }
+import io.scalac.extension.actor.{ MailboxTimeHolder, MessagesCountersHolder }
 
 object AkkaActorAgent {
 
@@ -157,7 +157,15 @@ object AkkaActorAgent {
               classOf[MailboxTimeHolder.MailboxTimeAgg]
             )
             .defineField(
-              ProcessedMessagesHolder.ProcessedMessagesVar,
+              MessagesCountersHolder.Received.fieldName,
+              classOf[AtomicLong]
+            )
+            .defineField(
+              MessagesCountersHolder.Processed.fieldName,
+              classOf[AtomicLong]
+            )
+            .defineField(
+              MessagesCountersHolder.Failed.fieldName,
               classOf[AtomicLong]
             )
             .visit(

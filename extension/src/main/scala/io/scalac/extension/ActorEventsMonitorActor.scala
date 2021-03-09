@@ -7,7 +7,7 @@ import akka.actor.typed.scaladsl.{ AbstractBehavior, ActorContext, Behaviors, Ti
 import akka.{ actor => classic }
 import io.scalac.core.model.Tag
 import io.scalac.extension.AkkaStreamMonitoring.StartStreamCollection
-import io.scalac.extension.actor.{ ActorMetricStorage, ActorMetrics, MailboxTimeHolder, ProcessedMessagesHolder }
+import io.scalac.extension.actor.{ ActorMetricStorage, ActorMetrics, MailboxTimeHolder, MessagesCountersHolder }
 import io.scalac.extension.event.ActorEvent.StashMeasurement
 import io.scalac.extension.event.{ ActorEvent, TagEvent }
 import io.scalac.extension.metric.ActorMetricMonitor.Labels
@@ -259,9 +259,19 @@ object ActorEventsMonitorActor {
           bind.mailboxTimeSum.setUpdater(_.observe(mailboxTime.sum))
         }
 
+        metrics.receivedMessages.foreach { rm =>
+          log.trace("Registering a new updater for received messages for actor {} with value {}", key, rm)
+          bind.receivedMessages.setUpdater(_.observe(rm))
+        }
+
         metrics.processedMessages.foreach { pm =>
           log.trace("Registering a new updater for processed messages for actor {} with value {}", key, pm)
           bind.processedMessages.setUpdater(_.observe(pm))
+        }
+
+        metrics.failedMessages.foreach { fm =>
+          log.trace("Registering a new updater for failed messages for actor {} with value {}", key, fm)
+          bind.failedMessages.setUpdater(_.observe(fm))
         }
       }
 
@@ -331,8 +341,10 @@ object ActorEventsMonitorActor {
           val cell = underlyingMethodHandler.invoke(actor)
           ActorMetrics(
             safeRead(mailboxSize(cell)),
-            mailboxTime(cell),
-            processedMessages(cell)
+            MailboxTimeHolder.getMetrics(cell),
+            MessagesCountersHolder.Received.take(cell),
+            MessagesCountersHolder.Processed.take(cell),
+            MessagesCountersHolder.Failed.take(cell)
           )
         }
 
@@ -346,11 +358,6 @@ object ActorEventsMonitorActor {
 
     private def mailboxSize(cell: Object): Int =
       numberOfMessagesMethodHandler.invoke(cell).asInstanceOf[Int]
-
-    private def mailboxTime(cell: Object): Option[LongValueAggMetric] = MailboxTimeHolder.getMetrics(cell)
-
-    private def processedMessages(cell: Object): Option[Long] =
-      ProcessedMessagesHolder.take(cell)
 
   }
 
