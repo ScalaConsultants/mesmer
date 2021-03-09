@@ -87,22 +87,20 @@ trait SingleNodeClusterSpec extends AsyncTestSuite {
 
     for {
       (regions, _system, cluster, sharding) <- initAkka()
-      system                                = _system
-      _                                     <- onClusterStart(cluster)(system)
-      assertion <- runTest(system, regions, cluster, sharding).andThen {
-                    case _ =>
-                      portGenerator.releasePort(port)
-                      system.terminate()
-                  }
+      system = _system
+      _ <- onClusterStart(cluster)(system)
+      assertion <- runTest(system, regions, cluster, sharding).andThen { case _ =>
+        portGenerator.releasePort(port)
+        system.terminate()
+      }
       _ <- system.whenTerminated
     } yield assertion
 
   }
 
   def setup[T: ClassTag](behavior: String => Behavior[T])(test: Fixture[Id, T] => Assertion): Future[Assertion] =
-    setupN(behavior, n = 1) {
-      case (system, member, Seq(ref), probe, Seq(shading)) =>
-        test(system, member, ref, probe, shading)
+    setupN(behavior, n = 1) { case (system, member, Seq(ref), probe, Seq(shading)) =>
+      test(system, member, ref, probe, shading)
     }
 
 }

@@ -1,6 +1,6 @@
 package io.scalac
 
-import java.{util => ju}
+import java.{ util => ju }
 
 package object domain {
   type AccountId = ju.UUID

@@ -3,7 +3,7 @@ package io.scalac.agent
 import java.lang.instrument.Instrumentation
 
 import io.scalac.agent.Agent.LoadingResult
-import io.scalac.core.model.{Module, SupportedModules, SupportedVersion, Version}
+import io.scalac.core.model.{ Module, SupportedModules, SupportedVersion, Version }
 import io.scalac.core.util.ModuleInfo.Modules
 import net.bytebuddy.agent.ByteBuddyAgent
 import net.bytebuddy.agent.builder.AgentBuilder
@@ -29,34 +29,31 @@ class AgentTest extends AnyFlatSpec with Matchers {
 
   def returning(result: LoadingResult): (AgentBuilder, Instrumentation, Modules) => LoadingResult = (_, _, _) => result
 
-  "Agent" should "execute instrumenting function when version match" in test {
-    case (instrumentation, builder) =>
-      val supportedModules = modules.foldLeft(SupportedModules.empty) {
-        case (supported, (module, version)) => supported ++ (module, SupportedVersion(version))
-      }
-      val expectedResult = LoadingResult("some.class", "other.class")
-      val sut            = Agent(AgentInstrumentation("sut", supportedModules)(returning(expectedResult)))
-      sut.installOn(builder, instrumentation, modules) shouldBe (expectedResult)
+  "Agent" should "execute instrumenting function when version match" in test { case (instrumentation, builder) =>
+    val supportedModules = modules.foldLeft(SupportedModules.empty) { case (supported, (module, version)) =>
+      supported ++ (module, SupportedVersion(version))
+    }
+    val expectedResult = LoadingResult("some.class", "other.class")
+    val sut            = Agent(AgentInstrumentation("sut", supportedModules)(returning(expectedResult)))
+    sut.installOn(builder, instrumentation, modules) shouldBe (expectedResult)
   }
 
-  it should "not execute instrumenting when no version match" in test {
-    case (instrumentation, builder) =>
-      val supportedModules = modules.foldLeft(SupportedModules.empty) {
-        case (supported, (module, _)) => supported ++ (module, SupportedVersion.none)
-      }
-      val expectedResult = LoadingResult("some.class", "other.class")
-      val sut            = Agent(AgentInstrumentation("sut", supportedModules)(returning(expectedResult)))
-      sut.installOn(builder, instrumentation, modules) shouldBe LoadingResult.empty
+  it should "not execute instrumenting when no version match" in test { case (instrumentation, builder) =>
+    val supportedModules = modules.foldLeft(SupportedModules.empty) { case (supported, (module, _)) =>
+      supported ++ (module, SupportedVersion.none)
+    }
+    val expectedResult = LoadingResult("some.class", "other.class")
+    val sut            = Agent(AgentInstrumentation("sut", supportedModules)(returning(expectedResult)))
+    sut.installOn(builder, instrumentation, modules) shouldBe LoadingResult.empty
   }
 
-  it should "not execute instrumenting when any version doesn't match" in test {
-    case (instrumentation, builder) =>
-      val supportedModules = modules.foldLeft(SupportedModules.empty) {
-        case (supported, (module, version)) => supported ++ (module, SupportedVersion(version))
-      } ++ (testModuleOne, SupportedVersion.none)
-      val expectedResult = LoadingResult("some.class", "other.class")
-      val sut            = Agent(AgentInstrumentation("sut", supportedModules)(returning(expectedResult)))
-      sut.installOn(builder, instrumentation, modules) shouldBe LoadingResult.empty
+  it should "not execute instrumenting when any version doesn't match" in test { case (instrumentation, builder) =>
+    val supportedModules = modules.foldLeft(SupportedModules.empty) { case (supported, (module, version)) =>
+      supported ++ (module, SupportedVersion(version))
+    } ++ (testModuleOne, SupportedVersion.none)
+    val expectedResult = LoadingResult("some.class", "other.class")
+    val sut            = Agent(AgentInstrumentation("sut", supportedModules)(returning(expectedResult)))
+    sut.installOn(builder, instrumentation, modules) shouldBe LoadingResult.empty
   }
 
   it should "partially instrument when several agent instrumentations are defined" in test {

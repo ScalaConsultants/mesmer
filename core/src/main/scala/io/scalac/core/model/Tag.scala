@@ -4,8 +4,8 @@ sealed trait Tag extends Any {
   def serialize: Seq[(String, String)]
 
   override def toString =
-    this.serialize.map {
-      case (label, value) => s"$label -> $value"
+    this.serialize.map { case (label, value) =>
+      s"$label -> $value"
     }.mkString("[", ",", "]")
 }
 

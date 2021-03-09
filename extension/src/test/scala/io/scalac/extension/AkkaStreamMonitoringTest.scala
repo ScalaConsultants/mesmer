@@ -67,11 +67,10 @@ class AkkaStreamMonitoringTest
     shellInfo: Set[ShellInfo],
     subStream: SubStreamName,
     monitor: Option[ActorRef[PushMetrics]]
-  ): Behavior[PushMetrics] = Behaviors.receive {
-    case (ctx, pm @ PushMetrics(ref)) =>
-      monitor.foreach(_ ! pm)
-      ref ! ActorInterpreterStats(ctx.self.toClassic, subStream, shellInfo)
-      Behaviors.same
+  ): Behavior[PushMetrics] = Behaviors.receive { case (ctx, pm @ PushMetrics(ref)) =>
+    monitor.foreach(_ ! pm)
+    ref ! ActorInterpreterStats(ctx.self.toClassic, subStream, shellInfo)
+    Behaviors.same
   }
 
   def cleanActors(refs: Seq[classic.ActorRef]): Unit = refs.foreach(_ ! PoisonPill)
@@ -86,91 +85,83 @@ class AkkaStreamMonitoringTest
     case (operations, global) => system.systemActorOf(AkkaStreamMonitoring(operations, global, None), createUniqueId)
   }
 
-  "AkkaStreamMonitoring" should "ask all received refs for metrics" in testWithRef {
-    case ((_, _), sut) =>
-      val probes = List.fill(5)(TestProbe[PushMetrics]())
-      val refs = probes
-        .map(probe => akkaStreamActorBehavior(Set.empty, SubStreamName(randomString(10), "1"), Some(probe.ref)))
-        .map(behavior => system.systemActorOf(behavior, createUniqueId).toClassic)
+  "AkkaStreamMonitoring" should "ask all received refs for metrics" in testWithRef { case ((_, _), sut) =>
+    val probes = List.fill(5)(TestProbe[PushMetrics]())
+    val refs = probes
+      .map(probe => akkaStreamActorBehavior(Set.empty, SubStreamName(randomString(10), "1"), Some(probe.ref)))
+      .map(behavior => system.systemActorOf(behavior, createUniqueId).toClassic)
 
-      sut ! StartStreamCollection(refs.toSet)
+    sut ! StartStreamCollection(refs.toSet)
 
-      forAll(probes)(_.expectMessageType[PushMetrics])
+    forAll(probes)(_.expectMessageType[PushMetrics])
 
-      cleanActors(refs)
+    cleanActors(refs)
   }
 
-  it should "publish amount of actors running stream" in testWithRef {
-    case ((_, global), sut) =>
-      val ExpectedCount = 5
-      val refs = generateUniqueString(ExpectedCount, 10).zipWithIndex.map {
-        case (name, index) =>
-          val streamName = SubStreamName(s"$name-$index", s"$index")
-          val behavior   = akkaStreamActorBehavior(Set.empty, streamName, None)
-          system.systemActorOf(behavior, s"$name-$index-$index-${randomString(10)}").toClassic
-      }
+  it should "publish amount of actors running stream" in testWithRef { case ((_, global), sut) =>
+    val ExpectedCount = 5
+    val refs = generateUniqueString(ExpectedCount, 10).zipWithIndex.map { case (name, index) =>
+      val streamName = SubStreamName(s"$name-$index", s"$index")
+      val behavior   = akkaStreamActorBehavior(Set.empty, streamName, None)
+      system.systemActorOf(behavior, s"$name-$index-$index-${randomString(10)}").toClassic
+    }
 
-      sut ! StartStreamCollection(refs.toSet)
+    sut ! StartStreamCollection(refs.toSet)
 
-      global.streamActorsProbe.receiveMessage(ReceiveWait) shouldBe (MetricObserved(ExpectedCount))
+    global.streamActorsProbe.receiveMessage(ReceiveWait) shouldBe (MetricObserved(ExpectedCount))
 
-      cleanActors(refs)
+    cleanActors(refs)
   }
 
-  it should "publish amount of running streams" in testWithRef {
-    case ((_, global), sut) =>
-      val ExpectedCount  = 5
-      val ActorPerStream = 3
-      val refs = generateUniqueString(ExpectedCount, 10).zipWithIndex.flatMap {
-        case (name, index) =>
-          List.tabulate(ActorPerStream) { streamId =>
-            val streamName = SubStreamName(s"$name-$index", s"$streamId")
-            val behavior   = akkaStreamActorBehavior(Set.empty, streamName, None)
-            system.systemActorOf(behavior, s"$name-$index-$streamId-${randomString(10)}").toClassic
-          }
+  it should "publish amount of running streams" in testWithRef { case ((_, global), sut) =>
+    val ExpectedCount  = 5
+    val ActorPerStream = 3
+    val refs = generateUniqueString(ExpectedCount, 10).zipWithIndex.flatMap { case (name, index) =>
+      List.tabulate(ActorPerStream) { streamId =>
+        val streamName = SubStreamName(s"$name-$index", s"$streamId")
+        val behavior   = akkaStreamActorBehavior(Set.empty, streamName, None)
+        system.systemActorOf(behavior, s"$name-$index-$streamId-${randomString(10)}").toClassic
       }
+    }
 
-      sut ! StartStreamCollection(refs.toSet)
+    sut ! StartStreamCollection(refs.toSet)
 
-      global.runningStreamsProbe.receiveMessage(2.seconds) shouldBe (MetricObserved(ExpectedCount))
-      global.streamActorsProbe.receiveMessage(2.seconds) shouldBe (MetricObserved(ExpectedCount * ActorPerStream))
+    global.runningStreamsProbe.receiveMessage(2.seconds) shouldBe (MetricObserved(ExpectedCount))
+    global.streamActorsProbe.receiveMessage(2.seconds) shouldBe (MetricObserved(ExpectedCount * ActorPerStream))
 
-      cleanActors(refs)
+    cleanActors(refs)
   }
 
-  it should "collect amount of messages processed and operators" in testWithRef {
-    case ((operations, _), sut) =>
-      val ExpectedCount = 5
-      val Flows         = 2
-      val Push          = 11L
-      val Pull          = 9L
+  it should "collect amount of messages processed and operators" in testWithRef { case ((operations, _), sut) =>
+    val ExpectedCount = 5
+    val Flows         = 2
+    val Push          = 11L
+    val Pull          = 9L
 
-      val refs = generateUniqueString(ExpectedCount, 10).zipWithIndex.map {
-        case (name, index) =>
-          val streamName = SubStreamName(s"$name-$index", "0")
+    val refs = generateUniqueString(ExpectedCount, 10).zipWithIndex.map { case (name, index) =>
+      val streamName = SubStreamName(s"$name-$index", "0")
 
-          val linearShellInfo = singleActorLinearShellInfo(streamName, Flows, Push, Pull)
+      val linearShellInfo = singleActorLinearShellInfo(streamName, Flows, Push, Pull)
 
-          val behavior = akkaStreamActorBehavior(Set(linearShellInfo), streamName, None)
+      val behavior = akkaStreamActorBehavior(Set(linearShellInfo), streamName, None)
 
-          system.systemActorOf(behavior, s"$name-$index-$index-${randomString(10)}").toClassic
-      }
+      system.systemActorOf(behavior, s"$name-$index-$index-${randomString(10)}").toClassic
+    }
 
-      sut ! StartStreamCollection(refs.toSet)
+    sut ! StartStreamCollection(refs.toSet)
 
-      val operators =
-        operations.runningOperatorsTestProbe.receiveMessages(ExpectedCount * StagesNames.size, OperationsPing)
-      val processed = operations.processedTestProbe.receiveMessages(ExpectedCount * (Flows + 1), OperationsPing)
+    val operators =
+      operations.runningOperatorsTestProbe.receiveMessages(ExpectedCount * StagesNames.size, OperationsPing)
+    val processed = operations.processedTestProbe.receiveMessages(ExpectedCount * (Flows + 1), OperationsPing)
 
-      forAll(processed)(inside(_) {
-        case LazyMetricsObserved(value, labels) =>
-          value shouldBe Push
-          labels.node shouldBe empty
-      })
+    forAll(processed)(inside(_) { case LazyMetricsObserved(value, labels) =>
+      value shouldBe Push
+      labels.node shouldBe empty
+    })
 
-      operators.map(_.labels.operator.name).distinct should contain theSameElementsAs StagesNames
+    operators.map(_.labels.operator.name).distinct should contain theSameElementsAs StagesNames
 
-      cleanActors(refs)
+    cleanActors(refs)
   }
 
 }

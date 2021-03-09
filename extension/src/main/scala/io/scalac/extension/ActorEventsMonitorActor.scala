@@ -67,8 +67,8 @@ object ActorEventsMonitorActor {
     private final case class ActorEventWrapper(actorEvent: ActorEvent) extends SyncCommand
     private object ActorEventWrapper {
       def receiveMessage(f: ActorEvent => Behavior[SyncCommand]): Behavior[SyncCommand] =
-        Behaviors.receiveMessage[SyncCommand] {
-          case ActorEventWrapper(actorEvent) => f(actorEvent)
+        Behaviors.receiveMessage[SyncCommand] { case ActorEventWrapper(actorEvent) =>
+          f(actorEvent)
         }
     }
 
@@ -89,11 +89,10 @@ object ActorEventsMonitorActor {
       messageAdapter(ActorEventWrapper.apply)
     )
 
-    def start(): Behavior[SyncCommand] = ActorEventWrapper.receiveMessage {
-      case StashMeasurement(size, path) =>
-        log.trace(s"Recorded stash size for actor $path: $size")
-        monitor.bind(Labels(path, node)).stashSize.setValue(size)
-        Behaviors.same
+    def start(): Behavior[SyncCommand] = ActorEventWrapper.receiveMessage { case StashMeasurement(size, path) =>
+      log.trace(s"Recorded stash size for actor $path: $size")
+      monitor.bind(Labels(path, node)).stashSize.setValue(size)
+      Behaviors.same
     }
   }
 
@@ -113,9 +112,12 @@ object ActorEventsMonitorActor {
       actorMetricsReader: ActorMetricsReader = ReflectiveActorMetricsReader
     ): Behavior[AsyncCommand] =
       Behaviors.setup[AsyncCommand] { ctx =>
-        ctx.system.receptionist ! Register(tagServiceKey, ctx.messageAdapter[TagEvent] {
-          case TagEvent(ref, tag) => AddTag(ref, tag)
-        })
+        ctx.system.receptionist ! Register(
+          tagServiceKey,
+          ctx.messageAdapter[TagEvent] { case TagEvent(ref, tag) =>
+            AddTag(ref, tag)
+          }
+        )
 
         Behaviors.withTimers[AsyncCommand] { scheduler =>
           new AsyncMetricsActor(
@@ -160,13 +162,12 @@ object ActorEventsMonitorActor {
     // start
     setTimeout()
 
-    override def onSignal: PartialFunction[Signal, Behavior[AsyncCommand]] = {
-      case PostStop | PreRestart =>
-        storage.clear()
-        unbinds.clear()
-        actorTags.clear()
-        refs = Nil
-        this
+    override def onSignal: PartialFunction[Signal, Behavior[AsyncCommand]] = { case PostStop | PreRestart =>
+      storage.clear()
+      unbinds.clear()
+      actorTags.clear()
+      refs = Nil
+      this
     }
 
     def onMessage(msg: AsyncCommand): Behavior[AsyncCommand] = msg match {
@@ -236,15 +237,14 @@ object ActorEventsMonitorActor {
     private def resetStorage(): Unit = storage = unbinds.keys.foldLeft(storage)(_.remove(_))
 
     private def registerUpdaters(): Unit =
-      storage.foreach {
-        case (key, metrics) =>
-          metrics.mailboxSize.foreach { mailboxSize =>
-            log.trace("Registering a new updater for mailbox size for actor {} with value {}", key, mailboxSize)
-            val tags = actorTags.get(key).fold[Set[Tag]](Set.empty)(_.toSet)
-            val bind = monitor.bind(Labels(key, node, tags))
-            bind.mailboxSize.setUpdater(_.observe(mailboxSize))
-            unbinds.put(key, bind)
-          }
+      storage.foreach { case (key, metrics) =>
+        metrics.mailboxSize.foreach { mailboxSize =>
+          log.trace("Registering a new updater for mailbox size for actor {} with value {}", key, mailboxSize)
+          val tags = actorTags.get(key).fold[Set[Tag]](Set.empty)(_.toSet)
+          val bind = monitor.bind(Labels(key, node, tags))
+          bind.mailboxSize.setUpdater(_.observe(mailboxSize))
+          unbinds.put(key, bind)
+        }
       }
 
     private def setTimeout(): Unit = scheduler.startSingleTimer(UpdateActorMetrics, pingOffset)

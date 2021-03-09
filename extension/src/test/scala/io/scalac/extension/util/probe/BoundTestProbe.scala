@@ -98,8 +98,8 @@ sealed abstract class AsyncTestProbe[T](ping: FiniteDuration)(implicit val syste
   }
 }
 
-case class ObserverTestProbeWrapper(probe: TestProbe[MetricObserverCommand], ping: FiniteDuration)(
-  implicit system: ActorSystem[_]
+case class ObserverTestProbeWrapper(probe: TestProbe[MetricObserverCommand], ping: FiniteDuration)(implicit
+  system: ActorSystem[_]
 ) extends AsyncTestProbe[MetricObserver.Updater[Long]](ping)
     with MetricObserver[Long] {
 
@@ -110,8 +110,8 @@ case class ObserverTestProbeWrapper(probe: TestProbe[MetricObserverCommand], pin
 
 }
 
-case class LazyObserverTestProbeWrapper[L](probe: TestProbe[LazyMetricsObserved[L]], ping: FiniteDuration)(
-  implicit system: ActorSystem[_]
+case class LazyObserverTestProbeWrapper[L](probe: TestProbe[LazyMetricsObserved[L]], ping: FiniteDuration)(implicit
+  system: ActorSystem[_]
 ) extends AsyncTestProbe[MetricObserver.LazyUpdater[Long, L]](ping)
     with LazyMetricObserver[Long, L] {
 

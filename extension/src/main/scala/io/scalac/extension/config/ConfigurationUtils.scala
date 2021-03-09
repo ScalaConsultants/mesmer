@@ -1,8 +1,8 @@
 package io.scalac.extension.config
 
-import com.typesafe.config.{Config, ConfigException}
+import com.typesafe.config.{ Config, ConfigException }
 
-import scala.reflect.{ClassTag, classTag}
+import scala.reflect.{ classTag, ClassTag }
 import scala.util.Try
 
 object ConfigurationUtils {
