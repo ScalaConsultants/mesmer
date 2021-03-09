@@ -15,10 +15,10 @@ import scala.util.Random
 class CleanablePersistingStorageTest extends AnyFlatSpec with Matchers with TestOps {
 
   "CleanablePersistingStorage" should "clean internal buffer" in {
-    val buffer        = mutable.Map.empty[PersistEventKey, PersistingEventStarted]
-    val maxStalenessMs  = 10_000L
-    val config        = CleaningSettings(maxStalenessMs.millis, 10.seconds)
-    val baseTimestamp = Timestamp.create()
+    val buffer         = mutable.Map.empty[PersistEventKey, PersistingEventStarted]
+    val maxStalenessMs = 10_000L
+    val config         = CleaningSettings(maxStalenessMs.millis, 10.seconds)
+    val baseTimestamp  = Timestamp.create()
 
     val staleEvents = List.fill(10) {
       val staleness = Random.nextLong(80_000) + maxStalenessMs

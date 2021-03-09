@@ -21,10 +21,9 @@ trait ReceptionistOps extends TestOps with Eventually with Inside with LoneEleme
   def onlyRef(ref: ActorRef[_], serviceKey: ServiceKey[_])(implicit system: ActorSystem[_], timeout: Timeout): Unit =
     eventually {
       val result = Receptionist(system).ref.ask[Listing](reply => Receptionist.find(serviceKey, reply)).futureValue
-      inside(result) {
-        case serviceKey.Listing(res) =>
-          val elem = res.loneElement
-          elem should sameOrParent(ref)
+      inside(result) { case serviceKey.Listing(res) =>
+        val elem = res.loneElement
+        elem should sameOrParent(ref)
       }
     }
 
