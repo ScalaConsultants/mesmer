@@ -45,8 +45,8 @@ class ActorEventsMonitorActorTest
   protected def createMonitor(implicit system: ActorSystem[_]): ActorMonitorTestProbe =
     new ActorMonitorTestProbe(new CommonCollectorImpl(pingOffset))
 
-  protected def createMonitorBehavior(
-    implicit c: MonitorTestCaseContext.BasicContext[ActorMonitorTestProbe]
+  protected def createMonitorBehavior(implicit
+    c: MonitorTestCaseContext.BasicContext[ActorMonitorTestProbe]
   ): Behavior[_] =
     ActorEventsMonitorActor(
       monitor,

@@ -69,8 +69,8 @@ class HttpEventsActorTest
     val boundProbes = monitor.probes(expectedLabels)
 
     boundProbes.value.requestCounterProbe.receiveMessage() should be(Inc(1L))
-    inside(boundProbes.value.requestTimeProbe.receiveMessage()) {
-      case MetricRecorded(value) => value shouldBe 1000L +- 100L
+    inside(boundProbes.value.requestTimeProbe.receiveMessage()) { case MetricRecorded(value) =>
+      value shouldBe 1000L +- 100L
     }
   }
 
@@ -110,8 +110,8 @@ class HttpEventsActorTest
         requestCounterProbe.receiveMessage() should be(Inc(1L))
         requestCounterProbe.expectNoMessage(requestCounterProbe.remaining)
       }
-      inside(requestTimeProbe.receiveMessage()) {
-        case MetricRecorded(value) => value shouldBe 1000L +- 100L
+      inside(requestTimeProbe.receiveMessage()) { case MetricRecorded(value) =>
+        value shouldBe 1000L +- 100L
       }
     }
   }

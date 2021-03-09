@@ -62,15 +62,13 @@ object TerminationRegistry {
             Behaviors.same
         }
         .receiveSignal {
-          case (_, Terminated(ref)) if watched.contains(ref) => {
+          case (_, Terminated(ref)) if watched.contains(ref) =>
             ctx.log.debug("Actor {} terminated", ref)
             watch(watched - ref, waitFor, terminated + ref)
-          }
-          case (_, Terminated(ref)) if waitFor.keySet.contains(ref) => {
+          case (_, Terminated(ref)) if waitFor.keySet.contains(ref) =>
             ctx.log.debug("Actor {} terminated", ref)
             waitFor.get(ref).foreach(_ ! AkcImpl)
             watch(watched, waitFor - ref, terminated)
-          }
         }
     watch(Set.empty, Map.empty, Set.empty)
   }
