@@ -6,7 +6,7 @@ import akka.actor.typed.scaladsl.adapter._
 import akka.actor.typed.scaladsl.{ AbstractBehavior, ActorContext, Behaviors, TimerScheduler }
 import io.scalac.core.akka.model.PushMetrics
 import io.scalac.core.model.Tag.SubStreamName
-import io.scalac.core.model._
+import io.scalac.core.model.Direction._
 import io.scalac.extension.AkkaStreamMonitoring._
 import io.scalac.extension.config.ConfigurationUtils._
 import io.scalac.extension.event.ActorInterpreterStats
@@ -14,8 +14,7 @@ import io.scalac.extension.metric.MetricObserver.LazyResult
 import io.scalac.extension.metric.StreamMetricMonitor.{ Labels => GlobalLabels }
 import io.scalac.extension.metric.StreamOperatorMetricsMonitor.Labels
 import io.scalac.extension.metric.{ StreamMetricMonitor, StreamOperatorMetricsMonitor }
-import io.scalac.extension.model.Direction._
-import io.scalac.extension.model._
+import io.scalac.core.model._
 
 import java.util.concurrent.atomic.AtomicReference
 import scala.annotation.tailrec

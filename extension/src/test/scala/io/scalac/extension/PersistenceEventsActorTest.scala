@@ -14,6 +14,8 @@ import io.scalac.extension.util.{ IdentityPathService, MonitorFixture }
 import org.scalatest._
 import org.scalatest.flatspec.AnyFlatSpecLike
 import org.scalatest.matchers.should.Matchers
+import io.scalac.core.tagging._
+import io.scalac.core.model._
 
 import scala.concurrent.duration._
 import scala.language.postfixOps
@@ -69,7 +71,7 @@ class PersistenceEventsActorTest
   override protected val serviceKey = Some(persistenceServiceKey)
 
   "PersistenceEventsActor" should "capture recovery time" in test { monitor =>
-    val expectedLabels = Labels(None, "/some/path", createUniqueId)
+    val expectedLabels = Labels(None, "/some/path".taggedWith[PathTag], createUniqueId.taggedWith[PersistenceIdTag])
     recoveryStarted(expectedLabels)
     Thread.sleep(1050)
     recoveryFinished(expectedLabels)
@@ -84,7 +86,7 @@ class PersistenceEventsActorTest
 
   it should "capture persist event time" in test { monitor =>
     val seqNo          = 100L
-    val expectedLabels = Labels(None, "/some/path", createUniqueId)
+    val expectedLabels = Labels(None, "/some/path".taggedWith[PathTag], createUniqueId.taggedWith[PersistenceIdTag])
     persistEventStarted(seqNo, expectedLabels)
     Thread.sleep(1050)
     persistEventFinished(seqNo, expectedLabels)
@@ -99,7 +101,7 @@ class PersistenceEventsActorTest
 
   it should "capture amount of snapshots for same entity with same monitor" in testCaching { monitor =>
     val seqNumbers     = (100 to 140 by 5).toList
-    val expectedLabels = Labels(None, "/some/path", createUniqueId)
+    val expectedLabels = Labels(None, "/some/path".taggedWith[PathTag], createUniqueId.taggedWith[PersistenceIdTag])
     for {
       seqNo <- seqNumbers
     } snapshotCreated(seqNo, expectedLabels)
@@ -116,7 +118,7 @@ class PersistenceEventsActorTest
     val seqNumbers = (100 to 140 by 5).toList
     val expectedLabels = List.fill(5) {
       val id = createUniqueId
-      Labels(None, s"/some/path/${id}", id)
+      Labels(None, s"/some/path/${id}".taggedWith[PathTag], id.taggedWith[PersistenceIdTag])
     }
     for {
       seqNo  <- seqNumbers
@@ -136,7 +138,7 @@ class PersistenceEventsActorTest
     val seqNo = 150
     val expectedLabels = List.fill(5) {
       val id = createUniqueId
-      Labels(None, s"/some/path/${id}", id)
+      Labels(None, s"/some/path/${id}".taggedWith[PathTag], id.taggedWith[PersistenceIdTag])
     }
     for {
       labels <- expectedLabels
@@ -166,7 +168,7 @@ class PersistenceEventsActorTest
     val expectedPersistEventTime = 500L
     val expectedLabels = List.fill(5) {
       val id = createUniqueId
-      Labels(None, s"/some/path/${id}", id)
+      Labels(None, s"/some/path/${id}".taggedWith[PathTag], id.taggedWith[PersistenceIdTag])
     }
     expectedLabels.foreach(recoveryStarted)
     Thread.sleep(expectedRecoveryTime + 50L)

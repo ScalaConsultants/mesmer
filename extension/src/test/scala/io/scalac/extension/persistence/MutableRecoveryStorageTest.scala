@@ -1,5 +1,7 @@
 package io.scalac.extension.persistence
 
+import io.scalac.core.model._
+import io.scalac.core.tagging._
 import io.scalac.core.util.Timestamp
 import io.scalac.extension.event.PersistenceEvent._
 import io.scalac.extension.util.TestOps
@@ -20,7 +22,7 @@ class MutableRecoveryStorageTest extends AnyFlatSpec with Matchers with TestOps 
   "MutableRecoveryStorage" should "add started events to internal buffer" in test { case (buffer, sut) =>
     val events = List.fill(10) {
       val id = createUniqueId
-      RecoveryStarted(s"/some/path/${id}", id, Timestamp.create())
+      RecoveryStarted(s"/some/path/${id}".taggedWith[PathTag], id.taggedWith[PersistenceIdTag], Timestamp.create())
     }
     events.foreach(sut.recoveryStarted)
     buffer should have size (events.size)
@@ -31,7 +33,7 @@ class MutableRecoveryStorageTest extends AnyFlatSpec with Matchers with TestOps 
     case (buffer, sut) =>
       val events = List.fill(10) {
         val id = createUniqueId
-        RecoveryStarted(s"/some/path/${id}", id, Timestamp.create())
+        RecoveryStarted(s"/some/path/${id}".taggedWith[PathTag], id.taggedWith[PersistenceIdTag], Timestamp.create())
       }
       events.foreach(sut.recoveryStarted)
       val finished = events
@@ -48,9 +50,11 @@ class MutableRecoveryStorageTest extends AnyFlatSpec with Matchers with TestOps 
     val startTimestamp  = Timestamp.create()
     val path            = s"/some/path/${id}"
     val expectedLatency = 1234L
-    sut.recoveryStarted(RecoveryStarted(path, id, startTimestamp))
+    sut.recoveryStarted(RecoveryStarted(path.taggedWith[PathTag], id.taggedWith[PersistenceIdTag], startTimestamp))
     val Some((resultStorage, latency)) =
-      sut.recoveryFinished(RecoveryFinished(path, id, startTimestamp.plus(expectedLatency.millis)))
+      sut.recoveryFinished(
+        RecoveryFinished(path.taggedWith[PathTag], id.taggedWith[PersistenceIdTag], startTimestamp.plus(expectedLatency.millis))
+      )
     resultStorage should be theSameInstanceAs (sut)
     latency should be(expectedLatency)
   }

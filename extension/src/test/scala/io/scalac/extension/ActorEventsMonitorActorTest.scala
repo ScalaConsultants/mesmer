@@ -18,6 +18,8 @@ import io.scalac.extension.util.{ MonitorFixture, TestConfig, TestOps }
 import org.scalatest.Inspectors
 import org.scalatest.flatspec.AnyFlatSpecLike
 import org.scalatest.matchers.should.Matchers
+import io.scalac.core.tagging._
+import io.scalac.core.model._
 
 import scala.concurrent.duration._
 
@@ -100,13 +102,13 @@ class ActorEventsMonitorActorTest
     }
 
     "ActorEventsMonitor" should "record mailbox size" in test { monitor =>
-      val bound = monitor.bind(ActorMetricMonitor.Labels("/user/actorB/idle", None))
+      val bound = monitor.bind(ActorMetricMonitor.Labels("/user/actorB/idle".taggedWith[PathTag], None))
       recordMailboxSize(10, bound)
       bound.unbind()
     }
 
     it should "record mailbox size changes" in test { monitor =>
-      val bound = monitor.bind(ActorMetricMonitor.Labels("/user/actorB/idle", None))
+      val bound = monitor.bind(ActorMetricMonitor.Labels("/user/actorB/idle".taggedWith[PathTag], None))
       recordMailboxSize(10, bound)
       Thread.sleep((IdleTime + 1.second).toMillis)
       recordMailboxSize(42, bound)
@@ -115,7 +117,7 @@ class ActorEventsMonitorActorTest
 
     it should "dead actors should not report" in test { monitor =>
       // record mailbox for a cycle
-      val bound = monitor.bind(ActorMetricMonitor.Labels("/user/actorA/stop", None))
+      val bound = monitor.bind(ActorMetricMonitor.Labels("/user/actorA/stop".taggedWith[PathTag], None))
       bound.mailboxSizeProbe.expectMessageType[MetricObserved](2 * PingOffset)
       // send poison pill to kill actor
       underlyingSystem ! Stop
@@ -125,9 +127,9 @@ class ActorEventsMonitorActorTest
 
     it should "record stash size" in test { monitor =>
       val stashActor = system.systemActorOf(StashActor(10), "stashActor")
-      val bound      = monitor.bind(Labels(stashActor.ref.path.toStringWithoutAddress, None))
+      val bound      = monitor.bind(Labels(stashActor.ref.path.toPath, None))
       def stashMeasurement(size: Int): Unit =
-        EventBus(system).publishEvent(StashMeasurement(size, stashActor.ref.path.toStringWithoutAddress))
+        EventBus(system).publishEvent(StashMeasurement(size, stashActor.ref.path.toPath))
       stashActor ! Message("random")
       stashMeasurement(1)
       bound.stashSizeProbe.awaitAssert(bound.stashSizeProbe.expectMessage(MetricRecorded(1)))

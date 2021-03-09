@@ -1,6 +1,6 @@
 package io.scalac.extension.metric
 
-import io.scalac.extension.model.Node
+import io.scalac.core.model.Node
 
 object ClusterMetricsMonitor {
 

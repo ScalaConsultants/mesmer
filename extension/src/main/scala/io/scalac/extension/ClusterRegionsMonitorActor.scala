@@ -9,7 +9,7 @@ import akka.util.Timeout
 import io.scalac.extension.config.ConfigurationUtils.ConfigOps
 import io.scalac.extension.metric.ClusterMetricsMonitor
 import io.scalac.extension.metric.ClusterMetricsMonitor.Labels
-import io.scalac.extension.model.AkkaNodeOps
+import io.scalac.core.model.AkkaNodeOps
 import io.scalac.extension.util.CachedQueryResult
 import org.slf4j.LoggerFactory
 

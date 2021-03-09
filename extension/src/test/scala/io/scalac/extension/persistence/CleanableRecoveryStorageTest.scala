@@ -1,5 +1,7 @@
 package io.scalac.extension.persistence
 
+import io.scalac.core.model._
+import io.scalac.core.tagging._
 import io.scalac.core.util.Timestamp
 import io.scalac.extension.config.CleaningSettings
 import io.scalac.extension.event.PersistenceEvent.RecoveryStarted
@@ -22,13 +24,13 @@ class CleanableRecoveryStorageTest extends AnyFlatSpec with Matchers with TestOp
     val staleEvents = List.fill(10) {
       val staleness = Random.nextLong(80_000) + maxStalenessMs
       val id        = createUniqueId
-      RecoveryStarted(s"/some/path/${id}", id, baseTimestamp.minus(staleness.millis))
+      RecoveryStarted(s"/some/path/${id}".taggedWith[PathTag], id.taggedWith[PersistenceIdTag], baseTimestamp.minus(staleness.millis))
     }
 
     val freshEvents = List.fill(10) {
       val id        = createUniqueId
       val staleness = Random.nextLong(maxStalenessMs)
-      RecoveryStarted(s"/some/path/${id}", id, baseTimestamp.minus(staleness.millis))
+      RecoveryStarted(s"/some/path/${id}".taggedWith[PathTag], id.taggedWith[PersistenceIdTag], baseTimestamp.minus(staleness.millis))
     }
 
     val sut = new CleanableRecoveryStorage(buffer)(config) {

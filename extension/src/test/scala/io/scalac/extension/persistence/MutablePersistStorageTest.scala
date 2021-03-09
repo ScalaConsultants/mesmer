@@ -1,5 +1,7 @@
 package io.scalac.extension.persistence
 
+import io.scalac.core.model._
+import io.scalac.core.tagging._
 import io.scalac.core.util.Timestamp
 import io.scalac.extension.event.PersistenceEvent.{ PersistingEventFinished, PersistingEventStarted }
 import io.scalac.extension.persistence.PersistStorage.PersistEventKey
@@ -21,7 +23,7 @@ class MutablePersistStorageTest extends AnyFlatSpec with Matchers with TestOps {
   "MutablePersistStorage" should "add started events to internal buffer" in test { case (buffer, sut) =>
     val events = List.fill(10) {
       val id = createUniqueId
-      PersistingEventStarted(s"/some/path/${id}", id, 0, Timestamp.create())
+      PersistingEventStarted(s"/some/path/${id}".taggedWith[PathTag], id.taggedWith[PersistenceIdTag], 0, Timestamp.create())
     }
     events.foreach(sut.persistEventStarted)
 
@@ -33,7 +35,7 @@ class MutablePersistStorageTest extends AnyFlatSpec with Matchers with TestOps {
     case (buffer, sut) =>
       val events = List.fill(10) {
         val id = createUniqueId
-        PersistingEventStarted(s"/some/path/${id}", id, 0, Timestamp.create())
+        PersistingEventStarted(s"/some/path/${id}".taggedWith[PathTag], id.taggedWith[PersistenceIdTag], 0, Timestamp.create())
       }
       events.foreach(sut.persistEventStarted)
       val finished = events
@@ -59,9 +61,18 @@ class MutablePersistStorageTest extends AnyFlatSpec with Matchers with TestOps {
     val path            = s"/some/path/${id}"
     val seqNo           = 199
     val expectedLatency = 1234L
-    sut.persistEventStarted(PersistingEventStarted(path, id, seqNo, startTimestamp))
+    sut.persistEventStarted(
+      PersistingEventStarted(path.taggedWith[PathTag], id.taggedWith[PersistenceIdTag], seqNo, startTimestamp)
+    )
     val Some((resultStorage, latency)) =
-      sut.persistEventFinished(PersistingEventFinished(path, id, seqNo, startTimestamp.plus(expectedLatency.millis)))
+      sut.persistEventFinished(
+        PersistingEventFinished(
+          path.taggedWith[PathTag],
+          id.taggedWith[PersistenceIdTag],
+          seqNo,
+          startTimestamp.plus(expectedLatency.millis)
+        )
+      )
     resultStorage should be theSameInstanceAs (sut)
     latency should be(expectedLatency)
   }

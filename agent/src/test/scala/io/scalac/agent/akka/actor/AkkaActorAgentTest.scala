@@ -22,6 +22,8 @@ import io.scalac.extension.actorServiceKey
 import io.scalac.extension.event.ActorEvent
 import io.scalac.extension.event.ActorEvent.StashMeasurement
 import io.scalac.extension.util.ReceptionistOps
+import io.scalac.core.model._
+import io.scalac.core.tagging._
 
 class AkkaActorAgentTest
     extends ScalaTestWithActorTestKit(classic.ActorSystem("AkkaActorAgentTest").toTyped)
@@ -54,7 +56,7 @@ class AkkaActorAgentTest
 
   "AkkaActorAgent" should "record classic stash properly" in test { monitor =>
     val stashActor                   = system.classicSystem.actorOf(ClassicStashActor.props(), "stashActor")
-    val expectStashSize: Int => Unit = createExpectStashSize(monitor, "/user/stashActor")
+    val expectStashSize: Int => Unit = createExpectStashSize(monitor, "/user/stashActor".taggedWith[PathTag])
     stashActor ! Message("random")
     expectStashSize(1)
     stashActor ! Message("42")
@@ -85,9 +87,9 @@ class AkkaActorAgentTest
   }
 
   def createExpectStashSize[T <: { def path: ActorPath }](monitor: Fixture, ref: T): Int => Unit =
-    createExpectStashSize(monitor, ref.path.toStringWithoutAddress)
+    createExpectStashSize(monitor, ref.path.toPath)
 
-  def createExpectStashSize(monitor: Fixture, path: String): Int => Unit = { size =>
+  def createExpectStashSize(monitor: Fixture, path: Path): Int => Unit = { size =>
     val msg = monitor.fishForMessage(2.seconds) {
       case StashMeasurement(`size`, `path`) => FishingOutcome.Complete
       case _                                => FishingOutcome.ContinueAndIgnore

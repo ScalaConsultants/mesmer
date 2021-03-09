@@ -6,6 +6,14 @@ trait Unbind {
 
 trait Bound extends Unbind
 
+//trait LabelSerializable extends Any {
+//  def serialize: RawLabels
+//}
+//
+//object EmptyLabels extends LabelSerializable {
+//  override val serialize: RawLabels = Seq.empty
+//}
+
 trait Bindable[-L, +B <: Bound] extends (L => B) {
   final def apply(labels: L): B = bind(labels)
   def bind(labels: L): B

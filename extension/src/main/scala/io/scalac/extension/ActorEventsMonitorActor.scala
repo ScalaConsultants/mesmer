@@ -13,7 +13,7 @@ import io.scalac.extension.event.ActorEvent.StashMeasurement
 import io.scalac.extension.event.{ ActorEvent, TagEvent }
 import io.scalac.extension.metric.ActorMetricMonitor.Labels
 import io.scalac.extension.metric.{ ActorMetricMonitor, Unbind }
-import io.scalac.extension.model.{ ActorKey, Node }
+import io.scalac.core.model._
 
 import scala.annotation.tailrec
 import scala.collection.{ immutable, mutable }

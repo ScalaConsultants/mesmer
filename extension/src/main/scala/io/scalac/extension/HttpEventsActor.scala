@@ -11,7 +11,7 @@ import io.scalac.extension.event.HttpEvent._
 import io.scalac.extension.http.RequestStorage
 import io.scalac.extension.metric.HttpMetricMonitor
 import io.scalac.extension.metric.HttpMetricMonitor._
-import io.scalac.extension.model.{ Method, Path, _ }
+import io.scalac.core.model.{ Method, Path, _ }
 import io.scalac.extension.service.PathService
 import scala.language.postfixOps
 

@@ -13,7 +13,7 @@ import akka.event.LoggingAdapter
 import akka.http.scaladsl.Http.ServerBinding
 import akka.http.scaladsl.{ ConnectionContext, HttpExt }
 import akka.stream.scaladsl.{ Broadcast, Flow, GraphDSL, Source, Zip }
-
+import io.scalac.core.model._
 import net.bytebuddy.implementation.bind.annotation._
 
 import io.scalac.core.util.Timestamp
@@ -58,8 +58,8 @@ object HttpInstrumentation {
       System.nanoTime()
 
       zipRequest.out.map { case (request, id) =>
-        val path   = request.uri.path.toString()
-        val method = request.method.value
+        val path   = request.uri.path.toPath
+        val method = request.method.toMethod
         EventBus(system.toTyped).publishEvent(RequestStarted(id, Timestamp.create(), path, method))
         request
       } ~> flow

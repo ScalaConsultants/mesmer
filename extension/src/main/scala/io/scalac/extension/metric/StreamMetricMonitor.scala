@@ -1,7 +1,7 @@
 package io.scalac.extension.metric
 
 import io.opentelemetry.api.common.{ Labels => OpenTelemetryLabels }
-import io.scalac.extension.model._
+import io.scalac.core.model._
 
 object StreamMetricMonitor {
 
