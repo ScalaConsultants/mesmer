@@ -1,13 +1,10 @@
 package io.scalac.extension.util.probe
 
-import akka.actor.Cancellable
 import akka.actor.testkit.typed.scaladsl.TestProbe
-import akka.actor.typed.ActorSystem
+
 import io.scalac.extension.metric.MetricObserver.Updater
 import io.scalac.extension.metric._
 import io.scalac.extension.util.probe.BoundTestProbe._
-
-import scala.concurrent.duration._
 
 object BoundTestProbe {
 
@@ -34,10 +31,12 @@ sealed trait AbstractTestProbeWrapper {
   def probe: TestProbe[Cmd]
 }
 
+sealed trait SyncTestProbeWrapper extends AbstractTestProbeWrapper
+
 case class CounterTestProbeWrapper(
   private val _probe: TestProbe[CounterCommand],
   private val supervisor: Option[TestProbe[CounterCommand]] = None
-) extends AbstractTestProbeWrapper
+) extends SyncTestProbeWrapper
     with Counter[Long]
     with UpCounter[Long] {
   override type Cmd = CounterCommand
@@ -55,7 +54,7 @@ case class CounterTestProbeWrapper(
 }
 
 case class RecorderTestProbeWrapper(private val _probe: TestProbe[MetricRecorderCommand])
-    extends AbstractTestProbeWrapper
+    extends SyncTestProbeWrapper
     with MetricRecorder[Long] {
   override type Cmd = MetricRecorderCommand
 
@@ -64,60 +63,35 @@ case class RecorderTestProbeWrapper(private val _probe: TestProbe[MetricRecorder
   override def setValue(value: Long): Unit = _probe.ref ! MetricRecorded(value)
 }
 
-trait CancellableTestProbeWrapper {
-  def cancel(): Unit
-}
+sealed trait AsyncTestProbe[T] extends AbstractTestProbeWrapper {
 
-sealed abstract class AsyncTestProbe[T](ping: FiniteDuration)(implicit val system: ActorSystem[_])
-    extends AbstractTestProbeWrapper
-    with CancellableTestProbeWrapper {
-
-  private var schedule: Option[Cancellable] = None
-
-  protected var callback: Option[T] = None
+  def probe: TestProbe[Cmd]
+  def collector: ObserverCollector
 
   protected def handleCallback(value: T): Unit
 
-  protected def scheduleUpdates(): Unit = {
-    import system.executionContext
-    schedule.foreach(_.cancel())
-    schedule = Some(
-      system.scheduler.scheduleWithFixedDelay(ping / 2, ping)(() => callback.foreach(handleCallback))
-    )
-  }
-
-  def cancel(): Unit = {
-    schedule.foreach(_.cancel())
-    schedule = None
-    callback = None
-  }
-
-  def setUpdater(cb: T): Unit = {
-    if (this.callback.isEmpty) scheduleUpdates()
-    this.callback = Some(cb)
-  }
+  def setUpdater(callback: T): Unit =
+    collector.update(probe, () => handleCallback(callback))
 }
 
-case class ObserverTestProbeWrapper(probe: TestProbe[MetricObserverCommand], ping: FiniteDuration)(implicit
-  system: ActorSystem[_]
-) extends AsyncTestProbe[MetricObserver.Updater[Long]](ping)
+case class ObserverTestProbeWrapper(probe: TestProbe[MetricObserverCommand], collector: ObserverCollector)
+    extends AsyncTestProbe[MetricObserver.Updater[Long]]
     with MetricObserver[Long] {
 
   type Cmd = MetricObserverCommand
 
-  override protected def handleCallback(updater: Updater[Long]): Unit =
+  protected def handleCallback(updater: Updater[Long]): Unit =
     updater(value => probe.ref ! MetricObserved(value))
 
 }
 
-case class LazyObserverTestProbeWrapper[L](probe: TestProbe[LazyMetricsObserved[L]], ping: FiniteDuration)(implicit
-  system: ActorSystem[_]
-) extends AsyncTestProbe[MetricObserver.LazyUpdater[Long, L]](ping)
+case class LazyObserverTestProbeWrapper[L](probe: TestProbe[LazyMetricsObserved[L]], collector: ObserverCollector)
+    extends AsyncTestProbe[MetricObserver.LazyUpdater[Long, L]]
     with LazyMetricObserver[Long, L] {
 
   type Cmd = LazyMetricsObserved[L]
 
-  override protected def handleCallback(updater: MetricObserver.LazyUpdater[Long, L]): Unit =
+  protected def handleCallback(updater: MetricObserver.LazyUpdater[Long, L]): Unit =
     updater((value, labels) => probe.ref ! LazyMetricsObserved(value, labels))
 
 }

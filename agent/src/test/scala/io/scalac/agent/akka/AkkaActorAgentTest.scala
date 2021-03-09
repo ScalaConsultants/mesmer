@@ -1,23 +1,20 @@
-package io.scalac.agent.akka.actor
+package io.scalac.agent.akka
 
 import scala.concurrent.duration._
 
-import akka.actor.ActorPath
 import akka.actor.testkit.typed.FishingOutcome
 import akka.actor.testkit.typed.scaladsl.{ ScalaTestWithActorTestKit, TestProbe }
-import akka.actor.typed.Behavior
 import akka.actor.typed.receptionist.Receptionist
 import akka.actor.typed.receptionist.Receptionist.{ Deregister, Register }
 import akka.actor.typed.scaladsl.adapter._
 import akka.actor.typed.scaladsl.{ ActorContext, Behaviors, StashBuffer }
+import akka.actor.typed.{ ActorRef, Behavior }
 import akka.{ actor => classic }
 
-import net.bytebuddy.ByteBuddy
-import net.bytebuddy.agent.ByteBuddyAgent
-import net.bytebuddy.agent.builder.AgentBuilder
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.flatspec.AnyFlatSpecLike
 
+import io.scalac.core.util.ActorPathOps
 import io.scalac.extension.actorServiceKey
 import io.scalac.extension.event.ActorEvent
 import io.scalac.extension.event.ActorEvent.StashMeasurement
@@ -31,18 +28,7 @@ class AkkaActorAgentTest
 
   import AkkaActorAgentTest._
 
-  override def beforeAll(): Unit = {
-    super.beforeAll()
-    val instrumentation = ByteBuddyAgent.install()
-    val builder =
-      new AgentBuilder.Default()
-        .`with`(AgentBuilder.Listener.StreamWriting.toSystemOut.withErrorsOnly())
-        .`with`(AgentBuilder.RedefinitionStrategy.RETRANSFORMATION)
-        .`with`(AgentBuilder.TypeStrategy.Default.REDEFINE)
-        .`with`(AgentBuilder.InitializationStrategy.NoOp.INSTANCE)
-    val modules = Map(AkkaActorAgent.moduleName -> AkkaActorAgent.defaultVersion)
-    AkkaActorAgent.agent.installOn(builder, instrumentation, modules)
-  }
+  override def beforeAll(): Unit = installAgent
 
   def test(body: Fixture => Any): Any = {
     val monitor = createTestProbe[ActorEvent]
@@ -50,6 +36,7 @@ class AkkaActorAgentTest
     onlyRef(monitor.ref, actorServiceKey)
     body(monitor)
     Receptionist(system).ref ! Deregister(actorServiceKey, monitor.ref)
+    monitor.stop()
   }
 
   "AkkaActorAgent" should "record classic stash properly" in test { monitor =>
@@ -84,8 +71,8 @@ class AkkaActorAgentTest
     expectStashSize(1)
   }
 
-  def createExpectStashSize[T <: { def path: ActorPath }](monitor: Fixture, ref: T): Int => Unit =
-    createExpectStashSize(monitor, ref.path.toStringWithoutAddress)
+  def createExpectStashSize(monitor: Fixture, ref: ActorRef[_]): Int => Unit =
+    createExpectStashSize(monitor, ActorPathOps.getPathString(ref))
 
   def createExpectStashSize(monitor: Fixture, path: String): Int => Unit = { size =>
     val msg = monitor.fishForMessage(2.seconds) {
@@ -98,8 +85,6 @@ class AkkaActorAgentTest
 }
 
 object AkkaActorAgentTest {
-
-  import scala.language.reflectiveCalls
 
   type Fixture = TestProbe[ActorEvent]
 

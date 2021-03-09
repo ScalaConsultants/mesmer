@@ -6,14 +6,15 @@ import akka.actor.typed.receptionist.Receptionist.Register
 import akka.actor.typed.scaladsl.{ AbstractBehavior, ActorContext, Behaviors, TimerScheduler }
 import akka.{ actor => classic }
 import io.scalac.core.model.Tag
-import io.scalac.core.util.Timestamp
 import io.scalac.extension.AkkaStreamMonitoring.StartStreamCollection
-import io.scalac.extension.actor.{ ActorMetricStorage, ActorMetrics }
+import io.scalac.extension.actor.{ ActorMetricStorage, ActorMetrics, MailboxTimeHolder }
 import io.scalac.extension.event.ActorEvent.StashMeasurement
 import io.scalac.extension.event.{ ActorEvent, TagEvent }
 import io.scalac.extension.metric.ActorMetricMonitor.Labels
 import io.scalac.extension.metric.{ ActorMetricMonitor, Unbind }
 import io.scalac.extension.model.{ ActorKey, Node }
+import io.scalac.extension.util.AggMetric.LongValueAggMetric
+import org.slf4j.LoggerFactory
 
 import scala.annotation.tailrec
 import scala.collection.{ immutable, mutable }
@@ -206,17 +207,17 @@ object ActorEventsMonitorActor {
       def traverseActorTree(actors: List[classic.ActorRef]): Unit = actors match {
         case Nil =>
         case h :: t =>
-          storage = storage.save(h, collect(h))
-          unbinds.remove(storage.actorToKey(h))
+          read(h)
           val nextActors = t.prependedAll(actorTreeRunner.getChildren(h))
           traverseActorTree(nextActors)
       }
 
-      def collect(actorRef: classic.ActorRef): ActorMetrics =
-        ActorMetrics(
-          mailboxSize = actorMetricsReader.mailboxSize(actorRef),
-          timestamp = Timestamp.create()
-        )
+      def read(actorRef: classic.ActorRef): Unit = {
+        actorMetricsReader
+          .read(actorRef)
+          .foreach(metrics => storage = storage.save(actorRef, metrics))
+        unbinds.remove(storage.actorToKey(actorRef))
+      }
 
       traverseActorTree(actorTreeRunner.getRootGuardian(ctx.system.classicSystem) :: Nil)
 
@@ -238,13 +239,26 @@ object ActorEventsMonitorActor {
 
     private def registerUpdaters(): Unit =
       storage.foreach { case (key, metrics) =>
-        metrics.mailboxSize.foreach { mailboxSize =>
-          log.trace("Registering a new updater for mailbox size for actor {} with value {}", key, mailboxSize)
+        lazy val bind = {
           val tags = actorTags.get(key).fold[Set[Tag]](Set.empty)(_.toSet)
           val bind = monitor.bind(Labels(key, node, tags))
-          bind.mailboxSize.setUpdater(_.observe(mailboxSize))
           unbinds.put(key, bind)
+          bind
         }
+
+        metrics.mailboxSize.foreach { mailboxSize =>
+          log.trace("Registering a new updater for mailbox size for actor {} with value {}", key, mailboxSize)
+          bind.mailboxSize.setUpdater(_.observe(mailboxSize))
+        }
+
+        metrics.mailboxTime.foreach { mailboxTime =>
+          log.trace("Registering a new updaters for mailbox time for actor {} with value {}", key, mailboxTime)
+          bind.mailboxTimeAvg.setUpdater(_.observe(mailboxTime.avg))
+          bind.mailboxTimeMin.setUpdater(_.observe(mailboxTime.min))
+          bind.mailboxTimeMax.setUpdater(_.observe(mailboxTime.max))
+          bind.mailboxTimeSum.setUpdater(_.observe(mailboxTime.sum))
+        }
+
       }
 
     private def setTimeout(): Unit = scheduler.startSingleTimer(UpdateActorMetrics, pingOffset)
@@ -292,7 +306,7 @@ object ActorEventsMonitorActor {
   }
 
   trait ActorMetricsReader {
-    def mailboxSize(actor: classic.ActorRef): Option[Int]
+    def read(actor: classic.ActorRef): Option[ActorMetrics]
   }
 
   object ReflectiveActorMetricsReader extends ActorMetricsReader {
@@ -300,16 +314,43 @@ object ActorEventsMonitorActor {
 
     import java.lang.invoke.MethodType.methodType
 
+    private val logger = LoggerFactory.getLogger(getClass)
+
     private val numberOfMessagesMethodHandler = {
       val mt = methodType(classOf[Int])
       lookup.findVirtual(cellClass, "numberOfMessages", mt)
     }
 
-    def mailboxSize(actor: classic.ActorRef): Option[Int] =
-      if (isLocalActorRefWithCell(actor)) {
-        val cell = underlyingMethodHandler.invoke(actor)
-        Some(numberOfMessagesMethodHandler.invoke(cell).asInstanceOf[Int])
-      } else None
+    def read(actor: classic.ActorRef): Option[ActorMetrics] =
+      Option
+        .when(isLocalActorRefWithCell(actor)) {
+          val cell = underlyingMethodHandler.invoke(actor)
+          ActorMetrics(
+            safeRead(mailboxSize(cell)),
+            safeRead(mailboxTime(cell)).flatten
+          )
+        }
+
+    private[extension] def readMailboxSize(actor: classic.ActorRef): Option[Int] =
+      Option
+        .when(isLocalActorRefWithCell(actor)) {
+          val cell = underlyingMethodHandler.invoke(actor)
+          safeRead(mailboxSize(cell))
+        }
+        .flatten
+
+    private def safeRead[T](value: => T): Option[T] =
+      try Some(value)
+      catch {
+        case ex: Throwable =>
+          logger.warn("Fail to read metric value", ex)
+          None
+      }
+
+    private def mailboxSize(cell: Object): Int =
+      numberOfMessagesMethodHandler.invoke(cell).asInstanceOf[Int]
+
+    private def mailboxTime(cell: Object): Option[LongValueAggMetric] = MailboxTimeHolder.getMetrics(cell)
 
   }
 

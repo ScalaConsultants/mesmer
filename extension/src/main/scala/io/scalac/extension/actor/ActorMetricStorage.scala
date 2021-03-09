@@ -1,6 +1,8 @@
 package io.scalac.extension.actor
 
 import akka.actor.ActorRef
+
+import io.scalac.core.util.ActorPathOps
 import io.scalac.extension.model.ActorKey
 
 trait ActorMetricStorage {
@@ -9,5 +11,5 @@ trait ActorMetricStorage {
   def foreach(f: ((ActorKey, ActorMetrics)) => Unit): Unit
   def has(key: ActorKey): Boolean
   def clear(): ActorMetricStorage
-  private[extension] def actorToKey(actorRef: ActorRef): ActorKey = actorRef.path.toStringWithoutAddress
+  private[extension] def actorToKey(actorRef: ActorRef): ActorKey = ActorPathOps.getPathString(actorRef)
 }

@@ -109,6 +109,9 @@ class AkkaStreamMonitoring(
     case StatsReceived(_) =>
       log.warn("Received stream running statistics after timeout")
       this
+    case CollectionTimeout =>
+      log.warn("[UNPLANNED SITUATION] CollectionTimeout on main behavior")
+      this
   }
 
   def captureGlobalStats(names: Set[SubStreamName]): Unit = {
