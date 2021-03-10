@@ -24,13 +24,23 @@ class CleanableRequestStorageTest extends AnyFlatSpec with Matchers with TestOps
     val staleEvents = List.fill(10) {
       val staleness = Random.nextLong(80_000) + maxStalenessMs
       val id        = createUniqueId
-      RequestStarted(id, baseTimestamp.minus(staleness.millis), "/some/path".taggedWith[PathTag], "GET".taggedWith[MethodTag])
+      RequestStarted(
+        id,
+        baseTimestamp.minus(staleness.millis),
+        "/some/path".taggedWith[PathTag],
+        "GET".taggedWith[MethodTag]
+      )
     }
 
     val freshEvents = List.fill(10) {
       val id        = createUniqueId
       val staleness = Random.nextLong(maxStalenessMs)
-      RequestStarted(id, baseTimestamp.minus(staleness.millis), "/some/path".taggedWith[PathTag], "GET".taggedWith[MethodTag])
+      RequestStarted(
+        id,
+        baseTimestamp.minus(staleness.millis),
+        "/some/path".taggedWith[PathTag],
+        "GET".taggedWith[MethodTag]
+      )
     }
 
     val sut = new CleanableRequestStorage(buffer)(config) {

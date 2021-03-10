@@ -53,7 +53,11 @@ class MutableRecoveryStorageTest extends AnyFlatSpec with Matchers with TestOps 
     sut.recoveryStarted(RecoveryStarted(path.taggedWith[PathTag], id.taggedWith[PersistenceIdTag], startTimestamp))
     val Some((resultStorage, latency)) =
       sut.recoveryFinished(
-        RecoveryFinished(path.taggedWith[PathTag], id.taggedWith[PersistenceIdTag], startTimestamp.plus(expectedLatency.millis))
+        RecoveryFinished(
+          path.taggedWith[PathTag],
+          id.taggedWith[PersistenceIdTag],
+          startTimestamp.plus(expectedLatency.millis)
+        )
       )
     resultStorage should be theSameInstanceAs (sut)
     latency should be(expectedLatency)

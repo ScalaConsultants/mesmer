@@ -1,9 +1,9 @@
 package io.scalac.extension
 
 import akka.actor.typed.scaladsl.Behaviors
-import akka.actor.typed.{ActorSystem, Behavior}
-import akka.cluster.sharding.ShardRegion.{GetShardRegionStats, ShardRegionStats}
-import akka.cluster.sharding.{ClusterSharding, ShardRegion}
+import akka.actor.typed.{ ActorSystem, Behavior }
+import akka.cluster.sharding.ShardRegion.{ GetShardRegionStats, ShardRegionStats }
+import akka.cluster.sharding.{ ClusterSharding, ShardRegion }
 import akka.pattern.ask
 import akka.util.Timeout
 import io.scalac.extension.config.ConfigurationUtils.ConfigOps
@@ -15,7 +15,7 @@ import org.slf4j.LoggerFactory
 import io.scalac.core.tagging._
 
 import scala.concurrent.duration._
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.{ ExecutionContext, Future }
 import scala.jdk.DurationConverters.JavaDurationOps
 
 class ClusterRegionsMonitorActor

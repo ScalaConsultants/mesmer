@@ -23,7 +23,12 @@ class MutablePersistStorageTest extends AnyFlatSpec with Matchers with TestOps {
   "MutablePersistStorage" should "add started events to internal buffer" in test { case (buffer, sut) =>
     val events = List.fill(10) {
       val id = createUniqueId
-      PersistingEventStarted(s"/some/path/${id}".taggedWith[PathTag], id.taggedWith[PersistenceIdTag], 0, Timestamp.create())
+      PersistingEventStarted(
+        s"/some/path/${id}".taggedWith[PathTag],
+        id.taggedWith[PersistenceIdTag],
+        0,
+        Timestamp.create()
+      )
     }
     events.foreach(sut.persistEventStarted)
 
@@ -35,7 +40,12 @@ class MutablePersistStorageTest extends AnyFlatSpec with Matchers with TestOps {
     case (buffer, sut) =>
       val events = List.fill(10) {
         val id = createUniqueId
-        PersistingEventStarted(s"/some/path/${id}".taggedWith[PathTag], id.taggedWith[PersistenceIdTag], 0, Timestamp.create())
+        PersistingEventStarted(
+          s"/some/path/${id}".taggedWith[PathTag],
+          id.taggedWith[PersistenceIdTag],
+          0,
+          Timestamp.create()
+        )
       }
       events.foreach(sut.persistEventStarted)
       val finished = events
