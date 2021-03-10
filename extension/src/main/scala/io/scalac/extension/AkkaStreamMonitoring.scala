@@ -92,9 +92,6 @@ class AkkaStreamMonitoring(
     observeOperators(result, state)
   }
 
-  private[this] val connectionGraph: mutable.Map[StageInfo, Set[ConnectionStats]] =
-    mutable.Map.empty
-
   private val metricsAdapter = messageAdapter[ActorInterpreterStats](StatsReceived.apply)
 
   override def onMessage(msg: Command): Behavior[Command] = msg match {
@@ -125,17 +122,6 @@ class AkkaStreamMonitoring(
     runningStreams.set(Some(streams))
   }
 
-  // TODO optimize this!
-//  def captureState(): Unit =
-//    this.snapshot.set(Some(connectionGraph.flatMap {
-//      case (info, in) if in.nonEmpty =>
-//        in.groupBy(_.out).map { case (upstream, connections) =>
-//          val push = connections.foldLeft(0L)(_ + _.push)
-//          val data = StageData(push, In, upstream.name)
-//          SnapshotEntry(info, Some(data))
-//        }
-//      case (info, _) => Seq(SnapshotEntry(info, None)) // takes into account sources
-//    }.toSeq))
   private def createSnapshotEntry(stage: StageInfo, connectedWith: StageInfo, value: Long): SnapshotEntry =
     if (connectedWith ne null) {
       val connectedName = connectedWith.stageName
@@ -219,20 +205,6 @@ class AkkaStreamMonitoring(
             }
           }
 
-//          val stages = (for {
-//            (stagesInfo, connections) <- shellInfo
-//            stage                     <- stagesInfo
-//          } yield {
-//            val stageConnections = indexCache
-//              .get(stage)
-//              .fold {
-//                val (wiredConnections, indexes) = findWithIndex(stage, connections)
-//                indexCache.put(stage, indexes)
-//                wiredConnections
-//              }(indexes => indexes.map(connections.apply))
-//            stage -> stageConnections
-//          }).toMap
-
           if (refsLeft.isEmpty) {
             log.debug("Finished collecting stats")
             scheduler.cancel(CollectionTimeout)
@@ -248,7 +220,6 @@ class AkkaStreamMonitoring(
           refs.foreach(ref => unwatch(ref))
           captureGlobalStats(names)
           swapState() // we record data gathered so far nevertheless
-          connectionGraph.clear()
           this
         // TODO handle this case better
         case StartStreamCollection(_) =>
