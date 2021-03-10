@@ -24,5 +24,7 @@ object GraphLogicOps {
     def outputConnections: Int = logic.inCount
 
     def isTerminal: Boolean = logic.attributes.contains(TerminalSink)
+
+    def stageId: Int = logic.stageId
   }
 }

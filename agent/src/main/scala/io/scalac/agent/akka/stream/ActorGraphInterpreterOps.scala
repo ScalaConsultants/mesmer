@@ -24,41 +24,47 @@ object ActorGraphInterpreterOps extends Lookup {
     receive.orElse { case PushMetrics(replyTo) =>
       val subStreamName = subStreamNameFromActorRef(thiz.context.self)
 
-        val currentShells = shells
-          .invoke(thiz)
-          .asInstanceOf[Set[GraphInterpreterShellMirror]]
-        var terminalFound = false
+      val currentShells = shells
+        .invoke(thiz)
+        .asInstanceOf[Set[GraphInterpreterShellMirror]]
 
-        val stats = currentShells.map { shell =>
-          val connections = shell.connections.flatMap { connection =>
-            val (push, pull) = ConnectionOps.getAndResetCounterValues(connection)
+      var terminalFound = false
 
-            for {
-              in  <- connection.inOwner.streamUniqueStageName
-              out <- connection.outOwner.streamUniqueStageName
-            } yield ConnectionStats(in, out, push, pull)
-          }
+      val stats = currentShells.map { shell =>
+        val connections = new Array[ConnectionStats](shell.connections.length)
 
-          val stageInfo = shell.logics.flatMap { logic =>
-            val isTerminal =
-              if (terminalFound) false
-              else {
-                val terminal = logic.isTerminal
-                if (terminal) {
-                  terminalFound = true
-                }
-                terminal
-              }
-            logic.streamUniqueStageName.map(StageInfo(_, subStreamName, isTerminal))
-          }
-          stageInfo -> connections
+        shell.connections.foreach { connection =>
+          val (push, pull) = ConnectionOps.getAndResetCounterValues(connection)
 
+          val in  = connection.inOwner.stageId
+          val out = connection.outOwner.stageId
+          connections(connection.id) = ConnectionStats(in, out, push, pull)
         }
 
-        val self = thiz.context.self
+        val stageInfo = new Array[StageInfo](shell.logics.length)
 
-        replyTo ! ActorInterpreterStats(self, subStreamName, stats)
+        shell.logics.foreach { logic =>
+          val isTerminal =
+            if (terminalFound) false
+            else {
+              val terminal = logic.isTerminal
+              if (terminal) {
+                terminalFound = true
+              }
+              terminal
+            }
+          logic.streamUniqueStageName.foreach { stageName =>
+            stageInfo(logic.stageId) = StageInfo(logic.stageId, stageName, subStreamName, isTerminal)
+          }
+        }
+
+        stageInfo -> connections
+
       }
+
+      val self = thiz.context.self
+
+      replyTo ! ActorInterpreterStats(self, subStreamName, stats)
     }
 
 }

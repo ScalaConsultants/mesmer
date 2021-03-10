@@ -7,8 +7,17 @@ package object model {
 
   type ShellInfo = (Array[StageInfo], Array[ConnectionStats])
 
-  case class ConnectionStats(inName: StreamUniqueStageName, outName: StreamUniqueStageName, pull: Long, push: Long)
+  /**
+   * All information inside GraphInterpreter should be local to that interpreter
+   * meaning that all connections in array are connection between logics owned by same GraphInterpreter
+   * MODIFY IF THIS IS NOT TRUE!
+   * @param in index of inHandler owner
+   * @param out index of outHandler owner
+   * @param pull demand to upstream
+   * @param push elements pushed to downstream
+   */
+  case class ConnectionStats(in: Int, out: Int, pull: Long, push: Long)
 
-  case class StageInfo(stageName: StreamUniqueStageName, subStreamName: SubStreamName, terminal: Boolean = false)
+  case class StageInfo(id: Int, stageName: StreamUniqueStageName, subStreamName: SubStreamName, terminal: Boolean = false)
 
 }

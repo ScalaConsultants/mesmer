@@ -1,18 +1,9 @@
 package io.scalac.extension
 
-import scala.concurrent.duration._
-
 import akka.actor.testkit.typed.scaladsl.{ ScalaTestWithActorTestKit, TestProbe }
 import akka.actor.typed.scaladsl.Behaviors
 import akka.actor.typed.scaladsl.adapter._
 import akka.actor.typed.{ ActorRef, ActorSystem, Behavior }
-
-import org.scalatest._
-import org.scalatest.concurrent.Eventually
-import org.scalatest.enablers.Emptiness.emptinessOfOption
-import org.scalatest.flatspec.AnyFlatSpecLike
-import org.scalatest.matchers.should.Matchers
-
 import io.scalac.core.akka.model.PushMetrics
 import io.scalac.core.model.Tag.{ StageName, SubStreamName }
 import io.scalac.core.model._
@@ -28,6 +19,13 @@ import io.scalac.extension.util.probe.BoundTestProbe.{ LazyMetricsObserved, Metr
 import io.scalac.extension.util.probe.ObserverCollector.CommonCollectorImpl
 import io.scalac.extension.util.probe.{ StreamMonitorTestProbe, StreamOperatorMonitorTestProbe }
 import io.scalac.extension.util.{ TestConfig, TestOps }
+import org.scalatest._
+import org.scalatest.concurrent.Eventually
+import org.scalatest.enablers.Emptiness.emptinessOfOption
+import org.scalatest.flatspec.AnyFlatSpecLike
+import org.scalatest.matchers.should.Matchers
+
+import scala.concurrent.duration._
 
 class AkkaStreamMonitoringTest
     extends ScalaTestWithActorTestKit(TestConfig.localActorProvider)
@@ -69,13 +67,16 @@ class AkkaStreamMonitoringTest
   }
 
   def singleActorLinearShellInfo(subStreamName: SubStreamName, flowCount: Int, push: Long, pull: Long): ShellInfo = {
-    val source = StageInfo(StageName(SourceName, 0), subStreamName)
-    val sink   = StageInfo(StageName(SinkName, flowCount + 1), subStreamName)
-    val flows  = List.tabulate(flowCount)(id => StageInfo(StageName(FlowName, id + 1), subStreamName))
+    val source = StageInfo(0, StageName(SourceName, 0), subStreamName)
+    val sink   = StageInfo(flowCount + 1, StageName(SinkName, flowCount + 1), subStreamName)
+    val flows = List.tabulate(flowCount) { id =>
+      val stageId = id + 1
+      StageInfo(stageId, StageName(FlowName, stageId), subStreamName)
+    }
 
     val connections = (flows.tail :+ sink)
-      .scanLeft(ConnectionStats(flows.head.stageName, source.stageName, pull, push)) {
-        case (ConnectionStats(in, _, _, _), next) => ConnectionStats(next.stageName, in, pull, push)
+      .scanLeft(ConnectionStats(flows.head.id, source.id, pull, push)) { case (ConnectionStats(in, _, _, _), next) =>
+        ConnectionStats(next.id, in, pull, push)
       }
 
     (source +: flows :+ sink).toArray -> connections.toArray
