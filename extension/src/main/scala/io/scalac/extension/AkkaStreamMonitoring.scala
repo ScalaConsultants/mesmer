@@ -262,6 +262,7 @@ class AkkaStreamMonitoring(
 
               //set name for stream is it's terminal operator
               if (stage.terminal) {
+                log.info("Found terminal stage {}", stage)
                 streamStats.terminalName(stage.stageName.nameOnly)
                 streamStats.processedMessages(stageConnections.foldLeft(0L)(_ + _.push))
               }

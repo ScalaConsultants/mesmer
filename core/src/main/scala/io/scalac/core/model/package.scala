@@ -18,6 +18,11 @@ package object model {
    */
   case class ConnectionStats(in: Int, out: Int, pull: Long, push: Long)
 
-  case class StageInfo(id: Int, stageName: StreamUniqueStageName, subStreamName: SubStreamName, terminal: Boolean = false)
+  case class StageInfo(
+    id: Int,
+    stageName: StreamUniqueStageName,
+    subStreamName: SubStreamName,
+    terminal: Boolean = false
+  )
 
 }

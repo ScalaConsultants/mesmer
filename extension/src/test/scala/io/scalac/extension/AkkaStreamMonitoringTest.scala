@@ -1,19 +1,24 @@
 package io.scalac.extension
 
-import akka.actor.testkit.typed.scaladsl.{ScalaTestWithActorTestKit, TestProbe}
+import akka.actor.testkit.typed.scaladsl.{ ScalaTestWithActorTestKit, TestProbe }
 import akka.actor.typed.scaladsl.Behaviors
 import akka.actor.typed.scaladsl.adapter._
-import akka.actor.typed.{ActorRef, ActorSystem, Behavior}
+import akka.actor.typed.{ ActorRef, ActorSystem, Behavior }
 import io.scalac.core.akka.model.PushMetrics
-import io.scalac.core.model.Tag.{StageName, SubStreamName}
+import io.scalac.core.model.Tag.{ StageName, SubStreamName }
 import io.scalac.core.model._
 import io.scalac.extension.AkkaStreamMonitoring.StartStreamCollection
 import io.scalac.extension.event.ActorInterpreterStats
-import io.scalac.extension.util.TestCase.{AbstractMonitorTestCaseFactory, MonitorTestCaseContext, NoSetupTestCaseFactory, ProvidedActorSystemTestCaseFactory}
-import io.scalac.extension.util.probe.BoundTestProbe.{LazyMetricsObserved, MetricObserved, MetricRecorded}
+import io.scalac.extension.util.TestCase.{
+  AbstractMonitorTestCaseFactory,
+  MonitorTestCaseContext,
+  NoSetupTestCaseFactory,
+  ProvidedActorSystemTestCaseFactory
+}
+import io.scalac.extension.util.probe.BoundTestProbe.{ LazyMetricsObserved, MetricObserved, MetricRecorded }
 import io.scalac.extension.util.probe.ObserverCollector.CommonCollectorImpl
-import io.scalac.extension.util.probe.{StreamMonitorTestProbe, StreamOperatorMonitorTestProbe}
-import io.scalac.extension.util.{TestConfig, TestOps}
+import io.scalac.extension.util.probe.{ StreamMonitorTestProbe, StreamOperatorMonitorTestProbe }
+import io.scalac.extension.util.{ TestConfig, TestOps }
 import org.scalatest._
 import org.scalatest.concurrent.Eventually
 import org.scalatest.enablers.Emptiness.emptinessOfOption
