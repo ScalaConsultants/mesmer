@@ -166,11 +166,6 @@ class AkkaStreamMonitoring(
     boundStreamMonitor.streamActorsTotal.setValue(values.foldLeft(0L)(_ + _.actors))
 
     globalProcessedSnapshot.set(Some(values))
-
-//    val actors  = names.size
-//    val streams = names.map(_.streamName).size
-//    runningActors.set(Some(actors))
-//    runningStreams.set(Some(streams))
   }
 
   private def createSnapshotEntry(stage: StageInfo, connectedWith: StageInfo, value: Long): SnapshotEntry =

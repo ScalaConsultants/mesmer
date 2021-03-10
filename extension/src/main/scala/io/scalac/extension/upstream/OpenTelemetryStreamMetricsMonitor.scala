@@ -16,7 +16,7 @@ object OpenTelemetryStreamMetricMonitor {
 
   object MetricNames {
     private val defaults: MetricNames =
-      MetricNames("akka_streams_running_streams", "akka_streams_actors", "akka_stream_stream_processed")
+      MetricNames("akka_streams_running_streams", "akka_streams_actors", "akka_stream_processed_messages")
 
     def fromConfig(config: Config): MetricNames = {
       import io.scalac.extension.config.ConfigurationUtils._
