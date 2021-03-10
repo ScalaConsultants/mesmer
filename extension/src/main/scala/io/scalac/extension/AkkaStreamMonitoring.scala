@@ -5,13 +5,13 @@ import akka.actor.typed._
 import akka.actor.typed.scaladsl.adapter._
 import akka.actor.typed.scaladsl.{ AbstractBehavior, ActorContext, Behaviors, TimerScheduler }
 import io.scalac.core.akka.model.PushMetrics
-import io.scalac.core.model.Tag.SubStreamName
+import io.scalac.core.model.Tag.{ StageName, StreamName }
 import io.scalac.core.model._
 import io.scalac.extension.AkkaStreamMonitoring._
 import io.scalac.extension.config.ConfigurationUtils._
 import io.scalac.extension.event.ActorInterpreterStats
 import io.scalac.extension.metric.MetricObserver.LazyResult
-import io.scalac.extension.metric.StreamMetricMonitor.{ Labels => GlobalLabels }
+import io.scalac.extension.metric.StreamMetricMonitor.{ EagerLabels, Labels => GlobalLabels }
 import io.scalac.extension.metric.StreamOperatorMetricsMonitor.Labels
 import io.scalac.extension.metric.{ StreamMetricMonitor, StreamOperatorMetricsMonitor }
 import io.scalac.extension.model._
@@ -47,6 +47,48 @@ object AkkaStreamMonitoring {
   private final case class StageData(value: Long, direction: Direction, connectedWith: String)
   private final case class SnapshotEntry(stage: StageInfo, data: Option[StageData])
   private final case class IndexCacheEntry(indexes: Set[Int], distinctPorts: Boolean)
+
+  private final case class StreamStats(streamName: StreamName, actors: Int, stages: Int, processesMessages: Long)
+  private final class StreamStatsBuilder(val materializationName: StreamName) {
+    private[this] var terminalName: Option[StageName] = None
+    private[this] var processedMessages: Long         = 0
+    private[this] var actors: Int                     = 0
+    private[this] var stages: Int                     = 0
+
+    def incActors(): this.type = {
+      actors += 1
+      this
+    }
+
+    def incStage(): this.type = {
+      stages += 1
+      this
+    }
+
+    def addStages(num: Int): this.type = {
+      stages += 1
+      this
+    }
+
+    def terminalName(stageName: StageName): this.type =
+      if (terminalName.isEmpty) {
+        this.terminalName = Some(stageName)
+        this
+      } else throw new IllegalStateException("Terminal name can be set once")
+
+    def processedMessages(value: Long): this.type = {
+      processedMessages = value
+      this
+    }
+
+    def build: StreamStats = StreamStats(
+      terminalName.fold(materializationName)(stage => StreamName(materializationName, stage)),
+      actors,
+      stages,
+      processedMessages
+    )
+
+  }
 }
 
 class AkkaStreamMonitoring(
@@ -60,26 +102,28 @@ class AkkaStreamMonitoring(
   private val Timeout: FiniteDuration = streamCollectionTimeout
 
   private val indexCache: mutable.Map[StageInfo, IndexCacheEntry] = mutable.Map.empty
-  private val operationsBoundMonitor                      = streamOperatorMonitor.bind()
-  private val boundStreamMonitor                          = streamMonitor.bind(GlobalLabels(node))
+  private val operationsBoundMonitor                              = streamOperatorMonitor.bind()
+  private val boundStreamMonitor                                  = streamMonitor.bind(EagerLabels(node))
 
   import ctx._
 
-  private[this] val snapshot       = new AtomicReference[Option[Seq[SnapshotEntry]]](None)
-  private[this] val runningActors  = new AtomicReference[Option[Int]](None)
-  private[this] val runningStreams = new AtomicReference[Option[Int]](None)
+  private[this] val snapshot                = new AtomicReference[Option[Seq[SnapshotEntry]]](None)
+  private[this] val globalProcessedSnapshot = new AtomicReference[Option[Seq[StreamStats]]](None)
 
   //append this only
-  private[this] val localSnapshot: ListBuffer[SnapshotEntry] = ListBuffer.empty
+  private[this] val localSnapshot: ListBuffer[SnapshotEntry]                      = ListBuffer.empty
+  private[this] val localStreamStats: mutable.Map[StreamName, StreamStatsBuilder] = mutable.Map.empty
 
-  boundStreamMonitor.runningStreams.setUpdater { result =>
-    val streams = runningStreams.get()
-    streams.foreach(value => result.observe(value)) // if none no result is set
-  }
-
-  boundStreamMonitor.streamActors.setUpdater { result =>
-    val actors = runningActors.get()
-    actors.foreach(value => result.observe(value)) // if none no result is set
+  boundStreamMonitor.streamProcessedMessages.setUpdater { result =>
+    val streams = globalProcessedSnapshot.get()
+    streams.foreach { statsSeq =>
+      for {
+        stats <- statsSeq
+      } {
+        val labels = GlobalLabels(node, stats.streamName)
+        result.observe(stats.processesMessages, labels)
+      }
+    }
   }
 
   operationsBoundMonitor.processedMessages.setUpdater { result =>
@@ -103,7 +147,7 @@ class AkkaStreamMonitoring(
         watch(ref)
         ref ! PushMetrics(metricsAdapter.toClassic)
       }
-      collecting(refs, Set.empty)
+      collecting(refs)
     case StartStreamCollection(_) =>
       log.warn(s"StartStreamCollection with empty refs")
       this
@@ -115,11 +159,18 @@ class AkkaStreamMonitoring(
       this
   }
 
-  def captureGlobalStats(names: Set[SubStreamName]): Unit = {
-    val actors  = names.size
-    val streams = names.map(_.streamName).size
-    runningActors.set(Some(actors))
-    runningStreams.set(Some(streams))
+  def captureGlobalStats(): Unit = {
+    boundStreamMonitor.runningStreamsTotal.setValue(localStreamStats.size)
+    val values = localStreamStats.values.map(_.build).toSeq
+    localStreamStats.clear()
+    boundStreamMonitor.streamActorsTotal.setValue(values.foldLeft(0L)(_ + _.actors))
+
+    globalProcessedSnapshot.set(Some(values))
+
+//    val actors  = names.size
+//    val streams = names.map(_.streamName).size
+//    runningActors.set(Some(actors))
+//    runningStreams.set(Some(streams))
   }
 
   private def createSnapshotEntry(stage: StageInfo, connectedWith: StageInfo, value: Long): SnapshotEntry =
@@ -128,7 +179,7 @@ class AkkaStreamMonitoring(
       SnapshotEntry(stage, Some(StageData(value, Direction.In, connectedName.name)))
     } else SnapshotEntry(stage, Some(StageData(value, Direction.In, "unknown"))) // TODO better handle case without name
 
-  def updateLocalState(
+  private def updateLocalState(
     stage: StageInfo,
     connections: Set[ConnectionStats],
     stages: Array[StageInfo],
@@ -146,7 +197,7 @@ class AkkaStreamMonitoring(
       }
     }
 
-  def swapState(): Unit = {
+  private def swapState(): Unit = {
     snapshot.set(Some(localSnapshot.toSeq))
     localSnapshot.clear()
   }
@@ -181,17 +232,22 @@ class AkkaStreamMonitoring(
     findInArray(0)
   }
 
-  def collecting(refs: Set[ActorRef], names: Set[SubStreamName]): Behavior[Command] =
+  private def collecting(refs: Set[ActorRef]): Behavior[Command] =
     Behaviors
       .receiveMessage[Command] {
-        case StatsReceived(ActorInterpreterStats(ref, streamName, shellInfo)) =>
+        case StatsReceived(ActorInterpreterStats(ref, subStreamName, shellInfo)) =>
           val refsLeft = refs - ref
           unwatch(ref)
+          val streamStats =
+            localStreamStats.getOrElseUpdate(subStreamName.streamName, new StreamStatsBuilder(subStreamName.streamName))
+          streamStats.incActors()
 
           shellInfo.foreach { case (stageInfo, connections) =>
             for {
               stage <- stageInfo if stage ne null
             } {
+              streamStats.incStage()
+
               val (stageConnections, distinct) = indexCache
                 .get(stage)
                 .fold {
@@ -199,26 +255,33 @@ class AkkaStreamMonitoring(
                   indexCache.put(stage, entry)
                   wiredConnections -> entry.distinctPorts
                 }(entry => entry.indexes.map(connections.apply) -> entry.distinctPorts)
+
               if (stageConnections.nonEmpty)
                 updateLocalState(stage, stageConnections, stageInfo, distinct)
               else localSnapshot.append(SnapshotEntry(stage, None))
+
+              //set name for stream is it's terminal operator
+              if (stage.terminal) {
+                streamStats.terminalName(stage.stageName.nameOnly)
+                streamStats.processedMessages(stageConnections.foldLeft(0L)(_ + _.push))
+              }
             }
           }
 
           if (refsLeft.isEmpty) {
             log.debug("Finished collecting stats")
             scheduler.cancel(CollectionTimeout)
-            captureGlobalStats(names + streamName)
+            captureGlobalStats()
             swapState()
             this
           } else {
-            collecting(refsLeft, names + streamName)
+            collecting(refsLeft)
           }
 
         case CollectionTimeout =>
           log.warn("Collecting stats from running streams timeout")
           refs.foreach(ref => unwatch(ref))
-          captureGlobalStats(names)
+          captureGlobalStats()
           swapState() // we record data gathered so far nevertheless
           this
         // TODO handle this case better
@@ -230,7 +293,7 @@ class AkkaStreamMonitoring(
         signalHandler
           .orElse[Signal, Behavior[Command]] { case Terminated(ref) =>
             log.debug("Stream ref {} terminated during metric collection", ref)
-            collecting(refs - ref.toClassic, names)
+            collecting(refs - ref.toClassic)
           }
           .compose[(ActorContext[Command], Signal)] { case (_, signal) =>
             signal

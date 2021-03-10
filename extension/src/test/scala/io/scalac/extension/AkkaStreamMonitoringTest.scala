@@ -1,24 +1,19 @@
 package io.scalac.extension
 
-import akka.actor.testkit.typed.scaladsl.{ ScalaTestWithActorTestKit, TestProbe }
+import akka.actor.testkit.typed.scaladsl.{ScalaTestWithActorTestKit, TestProbe}
 import akka.actor.typed.scaladsl.Behaviors
 import akka.actor.typed.scaladsl.adapter._
-import akka.actor.typed.{ ActorRef, ActorSystem, Behavior }
+import akka.actor.typed.{ActorRef, ActorSystem, Behavior}
 import io.scalac.core.akka.model.PushMetrics
-import io.scalac.core.model.Tag.{ StageName, SubStreamName }
+import io.scalac.core.model.Tag.{StageName, SubStreamName}
 import io.scalac.core.model._
 import io.scalac.extension.AkkaStreamMonitoring.StartStreamCollection
 import io.scalac.extension.event.ActorInterpreterStats
-import io.scalac.extension.util.TestCase.{
-  AbstractMonitorTestCaseFactory,
-  MonitorTestCaseContext,
-  NoSetupTestCaseFactory,
-  ProvidedActorSystemTestCaseFactory
-}
-import io.scalac.extension.util.probe.BoundTestProbe.{ LazyMetricsObserved, MetricObserved }
+import io.scalac.extension.util.TestCase.{AbstractMonitorTestCaseFactory, MonitorTestCaseContext, NoSetupTestCaseFactory, ProvidedActorSystemTestCaseFactory}
+import io.scalac.extension.util.probe.BoundTestProbe.{LazyMetricsObserved, MetricObserved, MetricRecorded}
 import io.scalac.extension.util.probe.ObserverCollector.CommonCollectorImpl
-import io.scalac.extension.util.probe.{ StreamMonitorTestProbe, StreamOperatorMonitorTestProbe }
-import io.scalac.extension.util.{ TestConfig, TestOps }
+import io.scalac.extension.util.probe.{StreamMonitorTestProbe, StreamOperatorMonitorTestProbe}
+import io.scalac.extension.util.{TestConfig, TestOps}
 import org.scalatest._
 import org.scalatest.concurrent.Eventually
 import org.scalatest.enablers.Emptiness.emptinessOfOption
@@ -45,12 +40,12 @@ class AkkaStreamMonitoringTest
   type Monitor = (StreamOperatorMonitorTestProbe, StreamMonitorTestProbe)
   type Context = TestCaseContext
 
-  private val OperationsPing = 1.seconds
-  private val ReceiveWait    = OperationsPing * 3
-  private val SourceName     = "sourceSingle"
-  private val SinkName       = "sinkIgnore"
-  private val FlowName       = "map"
-  private val StagesNames    = Seq(SourceName, SinkName, FlowName)
+  private final val OperationsPing = 1.seconds
+  private final val ReceiveWait    = OperationsPing * 3
+  private final val SourceName     = "sourceSingle"
+  private final val SinkName       = "sinkIgnore"
+  private final val FlowName       = "map"
+  private final val StagesNames    = Seq(SourceName, SinkName, FlowName)
 
   override protected def createMonitor(implicit system: ActorSystem[_]): Monitor =
     (
@@ -117,7 +112,7 @@ class AkkaStreamMonitoringTest
 
     sut ! StartStreamCollection(refs.toSet)
 
-    global.streamActorsProbe.receiveMessage(ReceiveWait) shouldBe (MetricObserved(ExpectedCount))
+    global.streamActorsProbe.receiveMessage(ReceiveWait) shouldBe (MetricRecorded(ExpectedCount))
   }
 
   it should "publish amount of running streams" in testCase { implicit c =>
@@ -133,8 +128,8 @@ class AkkaStreamMonitoringTest
 
     sut ! StartStreamCollection(refs.toSet)
 
-    global.runningStreamsProbe.receiveMessage(2.seconds) shouldBe (MetricObserved(ExpectedCount))
-    global.streamActorsProbe.receiveMessage(2.seconds) shouldBe (MetricObserved(ExpectedCount * ActorPerStream))
+    global.runningStreamsProbe.receiveMessage(2.seconds) shouldBe (MetricRecorded(ExpectedCount))
+    global.streamActorsProbe.receiveMessage(2.seconds) shouldBe (MetricRecorded(ExpectedCount * ActorPerStream))
   }
 
   it should "collect amount of messages processed and operators" in testCase { implicit c =>

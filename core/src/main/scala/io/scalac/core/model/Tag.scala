@@ -1,5 +1,7 @@
 package io.scalac.core.model
 
+import io.scalac.core.model.Tag.StreamName.StreamNameLabel
+
 sealed trait Tag extends Any {
   def serialize: Seq[(String, String)]
 
@@ -62,14 +64,28 @@ object Tag {
 
   sealed trait StreamName extends Any with Tag {
     def name: String
+
+    override def serialize: Seq[(String, String)] = Seq(StreamNameLabel -> name)
   }
 
   object StreamName {
     def apply(name: String): StreamName = new StreamNameImpl(name)
 
-    final class StreamNameImpl(val name: String) extends AnyVal with StreamName {
-      override def serialize: Seq[(String, String)] = Seq("stream_name" -> name)
+    def apply(matName: StreamName, terminalStage: StageName): StreamName =
+      TerminalOperatorStreamName(matName, terminalStage)
+
+    private final val StreamNameLabel = "stream_name"
+
+    final class StreamNameImpl(val name: String) extends AnyVal with StreamName
+
+    private final case class TerminalOperatorStreamName(materializationName: StreamName, terminalStageName: StageName)
+        extends StreamName {
+      override val name: String = terminalStageName.name
+
+      override def serialize: Seq[(String, String)] =
+        super.serialize ++ Seq("materialization_name" -> materializationName.name)
     }
+
   }
 
 }
