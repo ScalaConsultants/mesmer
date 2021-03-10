@@ -2,6 +2,7 @@ package io.scalac.extension.upstream
 
 import com.typesafe.config.Config
 import io.opentelemetry.api.OpenTelemetry
+import io.scalac.core.model.LabelSerializer
 import io.scalac.extension.metric.StreamOperatorMetricsMonitor.{ BoundMonitor, Labels }
 import io.scalac.extension.metric.{ LazyMetricObserver, StreamOperatorMetricsMonitor }
 import io.scalac.extension.upstream.OpenTelemetryStreamOperatorMetricsMonitor.MetricNames
@@ -43,8 +44,9 @@ object OpenTelemetryStreamOperatorMetricsMonitor {
     new OpenTelemetryStreamOperatorMetricsMonitor(instrumentationName, MetricNames.fromConfig(config))
 }
 
-class OpenTelemetryStreamOperatorMetricsMonitor(instrumentationName: String, metricNames: MetricNames)
-    extends StreamOperatorMetricsMonitor {
+class OpenTelemetryStreamOperatorMetricsMonitor(instrumentationName: String, metricNames: MetricNames)(implicit
+  val serializer: LabelSerializer[Labels]
+) extends StreamOperatorMetricsMonitor {
 
   private implicit val labelsConverter: OpenTelemetryLabelsConverter[StreamOperatorMetricsMonitor.Labels] =
     _.toOpenTelemetry

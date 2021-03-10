@@ -9,5 +9,5 @@ trait ActorMetricStorage {
   def foreach(f: ((ActorKey, ActorMetrics)) => Unit): Unit
   def has(key: ActorKey): Boolean
   def clear(): ActorMetricStorage
-  private[extension] def actorToKey(actorRef: ActorRef): ActorKey = actorRef.path.toPath
+  private[extension] def actorToKey(actorRef: ActorRef): ActorKey = actorRef.path.toActorPath
 }

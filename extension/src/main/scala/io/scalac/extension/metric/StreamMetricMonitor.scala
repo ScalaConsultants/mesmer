@@ -1,19 +1,13 @@
 package io.scalac.extension.metric
 
-import io.opentelemetry.api.common.{ Labels => OpenTelemetryLabels }
 import io.scalac.core.model._
 
 object StreamMetricMonitor {
 
-  case class Labels(
-    node: Option[Node]
-  ) {
-    def toOpenTelemetry: OpenTelemetryLabels = {
+  final case class Labels(node: Option[Node])
 
-      val optional: Seq[String] =
-        node.map(n => Seq("node", n)).getOrElse(Seq.empty)
-      OpenTelemetryLabels.of(optional: _*)
-    }
+  implicit val streamMetricsLabelSerializer: LabelSerializer[Labels] = labels => {
+    labels.node.serialize
   }
 
   trait BoundMonitor extends Bound {

@@ -2,7 +2,6 @@ package io.scalac.extension.upstream
 
 import com.typesafe.config.Config
 import io.opentelemetry.api.OpenTelemetry
-
 import io.scalac.extension.metric.HttpMetricMonitor
 import io.scalac.extension.upstream.opentelemetry._
 
@@ -68,7 +67,7 @@ class OpenTelemetryHttpMetricsMonitor(
   def bind(labels: Labels): BoundMonitor = new HttpMetricsBoundMonitor(labels)
 
   class HttpMetricsBoundMonitor(labels: Labels) extends BoundMonitor with opentelemetry.Synchronized {
-    private val openTelemetryLabels = labels.toOpenTelemetry
+    private val openTelemetryLabels = LabelsFactory.of(labelSerializer.serialize(labels))
 
     override val requestTime = WrappedLongValueRecorder(requestTimeRequest, openTelemetryLabels)
 

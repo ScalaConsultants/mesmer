@@ -102,13 +102,13 @@ class ActorEventsMonitorActorTest
     }
 
     "ActorEventsMonitor" should "record mailbox size" in test { monitor =>
-      val bound = monitor.bind(ActorMetricMonitor.Labels("/user/actorB/idle".taggedWith[PathTag], None))
+      val bound = monitor.bind(ActorMetricMonitor.Labels("/user/actorB/idle".taggedWith[ActorPathTag], None))
       recordMailboxSize(10, bound)
       bound.unbind()
     }
 
     it should "record mailbox size changes" in test { monitor =>
-      val bound = monitor.bind(ActorMetricMonitor.Labels("/user/actorB/idle".taggedWith[PathTag], None))
+      val bound = monitor.bind(ActorMetricMonitor.Labels("/user/actorB/idle".taggedWith[ActorPathTag], None))
       recordMailboxSize(10, bound)
       Thread.sleep((IdleTime + 1.second).toMillis)
       recordMailboxSize(42, bound)
@@ -117,7 +117,7 @@ class ActorEventsMonitorActorTest
 
     it should "dead actors should not report" in test { monitor =>
       // record mailbox for a cycle
-      val bound = monitor.bind(ActorMetricMonitor.Labels("/user/actorA/stop".taggedWith[PathTag], None))
+      val bound = monitor.bind(ActorMetricMonitor.Labels("/user/actorA/stop".taggedWith[ActorPathTag], None))
       bound.mailboxSizeProbe.expectMessageType[MetricObserved](2 * PingOffset)
       // send poison pill to kill actor
       underlyingSystem ! Stop
@@ -127,9 +127,9 @@ class ActorEventsMonitorActorTest
 
     it should "record stash size" in test { monitor =>
       val stashActor = system.systemActorOf(StashActor(10), "stashActor")
-      val bound      = monitor.bind(Labels(stashActor.ref.path.toPath, None))
+      val bound      = monitor.bind(Labels(stashActor.ref.path.toActorPath, None))
       def stashMeasurement(size: Int): Unit =
-        EventBus(system).publishEvent(StashMeasurement(size, stashActor.ref.path.toPath))
+        EventBus(system).publishEvent(StashMeasurement(size, stashActor.ref.path.toActorPath))
       stashActor ! Message("random")
       stashMeasurement(1)
       bound.stashSizeProbe.awaitAssert(bound.stashSizeProbe.expectMessage(MetricRecorded(1)))

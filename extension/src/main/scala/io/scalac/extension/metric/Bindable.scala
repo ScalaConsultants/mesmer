@@ -1,25 +1,23 @@
 package io.scalac.extension.metric
 
+import io.scalac.core.model.LabelSerializer
+
 trait Unbind {
   def unbind(): Unit
 }
 
 trait Bound extends Unbind
 
-//trait LabelSerializable extends Any {
-//  def serialize: RawLabels
-//}
-//
-//object EmptyLabels extends LabelSerializable {
-//  override val serialize: RawLabels = Seq.empty
-//}
-
-trait Bindable[-L, +B <: Bound] extends (L => B) {
+abstract class Bindable[L, +B <: Bound](implicit val labelSerializer: LabelSerializer[L]) extends (L => B) {
   final def apply(labels: L): B = bind(labels)
   def bind(labels: L): B
 }
 
-trait EmptyBind[B <: Bound] extends Bindable[Unit, B] {
+abstract class EmptyBind[B <: Bound] extends Bindable[Unit, B]()(EmptyBind.unitLabelSerializer) {
   final def bind(labels: Unit): B = this.bind()
   def bind(): B
+}
+
+object EmptyBind {
+  implicit val unitLabelSerializer: LabelSerializer[Unit] = _ => Seq.empty
 }

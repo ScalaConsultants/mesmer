@@ -27,6 +27,14 @@ object StreamOperatorMetricsMonitor {
     }
   }
 
+  implicit val streamOperatorLabelsSerializer: LabelSerializer[Labels] = labels => {
+    import labels._
+    val connected = connectedWith.fold[RawLabels](Seq.empty) { case (name, direction) =>
+      Seq("connected_with" -> name, direction.serialize)
+    }
+    operator.serialize ++ stream.serialize ++ node.serialize ++ connected
+  }
+
   //TODO split processedMessages into processTime, processMessages and demand
   trait BoundMonitor extends Bound {
     def processedMessages: LazyMetricObserver[Long, StreamOperatorMetricsMonitor.Labels]

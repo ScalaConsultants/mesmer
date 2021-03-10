@@ -1,11 +1,12 @@
 package io.scalac.extension.metric
 
+import io.scalac.core.model._
+import io.scalac.extension.config.CachingConfig
 import org.scalatest.Inspectors
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
-import scala.collection.mutable.ListBuffer
 
-import io.scalac.extension.config.CachingConfig
+import scala.collection.mutable.ListBuffer
 
 class CachingMonitorTest extends AnyFlatSpec with Matchers with Inspectors {
 
@@ -15,7 +16,11 @@ class CachingMonitorTest extends AnyFlatSpec with Matchers with Inspectors {
     def unbound: Boolean        = _unbound
   }
 
-  class TestBindable extends Bindable[String, TestBound] {
+  object StringLabelSerializer extends LabelSerializer[String] {
+    override def serialize(value: String): RawLabels = Seq("label" -> value)
+  }
+
+  class TestBindable extends Bindable[String, TestBound]()(StringLabelSerializer) {
 
     private[this] val _binds: ListBuffer[String] = ListBuffer.empty
 

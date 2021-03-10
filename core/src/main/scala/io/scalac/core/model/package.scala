@@ -1,11 +1,11 @@
 package io.scalac.core
 
-import _root_.akka.actor.ActorPath
+import _root_.akka.actor.{ ActorPath => AkkaActorPath }
 import _root_.akka.cluster.UniqueAddress
 import _root_.akka.http.scaladsl.model.HttpMethod
 import _root_.akka.http.scaladsl.model.Uri.{ Path => AkkaPath }
 import io.scalac.core.model.Tag._
-import io.scalac.core.tagging.{ @@, Tagged, _ }
+import io.scalac.core.tagging.{ @@, _ }
 
 package object model {
 
@@ -16,22 +16,28 @@ package object model {
   case class StageInfo(stageName: StageName, subStreamName: SubStreamName)
 
   sealed trait NodeTag
+  sealed trait RegionTag
   sealed trait PathTag
   sealed trait MethodTag
   sealed trait PersistenceIdTag
+  sealed trait ActorPathTag
 
   type Node          = String @@ NodeTag
+  type Region        = String @@ RegionTag
   type Path          = String @@ PathTag
   type Method        = String @@ MethodTag
   type PersistenceId = String @@ PersistenceIdTag
-  type ActorKey      = Path
+  type ActorPath     = String @@ ActorPathTag
+  type ActorKey      = ActorPath
   type RawLabels     = Seq[(String, String)]
 
-  implicit val nodeLabelSerializer: LabelSerializer[Node]   = node => Seq("node" -> node.asInstanceOf[String])
-  implicit val pathLabelSerializer: LabelSerializer[Node]   = path => Seq("path" -> path.asInstanceOf[String])
-  implicit val methodLabelSerializer: LabelSerializer[Node] = method => Seq("method" -> method.asInstanceOf[String])
-  implicit val persistenceIdLabelSerializer: LabelSerializer[Node] = persistenceId =>
-    Seq("persistenceId" -> persistenceId.asInstanceOf[String])
+  implicit val nodeLabelSerializer: LabelSerializer[Node]           = node => Seq("node" -> node.unwrap)
+  implicit val regionLabelSerializer: LabelSerializer[Region]       = region => Seq("region" -> region.unwrap)
+  implicit val pathLabelSerializer: LabelSerializer[Path]           = path => Seq("path" -> path.unwrap)
+  implicit val methodLabelSerializer: LabelSerializer[Method]       = method => Seq("method" -> method.unwrap)
+  implicit val actorPathLabelSerializer: LabelSerializer[ActorPath] = actorPath => Seq("actor_path" -> actorPath.unwrap)
+  implicit val persistenceIdLabelSerializer: LabelSerializer[PersistenceId] = persistenceId =>
+    Seq("persistence_id" -> persistenceId.asInstanceOf[String])
 
   sealed trait Direction {
     import Direction._
@@ -50,10 +56,6 @@ package object model {
     def toNode: Node = value.address.toString.taggedWith[NodeTag] // @todo change to some meaningful name
   }
 
-  implicit class SerializeTagOps[T <: Tagged[T]](val optionalTag: Option[T]) extends AnyVal {
-    def serialize(implicit ls: LabelSerializer[T]): RawLabels = optionalTag.fold[RawLabels](Seq.empty)(ls.serialize)
-  }
-
   implicit class AkkaHttpPathOps(val path: AkkaPath) extends AnyVal {
     def toPath: Path = path.toString.taggedWith[PathTag]
   }
@@ -62,8 +64,16 @@ package object model {
     def toMethod: Method = method.value.taggedWith[MethodTag]
   }
 
-  implicit class AkkaActorPathOps(val path: ActorPath) extends AnyVal {
-    def toPath: Path = path.toStringWithoutAddress.taggedWith[PathTag]
+  implicit class AkkaActorPathOps(val path: AkkaActorPath) extends AnyVal {
+    def toPath: Path           = path.toStringWithoutAddress.taggedWith[PathTag]
+    def toActorPath: ActorPath = path.toStringWithoutAddress.taggedWith[ActorPathTag]
+  }
+
+  implicit class SerializationOps[T](val tag: T) extends AnyVal {
+    def serialize(implicit ls: LabelSerializer[T]): RawLabels = ls.serialize(tag)
+  }
+  implicit class OptionSerializationOps[T](val optTag: Option[T]) extends AnyVal {
+    def serialize(implicit ls: LabelSerializer[T]): RawLabels = optTag.fold[RawLabels](Seq.empty)(ls.serialize)
   }
 
   trait LabelSerializer[T] extends (T => RawLabels) {

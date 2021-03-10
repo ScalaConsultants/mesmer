@@ -1,20 +1,21 @@
 package io.scalac.extension
 
 import akka.actor.typed.scaladsl.Behaviors
-import akka.actor.typed.{ ActorSystem, Behavior }
-import akka.cluster.sharding.ShardRegion.{ GetShardRegionStats, ShardRegionStats }
-import akka.cluster.sharding.{ ClusterSharding, ShardRegion }
+import akka.actor.typed.{ActorSystem, Behavior}
+import akka.cluster.sharding.ShardRegion.{GetShardRegionStats, ShardRegionStats}
+import akka.cluster.sharding.{ClusterSharding, ShardRegion}
 import akka.pattern.ask
 import akka.util.Timeout
 import io.scalac.extension.config.ConfigurationUtils.ConfigOps
 import io.scalac.extension.metric.ClusterMetricsMonitor
 import io.scalac.extension.metric.ClusterMetricsMonitor.Labels
-import io.scalac.core.model.AkkaNodeOps
+import io.scalac.core.model._
 import io.scalac.extension.util.CachedQueryResult
 import org.slf4j.LoggerFactory
+import io.scalac.core.tagging._
 
 import scala.concurrent.duration._
-import scala.concurrent.{ ExecutionContext, Future }
+import scala.concurrent.{ExecutionContext, Future}
 import scala.jdk.DurationConverters.JavaDurationOps
 
 class ClusterRegionsMonitorActor
@@ -83,7 +84,7 @@ object ClusterRegionsMonitorActor extends ClusterMonitorActor {
 
   private[extension] class Regions(
     system: ActorSystem[_],
-    onCreateEntry: (String, CachedQueryResult[Future[RegionStats]]) => Unit
+    onCreateEntry: (Region, CachedQueryResult[Future[RegionStats]]) => Unit
   )(implicit
     ec: ExecutionContext
   ) {
@@ -116,7 +117,7 @@ object ClusterRegionsMonitorActor extends ClusterMonitorActor {
     private def createEntry(region: String): Unit = {
       val entry = CachedQueryResult(runQuery(region))
       cache(region) = entry
-      onCreateEntry(region, entry)
+      onCreateEntry(region.taggedWith[RegionTag], entry)
     }
 
     private def runQuery(region: String): Future[RegionStats] = {

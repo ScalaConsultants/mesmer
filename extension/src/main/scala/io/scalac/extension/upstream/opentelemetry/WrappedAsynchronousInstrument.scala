@@ -3,8 +3,10 @@ package io.scalac.extension.upstream.opentelemetry
 import io.opentelemetry.api.common.Labels
 import io.opentelemetry.api.metrics.AsynchronousInstrument.{ DoubleResult, LongResult }
 import io.opentelemetry.api.metrics.{ AsynchronousInstrument, _ }
+import io.scalac.core.model.LabelSerializer
 import io.scalac.extension.metric.MetricObserver.LazyUpdater
 import io.scalac.extension.metric.{ LazyMetricObserver, MetricObserver }
+import io.scalac.extension.upstream.LabelsFactory
 
 import java.util.UUID
 
@@ -51,10 +53,10 @@ sealed abstract class MetricObserverBuilderAdapter[R <: AsynchronousInstrument.R
   }
 }
 
-final class LazyLongSumObserverBuilderAdapter[L: OpenTelemetryLabelsConverter](builder: LongSumObserver.Builder)
+final class LazyLongSumObserverBuilderAdapter[L: LabelSerializer](builder: LongSumObserver.Builder)
     extends LazyMetricObserverBuilderAdapter(builder, longResultWrapper)
 
-final class LazyLongValueObserverBuilderAdapter[L: OpenTelemetryLabelsConverter](builder: LongValueObserver.Builder)
+final class LazyLongValueObserverBuilderAdapter[L: LabelSerializer](builder: LongValueObserver.Builder)
     extends LazyMetricObserverBuilderAdapter(builder, longResultWrapper)
 
 trait ObserverHandle {
@@ -64,7 +66,7 @@ trait ObserverHandle {
 sealed abstract class LazyMetricObserverBuilderAdapter[R <: AsynchronousInstrument.Result, T, L](
   builder: AsynchronousInstrument.Builder[R],
   wrapper: ResultWrapper[R, T]
-)(implicit openTelemetryLabelsConverter: OpenTelemetryLabelsConverter[L]) {
+)(implicit labelSerializer: LabelSerializer[L]) {
 
   private val observers = collection.mutable.HashMap.empty[UUID, LazyWrappedMetricUpdater[T, L]]
 
@@ -98,7 +100,7 @@ final class WrappedMetricObserver[T](labels: Labels) extends MetricObserver[T] {
 
 trait OpenTelemetryLabelsConverter[L] extends (L => Labels)
 
-final class LazyWrappedMetricUpdater[T, L: OpenTelemetryLabelsConverter] extends LazyMetricObserver[T, L] {
+final class LazyWrappedMetricUpdater[T, L: LabelSerializer] extends LazyMetricObserver[T, L] {
 
   private var valueUpdater: Option[LazyUpdater[T, L]] = None
 
@@ -107,6 +109,6 @@ final class LazyWrappedMetricUpdater[T, L: OpenTelemetryLabelsConverter] extends
 
   def update(result: WrappedResult[T]): Unit =
     valueUpdater.foreach(updater =>
-      updater((value: T, labels: L) => result(value, implicitly[OpenTelemetryLabelsConverter[L]].apply(labels)))
+      updater((value: T, labels: L) => result(value, LabelsFactory.of(implicitly[LabelSerializer[L]].apply(labels))))
     )
 }

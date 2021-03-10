@@ -1,16 +1,14 @@
 package io.scalac.extension.metric
 
-import io.opentelemetry.api.common.{ Labels => OpenTelemetryLabels }
 import io.scalac.core.model._
 
 object HttpMetricMonitor {
 
-  final case class Labels(node: Option[Node], path: Path, method: Method) {
-    def toOpenTelemetry: OpenTelemetryLabels = {
-      val required: Seq[String] = Seq("path", path, "method", method)
-      val optional              = node.map(n => Seq("node", n)).getOrElse(Seq.empty)
-      OpenTelemetryLabels.of(optional ++ required: _*)
-    }
+  final case class Labels(node: Option[Node], path: Path, method: Method)
+
+  implicit val httpMetricsLabelsSerialize: LabelSerializer[Labels] = labels => {
+    import labels._
+    node.serialize ++ path.serialize ++ method.serialize
   }
 
   trait BoundMonitor extends Synchronized with Bound {
