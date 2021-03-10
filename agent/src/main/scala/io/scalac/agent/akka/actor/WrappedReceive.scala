@@ -1,9 +1,10 @@
 package io.scalac.agent.akka.actor
 
 import akka.actor.Actor
+import scala.concurrent.duration._
 
 import io.scalac.core.util.Timestamp
-import io.scalac.extension.actor.MessagesCountersHolder
+import io.scalac.extension.actor.{ MessagesCountersHolder, MessagesTimersHolder }
 
 private[actor] final class WrappedReceive(receive: Actor.Receive, actorCell: Object) extends Actor.Receive {
 
@@ -26,7 +27,7 @@ private[actor] final class WrappedReceive(receive: Actor.Receive, actorCell: Obj
         throw t
     } finally {
       val processingTimeMs = processingStart.interval(Timestamp.create())
-      // ???
+      MessagesTimersHolder.ProcessingTime.addTime(actorCell, processingTimeMs.milliseconds)
     }
   }
 

@@ -13,7 +13,6 @@ import io.scalac.extension.event.{ ActorEvent, TagEvent }
 import io.scalac.extension.metric.ActorMetricMonitor.Labels
 import io.scalac.extension.metric.{ ActorMetricMonitor, Unbind }
 import io.scalac.extension.model.{ ActorKey, Node }
-import io.scalac.extension.util.AggMetric.LongValueAggMetric
 import org.slf4j.LoggerFactory
 
 import scala.annotation.tailrec
@@ -246,17 +245,17 @@ object ActorEventsMonitorActor {
           bind
         }
 
-        metrics.mailboxSize.foreach { mailboxSize =>
-          log.trace("Registering a new updater for mailbox size for actor {} with value {}", key, mailboxSize)
-          bind.mailboxSize.setUpdater(_.observe(mailboxSize))
+        metrics.mailboxSize.foreach { ms =>
+          log.trace("Registering a new updater for mailbox size for actor {} with value {}", key, ms)
+          bind.mailboxSize.setUpdater(_.observe(ms))
         }
 
-        metrics.mailboxTime.foreach { mailboxTime =>
-          log.trace("Registering a new updaters for mailbox time for actor {} with value {}", key, mailboxTime)
-          bind.mailboxTimeAvg.setUpdater(_.observe(mailboxTime.avg))
-          bind.mailboxTimeMin.setUpdater(_.observe(mailboxTime.min))
-          bind.mailboxTimeMax.setUpdater(_.observe(mailboxTime.max))
-          bind.mailboxTimeSum.setUpdater(_.observe(mailboxTime.sum))
+        metrics.mailboxTime.foreach { mt =>
+          log.trace("Registering a new updaters for mailbox time for actor {} with value {}", key, mt)
+          bind.mailboxTimeAvg.setUpdater(_.observe(mt.avg))
+          bind.mailboxTimeMin.setUpdater(_.observe(mt.min))
+          bind.mailboxTimeMax.setUpdater(_.observe(mt.max))
+          bind.mailboxTimeSum.setUpdater(_.observe(mt.sum))
         }
 
         metrics.receivedMessages.foreach { rm =>
@@ -273,6 +272,15 @@ object ActorEventsMonitorActor {
           log.trace("Registering a new updater for failed messages for actor {} with value {}", key, fm)
           bind.failedMessages.setUpdater(_.observe(fm))
         }
+
+        metrics.processingTime.foreach { pt =>
+          log.trace("Registering a new updaters for processing time for actor {} with value {}", key, pt)
+          bind.processingTimeAvg.setUpdater(_.observe(pt.avg))
+          bind.processingTimeMin.setUpdater(_.observe(pt.min))
+          bind.processingTimeMax.setUpdater(_.observe(pt.max))
+          bind.processingTimeSum.setUpdater(_.observe(pt.sum))
+        }
+
       }
 
     private def setTimeout(): Unit = scheduler.startSingleTimer(UpdateActorMetrics, pingOffset)
@@ -344,7 +352,8 @@ object ActorEventsMonitorActor {
             MessagesTimersHolder.MailboxTime.getMetrics(cell),
             MessagesCountersHolder.Received.take(cell),
             MessagesCountersHolder.Processed.take(cell),
-            MessagesCountersHolder.Failed.take(cell)
+            MessagesCountersHolder.Failed.take(cell),
+            MessagesTimersHolder.ProcessingTime.getMetrics(cell)
           )
         }
 

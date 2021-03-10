@@ -9,5 +9,6 @@ final case class ActorMetrics(
   receivedMessages: Option[Long],
   processedMessages: Option[Long],
   failedMessages: Option[Long],
+  processingTime: Option[LongValueAggMetric],
   timestamp: Timestamp = Timestamp.create()
 )

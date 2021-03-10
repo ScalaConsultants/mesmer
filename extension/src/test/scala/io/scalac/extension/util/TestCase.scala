@@ -26,13 +26,15 @@ object TestCase {
     // DSL
 
     def testCaseWith[T](hackContext: Context => Context)(tc: Context => T): T = {
-      val env    = startEnv()
-      val ctx    = hackContext(createContext(env))
-      val setup  = setUp(ctx)
-      val result = tc(ctx)
-      tearDown(setup)
-      stopEnv(env)
-      result
+      val env = startEnv()
+      try {
+        val ctx   = hackContext(createContext(env))
+        val setup = setUp(ctx)
+        try {
+          val result = tc(ctx)
+          result
+        } finally tearDown(setup)
+      } finally stopEnv(env)
     }
 
     def testCase[T](tc: Context => T): T =

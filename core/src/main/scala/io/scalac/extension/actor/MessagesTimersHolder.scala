@@ -11,7 +11,7 @@ object MessagesTimersHolder {
 
   type TimeAgg = LongNoLockAggregator
 
-  sealed abstract class Holder(val filedName: String) {
+  sealed abstract class TimeHolder(val filedName: String) {
 
     private lazy val (getter, setter) = {
       val field = Class.forName("akka.actor.ActorCell").getDeclaredField(filedName)
@@ -31,6 +31,7 @@ object MessagesTimersHolder {
 
   }
 
-  object MailboxTime extends Holder("mailboxTimeAgg")
+  object MailboxTime    extends TimeHolder("mailboxTimeAgg")
+  object ProcessingTime extends TimeHolder("processingTimeAgg")
 
 }

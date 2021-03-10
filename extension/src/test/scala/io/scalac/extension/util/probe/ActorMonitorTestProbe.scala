@@ -32,6 +32,10 @@ class ActorMonitorTestProbe(collector: ObserverCollector)(implicit val actorSyst
         TestProbe("received-messages-probe"),
         TestProbe("processed-messages-probe"),
         TestProbe("failed-messages-probe"),
+        TestProbe("processing-time-avg-probe"),
+        TestProbe("processing-time-min-probe"),
+        TestProbe("processing-time-max-probe"),
+        TestProbe("processing-time-sum-probe"),
         collector,
         () => bindsMap.remove(labels)
       )
@@ -51,6 +55,10 @@ object ActorMonitorTestProbe {
     val receivedMessagesProbe: TestProbe[MetricObserverCommand],
     val processedMessagesProbe: TestProbe[MetricObserverCommand],
     val failedMessagesProbe: TestProbe[MetricObserverCommand],
+    val processingTimeAvgProbe: TestProbe[MetricObserverCommand],
+    val processingTimeMinProbe: TestProbe[MetricObserverCommand],
+    val processingTimeMaxProbe: TestProbe[MetricObserverCommand],
+    val processingTimeSumProbe: TestProbe[MetricObserverCommand],
     collector: ObserverCollector,
     onUnbind: () => Unit
   )(implicit actorSystem: ActorSystem[_])
@@ -74,6 +82,14 @@ object ActorMonitorTestProbe {
       ObserverTestProbeWrapper(processedMessagesProbe, collector)
     val failedMessages: MetricObserver[Long] =
       ObserverTestProbeWrapper(failedMessagesProbe, collector)
+    val processingTimeAvg: MetricObserver[Long] =
+      ObserverTestProbeWrapper(processingTimeAvgProbe, collector)
+    val processingTimeMin: MetricObserver[Long] =
+      ObserverTestProbeWrapper(processingTimeMinProbe, collector)
+    val processingTimeMax: MetricObserver[Long] =
+      ObserverTestProbeWrapper(processingTimeMaxProbe, collector)
+    val processingTimeSum: MetricObserver[Long] =
+      ObserverTestProbeWrapper(processingTimeSumProbe, collector)
     override def unbind(): Unit = {
       collector.finish(mailboxSizeProbe)
       collector.finish(mailboxTimeAvgProbe)
@@ -83,6 +99,10 @@ object ActorMonitorTestProbe {
       collector.finish(receivedMessagesProbe)
       collector.finish(processedMessagesProbe)
       collector.finish(failedMessagesProbe)
+      collector.finish(processingTimeAvgProbe)
+      collector.finish(processingTimeMinProbe)
+      collector.finish(processingTimeMaxProbe)
+      collector.finish(processingTimeSumProbe)
       onUnbind()
     }
   }
