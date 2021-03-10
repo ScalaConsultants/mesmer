@@ -5,6 +5,8 @@ import java.util.concurrent.atomic.AtomicLong
 
 object MessagesCountersHolder {
 
+  type FieldType = AtomicLong
+
   final object Received  extends CounterHolder("receivedMessages")
   final object Processed extends CounterHolder("processedMessages")
   final object Failed    extends CounterHolder("failedMessages")

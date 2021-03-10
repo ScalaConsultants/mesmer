@@ -11,6 +11,7 @@ object ActorCellConstructorInstrumentation {
   def onEnter(@This actorCell: Object): Unit =
     Option(actorCell).foreach { ac =>
       MessagesTimersHolder.MailboxTime.setAggregator(ac)
+      MessagesTimersHolder.ProcessingTime.setAggregator(ac)
       MessagesCountersHolder.setCounters(ac)
     }
 

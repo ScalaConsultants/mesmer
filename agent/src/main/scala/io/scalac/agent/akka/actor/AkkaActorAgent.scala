@@ -154,19 +154,23 @@ object AkkaActorAgent {
           builder
             .defineField(
               MessagesTimersHolder.MailboxTime.filedName,
-              classOf[MessagesTimersHolder.TimeAgg]
+              classOf[MessagesTimersHolder.FieldType]
+            )
+            .defineField(
+              MessagesTimersHolder.ProcessingTime.filedName,
+              classOf[MessagesTimersHolder.FieldType]
             )
             .defineField(
               MessagesCountersHolder.Received.fieldName,
-              classOf[AtomicLong]
+              classOf[MessagesCountersHolder.FieldType]
             )
             .defineField(
               MessagesCountersHolder.Processed.fieldName,
-              classOf[AtomicLong]
+              classOf[MessagesCountersHolder.FieldType]
             )
             .defineField(
               MessagesCountersHolder.Failed.fieldName,
-              classOf[AtomicLong]
+              classOf[MessagesCountersHolder.FieldType]
             )
             .visit(
               Advice

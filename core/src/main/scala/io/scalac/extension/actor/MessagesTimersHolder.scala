@@ -9,7 +9,7 @@ import io.scalac.extension.util.LongNoLockAggregator
 
 object MessagesTimersHolder {
 
-  type TimeAgg = LongNoLockAggregator
+  type FieldType = LongNoLockAggregator
 
   sealed abstract class TimeHolder(val filedName: String) {
 
@@ -21,10 +21,10 @@ object MessagesTimersHolder {
     }
 
     @inline def setAggregator(actorCell: Object): Unit =
-      setter.invoke(actorCell, new TimeAgg())
+      setter.invoke(actorCell, new FieldType())
 
     @inline def addTime(actorCell: Object, time: FiniteDuration): Unit =
-      getter.invoke(actorCell).asInstanceOf[TimeAgg].push(TimeSpent(time))
+      getter.invoke(actorCell).asInstanceOf[FieldType].push(TimeSpent(time))
 
     @inline def getMetrics(actorCell: Object): Option[LongValueAggMetric] =
       getter.invoke(actorCell).asInstanceOf[LongNoLockAggregator].fetch()
