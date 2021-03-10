@@ -4,9 +4,9 @@ import scala.concurrent.duration.FiniteDuration
 
 package object actor {
 
-  type MailboxTime = Long
-  object MailboxTime {
-    def apply(time: FiniteDuration): MailboxTime = time.toMillis
+  type TimeSpent = Long
+  object TimeSpent {
+    def apply(time: FiniteDuration): TimeSpent = time.toMillis
   }
 
 }

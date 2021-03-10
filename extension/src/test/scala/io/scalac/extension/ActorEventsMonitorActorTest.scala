@@ -16,7 +16,7 @@ import org.scalatest.matchers.should.Matchers
 import io.scalac.core.util.ActorPathOps
 import io.scalac.extension.ActorEventsMonitorActor._
 import io.scalac.extension.ActorEventsMonitorActorTest._
-import io.scalac.extension.actor.{ ActorMetrics, MailboxTime, MutableActorMetricsStorage }
+import io.scalac.extension.actor.{ ActorMetrics, MutableActorMetricsStorage, TimeSpent }
 import io.scalac.extension.event.ActorEvent.StashMeasurement
 import io.scalac.extension.event.EventBus
 import io.scalac.extension.metric.ActorMetricMonitor.Labels
@@ -175,7 +175,7 @@ object ActorEventsMonitorActorTest {
     Some(
       ActorMetrics(
         mailboxSize = Some(FakeMailboxSize),
-        mailboxTime = Some(LongValueAggMetric.fromTimeSeries(new LongTimeSeries(FakeMailboxTimes.map(MailboxTime(_))))),
+        mailboxTime = Some(LongValueAggMetric.fromTimeSeries(new LongTimeSeries(FakeMailboxTimes.map(TimeSpent(_))))),
         receivedMessages = Some(FakeReceivedMessages),
         processedMessages = Some(FakeProcessedMessages),
         failedMessages = Some(FakeFailedMessages)

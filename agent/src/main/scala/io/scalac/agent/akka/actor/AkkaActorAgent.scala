@@ -15,7 +15,7 @@ import io.scalac.agent.{ Agent, AgentInstrumentation }
 import io.scalac.core.model._
 import io.scalac.core.support.ModulesSupport
 import io.scalac.core.util.Timestamp
-import io.scalac.extension.actor.{ MailboxTimeHolder, MessagesCountersHolder }
+import io.scalac.extension.actor.{ MessagesCountersHolder, MessagesTimersHolder }
 
 object AkkaActorAgent {
 
@@ -153,8 +153,8 @@ object AkkaActorAgent {
         .transform { (builder, _, _, _) =>
           builder
             .defineField(
-              MailboxTimeHolder.MailboxTimeAggVar,
-              classOf[MailboxTimeHolder.MailboxTimeAgg]
+              MessagesTimersHolder.MailboxTime.filedName,
+              classOf[MessagesTimersHolder.TimeAgg]
             )
             .defineField(
               MessagesCountersHolder.Received.fieldName,

@@ -7,7 +7,7 @@ import akka.actor.typed.scaladsl.{ AbstractBehavior, ActorContext, Behaviors, Ti
 import akka.{ actor => classic }
 import io.scalac.core.model.Tag
 import io.scalac.extension.AkkaStreamMonitoring.StartStreamCollection
-import io.scalac.extension.actor.{ ActorMetricStorage, ActorMetrics, MailboxTimeHolder, MessagesCountersHolder }
+import io.scalac.extension.actor.{ ActorMetricStorage, ActorMetrics, MessagesCountersHolder, MessagesTimersHolder }
 import io.scalac.extension.event.ActorEvent.StashMeasurement
 import io.scalac.extension.event.{ ActorEvent, TagEvent }
 import io.scalac.extension.metric.ActorMetricMonitor.Labels
@@ -341,7 +341,7 @@ object ActorEventsMonitorActor {
           val cell = underlyingMethodHandler.invoke(actor)
           ActorMetrics(
             safeRead(mailboxSize(cell)),
-            MailboxTimeHolder.getMetrics(cell),
+            MessagesTimersHolder.MailboxTime.getMetrics(cell),
             MessagesCountersHolder.Received.take(cell),
             MessagesCountersHolder.Processed.take(cell),
             MessagesCountersHolder.Failed.take(cell)
