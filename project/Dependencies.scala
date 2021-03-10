@@ -17,6 +17,7 @@ object Dependencies {
     "com.typesafe.akka" %% "akka-cluster-typed"          % AkkaVersion,
     "com.typesafe.akka" %% "akka-persistence-typed"      % AkkaVersion,
     "com.typesafe.akka" %% "akka-actor-typed"            % AkkaVersion,
+    "com.typesafe.akka" %% "akka-actor"                  % AkkaVersion,
     "com.typesafe.akka" %% "akka-serialization-jackson"  % AkkaVersion,
     "com.typesafe.akka" %% "akka-cluster-sharding-typed" % AkkaVersion
   )
@@ -72,8 +73,11 @@ object Dependencies {
   )
 
   val akkaManagement = Seq(
-    "com.lightbend.akka.management" %% "akka-management"              % AkkaManagementVersion,
-    "com.lightbend.akka.management" %% "akka-management-cluster-http" % AkkaManagementVersion
+    "com.typesafe.akka"             %% "akka-discovery"                    % AkkaVersion,
+    "com.lightbend.akka.management" %% "akka-management"                   % AkkaManagementVersion,
+    "com.lightbend.akka.management" %% "akka-management-cluster-http"      % AkkaManagementVersion,
+    "com.lightbend.akka.management" %% "akka-management-cluster-bootstrap" % AkkaManagementVersion,
+    "com.lightbend.akka.discovery"  %% "akka-discovery-kubernetes-api"     % AkkaManagementVersion
   )
 
   val akkaTestkit = Seq(
@@ -90,4 +94,9 @@ object Dependencies {
   val slf4jApi = Seq("org.slf4j" % "slf4j-api" % "1.7.30")
 
   val reflection: String => Seq[ModuleID] = version => Seq("org.scala-lang" % "scala-reflect" % version)
+
+  val prometheus = Seq(
+    "io.opentelemetry" % "opentelemetry-exporter-prometheus" % "0.13.1",
+    "fr.davit"         %% "akka-http-metrics-prometheus"     % "1.1.1"
+  )
 }

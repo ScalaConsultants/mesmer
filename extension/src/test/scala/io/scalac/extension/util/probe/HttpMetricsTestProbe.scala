@@ -38,10 +38,10 @@ class HttpMetricsTestProbe(implicit val system: ActorSystem[_]) extends HttpMetr
   ) extends BoundMonitor
       with TestProbeSynchronized {
 
-    override def requestTime: MetricRecorder[Long] with AbstractTestProbeWrapper =
+    override def requestTime: MetricRecorder[Long] with SyncTestProbeWrapper =
       RecorderTestProbeWrapper(requestTimeProbe)
 
-    override def requestCounter: UpCounter[Long] with AbstractTestProbeWrapper =
+    override def requestCounter: UpCounter[Long] with SyncTestProbeWrapper =
       CounterTestProbeWrapper(requestCounterProbe, Some(globalRequestCounter))
 
     override def unbind(): Unit = ()

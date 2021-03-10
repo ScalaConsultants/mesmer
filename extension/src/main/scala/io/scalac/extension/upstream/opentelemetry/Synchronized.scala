@@ -21,8 +21,8 @@ trait Synchronized extends BaseSynchronized {
 
   private def extractLabels(labels: Labels): List[String] = {
     val buffer: ListBuffer[String] = ListBuffer.empty
-    labels.forEach {
-      case (key, value) => buffer ++= List(key, value)
+    labels.forEach { case (key, value) =>
+      buffer ++= List(key, value)
     }
     buffer.toList
   }

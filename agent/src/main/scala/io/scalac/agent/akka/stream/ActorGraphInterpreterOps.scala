@@ -18,13 +18,11 @@ object ActorGraphInterpreterOps extends Lookup {
   }
 
   def addCollectionReceive(
-    receive: PartialFunction[Any, Unit],
+    receive: Actor.Receive,
     thiz: Actor
-  ): PartialFunction[Any, Unit] =
-    receive.orElse {
-      case PushMetrics(replyTo) => {
-
-        val subStreamName = subStreamNameFromActorRef(thiz.context.self)
+  ): Actor.Receive =
+    receive.orElse { case PushMetrics(replyTo) =>
+      val subStreamName = subStreamNameFromActorRef(thiz.context.self)
 
         val currentShells = shells
           .invoke(thiz)

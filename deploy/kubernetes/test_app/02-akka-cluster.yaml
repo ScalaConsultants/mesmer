@@ -1,0 +1,86 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: accounts
+  name: accounts
+  namespace: accounts
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: accounts
+  template:
+    metadata:
+      labels:
+        app: accounts
+        actorSystemName: accounts
+      annotations:
+         prometheus.io/scrape: 'true'
+         prometheus.io/port: '8080'
+    spec:
+      containers:
+        - name: accounts
+          image: 830835002888.dkr.ecr.eu-central-1.amazonaws.com/akka-metrics-test-app:latest
+          ports:
+            - name: remoting
+              containerPort: 2551
+              protocol: TCP
+            - name: management
+              containerPort: 8558
+              protocol: TCP
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+          env:
+            - name: NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: REQUIRED_CONTACT_POINT_NR
+              value: "2"
+            - name: AKKA_CLUSTER_BOOTSTRAP_SERVICE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.labels['app']
+            - name: HOSTNAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+            - name: DB_HOST
+              value: akka-metrics-dev-postgres.cnijsximhlyn.eu-central-1.rds.amazonaws.com
+            - name: DB_NAME
+              value: accounts
+            - name: DB_PORT
+              value: "5432"
+            - name: DB_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: akka-metrics-secrets
+                  key: DB_PASS
+            - name: DB_USER
+              value: accounts
+---
+kind: Role
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: pod-reader
+  namespace: accounts
+rules:
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["get", "watch", "list"]
+---
+kind: RoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: read-pods
+  namespace: accounts
+subjects:
+  - kind: User
+    name: system:serviceaccount:accounts:default
+roleRef:
+  kind: Role
+  name: pod-reader
+  apiGroup: rbac.authorization.k8s.io

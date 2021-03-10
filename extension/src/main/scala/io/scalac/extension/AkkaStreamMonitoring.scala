@@ -109,6 +109,9 @@ class AkkaStreamMonitoring(
     case StatsReceived(_) =>
       log.warn("Received stream running statistics after timeout")
       this
+    case CollectionTimeout =>
+      log.warn("[UNPLANNED SITUATION] CollectionTimeout on main behavior")
+      this
   }
 
   def captureGlobalStats(names: Set[SubStreamName]): Unit = {
@@ -122,14 +125,12 @@ class AkkaStreamMonitoring(
   def captureState(): Unit =
     this.snapshot.set(Some(connectionGraph.flatMap {
       case (info, in) if in.nonEmpty =>
-        in.groupBy(_.outName).map {
-          case (upstream, connections) =>
-            val push = connections.foldLeft(0L)(_ + _.push)
-            val data = StageData(push, In, upstream.name)
-            SnapshotEntry(info, Some(data))
+        in.groupBy(_.outName).map { case (upstream, connections) =>
+          val push = connections.foldLeft(0L)(_ + _.push)
+          val data = StageData(push, In, upstream.name)
+          SnapshotEntry(info, Some(data))
         }
-      case (info, _) =>
-        Seq(SnapshotEntry(info, None)) // takes into account sources
+      case (info, _) => Seq(SnapshotEntry(info, None)) // takes into account sources
     }.toSeq))
 
   private def findWithIndex(stage: StageInfo, connections: Array[ConnectionStats]): (Set[ConnectionStats], Set[Int]) = {
@@ -168,9 +169,6 @@ class AkkaStreamMonitoring(
                 indexCache.put(stage, indexes)
                 wiredConnections
               }(indexes => indexes.map(connections.apply))
-
-            if (stage.terminal)
-              log.info("Stage {} is terminal with {} connections", stage, stageConnections.size)
             stage -> stageConnections
           }).toMap
 
@@ -201,13 +199,12 @@ class AkkaStreamMonitoring(
       }
       .receiveSignal(
         signalHandler
-          .orElse[Signal, Behavior[Command]] {
-            case Terminated(ref) =>
-              log.debug("Stream ref {} terminated during metric collection", ref)
-              collecting(refs - ref.toClassic, names)
+          .orElse[Signal, Behavior[Command]] { case Terminated(ref) =>
+            log.debug("Stream ref {} terminated during metric collection", ref)
+            collecting(refs - ref.toClassic, names)
           }
-          .compose[(ActorContext[Command], Signal)] {
-            case (_, signal) => signal
+          .compose[(ActorContext[Command], Signal)] { case (_, signal) =>
+            signal
           }
       )
 
@@ -227,13 +224,11 @@ class AkkaStreamMonitoring(
     })
 
   private def observeOperators(result: LazyResult[Long, Labels], snapshot: Option[Seq[SnapshotEntry]]): Unit =
-    snapshot.foreach(_.groupBy(_.stage.subStreamName.streamName).foreach {
-      case (streamName, snapshots) =>
-        snapshots.groupBy(_.stage.stageName.nameOnly).foreach {
-          case (stageName, elems) =>
-            val labels = Labels(stageName, streamName, false, node, None)
-            result.observe(elems.size, labels)
-        }
+    snapshot.foreach(_.groupBy(_.stage.subStreamName.streamName).foreach { case (streamName, snapshots) =>
+      snapshots.groupBy(_.stage.stageName.nameOnly).foreach { case (stageName, elems) =>
+        val labels = Labels(stageName, streamName, false, node, None)
+        result.observe(elems.size, labels)
+      }
     })
 
   override def onSignal: PartialFunction[Signal, Behavior[Command]] = signalHandler

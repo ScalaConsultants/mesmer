@@ -44,50 +44,43 @@ object HttpEventsActor {
     ): Behavior[Event] =
       Behaviors
         .receiveMessage[Event] {
-          case HttpEventWrapper(started @ RequestStarted(id, _, path, method)) => {
+          case HttpEventWrapper(started @ RequestStarted(id, _, path, method)) =>
             val monitor = httpMetricMonitor.bind(createLabels(path, method))
 
             monitor.requestCounter.incValue(1L)
 
             monitorHttp(requestStorage.requestStarted(started))
-          }
-          case HttpEventWrapper(completed @ RequestCompleted(id, timestamp)) => {
+          case HttpEventWrapper(completed @ RequestCompleted(id, timestamp)) =>
             requestStorage
               .requestCompleted(completed)
               .fold {
                 ctx.log.error("Got request completed event but no corresponding request started event")
                 Behaviors.same[Event]
-              } {
-                case (storage, started) =>
-                  val requestDuration = started.timestamp.interval(timestamp)
-                  val monitorBoundary = createLabels(started.path, started.method)
-                  val monitor         = httpMetricMonitor.bind(monitorBoundary)
+              } { case (storage, started) =>
+                val requestDuration = started.timestamp.interval(timestamp)
+                val monitorBoundary = createLabels(started.path, started.method)
+                val monitor         = httpMetricMonitor.bind(monitorBoundary)
 
-                  monitor.requestTime.setValue(requestDuration)
-                  ctx.log.debug("request {} finished in {} millis", id, requestDuration)
-                  monitorHttp(storage)
+                monitor.requestTime.setValue(requestDuration)
+                ctx.log.debug("request {} finished in {} millis", id, requestDuration)
+                monitorHttp(storage)
               }
-          }
-          case HttpEventWrapper(failed @ RequestFailed(id, timestamp)) => {
+          case HttpEventWrapper(failed @ RequestFailed(id, timestamp)) =>
             requestStorage
               .requestFailed(failed)
               .fold {
                 ctx.log.error("Got request failed event but no corresponding request started event")
                 Behaviors.same[Event]
-              } {
-                case (storage, started) =>
-                  val requestDuration = started.timestamp.interval(timestamp)
-                  ctx.log.error("request {} failed after {} millis", id, requestDuration)
-                  monitorHttp(storage)
+              } { case (storage, started) =>
+                val requestDuration = started.timestamp.interval(timestamp)
+                ctx.log.error("request {} failed after {} millis", id, requestDuration)
+                monitorHttp(storage)
               }
-          }
         }
-        .receiveSignal {
-          case (_, PostStop) => {
-            ctx.log.info("Http events monitor terminated")
-            Receptionist(ctx.system).ref ! Deregister(httpServiceKey, receptionistAdapter)
-            Behaviors.same
-          }
+        .receiveSignal { case (_, PostStop) =>
+          ctx.log.info("Http events monitor terminated")
+          Receptionist(ctx.system).ref ! Deregister(httpServiceKey, receptionistAdapter)
+          Behaviors.same
         }
     monitorHttp(initRequestStorage)
   }

@@ -1,0 +1,24 @@
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: accounts-ingress
+  namespace: accounts
+  annotations:
+    ingress.kubernetes.io/rewrite-target: /
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/server-snippet: |-
+      location /metrics {
+        deny all;
+        return 404;
+      }
+spec:
+  rules:
+  - host: testapp.akka-metrics.scalac.io
+    http:
+      paths:
+      - backend:
+          serviceName: testapp-service
+          servicePort: 8081
+        path: /
+        pathType: ImplementationSpecific

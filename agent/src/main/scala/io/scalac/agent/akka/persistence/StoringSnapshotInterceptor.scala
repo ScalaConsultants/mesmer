@@ -1,6 +1,6 @@
 package io.scalac.agent.akka.persistence
 
-import akka.actor.typed.scaladsl.{AbstractBehavior, ActorContext}
+import akka.actor.typed.scaladsl.{ AbstractBehavior, ActorContext }
 import akka.persistence.SaveSnapshotSuccess
 import io.scalac.core.util.Timestamp
 import io.scalac.extension.event.EventBus
@@ -31,7 +31,7 @@ object StoringSnapshotInterceptor {
         ex => logger.error("Couldn't find field context", ex),
         context =>
           response match {
-            case SaveSnapshotSuccess(meta) => {
+            case SaveSnapshotSuccess(meta) =>
               context.log.trace("Snapshot for {} created", meta.persistenceId)
               EventBus(context.system)
                 .publishEvent(
@@ -42,7 +42,6 @@ object StoringSnapshotInterceptor {
                     Timestamp.create()
                   )
                 )
-            }
             case _ =>
           }
       )
