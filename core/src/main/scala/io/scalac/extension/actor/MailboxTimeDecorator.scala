@@ -7,7 +7,7 @@ import scala.concurrent.duration.FiniteDuration
 import io.scalac.extension.util.AggMetric.LongValueAggMetric
 import io.scalac.extension.util.LongNoLockAggregator
 
-object MailboxTimeHolder {
+object MailboxTimeDecorator {
 
   type MailboxTimeAgg = LongNoLockAggregator
 

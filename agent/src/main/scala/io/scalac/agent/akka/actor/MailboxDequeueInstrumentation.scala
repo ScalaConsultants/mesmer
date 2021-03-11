@@ -5,7 +5,7 @@ import scala.concurrent.duration._
 import net.bytebuddy.asm.Advice._
 
 import io.scalac.core.util.Timestamp
-import io.scalac.extension.actor.MailboxTimeHolder
+import io.scalac.extension.actor.MailboxTimeDecorator
 
 class MailboxDequeueInstrumentation
 object MailboxDequeueInstrumentation {
@@ -18,6 +18,6 @@ object MailboxDequeueInstrumentation {
     FiniteDuration(Timestamp.create().interval(EnvelopeOps.getTimestamp(envelope)), MILLISECONDS)
 
   @inline def add(mailbox: Object)(time: FiniteDuration): Unit =
-    MailboxTimeHolder.addTime(MailboxOps.getActor(mailbox), time)
+    MailboxTimeDecorator.addTime(MailboxOps.getActor(mailbox), time)
 
 }
