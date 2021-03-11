@@ -10,10 +10,10 @@ object MessageCounterDecorators {
   final object Processed extends CounterDecorator("processedMessages", "akka.actor.ActorCell")
   final object Failed    extends CounterDecorator("failedMessages", "akka.actor.ActorCell")
 
-  def setCounters(actorCell: Object): Unit = {
-    Received.set(actorCell)
-    Processed.set(actorCell)
-    Failed.set(actorCell)
+  @inline def setCounters(actorCell: Object): Unit = {
+    Received.initialize(actorCell)
+    Processed.initialize(actorCell)
+    Failed.initialize(actorCell)
   }
 
 }

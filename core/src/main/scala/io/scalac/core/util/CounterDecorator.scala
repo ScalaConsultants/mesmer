@@ -15,7 +15,7 @@ abstract class CounterDecorator(val fieldName: String, clazz: Class[_]) {
     (lookup.unreflectGetter(field), lookup.unreflectSetter(field))
   }
 
-  @inline def set(actorCell: Object): Unit =
+  @inline def initialize(actorCell: Object): Unit =
     setter.invoke(actorCell, new FieldType())
 
   @inline def inc(actorCell: Object): Unit =
