@@ -15,13 +15,13 @@ abstract class CounterDecorator(val fieldName: String, clazz: Class[_]) {
     (lookup.unreflectGetter(field), lookup.unreflectSetter(field))
   }
 
-  @inline def initialize(actorCell: Object): Unit =
+  @inline final def initialize(actorCell: Object): Unit =
     setter.invoke(actorCell, new FieldType())
 
-  @inline def inc(actorCell: Object): Unit =
+  @inline final def inc(actorCell: Object): Unit =
     get(actorCell).foreach(_.getAndIncrement())
 
-  @inline def take(actorCell: Object): Option[Long] =
+  @inline final def take(actorCell: Object): Option[Long] =
     get(actorCell)
       .filter(_.get() > 0)
       .map(_.getAndSet(0))

@@ -28,13 +28,13 @@ object MailboxTimeDecorator {
     )
   }
 
-  @inline def setAggregator(actorCell: Object): Unit =
+  @inline final def setAggregator(actorCell: Object): Unit =
     mailboxTimeAggSetterHandler.invoke(actorCell, new MailboxTimeAgg())
 
-  @inline def addTime(actorCell: Object, time: FiniteDuration): Unit =
+  @inline final def addTime(actorCell: Object, time: FiniteDuration): Unit =
     mailboxTimeAggGetterHandler.invoke(actorCell).asInstanceOf[MailboxTimeAgg].push(MailboxTime(time))
 
-  @inline def getMetrics(actorCell: Object): Option[LongValueAggMetric] =
+  @inline final def getMetrics(actorCell: Object): Option[LongValueAggMetric] =
     mailboxTimeAggGetterHandler.invoke(actorCell).asInstanceOf[LongNoLockAggregator].fetch()
 
 }

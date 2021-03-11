@@ -33,13 +33,13 @@ object ClassicStashInstrumentation {
     private lazy val getContextMethodHandle =
       lookup.findVirtual(stashSupportClass, "context", methodType(classOf[ActorContext]))
 
-    @inline def getStashSize(stashSupport: Any): Int =
+    @inline final def getStashSize(stashSupport: Any): Int =
       theStashMethodHandle.invoke(stashSupport).asInstanceOf[Vector[_]].length
 
-    @inline def getActorRef(stashSupport: Any): ActorRef =
+    @inline final def getActorRef(stashSupport: Any): ActorRef =
       getSelfMethodHandle.invoke(stashSupport).asInstanceOf[ActorRef]
 
-    @inline def getContext(stashSupport: Any): ActorContext =
+    @inline final def getContext(stashSupport: Any): ActorContext =
       getContextMethodHandle.invoke(stashSupport).asInstanceOf[ActorContext]
 
   }
