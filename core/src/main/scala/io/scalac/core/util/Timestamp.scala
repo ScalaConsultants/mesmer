@@ -53,4 +53,9 @@ object Timestamp {
     math.floorDiv(math.abs(finished.value - start.value), 1_000_000)
 
   private def moveTimestamp(timestamp: Timestamp, nanos: Long): Timestamp = new Timestamp(timestamp.value + nanos)
+
+  implicit val ordering: Ordering[Timestamp] = {
+    val longOrdering = implicitly[Ordering[Long]]
+    (a, b) => longOrdering.compare(a.value, b.value)
+  }
 }

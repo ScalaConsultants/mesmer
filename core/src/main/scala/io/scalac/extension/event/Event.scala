@@ -1,5 +1,7 @@
 package io.scalac.extension.event
 
+import scala.concurrent.duration.FiniteDuration
+
 import akka.actor.ActorRef
 import io.scalac.core.model.Tag.SubStreamName
 import io.scalac.core.model._

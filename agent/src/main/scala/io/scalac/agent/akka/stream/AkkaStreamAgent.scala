@@ -13,7 +13,7 @@ import net.bytebuddy.matcher.ElementMatchers._
 
 object AkkaStreamAgent {
 
-  private[stream] val moduleName = Module("akka-stream")
+  private[akka] val moduleName = Module("akka-stream")
 
   /**
    * actorOf methods is called when island decide to materialize itself

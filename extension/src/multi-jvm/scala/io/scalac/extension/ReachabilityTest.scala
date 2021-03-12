@@ -5,14 +5,17 @@ import akka.actor.typed.scaladsl.adapter._
 import akka.cluster.Cluster
 import akka.remote.testkit.{ MultiNodeConfig, MultiNodeSpec }
 import akka.remote.transport.ThrottlerTransportAdapter.Direction
+
 import com.typesafe.config.ConfigFactory
+
 import io.scalac.extension.util.probe.BoundTestProbe.{ Dec, Inc }
 import io.scalac.extension.util.ScalaTestMultiNodeSpec
 import io.scalac.extension.util.probe.ClusterMetricsTestProbe
 import org.scalatest.Inspectors
-
 import scala.concurrent.duration._
 import scala.language.postfixOps
+
+import io.scalac.extension.util.probe.ObserverCollector.CommonCollectorImpl
 
 class ReachabilityTestMultiJvmNode1 extends ReachabilityTest
 class ReachabilityTestMultiJvmNode2 extends ReachabilityTest
@@ -23,7 +26,7 @@ class ReachabilityTest extends MultiNodeSpec(ThreeNodesConfig) with ScalaTestMul
 
   implicit val typedSystem: ActorSystem[Nothing] = system.toTyped
 
-  val monitor = ClusterMetricsTestProbe(5.seconds)
+  val monitor = ClusterMetricsTestProbe(new CommonCollectorImpl(5.seconds))
 
   import ThreeNodesConfig._
 

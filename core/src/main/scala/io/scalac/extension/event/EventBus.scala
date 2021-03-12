@@ -14,7 +14,7 @@ import scala.concurrent.duration._
 import scala.language.postfixOps
 
 trait EventBus extends Extension {
-  def publishEvent[T <: AbstractEvent](event: T)(implicit serivce: Service[event.Service]): Unit
+  def publishEvent[T <: AbstractEvent](event: T)(implicit service: Service[event.Service]): Unit
 }
 
 object EventBus extends ExtensionId[EventBus] {
@@ -77,11 +77,11 @@ private[event] class ReceptionistBasedEventBus(implicit
 
   private[this] val serviceBuffers = MutableTypedMap[AbstractService, ServiceMapFunc]
 
-  override def publishEvent[T <: AbstractEvent](event: T)(implicit service: Service[event.Service]): Unit = {
-    val ref: ActorRef[event.Service] = serviceBuffers.getOrCreate(service) {
+  def publishEvent[T <: AbstractEvent](event: T)(implicit service: Service[event.Service]): Unit = ref ! event
+
+  @inline private def ref[S](implicit service: Service[S]): ActorRef[S] =
+    serviceBuffers.getOrCreate(service) {
       system.log.debug("Initialize event buffer for service {}", service.serviceKey)
       system.systemActorOf(cachingBehavior(service.serviceKey), UUID.randomUUID().toString)
     }
-    ref ! event
-  }
 }

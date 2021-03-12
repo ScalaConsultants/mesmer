@@ -7,25 +7,31 @@ import akka.cluster.Cluster
 import akka.cluster.typed.{ ClusterSingleton, SingletonActor }
 import akka.remote.testkit.MultiNodeSpec
 import akka.remote.transport.ThrottlerTransportAdapter.Direction
+
 import io.scalac.extension.ThreeNodesConfig._
 import io.scalac.extension.util.probe.BoundTestProbe.{ Dec, Inc }
 import io.scalac.extension.util.ScalaTestMultiNodeSpec
 import io.scalac.extension.util.probe.ClusterMetricsTestProbe
-import org.scalatest.Inspectors
-
+import org.scalatest.{ BeforeAndAfterAll, Inspectors }
 import scala.concurrent.duration._
 import scala.language.postfixOps
+
+import io.scalac.extension.util.probe.ObserverCollector.CommonCollectorImpl
 
 class DownTestMultiJvmNode1 extends DownTest
 class DownTestMultiJvmNode2 extends DownTest
 class DownTestMultiJvmNode3 extends DownTest
 
-class DownTest extends MultiNodeSpec(ThreeNodesConfig) with ScalaTestMultiNodeSpec with Inspectors {
+class DownTest
+    extends MultiNodeSpec(ThreeNodesConfig)
+    with ScalaTestMultiNodeSpec
+    with Inspectors
+    with BeforeAndAfterAll {
   override def initialParticipants: Int = 3
 
   implicit val typedSystem: ActorSystem[Nothing] = system.toTyped
 
-  val monitor = ClusterMetricsTestProbe(5.seconds)
+  val monitor = ClusterMetricsTestProbe(new CommonCollectorImpl(5.seconds))
 
   "Node down" should {
     "Wait for all nodes to join the cluster" in {

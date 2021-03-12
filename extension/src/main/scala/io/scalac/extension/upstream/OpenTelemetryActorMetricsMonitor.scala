@@ -9,12 +9,23 @@ import io.scalac.extension.upstream.opentelemetry._
 
 object OpenTelemetryActorMetricsMonitor {
 
-  case class MetricNames(mailboxSize: String, stashSize: String)
+  case class MetricNames(
+    mailboxSize: String,
+    mailboxTimeAvg: String,
+    mailboxTimeMin: String,
+    mailboxTimeMax: String,
+    mailboxTimeSum: String,
+    stashSize: String
+  )
   object MetricNames {
 
     def default: MetricNames =
       MetricNames(
         "mailbox_size",
+        "mailbox_time_avg",
+        "mailbox_time_min",
+        "mailbox_time_max",
+        "mailbox_time_sum",
         "stash_size"
       )
 
@@ -31,11 +42,27 @@ object OpenTelemetryActorMetricsMonitor {
             .tryValue("mailbox-size")(_.getString)
             .getOrElse(defaultCached.mailboxSize)
 
+          val mailboxTimeAvg = clusterMetricsConfig
+            .tryValue("mailbox-time-avg")(_.getString)
+            .getOrElse(defaultCached.mailboxTimeAvg)
+
+          val mailboxTimeMin = clusterMetricsConfig
+            .tryValue("mailbox-time-min")(_.getString)
+            .getOrElse(defaultCached.mailboxTimeMin)
+
+          val mailboxTimeMax = clusterMetricsConfig
+            .tryValue("mailbox-time-max")(_.getString)
+            .getOrElse(defaultCached.mailboxTimeMax)
+
+          val mailboxTimeSum = clusterMetricsConfig
+            .tryValue("mailbox-time-sum")(_.getString)
+            .getOrElse(defaultCached.mailboxTimeSum)
+
           val stashSize = clusterMetricsConfig
             .tryValue("stash-size")(_.getString)
             .getOrElse(defaultCached.stashSize)
 
-          MetricNames(mailboxSize, stashSize)
+          MetricNames(mailboxSize, mailboxTimeAvg, mailboxTimeMin, mailboxTimeMax, mailboxTimeSum, stashSize)
         }
         .getOrElse(defaultCached)
     }
@@ -58,6 +85,30 @@ class OpenTelemetryActorMetricsMonitor(instrumentationName: String, metricNames:
       .setDescription("Tracks the size of an Actor's mailbox")
   )
 
+  private val mailboxTimeAvgObserver = new LongMetricObserverBuilderAdapter(
+    meter
+      .longValueObserverBuilder(metricNames.mailboxTimeAvg)
+      .setDescription("Tracks the average time of an message in an Actor's mailbox")
+  )
+
+  private val mailboxTimeMinObserver = new LongMetricObserverBuilderAdapter(
+    meter
+      .longValueObserverBuilder(metricNames.mailboxTimeMin)
+      .setDescription("Tracks the minimum time of an message in an Actor's mailbox")
+  )
+
+  private val mailboxTimeMaxObserver = new LongMetricObserverBuilderAdapter(
+    meter
+      .longValueObserverBuilder(metricNames.mailboxTimeMax)
+      .setDescription("Tracks the maximum time of an message in an Actor's mailbox")
+  )
+
+  private val mailboxTimeSumObserver = new LongMetricObserverBuilderAdapter(
+    meter
+      .longValueObserverBuilder(metricNames.mailboxTimeSum)
+      .setDescription("Tracks the sum time of the messages in an Actor's mailbox")
+  )
+
   private val stashSizeCounter = meter
     .longValueRecorderBuilder(metricNames.stashSize)
     .setDescription("Tracks the size of an Actor's stash")
@@ -70,14 +121,30 @@ class OpenTelemetryActorMetricsMonitor(instrumentationName: String, metricNames:
 
   class OpenTelemetryBoundMonitor(labels: Labels) extends ActorMetricMonitor.BoundMonitor with Synchronized {
 
-    override val mailboxSize: MetricObserver[Long] =
+    val mailboxSize: MetricObserver[Long] =
       mailboxSizeObserver.createObserver(labels)
 
-    override val stashSize: MetricRecorder[Long] with WrappedSynchronousInstrument[Long] =
+    val mailboxTimeAvg: MetricObserver[Long] =
+      mailboxTimeAvgObserver.createObserver(labels)
+
+    val mailboxTimeMin: MetricObserver[Long] =
+      mailboxTimeMinObserver.createObserver(labels)
+
+    val mailboxTimeMax: MetricObserver[Long] =
+      mailboxTimeMaxObserver.createObserver(labels)
+
+    val mailboxTimeSum: MetricObserver[Long] =
+      mailboxTimeSumObserver.createObserver(labels)
+
+    val stashSize: MetricRecorder[Long] with WrappedSynchronousInstrument[Long] =
       WrappedLongValueRecorder(stashSizeCounter, labels)
 
-    override def unbind(): Unit = {
+    def unbind(): Unit = {
       mailboxSizeObserver.removeObserver(labels)
+      mailboxTimeAvgObserver.removeObserver(labels)
+      mailboxTimeMinObserver.removeObserver(labels)
+      mailboxTimeMaxObserver.removeObserver(labels)
+      mailboxTimeSumObserver.removeObserver(labels)
       stashSize.unbind()
     }
 
