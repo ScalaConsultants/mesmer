@@ -7,6 +7,6 @@ object ActorCellSendMessageInstrumentation {
 
   @OnMethodEnter
   def onEnter(@Argument(0) envelope: Object): Unit =
-    Option(envelope).foreach(EnvelopeOps.setTimestamp)
+    if (envelope != null) EnvelopeOps.setTimestamp(envelope)
 
 }

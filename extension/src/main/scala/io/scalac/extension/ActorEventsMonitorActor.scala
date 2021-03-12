@@ -7,7 +7,7 @@ import akka.actor.typed.scaladsl.{ AbstractBehavior, ActorContext, Behaviors, Ti
 import akka.{ actor => classic }
 import io.scalac.core.model.Tag
 import io.scalac.extension.AkkaStreamMonitoring.StartStreamCollection
-import io.scalac.extension.actor.{ ActorMetricStorage, ActorMetrics, MessagesCountersHolder, MessagesTimersHolder }
+import io.scalac.extension.actor.{ ActorMetricStorage, ActorMetrics, MailboxTimeDecorators, MessageCounterDecorators }
 import io.scalac.extension.event.ActorEvent.StashMeasurement
 import io.scalac.extension.event.{ ActorEvent, TagEvent }
 import io.scalac.extension.metric.ActorMetricMonitor.Labels
@@ -245,7 +245,7 @@ object ActorEventsMonitorActor {
           bind
         }
 
-        metrics.mailboxSize.foreach { ms =>
+        metrics.mailboxSize.filter(0.<).foreach { ms =>
           log.trace("Registering a new updater for mailbox size for actor {} with value {}", key, ms)
           bind.mailboxSize.setUpdater(_.observe(ms))
         }
@@ -258,17 +258,17 @@ object ActorEventsMonitorActor {
           bind.mailboxTimeSum.setUpdater(_.observe(mt.sum))
         }
 
-        metrics.receivedMessages.foreach { rm =>
+        metrics.receivedMessages.filter(0.<).foreach { rm =>
           log.trace("Registering a new updater for received messages for actor {} with value {}", key, rm)
           bind.receivedMessages.setUpdater(_.observe(rm))
         }
 
-        metrics.processedMessages.foreach { pm =>
+        metrics.processedMessages.filter(0.<).foreach { pm =>
           log.trace("Registering a new updater for processed messages for actor {} with value {}", key, pm)
           bind.processedMessages.setUpdater(_.observe(pm))
         }
 
-        metrics.failedMessages.foreach { fm =>
+        metrics.failedMessages.filter(0.<).foreach { fm =>
           log.trace("Registering a new updater for failed messages for actor {} with value {}", key, fm)
           bind.failedMessages.setUpdater(_.observe(fm))
         }
@@ -348,12 +348,12 @@ object ActorEventsMonitorActor {
         .when(isLocalActorRefWithCell(actor)) {
           val cell = underlyingMethodHandler.invoke(actor)
           ActorMetrics(
-            safeRead(mailboxSize(cell)),
-            MessagesTimersHolder.MailboxTime.getMetrics(cell),
-            MessagesCountersHolder.Received.take(cell),
-            MessagesCountersHolder.Processed.take(cell),
-            MessagesCountersHolder.Failed.take(cell),
-            MessagesTimersHolder.ProcessingTime.getMetrics(cell)
+            mailboxSize = safeRead(mailboxSize(cell)),
+            mailboxTime = MailboxTimeDecorators.MailboxTime.getMetrics(cell),
+            processingTime = MailboxTimeDecorators.ProcessingTime.getMetrics(cell),
+            receivedMessages = MessageCounterDecorators.Received.take(cell),
+            unhandledMessages = MessageCounterDecorators.UnhandledAtCell.take(cell),
+            failedMessages = MessageCounterDecorators.Failed.take(cell)
           )
         }
 

@@ -15,7 +15,7 @@ import io.scalac.agent.{ Agent, AgentInstrumentation }
 import io.scalac.core.model._
 import io.scalac.core.support.ModulesSupport
 import io.scalac.core.util.Timestamp
-import io.scalac.extension.actor.{ MessagesCountersHolder, MessagesTimersHolder }
+import io.scalac.extension.actor.{ MailboxTimeDecorators, MessageCounterDecorators }
 
 object AkkaActorAgent {
 
@@ -153,24 +153,24 @@ object AkkaActorAgent {
         .transform { (builder, _, _, _) =>
           builder
             .defineField(
-              MessagesTimersHolder.MailboxTime.filedName,
-              classOf[MessagesTimersHolder.FieldType]
+              MailboxTimeDecorators.MailboxTime.filedName,
+              classOf[MailboxTimeDecorators.FieldType]
             )
             .defineField(
-              MessagesTimersHolder.ProcessingTime.filedName,
-              classOf[MessagesTimersHolder.FieldType]
+              MailboxTimeDecorators.ProcessingTime.filedName,
+              classOf[MailboxTimeDecorators.FieldType]
             )
             .defineField(
-              MessagesCountersHolder.Received.fieldName,
-              classOf[MessagesCountersHolder.FieldType]
+              MessageCounterDecorators.Received.fieldName,
+              classOf[AtomicLong]
             )
             .defineField(
-              MessagesCountersHolder.Processed.fieldName,
-              classOf[MessagesCountersHolder.FieldType]
+              MessageCounterDecorators.UnhandledAtCell.fieldName,
+              classOf[AtomicLong]
             )
             .defineField(
-              MessagesCountersHolder.Failed.fieldName,
-              classOf[MessagesCountersHolder.FieldType]
+              MessageCounterDecorators.Failed.fieldName,
+              classOf[AtomicLong]
             )
             .visit(
               Advice
@@ -179,8 +179,47 @@ object AkkaActorAgent {
             )
             .visit(
               Advice
-                .to(classOf[ActorCellBecomeInstrumentation])
-                .on(named[MethodDescription]("become").and(takesArgument(0, classOf[Actor.Receive])))
+                .to(classOf[ActorCellReceiveMessageInstrumentation])
+                .on(named[MethodDescription]("receiveMessage"))
+            )
+            .visit(
+              Advice
+                .to(classOf[ActorNewActorInstrumentation])
+                .on(named[MethodDescription]("newActor"))
+            )
+            .visit(
+              Advice
+                .to(classOf[ActorClearFieldsForTerminationInstrumentation])
+                .on(named[MethodDescription]("clearFieldsForTermination"))
+            )
+        }
+        .installOn(instrumentation)
+      LoadingResult(targetClassName)
+    }
+  }
+
+  private val actorInstrumentation = {
+    val targetClassName = "akka.actor.Actor"
+    AgentInstrumentation(
+      targetClassName,
+      SupportedModules(moduleName, version)
+    ) { (agentBuilder, instrumentation, _) =>
+      agentBuilder
+        .`type`(
+          hasSuperType[TypeDescription](named(targetClassName))
+            .and[TypeDescription](not[TypeDescription](isInterface))
+        )
+        .transform { (builder, typeDescription, _, _) =>
+          MessageCounterDecorators.UnhandledAtActor.register(typeDescription.getName)
+          builder
+            .defineField(
+              MessageCounterDecorators.UnhandledAtActor.fieldName,
+              classOf[AtomicLong]
+            )
+            .visit(
+              Advice
+                .to(classOf[ActorUnhandledInstrumentation])
+                .on(named[MethodDescription]("unhandled"))
             )
         }
         .installOn(instrumentation)
@@ -194,6 +233,7 @@ object AkkaActorAgent {
     mailboxTimeTimestampInstrumentation,
     mailboxTimeSendMessageInstrumentation,
     mailboxTimeDequeueInstrumentation,
+    actorInstrumentation,
     actorCellInstrumentation
   )
 
