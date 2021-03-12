@@ -36,7 +36,7 @@ object CounterDecorator {
   }
 
   class Registry(val fieldName: String) extends CounterDecorator {
-    private val cache = collection.mutable.HashMap.empty[String, Option[(MethodHandle, MethodHandle)]]
+    private val cache = collection.concurrent.TrieMap.empty[String, Option[(MethodHandle, MethodHandle)]]
 
     final def register(className: String): Unit =
       cache(className) = None
