@@ -1,18 +1,26 @@
 package io.scalac.agent.akka.actor
 
-import net.bytebuddy.asm.Advice.{ OnMethodEnter, OnMethodExit, This, Thrown }
+import java.lang.reflect.Method
 
-import io.scalac.extension.actor.ActorCountsDecorators
+import scala.concurrent.duration._
+
+import net.bytebuddy.implementation.bind.annotation.{ SuperMethod, This }
+
+import io.scalac.core.util.Timestamp
+import io.scalac.extension.actor.{ ActorCountsDecorators, ActorTimesDecorators }
 
 class ActorCellReceiveMessageInstrumentation
 object ActorCellReceiveMessageInstrumentation {
 
-  @OnMethodEnter
-  def onEnter(@This actorCell: Object): Unit =
+  def receiveMessage(msg: Any, @SuperMethod method: Method, @This actorCell: Object): Unit = {
     ActorCountsDecorators.Received.inc(actorCell)
-
-  @OnMethodExit(onThrowable = classOf[Throwable])
-  def onExit(@This actorCell: Object, @Thrown exception: Throwable): Unit =
-    if (exception != null) ActorCountsDecorators.Failed.inc(actorCell)
+    val start = Timestamp.create()
+    try method.invoke(actorCell, msg)
+    catch {
+      case t: Throwable =>
+        ActorCountsDecorators.Failed.inc(actorCell)
+        throw t
+    } finally ActorTimesDecorators.ProcessingTime.addTime(actorCell, Timestamp.create().interval(start).milliseconds)
+  }
 
 }

@@ -2,12 +2,12 @@ package io.scalac.agent.akka.actor
 
 import java.util.concurrent.atomic.AtomicLong
 
-import akka.actor.Actor
 import akka.actor.typed.Behavior
 
 import net.bytebuddy.asm.Advice
 import net.bytebuddy.description.`type`.TypeDescription
 import net.bytebuddy.description.method.MethodDescription
+import net.bytebuddy.implementation.MethodDelegation
 import net.bytebuddy.matcher.ElementMatchers._
 
 import io.scalac.agent.Agent.LoadingResult
@@ -179,11 +179,6 @@ object AkkaActorAgent {
             )
             .visit(
               Advice
-                .to(classOf[ActorCellReceiveMessageInstrumentation])
-                .on(named[MethodDescription]("receiveMessage"))
-            )
-            .visit(
-              Advice
                 .to(classOf[ActorNewActorInstrumentation])
                 .on(named[MethodDescription]("newActor"))
             )
@@ -192,6 +187,10 @@ object AkkaActorAgent {
                 .to(classOf[ActorClearFieldsForTerminationInstrumentation])
                 .on(named[MethodDescription]("clearFieldsForTermination"))
             )
+            .method(
+              named[MethodDescription]("receiveMessage")
+            )
+            .intercept(MethodDelegation.to(classOf[ActorCellReceiveMessageInstrumentation]))
         }
         .installOn(instrumentation)
       LoadingResult(targetClassName)
