@@ -85,9 +85,4 @@ package object model {
     def serialize(implicit ls: LabelSerializer[T]): RawLabels = optTag.fold[RawLabels](Seq.empty)(ls.serialize)
   }
 
-  trait LabelSerializer[T] extends (T => RawLabels) {
-    final def apply(value: T): RawLabels = serialize(value)
-    def serialize(value: T): RawLabels
-  }
-
 }

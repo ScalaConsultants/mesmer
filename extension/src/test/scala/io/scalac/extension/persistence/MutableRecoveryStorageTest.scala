@@ -1,7 +1,6 @@
 package io.scalac.extension.persistence
 
 import io.scalac.core.model._
-import io.scalac.core.tagging._
 import io.scalac.core.util.Timestamp
 import io.scalac.extension.event.PersistenceEvent._
 import io.scalac.extension.util.TestOps

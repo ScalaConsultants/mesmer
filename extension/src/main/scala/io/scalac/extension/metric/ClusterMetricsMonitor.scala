@@ -1,16 +1,15 @@
 package io.scalac.extension.metric
 
+import io.scalac.core.LabelSerializable
 import io.scalac.core.model._
 
 object ClusterMetricsMonitor {
 
-  final case class Labels(node: Node, region: Option[Region] = None) {
-    def withRegion(region: Region): Labels = copy(region = Some(region))
-  }
+  final case class Labels(node: Node, region: Option[Region] = None) extends LabelSerializable {
 
-  implicit val cluterMetrisLablesSerializer: LabelSerializer[Labels] = labels => {
-    import labels._
-    node.serialize ++ region.serialize
+    override val serialize: RawLabels = node.serialize ++ region.serialize
+
+    def withRegion(region: Region): Labels = copy(region = Some(region))
   }
 
   trait BoundMonitor extends Synchronized with Bound {

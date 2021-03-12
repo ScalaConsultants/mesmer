@@ -67,7 +67,7 @@ class OpenTelemetryHttpMetricsMonitor(
   def bind(labels: Labels): BoundMonitor = new HttpMetricsBoundMonitor(labels)
 
   class HttpMetricsBoundMonitor(labels: Labels) extends BoundMonitor with opentelemetry.Synchronized {
-    private val openTelemetryLabels = LabelsFactory.of(labelSerializer.serialize(labels))
+    private val openTelemetryLabels = LabelsFactory.of(labels.serialize)
 
     override val requestTime = WrappedLongValueRecorder(requestTimeRequest, openTelemetryLabels)
 

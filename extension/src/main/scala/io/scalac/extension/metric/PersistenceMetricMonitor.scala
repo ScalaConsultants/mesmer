@@ -1,13 +1,11 @@
 package io.scalac.extension.metric
+import io.scalac.core.LabelSerializable
 import io.scalac.core.model._
 
 object PersistenceMetricMonitor {
 
-  final case class Labels(node: Option[Node], path: Path, persistenceId: PersistenceId)
-
-  implicit val persistenceMetricsLabelsSerializer: LabelSerializer[Labels] = labels => {
-    import labels._
-    node.serialize ++ path.serialize ++ persistenceId.serialize
+  final case class Labels(node: Option[Node], path: Path, persistenceId: PersistenceId) extends LabelSerializable {
+    override val serialize: RawLabels = node.serialize ++ path.serialize ++ persistenceId.serialize
   }
 
   trait BoundMonitor extends Synchronized with Bound {

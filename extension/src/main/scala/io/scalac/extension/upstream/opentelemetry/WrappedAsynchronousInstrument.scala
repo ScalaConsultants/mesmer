@@ -3,7 +3,7 @@ package io.scalac.extension.upstream.opentelemetry
 import io.opentelemetry.api.common.Labels
 import io.opentelemetry.api.metrics.AsynchronousInstrument.{ DoubleResult, LongResult }
 import io.opentelemetry.api.metrics.{ AsynchronousInstrument, _ }
-import io.scalac.core.model.LabelSerializer
+import io.scalac.core.LabelSerializable
 import io.scalac.extension.metric.MetricObserver.LazyUpdater
 import io.scalac.extension.metric.{ LazyMetricObserver, MetricObserver }
 import io.scalac.extension.upstream.LabelsFactory
@@ -53,20 +53,20 @@ sealed abstract class MetricObserverBuilderAdapter[R <: AsynchronousInstrument.R
   }
 }
 
-final class LazyLongSumObserverBuilderAdapter[L: LabelSerializer](builder: LongSumObserver.Builder)
-    extends LazyMetricObserverBuilderAdapter(builder, longResultWrapper)
+final class LazyLongSumObserverBuilderAdapter[L <: LabelSerializable](builder: LongSumObserver.Builder)
+    extends LazyMetricObserverBuilderAdapter[LongResult, Long, L](builder, longResultWrapper)
 
-final class LazyLongValueObserverBuilderAdapter[L: LabelSerializer](builder: LongValueObserver.Builder)
-    extends LazyMetricObserverBuilderAdapter(builder, longResultWrapper)
+final class LazyLongValueObserverBuilderAdapter[L <: LabelSerializable](builder: LongValueObserver.Builder)
+    extends LazyMetricObserverBuilderAdapter[LongResult, Long, L](builder, longResultWrapper)
 
 trait ObserverHandle {
   def unbindObserver(): Unit
 }
 
-sealed abstract class LazyMetricObserverBuilderAdapter[R <: AsynchronousInstrument.Result, T, L](
+sealed abstract class LazyMetricObserverBuilderAdapter[R <: AsynchronousInstrument.Result, T, L <: LabelSerializable](
   builder: AsynchronousInstrument.Builder[R],
   wrapper: ResultWrapper[R, T]
-)(implicit labelSerializer: LabelSerializer[L]) {
+) {
 
   private val observers = collection.mutable.HashMap.empty[UUID, LazyWrappedMetricUpdater[T, L]]
 
@@ -98,9 +98,7 @@ final class WrappedMetricObserver[T](labels: Labels) extends MetricObserver[T] {
     valueUpdater.foreach(updater => updater((value: T) => result(value, labels)))
 }
 
-trait OpenTelemetryLabelsConverter[L] extends (L => Labels)
-
-final class LazyWrappedMetricUpdater[T, L: LabelSerializer] extends LazyMetricObserver[T, L] {
+final class LazyWrappedMetricUpdater[T, L <: LabelSerializable] extends LazyMetricObserver[T, L] {
 
   private var valueUpdater: Option[LazyUpdater[T, L]] = None
 
@@ -108,7 +106,5 @@ final class LazyWrappedMetricUpdater[T, L: LabelSerializer] extends LazyMetricOb
     valueUpdater = Some(updater)
 
   def update(result: WrappedResult[T]): Unit =
-    valueUpdater.foreach(updater =>
-      updater((value: T, labels: L) => result(value, LabelsFactory.of(implicitly[LabelSerializer[L]].apply(labels))))
-    )
+    valueUpdater.foreach(updater => updater((value: T, labels: L) => result(value, LabelsFactory.of(labels.serialize))))
 }

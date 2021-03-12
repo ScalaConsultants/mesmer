@@ -65,10 +65,7 @@ class OpenTelemetryActorMetricsMonitor(instrumentationName: String, metricNames:
 
   override def bind(labels: ActorMetricMonitor.Labels): OpenTelemetryBoundMonitor =
     new OpenTelemetryBoundMonitor(
-      LabelsFactory.of(labelSerializer.serialize(labels))
-//      LabelsFactory.of((LabelNames.ActorPath -> labels.actorPath) +: labels.tags.toSeq.flatMap(_.serialize): _*)(
-//        LabelNames.Node -> labels.node
-//      )
+      LabelsFactory.of(labels.serialize)
     )
 
   class OpenTelemetryBoundMonitor(labels: Labels) extends ActorMetricMonitor.BoundMonitor with Synchronized {
