@@ -6,13 +6,12 @@ import akka.cluster.sharding.ShardRegion.{ GetShardRegionStats, ShardRegionStats
 import akka.cluster.sharding.{ ClusterSharding, ShardRegion }
 import akka.pattern.ask
 import akka.util.Timeout
+import io.scalac.core.model._
 import io.scalac.extension.config.ConfigurationUtils.ConfigOps
 import io.scalac.extension.metric.ClusterMetricsMonitor
 import io.scalac.extension.metric.ClusterMetricsMonitor.Labels
-import io.scalac.core.model._
 import io.scalac.extension.util.CachedQueryResult
 import org.slf4j.LoggerFactory
-import io.scalac.core.tagging._
 
 import scala.concurrent.duration._
 import scala.concurrent.{ ExecutionContext, Future }
@@ -117,7 +116,7 @@ object ClusterRegionsMonitorActor extends ClusterMonitorActor {
     private def createEntry(region: String): Unit = {
       val entry = CachedQueryResult(runQuery(region))
       cache(region) = entry
-      onCreateEntry(region.taggedWith[RegionTag], entry)
+      onCreateEntry(region, entry)
     }
 
     private def runQuery(region: String): Future[RegionStats] = {

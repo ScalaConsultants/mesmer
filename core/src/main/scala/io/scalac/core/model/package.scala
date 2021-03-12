@@ -15,12 +15,13 @@ package object model {
 
   case class StageInfo(stageName: StageName, subStreamName: SubStreamName)
 
-  sealed trait NodeTag
-  sealed trait RegionTag
-  sealed trait PathTag
-  sealed trait MethodTag
-  sealed trait PersistenceIdTag
-  sealed trait ActorPathTag
+  sealed trait ModelTag
+  sealed trait NodeTag          extends ModelTag
+  sealed trait RegionTag        extends ModelTag
+  sealed trait PathTag          extends ModelTag
+  sealed trait MethodTag        extends ModelTag
+  sealed trait PersistenceIdTag extends ModelTag
+  sealed trait ActorPathTag     extends ModelTag
 
   type Node          = String @@ NodeTag
   type Region        = String @@ RegionTag
@@ -38,6 +39,13 @@ package object model {
   implicit val actorPathLabelSerializer: LabelSerializer[ActorPath] = actorPath => Seq("actor_path" -> actorPath.unwrap)
   implicit val persistenceIdLabelSerializer: LabelSerializer[PersistenceId] = persistenceId =>
     Seq("persistence_id" -> persistenceId.asInstanceOf[String])
+
+  /**
+   * This function automatically wrap string values to a tagged type but this not perform any validation - careful
+   * @param value
+   * @return
+   */
+  implicit def stringAutomaticTagger[Tag <: ModelTag](value: String): String @@ Tag = value.taggedWith[Tag]
 
   sealed trait Direction {
     import Direction._
@@ -72,6 +80,7 @@ package object model {
   implicit class SerializationOps[T](val tag: T) extends AnyVal {
     def serialize(implicit ls: LabelSerializer[T]): RawLabels = ls.serialize(tag)
   }
+
   implicit class OptionSerializationOps[T](val optTag: Option[T]) extends AnyVal {
     def serialize(implicit ls: LabelSerializer[T]): RawLabels = optTag.fold[RawLabels](Seq.empty)(ls.serialize)
   }

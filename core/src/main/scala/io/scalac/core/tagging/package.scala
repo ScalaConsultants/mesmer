@@ -5,7 +5,7 @@ package object tagging {
   trait Tagged[+U] extends Any { type Tag <: U }
   type @@[+T, +U] = T with Tagged[U]
 
-  implicit class Tagger[T](val t: T) extends AnyVal {
+  implicit private[core] class Tagger[T](val t: T) extends AnyVal {
     def taggedWith[U]: T @@ U = t.asInstanceOf[T @@ U]
   }
 

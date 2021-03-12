@@ -22,7 +22,7 @@ class MutableRequestStorageTest extends AnyFlatSpec with Matchers with TestOps {
   "MutablePersistStorage" should "add started events to internal buffer" in test { case (buffer, sut) =>
     val events = List.fill(10) {
       val id = createUniqueId
-      RequestStarted(id, Timestamp.create(), "/some/path".taggedWith[PathTag], "GET".taggedWith[MethodTag])
+      RequestStarted(id, Timestamp.create(), "/some/path", "GET")
     }
     events.foreach(sut.requestStarted)
 
@@ -35,7 +35,7 @@ class MutableRequestStorageTest extends AnyFlatSpec with Matchers with TestOps {
       val startTimestamp = Timestamp.create()
       val events = List.fill(10) {
         val id = createUniqueId
-        RequestStarted(id, startTimestamp, "/some/path".taggedWith[PathTag], "GET".taggedWith[MethodTag])
+        RequestStarted(id, startTimestamp, "/some/path", "GET")
       }
       events.foreach(sut.requestStarted)
       val finished = events
@@ -53,7 +53,7 @@ class MutableRequestStorageTest extends AnyFlatSpec with Matchers with TestOps {
     val startTimestamp = Timestamp.create()
     val path           = "/some/path/"
 
-    sut.requestStarted(RequestStarted(id, startTimestamp, path.taggedWith[PathTag], "GET".taggedWith[MethodTag]))
+    sut.requestStarted(RequestStarted(id, startTimestamp, path, "GET"))
 
     val Some((resultStorage, started)) =
       sut.requestCompleted(RequestCompleted(id, startTimestamp.plus(123.millis)))
@@ -66,7 +66,7 @@ class MutableRequestStorageTest extends AnyFlatSpec with Matchers with TestOps {
     val startTimestamp = Timestamp.create()
     val events = List.fill(10) {
       val id = createUniqueId
-      RequestStarted(id, startTimestamp, "/some/path".taggedWith[PathTag], "GET".taggedWith[MethodTag])
+      RequestStarted(id, startTimestamp, "/some/path", "GET")
     }
     events.foreach(sut.requestStarted)
     val finished = events
@@ -84,7 +84,7 @@ class MutableRequestStorageTest extends AnyFlatSpec with Matchers with TestOps {
       val startTimestamp = Timestamp.create()
       val events = List.fill(10) {
         val id = createUniqueId
-        RequestStarted(id, startTimestamp, "/some/path".taggedWith[PathTag], "GET".taggedWith[MethodTag])
+        RequestStarted(id, startTimestamp, "/some/path", "GET")
       }
       events.foreach(sut.requestStarted)
       sut.requestCompleted(RequestCompleted(createUniqueId, startTimestamp.plus(100.millis))) should be(None)
@@ -95,7 +95,7 @@ class MutableRequestStorageTest extends AnyFlatSpec with Matchers with TestOps {
     val startTimestamp = Timestamp.create()
     val events = List.fill(10) {
       val id = createUniqueId
-      RequestStarted(id, startTimestamp, "/some/path".taggedWith[PathTag], "GET".taggedWith[MethodTag])
+      RequestStarted(id, startTimestamp, "/some/path", "GET")
     }
     events.foreach(sut.requestStarted)
     sut.requestFailed(RequestFailed(createUniqueId, startTimestamp.plus(100.millis))) should be(None)

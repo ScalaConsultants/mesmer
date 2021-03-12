@@ -47,7 +47,7 @@ object RecoveryCompletedInterceptor {
       persistenceId =>
         EventBus(actorContext.system)
           .publishEvent(
-            RecoveryFinished(path, persistenceId.id.taggedWith[PersistenceIdTag], Timestamp.create())
+            RecoveryFinished(path, persistenceId.id, Timestamp.create())
           )
     )
   }

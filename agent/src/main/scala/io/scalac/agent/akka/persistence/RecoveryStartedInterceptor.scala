@@ -45,7 +45,7 @@ object RecoveryStartedInterceptor {
       _.printStackTrace(),
       persistenceId =>
         EventBus(context.system)
-          .publishEvent(RecoveryStarted(path, persistenceId.id.taggedWith[PersistenceIdTag], Timestamp.create()))
+          .publishEvent(RecoveryStarted(path, persistenceId.id, Timestamp.create()))
     )
   }
 }

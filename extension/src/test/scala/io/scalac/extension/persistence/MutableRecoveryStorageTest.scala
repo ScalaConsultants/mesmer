@@ -22,7 +22,7 @@ class MutableRecoveryStorageTest extends AnyFlatSpec with Matchers with TestOps 
   "MutableRecoveryStorage" should "add started events to internal buffer" in test { case (buffer, sut) =>
     val events = List.fill(10) {
       val id = createUniqueId
-      RecoveryStarted(s"/some/path/${id}".taggedWith[PathTag], id.taggedWith[PersistenceIdTag], Timestamp.create())
+      RecoveryStarted(s"/some/path/${id}", id, Timestamp.create())
     }
     events.foreach(sut.recoveryStarted)
     buffer should have size (events.size)
@@ -33,7 +33,7 @@ class MutableRecoveryStorageTest extends AnyFlatSpec with Matchers with TestOps 
     case (buffer, sut) =>
       val events = List.fill(10) {
         val id = createUniqueId
-        RecoveryStarted(s"/some/path/${id}".taggedWith[PathTag], id.taggedWith[PersistenceIdTag], Timestamp.create())
+        RecoveryStarted(s"/some/path/${id}", id, Timestamp.create())
       }
       events.foreach(sut.recoveryStarted)
       val finished = events
@@ -50,12 +50,12 @@ class MutableRecoveryStorageTest extends AnyFlatSpec with Matchers with TestOps 
     val startTimestamp  = Timestamp.create()
     val path            = s"/some/path/${id}"
     val expectedLatency = 1234L
-    sut.recoveryStarted(RecoveryStarted(path.taggedWith[PathTag], id.taggedWith[PersistenceIdTag], startTimestamp))
+    sut.recoveryStarted(RecoveryStarted(path, id, startTimestamp))
     val Some((resultStorage, latency)) =
       sut.recoveryFinished(
         RecoveryFinished(
-          path.taggedWith[PathTag],
-          id.taggedWith[PersistenceIdTag],
+          path,
+          id,
           startTimestamp.plus(expectedLatency.millis)
         )
       )

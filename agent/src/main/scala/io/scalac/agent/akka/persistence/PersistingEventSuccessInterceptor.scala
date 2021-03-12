@@ -18,7 +18,7 @@ object PersistingEventSuccessInterceptor {
       .publishEvent(
         PersistingEventFinished(
           path,
-          event.persistenceId.taggedWith[PersistenceIdTag],
+          event.persistenceId,
           event.sequenceNr,
           Timestamp.create()
         )

@@ -39,7 +39,7 @@ object StoringSnapshotInterceptor {
                 .publishEvent(
                   SnapshotCreated(
                     context.self.path.toPath,
-                    meta.persistenceId.taggedWith[PersistenceIdTag],
+                    meta.persistenceId,
                     meta.sequenceNr,
                     Timestamp.create()
                   )

@@ -61,7 +61,7 @@ class HttpEventsActorTest
     EventBus(system).publishEvent(RequestCompleted(id, Timestamp.create()))
 
   "HttpEventsActor" should "collect metrics for single request" in test { monitor =>
-    val expectedLabels = Labels(None, "/api/v1/test".taggedWith[PathTag], "GET".taggedWith[MethodTag])
+    val expectedLabels = Labels(None, "/api/v1/test", "GET")
 
     val id = createUniqueId
     requestStarted(id, expectedLabels)
@@ -80,8 +80,8 @@ class HttpEventsActorTest
 
   it should "reuse monitors for same labels" in testCaching { monitor =>
     val expectedLabels = List(
-      Labels(None, "/api/v1/test".taggedWith[PathTag], "GET".taggedWith[MethodTag]),
-      Labels(None, "/api/v2/test".taggedWith[PathTag], "POST".taggedWith[MethodTag])
+      Labels(None, "/api/v1/test", "GET"),
+      Labels(None, "/api/v2/test", "POST")
     )
     val requestCount = 10
 
@@ -100,7 +100,7 @@ class HttpEventsActorTest
 
   it should "collect metric for several concurrent requests" in testCaching { monitor =>
     val labels =
-      List.fill(10)(createUniqueId).map(id => Labels(None, id.taggedWith[PathTag], "GET".taggedWith[MethodTag]))
+      List.fill(10)(createUniqueId).map(id => Labels(None, id, "GET"))
     val requests = labels.map(l => createUniqueId -> l).toMap
     requests.foreach(Function.tupled(requestStarted))
     Thread.sleep(1050)

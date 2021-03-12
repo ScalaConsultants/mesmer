@@ -25,8 +25,8 @@ class CleanableRecoveryStorageTest extends AnyFlatSpec with Matchers with TestOp
       val staleness = Random.nextLong(80_000) + maxStalenessMs
       val id        = createUniqueId
       RecoveryStarted(
-        s"/some/path/${id}".taggedWith[PathTag],
-        id.taggedWith[PersistenceIdTag],
+        s"/some/path/${id}",
+        id,
         baseTimestamp.minus(staleness.millis)
       )
     }
@@ -35,8 +35,8 @@ class CleanableRecoveryStorageTest extends AnyFlatSpec with Matchers with TestOp
       val id        = createUniqueId
       val staleness = Random.nextLong(maxStalenessMs)
       RecoveryStarted(
-        s"/some/path/${id}".taggedWith[PathTag],
-        id.taggedWith[PersistenceIdTag],
+        s"/some/path/${id}",
+        id,
         baseTimestamp.minus(staleness.millis)
       )
     }

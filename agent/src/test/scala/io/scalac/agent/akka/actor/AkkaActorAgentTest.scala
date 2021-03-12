@@ -56,7 +56,7 @@ class AkkaActorAgentTest
 
   "AkkaActorAgent" should "record classic stash properly" in test { monitor =>
     val stashActor                   = system.classicSystem.actorOf(ClassicStashActor.props(), "stashActor")
-    val expectStashSize: Int => Unit = createExpectStashSize(monitor, "/user/stashActor".taggedWith[PathTag])
+    val expectStashSize: Int => Unit = createExpectStashSize(monitor, "/user/stashActor")
     stashActor ! Message("random")
     expectStashSize(1)
     stashActor ! Message("42")

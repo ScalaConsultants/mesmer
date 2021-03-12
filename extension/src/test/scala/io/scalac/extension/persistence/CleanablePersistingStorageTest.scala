@@ -26,8 +26,8 @@ class CleanablePersistingStorageTest extends AnyFlatSpec with Matchers with Test
       val staleness = Random.nextLong(80_000) + maxStalenessMs
       val id        = createUniqueId
       PersistingEventStarted(
-        s"/some/path/${id}".taggedWith[PathTag],
-        id.taggedWith[PersistenceIdTag],
+        s"/some/path/${id}",
+        id,
         100L,
         baseTimestamp.minus(staleness.millis)
       )
@@ -37,8 +37,8 @@ class CleanablePersistingStorageTest extends AnyFlatSpec with Matchers with Test
       val id        = createUniqueId
       val staleness = Random.nextLong(maxStalenessMs)
       PersistingEventStarted(
-        s"/some/path/${id}".taggedWith[PathTag],
-        id.taggedWith[PersistenceIdTag],
+        s"/some/path/${id}",
+        id,
         100L,
         baseTimestamp.minus(staleness.millis)
       )

@@ -27,8 +27,8 @@ class CleanableRequestStorageTest extends AnyFlatSpec with Matchers with TestOps
       RequestStarted(
         id,
         baseTimestamp.minus(staleness.millis),
-        "/some/path".taggedWith[PathTag],
-        "GET".taggedWith[MethodTag]
+        "/some/path",
+        "GET"
       )
     }
 
@@ -38,8 +38,8 @@ class CleanableRequestStorageTest extends AnyFlatSpec with Matchers with TestOps
       RequestStarted(
         id,
         baseTimestamp.minus(staleness.millis),
-        "/some/path".taggedWith[PathTag],
-        "GET".taggedWith[MethodTag]
+        "/some/path",
+        "GET"
       )
     }
 

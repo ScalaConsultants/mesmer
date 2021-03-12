@@ -18,7 +18,7 @@ object JournalInteractionsInterceptor {
       .publishEvent(
         PersistingEventStarted(
           path,
-          event.persistenceId.taggedWith[PersistenceIdTag],
+          event.persistenceId,
           event.sequenceNr,
           Timestamp.create()
         )

@@ -159,12 +159,12 @@ class AkkaMonitoring(private val system: ActorSystem[_], val config: AkkaMonitor
       _ <- reflectiveIsInstanceOf("akka.actor.typed.internal.adapter.ActorSystemAdapter", system)
       classic = system.classicSystem.asInstanceOf[ExtendedActorSystem]
       _ <- reflectiveIsInstanceOf("akka.cluster.ClusterActorRefProvider", classic.provider)
-    } yield Cluster(classic).selfUniqueAddress.toNode).fold(
+    } yield Cluster(classic).selfUniqueAddress).fold(
       message => {
         log.error(message)
         None
       },
-      nodeName => Some(nodeName.taggedWith[NodeTag])
+      nodeName => Some(nodeName.toNode)
     )
 
   def startActorMonitor(): Unit = {

@@ -102,13 +102,13 @@ class ActorEventsMonitorActorTest
     }
 
     "ActorEventsMonitor" should "record mailbox size" in test { monitor =>
-      val bound = monitor.bind(ActorMetricMonitor.Labels("/user/actorB/idle".taggedWith[ActorPathTag], None))
+      val bound = monitor.bind(ActorMetricMonitor.Labels("/user/actorB/idle", None))
       recordMailboxSize(10, bound)
       bound.unbind()
     }
 
     it should "record mailbox size changes" in test { monitor =>
-      val bound = monitor.bind(ActorMetricMonitor.Labels("/user/actorB/idle".taggedWith[ActorPathTag], None))
+      val bound = monitor.bind(ActorMetricMonitor.Labels("/user/actorB/idle", None))
       recordMailboxSize(10, bound)
       Thread.sleep((IdleTime + 1.second).toMillis)
       recordMailboxSize(42, bound)
@@ -117,7 +117,7 @@ class ActorEventsMonitorActorTest
 
     it should "dead actors should not report" in test { monitor =>
       // record mailbox for a cycle
-      val bound = monitor.bind(ActorMetricMonitor.Labels("/user/actorA/stop".taggedWith[ActorPathTag], None))
+      val bound = monitor.bind(ActorMetricMonitor.Labels("/user/actorA/stop", None))
       bound.mailboxSizeProbe.expectMessageType[MetricObserved](2 * PingOffset)
       // send poison pill to kill actor
       underlyingSystem ! Stop

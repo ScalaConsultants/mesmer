@@ -20,5 +20,5 @@ object CommonRegexPathService extends PathService {
         }.map(_._2).getOrElse(segment)
       }
       .mkString("", "/", if (path.endsWith("/")) "/" else "")
-      .taggedWith[PathTag]
+
 }
