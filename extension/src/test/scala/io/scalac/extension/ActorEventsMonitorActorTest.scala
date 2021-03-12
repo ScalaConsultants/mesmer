@@ -169,6 +169,7 @@ object ActorEventsMonitorActorTest {
   // min: FakeMailboxTime / 2  |  avg: FakeMailboxTime  |  max: 2 * MailboxTime
   private val FakeReceivedMessages  = 12
   private val FakeProcessedMessages = 10
+  private val FakeUnhandledMessages = FakeReceivedMessages - FakeProcessedMessages
   private val FakeFailedMessages    = 2
 
   val TestActorMetricsReader: ActorMetricsReader = { actor =>
@@ -177,7 +178,7 @@ object ActorEventsMonitorActorTest {
         mailboxSize = Some(FakeMailboxSize),
         mailboxTime = Some(LongValueAggMetric.fromTimeSeries(new LongTimeSeries(FakeMailboxTimes.map(MailboxTime(_))))),
         receivedMessages = Some(FakeReceivedMessages),
-        processedMessages = Some(FakeProcessedMessages),
+        unhandledMessages = Some(FakeUnhandledMessages),
         failedMessages = Some(FakeFailedMessages)
       )
     )

@@ -9,9 +9,11 @@ object ActorCellConstructorInstrumentation {
 
   @OnMethodExit
   def onEnter(@This actorCell: Object): Unit =
-    Option(actorCell).foreach { ac =>
-      MailboxTimeDecorator.setAggregator(ac)
-      MessageCounterDecorators.setCounters(ac)
+    if (actorCell != null) {
+      MailboxTimeDecorator.setAggregator(actorCell)
+      MessageCounterDecorators.Received.initialize(actorCell)
+      MessageCounterDecorators.UnhandledAtCell.initialize(actorCell)
+      MessageCounterDecorators.Failed.initialize(actorCell)
     }
 
 }

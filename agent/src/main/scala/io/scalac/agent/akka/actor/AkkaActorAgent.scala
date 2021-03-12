@@ -158,15 +158,15 @@ object AkkaActorAgent {
             )
             .defineField(
               MessageCounterDecorators.Received.fieldName,
-              classOf[MessageCounterDecorators.FieldType]
+              classOf[AtomicLong]
             )
             .defineField(
-              MessageCounterDecorators.Processed.fieldName,
-              classOf[MessageCounterDecorators.FieldType]
+              MessageCounterDecorators.UnhandledAtCell.fieldName,
+              classOf[AtomicLong]
             )
             .defineField(
               MessageCounterDecorators.Failed.fieldName,
-              classOf[MessageCounterDecorators.FieldType]
+              classOf[AtomicLong]
             )
             .visit(
               Advice
@@ -175,8 +175,47 @@ object AkkaActorAgent {
             )
             .visit(
               Advice
-                .to(classOf[ActorCellBecomeInstrumentation])
-                .on(named[MethodDescription]("become").and(takesArgument(0, classOf[Actor.Receive])))
+                .to(classOf[ActorCellReceiveMessageInstrumentation])
+                .on(named[MethodDescription]("receiveMessage"))
+            )
+            .visit(
+              Advice
+                .to(classOf[ActorNewActorInstrumentation])
+                .on(named[MethodDescription]("newActor"))
+            )
+            .visit(
+              Advice
+                .to(classOf[ActorClearFieldsForTerminationInstrumentation])
+                .on(named[MethodDescription]("clearFieldsForTermination"))
+            )
+        }
+        .installOn(instrumentation)
+      LoadingResult(targetClassName)
+    }
+  }
+
+  private val actorInstrumentation = {
+    val targetClassName = "akka.actor.Actor"
+    AgentInstrumentation(
+      targetClassName,
+      SupportedModules(moduleName, version)
+    ) { (agentBuilder, instrumentation, _) =>
+      agentBuilder
+        .`type`(
+          hasSuperType[TypeDescription](named(targetClassName))
+            .and[TypeDescription](not[TypeDescription](isInterface))
+        )
+        .transform { (builder, typeDescription, _, _) =>
+          MessageCounterDecorators.UnhandledAtActor.register(typeDescription.getName)
+          builder
+            .defineField(
+              MessageCounterDecorators.UnhandledAtActor.fieldName,
+              classOf[AtomicLong]
+            )
+            .visit(
+              Advice
+                .to(classOf[ActorUnhandledInstrumentation])
+                .on(named[MethodDescription]("unhandled"))
             )
         }
         .installOn(instrumentation)
@@ -190,6 +229,7 @@ object AkkaActorAgent {
     mailboxTimeTimestampInstrumentation,
     mailboxTimeSendMessageInstrumentation,
     mailboxTimeDequeueInstrumentation,
+    actorInstrumentation,
     actorCellInstrumentation
   )
 

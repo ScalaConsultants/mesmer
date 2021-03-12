@@ -12,12 +12,14 @@ object MailboxDequeueInstrumentation {
 
   @OnMethodExit
   def onExit(@Return envelope: Object, @This mailbox: Object): Unit =
-    Option(envelope).map(computeTime).foreach(add(mailbox))
+    if (envelope != null) {
+      add(mailbox, computeTime(envelope))
+    }
 
   @inline final def computeTime(envelope: Object): FiniteDuration =
     FiniteDuration(Timestamp.create().interval(EnvelopeOps.getTimestamp(envelope)), MILLISECONDS)
 
-  @inline final def add(mailbox: Object)(time: FiniteDuration): Unit =
+  @inline final def add(mailbox: Object, time: FiniteDuration): Unit =
     MailboxTimeDecorator.addTime(MailboxOps.getActor(mailbox), time)
 
 }

@@ -246,7 +246,7 @@ object ActorEventsMonitorActor {
           bind
         }
 
-        metrics.mailboxSize.foreach { mailboxSize =>
+        metrics.mailboxSize.filter(0.<).foreach { mailboxSize =>
           log.trace("Registering a new updater for mailbox size for actor {} with value {}", key, mailboxSize)
           bind.mailboxSize.setUpdater(_.observe(mailboxSize))
         }
@@ -259,17 +259,17 @@ object ActorEventsMonitorActor {
           bind.mailboxTimeSum.setUpdater(_.observe(mailboxTime.sum))
         }
 
-        metrics.receivedMessages.foreach { rm =>
+        metrics.receivedMessages.filter(0.<).foreach { rm =>
           log.trace("Registering a new updater for received messages for actor {} with value {}", key, rm)
           bind.receivedMessages.setUpdater(_.observe(rm))
         }
 
-        metrics.processedMessages.foreach { pm =>
+        metrics.processedMessages.filter(0.<).foreach { pm =>
           log.trace("Registering a new updater for processed messages for actor {} with value {}", key, pm)
           bind.processedMessages.setUpdater(_.observe(pm))
         }
 
-        metrics.failedMessages.foreach { fm =>
+        metrics.failedMessages.filter(0.<).foreach { fm =>
           log.trace("Registering a new updater for failed messages for actor {} with value {}", key, fm)
           bind.failedMessages.setUpdater(_.observe(fm))
         }
@@ -340,11 +340,11 @@ object ActorEventsMonitorActor {
         .when(isLocalActorRefWithCell(actor)) {
           val cell = underlyingMethodHandler.invoke(actor)
           ActorMetrics(
-            safeRead(mailboxSize(cell)),
-            MailboxTimeDecorator.getMetrics(cell),
-            MessageCounterDecorators.Received.take(cell),
-            MessageCounterDecorators.Processed.take(cell),
-            MessageCounterDecorators.Failed.take(cell)
+            mailboxSize = safeRead(mailboxSize(cell)),
+            mailboxTime = MailboxTimeDecorator.getMetrics(cell),
+            receivedMessages = MessageCounterDecorators.Received.take(cell),
+            unhandledMessages = MessageCounterDecorators.UnhandledAtCell.take(cell),
+            failedMessages = MessageCounterDecorators.Failed.take(cell)
           )
         }
 

@@ -1,12 +1,18 @@
 package io.scalac.agent.akka.actor
 
-import net.bytebuddy.asm.Advice._
+import net.bytebuddy.asm.Advice.{ OnMethodEnter, OnMethodExit, This, Thrown }
 
-class ActorCellSendMessageInstrumentation
-object ActorCellSendMessageInstrumentation {
+import io.scalac.extension.actor.MessageCounterDecorators
+
+class ActorCellReceiveMessageInstrumentation
+object ActorCellReceiveMessageInstrumentation {
 
   @OnMethodEnter
-  def onEnter(@Argument(0) envelope: Object): Unit =
-    Option(envelope).foreach(EnvelopeOps.setTimestamp)
+  def onEnter(@This actorCell: Object): Unit =
+    MessageCounterDecorators.Received.inc(actorCell)
+
+  @OnMethodExit(onThrowable = classOf[Throwable])
+  def onExit(@This actorCell: Object, @Thrown exception: Throwable): Unit =
+    if (exception != null) MessageCounterDecorators.Failed.inc(actorCell)
 
 }
