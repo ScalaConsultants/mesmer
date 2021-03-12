@@ -4,7 +4,7 @@ import java.lang.invoke.MethodHandles
 
 import io.scalac.core.util.CounterDecorator
 
-object MessageCounterDecorators {
+object ActorCountsDecorators {
 
   final object Received extends CounterDecorator.FixedClass("receivedMessages", "akka.actor.ActorCell")
   final object Failed   extends CounterDecorator.FixedClass("failedMessages", "akka.actor.ActorCell")

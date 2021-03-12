@@ -15,7 +15,7 @@ import io.scalac.agent.{ Agent, AgentInstrumentation }
 import io.scalac.core.model._
 import io.scalac.core.support.ModulesSupport
 import io.scalac.core.util.Timestamp
-import io.scalac.extension.actor.{ MailboxTimeDecorators, MessageCounterDecorators }
+import io.scalac.extension.actor.{ ActorCountsDecorators, ActorTimesDecorators }
 
 object AkkaActorAgent {
 
@@ -153,23 +153,23 @@ object AkkaActorAgent {
         .transform { (builder, _, _, _) =>
           builder
             .defineField(
-              MailboxTimeDecorators.MailboxTime.filedName,
-              classOf[MailboxTimeDecorators.FieldType]
+              ActorTimesDecorators.MailboxTime.filedName,
+              classOf[ActorTimesDecorators.FieldType]
             )
             .defineField(
-              MailboxTimeDecorators.ProcessingTime.filedName,
-              classOf[MailboxTimeDecorators.FieldType]
+              ActorTimesDecorators.ProcessingTime.filedName,
+              classOf[ActorTimesDecorators.FieldType]
             )
             .defineField(
-              MessageCounterDecorators.Received.fieldName,
+              ActorCountsDecorators.Received.fieldName,
               classOf[AtomicLong]
             )
             .defineField(
-              MessageCounterDecorators.UnhandledAtCell.fieldName,
+              ActorCountsDecorators.UnhandledAtCell.fieldName,
               classOf[AtomicLong]
             )
             .defineField(
-              MessageCounterDecorators.Failed.fieldName,
+              ActorCountsDecorators.Failed.fieldName,
               classOf[AtomicLong]
             )
             .visit(
@@ -210,10 +210,10 @@ object AkkaActorAgent {
             .and[TypeDescription](not[TypeDescription](isInterface))
         )
         .transform { (builder, typeDescription, _, _) =>
-          MessageCounterDecorators.UnhandledAtActor.register(typeDescription.getName)
+          ActorCountsDecorators.UnhandledAtActor.register(typeDescription.getName)
           builder
             .defineField(
-              MessageCounterDecorators.UnhandledAtActor.fieldName,
+              ActorCountsDecorators.UnhandledAtActor.fieldName,
               classOf[AtomicLong]
             )
             .visit(
