@@ -43,8 +43,8 @@ object OpenTelemetryStreamOperatorMetricsMonitor {
     new OpenTelemetryStreamOperatorMetricsMonitor(instrumentationName, MetricNames.fromConfig(config))
 }
 
-class OpenTelemetryStreamOperatorMetricsMonitor(instrumentationName: String, metricNames: MetricNames) extends StreamOperatorMetricsMonitor {
-
+class OpenTelemetryStreamOperatorMetricsMonitor(instrumentationName: String, metricNames: MetricNames)
+    extends StreamOperatorMetricsMonitor {
 
   private val meter = OpenTelemetry
     .getGlobalMeter(instrumentationName)
