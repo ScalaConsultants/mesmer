@@ -17,7 +17,7 @@ import akka.cluster.typed.{ Cluster, Subscribe }
 
 import io.scalac.extension.metric.ClusterMetricsMonitor
 import io.scalac.extension.metric.ClusterMetricsMonitor.Labels
-import io.scalac.extension.model.AkkaNodeOps
+import io.scalac.core.model.AkkaNodeOps
 
 class ClusterSelfNodeEventsActor
 object ClusterSelfNodeEventsActor extends ClusterMonitorActor {

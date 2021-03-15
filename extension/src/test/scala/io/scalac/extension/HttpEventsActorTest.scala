@@ -1,28 +1,27 @@
 package io.scalac.extension
 
-import scala.concurrent.duration._
-import scala.language.postfixOps
-
 import akka.actor.testkit.typed.scaladsl.ScalaTestWithActorTestKit
 import akka.actor.typed.receptionist.ServiceKey
 import akka.actor.typed.{ ActorSystem, Behavior }
-
-import org.scalatest._
-import org.scalatest.concurrent.Eventually
-import org.scalatest.flatspec.AnyFlatSpecLike
-import org.scalatest.matchers.should.Matchers
-
+import io.scalac.core.model._
 import io.scalac.core.util.Timestamp
 import io.scalac.extension.event.EventBus
 import io.scalac.extension.event.HttpEvent.{ RequestCompleted, RequestStarted }
 import io.scalac.extension.http.MutableRequestStorage
 import io.scalac.extension.metric.CachingMonitor
 import io.scalac.extension.metric.HttpMetricMonitor.Labels
-import io.scalac.extension.util.TestCase.MonitorTestCaseContext.BasicContext
 import io.scalac.extension.util.TestCase.CommonMonitorTestFactory
-import io.scalac.extension.util._
+import io.scalac.extension.util.TestCase.MonitorTestCaseContext.BasicContext
 import io.scalac.extension.util.probe.BoundTestProbe._
 import io.scalac.extension.util.probe.HttpMetricsTestProbe
+import io.scalac.extension.util.{ IdentityPathService, TestOps, _ }
+import org.scalatest._
+import org.scalatest.concurrent.Eventually
+import org.scalatest.flatspec.AnyFlatSpecLike
+import org.scalatest.matchers.should.Matchers
+
+import scala.concurrent.duration._
+import scala.language.postfixOps
 
 class HttpEventsActorTest
     extends ScalaTestWithActorTestKit(TestConfig.localActorProvider)

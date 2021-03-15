@@ -1,7 +1,5 @@
 package io.scalac.agent.akka
 
-import scala.concurrent.duration._
-
 import akka.actor.testkit.typed.FishingOutcome
 import akka.actor.testkit.typed.scaladsl.{ ScalaTestWithActorTestKit, TestProbe }
 import akka.actor.typed.receptionist.Receptionist
@@ -10,15 +8,16 @@ import akka.actor.typed.scaladsl.adapter._
 import akka.actor.typed.scaladsl.{ ActorContext, Behaviors, StashBuffer }
 import akka.actor.typed.{ ActorRef, Behavior }
 import akka.{ actor => classic }
-
-import org.scalatest.BeforeAndAfterAll
-import org.scalatest.flatspec.AnyFlatSpecLike
-
+import io.scalac.core.model._
 import io.scalac.core.util.ActorPathOps
 import io.scalac.extension.actorServiceKey
 import io.scalac.extension.event.ActorEvent
 import io.scalac.extension.event.ActorEvent.StashMeasurement
 import io.scalac.extension.util.ReceptionistOps
+import org.scalatest.BeforeAndAfterAll
+import org.scalatest.flatspec.AnyFlatSpecLike
+
+import scala.concurrent.duration._
 
 class AkkaActorAgentTest
     extends ScalaTestWithActorTestKit(classic.ActorSystem("AkkaActorAgentTest").toTyped)
@@ -74,7 +73,7 @@ class AkkaActorAgentTest
   def createExpectStashSize(monitor: Fixture, ref: ActorRef[_]): Int => Unit =
     createExpectStashSize(monitor, ActorPathOps.getPathString(ref))
 
-  def createExpectStashSize(monitor: Fixture, path: String): Int => Unit = { size =>
+  def createExpectStashSize(monitor: Fixture, path: ActorPath): Int => Unit = { size =>
     val msg = monitor.fishForMessage(2.seconds) {
       case StashMeasurement(`size`, `path`) => FishingOutcome.Complete
       case _                                => FishingOutcome.ContinueAndIgnore

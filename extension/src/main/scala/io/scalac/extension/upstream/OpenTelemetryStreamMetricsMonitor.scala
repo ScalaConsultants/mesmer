@@ -57,7 +57,7 @@ class OpenTelemetryStreamMetricMonitor(instrumentationName: String, metricNames:
   override def bind(labels: Labels): BoundMonitor = new StreamMetricsBoundMonitor(labels)
 
   class StreamMetricsBoundMonitor(labels: Labels) extends BoundMonitor {
-    private val openTelemetryLabels = labels.toOpenTelemetry
+    private val openTelemetryLabels = LabelsFactory.of(labels.serialize)
 
     override val runningStreams = runningStreamsRecorder.createObserver(openTelemetryLabels)
 

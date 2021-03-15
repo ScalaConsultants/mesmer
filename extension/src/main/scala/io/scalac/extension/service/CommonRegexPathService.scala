@@ -1,6 +1,7 @@
 package io.scalac.extension.service
 
-import io.scalac.extension.model.Path
+import io.scalac.core.model._
+import io.scalac.core.tagging._
 
 object CommonRegexPathService extends PathService {
   private val uuid   = """^[\da-fA-F]{8}-[\da-fA-F]{4}-[\da-fA-F]{4}-[\da-fA-F]{4}-[\da-fA-F]{12}$""".r
@@ -19,4 +20,5 @@ object CommonRegexPathService extends PathService {
         }.map(_._2).getOrElse(segment)
       }
       .mkString("", "/", if (path.endsWith("/")) "/" else "")
+
 }
