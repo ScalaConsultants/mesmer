@@ -352,7 +352,7 @@ object ActorEventsMonitorActor {
             mailboxTime = ActorTimesDecorators.MailboxTime.getMetrics(cell),
             processingTime = ActorTimesDecorators.ProcessingTime.getMetrics(cell),
             receivedMessages = ActorCountsDecorators.Received.take(cell),
-            unhandledMessages = ActorCountsDecorators.UnhandledAtCell.take(cell),
+            unhandledMessages = ActorCountsDecorators.Unhandled.take(cell),
             failedMessages = ActorCountsDecorators.Failed.take(cell)
           )
         }
