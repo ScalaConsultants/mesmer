@@ -8,12 +8,11 @@ class ActorCellConstructorInstrumentation
 object ActorCellConstructorInstrumentation {
 
   @OnMethodExit
-  def onEnter(@This actorCell: Object): Unit =
-    if (actorCell != null) {
-      MailboxTimeDecorator.setAggregator(actorCell)
-      MessageCounterDecorators.Received.initialize(actorCell)
-      MessageCounterDecorators.Unhandled.initialize(actorCell)
-      MessageCounterDecorators.Failed.initialize(actorCell)
-    }
+  def onEnter(@This actorCell: Object): Unit = {
+    MailboxTimeDecorator.setAggregator(actorCell)
+    MessageCounterDecorators.Received.initialize(actorCell)
+    MessageCounterDecorators.Unhandled.initialize(actorCell)
+    MessageCounterDecorators.Failed.initialize(actorCell)
+  }
 
 }
