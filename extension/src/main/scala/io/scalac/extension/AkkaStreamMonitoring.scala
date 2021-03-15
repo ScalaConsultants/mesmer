@@ -46,7 +46,7 @@ object AkkaStreamMonitoring {
 
   private final case class StageData(value: Long, direction: Direction, connectedWith: String)
   private final case class SnapshotEntry(stage: StageInfo, data: Option[StageData])
-  private final case class IndexCacheEntry(indexes: Set[Int], distinctPorts: Boolean)
+  private final case class IndexData(stats: Set[ConnectionStats], distinct: Boolean)
 
   private final case class StreamStats(streamName: StreamName, actors: Int, stages: Int, processesMessages: Long)
   private final class StreamStatsBuilder(val materializationName: StreamName) {
@@ -89,6 +89,56 @@ object AkkaStreamMonitoring {
     )
 
   }
+  import ConnectionsIndexCache._
+
+  private[AkkaStreamMonitoring] final class ConnectionsIndexCache private (
+    private val indexCache: mutable.Map[StageInfo, IndexCacheEntry]
+  ) {
+
+    def get(stage: StageInfo)(connections: Array[ConnectionStats]): IndexData = indexCache
+      .get(stage)
+      .fold {
+        val (wiredConnections, entry) = findWithIndex(stage, connections)
+        indexCache.put(stage, entry)
+        IndexData(wiredConnections, entry.distinctPorts)
+      }(entry => IndexData(entry.indexes.map(connections.apply), entry.distinctPorts))
+
+    private def findWithIndex(
+      stage: StageInfo,
+      connections: Array[ConnectionStats]
+    ): (Set[ConnectionStats], IndexCacheEntry) = {
+      val indexSet: mutable.Set[Int]                   = mutable.Set.empty
+      val connectionsSet: mutable.Set[ConnectionStats] = mutable.Set.empty
+      val outputIndexSet: mutable.Set[Int]             = mutable.Set.empty
+      var distinct                                     = true
+
+      @tailrec
+      def findInArray(index: Int): (Set[ConnectionStats], IndexCacheEntry) =
+        if (index >= connections.length) (connectionsSet.toSet, IndexCacheEntry(indexSet.toSet, distinct))
+        else {
+          val connection = connections(index)
+          if (connection.in == stage.id) {
+            connectionsSet += connection
+            indexSet += index
+          }
+          if (distinct) {
+            if (outputIndexSet.contains(connection.out)) {
+              distinct = false
+            } else {
+              outputIndexSet += connection.out
+            }
+          }
+          findInArray(index + 1)
+        }
+      findInArray(0)
+    }
+  }
+
+  object ConnectionsIndexCache {
+    private[ConnectionsIndexCache] final case class IndexCacheEntry(indexes: Set[Int], distinctPorts: Boolean)
+
+    private[AkkaStreamMonitoring] def empty: ConnectionsIndexCache = new ConnectionsIndexCache(mutable.Map.empty)
+  }
 }
 
 class AkkaStreamMonitoring(
@@ -101,7 +151,7 @@ class AkkaStreamMonitoring(
 
   private val Timeout: FiniteDuration = streamCollectionTimeout
 
-  private val indexCache             = mutable.Map.empty[StageInfo, IndexCacheEntry]
+  private val indexCache             = ConnectionsIndexCache.empty
   private val operationsBoundMonitor = streamOperatorMonitor.bind()
   private val boundStreamMonitor     = streamMonitor.bind(EagerLabels(node))
 
@@ -195,36 +245,6 @@ class AkkaStreamMonitoring(
     localSnapshot.clear()
   }
 
-  private def findWithIndex(
-    stage: StageInfo,
-    connections: Array[ConnectionStats]
-  ): (Set[ConnectionStats], IndexCacheEntry) = {
-    val indexSet: mutable.Set[Int]                   = mutable.Set.empty
-    val connectionsSet: mutable.Set[ConnectionStats] = mutable.Set.empty
-    val outputIndexSet: mutable.Set[Int]             = mutable.Set.empty
-    var distinct                                     = true
-
-    @tailrec
-    def findInArray(index: Int): (Set[ConnectionStats], IndexCacheEntry) =
-      if (index >= connections.length) (connectionsSet.toSet, IndexCacheEntry(indexSet.toSet, distinct))
-      else {
-        val connection = connections(index)
-        if (connection.in == stage.id) {
-          connectionsSet += connection
-          indexSet += index
-        }
-        if (distinct) {
-          if (outputIndexSet.contains(connection.out)) {
-            distinct = false
-          } else {
-            outputIndexSet += connection.out
-          }
-        }
-        findInArray(index + 1)
-      }
-    findInArray(0)
-  }
-
   private def collecting(refs: Set[ActorRef]): Behavior[Command] =
     Behaviors
       .receiveMessage[Command] {
@@ -241,13 +261,7 @@ class AkkaStreamMonitoring(
             } {
               streamStats.incStage()
 
-              val (stageConnections, distinct) = indexCache
-                .get(stage)
-                .fold {
-                  val (wiredConnections, entry) = findWithIndex(stage, connections)
-                  indexCache.put(stage, entry)
-                  wiredConnections -> entry.distinctPorts
-                }(entry => entry.indexes.map(connections.apply) -> entry.distinctPorts)
+              val IndexData(stageConnections, distinct) = indexCache.get(stage)(connections)
 
               if (stageConnections.nonEmpty)
                 updateLocalState(stage, stageConnections, stageInfo, distinct)
