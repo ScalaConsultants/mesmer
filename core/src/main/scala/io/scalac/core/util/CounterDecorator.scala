@@ -35,26 +35,6 @@ object CounterDecorator {
     @inline override final def setter(container: Object): MethodHandle = setter
   }
 
-  class Registry(val fieldName: String) extends CounterDecorator {
-    private val cache = collection.concurrent.TrieMap.empty[String, Option[(MethodHandle, MethodHandle)]]
-
-    final def register(className: String): Unit =
-      cache(className) = None
-
-    @inline override final def getter(container: Object): MethodHandle = entryFor(container)._1
-    @inline override final def setter(container: Object): MethodHandle = entryFor(container)._2
-    @inline private final def entryFor(container: Object): (MethodHandle, MethodHandle) = {
-      val key = container.getClass.getName
-      if (cache.contains(key)) {
-        cache(key).getOrElse {
-          val handlers = createHandlers(fieldName, key)
-          cache(key) = Some(handlers)
-          handlers
-        }
-      } else throw new RuntimeException(s"unregistered type $key")
-    }
-  }
-
   @inline private final def createHandlers(fieldName: String, className: String): (MethodHandle, MethodHandle) = {
     val field  = Class.forName(className).getDeclaredField(fieldName)
     val lookup = MethodHandles.publicLookup()

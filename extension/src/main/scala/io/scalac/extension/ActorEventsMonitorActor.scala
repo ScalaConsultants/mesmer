@@ -343,7 +343,7 @@ object ActorEventsMonitorActor {
             mailboxSize = safeRead(mailboxSize(cell)),
             mailboxTime = MailboxTimeDecorator.getMetrics(cell),
             receivedMessages = MessageCounterDecorators.Received.take(cell),
-            unhandledMessages = MessageCounterDecorators.UnhandledAtCell.take(cell),
+            unhandledMessages = MessageCounterDecorators.Unhandled.take(cell),
             failedMessages = MessageCounterDecorators.Failed.take(cell)
           )
         }

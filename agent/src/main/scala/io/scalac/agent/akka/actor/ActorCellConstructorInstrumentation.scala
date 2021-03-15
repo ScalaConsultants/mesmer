@@ -12,7 +12,7 @@ object ActorCellConstructorInstrumentation {
     if (actorCell != null) {
       MailboxTimeDecorator.setAggregator(actorCell)
       MessageCounterDecorators.Received.initialize(actorCell)
-      MessageCounterDecorators.UnhandledAtCell.initialize(actorCell)
+      MessageCounterDecorators.Unhandled.initialize(actorCell)
       MessageCounterDecorators.Failed.initialize(actorCell)
     }
 
