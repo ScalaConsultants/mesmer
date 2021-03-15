@@ -8,8 +8,9 @@ package object model {
   type ShellInfo = (Array[StageInfo], Array[ConnectionStats])
 
   /**
-   * All information inside GraphInterpreter should be local to that interpreter
-   * meaning that all connections in array are connection between logics owned by same GraphInterpreter
+   * All information inside [[_root_.akka.stream.impl.fusing.GraphInterpreter]] should be local to that interpreter
+   * meaning that all connections in array [[_root_.akka.stream.impl.fusing.GraphInterpreter#connections]]
+   * are between logics owned by same GraphInterpreter
    * MODIFY IF THIS IS NOT TRUE!
    * @param in index of inHandler owner
    * @param out index of outHandler owner

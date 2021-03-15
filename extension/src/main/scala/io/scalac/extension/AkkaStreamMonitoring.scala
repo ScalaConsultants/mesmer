@@ -101,9 +101,9 @@ class AkkaStreamMonitoring(
 
   private val Timeout: FiniteDuration = streamCollectionTimeout
 
-  private val indexCache: mutable.Map[StageInfo, IndexCacheEntry] = mutable.Map.empty
-  private val operationsBoundMonitor                              = streamOperatorMonitor.bind()
-  private val boundStreamMonitor                                  = streamMonitor.bind(EagerLabels(node))
+  private val indexCache             = mutable.Map.empty[StageInfo, IndexCacheEntry]
+  private val operationsBoundMonitor = streamOperatorMonitor.bind()
+  private val boundStreamMonitor     = streamMonitor.bind(EagerLabels(node))
 
   import ctx._
 
@@ -111,15 +111,13 @@ class AkkaStreamMonitoring(
   private[this] val globalProcessedSnapshot = new AtomicReference[Option[Seq[StreamStats]]](None)
 
   //append this only
-  private[this] val localSnapshot: ListBuffer[SnapshotEntry]                      = ListBuffer.empty
-  private[this] val localStreamStats: mutable.Map[StreamName, StreamStatsBuilder] = mutable.Map.empty
+  private[this] val localSnapshot    = ListBuffer.empty[SnapshotEntry]
+  private[this] val localStreamStats = mutable.Map.empty[StreamName, StreamStatsBuilder]
 
   boundStreamMonitor.streamProcessedMessages.setUpdater { result =>
     val streams = globalProcessedSnapshot.get()
     streams.foreach { statsSeq =>
-      for {
-        stats <- statsSeq
-      } {
+      for (stats <- statsSeq) {
         val labels = GlobalLabels(node, stats.streamName)
         result.observe(stats.processesMessages, labels)
       }
