@@ -7,8 +7,7 @@ import scala.jdk.CollectionConverters._
 
 object ModuleInfo {
 
-  type
-  Modules = Map[Module, Version]
+  type Modules = Map[Module, Version]
 
   private val ModulePrefix = "module"
 

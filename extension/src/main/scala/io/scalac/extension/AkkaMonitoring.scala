@@ -29,13 +29,6 @@ import scala.language.postfixOps
 import scala.reflect.ClassTag
 import scala.util.Try
 
-import java.net.URI
-import java.util.Collections
-import scala.concurrent.duration._
-import scala.language.postfixOps
-import scala.reflect.ClassTag
-import scala.util.Try
-
 object AkkaMonitoring extends ExtensionId[AkkaMonitoring] {
 
   private val ExportInterval = 5.seconds
@@ -185,7 +178,7 @@ class AkkaMonitoring(private val system: ActorSystem[_], val config: AkkaMonitor
 
     val streamMonitor = CachingMonitor(
       OpenTelemetryStreamMetricMonitor(instrumentationName, actorSystemConfig),
-      CachingConfig.fromConfig(actorSystemConfig, "stream")
+      CachingConfig.fromConfig(actorSystemConfig, ModulesSupport.akkaStreamModule)
     )
 
     val streamMonitorRef = system.systemActorOf(
@@ -239,7 +232,7 @@ class AkkaMonitoring(private val system: ActorSystem[_], val config: AkkaMonitor
 
     val openTelemetryPersistenceMonitor = CachingMonitor(
       OpenTelemetryPersistenceMetricMonitor(instrumentationName, actorSystemConfig),
-      CachingConfig.fromConfig(actorSystemConfig, "persistence")
+      CachingConfig.fromConfig(actorSystemConfig, ModulesSupport.akkaPersistenceTypedModule)
     )
 
     system.systemActorOf(
@@ -271,7 +264,7 @@ class AkkaMonitoring(private val system: ActorSystem[_], val config: AkkaMonitor
 
     val openTelemetryHttpMonitor = CachingMonitor(
       OpenTelemetryHttpMetricsMonitor(instrumentationName, actorSystemConfig),
-      CachingConfig.fromConfig(actorSystemConfig, "http")
+      CachingConfig.fromConfig(actorSystemConfig, ModulesSupport.akkaHttpModule)
     )
     val pathService = CommonRegexPathService
 

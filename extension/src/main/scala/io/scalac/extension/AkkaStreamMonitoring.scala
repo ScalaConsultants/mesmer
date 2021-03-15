@@ -7,6 +7,7 @@ import akka.actor.typed.scaladsl.{ AbstractBehavior, ActorContext, Behaviors, Ti
 import io.scalac.core.akka.model.PushMetrics
 import io.scalac.core.model.Tag.{ StageName, StreamName }
 import io.scalac.core.model._
+import io.scalac.core.support.ModulesSupport
 import io.scalac.extension.AkkaStreamMonitoring._
 import io.scalac.extension.config.CachingConfig
 import io.scalac.extension.config.ConfigurationUtils._
@@ -52,7 +53,12 @@ object AkkaStreamMonitoring {
   private[extension] final case class SnapshotEntry(stage: StageInfo, data: Option[StageData])
   private[extension] final case class IndexData(stats: Set[ConnectionStats], distinct: Boolean)
 
-  private[extension] final case class StreamStats(streamName: StreamName, actors: Int, stages: Int, processesMessages: Long)
+  private[extension] final case class StreamStats(
+    streamName: StreamName,
+    actors: Int,
+    stages: Int,
+    processesMessages: Long
+  )
   private final class StreamStatsBuilder(val materializationName: StreamName) {
     private[this] var terminalName: Option[StageName] = None
     private[this] var processedMessages: Long         = 0
@@ -95,7 +101,7 @@ object AkkaStreamMonitoring {
   }
 
   private[extension] final class ConnectionsIndexCache private (
-    private val indexCache: mutable.Map[StageInfo, ConnectionsIndexCache.IndexCacheEntry]
+    private[extension] val indexCache: mutable.Map[StageInfo, ConnectionsIndexCache.IndexCacheEntry]
   ) {
     import ConnectionsIndexCache._
 
@@ -152,6 +158,13 @@ object AkkaStreamMonitoring {
       new ConnectionsIndexCache(mutableMap)
     }
 
+    /**
+     * Exists solely for testing purpose
+     * @param map
+     * @return
+     */
+    private[extension] def empty = new ConnectionsIndexCache(mutable.Map.empty)
+
   }
 }
 
@@ -165,7 +178,7 @@ class AkkaStreamMonitoring(
 
   private val Timeout: FiniteDuration = streamCollectionTimeout
 
-  private val cachingConfig          = CachingConfig.fromConfig(ctx.system.settings.config, "akka-streams")
+  private val cachingConfig          = CachingConfig.fromConfig(ctx.system.settings.config, ModulesSupport.akkaStreamModule)
   private val indexCache             = ConnectionsIndexCache.bounded(cachingConfig.maxEntries)
   private val operationsBoundMonitor = streamOperatorMonitor.bind()
   private val boundStreamMonitor     = streamMonitor.bind(EagerLabels(node))
