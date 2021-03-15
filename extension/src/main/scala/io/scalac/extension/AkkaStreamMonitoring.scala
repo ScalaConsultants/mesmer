@@ -8,6 +8,7 @@ import io.scalac.core.akka.model.PushMetrics
 import io.scalac.core.model.Tag.{ StageName, StreamName }
 import io.scalac.core.model._
 import io.scalac.extension.AkkaStreamMonitoring._
+import io.scalac.extension.config.CachingConfig
 import io.scalac.extension.config.ConfigurationUtils._
 import io.scalac.extension.event.ActorInterpreterStats
 import io.scalac.extension.metric.MetricObserver.LazyResult
@@ -16,11 +17,14 @@ import io.scalac.extension.metric.StreamOperatorMetricsMonitor.Labels
 import io.scalac.extension.metric.{ StreamMetricMonitor, StreamOperatorMetricsMonitor }
 import io.scalac.extension.model._
 
+import java.util
+import java.util.Map
 import java.util.concurrent.atomic.AtomicReference
 import scala.annotation.tailrec
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.duration.{ FiniteDuration, _ }
+import scala.jdk.CollectionConverters._
 import scala.jdk.DurationConverters._
 
 object AkkaStreamMonitoring {
@@ -31,7 +35,7 @@ object AkkaStreamMonitoring {
 
   case class StartStreamCollection(refs: Set[ActorRef]) extends Command
 
-  private[AkkaStreamMonitoring] case object CollectionTimeout extends Command
+  private[extension] case object CollectionTimeout extends Command
 
   def apply(
     streamOperatorMonitor: StreamOperatorMetricsMonitor,
@@ -44,11 +48,11 @@ object AkkaStreamMonitoring {
       )
     )
 
-  private final case class StageData(value: Long, direction: Direction, connectedWith: String)
-  private final case class SnapshotEntry(stage: StageInfo, data: Option[StageData])
-  private final case class IndexData(stats: Set[ConnectionStats], distinct: Boolean)
+  private[extension] final case class StageData(value: Long, direction: Direction, connectedWith: String)
+  private[extension] final case class SnapshotEntry(stage: StageInfo, data: Option[StageData])
+  private[extension] final case class IndexData(stats: Set[ConnectionStats], distinct: Boolean)
 
-  private final case class StreamStats(streamName: StreamName, actors: Int, stages: Int, processesMessages: Long)
+  private[extension] final case class StreamStats(streamName: StreamName, actors: Int, stages: Int, processesMessages: Long)
   private final class StreamStatsBuilder(val materializationName: StreamName) {
     private[this] var terminalName: Option[StageName] = None
     private[this] var processedMessages: Long         = 0
@@ -89,11 +93,11 @@ object AkkaStreamMonitoring {
     )
 
   }
-  import ConnectionsIndexCache._
 
-  private[AkkaStreamMonitoring] final class ConnectionsIndexCache private (
-    private val indexCache: mutable.Map[StageInfo, IndexCacheEntry]
+  private[extension] final class ConnectionsIndexCache private (
+    private val indexCache: mutable.Map[StageInfo, ConnectionsIndexCache.IndexCacheEntry]
   ) {
+    import ConnectionsIndexCache._
 
     def get(stage: StageInfo)(connections: Array[ConnectionStats]): IndexData = indexCache
       .get(stage)
@@ -135,9 +139,19 @@ object AkkaStreamMonitoring {
   }
 
   object ConnectionsIndexCache {
-    private[ConnectionsIndexCache] final case class IndexCacheEntry(indexes: Set[Int], distinctPorts: Boolean)
+    private[extension] final case class IndexCacheEntry(indexes: Set[Int], distinctPorts: Boolean)
 
-    private[AkkaStreamMonitoring] def empty: ConnectionsIndexCache = new ConnectionsIndexCache(mutable.Map.empty)
+    private[extension] def bounded(entries: Int): ConnectionsIndexCache = {
+
+      val mutableMap: mutable.Map[StageInfo, IndexCacheEntry] =
+        new util.LinkedHashMap[StageInfo, IndexCacheEntry](entries, 0.75f, true) {
+          override def removeEldestEntry(eldest: Map.Entry[StageInfo, IndexCacheEntry]): Boolean =
+            this.size() >= entries
+        }.asScala
+
+      new ConnectionsIndexCache(mutableMap)
+    }
+
   }
 }
 
@@ -151,7 +165,8 @@ class AkkaStreamMonitoring(
 
   private val Timeout: FiniteDuration = streamCollectionTimeout
 
-  private val indexCache             = ConnectionsIndexCache.empty
+  private val cachingConfig          = CachingConfig.fromConfig(ctx.system.settings.config, "akka-streams")
+  private val indexCache             = ConnectionsIndexCache.bounded(cachingConfig.maxEntries)
   private val operationsBoundMonitor = streamOperatorMonitor.bind()
   private val boundStreamMonitor     = streamMonitor.bind(EagerLabels(node))
 
