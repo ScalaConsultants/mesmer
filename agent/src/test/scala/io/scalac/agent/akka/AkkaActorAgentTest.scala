@@ -18,7 +18,7 @@ import org.scalatest.{ BeforeAndAfterAll, OptionValues }
 import org.scalatest.flatspec.AnyFlatSpecLike
 
 import io.scalac.core.util.ActorPathOps
-import io.scalac.extension.actor.ActorCountsDecorators
+import io.scalac.extension.actor.{ ActorCountsDecorators, ActorTimesDecorators }
 import io.scalac.extension.actorServiceKey
 import io.scalac.extension.event.ActorEvent
 import io.scalac.extension.event.ActorEvent.StashMeasurement
@@ -46,7 +46,34 @@ class AkkaActorAgentTest
     monitor.stop()
   }
 
-  "AkkaActorAgent" should "record classic stash properly" in test { monitor =>
+  "AkkaActorAgent" should "record mailbox time properly" in {
+    val idle      = 100.milliseconds
+    val tolerance = 50
+    testWithContextAndActor[String](_ =>
+      Behaviors.receiveMessage {
+        case "idle" =>
+          Thread.sleep(idle.toMillis)
+          Behaviors.same
+        case _ =>
+          Behaviors.same
+      }
+    ) { (ctx, actor) =>
+      val n       = 3
+      val waiting = n - 1
+      actor ! "idle"
+      for (_ <- 0 until waiting) actor ! "42"
+      eventually {
+        val metrics = ActorTimesDecorators.MailboxTime.getMetrics(ctx).value
+        metrics.count should be(n)
+        metrics.avg should be(((waiting * idle.toMillis) / n) +- tolerance)
+        metrics.sum should be((waiting * idle.toMillis) +- tolerance)
+        metrics.min should be(0L +- tolerance)
+        metrics.max should be(idle.toMillis +- tolerance)
+      }
+    }
+  }
+
+  it should "record classic stash properly" in test { monitor =>
     val stashActor                   = system.classicSystem.actorOf(ClassicStashActor.props(), "stashActor")
     val expectStashSize: Int => Unit = createExpectStashSize(monitor, "/user/stashActor")
     stashActor ! Message("random")
@@ -164,6 +191,33 @@ class AkkaActorAgentTest
     unhandled(0)
   }
 
+  it should "record processing time properly" in {
+    val processing = 100.milliseconds
+    val tolerance  = 50
+    testWithContextAndActor[String](_ =>
+      Behaviors.receiveMessage {
+        case "work" =>
+          Thread.sleep(processing.toMillis)
+          Behaviors.same
+        case _ =>
+          Behaviors.same
+      }
+    ) { (ctx, actor) =>
+      val n       = 3
+      val working = n - 1
+      actor ! "42"
+      for (_ <- 0 until working) actor ! "work"
+      eventually {
+        val metrics = ActorTimesDecorators.ProcessingTime.getMetrics(ctx).value
+        metrics.count should be(n)
+        metrics.avg should be(((working * processing.toMillis) / n) +- tolerance)
+        metrics.sum should be((working * processing.toMillis) +- tolerance)
+        metrics.min should be(0L +- tolerance)
+        metrics.max should be(processing.toMillis +- tolerance)
+      }
+    }
+  }
+
   def createExpectStashSize(monitor: Fixture, ref: ActorRef[_]): Int => Unit =
     createExpectStashSize(monitor, ActorPathOps.getPathString(ref))
 
@@ -185,7 +239,8 @@ class AkkaActorAgentTest
       Behaviors.setup[T] { ctx =>
         ctxRef = Some(ctx.toClassic)
         behavior(ctx)
-      }
+      },
+      createUniqueId
     )
     Await.ready(
       Future {

@@ -11,7 +11,7 @@ object ActorTimesDecorators {
 
   type FieldType = LongNoLockAggregator
 
-  sealed abstract class TimeHolder(val filedName: String) {
+  sealed abstract class TimeDecorator(val filedName: String) {
 
     private lazy val (getter, setter) = {
       val field = Class.forName("akka.actor.ActorCell").getDeclaredField(filedName)
@@ -31,7 +31,7 @@ object ActorTimesDecorators {
 
   }
 
-  object MailboxTime    extends TimeHolder("mailboxTimeAgg")
-  object ProcessingTime extends TimeHolder("processingTimeAgg")
+  object MailboxTime    extends TimeDecorator("mailboxTimeAgg")
+  object ProcessingTime extends TimeDecorator("processingTimeAgg")
 
 }
