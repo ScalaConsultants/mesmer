@@ -177,7 +177,7 @@ class AkkaMonitoring(private val system: ActorSystem[_], val config: AkkaMonitor
 
     val streamMonitor = CachingMonitor(
       OpenTelemetryStreamMetricMonitor(instrumentationName, actorSystemConfig),
-      CachingConfig.fromConfig(actorSystemConfig, "stream")
+      CachingConfig.fromConfig(actorSystemConfig, ModulesSupport.akkaStreamModule)
     )
 
     val streamMonitorRef = system.systemActorOf(
@@ -231,7 +231,7 @@ class AkkaMonitoring(private val system: ActorSystem[_], val config: AkkaMonitor
 
     val openTelemetryPersistenceMonitor = CachingMonitor(
       OpenTelemetryPersistenceMetricMonitor(instrumentationName, actorSystemConfig),
-      CachingConfig.fromConfig(actorSystemConfig, "persistence")
+      CachingConfig.fromConfig(actorSystemConfig, ModulesSupport.akkaPersistenceTypedModule)
     )
 
     system.systemActorOf(
@@ -263,7 +263,7 @@ class AkkaMonitoring(private val system: ActorSystem[_], val config: AkkaMonitor
 
     val openTelemetryHttpMonitor = CachingMonitor(
       OpenTelemetryHttpMetricsMonitor(instrumentationName, actorSystemConfig),
-      CachingConfig.fromConfig(actorSystemConfig, "http")
+      CachingConfig.fromConfig(actorSystemConfig, ModulesSupport.akkaHttpModule)
     )
     val pathService = CommonRegexPathService
 

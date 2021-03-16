@@ -1,7 +1,7 @@
 package io.scalac.extension.metric
 
 import io.scalac.core.LabelSerializable
-import io.scalac.core.model.Tag.{ stream, _ }
+import io.scalac.core.model.Tag._
 import io.scalac.core.model._
 
 object StreamOperatorMetricsMonitor {
@@ -9,6 +9,7 @@ object StreamOperatorMetricsMonitor {
   final case class Labels(
     operator: StageName,
     stream: StreamName,
+    terminal: Boolean,
     node: Option[Node],
     connectedWith: Option[(String, Direction)]
   ) extends LabelSerializable {
@@ -17,7 +18,9 @@ object StreamOperatorMetricsMonitor {
       val connected = connectedWith.fold[RawLabels](Seq.empty) { case (name, direction) =>
         Seq("connected_with" -> name, direction.serialize)
       }
-      operator.serialize ++ stream.serialize ++ node.serialize ++ connected
+      val terminalLabels = if (terminal) Seq("terminal" -> "true") else Seq.empty
+
+      operator.serialize ++ stream.serialize ++ node.serialize ++ connected ++ terminalLabels
     }
   }
 
