@@ -1,16 +1,17 @@
 package io.scalac.extension.metric
 
-import java.util
+import io.scalac.core.LabelSerializable
+import io.scalac.extension.config.CachingConfig
+import org.slf4j.LoggerFactory
 
+import java.util
 import scala.collection.mutable.{ Map => MutableMap }
 import scala.jdk.CollectionConverters._
 
-import org.slf4j.LoggerFactory
-
-import io.scalac.extension.config.CachingConfig
-
-case class CachingMonitor[L, B <: Bound](bindable: Bindable[L, B], config: CachingConfig = CachingConfig.empty)
-    extends Bindable[L, B] {
+case class CachingMonitor[L <: LabelSerializable, B <: Bound](
+  bindable: Bindable[L, B],
+  config: CachingConfig = CachingConfig.empty
+) extends Bindable[L, B] {
 
   private val logger = LoggerFactory.getLogger(CachingMonitor.getClass)
 

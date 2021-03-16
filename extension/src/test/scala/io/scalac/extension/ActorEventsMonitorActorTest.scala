@@ -1,18 +1,15 @@
 package io.scalac.extension
 
 import scala.concurrent.duration._
-
 import akka.actor.PoisonPill
 import akka.actor.testkit.typed.scaladsl.TestProbe
 import akka.actor.typed.receptionist.ServiceKey
 import akka.actor.typed.scaladsl.{ Behaviors, StashBuffer }
 import akka.actor.typed.{ ActorRef, ActorSystem, Behavior }
 import akka.util.Timeout
-
 import org.scalatest.Inspectors
 import org.scalatest.flatspec.AnyFlatSpecLike
 import org.scalatest.matchers.should.Matchers
-
 import io.scalac.core.util.ActorPathOps
 import io.scalac.extension.ActorEventsMonitorActor._
 import io.scalac.extension.ActorEventsMonitorActorTest._
@@ -26,7 +23,15 @@ import io.scalac.extension.util.TimeSeries.LongTimeSeries
 import io.scalac.extension.util.probe.ActorMonitorTestProbe
 import io.scalac.extension.util.probe.ActorMonitorTestProbe.TestBoundMonitor
 import io.scalac.extension.util.probe.BoundTestProbe.{ MetricObserved, MetricObserverCommand, MetricRecorded }
+import io.scalac.extension.util.{ TestConfig, TestOps }
+import org.scalatest.Inspectors
+import org.scalatest.flatspec.AnyFlatSpecLike
+import org.scalatest.matchers.should.Matchers
+import io.scalac.core.tagging._
+import io.scalac.core.model._
 import io.scalac.extension.util.probe.ObserverCollector.CommonCollectorImpl
+
+import scala.concurrent.duration._
 
 class ActorEventsMonitorActorTest
     extends AnyFlatSpecLike

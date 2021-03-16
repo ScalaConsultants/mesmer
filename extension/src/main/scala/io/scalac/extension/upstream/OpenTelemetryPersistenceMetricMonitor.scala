@@ -96,19 +96,20 @@ class OpenTelemetryPersistenceMetricMonitor(instrumentationName: String, metricN
   override def bind(labels: Labels): BoundMonitor = new OpenTelemetryBoundMonitor(labels)
 
   class OpenTelemetryBoundMonitor(labels: Labels) extends BoundMonitor with opentelemetry.Synchronized {
-    override lazy val recoveryTime = WrappedLongValueRecorder(recoveryTimeRecorder, labels.toOpenTelemetry)
+    private val openTelemetryLabels = LabelsFactory.of(labels.serialize)
+    override lazy val recoveryTime  = WrappedLongValueRecorder(recoveryTimeRecorder, openTelemetryLabels)
 
     override lazy val persistentEvent: WrappedSynchronousInstrument[Long] with MetricRecorder[Long] =
-      WrappedLongValueRecorder(persistentEventRecorder, labels.toOpenTelemetry)
+      WrappedLongValueRecorder(persistentEventRecorder, openTelemetryLabels)
 
     override lazy val persistentEventTotal: WrappedSynchronousInstrument[Long] with UpCounter[Long] =
-      WrappedCounter(persistentEventTotalCounter, labels.toOpenTelemetry)
+      WrappedCounter(persistentEventTotalCounter, openTelemetryLabels)
 
     override lazy val snapshot: WrappedSynchronousInstrument[Long] with UpCounter[Long] =
-      WrappedCounter(snapshotCounter, labels.toOpenTelemetry)
+      WrappedCounter(snapshotCounter, openTelemetryLabels)
 
     override lazy val recoveryTotal: WrappedSynchronousInstrument[Long] with UpCounter[Long] =
-      WrappedCounter(recoveryTotalCounter, labels.toOpenTelemetry)
+      WrappedCounter(recoveryTotalCounter, openTelemetryLabels)
 
     override def unbind(): Unit = {
       recoveryTime.unbind()

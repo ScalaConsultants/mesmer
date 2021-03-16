@@ -16,7 +16,7 @@ sealed trait ActorEvent extends AbstractEvent {
 }
 
 object ActorEvent {
-  final case class StashMeasurement(size: Int, path: String) extends ActorEvent
+  final case class StashMeasurement(size: Int, path: ActorPath) extends ActorEvent
 }
 
 sealed trait PersistenceEvent extends AbstractEvent {
@@ -24,16 +24,16 @@ sealed trait PersistenceEvent extends AbstractEvent {
 }
 
 object PersistenceEvent {
-  sealed trait RecoveryEvent                                                             extends PersistenceEvent
-  case class RecoveryStarted(path: String, persistenceId: String, timestamp: Timestamp)  extends RecoveryEvent
-  case class RecoveryFinished(path: String, persistenceId: String, timestamp: Timestamp) extends RecoveryEvent
+  sealed trait RecoveryEvent                                                                  extends PersistenceEvent
+  case class RecoveryStarted(path: Path, persistenceId: PersistenceId, timestamp: Timestamp)  extends RecoveryEvent
+  case class RecoveryFinished(path: Path, persistenceId: PersistenceId, timestamp: Timestamp) extends RecoveryEvent
 
   sealed trait PersistEvent extends PersistenceEvent
-  case class SnapshotCreated(path: String, persistenceId: String, sequenceNr: Long, timestamp: Timestamp)
+  case class SnapshotCreated(path: Path, persistenceId: PersistenceId, sequenceNr: Long, timestamp: Timestamp)
       extends PersistenceEvent
-  case class PersistingEventStarted(path: String, persistenceId: String, sequenceNr: Long, timestamp: Timestamp)
+  case class PersistingEventStarted(path: Path, persistenceId: PersistenceId, sequenceNr: Long, timestamp: Timestamp)
       extends PersistEvent
-  case class PersistingEventFinished(path: String, persistenceId: String, sequenceNr: Long, timestamp: Timestamp)
+  case class PersistingEventFinished(path: Path, persistenceId: PersistenceId, sequenceNr: Long, timestamp: Timestamp)
       extends PersistEvent
 }
 
@@ -42,9 +42,9 @@ sealed trait HttpEvent extends AbstractEvent {
 }
 
 object HttpEvent {
-  case class RequestStarted(id: String, timestamp: Timestamp, path: String, method: String) extends HttpEvent
-  case class RequestCompleted(id: String, timestamp: Timestamp)                             extends HttpEvent
-  case class RequestFailed(id: String, timestamp: Timestamp)                                extends HttpEvent
+  case class RequestStarted(id: String, timestamp: Timestamp, path: Path, method: Method) extends HttpEvent
+  case class RequestCompleted(id: String, timestamp: Timestamp)                           extends HttpEvent
+  case class RequestFailed(id: String, timestamp: Timestamp)                              extends HttpEvent
 }
 
 final case class TagEvent(ref: ActorRef, tag: Tag) extends AbstractEvent {

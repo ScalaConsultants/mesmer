@@ -9,7 +9,7 @@ import com.newrelic.telemetry.Attributes
 import com.newrelic.telemetry.opentelemetry.`export`.NewRelicMetricExporter
 import io.opentelemetry.sdk.OpenTelemetrySdk
 import io.opentelemetry.sdk.metrics.`export`.IntervalMetricReader
-import io.scalac.core.model.{ Module, SupportedVersion, Version }
+import io.scalac.core.model.{ Module, SupportedVersion, Version, _ }
 import io.scalac.core.support.ModulesSupport
 import io.scalac.core.util.ModuleInfo
 import io.scalac.core.util.ModuleInfo.Modules
@@ -17,17 +17,9 @@ import io.scalac.extension.actor.CleanableActorMetricsStorage
 import io.scalac.extension.config.{ AkkaMonitoringConfig, CachingConfig }
 import io.scalac.extension.http.CleanableRequestStorage
 import io.scalac.extension.metric.CachingMonitor
-import io.scalac.extension.model._
 import io.scalac.extension.persistence.{ CleanablePersistingStorage, CleanableRecoveryStorage }
 import io.scalac.extension.service.CommonRegexPathService
 import io.scalac.extension.upstream._
-
-import java.net.URI
-import java.util.Collections
-import scala.concurrent.duration._
-import scala.language.postfixOps
-import scala.reflect.ClassTag
-import scala.util.Try
 
 import java.net.URI
 import java.util.Collections
@@ -167,12 +159,12 @@ class AkkaMonitoring(private val system: ActorSystem[_], val config: AkkaMonitor
       _ <- reflectiveIsInstanceOf("akka.actor.typed.internal.adapter.ActorSystemAdapter", system)
       classic = system.classicSystem.asInstanceOf[ExtendedActorSystem]
       _ <- reflectiveIsInstanceOf("akka.cluster.ClusterActorRefProvider", classic.provider)
-    } yield Cluster(classic).selfUniqueAddress.toNode).fold(
+    } yield Cluster(classic).selfUniqueAddress).fold(
       message => {
         log.error(message)
         None
       },
-      Some.apply
+      nodeName => Some(nodeName.toNode)
     )
 
   def startActorMonitor(): Unit = {
@@ -185,7 +177,7 @@ class AkkaMonitoring(private val system: ActorSystem[_], val config: AkkaMonitor
 
     val streamMonitor = CachingMonitor(
       OpenTelemetryStreamMetricMonitor(instrumentationName, actorSystemConfig),
-      CachingConfig.fromConfig(actorSystemConfig, "stream")
+      CachingConfig.fromConfig(actorSystemConfig, ModulesSupport.akkaStreamModule)
     )
 
     val streamMonitorRef = system.systemActorOf(
@@ -239,7 +231,7 @@ class AkkaMonitoring(private val system: ActorSystem[_], val config: AkkaMonitor
 
     val openTelemetryPersistenceMonitor = CachingMonitor(
       OpenTelemetryPersistenceMetricMonitor(instrumentationName, actorSystemConfig),
-      CachingConfig.fromConfig(actorSystemConfig, "persistence")
+      CachingConfig.fromConfig(actorSystemConfig, ModulesSupport.akkaPersistenceTypedModule)
     )
 
     system.systemActorOf(
@@ -271,7 +263,7 @@ class AkkaMonitoring(private val system: ActorSystem[_], val config: AkkaMonitor
 
     val openTelemetryHttpMonitor = CachingMonitor(
       OpenTelemetryHttpMetricsMonitor(instrumentationName, actorSystemConfig),
-      CachingConfig.fromConfig(actorSystemConfig, "http")
+      CachingConfig.fromConfig(actorSystemConfig, ModulesSupport.akkaHttpModule)
     )
     val pathService = CommonRegexPathService
 

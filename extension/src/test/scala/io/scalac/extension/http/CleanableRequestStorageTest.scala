@@ -1,5 +1,6 @@
 package io.scalac.extension.http
 
+import io.scalac.core.model._
 import io.scalac.core.util.Timestamp
 import io.scalac.extension.config.CleaningSettings
 import io.scalac.extension.event.HttpEvent._
