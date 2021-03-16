@@ -22,24 +22,21 @@ sealed trait CounterDecorator {
   @inline final def getValue(container: Object): Option[Long] =
     get(container).map(_.get())
 
+  // For a while, rest is for test propose
+  @inline final def reset(container: Object): Unit =
+    get(container).foreach(_.set(0))
+
   @inline final private def get(container: Object): Option[AtomicLong] =
     Option(container).map(getter(container).invoke(_)).map(_.asInstanceOf[AtomicLong])
 }
 
 object CounterDecorator {
 
-  class FixedClass(val fieldName: String, protected val decoratedClassName: String) extends CounterDecorator {
-    private lazy val (getter, setter) = createHandlers(fieldName, decoratedClassName)
+  class FixedClass(protected val decoratedClassName: String, val fieldName: String) extends CounterDecorator {
+    private lazy val (getter, setter) = DecoratorUtils.createHandlers(decoratedClassName, fieldName)
 
     @inline override final def getter(container: Object): MethodHandle = getter
     @inline override final def setter(container: Object): MethodHandle = setter
-  }
-
-  @inline private final def createHandlers(fieldName: String, className: String): (MethodHandle, MethodHandle) = {
-    val field  = Class.forName(className).getDeclaredField(fieldName)
-    val lookup = MethodHandles.publicLookup()
-    field.setAccessible(true)
-    (lookup.unreflectGetter(field), lookup.unreflectSetter(field))
   }
 
 }

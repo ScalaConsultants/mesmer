@@ -108,8 +108,11 @@ class AkkaActorAgentTest
 
   it should "record the amount of received messages" in testWithContextAndActor[String](_ => Behaviors.ignore) {
     (ctx, actor) =>
-      def received(size: Int): Unit = eventually {
-        ActorCountsDecorators.Received.take(ctx).value should be(size)
+      def received(size: Int): Unit = {
+        eventually {
+          ActorCountsDecorators.Received.getValue(ctx).value should be(size)
+        }
+        ActorCountsDecorators.Received.reset(ctx)
       }
 
       received(0)
@@ -143,32 +146,42 @@ class AkkaActorAgentTest
     failed(0) // why zero? because akka suspend any further message processing after an unsupervisioned failure
   }
 
-  it should "record the amount of failed messages with supervision" in testWithContextAndActor[String](_ =>
-    Behaviors
-      .supervise[String](
-        Behaviors.receiveMessage {
-          case "fail" =>
-            throw new RuntimeException("I failed :(")
-          case _ =>
-            Behaviors.same
+  it should "record the amount of failed messages with supervision" in {
+
+    def testForStrategy(strategy: SupervisorStrategy): Unit = testWithContextAndActor[String](_ =>
+      Behaviors
+        .supervise[String](
+          Behaviors.receiveMessage {
+            case "fail" =>
+              throw new RuntimeException("I failed :(")
+            case _ =>
+              Behaviors.same
+          }
+        )
+        .onFailure[RuntimeException](strategy)
+    ) { (ctx, actor) =>
+      def failed(size: Int): Unit = {
+        eventually {
+          ActorCountsDecorators.Failed.getValue(ctx).value should be(size)
         }
-      )
-      .onFailure[RuntimeException](SupervisorStrategy.restart)
-  ) { (ctx, actor) =>
-    def failed(size: Int): Unit = eventually {
-      ActorCountsDecorators.Failed.take(ctx).value should be(size)
+        ActorCountsDecorators.Failed.reset(ctx)
+      }
+
+      failed(0)
+      actor ! "fail"
+      failed(1)
+      failed(0)
+      actor ! ":)"
+      failed(0)
+      actor ! "fail"
+      actor ! "fail"
+      if (strategy != SupervisorStrategy.stop) failed(2)
+      failed(0)
     }
 
-    failed(0)
-    actor ! "fail"
-    failed(1)
-    failed(0)
-    actor ! ":)"
-    failed(0)
-    actor ! "fail"
-    actor ! "fail"
-    failed(2)
-    failed(0)
+    testForStrategy(SupervisorStrategy.restart)
+    testForStrategy(SupervisorStrategy.resume)
+    testForStrategy(SupervisorStrategy.stop)
   }
 
   it should "record the amount of unhandled messages" in testWithContextAndActor[String](_ =>
@@ -177,8 +190,11 @@ class AkkaActorAgentTest
       case _         => Behaviors.unhandled
     }
   ) { (ctx, actor) =>
-    def unhandled(size: Int): Unit = eventually {
-      ActorCountsDecorators.Unhandled.take(ctx).value should be(size)
+    def unhandled(size: Int): Unit = {
+      eventually {
+        ActorCountsDecorators.Unhandled.getValue(ctx).value should be(size)
+      }
+      ActorCountsDecorators.Unhandled.reset(ctx)
     }
 
     unhandled(0)

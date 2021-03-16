@@ -1,13 +1,12 @@
 package io.scalac.agent.akka.actor
 
-import java.util.concurrent.atomic.AtomicLong
+import java.util.concurrent.atomic.{ AtomicLong, AtomicReference }
 
 import akka.actor.typed.Behavior
 
 import net.bytebuddy.asm.Advice
 import net.bytebuddy.description.`type`.TypeDescription
 import net.bytebuddy.description.method.MethodDescription
-import net.bytebuddy.implementation.MethodDelegation
 import net.bytebuddy.matcher.ElementMatchers._
 
 import io.scalac.agent.Agent.LoadingResult
@@ -38,13 +37,13 @@ object AkkaActorAgent {
                 .to(classOf[ClassicStashInstrumentation])
                 .on(
                   named[MethodDescription]("stash")
-                    .or(named[MethodDescription]("prepend"))
-                    .or(named[MethodDescription]("unstash"))
-                    .or(
+                    .or[MethodDescription](named[MethodDescription]("prepend"))
+                    .or[MethodDescription](named[MethodDescription]("unstash"))
+                    .or[MethodDescription](
                       named[MethodDescription]("unstashAll")
-                        .and(takesArguments[MethodDescription](1))
+                        .and[MethodDescription](takesArguments[MethodDescription](1))
                     )
-                    .or(named[MethodDescription]("clearStash"))
+                    .or[MethodDescription](named[MethodDescription]("clearStash"))
                 )
             )
         }
@@ -74,7 +73,9 @@ object AkkaActorAgent {
                 .on(
                   named[MethodDescription]("unstash")
                     // since there're two `unstash` methods, we need to specify parameter types
-                    .and(takesArguments(classOf[Behavior[_]], classOf[Int], classOf[Function1[_, _]]))
+                    .and[MethodDescription](
+                      takesArguments[MethodDescription](classOf[Behavior[_]], classOf[Int], classOf[(_) => _])
+                    )
                 )
             )
         }
@@ -112,7 +113,9 @@ object AkkaActorAgent {
                 .to(classOf[ActorCellSendMessageInstrumentation])
                 .on(
                   named[MethodDescription]("sendMessage")
-                    .and(takesArgument(0, named[TypeDescription]("akka.dispatch.Envelope")))
+                    .and[MethodDescription](
+                      takesArgument[MethodDescription](0, named[TypeDescription]("akka.dispatch.Envelope"))
+                    )
                 )
             )
         }
@@ -153,12 +156,16 @@ object AkkaActorAgent {
         .transform { (builder, _, _, _) =>
           builder
             .defineField(
-              ActorTimesDecorators.MailboxTime.filedName,
+              ActorTimesDecorators.MailboxTime.fieldName,
               classOf[ActorTimesDecorators.FieldType]
             )
             .defineField(
-              ActorTimesDecorators.ProcessingTime.filedName,
+              ActorTimesDecorators.ProcessingTime.fieldName,
               classOf[ActorTimesDecorators.FieldType]
+            )
+            .defineField(
+              ActorTimesDecorators.ProcessingTimeSupport.fieldName,
+              classOf[AtomicReference[Timestamp]]
             )
             .defineField(
               ActorCountsDecorators.Received.fieldName,
@@ -177,8 +184,11 @@ object AkkaActorAgent {
                 .to(classOf[ActorCellConstructorInstrumentation])
                 .on(isConstructor[MethodDescription])
             )
-            .method(named[MethodDescription]("receiveMessage"))
-            .intercept(MethodDelegation.to(classOf[ActorCellReceiveMessageInstrumentation]))
+            .visit(
+              Advice
+                .to(classOf[ActorCellReceiveMessageInstrumentation])
+                .on(named[MethodDescription]("receiveMessage"))
+            )
         }
         .installOn(instrumentation)
       LoadingResult(targetClassName)
@@ -207,30 +217,32 @@ object AkkaActorAgent {
   }
 
   private val abstractSupervisionInstrumentation = {
-    val targetClassName = "akka.actor.typed.internal.AbstractSupervisor"
+    val resumeSupervisor  = "akka.actor.typed.internal.ResumeSupervisor"
+    val restartSupervisor = "akka.actor.typed.internal.RestartSupervisor"
+    val targetClassName   = s"$resumeSupervisor & $restartSupervisor"
+    // Disclaimer: StopSupervisor is handled by the `actorCellInstrumentation`, because it throws an exception handled
+    //             by that instrumentation over receiveMessage on the exit moment.
     AgentInstrumentation(
       targetClassName,
       SupportedModules(moduleName, version)
     ) { (agentBuilder, instrumentation, _) =>
       agentBuilder
         .`type`(
-          hasSuperType[TypeDescription](named(targetClassName))
-            .and[TypeDescription](not[TypeDescription](isInterface))
+          named[TypeDescription](resumeSupervisor).or[TypeDescription](
+            named[TypeDescription](restartSupervisor)
+          )
         )
         .transform { (builder, _, _, _) =>
           builder
-            .visit(
-              Advice
-                .to(classOf[AbstractSupervisionHandleReceiveExceptionInstrumentation])
-                .on(named[MethodDescription]("handleReceiveException"))
-            )
+            .method(named[MethodDescription]("handleReceiveException"))
+            .intercept(Advice.to(classOf[AbstractSupervisionHandleReceiveExceptionInstrumentation]))
         }
         .installOn(instrumentation)
       LoadingResult(targetClassName)
     }
   }
 
-  val agent = Agent(
+  val agent: Agent = Agent(
     classicStashInstrumentation,
     typedStashInstrumentation,
     mailboxTimeTimestampInstrumentation,

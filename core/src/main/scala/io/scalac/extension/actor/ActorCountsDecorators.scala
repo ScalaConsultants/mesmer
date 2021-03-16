@@ -9,9 +9,9 @@ import io.scalac.core.util.CounterDecorator
 
 object ActorCountsDecorators {
 
-  final object Received  extends CounterDecorator.FixedClass("receivedMessages", "akka.actor.ActorCell")
-  final object Failed    extends CounterDecorator.FixedClass("failedMessages", "akka.actor.ActorCell")
-  final object Unhandled extends CounterDecorator.FixedClass("unhandledMessages", "akka.actor.ActorCell")
+  final object Received  extends CounterDecorator.FixedClass("akka.actor.ActorCell", "receivedMessages")
+  final object Failed    extends CounterDecorator.FixedClass("akka.actor.ActorCell", "failedMessages")
+  final object Unhandled extends CounterDecorator.FixedClass("akka.actor.ActorCell", "unhandledMessages")
 
   final object FailedAtSupervisor {
 

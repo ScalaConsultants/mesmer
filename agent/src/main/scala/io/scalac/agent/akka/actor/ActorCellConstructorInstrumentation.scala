@@ -9,8 +9,9 @@ object ActorCellConstructorInstrumentation {
 
   @OnMethodExit
   def onEnter(@This actorCell: Object): Unit = {
-    ActorTimesDecorators.MailboxTime.setAggregator(actorCell)
-    ActorTimesDecorators.ProcessingTime.setAggregator(actorCell)
+    ActorTimesDecorators.MailboxTime.initialize(actorCell)
+    ActorTimesDecorators.ProcessingTime.initialize(actorCell)
+    ActorTimesDecorators.ProcessingTimeSupport.initialize(actorCell)
     ActorCountsDecorators.Received.initialize(actorCell)
     ActorCountsDecorators.Unhandled.initialize(actorCell)
     ActorCountsDecorators.Failed.initialize(actorCell)

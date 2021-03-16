@@ -1,9 +1,10 @@
 package io.scalac.extension.actor
 
-import java.lang.invoke.MethodHandles
+import java.util.concurrent.atomic.AtomicReference
 
-import scala.concurrent.duration.FiniteDuration
+import scala.concurrent.duration._
 
+import io.scalac.core.util.{ DecoratorUtils, Timestamp }
 import io.scalac.extension.util.AggMetric.LongValueAggMetric
 import io.scalac.extension.util.LongNoLockAggregator
 
@@ -11,16 +12,11 @@ object ActorTimesDecorators {
 
   type FieldType = LongNoLockAggregator
 
-  sealed abstract class TimeDecorator(val filedName: String) {
+  sealed abstract class TimeDecorator(val fieldName: String) {
 
-    private lazy val (getter, setter) = {
-      val field = Class.forName("akka.actor.ActorCell").getDeclaredField(filedName)
-      field.setAccessible(true)
-      val lookup = MethodHandles.publicLookup()
-      (lookup.unreflectGetter(field), lookup.unreflectSetter(field))
-    }
+    private lazy val (getter, setter) = DecoratorUtils.createHandlers("akka.actor.ActorCell", fieldName)
 
-    @inline def setAggregator(actorCell: Object): Unit =
+    @inline def initialize(actorCell: Object): Unit =
       setter.invoke(actorCell, new FieldType())
 
     @inline def addTime(actorCell: Object, time: FiniteDuration): Unit =
@@ -33,5 +29,25 @@ object ActorTimesDecorators {
 
   object MailboxTime    extends TimeDecorator("mailboxTimeAgg")
   object ProcessingTime extends TimeDecorator("processingTimeAgg")
+
+  object ProcessingTimeSupport {
+
+    val fieldName = "messageReceiveStart"
+
+    private lazy val (getter, setter) = DecoratorUtils.createHandlers("akka.actor.ActorCell", fieldName)
+
+    @inline def initialize(actorCell: Object): Unit =
+      setter.invoke(actorCell, new AtomicReference(Timestamp.create()))
+
+    @inline def set(actorCell: Object): Unit =
+      getRef(actorCell).set(Timestamp.create())
+
+    @inline def interval(actorCell: Object): FiniteDuration =
+      getRef(actorCell).get().interval().milliseconds
+
+    @inline private def getRef(actorCell: Object): AtomicReference[Timestamp] =
+      getter.invoke(actorCell).asInstanceOf[AtomicReference[Timestamp]]
+
+  }
 
 }
