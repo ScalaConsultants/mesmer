@@ -1,30 +1,36 @@
 package io.scalac.extension.metric
 
+import io.scalac.core.LabelSerializable
+import io.scalac.core.model._
+import io.scalac.extension.config.CachingConfig
 import org.scalatest.Inspectors
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
-import scala.collection.mutable.ListBuffer
 
-import io.scalac.extension.config.CachingConfig
+import scala.collection.mutable.ListBuffer
 
 class CachingMonitorTest extends AnyFlatSpec with Matchers with Inspectors {
 
-  case class TestBound(labels: String) extends Bound {
+  case class TestLabels(label: String) extends LabelSerializable {
+    override def serialize: RawLabels = Seq("label" -> label)
+  }
+
+  case class TestBound(labels: TestLabels) extends Bound {
     private[this] var _unbound  = false
     override def unbind(): Unit = _unbound = true
     def unbound: Boolean        = _unbound
   }
 
-  class TestBindable extends Bindable[String, TestBound] {
+  class TestBindable extends Bindable[TestLabels, TestBound]() {
 
-    private[this] val _binds: ListBuffer[String] = ListBuffer.empty
+    private[this] val _binds: ListBuffer[TestLabels] = ListBuffer.empty
 
-    def bind(labels: String): TestBound = {
+    def bind(labels: TestLabels): TestBound = {
       _binds += labels
       TestBound(labels)
     }
 
-    def binds: List[String] = _binds.toList
+    def binds: List[TestLabels] = _binds.toList
   }
 
   type Fixture = TestBindable
@@ -35,7 +41,7 @@ class CachingMonitorTest extends AnyFlatSpec with Matchers with Inspectors {
   "CachingMonitor" should "proxy to wrapped monitor" in test { testBindable =>
     val sut = CachingMonitor(testBindable, CachingConfig.empty)
 
-    val labels = List.tabulate(10)(num => s"label_${num}")
+    val labels = List.tabulate(10)(num => s"label_${num}").map(TestLabels.apply)
 
     labels.foreach(sut.bind)
 
@@ -44,7 +50,7 @@ class CachingMonitorTest extends AnyFlatSpec with Matchers with Inspectors {
 
   it should "return same instance when keys repeat" in test { testBindable =>
     val sut       = CachingMonitor(testBindable, CachingConfig.empty)
-    val label     = "label"
+    val label     = TestLabels("label")
     val labels    = List.fill(10)(label)
     val instances = labels.map(sut.bind)
 
@@ -57,7 +63,7 @@ class CachingMonitorTest extends AnyFlatSpec with Matchers with Inspectors {
   it should "evict elements when cache limit is hit" in test { testBindable =>
     val cacheSize = 5
     val sut       = CachingMonitor(testBindable, CachingConfig(cacheSize))
-    val labels    = List.tabulate(cacheSize + 1)(num => s"label_${num}")
+    val labels    = List.tabulate(cacheSize + 1)(num => s"label_${num}").map(TestLabels.apply)
 
     val instances = labels.map(sut.bind)
     instances.head.unbound shouldBe true
@@ -69,8 +75,8 @@ class CachingMonitorTest extends AnyFlatSpec with Matchers with Inspectors {
   it should "evict monitors in LRU manner" in test { testBindable =>
     val cacheSize                              = 5
     val sut                                    = CachingMonitor(testBindable, CachingConfig(cacheSize))
-    val labels @ firstLabel :: _ :: labelsTail = List.tabulate(cacheSize)(num => s"label_${num}")
-    val additionalLabel                        = "evicting_label"
+    val labels @ firstLabel :: _ :: labelsTail = List.tabulate(cacheSize)(num => s"label_${num}").map(TestLabels.apply)
+    val additionalLabel                        = TestLabels("evicting_label")
 
     val instances @ firstInstance :: secondInstance :: instancesTail = labels.map(sut.bind)
     sut.bind(firstLabel)

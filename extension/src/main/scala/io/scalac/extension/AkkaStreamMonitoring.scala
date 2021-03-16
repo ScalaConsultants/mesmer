@@ -16,7 +16,6 @@ import io.scalac.extension.metric.MetricObserver.LazyResult
 import io.scalac.extension.metric.StreamMetricMonitor.{ EagerLabels, Labels => GlobalLabels }
 import io.scalac.extension.metric.StreamOperatorMetricsMonitor.Labels
 import io.scalac.extension.metric.{ StreamMetricMonitor, StreamOperatorMetricsMonitor }
-import io.scalac.extension.model._
 
 import java.util
 import java.util.Map

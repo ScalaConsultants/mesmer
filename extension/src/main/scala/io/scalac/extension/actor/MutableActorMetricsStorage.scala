@@ -1,7 +1,7 @@
 package io.scalac.extension.actor
 
 import akka.actor.ActorRef
-import io.scalac.extension.model.ActorKey
+import io.scalac.core.model.ActorKey
 import io.scalac.extension.resource.MutableStorage
 
 import scala.collection.mutable

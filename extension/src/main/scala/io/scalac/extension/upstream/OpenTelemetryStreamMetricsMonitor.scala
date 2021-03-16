@@ -7,7 +7,6 @@ import io.scalac.extension.upstream.OpenTelemetryStreamMetricMonitor.MetricNames
 import io.scalac.extension.upstream.opentelemetry.{
   LazyLongSumObserverBuilderAdapter,
   ObserverHandle,
-  OpenTelemetryLabelsConverter,
   WrappedLongValueRecorder
 }
 
@@ -51,8 +50,6 @@ class OpenTelemetryStreamMetricMonitor(instrumentationName: String, metricNames:
   private val meter = OpenTelemetry
     .getGlobalMeter(instrumentationName)
 
-  private implicit val otConverte: OpenTelemetryLabelsConverter[Labels] = _.toOpenTelemetry
-
   private val runningStreamsTotalRecorder = meter
     .longValueRecorderBuilder(metricNames.runningStreams)
     .setDescription("Amount of running streams on a system")
@@ -72,7 +69,7 @@ class OpenTelemetryStreamMetricMonitor(instrumentationName: String, metricNames:
   override def bind(labels: EagerLabels): BoundMonitor = new StreamMetricsBoundMonitor(labels)
 
   class StreamMetricsBoundMonitor(labels: EagerLabels) extends BoundMonitor {
-    private val openTelemetryLabels           = labels.toOpenTelemetry
+    private val openTelemetryLabels           = LabelsFactory.of(labels.serialize)
     private var unbinds: List[ObserverHandle] = Nil
 
     override val runningStreamsTotal =

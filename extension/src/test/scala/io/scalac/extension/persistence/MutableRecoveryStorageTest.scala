@@ -1,5 +1,6 @@
 package io.scalac.extension.persistence
 
+import io.scalac.core.model._
 import io.scalac.core.util.Timestamp
 import io.scalac.extension.event.PersistenceEvent._
 import io.scalac.extension.util.TestOps
@@ -50,7 +51,13 @@ class MutableRecoveryStorageTest extends AnyFlatSpec with Matchers with TestOps 
     val expectedLatency = 1234L
     sut.recoveryStarted(RecoveryStarted(path, id, startTimestamp))
     val Some((resultStorage, latency)) =
-      sut.recoveryFinished(RecoveryFinished(path, id, startTimestamp.plus(expectedLatency.millis)))
+      sut.recoveryFinished(
+        RecoveryFinished(
+          path,
+          id,
+          startTimestamp.plus(expectedLatency.millis)
+        )
+      )
     resultStorage should be theSameInstanceAs (sut)
     latency should be(expectedLatency)
   }

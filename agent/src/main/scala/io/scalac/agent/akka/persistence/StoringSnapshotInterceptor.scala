@@ -6,6 +6,8 @@ import io.scalac.core.util.Timestamp
 import io.scalac.extension.event.EventBus
 import io.scalac.extension.event.PersistenceEvent.SnapshotCreated
 import net.bytebuddy.asm.Advice._
+import io.scalac.core.model._
+import io.scalac.core.tagging._
 
 import scala.util.Try
 class StoringSnapshotInterceptor
@@ -36,7 +38,7 @@ object StoringSnapshotInterceptor {
               EventBus(context.system)
                 .publishEvent(
                   SnapshotCreated(
-                    context.self.path.toString,
+                    context.self.path.toPath,
                     meta.persistenceId,
                     meta.sequenceNr,
                     Timestamp.create()
