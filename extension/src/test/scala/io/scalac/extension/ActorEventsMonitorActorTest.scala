@@ -42,8 +42,9 @@ class ActorEventsMonitorActorTest
 
   type Monitor = ActorMonitorTestProbe
 
-  private val pingOffset: FiniteDuration = 1.seconds
-  implicit def timeout: Timeout          = pingOffset
+  private val pingOffset: FiniteDuration     = 1.seconds
+  private val reasonableTime: FiniteDuration = 3 * pingOffset
+  implicit def timeout: Timeout              = pingOffset
 
   protected val serviceKey: ServiceKey[_] = actorServiceKey
 
@@ -85,7 +86,7 @@ class ActorEventsMonitorActorTest
     recordMailboxSize(5, bound)
     tmp.unsafeUpcast[Any] ! PoisonPill
     bound.mailboxSizeProbe.expectTerminated(tmp)
-    bound.mailboxSizeProbe.expectNoMessage(2 * pingOffset)
+    bound.mailboxSizeProbe.expectNoMessage(reasonableTime)
     bound.unbind()
   }
 
@@ -136,30 +137,54 @@ class ActorEventsMonitorActorTest
     bound.unbind()
   }
 
+  it should "record received messages" in testCase { implicit c =>
+    val bound = monitor.bind(Labels("/"))
+    bound.receivedMessagesProbe.expectMessage(reasonableTime, MetricObserved(FakeReceivedMessages))
+    bound.unbind()
+  }
+
+  it should "record processed messages" in testCase { implicit c =>
+    val bound = monitor.bind(Labels("/"))
+    bound.processedMessagesProbe.expectMessage(reasonableTime, MetricObserved(FakeProcessedMessages))
+    bound.unbind()
+  }
+
+  it should "record failed messages" in testCase { implicit c =>
+    val bound = monitor.bind(Labels("/"))
+    bound.failedMessagesProbe.expectMessage(reasonableTime, MetricObserved(FakeFailedMessages))
+    bound.unbind()
+  }
+
   def recordMailboxSize(n: Int, bound: TestBoundMonitor): Unit = {
     FakeMailboxSize = n
-    bound.mailboxSizeProbe.expectMessage(3 * pingOffset, MetricObserved(n))
+    bound.mailboxSizeProbe.expectMessage(reasonableTime, MetricObserved(n))
   }
 
   def recordMailboxTime(d: FiniteDuration, probe: TestProbe[MetricObserverCommand]): Unit =
-    probe.expectMessage(3 * pingOffset, MetricObserved(d.toMillis))
+    probe.expectMessage(reasonableTime, MetricObserved(d.toMillis))
 
 }
 
 object ActorEventsMonitorActorTest {
 
-  private var FakeMailboxSize  = 10
-  private var FakeMailboxTime  = 1.second
-  private val FakeMailboxTimes = Array(FakeMailboxTime / 2, FakeMailboxTime / 2, 2 * FakeMailboxTime)
-  // min: FakeMailboxTime / 2  |  avg: FakeMailboxTime  |  max: 2 * MailboxTime
-
+  private var FakeMailboxSize                    = 10
+  private val FakeMailboxTime                    = 1.second
+  private val FakeMailboxTimes                   = Array(FakeMailboxTime / 2, FakeMailboxTime / 2, 2 * FakeMailboxTime)
   val TestActorTreeTraverser: ActorTreeTraverser = ReflectiveActorTreeTraverser
+  // min: FakeMailboxTime / 2  |  avg: FakeMailboxTime  |  max: 2 * MailboxTime
+  private val FakeReceivedMessages  = 12
+  private val FakeProcessedMessages = 10
+  private val FakeUnhandledMessages = FakeReceivedMessages - FakeProcessedMessages
+  private val FakeFailedMessages    = 2
 
-  val TestActorMetricsReader: ActorMetricsReader = { _ =>
+  val TestActorMetricsReader: ActorMetricsReader = { actor =>
     Some(
       ActorMetrics(
         mailboxSize = Some(FakeMailboxSize),
-        mailboxTime = Some(LongValueAggMetric.fromTimeSeries(new LongTimeSeries(FakeMailboxTimes.map(MailboxTime(_)))))
+        mailboxTime = Some(LongValueAggMetric.fromTimeSeries(new LongTimeSeries(FakeMailboxTimes.map(MailboxTime(_))))),
+        receivedMessages = Some(FakeReceivedMessages),
+        unhandledMessages = Some(FakeUnhandledMessages),
+        failedMessages = Some(FakeFailedMessages)
       )
     )
   }

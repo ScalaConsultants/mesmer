@@ -1,5 +1,7 @@
 package io.scalac.agent.akka.actor
 
+import java.util.concurrent.atomic.AtomicLong
+
 import akka.actor.typed.Behavior
 
 import net.bytebuddy.asm.Advice
@@ -12,7 +14,7 @@ import io.scalac.agent.{ Agent, AgentInstrumentation }
 import io.scalac.core.model._
 import io.scalac.core.support.ModulesSupport
 import io.scalac.core.util.Timestamp
-import io.scalac.extension.actor.MailboxTimeHolder
+import io.scalac.extension.actor.{ MailboxTimeDecorator, MessageCounterDecorators }
 
 object AkkaActorAgent {
 
@@ -139,7 +141,7 @@ object AkkaActorAgent {
     }
   }
 
-  private val mailboxTimeActorCellInstrumentation = {
+  private val actorCellInstrumentation = {
     val targetClassName = "akka.actor.ActorCell"
     AgentInstrumentation(
       targetClassName,
@@ -150,13 +152,75 @@ object AkkaActorAgent {
         .transform { (builder, _, _, _) =>
           builder
             .defineField(
-              MailboxTimeHolder.MailboxTimeAggVar,
-              classOf[MailboxTimeHolder.MailboxTimeAgg]
+              MailboxTimeDecorator.MailboxTimeAggVar,
+              classOf[MailboxTimeDecorator.MailboxTimeAgg]
+            )
+            .defineField(
+              MessageCounterDecorators.Received.fieldName,
+              classOf[AtomicLong]
+            )
+            .defineField(
+              MessageCounterDecorators.Unhandled.fieldName,
+              classOf[AtomicLong]
+            )
+            .defineField(
+              MessageCounterDecorators.Failed.fieldName,
+              classOf[AtomicLong]
             )
             .visit(
               Advice
                 .to(classOf[ActorCellConstructorInstrumentation])
                 .on(isConstructor[MethodDescription])
+            )
+            .visit(
+              Advice
+                .to(classOf[ActorCellReceiveMessageInstrumentation])
+                .on(named[MethodDescription]("receiveMessage"))
+            )
+        }
+        .installOn(instrumentation)
+      LoadingResult(targetClassName)
+    }
+  }
+
+  private val actorInstrumentation = {
+    val targetClassName = "akka.actor.Actor"
+    AgentInstrumentation(
+      targetClassName,
+      SupportedModules(moduleName, version)
+    ) { (agentBuilder, instrumentation, _) =>
+      agentBuilder
+        .`type`(named[TypeDescription](targetClassName))
+        .transform { (builder, _, _, _) =>
+          builder
+            .visit(
+              Advice
+                .to(classOf[ActorUnhandledInstrumentation])
+                .on(named[MethodDescription]("unhandled"))
+            )
+        }
+        .installOn(instrumentation)
+      LoadingResult(targetClassName)
+    }
+  }
+
+  private val abstractSupervisionInstrumentation = {
+    val targetClassName = "akka.actor.typed.internal.AbstractSupervisor"
+    AgentInstrumentation(
+      targetClassName,
+      SupportedModules(moduleName, version)
+    ) { (agentBuilder, instrumentation, _) =>
+      agentBuilder
+        .`type`(
+          hasSuperType[TypeDescription](named(targetClassName))
+            .and[TypeDescription](not[TypeDescription](isInterface))
+        )
+        .transform { (builder, _, _, _) =>
+          builder
+            .visit(
+              Advice
+                .to(classOf[AbstractSupervisionHandleReceiveExceptionInstrumentation])
+                .on(named[MethodDescription]("handleReceiveException"))
             )
         }
         .installOn(instrumentation)
@@ -170,7 +234,9 @@ object AkkaActorAgent {
     mailboxTimeTimestampInstrumentation,
     mailboxTimeSendMessageInstrumentation,
     mailboxTimeDequeueInstrumentation,
-    mailboxTimeActorCellInstrumentation
+    actorCellInstrumentation,
+    actorInstrumentation,
+    abstractSupervisionInstrumentation
   )
 
 }
