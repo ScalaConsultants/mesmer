@@ -1,11 +1,11 @@
 package io.scalac.agent.akka
 
-import _root_.akka.actor.testkit.typed.scaladsl.{ ScalaTestWithActorTestKit, TestProbe }
+import _root_.akka.actor.testkit.typed.scaladsl.TestProbe
 import _root_.akka.actor.typed.receptionist.Receptionist
 import _root_.akka.actor.typed.receptionist.Receptionist.{ Deregister, Register }
 import _root_.akka.util.Timeout
 import io.scalac.agent.utils.DummyEventSourcedActor.{ DoNothing, Persist }
-import io.scalac.agent.utils.{ DummyEventSourcedActor, InstallAgent }
+import io.scalac.agent.utils.{ DummyEventSourcedActor, InstallAgent, SafeLoadSystem }
 import io.scalac.extension.event.PersistenceEvent
 import io.scalac.extension.event.PersistenceEvent._
 import io.scalac.extension.persistenceServiceKey
@@ -20,13 +20,13 @@ import java.util.UUID
 import scala.concurrent.duration._
 
 class AkkaPersistenceAgentSpec
-    extends ScalaTestWithActorTestKit
+    extends InstallAgent
     with AnyFlatSpecLike
     with Matchers
     with ScalaFutures
     with OptionValues
     with ReceptionistOps
-    with InstallAgent {
+    with SafeLoadSystem {
 
   implicit val askTimeout = Timeout(1.minute)
   override implicit val patienceConfig: PatienceConfig =

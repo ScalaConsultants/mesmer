@@ -10,15 +10,15 @@ import net.bytebuddy.ByteBuddy
 import net.bytebuddy.agent.ByteBuddyAgent
 import net.bytebuddy.agent.builder.AgentBuilder
 import net.bytebuddy.dynamic.scaffold.TypeValidation
-import org.scalatest.{ BeforeAndAfterAll, Suite }
+import org.scalatest.{ BeforeAndAfterAll, TestSuite }
 
 object InstallAgent {
   val allInstrumentations =
     AkkaActorAgent.agent ++ AkkaHttpAgent.agent ++ AkkaPersistenceAgent.agent ++ AkkaStreamAgent.agent
 }
 
-trait InstallAgent extends BeforeAndAfterAll {
-  this: Suite =>
+abstract class InstallAgent extends TestSuite with BeforeAndAfterAll {
+
   import InstallAgent._
 
   def modules: Modules = extractModulesInformation(Thread.currentThread().getContextClassLoader)

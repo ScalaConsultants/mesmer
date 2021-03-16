@@ -1,14 +1,13 @@
 package io.scalac.agent.akka
 
 import akka.actor.testkit.typed.FishingOutcome
-import akka.actor.testkit.typed.scaladsl.{ ScalaTestWithActorTestKit, TestProbe }
+import akka.actor.testkit.typed.scaladsl.TestProbe
 import akka.actor.typed.receptionist.Receptionist
 import akka.actor.typed.receptionist.Receptionist.{ Deregister, Register }
-import akka.actor.typed.scaladsl.adapter._
 import akka.actor.typed.scaladsl.{ ActorContext, Behaviors, StashBuffer }
 import akka.actor.typed.{ ActorRef, Behavior }
 import akka.{ actor => classic }
-import io.scalac.agent.utils.InstallAgent
+import io.scalac.agent.utils.{ InstallAgent, SafeLoadSystem }
 import io.scalac.core.model._
 import io.scalac.core.util.ActorPathOps
 import io.scalac.extension.actorServiceKey
@@ -16,14 +15,16 @@ import io.scalac.extension.event.ActorEvent
 import io.scalac.extension.event.ActorEvent.StashMeasurement
 import io.scalac.extension.util.ReceptionistOps
 import org.scalatest.flatspec.AnyFlatSpecLike
+import org.scalatest.matchers.should.Matchers
 
 import scala.concurrent.duration._
 
 class AkkaActorAgentTest
-    extends ScalaTestWithActorTestKit(classic.ActorSystem("AkkaActorAgentTest").toTyped)
+    extends InstallAgent
     with AnyFlatSpecLike
     with ReceptionistOps
-    with InstallAgent {
+    with Matchers
+    with SafeLoadSystem {
 
   import AkkaActorAgentTest._
 

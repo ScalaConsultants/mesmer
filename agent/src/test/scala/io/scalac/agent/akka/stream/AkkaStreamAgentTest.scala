@@ -2,10 +2,10 @@ package io.scalac.agent.akka.stream
 
 import akka.actor.ActorRef
 import akka.actor.testkit.typed.javadsl.FishingOutcomes
-import akka.actor.testkit.typed.scaladsl.{ ScalaTestWithActorTestKit, TestProbe }
+import akka.actor.testkit.typed.scaladsl.TestProbe
 import akka.actor.typed.receptionist.Receptionist._
 import akka.stream.scaladsl._
-import io.scalac.agent.utils.InstallAgent
+import io.scalac.agent.utils.{ InstallAgent, SafeLoadSystem }
 import io.scalac.core.model.Tag
 import io.scalac.extension.event.{ Service, TagEvent }
 import org.scalatest.flatspec.AnyFlatSpecLike
@@ -15,10 +15,10 @@ import org.scalatest.{ BeforeAndAfter, BeforeAndAfterAll }
 import scala.concurrent.duration._
 
 class AkkaStreamAgentTest
-    extends ScalaTestWithActorTestKit
+    extends InstallAgent
     with AnyFlatSpecLike
     with Matchers
-    with InstallAgent
+    with SafeLoadSystem
     with BeforeAndAfterAll
     with BeforeAndAfter {
 

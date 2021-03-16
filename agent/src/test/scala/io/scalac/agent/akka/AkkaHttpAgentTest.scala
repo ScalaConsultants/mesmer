@@ -14,13 +14,13 @@ import io.scalac.agent.utils.InstallAgent
 import io.scalac.extension.event.HttpEvent
 import io.scalac.extension.event.HttpEvent.{ RequestCompleted, RequestStarted }
 import io.scalac.extension.httpServiceKey
-import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.flatspec.AnyFlatSpecLike
 import org.scalatest.matchers.should.Matchers
 
 import scala.concurrent.duration._
 import scala.language.postfixOps
 
-class AkkaHttpAgentTest extends AnyFlatSpec with ScalatestRouteTest with Matchers with InstallAgent {
+class AkkaHttpAgentTest extends InstallAgent with AnyFlatSpecLike with ScalatestRouteTest with Matchers {
 
   // implicit val askTimeout = Timeout(1 minute)
 
