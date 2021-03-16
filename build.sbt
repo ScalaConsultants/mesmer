@@ -28,7 +28,6 @@ def runWithAgent = Command.command("runWithAgent") { state =>
 }
 
 lazy val root = (project in file("."))
-//  .enablePlugins(MultiJvmPlugin)
   .settings(name := "mesmer-akka-agent")
   .aggregate(extension, agent, testApp, core)
 
@@ -89,7 +88,12 @@ lazy val agent = (project in file("agent"))
     assembly / assemblyOption ~= { _.copy(includeScala = false) },
     assemblyMergeStrategySettings,
     Test / fork := true,
-    Test / javaOptions += "-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=9999"
+    Test / javaOptions += "-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=9999",
+    Test / testGrouping := ((Test / testGrouping).value flatMap { group =>
+      group.tests.map { test =>
+        Tests.Group(name = test.name, tests = Seq(test), runPolicy = group.runPolicy)
+      }
+    })
   )
   .dependsOn(
     core % "provided->compile;test->test"

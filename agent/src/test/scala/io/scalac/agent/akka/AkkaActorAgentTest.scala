@@ -8,13 +8,13 @@ import akka.actor.typed.scaladsl.adapter._
 import akka.actor.typed.scaladsl.{ ActorContext, Behaviors, StashBuffer }
 import akka.actor.typed.{ ActorRef, Behavior }
 import akka.{ actor => classic }
+import io.scalac.agent.utils.InstallAgent
 import io.scalac.core.model._
 import io.scalac.core.util.ActorPathOps
 import io.scalac.extension.actorServiceKey
 import io.scalac.extension.event.ActorEvent
 import io.scalac.extension.event.ActorEvent.StashMeasurement
 import io.scalac.extension.util.ReceptionistOps
-import org.scalatest.BeforeAndAfterAll
 import org.scalatest.flatspec.AnyFlatSpecLike
 
 import scala.concurrent.duration._
@@ -23,11 +23,9 @@ class AkkaActorAgentTest
     extends ScalaTestWithActorTestKit(classic.ActorSystem("AkkaActorAgentTest").toTyped)
     with AnyFlatSpecLike
     with ReceptionistOps
-    with BeforeAndAfterAll {
+    with InstallAgent {
 
   import AkkaActorAgentTest._
-
-  override def beforeAll(): Unit = installAgent
 
   def test(body: Fixture => Any): Any = {
     val monitor = createTestProbe[ActorEvent]
