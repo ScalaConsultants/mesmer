@@ -20,10 +20,10 @@ object EnvelopeOps {
     )
   }
 
-  @inline def setTimestamp(envelope: Object): Unit =
+  @inline final def setTimestamp(envelope: Object): Unit =
     timestampSetterHandler.invoke(envelope, Timestamp.create())
 
-  @inline def getTimestamp(envelope: Object): Timestamp =
+  @inline final def getTimestamp(envelope: Object): Timestamp =
     timestampGetterHandler.invoke(envelope).asInstanceOf[Timestamp]
 
 }

@@ -4,6 +4,7 @@ import _root_.akka.actor.{ ActorPath => AkkaActorPath }
 import _root_.akka.cluster.UniqueAddress
 import _root_.akka.http.scaladsl.model.HttpMethod
 import _root_.akka.http.scaladsl.model.Uri.{ Path => AkkaPath }
+import io.scalac.core.model.Tag.StageName.StreamUniqueStageName
 import io.scalac.core.model.Tag._
 import io.scalac.core.tagging.{ @@, _ }
 
@@ -11,9 +12,24 @@ package object model {
 
   type ShellInfo = (Array[StageInfo], Array[ConnectionStats])
 
-  case class ConnectionStats(inName: StageName, outName: StageName, pull: Long, push: Long)
+  /**
+   * All information inside [[_root_.akka.stream.impl.fusing.GraphInterpreter]] should be local to that interpreter
+   * meaning that all connections in array [[_root_.akka.stream.impl.fusing.GraphInterpreter#connections]]
+   * are between logics owned by same GraphInterpreter
+   * MODIFY IF THIS IS NOT TRUE!
+   * @param in index of inHandler owner
+   * @param out index of outHandler owner
+   * @param pull demand to upstream
+   * @param push elements pushed to downstream
+   */
+  case class ConnectionStats(in: Int, out: Int, pull: Long, push: Long)
 
-  case class StageInfo(stageName: StageName, subStreamName: SubStreamName)
+  case class StageInfo(
+    id: Int,
+    stageName: StreamUniqueStageName,
+    subStreamName: SubStreamName,
+    terminal: Boolean = false
+  )
 
   sealed trait ModelTag
   sealed trait NodeTag          extends ModelTag

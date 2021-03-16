@@ -7,7 +7,7 @@ import akka.actor.typed.scaladsl.{ AbstractBehavior, ActorContext, Behaviors, Ti
 import akka.{ actor => classic }
 import io.scalac.core.model.{ Tag, _ }
 import io.scalac.extension.AkkaStreamMonitoring.StartStreamCollection
-import io.scalac.extension.actor.{ ActorMetricStorage, ActorMetrics, MailboxTimeHolder }
+import io.scalac.extension.actor.{ ActorMetricStorage, ActorMetrics, MailboxTimeDecorator, MessageCounterDecorators }
 import io.scalac.extension.event.ActorEvent.StashMeasurement
 import io.scalac.extension.event.{ ActorEvent, TagEvent }
 import io.scalac.extension.metric.ActorMetricMonitor.Labels
@@ -245,7 +245,7 @@ object ActorEventsMonitorActor {
           bind
         }
 
-        metrics.mailboxSize.foreach { mailboxSize =>
+        metrics.mailboxSize.filter(0.<).foreach { mailboxSize =>
           log.trace("Registering a new updater for mailbox size for actor {} with value {}", key, mailboxSize)
           bind.mailboxSize.setUpdater(_.observe(mailboxSize))
         }
@@ -258,6 +258,20 @@ object ActorEventsMonitorActor {
           bind.mailboxTimeSum.setUpdater(_.observe(mailboxTime.sum))
         }
 
+        metrics.receivedMessages.filter(0.<).foreach { rm =>
+          log.trace("Registering a new updater for received messages for actor {} with value {}", key, rm)
+          bind.receivedMessages.setUpdater(_.observe(rm))
+        }
+
+        metrics.processedMessages.filter(0.<).foreach { pm =>
+          log.trace("Registering a new updater for processed messages for actor {} with value {}", key, pm)
+          bind.processedMessages.setUpdater(_.observe(pm))
+        }
+
+        metrics.failedMessages.filter(0.<).foreach { fm =>
+          log.trace("Registering a new updater for failed messages for actor {} with value {}", key, fm)
+          bind.failedMessages.setUpdater(_.observe(fm))
+        }
       }
 
     private def setTimeout(): Unit = scheduler.startSingleTimer(UpdateActorMetrics, pingOffset)
@@ -325,18 +339,13 @@ object ActorEventsMonitorActor {
         .when(isLocalActorRefWithCell(actor)) {
           val cell = underlyingMethodHandler.invoke(actor)
           ActorMetrics(
-            safeRead(mailboxSize(cell)),
-            safeRead(mailboxTime(cell)).flatten
+            mailboxSize = safeRead(mailboxSize(cell)),
+            mailboxTime = MailboxTimeDecorator.getMetrics(cell),
+            receivedMessages = MessageCounterDecorators.Received.take(cell),
+            unhandledMessages = MessageCounterDecorators.Unhandled.take(cell),
+            failedMessages = MessageCounterDecorators.Failed.take(cell)
           )
         }
-
-    private[extension] def readMailboxSize(actor: classic.ActorRef): Option[Int] =
-      Option
-        .when(isLocalActorRefWithCell(actor)) {
-          val cell = underlyingMethodHandler.invoke(actor)
-          safeRead(mailboxSize(cell))
-        }
-        .flatten
 
     private def safeRead[T](value: => T): Option[T] =
       try Some(value)
@@ -348,8 +357,6 @@ object ActorEventsMonitorActor {
 
     private def mailboxSize(cell: Object): Int =
       numberOfMessagesMethodHandler.invoke(cell).asInstanceOf[Int]
-
-    private def mailboxTime(cell: Object): Option[LongValueAggMetric] = MailboxTimeHolder.getMetrics(cell)
 
   }
 

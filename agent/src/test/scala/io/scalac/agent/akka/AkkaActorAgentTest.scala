@@ -1,28 +1,36 @@
 package io.scalac.agent.akka
 
+import scala.concurrent._
+import scala.concurrent.duration._
+
+import akka.actor.PoisonPill
 import akka.actor.testkit.typed.FishingOutcome
 import akka.actor.testkit.typed.scaladsl.TestProbe
 import akka.actor.typed.receptionist.Receptionist
 import akka.actor.typed.receptionist.Receptionist.{ Deregister, Register }
 import akka.actor.typed.scaladsl.{ ActorContext, Behaviors, StashBuffer }
-import akka.actor.typed.{ ActorRef, Behavior }
+import akka.actor.typed.{ ActorRef, Behavior, SupervisorStrategy }
 import akka.{ actor => classic }
 import io.scalac.agent.utils.{ InstallAgent, SafeLoadSystem }
+
+import org.scalatest.concurrent.Eventually
+import org.scalatest.flatspec.AnyFlatSpecLike
+import org.scalatest.{ BeforeAndAfterAll, OptionValues }
+
 import io.scalac.core.model._
 import io.scalac.core.util.ActorPathOps
+import io.scalac.extension.actor.MessageCounterDecorators
 import io.scalac.extension.actorServiceKey
 import io.scalac.extension.event.ActorEvent
 import io.scalac.extension.event.ActorEvent.StashMeasurement
 import io.scalac.extension.util.ReceptionistOps
-import org.scalatest.flatspec.AnyFlatSpecLike
-import org.scalatest.matchers.should.Matchers
-
-import scala.concurrent.duration._
 
 class AkkaActorAgentTest
     extends InstallAgent
     with AnyFlatSpecLike
     with ReceptionistOps
+    with OptionValues
+    with Eventually
     with Matchers
     with SafeLoadSystem {
 
@@ -69,6 +77,92 @@ class AkkaActorAgentTest
     expectStashSize(1)
   }
 
+  it should "record the amount of received messages" in testWithContextAndActor[String](_ => Behaviors.ignore) {
+    (ctx, actor) =>
+      def received(size: Int): Unit = eventually {
+        MessageCounterDecorators.Received.take(ctx).value should be(size)
+      }
+
+      received(0)
+      actor ! "42"
+      received(1)
+      received(0)
+      actor ! "42"
+      actor ! "42"
+      received(2)
+  }
+
+  it should "record the amount of failed messages without supervision" in testWithContextAndActor[String](_ =>
+    Behaviors.receiveMessage {
+      case "fail" =>
+        throw new RuntimeException("I failed :(")
+      case _ =>
+        Behaviors.same
+    }
+  ) { (ctx, actor) =>
+    def failed(size: Int): Unit = eventually {
+      MessageCounterDecorators.Failed.take(ctx).value should be(size)
+    }
+
+    failed(0)
+    actor ! "fail"
+    failed(1)
+    failed(0)
+    actor ! ":)"
+    failed(0)
+    actor ! "fail"
+    failed(0) // why zero? because akka suspend any further message processing after an unsupervisioned failure
+  }
+
+  it should "record the amount of failed messages with supervision" in testWithContextAndActor[String](_ =>
+    Behaviors
+      .supervise[String](
+        Behaviors.receiveMessage {
+          case "fail" =>
+            throw new RuntimeException("I failed :(")
+          case _ =>
+            Behaviors.same
+        }
+      )
+      .onFailure[RuntimeException](SupervisorStrategy.restart)
+  ) { (ctx, actor) =>
+    def failed(size: Int): Unit = eventually {
+      MessageCounterDecorators.Failed.take(ctx).value should be(size)
+    }
+
+    failed(0)
+    actor ! "fail"
+    failed(1)
+    failed(0)
+    actor ! ":)"
+    failed(0)
+    actor ! "fail"
+    actor ! "fail"
+    failed(2)
+    failed(0)
+  }
+
+  it should "record the amount of unhandled messages" in testWithContextAndActor[String](_ =>
+    Behaviors.receiveMessage {
+      case "receive" => Behaviors.same
+      case _         => Behaviors.unhandled
+    }
+  ) { (ctx, actor) =>
+    def unhandled(size: Int): Unit = eventually {
+      MessageCounterDecorators.Unhandled.take(ctx).value should be(size)
+    }
+
+    unhandled(0)
+    actor ! "42"
+    unhandled(1)
+    unhandled(0)
+    actor ! "42"
+    actor ! "42"
+    unhandled(2)
+    actor ! "receive"
+    unhandled(0)
+  }
+
   def createExpectStashSize(monitor: Fixture, ref: ActorRef[_]): Int => Unit =
     createExpectStashSize(monitor, ActorPathOps.getPathString(ref))
 
@@ -78,6 +172,30 @@ class AkkaActorAgentTest
       case _                                => FishingOutcome.ContinueAndIgnore
     }
     msg.size should not be (0)
+  }
+
+  def testWithContextAndActor[T](
+    behavior: ActorContext[T] => Behavior[T]
+  )(
+    block: (classic.ActorContext, ActorRef[T]) => Unit
+  ): Unit = {
+    var ctxRef: Option[classic.ActorContext] = None
+    val testActor = spawn(
+      Behaviors.setup[T] { ctx =>
+        ctxRef = Some(ctx.toClassic)
+        behavior(ctx)
+      }
+    )
+    Await.ready(
+      Future {
+        blocking {
+          while (ctxRef.isEmpty) {}
+        }
+      }(ExecutionContext.global),
+      2.seconds
+    )
+    block(ctxRef.get, testActor)
+    testActor.unsafeUpcast[Any] ! PoisonPill
   }
 
 }

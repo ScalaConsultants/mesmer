@@ -28,8 +28,9 @@ class AccountRoutesTest
     with FailFastCirceSupport
     with JsonCodecs {
 
-  implicit val typedSystem      = system.toTyped
-  implicit val timeout: Timeout = 1 seconds
+  implicit val typedSystem                     = system.toTyped
+  implicit val timeoutDuration: FiniteDuration = 2 seconds
+  implicit val timeout: Timeout                = timeoutDuration
   import AccountStateActor.{ Command, Reply }
 
   override def testConfig: Config = ConfigFactory.load("application-test")
