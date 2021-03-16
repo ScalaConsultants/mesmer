@@ -1,19 +1,18 @@
 package io.scalac.extension
 
-import scala.language.postfixOps
-
 import akka.actor.typed.Behavior
 import akka.actor.typed.receptionist.Receptionist
 import akka.actor.typed.receptionist.Receptionist.Register
 import akka.actor.typed.scaladsl.Behaviors
-
+import io.scalac.core.model._
 import io.scalac.extension.event.PersistenceEvent
 import io.scalac.extension.event.PersistenceEvent._
 import io.scalac.extension.metric.PersistenceMetricMonitor
 import io.scalac.extension.metric.PersistenceMetricMonitor.Labels
-import io.scalac.extension.model._
 import io.scalac.extension.persistence.{ PersistStorage, RecoveryStorage }
 import io.scalac.extension.service.PathService
+
+import scala.language.postfixOps
 
 object PersistenceEventsActor {
 
@@ -34,8 +33,14 @@ object PersistenceEventsActor {
       import Event._
       Receptionist(ctx.system).ref ! Register(persistenceServiceKey, ctx.messageAdapter(PersistentEventWrapper.apply))
 
-      def getMonitor(path: String, persistenceId: PersistenceId): PersistenceMetricMonitor.BoundMonitor =
-        monitor.bind(Labels(node, pathService.template(path), pathService.template(persistenceId)))
+      def getMonitor(path: Path, persistenceId: PersistenceId): PersistenceMetricMonitor.BoundMonitor =
+        monitor.bind(
+          Labels(
+            node,
+            pathService.template(path),
+            pathService.template(persistenceId.retag[PathTag]).retag[PersistenceIdTag]
+          )
+        )
 
       def running(
         recoveryStorage: RecoveryStorage,

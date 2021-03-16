@@ -6,10 +6,10 @@ import akka.cluster.sharding.ShardRegion.{ GetShardRegionStats, ShardRegionStats
 import akka.cluster.sharding.{ ClusterSharding, ShardRegion }
 import akka.pattern.ask
 import akka.util.Timeout
+import io.scalac.core.model._
 import io.scalac.extension.config.ConfigurationUtils.ConfigOps
 import io.scalac.extension.metric.ClusterMetricsMonitor
 import io.scalac.extension.metric.ClusterMetricsMonitor.Labels
-import io.scalac.extension.model.AkkaNodeOps
 import io.scalac.extension.util.CachedQueryResult
 import org.slf4j.LoggerFactory
 
@@ -83,7 +83,7 @@ object ClusterRegionsMonitorActor extends ClusterMonitorActor {
 
   private[extension] class Regions(
     system: ActorSystem[_],
-    onCreateEntry: (String, CachedQueryResult[Future[RegionStats]]) => Unit
+    onCreateEntry: (Region, CachedQueryResult[Future[RegionStats]]) => Unit
   )(implicit
     ec: ExecutionContext
   ) {

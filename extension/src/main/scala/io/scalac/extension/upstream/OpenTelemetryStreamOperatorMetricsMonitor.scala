@@ -46,9 +46,6 @@ object OpenTelemetryStreamOperatorMetricsMonitor {
 class OpenTelemetryStreamOperatorMetricsMonitor(instrumentationName: String, metricNames: MetricNames)
     extends StreamOperatorMetricsMonitor {
 
-  private implicit val labelsConverter: OpenTelemetryLabelsConverter[StreamOperatorMetricsMonitor.Labels] =
-    _.toOpenTelemetry
-
   private val meter = OpenTelemetry
     .getGlobalMeter(instrumentationName)
 

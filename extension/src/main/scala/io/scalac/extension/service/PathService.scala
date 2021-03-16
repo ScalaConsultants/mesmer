@@ -1,5 +1,5 @@
 package io.scalac.extension.service
-import io.scalac.extension.model.Path
+import io.scalac.core.model.Path
 
 trait PathService {
 

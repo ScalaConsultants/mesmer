@@ -10,7 +10,7 @@ import io.scalac.core.util.stream.subStreamNameFromActorRef
 import io.scalac.extension.event.ActorInterpreterStats
 
 import java.lang.invoke.MethodType._
-object AkkaStreamExtensions extends Lookup {
+object ActorGraphInterpreterOps extends Lookup {
 
   private lazy val shells = {
     val actorInterpreter = Class.forName("akka.stream.impl.fusing.ActorGraphInterpreter")
@@ -28,18 +28,38 @@ object AkkaStreamExtensions extends Lookup {
         .invoke(thiz)
         .asInstanceOf[Set[GraphInterpreterShellMirror]]
 
+      var terminalFound = false
+
       val stats = currentShells.map { shell =>
-        val connections = shell.connections.flatMap { connection =>
+        val connections = new Array[ConnectionStats](shell.connections.length)
+
+        shell.connections.foreach { connection =>
           val (push, pull) = ConnectionOps.getAndResetCounterValues(connection)
 
-          for {
-            in  <- connection.inOwner.streamUniqueStageName
-            out <- connection.outOwner.streamUniqueStageName
-          } yield ConnectionStats(in, out, push, pull)
+          val in  = connection.inOwner.stageId
+          val out = connection.outOwner.stageId
+          connections(connection.id) = ConnectionStats(in, out, push, pull)
         }
 
-        val stageInfo = shell.logics.flatMap(_.streamUniqueStageName.map(StageInfo(_, subStreamName)))
+        val stageInfo = new Array[StageInfo](shell.logics.length)
+
+        shell.logics.foreach { logic =>
+          val isTerminal =
+            if (terminalFound) false
+            else {
+              val terminal = logic.isTerminal
+              if (terminal) {
+                terminalFound = true
+              }
+              terminal
+            }
+          logic.streamUniqueStageName.foreach { stageName =>
+            stageInfo(logic.stageId) = StageInfo(logic.stageId, stageName, subStreamName, isTerminal)
+          }
+        }
+
         stageInfo -> connections
+
       }
 
       val self = thiz.context.self

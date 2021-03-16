@@ -1,6 +1,6 @@
 package io.scalac.agent.akka
 
-import scala.concurrent.{ blocking, Await, ExecutionContext, Future }
+import scala.concurrent._
 import scala.concurrent.duration._
 
 import akka.actor.PoisonPill
@@ -14,9 +14,10 @@ import akka.actor.typed.{ ActorRef, Behavior, SupervisorStrategy }
 import akka.{ actor => classic }
 
 import org.scalatest.concurrent.Eventually
-import org.scalatest.{ BeforeAndAfterAll, OptionValues }
 import org.scalatest.flatspec.AnyFlatSpecLike
+import org.scalatest.{ BeforeAndAfterAll, OptionValues }
 
+import io.scalac.core.model._
 import io.scalac.core.util.ActorPathOps
 import io.scalac.extension.actor.MessageCounterDecorators
 import io.scalac.extension.actorServiceKey
@@ -167,7 +168,7 @@ class AkkaActorAgentTest
   def createExpectStashSize(monitor: Fixture, ref: ActorRef[_]): Int => Unit =
     createExpectStashSize(monitor, ActorPathOps.getPathString(ref))
 
-  def createExpectStashSize(monitor: Fixture, path: String): Int => Unit = { size =>
+  def createExpectStashSize(monitor: Fixture, path: ActorPath): Int => Unit = { size =>
     val msg = monitor.fishForMessage(2.seconds) {
       case StashMeasurement(`size`, `path`) => FishingOutcome.Complete
       case _                                => FishingOutcome.ContinueAndIgnore

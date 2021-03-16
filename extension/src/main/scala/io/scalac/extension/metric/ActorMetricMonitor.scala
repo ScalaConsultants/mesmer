@@ -1,10 +1,14 @@
 package io.scalac.extension.metric
 
-import io.scalac.core.model.Tag
-import io.scalac.extension.model.{ Node, Path }
+import io.scalac.core.LabelSerializable
+import io.scalac.core.model._
 
 object ActorMetricMonitor {
-  case class Labels(actorPath: Path, node: Option[Node] = None, tags: Set[Tag] = Set.empty)
+  final case class Labels(actorPath: ActorPath, node: Option[Node] = None, tags: Set[Tag] = Set.empty)
+      extends LabelSerializable {
+    override val serialize: RawLabels = node.serialize ++ actorPath.serialize ++ tags.flatMap(_.serialize)
+  }
+
   trait BoundMonitor extends Synchronized with Bound {
     def mailboxSize: MetricObserver[Long]
     // TODO Create an abstraction to aggregate multiple metrics (e.g: mailboxTimeAgg: MetricObserverAgg[Long])

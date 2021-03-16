@@ -6,6 +6,8 @@ import io.scalac.core.util.Timestamp
 import io.scalac.extension.event.EventBus
 import io.scalac.extension.event.PersistenceEvent.RecoveryStarted
 import net.bytebuddy.asm.Advice
+import io.scalac.core.model._
+import io.scalac.core.tagging._
 
 import scala.util.Try
 
@@ -37,13 +39,13 @@ object RecoveryStartedInterceptor {
     @Advice.Argument(0) context: ActorContext[_],
     @Advice.This thiz: AnyRef
   ): Unit = {
-    val path = context.self.path
+    val path = context.self.path.toPath
     logger.trace("Started actor {} recovery", path)
     persistenceIdExtractor(thiz).fold(
       _.printStackTrace(),
       persistenceId =>
         EventBus(context.system)
-          .publishEvent(RecoveryStarted(path.toString, persistenceId.id, Timestamp.create()))
+          .publishEvent(RecoveryStarted(path, persistenceId.id, Timestamp.create()))
     )
   }
 }

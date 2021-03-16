@@ -2,13 +2,13 @@ package io.scalac.agent.akka.persistence
 
 import _root_.akka.actor.typed.scaladsl.ActorContext
 import _root_.akka.persistence.typed.PersistenceId
-import _root_.akka.util.Timeout
+import io.scalac.core.model._
+import io.scalac.core.tagging._
 import io.scalac.core.util.Timestamp
 import io.scalac.extension.event.EventBus
 import io.scalac.extension.event.PersistenceEvent.RecoveryFinished
 import net.bytebuddy.asm.Advice
 
-import scala.concurrent.duration._
 import scala.util.Try
 
 class RecoveryCompletedInterceptor
@@ -39,7 +39,7 @@ object RecoveryCompletedInterceptor {
     @Advice.Argument(0) actorContext: ActorContext[_],
     @Advice.This thiz: AnyRef
   ): Unit = {
-    val path = actorContext.self.path
+    val path = actorContext.self.path.toPath
     logger.trace("Recovery completed for {}", path)
 
     persistenceIdExtractor(thiz).fold(
@@ -47,7 +47,7 @@ object RecoveryCompletedInterceptor {
       persistenceId =>
         EventBus(actorContext.system)
           .publishEvent(
-            RecoveryFinished(path.toString, persistenceId.id, Timestamp.create())
+            RecoveryFinished(path, persistenceId.id, Timestamp.create())
           )
     )
   }

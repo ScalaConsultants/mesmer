@@ -1,15 +1,12 @@
 package io.scalac.extension.util.probe
 
-import scala.collection.mutable
-import scala.concurrent.duration.FiniteDuration
-
 import akka.actor.testkit.typed.scaladsl.TestProbe
 import akka.actor.typed.ActorSystem
-
-import io.scalac.extension.metric.ActorMetricMonitor.BoundMonitor
 import io.scalac.extension.metric.{ ActorMetricMonitor, MetricObserver, MetricRecorder }
 import io.scalac.extension.util.TestProbeSynchronized
 import io.scalac.extension.util.probe.BoundTestProbe.{ MetricObserverCommand, MetricRecorderCommand }
+
+import scala.collection.mutable
 
 class ActorMonitorTestProbe(collector: ObserverCollector)(implicit val actorSystem: ActorSystem[_])
     extends ActorMetricMonitor {
