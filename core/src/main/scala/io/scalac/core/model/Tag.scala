@@ -10,7 +10,7 @@ sealed trait Tag extends Any {
 }
 
 object Tag {
-  def stream: Tag = StreamTag
+  val stream: Tag = StreamTag
 
   private case object StreamTag extends Tag {
     override lazy val serialize: Seq[(String, String)] = Seq(("stream", "true"))
