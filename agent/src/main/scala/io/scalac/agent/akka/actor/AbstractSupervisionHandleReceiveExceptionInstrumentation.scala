@@ -4,13 +4,13 @@ import akka.actor.typed.TypedActorContext
 
 import net.bytebuddy.asm.Advice.{ Argument, OnMethodEnter }
 
-import io.scalac.extension.actor.MessageCounterDecorators
+import io.scalac.extension.actor.ActorCountsDecorators
 
 class AbstractSupervisionHandleReceiveExceptionInstrumentation
 object AbstractSupervisionHandleReceiveExceptionInstrumentation {
 
   @OnMethodEnter
   def onEnter(@Argument(0) context: TypedActorContext[_]): Unit =
-    MessageCounterDecorators.FailedAtSupervisor.inc(context)
+    ActorCountsDecorators.FailedAtSupervisor.inc(context)
 
 }
