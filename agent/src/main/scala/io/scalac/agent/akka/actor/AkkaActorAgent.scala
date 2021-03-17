@@ -217,20 +217,22 @@ object AkkaActorAgent {
   }
 
   private val abstractSupervisionInstrumentation = {
-    val resumeSupervisor  = "akka.actor.typed.internal.ResumeSupervisor"
-    val restartSupervisor = "akka.actor.typed.internal.RestartSupervisor"
-    val targetClassName   = s"$resumeSupervisor & $restartSupervisor"
-    // Disclaimer: StopSupervisor is handled by the `actorCellInstrumentation`, because it throws an exception handled
-    //             by that instrumentation over receiveMessage on the exit moment.
+    val abstractSupervisor = "akka.actor.typed.internal.AbstractSupervisor"
     AgentInstrumentation(
-      targetClassName,
+      abstractSupervisor,
       SupportedModules(moduleName, version)
     ) { (agentBuilder, instrumentation, _) =>
       agentBuilder
         .`type`(
-          named[TypeDescription](resumeSupervisor).or[TypeDescription](
-            named[TypeDescription](restartSupervisor)
-          )
+          hasSuperType[TypeDescription](named[TypeDescription](abstractSupervisor))
+            .and[TypeDescription](
+              declaresMethod[TypeDescription](
+                named[MethodDescription]("handleReceiveException")
+                  .and[MethodDescription](
+                    isOverriddenFrom[MethodDescription](named[TypeDescription](abstractSupervisor))
+                  )
+              )
+            )
         )
         .transform { (builder, _, _, _) =>
           builder
@@ -238,7 +240,7 @@ object AkkaActorAgent {
             .intercept(Advice.to(classOf[AbstractSupervisionHandleReceiveExceptionInstrumentation]))
         }
         .installOn(instrumentation)
-      LoadingResult(targetClassName)
+      LoadingResult(abstractSupervisor)
     }
   }
 
