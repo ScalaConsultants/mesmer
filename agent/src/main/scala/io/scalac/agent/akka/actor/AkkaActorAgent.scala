@@ -1,6 +1,6 @@
 package io.scalac.agent.akka.actor
 
-import java.util.concurrent.atomic.{ AtomicLong, AtomicReference }
+import java.util.concurrent.atomic.{ AtomicBoolean, AtomicLong, AtomicReference }
 
 import akka.actor.typed.Behavior
 
@@ -179,6 +179,10 @@ object AkkaActorAgent {
               ActorCountsDecorators.Failed.fieldName,
               classOf[AtomicLong]
             )
+            .defineField(
+              ActorCountsDecorators.FailHandled.fieldName,
+              classOf[AtomicBoolean]
+            )
             .visit(
               Advice
                 .to(classOf[ActorCellConstructorInstrumentation])
@@ -237,7 +241,7 @@ object AkkaActorAgent {
         .transform { (builder, _, _, _) =>
           builder
             .method(named[MethodDescription]("handleReceiveException"))
-            .intercept(Advice.to(classOf[AbstractSupervisionHandleReceiveExceptionInstrumentation]))
+            .intercept(Advice.to(classOf[SupervisorHandleReceiveExceptionInstrumentation]))
         }
         .installOn(instrumentation)
       LoadingResult(abstractSupervisor)

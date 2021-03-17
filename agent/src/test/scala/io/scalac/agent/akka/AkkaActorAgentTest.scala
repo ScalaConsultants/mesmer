@@ -268,7 +268,8 @@ class AkkaActorAgentTest
     Await.ready(
       Future {
         blocking {
-          while (ctxRef.isEmpty) {}
+          while (ctxRef.isEmpty)
+            Thread.sleep(100)
         }
       }(ExecutionContext.global),
       2.seconds
