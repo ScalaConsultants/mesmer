@@ -6,13 +6,14 @@ import java.util.concurrent.atomic.AtomicBoolean
 import akka.actor.Actor
 import akka.actor.typed.TypedActorContext
 
-import io.scalac.core.util.{ CounterDecorator, DecoratorUtils }
+import io.scalac.core.util.{ CounterDecorator, ReflectionFieldUtils }
 
 object ActorCountsDecorators {
 
   final object Received  extends CounterDecorator.FixedClass("akka.actor.ActorCell", "receivedMessages")
   final object Failed    extends CounterDecorator.FixedClass("akka.actor.ActorCell", "failedMessages")
   final object Unhandled extends CounterDecorator.FixedClass("akka.actor.ActorCell", "unhandledMessages")
+  final object Sent      extends CounterDecorator.FixedClass("akka.actor.ActorCell", "sentMessages")
 
   final object FailedAtSupervisor {
 
@@ -34,7 +35,7 @@ object ActorCountsDecorators {
 
   final object FailHandled {
     val fieldName                     = "exceptionHandledMarker"
-    private lazy val (getter, setter) = DecoratorUtils.createHandlers("akka.actor.ActorCell", fieldName)
+    private lazy val (getter, setter) = ReflectionFieldUtils.getHandlers("akka.actor.ActorCell", fieldName)
 
     @inline def initialize(actorCell: Object): Unit      = setter.invoke(actorCell, new AtomicBoolean(false))
     @inline def checkAndRest(actorCell: Object): Boolean = get(actorCell).getAndSet(false)

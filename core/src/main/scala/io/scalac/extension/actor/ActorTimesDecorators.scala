@@ -4,7 +4,7 @@ import java.util.concurrent.atomic.AtomicReference
 
 import scala.concurrent.duration._
 
-import io.scalac.core.util.{ DecoratorUtils, Timestamp }
+import io.scalac.core.util.{ ReflectionFieldUtils, Timestamp }
 import io.scalac.extension.util.AggMetric.LongValueAggMetric
 import io.scalac.extension.util.LongNoLockAggregator
 
@@ -14,7 +14,7 @@ object ActorTimesDecorators {
 
   sealed abstract class TimeDecorator(val fieldName: String) {
 
-    private lazy val (getter, setter) = DecoratorUtils.createHandlers("akka.actor.ActorCell", fieldName)
+    private lazy val (getter, setter) = ReflectionFieldUtils.getHandlers("akka.actor.ActorCell", fieldName)
 
     @inline def initialize(actorCell: Object): Unit =
       setter.invoke(actorCell, new FieldType())
@@ -34,7 +34,7 @@ object ActorTimesDecorators {
 
     val fieldName = "messageReceiveStart"
 
-    private lazy val (getter, setter) = DecoratorUtils.createHandlers("akka.actor.ActorCell", fieldName)
+    private lazy val (getter, setter) = ReflectionFieldUtils.getHandlers("akka.actor.ActorCell", fieldName)
 
     @inline def initialize(actorCell: Object): Unit =
       setter.invoke(actorCell, new AtomicReference(Timestamp.create()))

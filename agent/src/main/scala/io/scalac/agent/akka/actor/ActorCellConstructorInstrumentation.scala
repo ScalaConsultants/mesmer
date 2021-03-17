@@ -16,6 +16,7 @@ object ActorCellConstructorInstrumentation {
     ActorCountsDecorators.Unhandled.initialize(actorCell)
     ActorCountsDecorators.Failed.initialize(actorCell)
     ActorCountsDecorators.FailHandled.initialize(actorCell)
+    ActorCountsDecorators.Sent.initialize(actorCell)
   }
 
 }

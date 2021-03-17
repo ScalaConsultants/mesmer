@@ -1,7 +1,5 @@
 package io.scalac.extension
 
-import java.util.concurrent.atomic.AtomicInteger
-
 import scala.concurrent.duration._
 
 import akka.actor.PoisonPill
@@ -35,10 +33,11 @@ class ActorEventsMonitorActorTest
     extends AnyFlatSpecLike
     with Matchers
     with Inspectors
-    with MonitorWithBasicContextAndServiceTestCaseFactory
+    with MonitorWithServiceTestCaseFactory
     with FreshActorSystemTestCaseFactory {
 
-  type Monitor = ActorMonitorTestProbe
+  type Monitor          = ActorMonitorTestProbe
+  override type Context = TestContext[Monitor]
 
   private val pingOffset: FiniteDuration     = 1.seconds
   private val reasonableTime: FiniteDuration = 3 * pingOffset
@@ -50,7 +49,7 @@ class ActorEventsMonitorActorTest
     new ActorMonitorTestProbe(new CommonCollectorImpl(pingOffset))
 
   protected def createMonitorBehavior(implicit
-    c: MonitorTestCaseContext.BasicContext[ActorMonitorTestProbe]
+    c: TestContext[Monitor]
   ): Behavior[_] =
     ActorEventsMonitorActor(
       monitor,
@@ -58,9 +57,14 @@ class ActorEventsMonitorActorTest
       pingOffset,
       MutableActorMetricsStorage.empty,
       system.systemActorOf(Behaviors.ignore[AkkaStreamMonitoring.Command], createUniqueId),
-      actorMetricsReader = TestActorMetricsReader,
-      actorTreeTraverser = TestActorTreeTraverser
+      actorMetricsReader = c.TestActorMetricsReader,
+      actorTreeTraverser = c.TestActorTreeTraverser
     )
+
+  override protected def createContextFromMonitor(monitor: ActorMonitorTestProbe)(implicit
+    system: ActorSystem[_]
+  ): TestContext[ActorMonitorTestProbe] =
+    new TestContext[Monitor](monitor)
 
   override protected def testSameOrParent(ref: ActorRef[_], parent: ActorRef[_]): Boolean =
     ActorPathOps.getPathString(ref).startsWith(ActorPathOps.getPathString(parent))
@@ -113,72 +117,72 @@ class ActorEventsMonitorActorTest
 
   it should "record avg mailbox time" in testCase { implicit c =>
     val bound = monitor.bind(Labels("/"))
-    shouldObserveTime(FakeMailboxTime, bound.mailboxTimeAvgProbe)
+    shouldObserveTime(c.FakeMailboxTime, bound.mailboxTimeAvgProbe)
     bound.unbind()
   }
 
   it should "record min mailbox time" in testCase { implicit c =>
     val bound = monitor.bind(Labels("/"))
-    shouldObserveTime(FakeMailboxTime / 2, bound.mailboxTimeMinProbe)
+    shouldObserveTime(c.FakeMailboxTime / 2, bound.mailboxTimeMinProbe)
     bound.unbind()
   }
 
   it should "record max mailbox time" in testCase { implicit c =>
     val bound = monitor.bind(Labels("/"))
-    shouldObserveTime(FakeMailboxTime * 2, bound.mailboxTimeMaxProbe)
+    shouldObserveTime(c.FakeMailboxTime * 2, bound.mailboxTimeMaxProbe)
     bound.unbind()
   }
 
   it should "record sum mailbox time" in testCase { implicit c =>
     val bound = monitor.bind(Labels("/"))
-    shouldObserveTime(FakeMailboxTimes.reduce(_ + _), bound.mailboxTimeSumProbe)
+    shouldObserveTime(c.FakeMailboxTimes.reduce(_ + _), bound.mailboxTimeSumProbe)
     bound.unbind()
   }
 
   it should "record received messages" in testCase { implicit c =>
     val bound = monitor.bind(Labels("/"))
-    bound.receivedMessagesProbe.expectMessage(reasonableTime, MetricObserved(FakeReceivedMessages))
+    bound.receivedMessagesProbe.expectMessage(reasonableTime, MetricObserved(c.FakeReceivedMessages))
     bound.unbind()
   }
 
   it should "record processed messages" in testCase { implicit c =>
     val bound = monitor.bind(Labels("/"))
-    bound.processedMessagesProbe.expectMessage(reasonableTime, MetricObserved(FakeProcessedMessages))
+    bound.processedMessagesProbe.expectMessage(reasonableTime, MetricObserved(c.FakeProcessedMessages))
     bound.unbind()
   }
 
   it should "record failed messages" in testCase { implicit c =>
     val bound = monitor.bind(Labels("/"))
-    bound.failedMessagesProbe.expectMessage(reasonableTime, MetricObserved(FakeFailedMessages))
+    bound.failedMessagesProbe.expectMessage(reasonableTime, MetricObserved(c.FakeFailedMessages))
     bound.unbind()
   }
 
   it should "record avg processing time" in testCase { implicit c =>
     val bound = monitor.bind(Labels("/"))
-    shouldObserveTime(FakeProcessingTime, bound.processingTimeAvgProbe)
+    shouldObserveTime(c.FakeProcessingTime, bound.processingTimeAvgProbe)
     bound.unbind()
   }
 
   it should "record min processing time" in testCase { implicit c =>
     val bound = monitor.bind(Labels("/"))
-    shouldObserveTime(FakeProcessingTime / 2, bound.processingTimeMinProbe)
+    shouldObserveTime(c.FakeProcessingTime / 2, bound.processingTimeMinProbe)
     bound.unbind()
   }
 
   it should "record max processing time" in testCase { implicit c =>
     val bound = monitor.bind(Labels("/"))
-    shouldObserveTime(FakeProcessingTime * 2, bound.processingTimeMaxProbe)
+    shouldObserveTime(c.FakeProcessingTime * 2, bound.processingTimeMaxProbe)
     bound.unbind()
   }
 
   it should "record sum processing time" in testCase { implicit c =>
     val bound = monitor.bind(Labels("/"))
-    shouldObserveTime(FakeProcessingTimes.reduce(_ + _), bound.processingTimeSumProbe)
+    shouldObserveTime(c.FakeProcessingTimes.reduce(_ + _), bound.processingTimeSumProbe)
     bound.unbind()
   }
 
-  def recordMailboxSize(n: Int, bound: TestBoundMonitor): Unit = {
-    FakeMailboxSize.set(n)
+  def recordMailboxSize(n: Int, bound: TestBoundMonitor)(implicit c: TestContext[Monitor]): Unit = {
+    c.FakeMailboxSize = n
     bound.mailboxSizeProbe.expectMessage(reasonableTime, MetricObserved(n))
   }
 
@@ -189,31 +193,36 @@ class ActorEventsMonitorActorTest
 
 object ActorEventsMonitorActorTest {
 
-  val TestActorTreeTraverser   = ReflectiveActorTreeTraverser
-  private val FakeMailboxSize  = new AtomicInteger(10)
-  private val FakeMailboxTime  = 1.second
-  private val FakeMailboxTimes = Array(FakeMailboxTime / 2, FakeMailboxTime / 2, 2 * FakeMailboxTime)
-  // min: FakeMailboxTime / 2  |  avg: FakeMailboxTime  |  max: 2 * MailboxTime
-  private val FakeReceivedMessages  = 12
-  private val FakeProcessedMessages = 10
-  private val FakeUnhandledMessages = FakeReceivedMessages - FakeProcessedMessages
-  private val FakeFailedMessages    = 2
-  private val FakeProcessingTime    = 100.milliseconds
-  private val FakeProcessingTimes   = Array(FakeProcessingTime / 2, FakeProcessingTime / 2, 2 * FakeProcessingTime)
-  // min: FakeProcessingTime / 2  |  avg: FakeProcessingTime  |  max: 2 * FakeProcessingTime
+  final case class TestContext[+M](monitor: M)(implicit val system: ActorSystem[_]) extends MonitorTestCaseContext[M] {
+    var FakeMailboxSize = 10
 
-  val TestActorMetricsReader: ActorMetricsReader = { _ =>
-    Some(
-      ActorMetrics(
-        mailboxSize = Some(FakeMailboxSize.get()),
-        mailboxTime = Some(LongValueAggMetric.fromTimeSeries(new LongTimeSeries(FakeMailboxTimes.map(TimeSpent(_))))),
-        receivedMessages = Some(FakeReceivedMessages),
-        unhandledMessages = Some(FakeUnhandledMessages),
-        failedMessages = Some(FakeFailedMessages),
-        processingTime =
-          Some(LongValueAggMetric.fromTimeSeries(new LongTimeSeries(FakeProcessingTimes.map(TimeSpent(_)))))
+    val TestActorTreeTraverser: ActorTreeTraverser = ReflectiveActorTreeTraverser
+    val FakeMailboxTime: FiniteDuration            = 1.second
+    val FakeMailboxTimes: Array[FiniteDuration]    = Array(FakeMailboxTime / 2, FakeMailboxTime / 2, 2 * FakeMailboxTime)
+    // min: FakeMailboxTime / 2  |  avg: FakeMailboxTime  |  max: 2 * MailboxTime
+    val FakeReceivedMessages               = 12
+    val FakeProcessedMessages              = 10
+    val FakeUnhandledMessages: Int         = FakeReceivedMessages - FakeProcessedMessages
+    val FakeFailedMessages                 = 2
+    val FakeProcessingTime: FiniteDuration = 100.milliseconds
+    val FakeProcessingTimes: Array[FiniteDuration] =
+      Array(FakeProcessingTime / 2, FakeProcessingTime / 2, 2 * FakeProcessingTime)
+    // min: FakeProcessingTime / 2  |  avg: FakeProcessingTime  |  max: 2 * FakeProcessingTime
+
+    val TestActorMetricsReader: ActorMetricsReader = { _ =>
+      Some(
+        ActorMetrics(
+          mailboxSize = Some(FakeMailboxSize),
+          mailboxTime = Some(LongValueAggMetric.fromTimeSeries(new LongTimeSeries(FakeMailboxTimes.map(TimeSpent(_))))),
+          receivedMessages = Some(FakeReceivedMessages),
+          unhandledMessages = Some(FakeUnhandledMessages),
+          failedMessages = Some(FakeFailedMessages),
+          processingTime =
+            Some(LongValueAggMetric.fromTimeSeries(new LongTimeSeries(FakeProcessingTimes.map(TimeSpent(_)))))
+        )
       )
-    )
+    }
+
   }
 
   sealed trait Command

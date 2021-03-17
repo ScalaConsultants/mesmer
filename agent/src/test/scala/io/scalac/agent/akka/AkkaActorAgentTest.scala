@@ -19,7 +19,7 @@ import org.scalatest.time.{ Millis, Span }
 import org.scalatest.{ BeforeAndAfterAll, OptionValues }
 
 import io.scalac.core.model._
-import io.scalac.core.util.ActorPathOps
+import io.scalac.core.util.{ ActorPathOps, ActorRefOps }
 import io.scalac.extension.actor.{ ActorCountsDecorators, ActorTimesDecorators }
 import io.scalac.extension.actorServiceKey
 import io.scalac.extension.event.ActorEvent
@@ -239,6 +239,47 @@ class AkkaActorAgentTest
         metrics.max should be(processing.toMillis +- tolerance)
       }
     }
+  }
+
+  it should "record the amount of sent messages properly in classic akka" in {
+    def sent(actorRef: classic.ActorRef, size: Int): Unit = {
+      val cell = eventually {
+        ActorRefOps.Local.cell(actorRef).fold(throw new RuntimeException("ref is not local"))(identity)
+      }
+      eventually {
+        ActorCountsDecorators.Sent.getValue(cell).value should be(size)
+      }
+      ActorCountsDecorators.Sent.reset(cell)
+    }
+
+    class Sender(receiver: classic.ActorRef) extends classic.Actor {
+      override def receive: Receive = { case "forward" =>
+        receiver ! "go on"
+      }
+    }
+
+    class Receiver extends classic.Actor with classic.ActorLogging {
+      override def receive: Receive = { case msg =>
+        log.info(s"receiver: {}", msg)
+      }
+    }
+
+    val classicSystem = system.classicSystem
+    val receiver      = classicSystem.actorOf(classic.Props(new Receiver), createUniqueId)
+    val sender        = system.classicSystem.actorOf(classic.Props(new Sender(receiver)), createUniqueId)
+
+    sender ! "forward"
+    sent(sender, 1)
+    sent(sender, 0)
+    sender ! "something else"
+    sent(sender, 0)
+    sender ! "forward"
+    sender ! "forward"
+    sent(sender, 2)
+    sent(sender, 0)
+
+    sender ! PoisonPill
+    receiver ! PoisonPill
   }
 
   def createExpectStashSize(monitor: Fixture, ref: ActorRef[_]): Int => Unit =
