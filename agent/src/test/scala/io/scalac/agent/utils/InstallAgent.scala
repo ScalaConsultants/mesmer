@@ -29,12 +29,12 @@ abstract class InstallAgent extends TestSuite with BeforeAndAfterAll {
     .`with`(new ByteBuddy().`with`(TypeValidation.DISABLED))
     .`with`(new AgentBuilder.InitializationStrategy.SelfInjection.Eager())
     .`with`(
-      AgentBuilder.Listener.StreamWriting.toSystemOut.withTransformationsOnly
+      AgentBuilder.Listener.StreamWriting.toSystemOut.withTransformationsOnly()
     )
-    .`with`(AgentBuilder.InstallationListener.StreamWriting.toSystemOut)
 
   override protected def beforeAll(): Unit = {
     super.beforeAll()
+
     val instrumentation = ByteBuddyAgent.install()
 
     agent

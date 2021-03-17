@@ -124,5 +124,4 @@ object AkkaStreamAgent {
     graphInterpreterConnectionAgent,
     graphStageIslandAgent
   )
-
 }
