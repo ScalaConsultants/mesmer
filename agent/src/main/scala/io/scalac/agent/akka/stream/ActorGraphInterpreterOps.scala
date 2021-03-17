@@ -31,14 +31,12 @@ object ActorGraphInterpreterOps extends Lookup {
       var terminalFound = false
 
       val stats = currentShells.map { shell =>
-        val connections = new Array[ConnectionStats](shell.connections.length)
-
-        shell.connections.foreach { connection =>
+        val connections = shell.connections.dropWhile(_ eq null).map { connection =>
           val (push, pull) = ConnectionOps.getAndResetCounterValues(connection)
 
           val in  = connection.inOwner.stageId
           val out = connection.outOwner.stageId
-          connections(connection.id) = ConnectionStats(in, out, push, pull)
+          ConnectionStats(in, out, push, pull)
         }
 
         val stageInfo = new Array[StageInfo](shell.logics.length)

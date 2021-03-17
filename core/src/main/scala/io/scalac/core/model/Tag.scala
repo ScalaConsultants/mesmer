@@ -8,7 +8,7 @@ sealed trait Tag extends Any {
   override def toString =
     this.serialize.map { case (label, value) =>
       s"$label -> $value"
-    }.mkString("[", ",", "]")
+    }.mkString("[", ", ", "]")
 }
 
 object Tag {

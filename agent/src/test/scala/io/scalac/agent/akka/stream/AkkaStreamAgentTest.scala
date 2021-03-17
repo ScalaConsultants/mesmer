@@ -6,115 +6,17 @@ import akka.actor.testkit.typed.scaladsl.TestProbe
 import akka.actor.typed.receptionist.Receptionist._
 import akka.actor.typed.scaladsl.adapter._
 import akka.stream.scaladsl._
-import akka.stream.{Attributes, BufferOverflowException, OverflowStrategy, QueueOfferResult}
-import io.scalac.agent.utils.{InstallAgent, SafeLoadSystem}
+import akka.stream.{ Attributes, BufferOverflowException, OverflowStrategy, QueueOfferResult }
+import io.scalac.agent.utils.{ InstallAgent, SafeLoadSystem }
 import io.scalac.core.akka.model.PushMetrics
-import io.scalac.extension.event.{ActorInterpreterStats, Service, TagEvent}
-import org.reactivestreams.{Publisher, Subscriber, Subscription}
-import org.scalatest.concurrent.{Futures, ScalaFutures}
+import io.scalac.extension.event.{ ActorInterpreterStats, Service, TagEvent }
+import org.scalatest._
+import org.scalatest.concurrent.{ Futures, ScalaFutures }
 import org.scalatest.flatspec.AnyFlatSpecLike
 import org.scalatest.matchers.should.Matchers
-import org.scalatest.{BeforeAndAfter, BeforeAndAfterAll, Inspectors, LoneElement}
 
-import scala.collection.mutable.ListBuffer
 import scala.concurrent.duration._
-import scala.concurrent.{ExecutionContext, Future}
-
-final case class TestSubscription[T](
-  private val subscribe: Subscriber[_ >: T],
-  private val data: Iterator[T],
-  private val cancelFunc: () => Unit
-) extends Subscription {
-  @volatile
-  private var downstreamDemand: Long = 0
-  @volatile
-  private var allowedElements: Long = 0
-  @volatile
-  private var cancelled: Boolean = false
-
-  override def request(n: Long): Unit =
-    if (!cancelled) {
-      downstreamDemand += n
-      publishElements()
-    }
-
-  def pushAllowed(n: Int): Unit =
-    if (!cancelled) {
-      allowedElements += n
-      publishElements()
-    }
-
-  private def publishElements(): Unit =
-    while (downstreamDemand > 0 && allowedElements > 0 && !cancelled)
-      if (data.hasNext) {
-        subscribe.onNext(data.next())
-        downstreamDemand -= 1
-        allowedElements -= 1
-      } else {
-        subscribe.onComplete()
-        this.cancel()
-      }
-
-  override def cancel(): Unit = {
-    cancelled = true
-    cancelFunc()
-  }
-}
-
-final class TestPublisher[T](data: Seq[T]) extends Publisher[T] {
-
-  def allowElements(n: Int): Unit = buffer.foreach(_.pushAllowed(n))
-
-  private val buffer = ListBuffer.empty[TestSubscription[T]]
-
-  override def subscribe(s: Subscriber[_ >: T]): Unit = {
-    lazy val subscription: TestSubscription[T] =
-      TestSubscription[T](s, data.iterator, () => buffer.filterInPlace(_ != subscription))
-    s.onSubscribe(subscription)
-    buffer += subscription
-  }
-}
-
-final case class TestSubscriber[T]() extends Subscriber[T] {
-  @volatile
-  private var subscription: Option[Subscription] = None
-
-  @volatile
-  private var _demand = 0
-
-  @volatile
-  private var demanded: Boolean = false
-
-  override def onSubscribe(s: Subscription): Unit = {
-    subscription = Some(s)
-    publishDemand()
-  }
-
-  override def onNext(t: T): Unit = {
-    println(t)
-    demanded = true
-    publishDemand()
-  }
-
-  override def onError(t: Throwable): Unit = ()
-
-  override def onComplete(): Unit = ()
-
-  def demand(num: Int): Unit = {
-
-    _demand += num
-    if (!demanded) {
-      demanded = true
-      publishDemand()
-    }
-  }
-
-  private def publishDemand(): Unit =
-    while (_demand > 0) {
-      _demand -= 1
-      subscription.foreach(_.request(1))
-    }
-}
+import scala.concurrent.{ ExecutionContext, Future }
 
 class AkkaStreamAgentTest
     extends InstallAgent
@@ -126,7 +28,8 @@ class AkkaStreamAgentTest
     with LoneElement
     with Inspectors
     with ScalaFutures
-    with Futures {
+    with Futures
+    with Inside {
 
   implicit var streamService: ActorStreamRefService = _
 
@@ -200,9 +103,15 @@ class AkkaStreamAgentTest
 
     val (inputQueue, outputQueue) = Source
       .queue[Int](1024, OverflowStrategy.dropNew, 1)
-      .filter(_ % 2 == 0)
-      .map(x => if (x == 0) 0 else x / 2)
-      .toMat(Sink.queue[Int]().withAttributes(Attributes.inputBuffer(1, 1)))(Keep.both)
+      .named("InQueue")
+      .via(
+        Flow[Int]
+          .filter(_ % 2 == 0)
+          .named("Mod2")
+          .map(x => if (x == 0) 0 else x / 2)
+          .named("Div2")
+      )
+      .toMat(Sink.queue[Int]().withAttributes(Attributes.inputBuffer(1, 1)).named("OutQueue"))(Keep.both)
       .run()
 
     val elements = offerMany(inputQueue, List.tabulate(100)(identity))
@@ -251,47 +160,75 @@ class AkkaStreamAgentTest
 
     val replyProbe = createTestProbe[ActorInterpreterStats]
 
-    val Demand           = 5L
-    val ExpectedElements = Demand + 1L // somehow sinkQueue demand 1 element in advance
+    // seems like all input / output boundaries introduce off by one changes in demand
+    val Demand                 = 1L
+    val SinkExpectedElements   = Demand + 1L // somehow sinkQueue demand 1 element in advance
+    val FlowExpectedElements   = SinkExpectedElements + 1L
+    val SourceExpectedElements = (FlowExpectedElements + 1L) * 2
 
     val (inputQueue, outputQueue) = Source
       .queue[Int](1024, OverflowStrategy.dropNew, 1)
+      .withAttributes(Attributes.inputBuffer(1, 1))
       .async
       .filter(_ % 2 == 0)
       .map(x => if (x == 0) 0 else x / 2)
+      .withAttributes(Attributes.inputBuffer(1, 1))
       .async
-      .toMat(Sink.queue[Int]().withAttributes(Attributes.inputBuffer(1, 1)))(Keep.both)
+      .toMat(
+        Sink
+          .queue[Int]()
+          .withAttributes(Attributes.inputBuffer(1, 1))
+          .named("queueEnd")
+      )(Keep.both)
       .run()
 
     val elements = offerMany(inputQueue, List.tabulate(100)(identity))
       .zipWith(expectMany(outputQueue, Demand))((_, _) => Done)
 
     whenReady(elements) { _ =>
-      val refs = actors(3)
+      // are started in reverse order
+      val Seq(sinkRef, flowRef, sourceRef) = actors(3)
 
-      refs.foreach(_ ! PushMetrics(replyProbe.ref.toClassic))
+//      refs.foreach(_ ! PushMetrics(replyProbe.ref.toClassic))
 
-      val allStats = replyProbe.receiveMessages(3)
+      sinkRef ! PushMetrics(replyProbe.ref.toClassic)
 
-      forAll(allStats) { stats =>
-        val (stages, connections) = stats.shellInfo.loneElement
+      val (sinkStages, sinkConnections) = replyProbe.receiveMessage().shellInfo.loneElement
 
-        stages.foreach(println)
-        connections.foreach(println)
+      sinkStages should have size 2
+      sinkConnections should have size 1
 
-//        stages should have size 4
-//        connections should have size 3
-//
-//        val Array(sinkMap, mapFilter, filterSource) = connections
-//
-//        sinkMap.push shouldBe ExpectedElements
-//        sinkMap.pull shouldBe ExpectedElements
-//
-//        mapFilter.push shouldBe ExpectedElements
-//        mapFilter.pull shouldBe ExpectedElements
-//
-//        filterSource.push should be((ExpectedElements * 2) +- 1)
-//        filterSource.pull should be((ExpectedElements * 2) +- 1)
+      forAll(sinkConnections.toSeq) { connection =>
+        connection.push should be(SinkExpectedElements)
+        connection.pull should be(SinkExpectedElements)
+      }
+
+      flowRef ! PushMetrics(replyProbe.ref.toClassic)
+
+      val (flowStages, flowConnections) = replyProbe.receiveMessage().shellInfo.loneElement
+
+      flowStages should have size 4
+
+      inside(flowConnections) { case Array(filterMap, inputFilter, mapOutput) =>
+        filterMap.push should be(FlowExpectedElements)
+        filterMap.pull should be(FlowExpectedElements)
+        inputFilter.push should be(SourceExpectedElements - 1L)
+        inputFilter.pull should be(SourceExpectedElements - 1L)
+        mapOutput.push should be(FlowExpectedElements)
+        mapOutput.pull should be(FlowExpectedElements)
+      }
+
+      sourceRef ! PushMetrics(replyProbe.ref.toClassic)
+
+      val (sourceStages, sourceConnections) = replyProbe.receiveMessage().shellInfo.loneElement
+
+      sourceStages should have size 2
+
+      sourceConnections should have size 1
+
+      forAll(sourceConnections.toSeq) { connection =>
+        connection.push should be(SourceExpectedElements)
+        connection.pull should be(SourceExpectedElements)
       }
     }
   }
