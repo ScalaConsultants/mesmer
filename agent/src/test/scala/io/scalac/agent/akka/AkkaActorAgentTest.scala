@@ -17,8 +17,9 @@ import io.scalac.agent.utils.{ InstallAgent, SafeLoadSystem }
 import org.scalatest.concurrent.Eventually
 import org.scalatest.flatspec.AnyFlatSpecLike
 import org.scalatest.matchers.should.Matchers
+
 import org.scalatest.time.{ Millis, Span }
-import org.scalatest.{ BeforeAndAfterAll, OptionValues }
+import org.scalatest.OptionValues
 
 import io.scalac.core.model._
 import io.scalac.core.util.ActorPathOps
@@ -268,7 +269,8 @@ class AkkaActorAgentTest
     Await.ready(
       Future {
         blocking {
-          while (ctxRef.isEmpty) {}
+          while (ctxRef.isEmpty)
+            Thread.sleep(100)
         }
       }(ExecutionContext.global),
       2.seconds

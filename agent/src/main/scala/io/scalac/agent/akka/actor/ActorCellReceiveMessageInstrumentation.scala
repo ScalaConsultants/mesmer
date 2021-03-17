@@ -15,7 +15,7 @@ object ActorCellReceiveMessageInstrumentation {
 
   @OnMethodExit(onThrowable = classOf[Throwable])
   def onExit(@This actorCell: Object, @Thrown exception: Throwable): Unit = {
-    if (exception != null) {
+    if (exception != null && !ActorCountsDecorators.FailHandled.checkAndRest(actorCell)) {
       ActorCountsDecorators.Failed.inc(actorCell)
     }
     ActorTimesDecorators.ProcessingTime.addTime(
