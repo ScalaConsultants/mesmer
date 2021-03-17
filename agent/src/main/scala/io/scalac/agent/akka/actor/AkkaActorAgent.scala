@@ -1,6 +1,6 @@
 package io.scalac.agent.akka.actor
 
-import java.util.concurrent.atomic.{ AtomicLong, AtomicReference }
+import java.util.concurrent.atomic.{ AtomicBoolean, AtomicLong, AtomicReference }
 
 import akka.actor.typed.Behavior
 
@@ -179,6 +179,10 @@ object AkkaActorAgent {
               ActorCountsDecorators.Failed.fieldName,
               classOf[AtomicLong]
             )
+            .defineField(
+              ActorCountsDecorators.FailHandled.fieldName,
+              classOf[AtomicBoolean]
+            )
             .visit(
               Advice
                 .to(classOf[ActorCellConstructorInstrumentation])
@@ -217,28 +221,30 @@ object AkkaActorAgent {
   }
 
   private val abstractSupervisionInstrumentation = {
-    val resumeSupervisor  = "akka.actor.typed.internal.ResumeSupervisor"
-    val restartSupervisor = "akka.actor.typed.internal.RestartSupervisor"
-    val targetClassName   = s"$resumeSupervisor & $restartSupervisor"
-    // Disclaimer: StopSupervisor is handled by the `actorCellInstrumentation`, because it throws an exception handled
-    //             by that instrumentation over receiveMessage on the exit moment.
+    val abstractSupervisor = "akka.actor.typed.internal.AbstractSupervisor"
     AgentInstrumentation(
-      targetClassName,
+      abstractSupervisor,
       SupportedModules(moduleName, version)
     ) { (agentBuilder, instrumentation, _) =>
       agentBuilder
         .`type`(
-          named[TypeDescription](resumeSupervisor).or[TypeDescription](
-            named[TypeDescription](restartSupervisor)
-          )
+          hasSuperType[TypeDescription](named[TypeDescription](abstractSupervisor))
+            .and[TypeDescription](
+              declaresMethod[TypeDescription](
+                named[MethodDescription]("handleReceiveException")
+                  .and[MethodDescription](
+                    isOverriddenFrom[MethodDescription](named[TypeDescription](abstractSupervisor))
+                  )
+              )
+            )
         )
         .transform { (builder, _, _, _) =>
           builder
             .method(named[MethodDescription]("handleReceiveException"))
-            .intercept(Advice.to(classOf[AbstractSupervisionHandleReceiveExceptionInstrumentation]))
+            .intercept(Advice.to(classOf[SupervisorHandleReceiveExceptionInstrumentation]))
         }
         .installOn(instrumentation)
-      LoadingResult(targetClassName)
+      LoadingResult(abstractSupervisor)
     }
   }
 
