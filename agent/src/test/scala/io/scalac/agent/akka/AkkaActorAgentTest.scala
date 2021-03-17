@@ -17,6 +17,7 @@ import io.scalac.agent.utils.{ InstallAgent, SafeLoadSystem }
 import org.scalatest.concurrent.Eventually
 import org.scalatest.flatspec.AnyFlatSpecLike
 import org.scalatest.matchers.should.Matchers
+import org.scalatest.time.{ Millis, Span }
 import org.scalatest.{ BeforeAndAfterAll, OptionValues }
 
 import io.scalac.core.model._
@@ -37,6 +38,8 @@ class AkkaActorAgentTest
     with SafeLoadSystem {
 
   import AkkaActorAgentTest._
+
+  override implicit val patienceConfig: PatienceConfig = PatienceConfig().copy(scaled(Span(1000, Millis)))
 
   def test(body: Fixture => Any): Any = {
     val monitor = createTestProbe[ActorEvent]
@@ -132,8 +135,11 @@ class AkkaActorAgentTest
         Behaviors.same
     }
   ) { (ctx, actor) =>
-    def failed(size: Int): Unit = eventually {
-      ActorCountsDecorators.Failed.take(ctx).value should be(size)
+    def failed(size: Int): Unit = {
+      eventually {
+        ActorCountsDecorators.Failed.getValue(ctx).value should be(size)
+      }
+      ActorCountsDecorators.Failed.reset(ctx)
     }
 
     failed(0)
@@ -153,7 +159,7 @@ class AkkaActorAgentTest
         .supervise[String](
           Behaviors.receiveMessage {
             case "fail" =>
-              throw new RuntimeException("I failed :(")
+              throw new RuntimeException(s"[strategy = $strategy]I failed :(")
             case _ =>
               Behaviors.same
           }
