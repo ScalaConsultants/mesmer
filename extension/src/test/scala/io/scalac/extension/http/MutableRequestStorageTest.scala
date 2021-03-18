@@ -40,7 +40,7 @@ class MutableRequestStorageTest extends AnyFlatSpec with Matchers with TestOps {
       events.foreach(sut.requestStarted)
       val finished = events
         .take(5)
-        .map(started => RequestCompleted(started.id, startTimestamp.plus(100.millis)))
+        .map(started => RequestCompleted(started.id, startTimestamp.plus(100.millis), "200"))
 
       finished.foreach(sut.requestCompleted)
 
@@ -56,7 +56,7 @@ class MutableRequestStorageTest extends AnyFlatSpec with Matchers with TestOps {
     sut.requestStarted(RequestStarted(id, startTimestamp, path, "GET"))
 
     val Some((resultStorage, started)) =
-      sut.requestCompleted(RequestCompleted(id, startTimestamp.plus(123.millis)))
+      sut.requestCompleted(RequestCompleted(id, startTimestamp.plus(123.millis), "200"))
 
     resultStorage should be theSameInstanceAs (sut)
     started.id should be(id)
@@ -87,7 +87,7 @@ class MutableRequestStorageTest extends AnyFlatSpec with Matchers with TestOps {
         RequestStarted(id, startTimestamp, "/some/path", "GET")
       }
       events.foreach(sut.requestStarted)
-      sut.requestCompleted(RequestCompleted(createUniqueId, startTimestamp.plus(100.millis))) should be(None)
+      sut.requestCompleted(RequestCompleted(createUniqueId, startTimestamp.plus(100.millis), "200")) should be(None)
       buffer.values should contain theSameElementsAs (events)
   }
 
