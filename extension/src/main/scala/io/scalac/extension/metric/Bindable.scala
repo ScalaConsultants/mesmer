@@ -14,7 +14,7 @@ trait Bindable[L <: LabelSerializable, +B <: Bound] extends (L => B) {
   def bind(labels: L): B
 }
 
-abstract class EmptyBind[B <: Bound] extends Bindable[EmptyBind.EmptyLabels, B]() {
+trait EmptyBind[B <: Bound] extends Bindable[EmptyBind.EmptyLabels, B] {
   final def bind(labels: EmptyBind.EmptyLabels): B = this.bind()
   def bind(): B
 }
