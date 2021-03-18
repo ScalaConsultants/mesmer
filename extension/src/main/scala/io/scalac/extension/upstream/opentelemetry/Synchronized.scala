@@ -7,7 +7,7 @@ import scala.collection.mutable.ListBuffer
 
 abstract class Synchronized(private val meter: Meter) extends BaseSynchronized {
   import Synchronized._
-  override type Instrument[L] = WrappedSynchronousInstrument[L]
+  override type Instrument[X] = WrappedSynchronousInstrument[X]
 
   override def atomically[A, B](first: Instrument[A], second: Instrument[B]): (A, B) => Unit = { (a, b) =>
     meter
@@ -30,9 +30,9 @@ object Synchronized {
   private[opentelemetry] implicit class RecorderExt(val recorder: BatchRecorder) extends AnyVal {
     def putValue[L](instrument: WrappedSynchronousInstrument[L], value: L): BatchRecorder = {
       instrument match {
-        case WrappedLongValueRecorder(underlying, _) => recorder.put(underlying, value.asInstanceOf[Long])
-        case WrappedCounter(underlying, _)           => recorder.put(underlying, value.asInstanceOf[Long])
-        case WrappedUpDownCounter(underlying, _)     => recorder.put(underlying, value.asInstanceOf[Long])
+        case WrappedLongValueRecorder(underlying, _) => recorder.put(underlying, value)
+        case WrappedCounter(underlying, _)           => recorder.put(underlying, value)
+        case WrappedUpDownCounter(underlying, _)     => recorder.put(underlying, value)
       }
       recorder
     }
