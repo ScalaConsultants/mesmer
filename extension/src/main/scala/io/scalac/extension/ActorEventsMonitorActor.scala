@@ -287,6 +287,11 @@ object ActorEventsMonitorActor {
           bind.processingTimeSum.setUpdater(_.observe(pt.sum))
         }
 
+        metrics.sentMessages.foreach { sm =>
+          log.trace("Registering a new updaters for sent messages for actor {} with value {}", key, sm)
+          bind.sentMessages.setUpdater(_.observe(sm))
+        }
+
       }
 
   }
@@ -345,7 +350,8 @@ object ActorEventsMonitorActor {
             processingTime = ActorTimesDecorators.ProcessingTime.getMetrics(cell),
             receivedMessages = ActorCountsDecorators.Received.take(cell),
             unhandledMessages = ActorCountsDecorators.Unhandled.take(cell),
-            failedMessages = ActorCountsDecorators.Failed.take(cell)
+            failedMessages = ActorCountsDecorators.Failed.take(cell),
+            sentMessages = ActorCountsDecorators.Sent.take(cell)
           )
         }
 
