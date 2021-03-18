@@ -9,6 +9,7 @@ object ActorCellConstructorInstrumentation {
 
   @OnMethodExit
   def onEnter(@This actorCell: Object): Unit = {
+    // TODO Aggregate all the decorators below into a single class and field inside actor cell.
     ActorTimesDecorators.MailboxTime.initialize(actorCell)
     ActorTimesDecorators.ProcessingTime.initialize(actorCell)
     ActorTimesDecorators.ProcessingTimeSupport.initialize(actorCell)

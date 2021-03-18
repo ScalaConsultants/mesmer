@@ -37,8 +37,8 @@ object ActorCountsDecorators {
     val fieldName                     = "exceptionHandledMarker"
     private lazy val (getter, setter) = ReflectionFieldUtils.getHandlers("akka.actor.ActorCell", fieldName)
 
-    @inline def initialize(actorCell: Object): Unit      = setter.invoke(actorCell, new AtomicBoolean(false))
-    @inline def checkAndRest(actorCell: Object): Boolean = get(actorCell).getAndSet(false)
+    @inline def initialize(actorCell: Object): Unit       = setter.invoke(actorCell, new AtomicBoolean(false))
+    @inline def checkAndReset(actorCell: Object): Boolean = get(actorCell).getAndSet(false)
 
     @inline private[ActorCountsDecorators] def setHandled(actorCell: Object): Unit = get(actorCell).set(true)
 
