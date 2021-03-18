@@ -13,7 +13,7 @@ object ActorCellSendMessageInstrumentation {
     if (envelope != null) {
       EnvelopeDecorator.setTimestamp(envelope)
       ActorRefOps.Local
-        .cell(EnvelopeDecorator.getSender(envelope))
+        .cell(EnvelopeOps.getSender(envelope))
         .foreach(ActorCountsDecorators.Sent.inc)
     }
 

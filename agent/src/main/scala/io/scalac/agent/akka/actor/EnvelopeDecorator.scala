@@ -1,6 +1,5 @@
 package io.scalac.agent.akka.actor
 
-import akka.actor.ActorRef
 import akka.dispatch.Envelope
 
 import io.scalac.core.util.{ ReflectionFieldUtils, Timestamp }
@@ -17,8 +16,5 @@ object EnvelopeDecorator {
 
   @inline final def getTimestamp(envelope: Object): Timestamp =
     timestampGetterHandler.invoke(envelope).asInstanceOf[Timestamp]
-
-  @inline final def getSender(envelope: Object): ActorRef =
-    envelope.asInstanceOf[Envelope].sender
 
 }
