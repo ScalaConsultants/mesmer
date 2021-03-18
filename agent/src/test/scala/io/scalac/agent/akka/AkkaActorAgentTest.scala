@@ -5,18 +5,21 @@ import scala.concurrent.duration._
 
 import akka.actor.PoisonPill
 import akka.actor.testkit.typed.FishingOutcome
-import akka.actor.testkit.typed.scaladsl.{ ScalaTestWithActorTestKit, TestProbe }
+import akka.actor.testkit.typed.scaladsl.TestProbe
+import akka.actor.typed.scaladsl.adapter._
 import akka.actor.typed.receptionist.Receptionist
 import akka.actor.typed.receptionist.Receptionist.{ Deregister, Register }
-import akka.actor.typed.scaladsl.adapter._
 import akka.actor.typed.scaladsl.{ ActorContext, Behaviors, StashBuffer }
 import akka.actor.typed.{ ActorRef, Behavior, SupervisorStrategy }
 import akka.{ actor => classic }
 
+import io.scalac.agent.utils.{ InstallAgent, SafeLoadSystem }
 import org.scalatest.concurrent.Eventually
 import org.scalatest.flatspec.AnyFlatSpecLike
+import org.scalatest.matchers.should.Matchers
+
 import org.scalatest.time.{ Millis, Span }
-import org.scalatest.{ BeforeAndAfterAll, OptionValues }
+import org.scalatest.OptionValues
 
 import io.scalac.core.model._
 import io.scalac.core.util.ActorPathOps
@@ -27,15 +30,13 @@ import io.scalac.extension.event.ActorEvent.StashMeasurement
 import io.scalac.extension.util.ReceptionistOps
 
 class AkkaActorAgentTest
-    extends ScalaTestWithActorTestKit({
-      installAgent
-      classic.ActorSystem("AkkaActorAgentTest").toTyped
-    })
+    extends InstallAgent
     with AnyFlatSpecLike
     with ReceptionistOps
-    with BeforeAndAfterAll
     with OptionValues
-    with Eventually {
+    with Eventually
+    with Matchers
+    with SafeLoadSystem {
 
   import AkkaActorAgentTest._
 
@@ -258,7 +259,7 @@ class AkkaActorAgentTest
     block: (classic.ActorContext, ActorRef[T]) => Unit
   ): Unit = {
     var ctxRef: Option[classic.ActorContext] = None
-    val testActor = spawn(
+    val testActor = system.systemActorOf(
       Behaviors.setup[T] { ctx =>
         ctxRef = Some(ctx.toClassic)
         behavior(ctx)
