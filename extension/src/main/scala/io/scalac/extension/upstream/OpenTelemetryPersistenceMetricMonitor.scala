@@ -95,7 +95,7 @@ class OpenTelemetryPersistenceMetricMonitor(instrumentationName: String, metricN
 
   override def bind(labels: Labels): BoundMonitor = new OpenTelemetryBoundMonitor(labels)
 
-  class OpenTelemetryBoundMonitor(labels: Labels) extends BoundMonitor with opentelemetry.Synchronized {
+  class OpenTelemetryBoundMonitor(labels: Labels) extends BoundMonitor {
     private val openTelemetryLabels = LabelsFactory.of(labels.serialize)
     override lazy val recoveryTime  = WrappedLongValueRecorder(recoveryTimeRecorder, openTelemetryLabels)
 

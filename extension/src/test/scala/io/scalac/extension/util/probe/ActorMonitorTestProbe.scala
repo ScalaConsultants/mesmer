@@ -3,7 +3,6 @@ package io.scalac.extension.util.probe
 import akka.actor.testkit.typed.scaladsl.TestProbe
 import akka.actor.typed.ActorSystem
 import io.scalac.extension.metric.{ ActorMetricMonitor, MetricObserver, MetricRecorder }
-import io.scalac.extension.util.TestProbeSynchronized
 import io.scalac.extension.util.probe.BoundTestProbe.{ MetricObserverCommand, MetricRecorderCommand }
 
 import scala.collection.mutable
@@ -51,8 +50,7 @@ object ActorMonitorTestProbe {
     collector: ObserverCollector,
     onUnbind: () => Unit
   )(implicit actorSystem: ActorSystem[_])
-      extends BoundMonitor
-      with TestProbeSynchronized {
+      extends BoundMonitor {
     val mailboxSize: MetricObserver[Long] =
       ObserverTestProbeWrapper(mailboxSizeProbe, collector)
     val mailboxTimeAvg: MetricObserver[Long] =

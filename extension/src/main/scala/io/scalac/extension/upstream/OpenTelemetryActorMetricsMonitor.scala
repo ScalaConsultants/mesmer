@@ -165,7 +165,7 @@ class OpenTelemetryActorMetricsMonitor(instrumentationName: String, metricNames:
       LabelsFactory.of(labels.serialize)
     )
 
-  class OpenTelemetryBoundMonitor(labels: Labels) extends ActorMetricMonitor.BoundMonitor with Synchronized {
+  class OpenTelemetryBoundMonitor(labels: Labels) extends ActorMetricMonitor.BoundMonitor {
 
     val mailboxSize: MetricObserver[Long] =
       mailboxSizeObserver.createObserver(labels)

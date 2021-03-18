@@ -3,7 +3,6 @@ package io.scalac.extension.upstream
 import com.typesafe.config.Config
 import io.opentelemetry.api.OpenTelemetry
 import io.opentelemetry.api.common.Labels
-
 import io.scalac.extension.metric.{ ClusterMetricsMonitor, _ }
 import io.scalac.extension.upstream.OpenTelemetryClusterMetricsMonitor.MetricNames
 import io.scalac.extension.upstream.opentelemetry._
@@ -133,7 +132,9 @@ class OpenTelemetryClusterMetricsMonitor(instrumentationName: String, val metric
   override def bind(labels: ClusterMetricsMonitor.Labels): ClusterBoundMonitor =
     new ClusterBoundMonitor(LabelsFactory.of(LabelNames.Node -> labels.node)(LabelNames.Region -> labels.region))
 
-  class ClusterBoundMonitor(labels: Labels) extends ClusterMetricsMonitor.BoundMonitor with opentelemetry.Synchronized {
+  class ClusterBoundMonitor(labels: Labels)
+      extends opentelemetry.Synchronized(meter)
+      with ClusterMetricsMonitor.BoundMonitor {
 
     override val shardPerRegions: MetricObserver[Long] =
       shardsPerRegionRecorder.createObserver(labels)

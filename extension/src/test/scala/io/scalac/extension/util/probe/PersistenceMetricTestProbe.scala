@@ -3,8 +3,7 @@ package io.scalac.extension.util.probe
 import akka.actor.testkit.typed.scaladsl.TestProbe
 import akka.actor.typed.ActorSystem
 import io.scalac.extension.metric.PersistenceMetricMonitor.Labels
-import io.scalac.extension.metric.{ Bindable, MetricRecorder, PersistenceMetricMonitor, UpCounter }
-import io.scalac.extension.util.TestProbeSynchronized
+import io.scalac.extension.metric.{ MetricRecorder, PersistenceMetricMonitor, UpCounter }
 import io.scalac.extension.util.probe.BoundTestProbe.{ CounterCommand, MetricRecorderCommand }
 
 import java.util.concurrent.ConcurrentHashMap
@@ -65,8 +64,7 @@ class PersistenceMetricTestProbe(implicit val system: ActorSystem[_])
     val persistentEventProbe: TestProbe[MetricRecorderCommand],
     val persistentEventTotalProbe: TestProbe[CounterCommand],
     val snapshotProbe: TestProbe[CounterCommand]
-  ) extends PersistenceMetricMonitor.BoundMonitor
-      with TestProbeSynchronized {
+  ) extends PersistenceMetricMonitor.BoundMonitor {
     override def recoveryTime: SyncTestProbeWrapper with MetricRecorder[Long] =
       RecorderTestProbeWrapper(recoveryTimeProbe)
 

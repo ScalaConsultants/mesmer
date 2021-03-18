@@ -1,18 +1,16 @@
 package io.scalac.extension.upstream.opentelemetry
-import io.opentelemetry.api.OpenTelemetry
 import io.opentelemetry.api.common.Labels
-import io.opentelemetry.api.metrics.BatchRecorder
+import io.opentelemetry.api.metrics.{ BatchRecorder, Meter }
 import io.scalac.extension.metric.{ Synchronized => BaseSynchronized }
 
 import scala.collection.mutable.ListBuffer
 
-trait Synchronized extends BaseSynchronized {
+abstract class Synchronized(private val meter: Meter) extends BaseSynchronized {
   import Synchronized._
   override type Instrument[L] = WrappedSynchronousInstrument[L]
 
   override def atomically[A, B](first: Instrument[A], second: Instrument[B]): (A, B) => Unit = { (a, b) =>
-    OpenTelemetry
-      .getGlobalMeter("")
+    meter
       .newBatchRecorder(extractLabels(first.labels): _*)
       .putValue(first, a)
       .putValue(second, b)
