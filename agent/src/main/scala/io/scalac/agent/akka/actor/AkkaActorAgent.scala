@@ -1,6 +1,6 @@
 package io.scalac.agent.akka.actor
 
-import java.util.concurrent.atomic.AtomicLong
+import java.util.concurrent.atomic.{ AtomicBoolean, AtomicLong, AtomicReference }
 
 import akka.actor.typed.Behavior
 
@@ -14,7 +14,7 @@ import io.scalac.agent.{ Agent, AgentInstrumentation }
 import io.scalac.core.model._
 import io.scalac.core.support.ModulesSupport
 import io.scalac.core.util.Timestamp
-import io.scalac.extension.actor.{ MailboxTimeDecorator, MessageCounterDecorators }
+import io.scalac.extension.actor.{ ActorCountsDecorators, ActorTimesDecorators }
 
 object AkkaActorAgent {
 
@@ -37,13 +37,13 @@ object AkkaActorAgent {
                 .to(classOf[ClassicStashInstrumentation])
                 .on(
                   named[MethodDescription]("stash")
-                    .or(named[MethodDescription]("prepend"))
-                    .or(named[MethodDescription]("unstash"))
-                    .or(
+                    .or[MethodDescription](named[MethodDescription]("prepend"))
+                    .or[MethodDescription](named[MethodDescription]("unstash"))
+                    .or[MethodDescription](
                       named[MethodDescription]("unstashAll")
-                        .and(takesArguments[MethodDescription](1))
+                        .and[MethodDescription](takesArguments[MethodDescription](1))
                     )
-                    .or(named[MethodDescription]("clearStash"))
+                    .or[MethodDescription](named[MethodDescription]("clearStash"))
                 )
             )
         }
@@ -73,7 +73,9 @@ object AkkaActorAgent {
                 .on(
                   named[MethodDescription]("unstash")
                     // since there're two `unstash` methods, we need to specify parameter types
-                    .and(takesArguments(classOf[Behavior[_]], classOf[Int], classOf[Function1[_, _]]))
+                    .and[MethodDescription](
+                      takesArguments[MethodDescription](classOf[Behavior[_]], classOf[Int], classOf[(_) => _])
+                    )
                 )
             )
         }
@@ -111,7 +113,9 @@ object AkkaActorAgent {
                 .to(classOf[ActorCellSendMessageInstrumentation])
                 .on(
                   named[MethodDescription]("sendMessage")
-                    .and(takesArgument(0, named[TypeDescription]("akka.dispatch.Envelope")))
+                    .and[MethodDescription](
+                      takesArgument[MethodDescription](0, named[TypeDescription]("akka.dispatch.Envelope"))
+                    )
                 )
             )
         }
@@ -152,20 +156,32 @@ object AkkaActorAgent {
         .transform { (builder, _, _, _) =>
           builder
             .defineField(
-              MailboxTimeDecorator.MailboxTimeAggVar,
-              classOf[MailboxTimeDecorator.MailboxTimeAgg]
+              ActorTimesDecorators.MailboxTime.fieldName,
+              classOf[ActorTimesDecorators.FieldType]
             )
             .defineField(
-              MessageCounterDecorators.Received.fieldName,
+              ActorTimesDecorators.ProcessingTime.fieldName,
+              classOf[ActorTimesDecorators.FieldType]
+            )
+            .defineField(
+              ActorTimesDecorators.ProcessingTimeSupport.fieldName,
+              classOf[AtomicReference[Timestamp]]
+            )
+            .defineField(
+              ActorCountsDecorators.Received.fieldName,
               classOf[AtomicLong]
             )
             .defineField(
-              MessageCounterDecorators.Unhandled.fieldName,
+              ActorCountsDecorators.Unhandled.fieldName,
               classOf[AtomicLong]
             )
             .defineField(
-              MessageCounterDecorators.Failed.fieldName,
+              ActorCountsDecorators.Failed.fieldName,
               classOf[AtomicLong]
+            )
+            .defineField(
+              ActorCountsDecorators.FailHandled.fieldName,
+              classOf[AtomicBoolean]
             )
             .visit(
               Advice
@@ -205,30 +221,34 @@ object AkkaActorAgent {
   }
 
   private val abstractSupervisionInstrumentation = {
-    val targetClassName = "akka.actor.typed.internal.AbstractSupervisor"
+    val abstractSupervisor = "akka.actor.typed.internal.AbstractSupervisor"
     AgentInstrumentation(
-      targetClassName,
+      abstractSupervisor,
       SupportedModules(moduleName, version)
     ) { (agentBuilder, instrumentation, _) =>
       agentBuilder
         .`type`(
-          hasSuperType[TypeDescription](named(targetClassName))
-            .and[TypeDescription](not[TypeDescription](isInterface))
+          hasSuperType[TypeDescription](named[TypeDescription](abstractSupervisor))
+            .and[TypeDescription](
+              declaresMethod[TypeDescription](
+                named[MethodDescription]("handleReceiveException")
+                  .and[MethodDescription](
+                    isOverriddenFrom[MethodDescription](named[TypeDescription](abstractSupervisor))
+                  )
+              )
+            )
         )
         .transform { (builder, _, _, _) =>
           builder
-            .visit(
-              Advice
-                .to(classOf[AbstractSupervisionHandleReceiveExceptionInstrumentation])
-                .on(named[MethodDescription]("handleReceiveException"))
-            )
+            .method(named[MethodDescription]("handleReceiveException"))
+            .intercept(Advice.to(classOf[SupervisorHandleReceiveExceptionInstrumentation]))
         }
         .installOn(instrumentation)
-      LoadingResult(targetClassName)
+      LoadingResult(abstractSupervisor)
     }
   }
 
-  val agent = Agent(
+  val agent: Agent = Agent(
     classicStashInstrumentation,
     typedStashInstrumentation,
     mailboxTimeTimestampInstrumentation,

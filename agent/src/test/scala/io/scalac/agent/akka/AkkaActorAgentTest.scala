@@ -15,11 +15,12 @@ import akka.{ actor => classic }
 
 import org.scalatest.concurrent.Eventually
 import org.scalatest.flatspec.AnyFlatSpecLike
+import org.scalatest.time.{ Millis, Span }
 import org.scalatest.{ BeforeAndAfterAll, OptionValues }
 
 import io.scalac.core.model._
 import io.scalac.core.util.ActorPathOps
-import io.scalac.extension.actor.MessageCounterDecorators
+import io.scalac.extension.actor.{ ActorCountsDecorators, ActorTimesDecorators }
 import io.scalac.extension.actorServiceKey
 import io.scalac.extension.event.ActorEvent
 import io.scalac.extension.event.ActorEvent.StashMeasurement
@@ -38,6 +39,8 @@ class AkkaActorAgentTest
 
   import AkkaActorAgentTest._
 
+  override implicit val patienceConfig: PatienceConfig = PatienceConfig().copy(scaled(Span(1000, Millis)))
+
   def test(body: Fixture => Any): Any = {
     val monitor = createTestProbe[ActorEvent]
     Receptionist(system).ref ! Register(actorServiceKey, monitor.ref)
@@ -47,7 +50,34 @@ class AkkaActorAgentTest
     monitor.stop()
   }
 
-  "AkkaActorAgent" should "record classic stash properly" in test { monitor =>
+  "AkkaActorAgent" should "record mailbox time properly" in {
+    val idle      = 100.milliseconds
+    val tolerance = 50
+    testWithContextAndActor[String](_ =>
+      Behaviors.receiveMessage {
+        case "idle" =>
+          Thread.sleep(idle.toMillis)
+          Behaviors.same
+        case _ =>
+          Behaviors.same
+      }
+    ) { (ctx, actor) =>
+      val n       = 3
+      val waiting = n - 1
+      actor ! "idle"
+      for (_ <- 0 until waiting) actor ! "42"
+      eventually {
+        val metrics = ActorTimesDecorators.MailboxTime.getMetrics(ctx).value
+        metrics.count should be(n)
+        metrics.avg should be(((waiting * idle.toMillis) / n) +- tolerance)
+        metrics.sum should be((waiting * idle.toMillis) +- tolerance)
+        metrics.min should be(0L +- tolerance)
+        metrics.max should be(idle.toMillis +- tolerance)
+      }
+    }
+  }
+
+  it should "record classic stash properly" in test { monitor =>
     val stashActor                   = system.classicSystem.actorOf(ClassicStashActor.props(), "stashActor")
     val expectStashSize: Int => Unit = createExpectStashSize(monitor, "/user/stashActor")
     stashActor ! Message("random")
@@ -81,8 +111,11 @@ class AkkaActorAgentTest
 
   it should "record the amount of received messages" in testWithContextAndActor[String](_ => Behaviors.ignore) {
     (ctx, actor) =>
-      def received(size: Int): Unit = eventually {
-        MessageCounterDecorators.Received.take(ctx).value should be(size)
+      def received(size: Int): Unit = {
+        eventually {
+          ActorCountsDecorators.Received.getValue(ctx).value should be(size)
+        }
+        ActorCountsDecorators.Received.reset(ctx)
       }
 
       received(0)
@@ -102,8 +135,11 @@ class AkkaActorAgentTest
         Behaviors.same
     }
   ) { (ctx, actor) =>
-    def failed(size: Int): Unit = eventually {
-      MessageCounterDecorators.Failed.take(ctx).value should be(size)
+    def failed(size: Int): Unit = {
+      eventually {
+        ActorCountsDecorators.Failed.getValue(ctx).value should be(size)
+      }
+      ActorCountsDecorators.Failed.reset(ctx)
     }
 
     failed(0)
@@ -116,32 +152,42 @@ class AkkaActorAgentTest
     failed(0) // why zero? because akka suspend any further message processing after an unsupervisioned failure
   }
 
-  it should "record the amount of failed messages with supervision" in testWithContextAndActor[String](_ =>
-    Behaviors
-      .supervise[String](
-        Behaviors.receiveMessage {
-          case "fail" =>
-            throw new RuntimeException("I failed :(")
-          case _ =>
-            Behaviors.same
+  it should "record the amount of failed messages with supervision" in {
+
+    def testForStrategy(strategy: SupervisorStrategy): Unit = testWithContextAndActor[String](_ =>
+      Behaviors
+        .supervise[String](
+          Behaviors.receiveMessage {
+            case "fail" =>
+              throw new RuntimeException(s"[strategy = $strategy]I failed :(")
+            case _ =>
+              Behaviors.same
+          }
+        )
+        .onFailure[RuntimeException](strategy)
+    ) { (ctx, actor) =>
+      def failed(size: Int): Unit = {
+        eventually {
+          ActorCountsDecorators.Failed.getValue(ctx).value should be(size)
         }
-      )
-      .onFailure[RuntimeException](SupervisorStrategy.restart)
-  ) { (ctx, actor) =>
-    def failed(size: Int): Unit = eventually {
-      MessageCounterDecorators.Failed.take(ctx).value should be(size)
+        ActorCountsDecorators.Failed.reset(ctx)
+      }
+
+      failed(0)
+      actor ! "fail"
+      failed(1)
+      failed(0)
+      actor ! ":)"
+      failed(0)
+      actor ! "fail"
+      actor ! "fail"
+      if (strategy != SupervisorStrategy.stop) failed(2)
+      failed(0)
     }
 
-    failed(0)
-    actor ! "fail"
-    failed(1)
-    failed(0)
-    actor ! ":)"
-    failed(0)
-    actor ! "fail"
-    actor ! "fail"
-    failed(2)
-    failed(0)
+    testForStrategy(SupervisorStrategy.restart)
+    testForStrategy(SupervisorStrategy.resume)
+    testForStrategy(SupervisorStrategy.stop)
   }
 
   it should "record the amount of unhandled messages" in testWithContextAndActor[String](_ =>
@@ -150,8 +196,11 @@ class AkkaActorAgentTest
       case _         => Behaviors.unhandled
     }
   ) { (ctx, actor) =>
-    def unhandled(size: Int): Unit = eventually {
-      MessageCounterDecorators.Unhandled.take(ctx).value should be(size)
+    def unhandled(size: Int): Unit = {
+      eventually {
+        ActorCountsDecorators.Unhandled.getValue(ctx).value should be(size)
+      }
+      ActorCountsDecorators.Unhandled.reset(ctx)
     }
 
     unhandled(0)
@@ -163,6 +212,33 @@ class AkkaActorAgentTest
     unhandled(2)
     actor ! "receive"
     unhandled(0)
+  }
+
+  it should "record processing time properly" in {
+    val processing = 100.milliseconds
+    val tolerance  = 50
+    testWithContextAndActor[String](_ =>
+      Behaviors.receiveMessage {
+        case "work" =>
+          Thread.sleep(processing.toMillis)
+          Behaviors.same
+        case _ =>
+          Behaviors.same
+      }
+    ) { (ctx, actor) =>
+      val n       = 3
+      val working = n - 1
+      actor ! "42"
+      for (_ <- 0 until working) actor ! "work"
+      eventually {
+        val metrics = ActorTimesDecorators.ProcessingTime.getMetrics(ctx).value
+        metrics.count should be(n)
+        metrics.avg should be(((working * processing.toMillis) / n) +- tolerance)
+        metrics.sum should be((working * processing.toMillis) +- tolerance)
+        metrics.min should be(0L +- tolerance)
+        metrics.max should be(processing.toMillis +- tolerance)
+      }
+    }
   }
 
   def createExpectStashSize(monitor: Fixture, ref: ActorRef[_]): Int => Unit =
@@ -186,12 +262,14 @@ class AkkaActorAgentTest
       Behaviors.setup[T] { ctx =>
         ctxRef = Some(ctx.toClassic)
         behavior(ctx)
-      }
+      },
+      createUniqueId
     )
     Await.ready(
       Future {
         blocking {
-          while (ctxRef.isEmpty) {}
+          while (ctxRef.isEmpty)
+            Thread.sleep(100)
         }
       }(ExecutionContext.global),
       2.seconds
