@@ -20,7 +20,7 @@ object ActorTimesDecorators {
       setter.invoke(actorCell, new FieldType())
 
     @inline def addTime(actorCell: Object, time: FiniteDuration): Unit =
-      getter.invoke(actorCell).asInstanceOf[FieldType].push(TimeSpent(time))
+      getter.invoke(actorCell).asInstanceOf[FieldType].push(time.toMillis)
 
     @inline def getMetrics(actorCell: Object): Option[LongValueAggMetric] =
       getter.invoke(actorCell).asInstanceOf[LongNoLockAggregator].fetch()
