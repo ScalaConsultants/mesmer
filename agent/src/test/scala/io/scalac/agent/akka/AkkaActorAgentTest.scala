@@ -255,7 +255,7 @@ class AkkaActorAgentTest
 
     class Sender(receiver: classic.ActorRef) extends classic.Actor {
       override def receive: Receive = { case "forward" =>
-        receiver ! "go on"
+        receiver ! "forwarded"
       }
     }
 
@@ -281,6 +281,41 @@ class AkkaActorAgentTest
 
     sender ! PoisonPill
     receiver ! PoisonPill
+  }
+
+  it should "record the amount of sent messages properly in typed akka" in testWithContextAndActor[String] { ctx =>
+    val receiver = ctx.spawn(
+      Behaviors.receiveMessage[String] { msg =>
+        println(msg)
+        Behaviors.same
+      },
+      createUniqueId
+    )
+    Behaviors.receiveMessagePartial[String] { case "forward" =>
+      receiver ! "forwarded"
+      Behaviors.same
+    }
+  } { (ctx, sender) =>
+    def sent(size: Int): Unit = {
+      eventually {
+        ActorCountsDecorators.Sent.getValue(ctx).value should be(size)
+      }
+      ActorCountsDecorators.Sent.reset(ctx)
+    }
+
+    // Disclaimer: always 0 because isn't possible to fetch the sender of a message
+    // Ref: https://doc.akka.io/docs/akka/current/typed/from-classic.html#sender
+    sender ! "forward"
+    sent(0)
+    sent(0)
+    sender ! "something else"
+    sent(0)
+    sender ! "forward"
+    sender ! "forward"
+    sent(0)
+    sent(0)
+
+    sender.unsafeUpcast[Any] ! PoisonPill
   }
 
   def createExpectStashSize(monitor: Fixture, ref: ActorRef[_]): Int => Unit =

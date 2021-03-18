@@ -1,5 +1,7 @@
 package io.scalac.agent.akka.actor
 
+import akka.actor.Actor
+
 import net.bytebuddy.asm.Advice._
 
 import io.scalac.core.util.ActorRefOps
@@ -12,9 +14,12 @@ object ActorCellSendMessageInstrumentation {
   def onEnter(@Argument(0) envelope: Object): Unit =
     if (envelope != null) {
       EnvelopeDecorator.setTimestamp(envelope)
-      ActorRefOps.Local
-        .cell(EnvelopeOps.getSender(envelope))
-        .foreach(ActorCountsDecorators.Sent.inc)
+      val sender = EnvelopeOps.getSender(envelope)
+      if (sender != Actor.noSender) {
+        ActorRefOps.Local
+          .cell(sender)
+          .foreach(ActorCountsDecorators.Sent.inc)
+      }
     }
 
 }
