@@ -48,7 +48,7 @@ object AkkaStreamMonitoring {
       )
     )
 
-  private[extension] final case class StageData(value: Long, direction: Direction, connectedWith: String)
+  private[extension] final case class StageData(value: Long, connectedWith: String)
   private[extension] final case class SnapshotEntry(stage: StageInfo, data: Option[StageData])
   private[extension] final case class IndexData(stats: Set[ConnectionStats], distinct: Boolean)
 
@@ -246,8 +246,8 @@ class AkkaStreamMonitoring(
   private def createSnapshotEntry(stage: StageInfo, connectedWith: StageInfo, value: Long): SnapshotEntry =
     if (connectedWith ne null) {
       val connectedName = connectedWith.stageName
-      SnapshotEntry(stage, Some(StageData(value, Direction.In, connectedName.name)))
-    } else SnapshotEntry(stage, Some(StageData(value, Direction.In, "unknown"))) // TODO better handle case without name
+      SnapshotEntry(stage, Some(StageData(value, connectedName.name)))
+    } else SnapshotEntry(stage, Some(StageData(value, "unknown"))) // TODO better handle case without name
 
   private def updateLocalState(
     stage: StageInfo,
@@ -337,14 +337,14 @@ class AkkaStreamMonitoring(
 
   private def observeProcessed(result: LazyResult[Long, Labels], snapshot: Option[Seq[SnapshotEntry]]): Unit =
     snapshot.foreach(_.foreach {
-      case SnapshotEntry(stageInfo, Some(StageData(value, direction, connectedWith))) =>
+      case SnapshotEntry(stageInfo, Some(StageData(value, connectedWith))) =>
         val labels =
           Labels(
             stageInfo.stageName,
             stageInfo.subStreamName.streamName,
             stageInfo.terminal,
             node,
-            Some(connectedWith -> direction)
+            Some(connectedWith)
           )
         result.observe(value, labels)
       case _ => // ignore sources as those will be covered by demand metrics
