@@ -33,12 +33,12 @@ sealed trait AbstractTestProbeWrapper {
 
 sealed trait SyncTestProbeWrapper extends AbstractTestProbeWrapper
 
-case class CounterTestProbeWrapper(
+case class UpDownCounterTestProbeWrapper(
   private val _probe: TestProbe[CounterCommand],
   private val supervisor: Option[TestProbe[CounterCommand]] = None
 ) extends SyncTestProbeWrapper
-    with Counter[Long]
-    with UpCounter[Long] {
+    with UpDownCounter[Long]
+    with Counter[Long] {
   override type Cmd = CounterCommand
   def probe: TestProbe[CounterCommand] = _probe
 

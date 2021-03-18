@@ -8,11 +8,11 @@ trait MetricRecorder[T] extends Metric[T] {
   def setValue(value: T): Unit
 }
 
-trait UpCounter[T] extends Metric[T] {
+trait Counter[T] extends Metric[T] {
   def incValue(value: T): Unit
 }
 
-trait Counter[T] extends UpCounter[T] {
+trait UpDownCounter[T] extends Counter[T] {
   def decValue(value: T): Unit
 }
 

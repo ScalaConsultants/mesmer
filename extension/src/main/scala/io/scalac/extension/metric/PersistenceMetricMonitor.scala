@@ -10,10 +10,10 @@ object PersistenceMetricMonitor {
 
   trait BoundMonitor extends Bound {
     def recoveryTime: MetricRecorder[Long]
-    def recoveryTotal: UpCounter[Long]
+    def recoveryTotal: Counter[Long]
     def persistentEvent: MetricRecorder[Long]
-    def persistentEventTotal: UpCounter[Long]
-    def snapshot: UpCounter[Long]
+    def persistentEventTotal: Counter[Long]
+    def snapshot: Counter[Long]
   }
 
 }

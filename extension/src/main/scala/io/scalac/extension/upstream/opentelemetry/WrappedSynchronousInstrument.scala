@@ -2,7 +2,7 @@ package io.scalac.extension.upstream.opentelemetry
 
 import io.opentelemetry.api.common.Labels
 import io.opentelemetry.api.metrics.{ LongCounter, LongUpDownCounter, LongValueRecorder, SynchronousInstrument }
-import io.scalac.extension.metric.{ Counter, MetricRecorder, UpCounter }
+import io.scalac.extension.metric.{ UpDownCounter, MetricRecorder, Counter }
 
 sealed trait WrappedSynchronousInstrument[L] {
   private[extension] def underlying: SynchronousInstrument[_]
@@ -22,7 +22,7 @@ case class WrappedLongValueRecorder(underlying: LongValueRecorder, labels: Label
 
 case class WrappedUpDownCounter(underlying: LongUpDownCounter, labels: Labels)
     extends WrappedSynchronousInstrument[Long]
-    with Counter[Long] {
+    with UpDownCounter[Long] {
 
   private[this] lazy val bound = underlying.bind(labels)
 
@@ -35,7 +35,7 @@ case class WrappedUpDownCounter(underlying: LongUpDownCounter, labels: Labels)
 
 case class WrappedCounter(underlying: LongCounter, labels: Labels)
     extends WrappedSynchronousInstrument[Long]
-    with UpCounter[Long] {
+    with Counter[Long] {
 
   private[this] lazy val bound = underlying.bind(labels)
 

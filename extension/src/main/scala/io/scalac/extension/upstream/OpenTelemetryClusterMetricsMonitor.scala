@@ -148,13 +148,13 @@ class OpenTelemetryClusterMetricsMonitor(instrumentationName: String, val metric
     override val entitiesOnNode: MetricObserver[Long] =
       entitiesOnNodeObserver.createObserver(labels)
 
-    override val reachableNodes: Counter[Long] with Instrument[Long] =
+    override val reachableNodes: UpDownCounter[Long] with Instrument[Long] =
       WrappedUpDownCounter(reachableNodeCounter, labels)
 
-    override val unreachableNodes: Counter[Long] with Instrument[Long] =
+    override val unreachableNodes: UpDownCounter[Long] with Instrument[Long] =
       WrappedUpDownCounter(unreachableNodeCounter, labels)
 
-    override val nodeDown: UpCounter[Long] with Instrument[Long] = WrappedCounter(nodeDownCounter, labels)
+    override val nodeDown: Counter[Long] with Instrument[Long] = WrappedCounter(nodeDownCounter, labels)
 
     override def unbind(): Unit = {
       reachableNodes.unbind()

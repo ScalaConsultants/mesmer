@@ -17,9 +17,9 @@ object ClusterMetricsMonitor {
     def entityPerRegion: MetricObserver[Long]
     def shardRegionsOnNode: MetricObserver[Long]
     def entitiesOnNode: MetricObserver[Long]
-    def reachableNodes: Counter[Long] with Instrument[Long]
-    def unreachableNodes: Counter[Long] with Instrument[Long]
-    def nodeDown: UpCounter[Long] with Instrument[Long]
+    def reachableNodes: UpDownCounter[Long] with Instrument[Long]
+    def unreachableNodes: UpDownCounter[Long] with Instrument[Long]
+    def nodeDown: Counter[Long] with Instrument[Long]
   }
 
 }
