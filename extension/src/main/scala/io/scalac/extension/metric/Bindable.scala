@@ -7,6 +7,14 @@ trait Unbind {
   def unbind(): Unit
 }
 
+trait UnbindMany extends Unbind {
+  private var _unbinds: List[Unbind] = Nil
+
+  protected def pushUnbind(unbind: Unbind): Unit = _unbinds ::= unbind
+
+  override def unbind(): Unit = _unbinds.foreach(_.unbind())
+}
+
 trait Bound extends Unbind
 
 trait Bindable[L <: LabelSerializable, +B <: Bound] extends (L => B) {

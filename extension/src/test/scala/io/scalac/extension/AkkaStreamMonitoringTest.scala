@@ -15,7 +15,7 @@ import io.scalac.extension.util.TestCase.{
   NoSetupTestCaseFactory,
   ProvidedActorSystemTestCaseFactory
 }
-import io.scalac.extension.util.probe.BoundTestProbe.{ LazyMetricsObserved, MetricObserved, MetricRecorded }
+import io.scalac.extension.util.probe.BoundTestProbe.{ MetricObserved, MetricRecorded }
 import io.scalac.extension.util.probe.ObserverCollector.CommonCollectorImpl
 import io.scalac.extension.util.probe.{ StreamMonitorTestProbe, StreamOperatorMonitorTestProbe }
 import io.scalac.extension.util.{ TestConfig, TestOps }
@@ -157,14 +157,16 @@ class AkkaStreamMonitoringTest
 
     val operators =
       operations.runningOperatorsTestProbe.receiveMessages(ExpectedCount * StagesNames.size, OperationsPing)
+
     val processed = operations.processedTestProbe.receiveMessages(ExpectedCount * (Flows + 1), OperationsPing)
 
-    forAll(processed)(inside(_) { case LazyMetricsObserved(value, labels) =>
+    forAll(processed)(inside(_) { case MetricObserved(value, labels) =>
       value shouldBe Push
       labels.node shouldBe empty
     })
-
-    operators.map(_.labels.operator.name).distinct should contain theSameElementsAs StagesNames
+    operators.collect {
+      case MetricObserved(_, labels) => labels.operator.name
+    }.distinct should contain theSameElementsAs StagesNames
   }
 
   case class TestCaseContext(monitor: Monitor, ref: ActorRef[AkkaStreamMonitoring.Command])(implicit

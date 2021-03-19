@@ -2,13 +2,9 @@ package io.scalac.extension.upstream
 
 import com.typesafe.config.Config
 import io.opentelemetry.api.OpenTelemetry
-import io.scalac.extension.metric.{ LazyMetricObserver, StreamMetricMonitor }
+import io.scalac.extension.metric.{ MetricObserver, StreamMetricMonitor, UnbindMany }
 import io.scalac.extension.upstream.OpenTelemetryStreamMetricMonitor.MetricNames
-import io.scalac.extension.upstream.opentelemetry.{
-  LazyLongSumObserverBuilderAdapter,
-  ObserverHandle,
-  WrappedLongValueRecorder
-}
+import io.scalac.extension.upstream.opentelemetry.{ LongSumObserverBuilderAdapter, WrappedLongValueRecorder }
 
 object OpenTelemetryStreamMetricMonitor {
   case class MetricNames(runningStreams: String, streamActors: String, streamProcessed: String)
@@ -60,7 +56,7 @@ class OpenTelemetryStreamMetricMonitor(instrumentationName: String, metricNames:
     .setDescription("Amount of actors running streams on a system")
     .build()
 
-  private val streamProcessedMessagesBuilder = new LazyLongSumObserverBuilderAdapter[Labels](
+  private val streamProcessedMessagesBuilder = new LongSumObserverBuilderAdapter[Labels](
     meter
       .longSumObserverBuilder(metricNames.streamProcessed)
       .setDescription("Amount of messages processed by whole stream")
@@ -68,9 +64,8 @@ class OpenTelemetryStreamMetricMonitor(instrumentationName: String, metricNames:
 
   override def bind(labels: EagerLabels): BoundMonitor = new StreamMetricsBoundMonitor(labels)
 
-  class StreamMetricsBoundMonitor(labels: EagerLabels) extends BoundMonitor {
-    private val openTelemetryLabels           = LabelsFactory.of(labels.serialize)
-    private var unbinds: List[ObserverHandle] = Nil
+  class StreamMetricsBoundMonitor(labels: EagerLabels) extends BoundMonitor with UnbindMany {
+    private val openTelemetryLabels = LabelsFactory.of(labels.serialize)
 
     override val runningStreamsTotal =
       WrappedLongValueRecorder(runningStreamsTotalRecorder, openTelemetryLabels)
@@ -78,14 +73,14 @@ class OpenTelemetryStreamMetricMonitor(instrumentationName: String, metricNames:
     override val streamActorsTotal =
       WrappedLongValueRecorder(streamActorsTotalRecorder, openTelemetryLabels)
 
-    override lazy val streamProcessedMessages: LazyMetricObserver[Long, Labels] = {
-      val (unbind, observer) = streamProcessedMessagesBuilder.createObserver()
-      unbinds ::= unbind
+    override lazy val streamProcessedMessages: MetricObserver[Long, Labels] = {
+      val (unbind, observer) = streamProcessedMessagesBuilder.createObserver
+      pushUnbind(unbind)
       observer
     }
 
     override def unbind(): Unit = {
-      unbinds.foreach(_.unbindObserver())
+      super.unbind()
       runningStreamsTotal.unbind()
       streamActorsTotal.unbind()
     }

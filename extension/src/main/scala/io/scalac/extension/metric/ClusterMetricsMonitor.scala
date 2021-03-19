@@ -13,10 +13,10 @@ object ClusterMetricsMonitor {
   }
 
   trait BoundMonitor extends Synchronized with Bound {
-    def shardPerRegions: MetricObserver[Long]
-    def entityPerRegion: MetricObserver[Long]
-    def shardRegionsOnNode: MetricObserver[Long]
-    def entitiesOnNode: MetricObserver[Long]
+    def shardPerRegions: MetricObserver[Long, Labels]
+    def entityPerRegion: MetricObserver[Long, Labels]
+    def shardRegionsOnNode: MetricObserver[Long, Labels]
+    def entitiesOnNode: MetricObserver[Long, Labels]
     def reachableNodes: UpDownCounter[Long] with Instrument[Long]
     def unreachableNodes: UpDownCounter[Long] with Instrument[Long]
     def nodeDown: Counter[Long] with Instrument[Long]
