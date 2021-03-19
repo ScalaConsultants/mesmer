@@ -348,8 +348,8 @@ object ActorEventsMonitorActor {
         spy  <- ActorCellSpy.get(cell)
       } yield ActorMetrics(
         mailboxSize = safeRead(ActorCellOps.numberOfMessages(cell)),
-        mailboxTime = ActorTimesDecorators.MailboxTime.getMetrics(cell),
-        processingTime = ActorTimesDecorators.ProcessingTime.getMetrics(cell),
+        mailboxTime = spy.mailboxTime.get(),
+        processingTime = spy.processingTime.get(),
         receivedMessages = spy.receivedMessages.take(),
         unhandledMessages = spy.unhandledMessages.take(),
         failedMessages = spy.failedMessages.take(),

@@ -6,23 +6,23 @@ import scala.concurrent.duration._
 import akka.actor.PoisonPill
 import akka.actor.testkit.typed.FishingOutcome
 import akka.actor.testkit.typed.scaladsl.TestProbe
-import akka.actor.typed.scaladsl.adapter._
 import akka.actor.typed.receptionist.Receptionist
 import akka.actor.typed.receptionist.Receptionist.{ Deregister, Register }
+import akka.actor.typed.scaladsl.adapter._
 import akka.actor.typed.scaladsl.{ ActorContext, Behaviors, StashBuffer }
 import akka.actor.typed.{ ActorRef, Behavior, SupervisorStrategy }
 import akka.{ actor => classic }
 
-import io.scalac.agent.utils.{ InstallAgent, SafeLoadSystem }
+import org.scalatest.OptionValues
 import org.scalatest.concurrent.Eventually
 import org.scalatest.flatspec.AnyFlatSpecLike
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.time.{ Millis, Span }
-import org.scalatest.OptionValues
 
+import io.scalac.agent.utils.{ InstallAgent, SafeLoadSystem }
 import io.scalac.core.model._
 import io.scalac.core.util.{ ActorPathOps, CounterDecorator }
-import io.scalac.extension.actor.{ ActorCellSpy, ActorTimesDecorators }
+import io.scalac.extension.actor.ActorCellSpy
 import io.scalac.extension.actorServiceKey
 import io.scalac.extension.event.ActorEvent
 import io.scalac.extension.event.ActorEvent.StashMeasurement
@@ -67,7 +67,7 @@ class AkkaActorAgentTest
       actor ! "idle"
       for (_ <- 0 until waiting) actor ! "42"
       eventually {
-        val metrics = ActorTimesDecorators.MailboxTime.getMetrics(ctx).value
+        val metrics = ActorCellSpy.get(ctx).flatMap(_.mailboxTime.get()).value
         metrics.count should be(n)
         metrics.avg should be(((waiting * idle.toMillis) / n) +- tolerance)
         metrics.sum should be((waiting * idle.toMillis) +- tolerance)
@@ -211,7 +211,7 @@ class AkkaActorAgentTest
       actor ! "42"
       for (_ <- 0 until working) actor ! "work"
       eventually {
-        val metrics = ActorTimesDecorators.ProcessingTime.getMetrics(ctx).value
+        val metrics = ActorCellSpy.get(ctx).flatMap(_.processingTime.get()).value
         metrics.count should be(n)
         metrics.avg should be(((working * processing.toMillis) / n) +- tolerance)
         metrics.sum should be((working * processing.toMillis) +- tolerance)

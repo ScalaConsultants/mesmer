@@ -1,6 +1,6 @@
 package io.scalac.agent.akka.actor
 
-import java.util.concurrent.atomic.{ AtomicBoolean, AtomicLong, AtomicReference }
+import java.util.concurrent.atomic.AtomicReference
 
 import akka.actor.typed.Behavior
 
@@ -14,7 +14,7 @@ import io.scalac.agent.{ Agent, AgentInstrumentation }
 import io.scalac.core.model._
 import io.scalac.core.support.ModulesSupport
 import io.scalac.core.util.Timestamp
-import io.scalac.extension.actor.{ ActorCellSpy, ActorCountsDecorators, ActorTimesDecorators }
+import io.scalac.extension.actor.{ ActorCellSpy, ActorTimesDecorators }
 
 object AkkaActorAgent {
 
@@ -158,14 +158,6 @@ object AkkaActorAgent {
             .defineField(
               ActorCellSpy.fieldName,
               classOf[ActorCellSpy]
-            )
-            .defineField(
-              ActorTimesDecorators.MailboxTime.fieldName,
-              classOf[ActorTimesDecorators.FieldType]
-            )
-            .defineField(
-              ActorTimesDecorators.ProcessingTime.fieldName,
-              classOf[ActorTimesDecorators.FieldType]
             )
             .defineField(
               ActorTimesDecorators.ProcessingTimeSupport.fieldName,

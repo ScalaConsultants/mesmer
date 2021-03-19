@@ -5,30 +5,8 @@ import java.util.concurrent.atomic.AtomicReference
 import scala.concurrent.duration._
 
 import io.scalac.core.util.{ ReflectionFieldUtils, Timestamp }
-import io.scalac.extension.util.AggMetric.LongValueAggMetric
-import io.scalac.extension.util.LongNoLockAggregator
 
 object ActorTimesDecorators {
-
-  type FieldType = LongNoLockAggregator
-
-  sealed abstract class TimeDecorator(val fieldName: String) {
-
-    private lazy val (getter, setter) = ReflectionFieldUtils.getHandlers("akka.actor.ActorCell", fieldName)
-
-    @inline def initialize(actorCell: Object): Unit =
-      setter.invoke(actorCell, new FieldType())
-
-    @inline def addTime(actorCell: Object, time: FiniteDuration): Unit =
-      getter.invoke(actorCell).asInstanceOf[FieldType].push(time.toMillis)
-
-    @inline def getMetrics(actorCell: Object): Option[LongValueAggMetric] =
-      getter.invoke(actorCell).asInstanceOf[LongNoLockAggregator].fetch()
-
-  }
-
-  object MailboxTime    extends TimeDecorator("mailboxTimeAgg")
-  object ProcessingTime extends TimeDecorator("processingTimeAgg")
 
   object ProcessingTimeSupport {
 

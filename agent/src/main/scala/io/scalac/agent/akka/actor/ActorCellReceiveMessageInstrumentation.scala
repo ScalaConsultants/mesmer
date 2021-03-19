@@ -16,16 +16,12 @@ object ActorCellReceiveMessageInstrumentation {
   }
 
   @OnMethodExit(onThrowable = classOf[Throwable])
-  def onExit(@This actorCell: Object, @Thrown exception: Throwable): Unit = {
+  def onExit(@This actorCell: Object, @Thrown exception: Throwable): Unit =
     ActorCellSpy.get(actorCell).foreach { spy =>
       if (exception != null && !spy.exceptionHandledMarker.checkAndReset()) {
         spy.failedMessages.inc()
       }
+      spy.processingTime.add(ActorTimesDecorators.ProcessingTimeSupport.interval(actorCell))
     }
-    ActorTimesDecorators.ProcessingTime.addTime(
-      actorCell,
-      ActorTimesDecorators.ProcessingTimeSupport.interval(actorCell)
-    )
-  }
 
 }

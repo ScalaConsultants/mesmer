@@ -1,13 +1,10 @@
 package io.scalac.extension.actor
 
-import java.util.concurrent.atomic.AtomicReference
-
 import io.scalac.core.util._
-import io.scalac.extension.util.LongNoLockAggregator
 
 case class ActorCellSpy(
-//  mailboxTime: LongNoLockAggregator = new LongNoLockAggregator(),
-//  processingTime: LongNoLockAggregator = new LongNoLockAggregator(),
+  mailboxTime: TimerDecorator = new TimerDecorator(),
+  processingTime: TimerDecorator = new TimerDecorator(),
 //  messageReceiveStart: AtomicReference[Timestamp] = new AtomicReference(Timestamp.create()),
   receivedMessages: CounterDecorator = new CounterDecorator,
   processedMessages: CounterDecorator = new CounterDecorator,

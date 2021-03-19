@@ -77,17 +77,17 @@ class ActorEventsMonitorActorTest
   }
 
   it should "dead actors should not report" in testCase { implicit c =>
-    val tmp   = system.systemActorOf[Nothing](Behaviors.ignore, "tmp")
+    val tmp   = system.systemActorOf[Nothing](Behaviors.ignore, createUniqueId)
     val bound = monitor.bind(Labels(ActorPathOps.getPathString(tmp)))
-    shouldObserve(bound.mailboxSizeProbe, c.fakeMailboxSize, c.fakeMailboxSize += 1)
+    bound.mailboxSizeProbe.expectMessageType[MetricObserved](reasonableTime)
     tmp.unsafeUpcast[Any] ! PoisonPill
-    bound.mailboxSizeProbe.expectTerminated(tmp)
+    bound.mailboxSizeProbe.expectTerminated(tmp, reasonableTime)
     bound.mailboxSizeProbe.expectNoMessage(reasonableTime)
     bound.unbind()
   }
 
   it should "record stash size" in testCase { implicit c =>
-    val stashActor = system.systemActorOf(StashActor(10), "stashActor")
+    val stashActor = system.systemActorOf(StashActor(10), createUniqueId)
     val bound      = monitor.bind(Labels(ActorPathOps.getPathString(stashActor)))
     def stashMeasurement(size: Int): Unit =
       EventBus(system).publishEvent(StashMeasurement(size, ActorPathOps.getPathString(stashActor)))
@@ -224,7 +224,6 @@ class ActorEventsMonitorActorTest
 object ActorEventsMonitorActorTest {
 
   final case class TestContext[+M](monitor: M)(implicit val system: ActorSystem[_]) extends MonitorTestCaseContext[M] {
-    import scala.language.implicitConversions
 
     val TestActorTreeTraverser: ActorTreeTraverser = ReflectiveActorTreeTraverser
 
