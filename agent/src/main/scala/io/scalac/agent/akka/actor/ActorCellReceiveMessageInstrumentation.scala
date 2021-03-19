@@ -2,18 +2,17 @@ package io.scalac.agent.akka.actor
 
 import net.bytebuddy.asm.Advice._
 
-import io.scalac.extension.actor.{ ActorCellSpy, ActorTimesDecorators }
+import io.scalac.extension.actor.ActorCellSpy
 
 class ActorCellReceiveMessageInstrumentation
 object ActorCellReceiveMessageInstrumentation {
 
   @OnMethodEnter
-  def onEnter(@This actorCell: Object): Unit = {
+  def onEnter(@This actorCell: Object): Unit =
     ActorCellSpy.get(actorCell).foreach { spy =>
       spy.receivedMessages.inc()
+      spy.processingTimer.start()
     }
-    ActorTimesDecorators.ProcessingTimeSupport.set(actorCell)
-  }
 
   @OnMethodExit(onThrowable = classOf[Throwable])
   def onExit(@This actorCell: Object, @Thrown exception: Throwable): Unit =
@@ -21,7 +20,7 @@ object ActorCellReceiveMessageInstrumentation {
       if (exception != null && !spy.exceptionHandledMarker.checkAndReset()) {
         spy.failedMessages.inc()
       }
-      spy.processingTime.add(ActorTimesDecorators.ProcessingTimeSupport.interval(actorCell))
+      spy.processingTimeAgg.add(spy.processingTimer.interval())
     }
 
 }

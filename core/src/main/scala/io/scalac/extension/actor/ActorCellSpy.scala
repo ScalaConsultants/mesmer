@@ -3,9 +3,9 @@ package io.scalac.extension.actor
 import io.scalac.core.util._
 
 case class ActorCellSpy(
-  mailboxTime: TimerDecorator = new TimerDecorator(),
-  processingTime: TimerDecorator = new TimerDecorator(),
-//  messageReceiveStart: AtomicReference[Timestamp] = new AtomicReference(Timestamp.create()),
+  mailboxTimeAgg: TimeAggregationDecorator = new TimeAggregationDecorator(),
+  processingTimeAgg: TimeAggregationDecorator = new TimeAggregationDecorator(),
+  processingTimer: TimerDecorator = new TimerDecorator,
   receivedMessages: CounterDecorator = new CounterDecorator,
   processedMessages: CounterDecorator = new CounterDecorator,
   unhandledMessages: CounterDecorator = new CounterDecorator,

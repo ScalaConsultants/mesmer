@@ -19,6 +19,6 @@ object MailboxDequeueInstrumentation {
     EnvelopeDecorator.getTimestamp(envelope).interval().milliseconds
 
   @inline final def add(mailbox: Object, time: FiniteDuration): Unit =
-    ActorCellSpy.get(MailboxOps.getActor(mailbox)).foreach(_.mailboxTime.add(time))
+    ActorCellSpy.get(MailboxOps.getActor(mailbox)).foreach(_.mailboxTimeAgg.add(time))
 
 }

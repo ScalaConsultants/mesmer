@@ -67,7 +67,7 @@ class AkkaActorAgentTest
       actor ! "idle"
       for (_ <- 0 until waiting) actor ! "42"
       eventually {
-        val metrics = ActorCellSpy.get(ctx).flatMap(_.mailboxTime.get()).value
+        val metrics = ActorCellSpy.get(ctx).flatMap(_.mailboxTimeAgg.metrics).value
         metrics.count should be(n)
         metrics.avg should be(((waiting * idle.toMillis) / n) +- tolerance)
         metrics.sum should be((waiting * idle.toMillis) +- tolerance)
@@ -211,7 +211,7 @@ class AkkaActorAgentTest
       actor ! "42"
       for (_ <- 0 until working) actor ! "work"
       eventually {
-        val metrics = ActorCellSpy.get(ctx).flatMap(_.processingTime.get()).value
+        val metrics = ActorCellSpy.get(ctx).flatMap(_.processingTimeAgg.metrics).value
         metrics.count should be(n)
         metrics.avg should be(((working * processing.toMillis) / n) +- tolerance)
         metrics.sum should be((working * processing.toMillis) +- tolerance)

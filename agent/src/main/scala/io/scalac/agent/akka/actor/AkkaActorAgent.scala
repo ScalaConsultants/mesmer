@@ -14,7 +14,7 @@ import io.scalac.agent.{ Agent, AgentInstrumentation }
 import io.scalac.core.model._
 import io.scalac.core.support.ModulesSupport
 import io.scalac.core.util.Timestamp
-import io.scalac.extension.actor.{ ActorCellSpy, ActorTimesDecorators }
+import io.scalac.extension.actor.ActorCellSpy
 
 object AkkaActorAgent {
 
@@ -158,10 +158,6 @@ object AkkaActorAgent {
             .defineField(
               ActorCellSpy.fieldName,
               classOf[ActorCellSpy]
-            )
-            .defineField(
-              ActorTimesDecorators.ProcessingTimeSupport.fieldName,
-              classOf[AtomicReference[Timestamp]]
             )
             .visit(
               Advice
