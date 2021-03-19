@@ -14,7 +14,7 @@ import io.scalac.agent.{ Agent, AgentInstrumentation }
 import io.scalac.core.model._
 import io.scalac.core.support.ModulesSupport
 import io.scalac.core.util.Timestamp
-import io.scalac.extension.actor.{ ActorCountsDecorators, ActorTimesDecorators }
+import io.scalac.extension.actor.{ ActorCellSpy, ActorCountsDecorators, ActorTimesDecorators }
 
 object AkkaActorAgent {
 
@@ -156,6 +156,10 @@ object AkkaActorAgent {
         .transform { (builder, _, _, _) =>
           builder
             .defineField(
+              ActorCellSpy.fieldName,
+              classOf[ActorCellSpy]
+            )
+            .defineField(
               ActorTimesDecorators.MailboxTime.fieldName,
               classOf[ActorTimesDecorators.FieldType]
             )
@@ -166,26 +170,6 @@ object AkkaActorAgent {
             .defineField(
               ActorTimesDecorators.ProcessingTimeSupport.fieldName,
               classOf[AtomicReference[Timestamp]]
-            )
-            .defineField(
-              ActorCountsDecorators.Received.fieldName,
-              classOf[AtomicLong]
-            )
-            .defineField(
-              ActorCountsDecorators.Unhandled.fieldName,
-              classOf[AtomicLong]
-            )
-            .defineField(
-              ActorCountsDecorators.Failed.fieldName,
-              classOf[AtomicLong]
-            )
-            .defineField(
-              ActorCountsDecorators.FailHandled.fieldName,
-              classOf[AtomicBoolean]
-            )
-            .defineField(
-              ActorCountsDecorators.Sent.fieldName,
-              classOf[AtomicLong]
             )
             .visit(
               Advice

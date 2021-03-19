@@ -17,13 +17,12 @@ import io.scalac.agent.utils.{ InstallAgent, SafeLoadSystem }
 import org.scalatest.concurrent.Eventually
 import org.scalatest.flatspec.AnyFlatSpecLike
 import org.scalatest.matchers.should.Matchers
-
 import org.scalatest.time.{ Millis, Span }
 import org.scalatest.OptionValues
 
 import io.scalac.core.model._
-import io.scalac.core.util.{ ActorPathOps, ActorRefOps }
-import io.scalac.extension.actor.{ ActorCountsDecorators, ActorTimesDecorators }
+import io.scalac.core.util.{ ActorPathOps, CounterDecorator }
+import io.scalac.extension.actor.{ ActorCellSpy, ActorTimesDecorators }
 import io.scalac.extension.actorServiceKey
 import io.scalac.extension.event.ActorEvent
 import io.scalac.extension.event.ActorEvent.StashMeasurement
@@ -112,12 +111,7 @@ class AkkaActorAgentTest
 
   it should "record the amount of received messages" in testWithContextAndActor[String](_ => Behaviors.ignore) {
     (ctx, actor) =>
-      def received(size: Int): Unit = {
-        eventually {
-          ActorCountsDecorators.Received.getValue(ctx).value should be(size)
-        }
-        ActorCountsDecorators.Received.reset(ctx)
-      }
+      val received = createCounterChecker(ctx, _.receivedMessages)
 
       received(0)
       actor ! "42"
@@ -136,12 +130,7 @@ class AkkaActorAgentTest
         Behaviors.same
     }
   ) { (ctx, actor) =>
-    def failed(size: Int): Unit = {
-      eventually {
-        ActorCountsDecorators.Failed.getValue(ctx).value should be(size)
-      }
-      ActorCountsDecorators.Failed.reset(ctx)
-    }
+    val failed = createCounterChecker(ctx, _.failedMessages)
 
     failed(0)
     actor ! "fail"
@@ -167,12 +156,7 @@ class AkkaActorAgentTest
         )
         .onFailure[RuntimeException](strategy)
     ) { (ctx, actor) =>
-      def failed(size: Int): Unit = {
-        eventually {
-          ActorCountsDecorators.Failed.getValue(ctx).value should be(size)
-        }
-        ActorCountsDecorators.Failed.reset(ctx)
-      }
+      val failed = createCounterChecker(ctx, _.failedMessages)
 
       failed(0)
       actor ! "fail"
@@ -197,12 +181,7 @@ class AkkaActorAgentTest
       case _         => Behaviors.unhandled
     }
   ) { (ctx, actor) =>
-    def unhandled(size: Int): Unit = {
-      eventually {
-        ActorCountsDecorators.Unhandled.getValue(ctx).value should be(size)
-      }
-      ActorCountsDecorators.Unhandled.reset(ctx)
-    }
+    val unhandled = createCounterChecker(ctx, _.unhandledMessages)
 
     unhandled(0)
     actor ! "42"
@@ -243,17 +222,10 @@ class AkkaActorAgentTest
   }
 
   it should "record the amount of sent messages properly in classic akka" in {
-    def sent(actorRef: classic.ActorRef, size: Int): Unit = {
-      val cell = eventually {
-        ActorRefOps.Local.cell(actorRef).fold(throw new RuntimeException("ref is not local"))(identity)
-      }
-      eventually {
-        ActorCountsDecorators.Sent.getValue(cell).value should be(size)
-      }
-      ActorCountsDecorators.Sent.reset(cell)
-    }
 
+    var senderContext: Option[classic.ActorContext] = None
     class Sender(receiver: classic.ActorRef) extends classic.Actor {
+      senderContext = Some(context)
       override def receive: Receive = { case "forward" =>
         receiver ! "forwarded"
       }
@@ -269,15 +241,17 @@ class AkkaActorAgentTest
     val receiver      = classicSystem.actorOf(classic.Props(new Receiver), createUniqueId)
     val sender        = system.classicSystem.actorOf(classic.Props(new Sender(receiver)), createUniqueId)
 
+    val sent = createCounterChecker(senderContext.get, _.sentMessages)
+
     sender ! "forward"
-    sent(sender, 1)
-    sent(sender, 0)
+    sent(1)
+    sent(0)
     sender ! "something else"
-    sent(sender, 0)
+    sent(0)
     sender ! "forward"
     sender ! "forward"
-    sent(sender, 2)
-    sent(sender, 0)
+    sent(2)
+    sent(0)
 
     sender ! PoisonPill
     receiver ! PoisonPill
@@ -296,13 +270,7 @@ class AkkaActorAgentTest
       Behaviors.same
     }
   } { (ctx, sender) =>
-    def sent(size: Int): Unit = {
-      eventually {
-        ActorCountsDecorators.Sent.getValue(ctx).value should be(size)
-      }
-      ActorCountsDecorators.Sent.reset(ctx)
-    }
-
+    val sent = createCounterChecker(ctx, _.sentMessages)
     // Disclaimer: always 0 because isn't possible to fetch the sender of a message
     // Ref: https://doc.akka.io/docs/akka/current/typed/from-classic.html#sender
     sender ! "forward"
@@ -353,6 +321,20 @@ class AkkaActorAgentTest
     )
     block(ctxRef.get, testActor)
     testActor.unsafeUpcast[Any] ! PoisonPill
+  }
+
+  private def createCounterChecker[T](
+    ctx: => classic.ActorContext,
+    metricProvider: ActorCellSpy => CounterDecorator
+  ): Long => Unit = {
+    val metric = eventually {
+      metricProvider(ActorCellSpy.get(ctx).value)
+    }
+    test =>
+      eventually {
+        metric.get() should be(test)
+      }
+      metric.reset()
   }
 
 }

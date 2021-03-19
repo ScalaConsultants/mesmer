@@ -5,7 +5,7 @@ import akka.actor.Actor
 import net.bytebuddy.asm.Advice._
 
 import io.scalac.core.util.ActorRefOps
-import io.scalac.extension.actor.ActorCountsDecorators
+import io.scalac.extension.actor.ActorCellSpy
 
 class ActorCellSendMessageInstrumentation
 object ActorCellSendMessageInstrumentation {
@@ -15,11 +15,11 @@ object ActorCellSendMessageInstrumentation {
     if (envelope != null) {
       EnvelopeDecorator.setTimestamp(envelope)
       val sender = EnvelopeOps.getSender(envelope)
-      if (sender != Actor.noSender) {
-        ActorRefOps.Local
-          .cell(sender)
-          .foreach(ActorCountsDecorators.Sent.inc)
-      }
+      if (sender != Actor.noSender)
+        for {
+          cell <- ActorRefOps.Local.cell(sender)
+          spy  <- ActorCellSpy.get(cell)
+        } spy.sentMessages.inc()
     }
 
 }

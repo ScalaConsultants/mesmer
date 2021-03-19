@@ -1,19 +1,11 @@
 package io.scalac.extension.actor
 
 import java.lang.invoke.MethodHandles
-import java.util.concurrent.atomic.AtomicBoolean
 
 import akka.actor.Actor
 import akka.actor.typed.TypedActorContext
 
-import io.scalac.core.util.{ CounterDecorator, ReflectionFieldUtils }
-
 object ActorCountsDecorators {
-
-  final object Received  extends CounterDecorator.FixedClass("akka.actor.ActorCell", "receivedMessages")
-  final object Failed    extends CounterDecorator.FixedClass("akka.actor.ActorCell", "failedMessages")
-  final object Unhandled extends CounterDecorator.FixedClass("akka.actor.ActorCell", "unhandledMessages")
-  final object Sent      extends CounterDecorator.FixedClass("akka.actor.ActorCell", "sentMessages")
 
   final object FailedAtSupervisor {
 
@@ -27,27 +19,17 @@ object ActorCountsDecorators {
 
     @inline def inc(context: TypedActorContext[_]): Unit = {
       val actorCell = actorCellGetter.invoke(context)
-      Failed.inc(actorCell)
-      FailHandled.setHandled(actorCell)
+      ActorCellSpy.get(actorCell).foreach { spy =>
+        spy.failedMessages.inc()
+        spy.exceptionHandledMarker.mark()
+      }
     }
 
   }
 
-  final object FailHandled {
-    val fieldName                     = "exceptionHandledMarker"
-    private lazy val (getter, setter) = ReflectionFieldUtils.getHandlers("akka.actor.ActorCell", fieldName)
-
-    @inline def initialize(actorCell: Object): Unit       = setter.invoke(actorCell, new AtomicBoolean(false))
-    @inline def checkAndReset(actorCell: Object): Boolean = get(actorCell).getAndSet(false)
-
-    @inline private[ActorCountsDecorators] def setHandled(actorCell: Object): Unit = get(actorCell).set(true)
-
-    @inline private def get(actorCell: Object): AtomicBoolean = getter.invoke(actorCell).asInstanceOf[AtomicBoolean]
-  }
-
   final object UnhandledAtActor {
     @inline def inc(actor: Object): Unit =
-      Unhandled.inc(actor.asInstanceOf[Actor].context)
+      ActorCellSpy.get(actor.asInstanceOf[Actor].context).foreach(_.unhandledMessages.inc())
   }
 
 }

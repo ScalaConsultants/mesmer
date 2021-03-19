@@ -2,7 +2,7 @@ package io.scalac.agent.akka.actor
 
 import net.bytebuddy.asm.Advice.{ OnMethodExit, This }
 
-import io.scalac.extension.actor.{ ActorCountsDecorators, ActorTimesDecorators }
+import io.scalac.extension.actor.{ ActorCellSpy, ActorTimesDecorators }
 
 class ActorCellConstructorInstrumentation
 object ActorCellConstructorInstrumentation {
@@ -13,11 +13,7 @@ object ActorCellConstructorInstrumentation {
     ActorTimesDecorators.MailboxTime.initialize(actorCell)
     ActorTimesDecorators.ProcessingTime.initialize(actorCell)
     ActorTimesDecorators.ProcessingTimeSupport.initialize(actorCell)
-    ActorCountsDecorators.Received.initialize(actorCell)
-    ActorCountsDecorators.Unhandled.initialize(actorCell)
-    ActorCountsDecorators.Failed.initialize(actorCell)
-    ActorCountsDecorators.FailHandled.initialize(actorCell)
-    ActorCountsDecorators.Sent.initialize(actorCell)
+    ActorCellSpy.initialize(actorCell)
   }
 
 }

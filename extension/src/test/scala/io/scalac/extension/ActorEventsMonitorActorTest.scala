@@ -245,11 +245,11 @@ object ActorEventsMonitorActorTest {
         ActorMetrics(
           mailboxSize = Some(fakeMailboxSize),
           mailboxTime = Some(fakeMailboxTime),
-          receivedMessages = Some(fakeReceivedMessages),
-          unhandledMessages = Some(fakeUnhandledMessages),
-          failedMessages = Some(fakeFailedMessages),
+          receivedMessages = fakeReceivedMessages,
+          unhandledMessages = fakeUnhandledMessages,
+          failedMessages = fakeFailedMessages,
           processingTime = Some(fakeProcessingTimes),
-          sentMessages = Some(fakeSentMessages)
+          sentMessages = fakeSentMessages
         )
       )
     }
