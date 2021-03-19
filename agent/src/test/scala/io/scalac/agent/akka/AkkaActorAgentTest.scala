@@ -21,7 +21,7 @@ import org.scalatest.time.{ Millis, Span }
 
 import io.scalac.agent.utils.{ InstallAgent, SafeLoadSystem }
 import io.scalac.core.model._
-import io.scalac.core.util.{ ActorPathOps, CounterDecorator }
+import io.scalac.core.util.{ ActorPathOps, SpyToolKit }
 import io.scalac.extension.actor.ActorCellSpy
 import io.scalac.extension.actorServiceKey
 import io.scalac.extension.event.ActorEvent
@@ -325,7 +325,7 @@ class AkkaActorAgentTest
 
   private def createCounterChecker[T](
     ctx: => classic.ActorContext,
-    metricProvider: ActorCellSpy => CounterDecorator
+    metricProvider: ActorCellSpy => SpyToolKit.Counter
   ): Long => Unit = {
     val metric = eventually {
       metricProvider(ActorCellSpy.get(ctx).value)

@@ -1,7 +1,5 @@
 package io.scalac.extension
 
-import java.util.concurrent.atomic.{ AtomicInteger, AtomicLong, AtomicReference }
-
 import scala.concurrent.duration._
 
 import akka.actor.PoisonPill
@@ -25,7 +23,6 @@ import io.scalac.extension.event.EventBus
 import io.scalac.extension.metric.ActorMetricMonitor.Labels
 import io.scalac.extension.util.AggMetric.LongValueAggMetric
 import io.scalac.extension.util.TestCase._
-import io.scalac.extension.util.TimeSeries.LongTimeSeries
 import io.scalac.extension.util.probe.ActorMonitorTestProbe
 import io.scalac.extension.util.probe.BoundTestProbe.{ MetricObserved, MetricObserverCommand, MetricRecorded }
 import io.scalac.extension.util.probe.ObserverCollector.CommonCollectorImpl
@@ -40,7 +37,7 @@ class ActorEventsMonitorActorTest
   type Monitor          = ActorMonitorTestProbe
   override type Context = TestContext[Monitor]
 
-  private val pingOffset: FiniteDuration     = 1.seconds
+  private val pingOffset: FiniteDuration     = 2.seconds
   private val reasonableTime: FiniteDuration = 3 * pingOffset
   implicit def timeout: Timeout              = pingOffset
 
