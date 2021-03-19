@@ -22,18 +22,18 @@ class ClusterSelfNodeEventsActorTest
   import util.TestBehavior.Command._
 
   "ClusterSelfNodeEventsActor" should "show proper amount of entities per region" in setup(TestBehavior.apply) {
-    case (system, member, ref, monitor, _) =>
+    case (system, member, ref, monitor, region) =>
       system.systemActorOf(ClusterRegionsMonitorActor(monitor), "sut")
       for (i <- 0 until 10) ref ! ShardingEnvelope(s"test_$i", Create)
       val messages = monitor.entityPerRegionProbe.receiveMessages(2, 3 * pingOffset)
-      messages should contain(MetricObserved(10, Labels(member.uniqueAddress.toNode)))
+      messages should contain(MetricObserved(10, Labels(member.uniqueAddress.toNode, Some(region))))
   }
 
-  it should "show a amount of shards per region" in setup(TestBehavior.apply) { case (system, member, ref, monitor, _) =>
+  it should "show a amount of shards per region" in setup(TestBehavior.apply) { case (system, member, ref, monitor, region) =>
     system.systemActorOf(ClusterRegionsMonitorActor(monitor), "sut")
     for (i <- 0 until 10) ref ! ShardingEnvelope(s"test_$i", Create)
     val messages = monitor.shardPerRegionsProbe.receiveMessages(2, 3 * pingOffset)
-    val ExpectedLabels = Labels(member.uniqueAddress.toNode, None)
+    val ExpectedLabels = Labels(member.uniqueAddress.toNode, Some(region))
     forAtLeast(1, messages)(
       _ should matchPattern {
         case MetricObserved(value, ExpectedLabels) if value > 0 =>

@@ -1,6 +1,7 @@
 package io.scalac.extension
 
 import akka.actor.PoisonPill
+import akka.actor.testkit.typed.javadsl.FishingOutcomes
 import akka.actor.testkit.typed.scaladsl.TestProbe
 import akka.actor.typed.receptionist.ServiceKey
 import akka.actor.typed.scaladsl.{ Behaviors, StashBuffer }
@@ -18,7 +19,6 @@ import io.scalac.extension.util.AggMetric.LongValueAggMetric
 import io.scalac.extension.util.TestCase._
 import io.scalac.extension.util.TimeSeries.LongTimeSeries
 import io.scalac.extension.util.probe.ActorMonitorTestProbe
-import io.scalac.extension.util.probe.ActorMonitorTestProbe.TestBoundMonitor
 import io.scalac.extension.util.probe.BoundTestProbe.{ MetricObserved, MetricObserverCommand, MetricRecorded }
 import io.scalac.extension.util.probe.ObserverCollector.CommonCollectorImpl
 import org.scalatest.Inspectors
@@ -43,7 +43,7 @@ class ActorEventsMonitorActorTest
   protected val serviceKey: ServiceKey[_] = actorServiceKey
 
   protected def createMonitor(implicit system: ActorSystem[_]): ActorMonitorTestProbe =
-    new ActorMonitorTestProbe(new CommonCollectorImpl(pingOffset))
+    ActorMonitorTestProbe(new CommonCollectorImpl(pingOffset))
 
   protected def createMonitorBehavior(implicit
     c: MonitorTestCaseContext.BasicContext[ActorMonitorTestProbe]
@@ -64,122 +64,122 @@ class ActorEventsMonitorActorTest
   private val CommonLabels: Labels = Labels("/")
 
   "ActorEventsMonitor" should "record mailbox size" in testCase { implicit c =>
-    val bound = monitor.bind()
-    recordMailboxSize(5, CommonLabels, bound)
-    bound.unbind()
+    recordMailboxSize(5, CommonLabels, monitor)
   }
 
   it should "record mailbox size changes" in testCase { implicit c =>
-    val bound = monitor.bind()
-    recordMailboxSize(5, CommonLabels, bound)
-    recordMailboxSize(10, CommonLabels, bound)
-    bound.unbind()
+    recordMailboxSize(5, CommonLabels, monitor)
+    recordMailboxSize(10, CommonLabels, monitor)
   }
 
   it should "dead actors should not report" in testCase { implicit c =>
     val tmp    = system.systemActorOf[Nothing](Behaviors.ignore, "tmp")
     val labels = Labels(ActorPathOps.getPathString(tmp))
-    val bound  = monitor.bind()
-    recordMailboxSize(5, labels, bound)
+    recordMailboxSize(5, labels, monitor)
     tmp.unsafeUpcast[Any] ! PoisonPill
-    bound.mailboxSizeProbe.expectTerminated(tmp)
-    bound.mailboxSizeProbe.expectNoMessage(reasonableTime)
-    bound.unbind()
+    monitor.mailboxSizeProbe.expectTerminated(tmp)
+
+    assertThrows[AssertionError]( //TODO fix this to better implementation
+      monitor.mailboxSizeProbe.fishForMessage(reasonableTime) { case MetricObserved(_, `labels`) =>
+        FishingOutcomes.complete()
+      }
+    )
   }
 
   it should "record stash size" in testCase { implicit c =>
     val stashActor = system.systemActorOf(StashActor(10), "stashActor")
-    val actorPath = ActorPathOps.getPathString(stashActor)
-    val labels = Labels(actorPath)
-
-    val bound      = monitor.bind()
+    val actorPath  = ActorPathOps.getPathString(stashActor)
 
     def stashMeasurement(size: Int): Unit =
       EventBus(system).publishEvent(StashMeasurement(size, actorPath))
 
     stashActor ! Message("random")
     stashMeasurement(1)
-    bound.stashSizeProbe.expectMessage(MetricRecorded(1))
+    monitor.stashSizeProbe.expectMessage(MetricRecorded(1))
     stashActor ! Message("42")
     stashMeasurement(2)
-    bound.stashSizeProbe.expectMessage(MetricRecorded(2))
+    monitor.stashSizeProbe.expectMessage(MetricRecorded(2))
     stashActor ! Open
     stashMeasurement(0)
-    bound.stashSizeProbe.expectMessage(MetricRecorded(0))
+    monitor.stashSizeProbe.expectMessage(MetricRecorded(0))
     stashActor ! Close
     stashActor ! Message("emanuel")
     stashMeasurement(1)
-    bound.stashSizeProbe.expectMessage(MetricRecorded(1))
+    monitor.stashSizeProbe.expectMessage(MetricRecorded(1))
     stashActor.unsafeUpcast[Any] ! PoisonPill
-    bound.stashSizeProbe.expectTerminated(stashActor)
-    bound.unbind()
+    monitor.stashSizeProbe.expectTerminated(stashActor)
+
   }
 
   it should "record avg mailbox time" in testCase { implicit c =>
-    val bound = monitor.bind()
-    recordMailboxTime(FakeMailboxTime, CommonLabels, bound.mailboxTimeAvgProbe)
-    bound.unbind()
+    recordMailboxTime(FakeMailboxTime, CommonLabels, monitor.mailboxTimeAvgProbe)
   }
 
   it should "record min mailbox time" in testCase { implicit c =>
-    val bound = monitor.bind()
-    recordMailboxTime(FakeMailboxTime / 2, CommonLabels, bound.mailboxTimeMinProbe)
-    bound.unbind()
+    recordMailboxTime(FakeMailboxTime / 2, CommonLabels, monitor.mailboxTimeMinProbe)
   }
 
   it should "record max mailbox time" in testCase { implicit c =>
-    val bound = monitor.bind()
-    recordMailboxTime(FakeMailboxTime * 2, CommonLabels, bound.mailboxTimeMaxProbe)
-    bound.unbind()
+    recordMailboxTime(FakeMailboxTime * 2, CommonLabels, monitor.mailboxTimeMaxProbe)
   }
 
   it should "record sum mailbox time" in testCase { implicit c =>
-    val bound = monitor.bind()
-    recordMailboxTime(FakeMailboxTimes.reduce(_ + _), CommonLabels, bound.mailboxTimeSumProbe)
-    bound.unbind()
+    recordMailboxTime(FakeMailboxTimes.reduce(_ + _), CommonLabels, monitor.mailboxTimeSumProbe)
   }
 
   it should "record received messages" in testCase { implicit c =>
-    val bound = monitor.bind()
-    bound.receivedMessagesProbe.expectMessage(reasonableTime, MetricObserved(FakeReceivedMessages, CommonLabels))
-    bound.unbind()
+    monitor.receivedMessagesProbe.fishForMessage(reasonableTime) {
+      case MetricObserved(FakeReceivedMessages, CommonLabels) => FishingOutcomes.complete()
+      case _                                                  => FishingOutcomes.continueAndIgnore()
+    }
   }
 
   it should "record processed messages" in testCase { implicit c =>
-    val bound = monitor.bind()
-    bound.processedMessagesProbe.expectMessage(reasonableTime, MetricObserved(FakeProcessedMessages, CommonLabels))
-    bound.unbind()
+    monitor.processedMessagesProbe
+      .fishForMessage(reasonableTime) {
+        case MetricObserved(FakeProcessedMessages, CommonLabels) => FishingOutcomes.complete()
+        case _                                                   => FishingOutcomes.continueAndIgnore()
+      }
   }
 
   it should "record failed messages" in testCase { implicit c =>
-    val bound = monitor.bind()
-    bound.failedMessagesProbe.expectMessage(reasonableTime, MetricObserved(FakeFailedMessages, CommonLabels))
-    bound.unbind()
+    monitor.failedMessagesProbe
+      .fishForMessage(reasonableTime) {
+        case MetricObserved(FakeFailedMessages, CommonLabels) => FishingOutcomes.complete()
+        case _                                                => FishingOutcomes.continueAndIgnore()
+      }
   }
 
-  def recordMailboxSize(n: Int, labels: Labels, bound: TestBoundMonitor): Unit = {
+  def recordMailboxSize(n: Int, labels: Labels, monitor: ActorMonitorTestProbe): Unit = {
     FakeMailboxSize = n
-    bound.mailboxSizeProbe.expectMessage(reasonableTime, MetricObserved(n, labels))
+    monitor.mailboxSizeProbe.fishForMessage(reasonableTime) {
+      case MetricObserved(`n`, `labels`) => FishingOutcomes.complete()
+      case _                             => FishingOutcomes.continueAndIgnore()
+    }
   }
 
   def recordMailboxTime(d: FiniteDuration, labels: Labels, probe: TestProbe[MetricObserverCommand[Labels]]): Unit =
-    probe.expectMessage(reasonableTime, MetricObserved(d.toMillis, labels))
+    probe.fishForMessage(reasonableTime) {
+      case MetricObserved(duration, `labels`) if duration == d.toMillis => FishingOutcomes.complete()
+      case _                                                            => FishingOutcomes.continueAndIgnore()
+    }
 
 }
 
 object ActorEventsMonitorActorTest {
 
-  private var FakeMailboxSize                    = 10
-  private val FakeMailboxTime                    = 1.second
+  @volatile
+  private var FakeMailboxSize = 10
+  private val FakeMailboxTime = 1.second
+  // min: FakeMailboxTime / 2  |  avg: FakeMailboxTime  |  max: 2 * MailboxTime
   private val FakeMailboxTimes                   = Array(FakeMailboxTime / 2, FakeMailboxTime / 2, 2 * FakeMailboxTime)
   val TestActorTreeTraverser: ActorTreeTraverser = ReflectiveActorTreeTraverser
-  // min: FakeMailboxTime / 2  |  avg: FakeMailboxTime  |  max: 2 * MailboxTime
-  private val FakeReceivedMessages  = 12
-  private val FakeProcessedMessages = 10
-  private val FakeUnhandledMessages = FakeReceivedMessages - FakeProcessedMessages
-  private val FakeFailedMessages    = 2
+  private val FakeReceivedMessages               = 12
+  private val FakeProcessedMessages              = 10
+  private val FakeUnhandledMessages              = FakeReceivedMessages - FakeProcessedMessages
+  private val FakeFailedMessages                 = 2
 
-  val TestActorMetricsReader: ActorMetricsReader = { actor =>
+  val TestActorMetricsReader: ActorMetricsReader = { _ =>
     Some(
       ActorMetrics(
         mailboxSize = Some(FakeMailboxSize),
