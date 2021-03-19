@@ -3,9 +3,9 @@ package io.scalac.extension
 import akka.actor.ActorRef
 import akka.actor.typed._
 import akka.actor.typed.scaladsl.adapter._
-import akka.actor.typed.scaladsl.{AbstractBehavior, ActorContext, Behaviors, TimerScheduler}
+import akka.actor.typed.scaladsl.{ AbstractBehavior, ActorContext, Behaviors, TimerScheduler }
 import io.scalac.core.akka.model.PushMetrics
-import io.scalac.core.model.Tag.{StageName, StreamName}
+import io.scalac.core.model.Tag.{ StageName, StreamName }
 import io.scalac.core.model._
 import io.scalac.core.support.ModulesSupport
 import io.scalac.extension.AkkaStreamMonitoring._
@@ -13,9 +13,9 @@ import io.scalac.extension.config.CachingConfig
 import io.scalac.extension.config.ConfigurationUtils._
 import io.scalac.extension.event.ActorInterpreterStats
 import io.scalac.extension.metric.MetricObserver.Result
-import io.scalac.extension.metric.StreamMetricMonitor.{EagerLabels, Labels => GlobalLabels}
+import io.scalac.extension.metric.StreamMetricMonitor.{ EagerLabels, Labels => GlobalLabels }
 import io.scalac.extension.metric.StreamOperatorMetricsMonitor.Labels
-import io.scalac.extension.metric.{StreamMetricMonitor, StreamOperatorMetricsMonitor}
+import io.scalac.extension.metric.{ StreamMetricMonitor, StreamOperatorMetricsMonitor }
 
 import java.util
 import java.util.Map
@@ -23,7 +23,7 @@ import java.util.concurrent.atomic.AtomicReference
 import scala.annotation.tailrec
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
-import scala.concurrent.duration.{FiniteDuration, _}
+import scala.concurrent.duration.{ FiniteDuration, _ }
 import scala.jdk.CollectionConverters._
 import scala.jdk.DurationConverters._
 

@@ -2,7 +2,7 @@ package io.scalac.extension.upstream.opentelemetry
 
 import io.opentelemetry.api.common.Labels
 import io.opentelemetry.api.metrics.{ LongCounter, LongUpDownCounter, LongValueRecorder, SynchronousInstrument }
-import io.scalac.extension.metric.{ UpDownCounter, MetricRecorder, Counter }
+import io.scalac.extension.metric.{ Counter, MetricRecorder, UpDownCounter }
 
 sealed trait WrappedSynchronousInstrument[L] {
   private[extension] def underlying: SynchronousInstrument[_]

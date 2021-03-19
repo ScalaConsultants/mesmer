@@ -164,8 +164,8 @@ class AkkaStreamMonitoringTest
       value shouldBe Push
       labels.node shouldBe empty
     })
-    operators.collect {
-      case MetricObserved(_, labels) => labels.operator.name
+    operators.collect { case MetricObserved(_, labels) =>
+      labels.operator.name
     }.distinct should contain theSameElementsAs StagesNames
   }
 
