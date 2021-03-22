@@ -2,7 +2,7 @@ package io.scalac.extension.actor
 
 import io.scalac.core.util.MetricsToolKit._
 
-case class ActorCellMetrics(
+final case class ActorCellMetrics(
   mailboxTimeAgg: TimeAggregation = new TimeAggregation(),
   processingTimeAgg: TimeAggregation = new TimeAggregation(),
   processingTimer: Timer = new Timer,
