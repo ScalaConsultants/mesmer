@@ -28,8 +28,10 @@ class AccountRoutesTest
     with FailFastCirceSupport
     with JsonCodecs {
 
-  implicit val typedSystem      = system.toTyped
-  implicit val timeout: Timeout = 1 seconds
+  implicit val typedSystem                        = system.toTyped
+  implicit val timeoutDuration: FiniteDuration    = 2 seconds
+  implicit val timeout: Timeout                   = timeoutDuration
+  implicit val routeTimeTimeout: RouteTestTimeout = RouteTestTimeout(2 * timeoutDuration)
   import AccountStateActor.{ Command, Reply }
 
   override def testConfig: Config = ConfigFactory.load("application-test")
@@ -107,7 +109,6 @@ class AccountRoutesTest
   }
 
   it should "return 500 when upstream actor doesn't respond" in test() { case (uuid, routes) =>
-    implicit val timeout = RouteTestTimeout(5 seconds)
     Get(s"/api/v1/account/${uuid}/balance") ~> routes ~> check {
       status shouldEqual StatusCodes.InternalServerError
     }

@@ -18,7 +18,6 @@ trait EventBus extends Extension {
 }
 
 object EventBus extends ExtensionId[EventBus] {
-  final case class Event(timestamp: Long, event: AbstractEvent)
 
   override def createExtension(system: ActorSystem[_]): EventBus = {
     implicit val s                = system

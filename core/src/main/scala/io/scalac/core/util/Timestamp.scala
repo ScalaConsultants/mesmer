@@ -12,6 +12,7 @@ import scala.concurrent.duration.FiniteDuration
  *              as implementation detail
  */
 class Timestamp(private[Timestamp] val value: Long) extends AnyVal {
+  def interval(): Long                    = interval(Timestamp.create())
   def interval(finished: Timestamp): Long = Timestamp.interval(this, finished)
 
   /**
