@@ -5,7 +5,7 @@ import akka.actor.Actor
 import net.bytebuddy.asm.Advice._
 
 import io.scalac.core.util.ActorRefOps
-import io.scalac.extension.actor.ActorCellSpy
+import io.scalac.extension.actor.ActorCellDecorator
 
 class ActorCellSendMessageInstrumentation
 object ActorCellSendMessageInstrumentation {
@@ -18,7 +18,7 @@ object ActorCellSendMessageInstrumentation {
       if (sender != Actor.noSender)
         for {
           cell <- ActorRefOps.Local.cell(sender)
-          spy  <- ActorCellSpy.get(cell)
+          spy  <- ActorCellDecorator.get(cell)
         } spy.sentMessages.inc()
     }
 

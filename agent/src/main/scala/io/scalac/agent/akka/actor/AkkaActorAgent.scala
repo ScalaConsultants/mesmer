@@ -1,7 +1,5 @@
 package io.scalac.agent.akka.actor
 
-import java.util.concurrent.atomic.AtomicReference
-
 import akka.actor.typed.Behavior
 
 import net.bytebuddy.asm.Advice
@@ -14,7 +12,7 @@ import io.scalac.agent.{ Agent, AgentInstrumentation }
 import io.scalac.core.model._
 import io.scalac.core.support.ModulesSupport
 import io.scalac.core.util.Timestamp
-import io.scalac.extension.actor.ActorCellSpy
+import io.scalac.extension.actor.{ ActorCellDecorator, ActorCellMetrics }
 
 object AkkaActorAgent {
 
@@ -156,8 +154,8 @@ object AkkaActorAgent {
         .transform { (builder, _, _, _) =>
           builder
             .defineField(
-              ActorCellSpy.fieldName,
-              classOf[ActorCellSpy]
+              ActorCellDecorator.fieldName,
+              classOf[ActorCellMetrics]
             )
             .visit(
               Advice

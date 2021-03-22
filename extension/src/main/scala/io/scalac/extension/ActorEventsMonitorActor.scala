@@ -10,7 +10,7 @@ import akka.{ actor => classic }
 
 import io.scalac.core.model.{ Tag, _ }
 import io.scalac.extension.AkkaStreamMonitoring.StartStreamCollection
-import io.scalac.extension.actor.{ ActorCellSpy, ActorMetricStorage, ActorMetrics }
+import io.scalac.extension.actor.{ ActorCellDecorator, ActorMetricStorage, ActorMetrics }
 import io.scalac.extension.event.ActorEvent.StashMeasurement
 import io.scalac.extension.event.{ ActorEvent, TagEvent }
 import io.scalac.extension.metric.ActorMetricMonitor.Labels
@@ -345,7 +345,7 @@ object ActorEventsMonitorActor {
     def read(actor: classic.ActorRef): Option[ActorMetrics] =
       for {
         cell <- ActorRefOps.Local.cell(actor)
-        spy  <- ActorCellSpy.get(cell)
+        spy  <- ActorCellDecorator.get(cell)
       } yield ActorMetrics(
         mailboxSize = safeRead(ActorCellOps.numberOfMessages(cell)),
         mailboxTime = spy.mailboxTimeAgg.metrics,

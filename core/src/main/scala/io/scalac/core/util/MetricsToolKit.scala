@@ -7,7 +7,7 @@ import scala.concurrent.duration._
 import io.scalac.extension.util.AggMetric.LongValueAggMetric
 import io.scalac.extension.util.LongNoLockAggregator
 
-object SpyToolKit {
+object MetricsToolKit {
 
   final class Counter {
     private val counter = new AtomicLong(0)

@@ -4,7 +4,7 @@ import scala.concurrent.duration._
 
 import net.bytebuddy.asm.Advice._
 
-import io.scalac.extension.actor.ActorCellSpy
+import io.scalac.extension.actor.ActorCellDecorator
 
 class MailboxDequeueInstrumentation
 object MailboxDequeueInstrumentation {
@@ -19,6 +19,6 @@ object MailboxDequeueInstrumentation {
     EnvelopeDecorator.getTimestamp(envelope).interval().milliseconds
 
   @inline final def add(mailbox: Object, time: FiniteDuration): Unit =
-    ActorCellSpy.get(MailboxOps.getActor(mailbox)).foreach(_.mailboxTimeAgg.add(time))
+    ActorCellDecorator.get(MailboxOps.getActor(mailbox)).foreach(_.mailboxTimeAgg.add(time))
 
 }

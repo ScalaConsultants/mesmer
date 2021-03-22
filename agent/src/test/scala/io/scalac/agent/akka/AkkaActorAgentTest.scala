@@ -21,8 +21,8 @@ import org.scalatest.time.{ Millis, Span }
 
 import io.scalac.agent.utils.{ InstallAgent, SafeLoadSystem }
 import io.scalac.core.model._
-import io.scalac.core.util.{ ActorPathOps, SpyToolKit }
-import io.scalac.extension.actor.ActorCellSpy
+import io.scalac.core.util.{ ActorPathOps, MetricsToolKit }
+import io.scalac.extension.actor.{ ActorCellDecorator, ActorCellMetrics }
 import io.scalac.extension.actorServiceKey
 import io.scalac.extension.event.ActorEvent
 import io.scalac.extension.event.ActorEvent.StashMeasurement
@@ -67,7 +67,7 @@ class AkkaActorAgentTest
       actor ! "idle"
       for (_ <- 0 until waiting) actor ! "42"
       eventually {
-        val metrics = ActorCellSpy.get(ctx).flatMap(_.mailboxTimeAgg.metrics).value
+        val metrics = ActorCellDecorator.get(ctx).flatMap(_.mailboxTimeAgg.metrics).value
         metrics.count should be(n)
         metrics.avg should be(((waiting * idle.toMillis) / n) +- tolerance)
         metrics.sum should be((waiting * idle.toMillis) +- tolerance)
@@ -211,7 +211,7 @@ class AkkaActorAgentTest
       actor ! "42"
       for (_ <- 0 until working) actor ! "work"
       eventually {
-        val metrics = ActorCellSpy.get(ctx).flatMap(_.processingTimeAgg.metrics).value
+        val metrics = ActorCellDecorator.get(ctx).flatMap(_.processingTimeAgg.metrics).value
         metrics.count should be(n)
         metrics.avg should be(((working * processing.toMillis) / n) +- tolerance)
         metrics.sum should be((working * processing.toMillis) +- tolerance)
@@ -325,10 +325,10 @@ class AkkaActorAgentTest
 
   private def createCounterChecker[T](
     ctx: => classic.ActorContext,
-    metricProvider: ActorCellSpy => SpyToolKit.Counter
+    metricProvider: ActorCellMetrics => MetricsToolKit.Counter
   ): Long => Unit = {
     val metric = eventually {
-      metricProvider(ActorCellSpy.get(ctx).value)
+      metricProvider(ActorCellDecorator.get(ctx).value)
     }
     test =>
       eventually {
