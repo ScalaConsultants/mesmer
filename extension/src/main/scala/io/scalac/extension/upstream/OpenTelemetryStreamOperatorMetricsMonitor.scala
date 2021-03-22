@@ -8,20 +8,21 @@ import io.scalac.extension.upstream.OpenTelemetryStreamOperatorMetricsMonitor.Me
 import io.scalac.extension.upstream.opentelemetry._
 
 object OpenTelemetryStreamOperatorMetricsMonitor {
-  case class MetricNames(operatorProcessed: String, connections: String, runningOperators: String)
+  case class MetricNames(operatorProcessed: String, connections: String, runningOperators: String, demand: String)
 
   object MetricNames {
     private val defaults: MetricNames =
       MetricNames(
         "akka_streams_operator_processed_total",
         "akka_streams_operator_connections",
-        "akka_streams_running_operators"
+        "akka_streams_running_operators",
+        "akka_streams_operator_demand"
       )
 
     def fromConfig(config: Config): MetricNames = {
       import io.scalac.extension.config.ConfigurationUtils._
 
-      config.tryValue("io.scalac.akka-monitoring.metrics.streams-metrics")(_.getConfig).map { streamMetricsConfig =>
+      config.tryValue("io.scalac.akka-monitoring.metrics.stream-metrics")(_.getConfig).map { streamMetricsConfig =>
         val operatorProcessed = streamMetricsConfig
           .tryValue("operator-processed")(_.getString)
           .getOrElse(defaults.operatorProcessed)
@@ -34,7 +35,11 @@ object OpenTelemetryStreamOperatorMetricsMonitor {
           .tryValue("running-operators")(_.getString)
           .getOrElse(defaults.runningOperators)
 
-        MetricNames(operatorProcessed, operatorConnections, runningOperators)
+        val demand = streamMetricsConfig
+          .tryValue("operator-demand")(_.getString)
+          .getOrElse(defaults.demand)
+
+        MetricNames(operatorProcessed, operatorConnections, runningOperators, demand)
       }
     }.getOrElse(defaults)
   }
@@ -55,6 +60,12 @@ class OpenTelemetryStreamOperatorMetricsMonitor(instrumentationName: String, met
       .setDescription("Amount of messages process by operator")
   )
 
+  private val demandAdapter = new LazyLongSumObserverBuilderAdapter[Labels](
+    meter
+      .longSumObserverBuilder(metricNames.demand)
+      .setDescription("Amount of messages demanded by operator")
+  )
+
   private val operatorsAdapter = new LazyLongValueObserverBuilderAdapter[Labels](
     meter
       .longValueObserverBuilder(metricNames.runningOperators)
@@ -72,6 +83,12 @@ class OpenTelemetryStreamOperatorMetricsMonitor(instrumentationName: String, met
 
     override lazy val operators: LazyMetricObserver[Long, Labels] = {
       val (unbind, observer) = operatorsAdapter.createObserver()
+      unbinds ::= unbind
+      observer
+    }
+
+    override def demand: LazyMetricObserver[Long, Labels] = {
+      val (unbind, observer) = demandAdapter.createObserver()
       unbinds ::= unbind
       observer
     }

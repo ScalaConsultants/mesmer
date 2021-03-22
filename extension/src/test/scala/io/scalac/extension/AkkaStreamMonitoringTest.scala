@@ -15,7 +15,7 @@ import io.scalac.extension.util.TestCase.{
   NoSetupTestCaseFactory,
   ProvidedActorSystemTestCaseFactory
 }
-import io.scalac.extension.util.probe.BoundTestProbe.{ LazyMetricsObserved, MetricObserved, MetricRecorded }
+import io.scalac.extension.util.probe.BoundTestProbe.{ LazyMetricsObserved, MetricRecorded }
 import io.scalac.extension.util.probe.ObserverCollector.CommonCollectorImpl
 import io.scalac.extension.util.probe.{ StreamMonitorTestProbe, StreamOperatorMonitorTestProbe }
 import io.scalac.extension.util.{ TestConfig, TestOps }
@@ -137,7 +137,7 @@ class AkkaStreamMonitoringTest
     global.streamActorsProbe.receiveMessage(2.seconds) shouldBe (MetricRecorded(ExpectedCount * ActorPerStream))
   }
 
-  it should "collect amount of messages processed and operators" in testCase { implicit c =>
+  it should "collect amount of messages processed, demand and operators" in testCase { implicit c =>
     val ExpectedCount = 5
     val Flows         = 2
     val Push          = 11L
@@ -157,10 +157,17 @@ class AkkaStreamMonitoringTest
 
     val operators =
       operations.runningOperatorsTestProbe.receiveMessages(ExpectedCount * StagesNames.size, OperationsPing)
+
     val processed = operations.processedTestProbe.receiveMessages(ExpectedCount * (Flows + 1), OperationsPing)
+    val demand    = operations.demandTestProbe.receiveMessages(ExpectedCount * (Flows + 1), OperationsPing)
 
     forAll(processed)(inside(_) { case LazyMetricsObserved(value, labels) =>
       value shouldBe Push
+      labels.node shouldBe empty
+    })
+
+    forAll(demand)(inside(_) { case LazyMetricsObserved(value, labels) =>
+      value shouldBe Pull
       labels.node shouldBe empty
     })
 

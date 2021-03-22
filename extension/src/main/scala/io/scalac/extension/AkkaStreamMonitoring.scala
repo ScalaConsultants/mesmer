@@ -48,9 +48,10 @@ object AkkaStreamMonitoring {
       )
     )
 
-  private[extension] final case class StageData(value: Long, direction: Direction, connectedWith: String)
+  private[extension] final case class StageData(value: Long, connectedWith: String)
   private[extension] final case class SnapshotEntry(stage: StageInfo, data: Option[StageData])
-  private[extension] final case class IndexData(stats: Set[ConnectionStats], distinct: Boolean)
+  private[extension] final case class DirectionData(stats: Set[ConnectionStats], distinct: Boolean)
+  private[extension] final case class IndexData(input: DirectionData, output: DirectionData)
 
   private[extension] final case class StreamStats(
     streamName: StreamName,
@@ -107,35 +108,65 @@ object AkkaStreamMonitoring {
     def get(stage: StageInfo)(connections: Array[ConnectionStats]): IndexData = indexCache
       .get(stage)
       .fold {
-        val (wiredConnections, entry) = findWithIndex(stage, connections)
+        val (wiredInputs, wiredOutputs, entry) = findWithIndex(stage, connections)
         indexCache.put(stage, entry)
-        IndexData(wiredConnections, entry.distinctPorts)
-      }(entry => IndexData(entry.indexes.map(connections.apply), entry.distinctPorts))
+        IndexData(DirectionData(wiredInputs, entry.distinctInputs), DirectionData(wiredOutputs, entry.distinctOutputs))
+      }(entry =>
+        IndexData(
+          DirectionData(entry.inputs.map(connections.apply), entry.distinctInputs),
+          DirectionData(entry.outputs.map(connections.apply), entry.distinctOutputs)
+        )
+      )
 
     private def findWithIndex(
       stage: StageInfo,
       connections: Array[ConnectionStats]
-    ): (Set[ConnectionStats], IndexCacheEntry) = {
-      val indexSet: mutable.Set[Int]                   = mutable.Set.empty
-      val connectionsSet: mutable.Set[ConnectionStats] = mutable.Set.empty
-      val outputIndexSet: mutable.Set[Int]             = mutable.Set.empty
-      var distinct                                     = true
+    ): (Set[ConnectionStats], Set[ConnectionStats], IndexCacheEntry) = {
+      val inputIndexSet: mutable.Set[Int]                    = mutable.Set.empty
+      val outputIndexSet: mutable.Set[Int]                   = mutable.Set.empty
+      val inputConnectionsSet: mutable.Set[ConnectionStats]  = mutable.Set.empty
+      val outputConnectionsSet: mutable.Set[ConnectionStats] = mutable.Set.empty
+
+      val inputOutputIds = mutable.Set.empty[Int]
+      val outputInputIds = mutable.Set.empty[Int]
+
+      var distinctOutput = true
+      var distinctInput  = true
 
       @tailrec
-      def findInArray(index: Int): (Set[ConnectionStats], IndexCacheEntry) =
-        if (index >= connections.length) (connectionsSet.toSet, IndexCacheEntry(indexSet.toSet, distinct))
+      def findInArray(index: Int): (Set[ConnectionStats], Set[ConnectionStats], IndexCacheEntry) =
+        if (index >= connections.length)
+          (
+            inputConnectionsSet.toSet,
+            outputConnectionsSet.toSet,
+            IndexCacheEntry(inputIndexSet.toSet, outputIndexSet.toSet, distinctInput, distinctOutput)
+          )
         else {
           val connection = connections(index)
           if (connection.in == stage.id) {
-            connectionsSet += connection
-            indexSet += index
-          }
-          if (distinct) {
-            if (outputIndexSet.contains(connection.out)) {
-              distinct = false
-            } else {
-              outputIndexSet += connection.out
+            inputConnectionsSet += connection
+            inputIndexSet += index
+
+            if (distinctInput) {
+              if (inputOutputIds.contains(connection.out)) {
+                distinctInput = false
+              } else {
+                inputOutputIds += connection.out
+              }
             }
+
+          } else if (connection.out == stage.id) {
+            outputConnectionsSet += connection
+            outputIndexSet += index
+
+            if (distinctOutput) {
+              if (outputInputIds.contains(connection.in)) {
+                distinctOutput = false
+              } else {
+                outputInputIds += connection.in
+              }
+            }
+
           }
           findInArray(index + 1)
         }
@@ -144,7 +175,12 @@ object AkkaStreamMonitoring {
   }
 
   object ConnectionsIndexCache {
-    private[extension] final case class IndexCacheEntry(indexes: Set[Int], distinctPorts: Boolean)
+    private[extension] final case class IndexCacheEntry(
+      inputs: Set[Int],
+      outputs: Set[Int],
+      distinctInputs: Boolean,
+      distinctOutputs: Boolean
+    )
 
     private[extension] def bounded(entries: Int): ConnectionsIndexCache = {
 
@@ -184,31 +220,40 @@ class AkkaStreamMonitoring(
 
   import ctx._
 
-  private[this] val snapshot                = new AtomicReference[Option[Seq[SnapshotEntry]]](None)
+  private[this] val processedSnapshot       = new AtomicReference[Option[Seq[SnapshotEntry]]](None)
+  private[this] val demandSnapshot          = new AtomicReference[Option[Seq[SnapshotEntry]]](None)
   private[this] val globalProcessedSnapshot = new AtomicReference[Option[Seq[StreamStats]]](None)
 
   //append this only
-  private[this] val localSnapshot    = ListBuffer.empty[SnapshotEntry]
-  private[this] val localStreamStats = mutable.Map.empty[StreamName, StreamStatsBuilder]
+  private[this] val localProcessedSnapshot = ListBuffer.empty[SnapshotEntry]
+  private[this] val localDemandSnapshot    = ListBuffer.empty[SnapshotEntry]
+  private[this] val localStreamStats       = mutable.Map.empty[StreamName, StreamStatsBuilder]
 
-  boundStreamMonitor.streamProcessedMessages.setUpdater { result =>
-    val streams = globalProcessedSnapshot.get()
-    streams.foreach { statsSeq =>
-      for (stats <- statsSeq) {
-        val labels = GlobalLabels(node, stats.streamName)
-        result.observe(stats.processesMessages, labels)
+  private def init(): Unit = {
+    boundStreamMonitor.streamProcessedMessages.setUpdater { result =>
+      val streams = globalProcessedSnapshot.get()
+      streams.foreach { statsSeq =>
+        for (stats <- statsSeq) {
+          val labels = GlobalLabels(node, stats.streamName)
+          result.observe(stats.processesMessages, labels)
+        }
       }
     }
-  }
 
-  operationsBoundMonitor.processedMessages.setUpdater { result =>
-    val state = snapshot.get()
-    observeProcessed(result, state)
-  }
+    operationsBoundMonitor.processedMessages.setUpdater { result =>
+      val state = processedSnapshot.get()
+      observeSnapshot(result, state)
+    }
 
-  operationsBoundMonitor.operators.setUpdater { result =>
-    val state = snapshot.get()
-    observeOperators(result, state)
+    operationsBoundMonitor.operators.setUpdater { result =>
+      val state = processedSnapshot.get()
+      observeOperators(result, state)
+    }
+
+    operationsBoundMonitor.demand.setUpdater { result =>
+      val state = demandSnapshot.get()
+      observeSnapshot(result, state)
+    }
   }
 
   private val metricsAdapter = messageAdapter[ActorInterpreterStats](StatsReceived.apply)
@@ -246,30 +291,53 @@ class AkkaStreamMonitoring(
   private def createSnapshotEntry(stage: StageInfo, connectedWith: StageInfo, value: Long): SnapshotEntry =
     if (connectedWith ne null) {
       val connectedName = connectedWith.stageName
-      SnapshotEntry(stage, Some(StageData(value, Direction.In, connectedName.name)))
-    } else SnapshotEntry(stage, Some(StageData(value, Direction.In, "unknown"))) // TODO better handle case without name
+      SnapshotEntry(stage, Some(StageData(value, connectedName.name)))
+    } else SnapshotEntry(stage, Some(StageData(value, "unknown"))) // TODO better handle case without name
+
+  private def updateLocalProcessedState(
+    stage: StageInfo,
+    connectionStats: Set[ConnectionStats],
+    stages: Array[StageInfo],
+    distinct: Boolean = false
+  ) = updateLocalState(stage, connectionStats, stages, distinct, conn => (conn.out, conn.push), localProcessedSnapshot)
+
+  private def updateLocalDemandState(
+    stage: StageInfo,
+    connectionStats: Set[ConnectionStats],
+    stages: Array[StageInfo],
+    distinct: Boolean = false
+  ) = updateLocalState(stage, connectionStats, stages, distinct, conn => (conn.in, conn.pull), localDemandSnapshot)
 
   private def updateLocalState(
     stage: StageInfo,
-    connections: Set[ConnectionStats],
+    connectionStats: Set[ConnectionStats],
     stages: Array[StageInfo],
-    distinct: Boolean = false
-  ) =
-    if (distinct) {
-      // optimization for simpler graphs
-      connections.foreach { conn =>
-        localSnapshot.append(createSnapshotEntry(stage, stages(conn.out), conn.push))
+    distinct: Boolean,
+    extractFunction: ConnectionStats => (Int, Long),
+    localState: ListBuffer[SnapshotEntry]
+  ): Unit =
+    if (connectionStats.nonEmpty) {
+      if (distinct) {
+        // optimization for simpler graphs
+        connectionStats.foreach { conn =>
+          val (out, push) = extractFunction(conn)
+          localState.append(createSnapshotEntry(stage, stages(out), push))
+        }
+      } else {
+        connectionStats.map(extractFunction).groupBy(_._1).map { case (index, connections) =>
+          val value = connections.foldLeft(0L)(_ + _._2)
+          localState.append(createSnapshotEntry(stage, stages(index), value))
+        }
       }
     } else {
-      connections.groupBy(_.out).map { case (outIndex, connections) =>
-        val value = connections.foldLeft(0L)(_ + _.push)
-        localSnapshot.append(createSnapshotEntry(stage, stages(outIndex), value))
-      }
+      localState.append(SnapshotEntry(stage, None))
     }
 
   private def swapState(): Unit = {
-    snapshot.set(Some(localSnapshot.toSeq))
-    localSnapshot.clear()
+    processedSnapshot.set(Some(localProcessedSnapshot.toSeq))
+    demandSnapshot.set(Some(localDemandSnapshot.toSeq))
+    localProcessedSnapshot.clear()
+    localDemandSnapshot.clear()
   }
 
   private def collecting(refs: Set[ActorRef]): Behavior[Command] =
@@ -288,17 +356,17 @@ class AkkaStreamMonitoring(
             } {
               streamStats.incStage()
 
-              val IndexData(stageConnections, distinct) = indexCache.get(stage)(connections)
+              val IndexData(DirectionData(inputStats, inputDistinct), DirectionData(outputStats, outputDistinct)) =
+                indexCache.get(stage)(connections)
 
-              if (stageConnections.nonEmpty)
-                updateLocalState(stage, stageConnections, stageInfo, distinct)
-              else localSnapshot.append(SnapshotEntry(stage, None))
+              updateLocalProcessedState(stage, inputStats, stageInfo, inputDistinct)
+              updateLocalDemandState(stage, outputStats, stageInfo, outputDistinct)
 
               //set name for stream is it's terminal operator
               if (stage.terminal) {
                 log.info("Found terminal stage {}", stage)
                 streamStats.terminalName(stage.stageName.nameOnly)
-                streamStats.processedMessages(stageConnections.foldLeft(0L)(_ + _.push))
+                streamStats.processedMessages(inputStats.foldLeft(0L)(_ + _.push))
               }
             }
           }
@@ -335,19 +403,19 @@ class AkkaStreamMonitoring(
           }
       )
 
-  private def observeProcessed(result: LazyResult[Long, Labels], snapshot: Option[Seq[SnapshotEntry]]): Unit =
+  private def observeSnapshot(result: LazyResult[Long, Labels], snapshot: Option[Seq[SnapshotEntry]]): Unit =
     snapshot.foreach(_.foreach {
-      case SnapshotEntry(stageInfo, Some(StageData(value, direction, connectedWith))) =>
+      case SnapshotEntry(stageInfo, Some(StageData(value, connectedWith))) =>
         val labels =
           Labels(
             stageInfo.stageName,
             stageInfo.subStreamName.streamName,
             stageInfo.terminal,
             node,
-            Some(connectedWith -> direction)
+            Some(connectedWith)
           )
         result.observe(value, labels)
-      case _ => // ignore sources as those will be covered by demand metrics
+      case _ => // ignore metrics without data
     })
 
   private def observeOperators(result: LazyResult[Long, Labels], snapshot: Option[Seq[SnapshotEntry]]): Unit =
@@ -374,4 +442,6 @@ class AkkaStreamMonitoring(
       .tryValue("io.scalac.scalac.akka-monitoring.timeouts.query-region-stats")(_.getDuration)
       .map(_.toScala)
       .getOrElse(2.seconds)
+
+  init()
 }
