@@ -35,8 +35,8 @@ object CounterDecorator {
   class FixedClass(protected val decoratedClassName: String, val fieldName: String) extends CounterDecorator {
     private lazy val (fixedGetter, fixedSetter) = ReflectionFieldUtils.getHandlers(decoratedClassName, fieldName)
 
-    @inline override final def getter(container: Object): MethodHandle = fixedGetter
-    @inline override final def setter(container: Object): MethodHandle = fixedSetter
+    @inline override final protected def getter(container: Object): MethodHandle = fixedGetter
+    @inline override final protected def setter(container: Object): MethodHandle = fixedSetter
   }
 
 }
