@@ -4,7 +4,7 @@ import io.opentelemetry.api.common.Labels
 import io.opentelemetry.api.metrics.AsynchronousInstrument.LongResult
 import io.opentelemetry.api.metrics.{ AsynchronousInstrument, _ }
 import io.scalac.core.LabelSerializable
-import io.scalac.extension.metric.{ MetricObserver, UnbindRoot }
+import io.scalac.extension.metric.MetricObserver
 import io.scalac.extension.upstream.LabelsFactory
 
 import scala.collection.mutable
@@ -26,10 +26,6 @@ final class LongUpDownSumObserverBuilderAdapter[L <: LabelSerializable](builder:
 final class LongSumObserverBuilderAdapter[L <: LabelSerializable](builder: LongSumObserver.Builder)
     extends MetricObserverBuilderAdapter[LongResult, Long, L](builder, longResultWrapper)
 
-trait UnregisteredMetricObserver[T, L] {
-  def register(root: UnbindRoot): MetricObserver[T, L]
-}
-
 sealed abstract class MetricObserverBuilderAdapter[R <: AsynchronousInstrument.Result, T, L <: LabelSerializable](
   builder: AsynchronousInstrument.Builder[R],
   wrapper: ResultWrapper[R, T]
@@ -41,7 +37,7 @@ sealed abstract class MetricObserverBuilderAdapter[R <: AsynchronousInstrument.R
     .setUpdater(updateAll)
     .build()
 
-  def createObserver: UnregisteredMetricObserver[T, L] = {
+  def createObserver: UnregisteredInstrument[WrappedMetricObserver[T, L]] = {
     val observer = WrappedMetricObserver[T, L]()
     root => {
       root.registerUnbind(() =>
@@ -55,8 +51,11 @@ sealed abstract class MetricObserverBuilderAdapter[R <: AsynchronousInstrument.R
     observers.foreach(_.update(wrapper(result)))
 }
 
-final case class WrappedMetricObserver[T, L <: LabelSerializable]() extends MetricObserver[T, L] {
+final case class WrappedMetricObserver[T, L <: LabelSerializable]()
+    extends MetricObserver[T, L]
+    with WrappedInstrument {
 
+  override type Self = WrappedMetricObserver[T, L]
   private var valueUpdater: Option[MetricObserver.Updater[T, L]] = None
 
   def setUpdater(updater: MetricObserver.Updater[T, L]): Unit =
