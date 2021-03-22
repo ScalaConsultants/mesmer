@@ -68,19 +68,6 @@ package object model {
    */
   implicit def stringAutomaticTagger[Tag <: ModelTag](value: String): String @@ Tag = value.taggedWith[Tag]
 
-  sealed trait Direction {
-    import Direction._
-    def serialize: (String, String) = this match {
-      case Out => ("direction", "out")
-      case In  => ("direction", "in")
-    }
-  }
-
-  object Direction {
-    case object Out extends Direction
-    case object In  extends Direction
-  }
-
   implicit class AkkaNodeOps(val value: UniqueAddress) extends AnyVal {
     def toNode: Node = value.address.toString.taggedWith[NodeTag] // @todo change to some meaningful name
   }

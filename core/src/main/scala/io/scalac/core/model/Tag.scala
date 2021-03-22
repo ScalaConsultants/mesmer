@@ -8,7 +8,7 @@ sealed trait Tag extends Any {
   override def toString =
     this.serialize.map { case (label, value) =>
       s"$label -> $value"
-    }.mkString("[", ",", "]")
+    }.mkString("[", ", ", "]")
 }
 
 object Tag {
@@ -58,7 +58,7 @@ object Tag {
       override val streamName: StreamName = StreamName(_streamName)
       override val subStreamId: String    = islandId
       override lazy val serialize: Seq[(String, String)] =
-        Seq(("stream_name_with_island", s"$streamName-$subStreamId")) ++ streamName.serialize
+        Seq(("stream_name_with_island", s"${streamName.name}-$subStreamId")) ++ streamName.serialize
     }
   }
 
