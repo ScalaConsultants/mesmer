@@ -79,7 +79,7 @@ class ActorEventsMonitorActorTest
   it should "dead actors should not report" in testCase { implicit c =>
     val tmp   = system.systemActorOf[Nothing](Behaviors.ignore, "tmp")
     val bound = monitor.bind(Labels(ActorPathOps.getPathString(tmp)))
-    shouldObserve(bound.mailboxSizeProbe, c.fakeMailboxSize, c.fakeMailboxSize += 1)
+    bound.mailboxSizeProbe.expectMessageType[MetricObserved]
     tmp.unsafeUpcast[Any] ! PoisonPill
     bound.mailboxSizeProbe.expectTerminated(tmp)
     bound.mailboxSizeProbe.expectNoMessage(reasonableTime)
@@ -228,15 +228,15 @@ object ActorEventsMonitorActorTest {
 
     val TestActorTreeTraverser: ActorTreeTraverser = ReflectiveActorTreeTraverser
 
-    var fakeMailboxSize       = 10
-    var fakeReceivedMessages  = 12
-    var fakeProcessedMessages = 10
-    var fakeFailedMessages    = 2
-    var fakeSentMessages      = 10
+    @volatile var fakeMailboxSize       = 10
+    @volatile var fakeReceivedMessages  = 12
+    @volatile var fakeProcessedMessages = 10
+    @volatile var fakeFailedMessages    = 2
+    @volatile var fakeSentMessages      = 10
 
-    var fakeMailboxTime: LongValueAggMetric = LongValueAggMetric(1, 2, 1, 4, 3)
+    @volatile var fakeMailboxTime: LongValueAggMetric = LongValueAggMetric(1, 2, 1, 4, 3)
 
-    var fakeProcessingTimes: LongValueAggMetric = LongValueAggMetric(1, 2, 1, 4, 3)
+    @volatile var fakeProcessingTimes: LongValueAggMetric = LongValueAggMetric(1, 2, 1, 4, 3)
 
     def fakeUnhandledMessages: Long = fakeReceivedMessages - fakeProcessedMessages
 
