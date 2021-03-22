@@ -22,7 +22,7 @@ object OpenTelemetryStreamOperatorMetricsMonitor {
     def fromConfig(config: Config): MetricNames = {
       import io.scalac.extension.config.ConfigurationUtils._
 
-      config.tryValue("io.scalac.akka-monitoring.metrics.streams-metrics")(_.getConfig).map { streamMetricsConfig =>
+      config.tryValue("io.scalac.akka-monitoring.metrics.stream-metrics")(_.getConfig).map { streamMetricsConfig =>
         val operatorProcessed = streamMetricsConfig
           .tryValue("operator-processed")(_.getString)
           .getOrElse(defaults.operatorProcessed)

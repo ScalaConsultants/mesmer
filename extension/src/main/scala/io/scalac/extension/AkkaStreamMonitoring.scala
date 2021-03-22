@@ -175,7 +175,6 @@ object AkkaStreamMonitoring {
   }
 
   object ConnectionsIndexCache {
-//    private[extension] final case class Distinct(distinctOutputs: Boolean, distinctInputs: Boolean)
     private[extension] final case class IndexCacheEntry(
       inputs: Set[Int],
       outputs: Set[Int],
