@@ -5,9 +5,9 @@ import akka.actor.typed.receptionist.Receptionist
 import akka.actor.typed.receptionist.Receptionist.Register
 import akka.actor.typed.scaladsl.{ AbstractBehavior, ActorContext, Behaviors, TimerScheduler }
 import akka.{ actor => classic }
-import io.scalac.core.model.{ Tag, _ }
+import io.scalac.core.model.{ ActorKey, Node, Tag }
 import io.scalac.extension.AkkaStreamMonitoring.StartStreamCollection
-import io.scalac.extension.actor.{ ActorMetricStorage, ActorMetrics, MailboxTimeDecorator, MessageCounterDecorators }
+import io.scalac.extension.actor.{ ActorCountsDecorators, ActorMetricStorage, ActorMetrics, ActorTimesDecorators }
 import io.scalac.extension.event.ActorEvent.StashMeasurement
 import io.scalac.extension.event.{ ActorEvent, TagEvent }
 import io.scalac.extension.metric.ActorMetricMonitor
@@ -188,6 +188,11 @@ object ActorEventsMonitorActor {
       boundMonitor.mailboxTimeMax.setUpdater(updateMetric(_.mailboxTime.map(_.max)))
       boundMonitor.mailboxTimeMin.setUpdater(updateMetric(_.mailboxTime.map(_.min)))
       boundMonitor.mailboxTimeSum.setUpdater(updateMetric(_.mailboxTime.map(_.sum)))
+      boundMonitor.processingTimeAvg.setUpdater(updateMetric(_.processingTime.map(_.avg)))
+      boundMonitor.processingTimeMin.setUpdater(updateMetric(_.processingTime.map(_.min)))
+      boundMonitor.processingTimeMax.setUpdater(updateMetric(_.processingTime.map(_.max)))
+      boundMonitor.processingTimeSum.setUpdater(updateMetric(_.processingTime.map(_.sum)))
+      //TODO add processed messages
       //start collection loop
       setTimeout()
     }
@@ -205,7 +210,7 @@ object ActorEventsMonitorActor {
         setTimeout() // loop
         this
       case AddTag(ref, tag) =>
-        ctx.log.trace(s"Add tags {} for actor {}", tag, ref)
+        log.trace(s"Add tags {} for actor {}", tag, ref)
         refs ::= ref
         actorTags
           .getOrElseUpdate(storage.actorToKey(ref), mutable.Set.empty)
@@ -330,10 +335,11 @@ object ActorEventsMonitorActor {
           val cell = underlyingMethodHandler.invoke(actor)
           ActorMetrics(
             mailboxSize = safeRead(mailboxSize(cell)),
-            mailboxTime = MailboxTimeDecorator.getMetrics(cell),
-            receivedMessages = MessageCounterDecorators.Received.take(cell),
-            unhandledMessages = MessageCounterDecorators.Unhandled.take(cell),
-            failedMessages = MessageCounterDecorators.Failed.take(cell)
+            mailboxTime = ActorTimesDecorators.MailboxTime.getMetrics(cell),
+            processingTime = ActorTimesDecorators.ProcessingTime.getMetrics(cell),
+            receivedMessages = ActorCountsDecorators.Received.take(cell),
+            unhandledMessages = ActorCountsDecorators.Unhandled.take(cell),
+            failedMessages = ActorCountsDecorators.Failed.take(cell)
           )
         }
 

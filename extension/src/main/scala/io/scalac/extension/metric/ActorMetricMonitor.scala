@@ -2,7 +2,6 @@ package io.scalac.extension.metric
 
 import io.scalac.core.LabelSerializable
 import io.scalac.core.model._
-import io.scalac.extension.metric.ActorMetricMonitor.Labels
 
 object ActorMetricMonitor {
   final case class Labels(actorPath: ActorPath, node: Option[Node] = None, tags: Set[Tag] = Set.empty)
@@ -21,5 +20,9 @@ object ActorMetricMonitor {
     def receivedMessages: MetricObserver[Long, Labels]
     def processedMessages: MetricObserver[Long, Labels]
     def failedMessages: MetricObserver[Long, Labels]
+    def processingTimeAvg: MetricObserver[Long, Labels]
+    def processingTimeMin: MetricObserver[Long, Labels]
+    def processingTimeMax: MetricObserver[Long, Labels]
+    def processingTimeSum: MetricObserver[Long, Labels]
   }
 }

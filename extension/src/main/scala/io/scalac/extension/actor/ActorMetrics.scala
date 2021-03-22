@@ -9,6 +9,7 @@ final case class ActorMetrics(
   receivedMessages: Option[Long],
   unhandledMessages: Option[Long],
   failedMessages: Option[Long],
+  processingTime: Option[LongValueAggMetric],
   timestamp: Timestamp = Timestamp.create()
 ) {
   lazy val processedMessages: Option[Long] = for {

@@ -17,7 +17,11 @@ object OpenTelemetryActorMetricsMonitor {
     stashSize: String,
     receivedMessages: String,
     processedMessages: String,
-    failedMessages: String
+    failedMessages: String,
+    processingTimeAvg: String,
+    processingTimeMin: String,
+    processingTimeMax: String,
+    processingTimeSum: String
   )
   object MetricNames {
 
@@ -31,7 +35,11 @@ object OpenTelemetryActorMetricsMonitor {
         "stash_size",
         "received_messages",
         "processed_messages",
-        "failed_messages"
+        "failed_messages",
+        "processing_time_avg",
+        "processing_time_min",
+        "processing_time_max",
+        "processing_time_sum"
       )
 
     def fromConfig(config: Config): MetricNames = {
@@ -79,6 +87,22 @@ object OpenTelemetryActorMetricsMonitor {
             .tryValue("failed-messages")(_.getString)
             .getOrElse(defaultCached.failedMessages)
 
+          val processingTimeAvg = clusterMetricsConfig
+            .tryValue("processing-time-avg")(_.getString)
+            .getOrElse(defaultCached.processingTimeAvg)
+
+          val processingTimeMin = clusterMetricsConfig
+            .tryValue("processing-time-min")(_.getString)
+            .getOrElse(defaultCached.processingTimeMin)
+
+          val processingTimeMax = clusterMetricsConfig
+            .tryValue("processing-time-max")(_.getString)
+            .getOrElse(defaultCached.processingTimeMax)
+
+          val processingTimeSum = clusterMetricsConfig
+            .tryValue("processing-time-sum")(_.getString)
+            .getOrElse(defaultCached.processingTimeSum)
+
           MetricNames(
             mailboxSize,
             mailboxTimeAvg,
@@ -88,7 +112,11 @@ object OpenTelemetryActorMetricsMonitor {
             stashSize,
             receivedMessages,
             processedMessages,
-            failedMessages
+            failedMessages,
+            processingTimeAvg,
+            processingTimeMin,
+            processingTimeMax,
+            processingTimeSum
           )
         }
         .getOrElse(defaultCached)
@@ -159,6 +187,30 @@ class OpenTelemetryActorMetricsMonitor(instrumentationName: String, metricNames:
       .setDescription("Tracks the sum of failed messages in an Actor")
   )
 
+  private val processingTimeAvgObserver = new LongMetricObserverBuilderAdapter[ActorMetricMonitor.Labels](
+    meter
+      .longValueObserverBuilder(metricNames.processingTimeAvg)
+      .setDescription("Tracks the average processing time of an message in an Actor's receive handler")
+  )
+
+  private val processingTimeMinObserver = new LongMetricObserverBuilderAdapter[ActorMetricMonitor.Labels](
+    meter
+      .longValueObserverBuilder(metricNames.processingTimeMin)
+      .setDescription("Tracks the miminum processing time of an message in an Actor's receive handler")
+  )
+
+  private val processingTimeMaxObserver = new LongMetricObserverBuilderAdapter[ActorMetricMonitor.Labels](
+    meter
+      .longValueObserverBuilder(metricNames.processingTimeMax)
+      .setDescription("Tracks the maximum processing time of an message in an Actor's receive handler")
+  )
+
+  private val processingTimeSumObserver = new LongMetricObserverBuilderAdapter[ActorMetricMonitor.Labels](
+    meter
+      .longValueObserverBuilder(metricNames.processingTimeSum)
+      .setDescription("TTracks the sum processing time of an message in an Actor's receive handler")
+  )
+
   override def bind(): OpenTelemetryBoundMonitor =
     new OpenTelemetryBoundMonitor
 
@@ -193,6 +245,17 @@ class OpenTelemetryActorMetricsMonitor(instrumentationName: String, metricNames:
     val failedMessages: MetricObserver[Long, ActorMetricMonitor.Labels] =
       failedMessagesSumObserver.createObserver.register(this)
 
+    val processingTimeAvg: MetricObserver[Long, ActorMetricMonitor.Labels] =
+      processingTimeAvgObserver.createObserver.register(this)
+
+    val processingTimeMin: MetricObserver[Long, ActorMetricMonitor.Labels] =
+      processingTimeMinObserver.createObserver.register(this)
+
+    val processingTimeMax: MetricObserver[Long, ActorMetricMonitor.Labels] =
+      processingTimeMaxObserver.createObserver.register(this)
+
+    val processingTimeSum: MetricObserver[Long, ActorMetricMonitor.Labels] =
+      processingTimeSumObserver.createObserver.register(this)
   }
 
 }

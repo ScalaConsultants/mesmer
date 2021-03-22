@@ -11,20 +11,21 @@ import io.scalac.core.model._
 import io.scalac.core.util.ActorPathOps
 import io.scalac.extension.ActorEventsMonitorActor._
 import io.scalac.extension.ActorEventsMonitorActorTest._
-import io.scalac.extension.actor.{ ActorMetrics, MailboxTime, MutableActorMetricsStorage }
+import io.scalac.extension.actor.{ ActorMetrics, MutableActorMetricsStorage }
 import io.scalac.extension.event.ActorEvent.StashMeasurement
 import io.scalac.extension.event.EventBus
 import io.scalac.extension.metric.ActorMetricMonitor.Labels
 import io.scalac.extension.util.AggMetric.LongValueAggMetric
 import io.scalac.extension.util.TestCase._
 import io.scalac.extension.util.TimeSeries.LongTimeSeries
-import io.scalac.extension.util.probe.ActorMonitorTestProbe
+import io.scalac.extension.util.probe.{ ActorMonitorTestProbe, BoundTestProbe }
 import io.scalac.extension.util.probe.BoundTestProbe.{ MetricObserved, MetricObserverCommand, MetricRecorded }
 import io.scalac.extension.util.probe.ObserverCollector.CommonCollectorImpl
 import org.scalatest.Inspectors
 import org.scalatest.flatspec.AnyFlatSpecLike
 import org.scalatest.matchers.should.Matchers
 
+import java.util.concurrent.atomic.AtomicInteger
 import scala.concurrent.duration._
 
 class ActorEventsMonitorActorTest
@@ -112,19 +113,19 @@ class ActorEventsMonitorActorTest
   }
 
   it should "record avg mailbox time" in testCase { implicit c =>
-    recordMailboxTime(FakeMailboxTime, CommonLabels, monitor.mailboxTimeAvgProbe)
+    shouldObserveTime(FakeMailboxTimeMs, CommonLabels, monitor.mailboxTimeAvgProbe)
   }
 
   it should "record min mailbox time" in testCase { implicit c =>
-    recordMailboxTime(FakeMailboxTime / 2, CommonLabels, monitor.mailboxTimeMinProbe)
+    shouldObserveTime(FakeMailboxTimeMs / 2, CommonLabels, monitor.mailboxTimeMinProbe)
   }
 
   it should "record max mailbox time" in testCase { implicit c =>
-    recordMailboxTime(FakeMailboxTime * 2, CommonLabels, monitor.mailboxTimeMaxProbe)
+    shouldObserveTime(FakeMailboxTimeMs * 2, CommonLabels, monitor.mailboxTimeMaxProbe)
   }
 
   it should "record sum mailbox time" in testCase { implicit c =>
-    recordMailboxTime(FakeMailboxTimes.reduce(_ + _), CommonLabels, monitor.mailboxTimeSumProbe)
+    shouldObserveTime(FakeMailboxTimes.reduce(_ + _), CommonLabels, monitor.mailboxTimeSumProbe)
   }
 
   it should "record received messages" in testCase { implicit c =>
@@ -150,43 +151,66 @@ class ActorEventsMonitorActorTest
       }
   }
 
+  it should "record avg processing time" in testCase { implicit c =>
+    shouldObserveTime(FakeProcessingTimeMs, CommonLabels, monitor.processingTimeAvgProbe)
+  }
+
+  it should "record min processing time" in testCase { implicit c =>
+    shouldObserveTime(FakeProcessingTimeMs / 2, CommonLabels, monitor.processingTimeMinProbe)
+  }
+
+  it should "record max processing time" in testCase { implicit c =>
+    shouldObserveTime(FakeProcessingTimeMs * 2, CommonLabels, monitor.processingTimeMaxProbe)
+  }
+
+  it should "record sum processing time" in testCase { implicit c =>
+    shouldObserveTime(FakeProcessingTimes.sum, CommonLabels, monitor.processingTimeSumProbe)
+  }
+
   def recordMailboxSize(n: Int, labels: Labels, monitor: ActorMonitorTestProbe): Unit = {
-    FakeMailboxSize = n
+    FakeMailboxSize.set(n)
     monitor.mailboxSizeProbe.fishForMessage(reasonableTime) {
       case MetricObserved(`n`, `labels`) => FishingOutcomes.complete()
       case _                             => FishingOutcomes.continueAndIgnore()
     }
   }
 
-  def recordMailboxTime(d: FiniteDuration, labels: Labels, probe: TestProbe[MetricObserverCommand[Labels]]): Unit =
-    probe.fishForMessage(reasonableTime) {
-      case MetricObserved(duration, `labels`) if duration == d.toMillis => FishingOutcomes.complete()
-      case _                                                            => FishingOutcomes.continueAndIgnore()
+  def shouldObserveTime(durationMs: Long, labels: Labels, probe: TestProbe[MetricObserverCommand[Labels]]): Unit = {
+
+    val message = probe.fishForMessage(reasonableTime) {
+      case MetricObserved(_, `labels`) => FishingOutcomes.complete()
+      case _                           => FishingOutcomes.continueAndIgnore()
     }
+
+    message.loneElement should be(MetricObserved(durationMs, labels))
+  }
 
 }
 
 object ActorEventsMonitorActorTest {
 
-  @volatile
-  private var FakeMailboxSize = 10
-  private val FakeMailboxTime = 1.second
+  val TestActorTreeTraverser    = ReflectiveActorTreeTraverser
+  private val FakeMailboxSize   = new AtomicInteger(10)
+  private val FakeMailboxTimeMs = 1000L
+  private val FakeMailboxTimes  = Array(FakeMailboxTimeMs / 2, FakeMailboxTimeMs / 2, 2 * FakeMailboxTimeMs)
   // min: FakeMailboxTime / 2  |  avg: FakeMailboxTime  |  max: 2 * MailboxTime
-  private val FakeMailboxTimes                   = Array(FakeMailboxTime / 2, FakeMailboxTime / 2, 2 * FakeMailboxTime)
-  val TestActorTreeTraverser: ActorTreeTraverser = ReflectiveActorTreeTraverser
-  private val FakeReceivedMessages               = 12
-  private val FakeProcessedMessages              = 10
-  private val FakeUnhandledMessages              = FakeReceivedMessages - FakeProcessedMessages
-  private val FakeFailedMessages                 = 2
+  private val FakeReceivedMessages  = 12
+  private val FakeProcessedMessages = 10
+  private val FakeUnhandledMessages = FakeReceivedMessages - FakeProcessedMessages
+  private val FakeFailedMessages    = 2
+  private val FakeProcessingTimeMs  = 100L
+  private val FakeProcessingTimes   = Array(FakeProcessingTimeMs / 2, FakeProcessingTimeMs / 2, 2 * FakeProcessingTimeMs)
+  // min: FakeProcessingTime / 2  |  avg: FakeProcessingTime  |  max: 2 * FakeProcessingTime
 
   val TestActorMetricsReader: ActorMetricsReader = { _ =>
     Some(
       ActorMetrics(
-        mailboxSize = Some(FakeMailboxSize),
-        mailboxTime = Some(LongValueAggMetric.fromTimeSeries(new LongTimeSeries(FakeMailboxTimes.map(MailboxTime(_))))),
+        mailboxSize = Some(FakeMailboxSize.get()),
+        mailboxTime = Some(LongValueAggMetric.fromTimeSeries(new LongTimeSeries(FakeMailboxTimes))),
         receivedMessages = Some(FakeReceivedMessages),
         unhandledMessages = Some(FakeUnhandledMessages),
-        failedMessages = Some(FakeFailedMessages)
+        failedMessages = Some(FakeFailedMessages),
+        processingTime = Some(LongValueAggMetric.fromTimeSeries(new LongTimeSeries(FakeProcessingTimes)))
       )
     )
   }

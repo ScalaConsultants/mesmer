@@ -16,6 +16,10 @@ final case class ActorMonitorTestProbe(
   receivedMessagesProbe: TestProbe[MetricObserverCommand[Labels]],
   processedMessagesProbe: TestProbe[MetricObserverCommand[Labels]],
   failedMessagesProbe: TestProbe[MetricObserverCommand[Labels]],
+  processingTimeAvgProbe: TestProbe[MetricObserverCommand[Labels]],
+  processingTimeMinProbe: TestProbe[MetricObserverCommand[Labels]],
+  processingTimeMaxProbe: TestProbe[MetricObserverCommand[Labels]],
+  processingTimeSumProbe: TestProbe[MetricObserverCommand[Labels]],
   collector: ObserverCollector
 )(implicit val actorSystem: ActorSystem[_])
     extends ActorMetricMonitor {
@@ -37,6 +41,15 @@ final case class ActorMonitorTestProbe(
       ObserverTestProbeWrapper(processedMessagesProbe, collector)
     val failedMessages: MetricObserver[Long, Labels] =
       ObserverTestProbeWrapper(failedMessagesProbe, collector)
+    val processingTimeAvg: MetricObserver[Long, Labels] =
+      ObserverTestProbeWrapper(processingTimeAvgProbe, collector)
+    val processingTimeMin: MetricObserver[Long, Labels] =
+      ObserverTestProbeWrapper(processingTimeMinProbe, collector)
+    val processingTimeMax: MetricObserver[Long, Labels] =
+      ObserverTestProbeWrapper(processingTimeMaxProbe, collector)
+    val processingTimeSum: MetricObserver[Long, Labels] =
+      ObserverTestProbeWrapper(processingTimeSumProbe, collector)
+
     override def stashSize(labels: Labels): MetricRecorder[Long] = RecorderTestProbeWrapper(stashSizeProbe)
     def unbind(): Unit = {
       collector.finish(mailboxSizeProbe)
@@ -47,6 +60,10 @@ final case class ActorMonitorTestProbe(
       collector.finish(receivedMessagesProbe)
       collector.finish(processedMessagesProbe)
       collector.finish(failedMessagesProbe)
+      collector.finish(processingTimeAvgProbe)
+      collector.finish(processingTimeMinProbe)
+      collector.finish(processingTimeMaxProbe)
+      collector.finish(processingTimeSumProbe)
     }
 
   }
@@ -65,6 +82,10 @@ object ActorMonitorTestProbe {
       TestProbe("received-messages-probe"),
       TestProbe("processed-messages-probe"),
       TestProbe("failed-messages-probe"),
+      TestProbe("processing-time-avg-probe"),
+      TestProbe("processing-time-min-probe"),
+      TestProbe("processing-time-max-probe"),
+      TestProbe("processing-time-sum-probe"),
       collector
     )
 }
