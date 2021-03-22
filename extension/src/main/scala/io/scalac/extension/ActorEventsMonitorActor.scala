@@ -168,8 +168,7 @@ object ActorEventsMonitorActor {
 
     private[this] val treeSnapshot = new AtomicReference[Option[Seq[(Labels, ActorMetrics)]]](None)
 
-    // start
-    setTimeout()
+    init()
 
     private def updateMetric(extractor: ActorMetrics => Option[Long])(result: Result[Long, Labels]): Unit = {
       val state = treeSnapshot.get()
@@ -189,6 +188,8 @@ object ActorEventsMonitorActor {
       boundMonitor.mailboxTimeMax.setUpdater(updateMetric(_.mailboxTime.map(_.max)))
       boundMonitor.mailboxTimeMin.setUpdater(updateMetric(_.mailboxTime.map(_.min)))
       boundMonitor.mailboxTimeSum.setUpdater(updateMetric(_.mailboxTime.map(_.sum)))
+      //start collection loop
+      setTimeout()
     }
 
     override def onSignal: PartialFunction[Signal, Behavior[AsyncCommand]] = { case PostStop | PreRestart =>
@@ -265,7 +266,6 @@ object ActorEventsMonitorActor {
 
     private def setTimeout(): Unit = scheduler.startSingleTimer(UpdateActorMetrics, pingOffset)
 
-    init()
   }
 
   trait ActorTreeTraverser {

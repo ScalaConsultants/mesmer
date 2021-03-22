@@ -2,7 +2,7 @@ package io.scalac.extension.upstream
 
 import com.typesafe.config.Config
 import io.opentelemetry.api.OpenTelemetry
-import io.scalac.extension.metric.{ ActorMetricMonitor, MetricObserver, MetricRecorder, UnbindMany }
+import io.scalac.extension.metric.{ ActorMetricMonitor, MetricObserver, UnbindRoot }
 import io.scalac.extension.upstream.OpenTelemetryActorMetricsMonitor.MetricNames
 import io.scalac.extension.upstream.opentelemetry._
 
@@ -162,63 +162,36 @@ class OpenTelemetryActorMetricsMonitor(instrumentationName: String, metricNames:
   override def bind(): OpenTelemetryBoundMonitor =
     new OpenTelemetryBoundMonitor
 
-  class OpenTelemetryBoundMonitor extends ActorMetricMonitor.BoundMonitor with UnbindMany {
+  class OpenTelemetryBoundMonitor
+      extends ActorMetricMonitor.BoundMonitor
+      with UnbindRoot
+      with SynchronousInstrumentFactory {
 
-    val mailboxSize: MetricObserver[Long, ActorMetricMonitor.Labels] = {
-      val (unbind, observer) = mailboxSizeObserver.createObserver
-      pushUnbind(unbind)
-      observer
-    }
+    val mailboxSize: MetricObserver[Long, ActorMetricMonitor.Labels] = mailboxSizeObserver.createObserver.register(this)
 
-    val mailboxTimeAvg: MetricObserver[Long, ActorMetricMonitor.Labels] = {
-      val (unbind, observer) = mailboxTimeAvgObserver.createObserver
-      pushUnbind(unbind)
-      observer
-    }
+    val mailboxTimeAvg: MetricObserver[Long, ActorMetricMonitor.Labels] =
+      mailboxTimeAvgObserver.createObserver.register(this)
 
-    val mailboxTimeMin: MetricObserver[Long, ActorMetricMonitor.Labels] = {
-      val (unbind, observer) = mailboxTimeMinObserver.createObserver
-      pushUnbind(unbind)
-      observer
-    }
+    val mailboxTimeMin: MetricObserver[Long, ActorMetricMonitor.Labels] =
+      mailboxTimeMinObserver.createObserver.register(this)
 
-    val mailboxTimeMax: MetricObserver[Long, ActorMetricMonitor.Labels] = {
-      val (unbind, observer) = mailboxTimeMaxObserver.createObserver
-      pushUnbind(unbind)
-      observer
-    }
+    val mailboxTimeMax: MetricObserver[Long, ActorMetricMonitor.Labels] =
+      mailboxTimeMaxObserver.createObserver.register(this)
 
-    val mailboxTimeSum: MetricObserver[Long, ActorMetricMonitor.Labels] = {
-      val (unbind, observer) = mailboxTimeSumObserver.createObserver
-      pushUnbind(unbind)
-      observer
-    }
+    val mailboxTimeSum: MetricObserver[Long, ActorMetricMonitor.Labels] =
+      mailboxTimeSumObserver.createObserver.register(this)
 
-    def stashSize(labels: ActorMetricMonitor.Labels): MetricRecorder[Long] with WrappedSynchronousInstrument[Long] = {
-      val recorder = WrappedLongValueRecorder(stashSizeCounter, LabelsFactory.of(labels.serialize))
-      pushUnbind(() => recorder.unbind())
-      recorder
-    }
+    def stashSize(labels: ActorMetricMonitor.Labels) =
+      metricRecorder(stashSizeCounter, LabelsFactory.of(labels.serialize)).register(this)
 
-    val receivedMessages: MetricObserver[Long, ActorMetricMonitor.Labels] = {
-      val (unbind, observer) = receivedMessagesSumObserver.createObserver
-      pushUnbind(unbind)
-      observer
-    }
+    val receivedMessages: MetricObserver[Long, ActorMetricMonitor.Labels] =
+      receivedMessagesSumObserver.createObserver.register(this)
 
-    val processedMessages: MetricObserver[Long, ActorMetricMonitor.Labels] = {
-      val (unbind, observer) = processedMessagesSumObserver.createObserver
-      pushUnbind(unbind)
-      observer
-    }
+    val processedMessages: MetricObserver[Long, ActorMetricMonitor.Labels] =
+      processedMessagesSumObserver.createObserver.register(this)
 
-    val failedMessages: MetricObserver[Long, ActorMetricMonitor.Labels] = {
-      val (unbind, observer) = failedMessagesSumObserver.createObserver
-      pushUnbind(unbind)
-      observer
-    }
-
-    override def unbind(): Unit = super.unbind()
+    val failedMessages: MetricObserver[Long, ActorMetricMonitor.Labels] =
+      failedMessagesSumObserver.createObserver.register(this)
 
   }
 

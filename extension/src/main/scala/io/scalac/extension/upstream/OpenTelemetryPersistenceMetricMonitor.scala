@@ -2,7 +2,7 @@ package io.scalac.extension.upstream
 
 import com.typesafe.config.Config
 import io.opentelemetry.api.OpenTelemetry
-import io.scalac.extension.metric.{ Counter, MetricRecorder, PersistenceMetricMonitor }
+import io.scalac.extension.metric.{ PersistenceMetricMonitor, UnbindRoot }
 import io.scalac.extension.upstream.OpenTelemetryPersistenceMetricMonitor._
 import io.scalac.extension.upstream.opentelemetry._
 
@@ -95,28 +95,24 @@ class OpenTelemetryPersistenceMetricMonitor(instrumentationName: String, metricN
 
   override def bind(labels: Labels): BoundMonitor = new OpenTelemetryBoundMonitor(labels)
 
-  class OpenTelemetryBoundMonitor(labels: Labels) extends BoundMonitor {
+  class OpenTelemetryBoundMonitor(labels: Labels)
+      extends BoundMonitor
+      with UnbindRoot
+      with SynchronousInstrumentFactory {
     private val openTelemetryLabels = LabelsFactory.of(labels.serialize)
-    override lazy val recoveryTime  = WrappedLongValueRecorder(recoveryTimeRecorder, openTelemetryLabels)
+    override lazy val recoveryTime  = metricRecorder(recoveryTimeRecorder, openTelemetryLabels).register(this)
 
-    override lazy val persistentEvent: WrappedSynchronousInstrument[Long] with MetricRecorder[Long] =
-      WrappedLongValueRecorder(persistentEventRecorder, openTelemetryLabels)
+    override lazy val persistentEvent =
+      metricRecorder(persistentEventRecorder, openTelemetryLabels).register(this)
 
-    override lazy val persistentEventTotal: WrappedSynchronousInstrument[Long] with Counter[Long] =
-      WrappedCounter(persistentEventTotalCounter, openTelemetryLabels)
+    override lazy val persistentEventTotal =
+      counter(persistentEventTotalCounter, openTelemetryLabels).register(this)
 
-    override lazy val snapshot: WrappedSynchronousInstrument[Long] with Counter[Long] =
-      WrappedCounter(snapshotCounter, openTelemetryLabels)
+    override lazy val snapshot =
+      counter(snapshotCounter, openTelemetryLabels).register(this)
 
-    override lazy val recoveryTotal: WrappedSynchronousInstrument[Long] with Counter[Long] =
-      WrappedCounter(recoveryTotalCounter, openTelemetryLabels)
+    override lazy val recoveryTotal =
+      counter(recoveryTotalCounter, openTelemetryLabels).register(this)
 
-    override def unbind(): Unit = {
-      recoveryTime.unbind()
-      persistentEvent.unbind()
-      persistentEventTotal.unbind()
-      snapshot.unbind()
-      recoveryTotal.unbind()
-    }
   }
 }

@@ -4,7 +4,7 @@ import io.opentelemetry.api.common.Labels
 import io.opentelemetry.api.metrics.AsynchronousInstrument.LongResult
 import io.opentelemetry.api.metrics.{ AsynchronousInstrument, _ }
 import io.scalac.core.LabelSerializable
-import io.scalac.extension.metric.{ MetricObserver, Unbind }
+import io.scalac.extension.metric.{ MetricObserver, UnbindRoot }
 import io.scalac.extension.upstream.LabelsFactory
 
 import scala.collection.mutable
@@ -26,6 +26,10 @@ final class LongUpDownSumObserverBuilderAdapter[L <: LabelSerializable](builder:
 final class LongSumObserverBuilderAdapter[L <: LabelSerializable](builder: LongSumObserver.Builder)
     extends MetricObserverBuilderAdapter[LongResult, Long, L](builder, longResultWrapper)
 
+trait UnregisteredMetricObserver[T, L] {
+  def register(root: UnbindRoot): MetricObserver[T, L]
+}
+
 sealed abstract class MetricObserverBuilderAdapter[R <: AsynchronousInstrument.Result, T, L <: LabelSerializable](
   builder: AsynchronousInstrument.Builder[R],
   wrapper: ResultWrapper[R, T]
@@ -37,9 +41,14 @@ sealed abstract class MetricObserverBuilderAdapter[R <: AsynchronousInstrument.R
     .setUpdater(updateAll)
     .build()
 
-  def createObserver: (Unbind, WrappedMetricObserver[T, L]) = {
+  def createObserver: UnregisteredMetricObserver[T, L] = {
     val observer = WrappedMetricObserver[T, L]()
-    (() => observers.filterInPlace(_ == observer), observer)
+    root => {
+      root.registerUnbind(() =>
+        observers.filterInPlace(_ == observer)
+      ) // TODO this is inefficient for large observers number
+      observer
+    }
   }
 
   private def updateAll(result: R): Unit =

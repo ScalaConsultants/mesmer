@@ -3,7 +3,7 @@ package io.scalac.extension.upstream
 import com.typesafe.config.Config
 import io.opentelemetry.api.OpenTelemetry
 import io.scalac.extension.metric.StreamOperatorMetricsMonitor.{ BoundMonitor, Labels }
-import io.scalac.extension.metric.{ MetricObserver, StreamOperatorMetricsMonitor, UnbindMany }
+import io.scalac.extension.metric.{ MetricObserver, StreamOperatorMetricsMonitor, UnbindRoot }
 import io.scalac.extension.upstream.OpenTelemetryStreamOperatorMetricsMonitor.MetricNames
 import io.scalac.extension.upstream.opentelemetry._
 
@@ -61,20 +61,12 @@ class OpenTelemetryStreamOperatorMetricsMonitor(instrumentationName: String, met
       .setDescription("Amount of operators in a system")
   )
 
-  override def bind(): StreamOperatorMetricsMonitor.BoundMonitor = new BoundMonitor with UnbindMany {
+  override def bind(): StreamOperatorMetricsMonitor.BoundMonitor = new BoundMonitor with UnbindRoot {
 
-    override lazy val processedMessages: MetricObserver[Long, Labels] = {
-      val (unbind, observer) = processedMessageAdapter.createObserver
-      pushUnbind(unbind)
-      observer
-    }
+    override lazy val processedMessages: MetricObserver[Long, Labels] =
+      processedMessageAdapter.createObserver.register(this)
 
-    override lazy val operators: MetricObserver[Long, Labels] = {
-      val (unbind, observer) = operatorsAdapter.createObserver
-      pushUnbind(unbind)
-      observer
-    }
+    override lazy val operators: MetricObserver[Long, Labels] = operatorsAdapter.createObserver.register(this)
 
-    override def unbind(): Unit = super.unbind()
   }
 }

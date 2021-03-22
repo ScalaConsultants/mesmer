@@ -2,9 +2,9 @@ package io.scalac.extension.upstream
 
 import com.typesafe.config.Config
 import io.opentelemetry.api.OpenTelemetry
-import io.scalac.extension.metric.{ MetricObserver, StreamMetricMonitor, UnbindMany }
+import io.scalac.extension.metric.{ MetricObserver, StreamMetricMonitor, UnbindRoot }
 import io.scalac.extension.upstream.OpenTelemetryStreamMetricMonitor.MetricNames
-import io.scalac.extension.upstream.opentelemetry.{ LongSumObserverBuilderAdapter, WrappedLongValueRecorder }
+import io.scalac.extension.upstream.opentelemetry.{ LongSumObserverBuilderAdapter, SynchronousInstrumentFactory }
 
 object OpenTelemetryStreamMetricMonitor {
   case class MetricNames(runningStreams: String, streamActors: String, streamProcessed: String)
@@ -64,25 +64,19 @@ class OpenTelemetryStreamMetricMonitor(instrumentationName: String, metricNames:
 
   override def bind(labels: EagerLabels): BoundMonitor = new StreamMetricsBoundMonitor(labels)
 
-  class StreamMetricsBoundMonitor(labels: EagerLabels) extends BoundMonitor with UnbindMany {
+  class StreamMetricsBoundMonitor(labels: EagerLabels)
+      extends BoundMonitor
+      with UnbindRoot
+      with SynchronousInstrumentFactory {
     private val openTelemetryLabels = LabelsFactory.of(labels.serialize)
 
     override val runningStreamsTotal =
-      WrappedLongValueRecorder(runningStreamsTotalRecorder, openTelemetryLabels)
+      metricRecorder(runningStreamsTotalRecorder, openTelemetryLabels).register(this)
 
     override val streamActorsTotal =
-      WrappedLongValueRecorder(streamActorsTotalRecorder, openTelemetryLabels)
+      metricRecorder(streamActorsTotalRecorder, openTelemetryLabels).register(this)
 
-    override lazy val streamProcessedMessages: MetricObserver[Long, Labels] = {
-      val (unbind, observer) = streamProcessedMessagesBuilder.createObserver
-      pushUnbind(unbind)
-      observer
-    }
-
-    override def unbind(): Unit = {
-      super.unbind()
-      runningStreamsTotal.unbind()
-      streamActorsTotal.unbind()
-    }
+    override lazy val streamProcessedMessages: MetricObserver[Long, Labels] =
+      streamProcessedMessagesBuilder.createObserver.register(this)
   }
 }

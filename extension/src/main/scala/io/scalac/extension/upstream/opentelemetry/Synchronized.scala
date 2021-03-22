@@ -7,7 +7,8 @@ import scala.collection.mutable.ListBuffer
 
 abstract class Synchronized(private val meter: Meter) extends BaseSynchronized {
   import Synchronized._
-  override type Instrument[X] = WrappedSynchronousInstrument[X]
+
+  override type Instrument[X] = WrappedSynchronousInstrument[X] // TODO check if this type is sound
 
   override def atomically[A, B](first: Instrument[A], second: Instrument[B]): (A, B) => Unit = { (a, b) =>
     meter

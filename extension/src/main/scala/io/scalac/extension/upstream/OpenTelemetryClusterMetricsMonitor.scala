@@ -134,48 +134,31 @@ class OpenTelemetryClusterMetricsMonitor(instrumentationName: String, val metric
   class ClusterBoundMonitor(labels: ClusterMetricsMonitor.Labels)
       extends opentelemetry.Synchronized(meter)
       with ClusterMetricsMonitor.BoundMonitor
-      with UnbindMany {
+      with UnbindRoot
+      with SynchronousInstrumentFactory {
 
     private val otLabels = LabelsFactory.of(labels.serialize)
 
-    override val shardPerRegions: MetricObserver[Long, ClusterMetricsMonitor.Labels] = {
-      val (unbind, observer) = shardsPerRegionRecorder.createObserver
-      pushUnbind(unbind)
-      observer
-    }
+    override val shardPerRegions: MetricObserver[Long, ClusterMetricsMonitor.Labels] =
+      shardsPerRegionRecorder.createObserver.register(this)
 
-    override val entityPerRegion: MetricObserver[Long, ClusterMetricsMonitor.Labels] = {
-      val (unbind, observer) = entityPerRegionRecorder.createObserver
-      pushUnbind(unbind)
-      observer
-    }
+    override val entityPerRegion: MetricObserver[Long, ClusterMetricsMonitor.Labels] =
+      entityPerRegionRecorder.createObserver.register(this)
 
-    override val shardRegionsOnNode: MetricObserver[Long, ClusterMetricsMonitor.Labels] = {
-      val (unbind, observer) = shardRegionsOnNodeRecorder.createObserver
-      pushUnbind(unbind)
-      observer
-    }
+    override val shardRegionsOnNode: MetricObserver[Long, ClusterMetricsMonitor.Labels] =
+      shardRegionsOnNodeRecorder.createObserver.register(this)
 
-    override val entitiesOnNode: MetricObserver[Long, ClusterMetricsMonitor.Labels] = {
-      val (unbind, observer) = entitiesOnNodeObserver.createObserver
-      pushUnbind(unbind)
-      observer
-    }
+    override val entitiesOnNode: MetricObserver[Long, ClusterMetricsMonitor.Labels] =
+      entitiesOnNodeObserver.createObserver.register(this)
 
     override val reachableNodes: UpDownCounter[Long] with Instrument[Long] =
-      WrappedUpDownCounter(reachableNodeCounter, otLabels)
+      upDownCounter(reachableNodeCounter, otLabels).register(this)
 
     override val unreachableNodes: UpDownCounter[Long] with Instrument[Long] =
-      WrappedUpDownCounter(unreachableNodeCounter, otLabels)
+      upDownCounter(unreachableNodeCounter, otLabels).register(this)
 
-    override val nodeDown: Counter[Long] with Instrument[Long] = WrappedCounter(nodeDownCounter, otLabels)
-
-    override def unbind(): Unit = {
-      super.unbind()
-      reachableNodes.unbind()
-      unreachableNodes.unbind()
-      nodeDown.unbind()
-    }
+    override val nodeDown: Counter[Long] with Instrument[Long] =
+      counter(nodeDownCounter, otLabels).register(this)
 
   }
 }
