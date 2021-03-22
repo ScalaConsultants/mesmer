@@ -257,7 +257,8 @@ object ActorEventsMonitorActor {
     private def captureState(): Unit = {
       log.debug("Capturing current actor tree state")
       treeSnapshot.set(Some(storage.snapshot.map { case (key, metrics) =>
-        (Labels(key, node), metrics)
+        val tags = actorTags.get(key).fold[Set[Tag]](Set.empty)(_.toSet)
+        (Labels(key, node, tags), metrics)
       }))
       storage = storage.clear()
     }
