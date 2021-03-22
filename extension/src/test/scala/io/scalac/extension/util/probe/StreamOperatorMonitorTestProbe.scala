@@ -13,13 +13,16 @@ import io.scalac.extension.util.probe.BoundTestProbe.{ LazyMetricsObserved, Metr
 
 class StreamOperatorMonitorTestProbe(
   val processedTestProbe: TestProbe[LazyMetricsObserved[StreamOperatorMetricsMonitor.Labels]],
+  val demandTestProbe: TestProbe[LazyMetricsObserved[StreamOperatorMetricsMonitor.Labels]],
   val runningOperatorsTestProbe: TestProbe[LazyMetricsObserved[StreamOperatorMetricsMonitor.Labels]],
   collector: ObserverCollector
 )(implicit val system: ActorSystem[_])
     extends StreamOperatorMetricsMonitor {
 
   override def bind(): StreamOperatorMetricsMonitor.BoundMonitor = new StreamOperatorMetricsMonitor.BoundMonitor {
+
     override def processedMessages = LazyObserverTestProbeWrapper(processedTestProbe, collector)
+    override def demand            = LazyObserverTestProbeWrapper(demandTestProbe, collector)
     override def operators         = LazyObserverTestProbeWrapper(runningOperatorsTestProbe, collector)
     override def unbind(): Unit    = ()
   }
@@ -29,10 +32,12 @@ object StreamOperatorMonitorTestProbe {
   def apply(collector: ObserverCollector)(implicit system: ActorSystem[_]): StreamOperatorMonitorTestProbe = {
     val processProbe =
       TestProbe[LazyMetricsObserved[StreamOperatorMetricsMonitor.Labels]]("akka_stream_processed_messages")
+    val demandProbe =
+      TestProbe[LazyMetricsObserved[StreamOperatorMetricsMonitor.Labels]]("akka_stream_operator_demand")
     val runningOperators =
       TestProbe[LazyMetricsObserved[StreamOperatorMetricsMonitor.Labels]]("akka_stream_running_operators")
 
-    new StreamOperatorMonitorTestProbe(processProbe, runningOperators, collector)
+    new StreamOperatorMonitorTestProbe(processProbe, demandProbe, runningOperators, collector)
   }
 }
 

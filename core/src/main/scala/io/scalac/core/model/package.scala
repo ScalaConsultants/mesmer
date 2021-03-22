@@ -35,6 +35,7 @@ package object model {
   sealed trait NodeTag          extends ModelTag
   sealed trait RegionTag        extends ModelTag
   sealed trait PathTag          extends ModelTag
+  sealed trait StatusTag        extends ModelTag
   sealed trait MethodTag        extends ModelTag
   sealed trait PersistenceIdTag extends ModelTag
   sealed trait ActorPathTag     extends ModelTag
@@ -42,15 +43,19 @@ package object model {
   type Node          = String @@ NodeTag
   type Region        = String @@ RegionTag
   type Path          = String @@ PathTag
+  type Status        = String @@ StatusTag
   type Method        = String @@ MethodTag
   type PersistenceId = String @@ PersistenceIdTag
   type ActorPath     = String @@ ActorPathTag
   type ActorKey      = ActorPath
   type RawLabels     = Seq[(String, String)]
 
-  implicit val nodeLabelSerializer: LabelSerializer[Node]           = node => Seq("node" -> node.unwrap)
-  implicit val regionLabelSerializer: LabelSerializer[Region]       = region => Seq("region" -> region.unwrap)
-  implicit val pathLabelSerializer: LabelSerializer[Path]           = path => Seq("path" -> path.unwrap)
+  implicit val nodeLabelSerializer: LabelSerializer[Node]     = node => Seq("node" -> node.unwrap)
+  implicit val regionLabelSerializer: LabelSerializer[Region] = region => Seq("region" -> region.unwrap)
+  implicit val pathLabelSerializer: LabelSerializer[Path]     = path => Seq("path" -> path.unwrap)
+  implicit val statusLabelSerializer: LabelSerializer[Status] = status =>
+    Seq("status" -> status.unwrap, "status_group" -> s"${status.charAt(0)}xx")
+
   implicit val methodLabelSerializer: LabelSerializer[Method]       = method => Seq("method" -> method.unwrap)
   implicit val actorPathLabelSerializer: LabelSerializer[ActorPath] = actorPath => Seq("actor_path" -> actorPath.unwrap)
   implicit val persistenceIdLabelSerializer: LabelSerializer[PersistenceId] = persistenceId =>
@@ -62,19 +67,6 @@ package object model {
    * @return
    */
   implicit def stringAutomaticTagger[Tag <: ModelTag](value: String): String @@ Tag = value.taggedWith[Tag]
-
-  sealed trait Direction {
-    import Direction._
-    def serialize: (String, String) = this match {
-      case Out => ("direction", "out")
-      case In  => ("direction", "in")
-    }
-  }
-
-  object Direction {
-    case object Out extends Direction
-    case object In  extends Direction
-  }
 
   implicit class AkkaNodeOps(val value: UniqueAddress) extends AnyVal {
     def toNode: Node = value.address.toString.taggedWith[NodeTag] // @todo change to some meaningful name
