@@ -20,5 +20,9 @@ object ActorMetricMonitor {
     def receivedMessages: MetricObserver[Long]
     def processedMessages: MetricObserver[Long]
     def failedMessages: MetricObserver[Long]
+    def processingTimeAvg: MetricObserver[Long]
+    def processingTimeMin: MetricObserver[Long]
+    def processingTimeMax: MetricObserver[Long]
+    def processingTimeSum: MetricObserver[Long]
   }
 }
