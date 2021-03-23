@@ -18,7 +18,7 @@ import io.scalac.extension.metric.ActorMetricMonitor.Labels
 import io.scalac.extension.util.AggMetric.LongValueAggMetric
 import io.scalac.extension.util.TestCase._
 import io.scalac.extension.util.TimeSeries.LongTimeSeries
-import io.scalac.extension.util.probe.{ ActorMonitorTestProbe, BoundTestProbe }
+import io.scalac.extension.util.probe.ActorMonitorTestProbe
 import io.scalac.extension.util.probe.BoundTestProbe.{ MetricObserved, MetricObserverCommand, MetricRecorded }
 import io.scalac.extension.util.probe.ObserverCollector.CommonCollectorImpl
 import org.scalatest.Inspectors
@@ -28,18 +28,26 @@ import org.scalatest.matchers.should.Matchers
 import java.util.concurrent.atomic.AtomicInteger
 import scala.concurrent.duration._
 
+trait ActorEventMonitorActorTestConfig
+    extends AnyFlatSpecLike
+    with Matchers
+    with Inspectors
+    with MonitorWithBasicContextAndServiceTestCaseFactory {
+
+  protected val pingOffset: FiniteDuration     = scaled(1.seconds)
+  protected val reasonableTime: FiniteDuration = 3 * pingOffset
+  implicit val timeout: Timeout                = pingOffset
+}
+
 class ActorEventsMonitorActorTest
     extends AnyFlatSpecLike
     with Matchers
     with Inspectors
     with MonitorWithBasicContextAndServiceTestCaseFactory
-    with FreshActorSystemTestCaseFactory {
+    with FreshActorSystemTestCaseFactory
+    with ActorEventMonitorActorTestConfig {
 
   type Monitor = ActorMonitorTestProbe
-
-  private val pingOffset: FiniteDuration     = 1.seconds
-  private val reasonableTime: FiniteDuration = 3 * pingOffset
-  implicit def timeout: Timeout              = pingOffset
 
   protected val serviceKey: ServiceKey[_] = actorServiceKey
 
@@ -81,8 +89,10 @@ class ActorEventsMonitorActorTest
     monitor.mailboxSizeProbe.expectTerminated(tmp)
 
     assertThrows[AssertionError]( //TODO fix this to better implementation
-      monitor.mailboxSizeProbe.fishForMessage(reasonableTime) { case MetricObserved(_, `labels`) =>
-        FishingOutcomes.complete()
+      monitor.mailboxSizeProbe.fishForMessage(reasonableTime) {
+        case MetricObserved(_, `labels`) =>
+          FishingOutcomes.complete()
+        case _ => FishingOutcomes.continueAndIgnore()
       }
     )
   }

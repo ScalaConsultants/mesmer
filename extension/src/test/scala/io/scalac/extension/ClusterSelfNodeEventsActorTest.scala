@@ -12,12 +12,7 @@ import org.scalatest.matchers.should.Matchers
 import scala.concurrent.duration._
 import scala.language.postfixOps
 
-class ClusterSelfNodeEventsActorTest
-    extends AsyncFlatSpec
-    with SingleNodeClusterSpec
-    with Matchers
-    with Inspectors
-    with ActorFailing {
+class ClusterSelfNodeEventsActorTest extends AsyncFlatSpec with SingleNodeClusterSpec with Matchers with Inspectors {
 
   import util.TestBehavior.Command._
 

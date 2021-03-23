@@ -3,8 +3,10 @@ package io.scalac.extension.util.probe
 import akka.actor.testkit.typed.scaladsl.TestProbe
 import akka.actor.typed.ActorSystem
 import io.scalac.extension.metric.ActorMetricMonitor._
-import io.scalac.extension.metric.{ ActorMetricMonitor, MetricObserver, MetricRecorder }
+import io.scalac.extension.metric._
 import io.scalac.extension.util.probe.BoundTestProbe.{ MetricObserverCommand, MetricRecorderCommand }
+
+import java.util.concurrent.atomic.AtomicInteger
 
 final case class ActorMonitorTestProbe(
   mailboxSizeProbe: TestProbe[MetricObserverCommand[Labels]],
@@ -22,9 +24,15 @@ final case class ActorMonitorTestProbe(
   processingTimeSumProbe: TestProbe[MetricObserverCommand[Labels]],
   collector: ObserverCollector
 )(implicit val actorSystem: ActorSystem[_])
-    extends ActorMetricMonitor {
+    extends ActorMetricMonitor
+    with BindUnbindMonitor {
 
-  override def bind(): BoundMonitor = new BoundMonitor {
+  def bind() = {
+    onBind()
+    new ActorMonitorTestBoundMonitor with UnbindMonitor
+  }
+
+  class ActorMonitorTestBoundMonitor extends BoundMonitor {
     val mailboxSize: MetricObserver[Long, Labels] =
       ObserverTestProbeWrapper(mailboxSizeProbe, collector)
     val mailboxTimeAvg: MetricObserver[Long, Labels] =
@@ -51,6 +59,7 @@ final case class ActorMonitorTestProbe(
       ObserverTestProbeWrapper(processingTimeSumProbe, collector)
 
     override def stashSize(labels: Labels): MetricRecorder[Long] = RecorderTestProbeWrapper(stashSizeProbe)
+
     def unbind(): Unit = {
       collector.finish(mailboxSizeProbe)
       collector.finish(mailboxTimeAvgProbe)
@@ -65,7 +74,6 @@ final case class ActorMonitorTestProbe(
       collector.finish(processingTimeMaxProbe)
       collector.finish(processingTimeSumProbe)
     }
-
   }
 }
 
