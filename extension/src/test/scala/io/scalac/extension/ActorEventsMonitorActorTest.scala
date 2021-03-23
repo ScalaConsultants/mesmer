@@ -20,7 +20,7 @@ import io.scalac.extension.util.TestCase._
 import io.scalac.extension.util.TimeSeries.LongTimeSeries
 import io.scalac.extension.util.probe.ActorMonitorTestProbe
 import io.scalac.extension.util.probe.BoundTestProbe.{ MetricObserved, MetricObserverCommand, MetricRecorded }
-import io.scalac.extension.util.probe.ObserverCollector.CommonCollectorImpl
+import io.scalac.extension.util.probe.ObserverCollector.{ ManualCollectorImpl, ScheduledCollectorImpl }
 import org.scalatest.Inspectors
 import org.scalatest.flatspec.AnyFlatSpecLike
 import org.scalatest.matchers.should.Matchers
@@ -52,7 +52,7 @@ class ActorEventsMonitorActorTest
   protected val serviceKey: ServiceKey[_] = actorServiceKey
 
   protected def createMonitor(implicit system: ActorSystem[_]): ActorMonitorTestProbe =
-    ActorMonitorTestProbe(new CommonCollectorImpl(pingOffset))
+    ActorMonitorTestProbe(new ScheduledCollectorImpl(pingOffset))
 
   protected def createMonitorBehavior(implicit
     c: MonitorTestCaseContext.BasicContext[ActorMonitorTestProbe]
@@ -177,7 +177,7 @@ class ActorEventsMonitorActorTest
     shouldObserveTime(FakeProcessingTimes.sum, CommonLabels, monitor.processingTimeSumProbe)
   }
 
-  def recordMailboxSize(n: Int, labels: Labels, monitor: ActorMonitorTestProbe): Unit = {
+  def recordMailboxSize(n: Int, labels: Labels, monitor: ActorMonitorTestProbe)(implicit context: Context): Unit = {
     FakeMailboxSize.set(n)
     monitor.mailboxSizeProbe.fishForMessage(reasonableTime) {
       case MetricObserved(`n`, `labels`) => FishingOutcomes.complete()

@@ -9,9 +9,10 @@ import io.scalac.extension.util.probe.BoundTestProbe.{ MetricObserverCommand, Me
 class StreamOperatorMonitorTestProbe(
   val processedTestProbe: TestProbe[MetricObserverCommand[StreamOperatorMetricsMonitor.Labels]],
   val runningOperatorsTestProbe: TestProbe[MetricObserverCommand[StreamOperatorMetricsMonitor.Labels]],
-  collector: ObserverCollector
+  val collector: ObserverCollector
 )(implicit val system: ActorSystem[_])
-    extends StreamOperatorMetricsMonitor {
+    extends StreamOperatorMetricsMonitor
+    with Collected {
 
   override def bind(): StreamOperatorMetricsMonitor.BoundMonitor = new StreamOperatorMetricsMonitor.BoundMonitor {
     val processedMessages = ObserverTestProbeWrapper(processedTestProbe, collector)
@@ -35,9 +36,10 @@ class StreamMonitorTestProbe(
   val runningStreamsProbe: TestProbe[MetricRecorderCommand],
   val streamActorsProbe: TestProbe[MetricRecorderCommand],
   val processedMessagesProbe: TestProbe[MetricObserverCommand[Labels]],
-  collector: ObserverCollector
+  val collector: ObserverCollector
 )(implicit val system: ActorSystem[_])
-    extends StreamMetricMonitor {
+    extends StreamMetricMonitor
+    with Collected {
   override def bind(labels: StreamMetricMonitor.EagerLabels): StreamMetricMonitor.BoundMonitor = new BoundMonitor {
 
     val runningStreamsTotal = RecorderTestProbeWrapper(runningStreamsProbe)

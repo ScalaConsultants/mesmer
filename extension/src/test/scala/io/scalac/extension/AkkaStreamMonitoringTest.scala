@@ -16,8 +16,13 @@ import io.scalac.extension.util.TestCase.{
   ProvidedActorSystemTestCaseFactory
 }
 import io.scalac.extension.util.probe.BoundTestProbe.{ MetricObserved, MetricRecorded }
-import io.scalac.extension.util.probe.ObserverCollector.CommonCollectorImpl
-import io.scalac.extension.util.probe.{ StreamMonitorTestProbe, StreamOperatorMonitorTestProbe }
+import io.scalac.extension.util.probe.ObserverCollector.ScheduledCollectorImpl
+import io.scalac.extension.util.probe.{
+  ObserverCollector,
+  StreamMonitorTestProbe,
+  StreamOperatorMonitorTestProbe,
+  Collected => CollectedObserver
+}
 import io.scalac.extension.util.{ TestConfig, TestOps }
 import org.scalatest._
 import org.scalatest.concurrent.Eventually
@@ -52,18 +57,20 @@ class AkkaStreamMonitoringTest
   private final val FlowName       = "map"
   private final val StagesNames    = Seq(SourceName, SinkName, FlowName)
 
-  override protected def createMonitor(implicit system: ActorSystem[_]): Monitor =
+  override protected def createMonitor(implicit system: ActorSystem[_]): Monitor = {
+    val collector = new ScheduledCollectorImpl(OperationsPing)
     (
-      StreamOperatorMonitorTestProbe(new CommonCollectorImpl(OperationsPing)),
-      StreamMonitorTestProbe(new CommonCollectorImpl(OperationsPing))
+      StreamOperatorMonitorTestProbe(collector),
+      StreamMonitorTestProbe(collector)
     )
+  }
 
   override protected def createContextFromMonitor(
     monitor: Monitor
   )(implicit system: ActorSystem[_]): Context = {
     val (operations, global) = monitor
     val ref                  = system.systemActorOf(AkkaStreamMonitoring(operations, global, None), createUniqueId)
-    TestCaseContext(monitor, ref)
+    TestCaseContext(monitor, ref, monitor._1.collector) // both monitors should point to same collector
   }
 
   def singleActorLinearShellInfo(subStreamName: SubStreamName, flowCount: Int, push: Long, pull: Long): ShellInfo = {
@@ -169,8 +176,13 @@ class AkkaStreamMonitoringTest
     }.distinct should contain theSameElementsAs StagesNames
   }
 
-  case class TestCaseContext(monitor: Monitor, ref: ActorRef[AkkaStreamMonitoring.Command])(implicit
+  case class TestCaseContext(
+    monitor: Monitor,
+    ref: ActorRef[AkkaStreamMonitoring.Command],
+    collector: ObserverCollector
+  )(implicit
     val system: ActorSystem[_]
   ) extends MonitorTestCaseContext[Monitor]
+      with CollectedObserver
 
 }

@@ -9,7 +9,7 @@ import io.scalac.extension.actor.MutableActorMetricsStorage
 import io.scalac.extension.util.TestCase.MonitorTestCaseContext.BasicContext
 import io.scalac.extension.util.TestCase.{ MonitorWithBasicContextTestCaseFactory, ProvidedActorSystemTestCaseFactory }
 import io.scalac.extension.util.probe.ActorMonitorTestProbe
-import io.scalac.extension.util.probe.ObserverCollector.CommonCollectorImpl
+import io.scalac.extension.util.probe.ObserverCollector.ManualCollectorImpl
 import io.scalac.extension.util.{ TestConfig, TestOps }
 import org.scalatest.concurrent.Eventually
 import org.scalatest.flatspec.AnyFlatSpecLike
@@ -37,7 +37,7 @@ class ActorEventMonitorActorRestartTest
   val FailingReader: ActorMetricsReader = _ => throw new RuntimeException("Planned failure") with NoStackTrace
 
   override protected def createMonitor(implicit system: ActorSystem[_]) = ActorMonitorTestProbe(
-    new CommonCollectorImpl(pingOffset)
+    new ManualCollectorImpl()
   )
 
   "ActorTest" should "unbind monitors on restart" in testCase { implicit context =>

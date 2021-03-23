@@ -16,7 +16,7 @@ import org.scalatest.{ BeforeAndAfterAll, Inspectors }
 import scala.concurrent.duration._
 import scala.language.postfixOps
 
-import io.scalac.extension.util.probe.ObserverCollector.CommonCollectorImpl
+import io.scalac.extension.util.probe.ObserverCollector.ScheduledCollectorImpl
 
 class DownTestMultiJvmNode1 extends DownTest
 class DownTestMultiJvmNode2 extends DownTest
@@ -31,7 +31,7 @@ class DownTest
 
   implicit val typedSystem: ActorSystem[Nothing] = system.toTyped
 
-  val monitor = ClusterMetricsTestProbe(new CommonCollectorImpl(5.seconds))
+  val monitor = ClusterMetricsTestProbe(new ScheduledCollectorImpl(5.seconds))
 
   "Node down" should {
     "Wait for all nodes to join the cluster" in {

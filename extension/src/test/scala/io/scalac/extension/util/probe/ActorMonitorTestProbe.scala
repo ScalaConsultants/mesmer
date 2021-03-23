@@ -25,7 +25,8 @@ final case class ActorMonitorTestProbe(
   collector: ObserverCollector
 )(implicit val actorSystem: ActorSystem[_])
     extends ActorMetricMonitor
-    with BindUnbindMonitor {
+    with BindUnbindMonitor
+    with Collected {
 
   def bind() = {
     onBind()
