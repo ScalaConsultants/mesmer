@@ -52,7 +52,7 @@ class AkkaActorAgentTest
 
   "AkkaActorAgent" should "record mailbox time properly" in {
     val idle      = 100.milliseconds
-    val tolerance = 50
+    val tolerance = 100
     testWithContextAndActor[String](_ =>
       Behaviors.receiveMessage {
         case "idle" =>
