@@ -1,10 +1,5 @@
 package io.scalac.agent.akka.http
 
-import java.lang.reflect.Method
-import java.util.UUID
-
-import scala.concurrent.Future
-
 import _root_.akka.http.scaladsl.model.{ HttpRequest, HttpResponse }
 import _root_.akka.http.scaladsl.settings.ServerSettings
 import _root_.akka.stream.{ FlowShape, Materializer }
@@ -13,12 +8,15 @@ import akka.event.LoggingAdapter
 import akka.http.scaladsl.Http.ServerBinding
 import akka.http.scaladsl.{ ConnectionContext, HttpExt }
 import akka.stream.scaladsl.{ Broadcast, Flow, GraphDSL, Source, Zip }
-
-import net.bytebuddy.implementation.bind.annotation._
-
+import io.scalac.core.model._
 import io.scalac.core.util.Timestamp
 import io.scalac.extension.event.EventBus
 import io.scalac.extension.event.HttpEvent._
+import net.bytebuddy.implementation.bind.annotation._
+
+import java.lang.reflect.Method
+import java.util.UUID
+import scala.concurrent.Future
 
 class HttpInstrumentation
 object HttpInstrumentation {
@@ -57,23 +55,21 @@ object HttpInstrumentation {
 
       System.nanoTime()
 
-      zipRequest.out.map {
-        case (request, id) => {
-          val path   = request.uri.path.toString()
-          val method = request.method.value
-          EventBus(system.toTyped).publishEvent(RequestStarted(id, Timestamp.create(), path, method))
-          request
-        }
+      zipRequest.out.map { case (request, id) =>
+        val path   = request.uri.path.toPath
+        val method = request.method.toMethod
+        EventBus(system.toTyped).publishEvent(RequestStarted(id, Timestamp.create(), path, method))
+        request
       } ~> flow
 
       flow ~> zipRespone.in0
       idBroadcast ~> zipRespone.in1
 
-      zipRespone.out.map {
-        case (response, id) => {
-          EventBus(system.toTyped).publishEvent(RequestCompleted(id, Timestamp.create()))
-          response
-        }
+      zipRespone.out.map { case (response, id) =>
+        EventBus(system.toTyped).publishEvent(
+          RequestCompleted(id, Timestamp.create(), response.status.intValue().toString)
+        )
+        response
       } ~> outerResponse.in
 
       FlowShape(outerRequest.in, outerResponse.out)

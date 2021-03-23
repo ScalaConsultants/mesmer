@@ -4,11 +4,10 @@ import akka.actor.typed.Behavior
 import akka.actor.typed.scaladsl.Behaviors
 import akka.cluster.ClusterEvent._
 import akka.cluster.typed.{ Cluster, Subscribe }
-
+import io.scalac.core.model._
 import io.scalac.extension.ClusterEventsMonitor.Command.MemberEventWrapper
 import io.scalac.extension.metric.ClusterMetricsMonitor
 import io.scalac.extension.metric.ClusterMetricsMonitor.Labels
-import io.scalac.extension.model._
 
 object ClusterEventsMonitor extends ClusterMonitorActor {
 
@@ -32,14 +31,12 @@ object ClusterEventsMonitor extends ClusterMonitorActor {
 
         boundMonitor.nodeDown.incValue(0L)
 
-        Behaviors.receiveMessage {
-          case MemberEventWrapper(event) => {
-            event match {
-              case MemberDowned(_) => boundMonitor.nodeDown.incValue(1L)
-              case _               =>
-            }
-            Behaviors.same
+        Behaviors.receiveMessage { case MemberEventWrapper(event) =>
+          event match {
+            case MemberDowned(_) => boundMonitor.nodeDown.incValue(1L)
+            case _               =>
           }
+          Behaviors.same
         }
       }
     }

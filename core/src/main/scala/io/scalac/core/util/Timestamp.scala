@@ -12,6 +12,7 @@ import scala.concurrent.duration.FiniteDuration
  *              as implementation detail
  */
 class Timestamp(private[Timestamp] val value: Long) extends AnyVal {
+  def interval(): Long                    = interval(Timestamp.create())
   def interval(finished: Timestamp): Long = Timestamp.interval(this, finished)
 
   /**
@@ -37,7 +38,6 @@ class Timestamp(private[Timestamp] val value: Long) extends AnyVal {
 object Timestamp {
 
   /**
-   *
    * @return new [[Timestamp]] instance representing current point of execution. Should be called before and after
    *         measured code is executed
    */
@@ -54,4 +54,9 @@ object Timestamp {
     math.floorDiv(math.abs(finished.value - start.value), 1_000_000)
 
   private def moveTimestamp(timestamp: Timestamp, nanos: Long): Timestamp = new Timestamp(timestamp.value + nanos)
+
+  implicit val ordering: Ordering[Timestamp] = {
+    val longOrdering = implicitly[Ordering[Long]]
+    (a, b) => longOrdering.compare(a.value, b.value)
+  }
 }

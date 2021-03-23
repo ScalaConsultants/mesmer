@@ -1,5 +1,6 @@
 package io.scalac.extension.persistence
 
+import io.scalac.core.model._
 import io.scalac.core.util.Timestamp
 import io.scalac.extension.config.CleaningSettings
 import io.scalac.extension.event.PersistenceEvent.PersistingEventStarted
@@ -15,10 +16,10 @@ import scala.util.Random
 class CleanablePersistingStorageTest extends AnyFlatSpec with Matchers with TestOps {
 
   "CleanablePersistingStorage" should "clean internal buffer" in {
-    val buffer        = mutable.Map.empty[PersistEventKey, PersistingEventStarted]
-    val maxStalenessMs  = 10_000L
-    val config        = CleaningSettings(maxStalenessMs.millis, 10.seconds)
-    val baseTimestamp = Timestamp.create()
+    val buffer         = mutable.Map.empty[PersistEventKey, PersistingEventStarted]
+    val maxStalenessMs = 10_000L
+    val config         = CleaningSettings(maxStalenessMs.millis, 10.seconds)
+    val baseTimestamp  = Timestamp.create()
 
     val staleEvents = List.fill(10) {
       val staleness = Random.nextLong(80_000) + maxStalenessMs

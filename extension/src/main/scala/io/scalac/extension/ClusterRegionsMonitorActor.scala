@@ -6,10 +6,10 @@ import akka.cluster.sharding.ShardRegion.{ GetShardRegionStats, ShardRegionStats
 import akka.cluster.sharding.{ ClusterSharding, ShardRegion }
 import akka.pattern.ask
 import akka.util.Timeout
+import io.scalac.core.model._
 import io.scalac.extension.config.ConfigurationUtils.ConfigOps
 import io.scalac.extension.metric.ClusterMetricsMonitor
 import io.scalac.extension.metric.ClusterMetricsMonitor.Labels
-import io.scalac.extension.model.AkkaNodeOps
 import io.scalac.extension.util.CachedQueryResult
 import org.slf4j.LoggerFactory
 
@@ -36,29 +36,32 @@ object ClusterRegionsMonitorActor extends ClusterMonitorActor {
         val labels = Labels(selfMember.uniqueAddress.toNode)
         val bound  = monitor.bind(labels)
 
-        val regions = new Regions(system, onCreateEntry = (region, entry) => {
+        val regions = new Regions(
+          system,
+          onCreateEntry = (region, entry) => {
 
-          val regionBound = monitor.bind(labels.withRegion(region))
+            val regionBound = monitor.bind(labels.withRegion(region))
 
-          regionBound.entityPerRegion
-            .setUpdater(result =>
-              entry.get.foreach { regionStats =>
-                val entities = regionStats.values.sum
-                result.observe(entities)
-                logger.trace("Recorded amount of entities per region {}", entities)
-              }
-            )
+            regionBound.entityPerRegion
+              .setUpdater(result =>
+                entry.get.foreach { regionStats =>
+                  val entities = regionStats.values.sum
+                  result.observe(entities)
+                  logger.trace("Recorded amount of entities per region {}", entities)
+                }
+              )
 
-          regionBound.shardPerRegions
-            .setUpdater(result =>
-              entry.get.foreach { regionStats =>
-                val shards = regionStats.size
-                result.observe(shards)
-                logger.trace("Recorded amount of shards per region {}", shards)
-              }
-            )
+            regionBound.shardPerRegions
+              .setUpdater(result =>
+                entry.get.foreach { regionStats =>
+                  val shards = regionStats.size
+                  result.observe(shards)
+                  logger.trace("Recorded amount of shards per region {}", shards)
+                }
+              )
 
-        })
+          }
+        )
 
         bound.entitiesOnNode.setUpdater { result =>
           regions.regionStats.map { regionsStats =>
@@ -80,9 +83,9 @@ object ClusterRegionsMonitorActor extends ClusterMonitorActor {
 
   private[extension] class Regions(
     system: ActorSystem[_],
-    onCreateEntry: (String, CachedQueryResult[Future[RegionStats]]) => Unit
-  )(
-    implicit ec: ExecutionContext
+    onCreateEntry: (Region, CachedQueryResult[Future[RegionStats]]) => Unit
+  )(implicit
+    ec: ExecutionContext
   ) {
 
     implicit val queryRegionStatsTimeout: Timeout = Timeout(getQueryStatsTimeout)

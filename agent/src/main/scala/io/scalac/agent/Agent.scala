@@ -18,9 +18,8 @@ object Agent {
     import LoadingResult.{ logger => loadingLogger }
     def eagerLoad(): Unit =
       fqns.foreach { className =>
-        try {
-          Thread.currentThread().getContextClassLoader.loadClass(className)
-        } catch {
+        try Thread.currentThread().getContextClassLoader.loadClass(className)
+        catch {
           case _: ClassNotFoundException => loadingLogger.error("Couldn't load class {}", className)
         }
       }

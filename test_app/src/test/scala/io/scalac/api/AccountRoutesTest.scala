@@ -28,8 +28,10 @@ class AccountRoutesTest
     with FailFastCirceSupport
     with JsonCodecs {
 
-  implicit val typedSystem      = system.toTyped
-  implicit val timeout: Timeout = 1 seconds
+  implicit val typedSystem                        = system.toTyped
+  implicit val timeoutDuration: FiniteDuration    = 2 seconds
+  implicit val timeout: Timeout                   = timeoutDuration
+  implicit val routeTimeTimeout: RouteTestTimeout = RouteTestTimeout(2 * timeoutDuration)
   import AccountStateActor.{ Command, Reply }
 
   override def testConfig: Config = ConfigFactory.load("application-test")
@@ -40,11 +42,10 @@ class AccountRoutesTest
     uuid: UUID,
     receive: Command => Option[Reply]
   ): Behavior[ShardingEnvelope[AccountStateActor.Command]] = Behaviors.receiveMessage {
-    case ShardingEnvelope(entity, command) => {
+    case ShardingEnvelope(entity, command) =>
       assert(uuid.toString == entity)
       receive(command).foreach(command.replyTo ! _)
       Behaviors.same
-    }
   }
 
   def test(behaviorBody: PartialFunction[Command, Reply] = PartialFunction.empty)(testBody: Fixture => Any): Any = {
@@ -58,70 +59,58 @@ class AccountRoutesTest
 
   "AccountRoutes" should "return balance for" in {
     val currentBalance = Random.nextInt(100).toDouble
-    test {
-      case GetBalance(_) => CurrentBalance(currentBalance)
-    } {
-      case (uuid, routes) =>
-        Get(s"/api/v1/account/${uuid}/balance") ~> routes ~> check {
-          status shouldEqual StatusCodes.OK
-          responseAs[Account] shouldEqual (Account(uuid, currentBalance))
-        }
+    test { case GetBalance(_) =>
+      CurrentBalance(currentBalance)
+    } { case (uuid, routes) =>
+      Get(s"/api/v1/account/${uuid}/balance") ~> routes ~> check {
+        status shouldEqual StatusCodes.OK
+        responseAs[Account] shouldEqual (Account(uuid, currentBalance))
+      }
     }
   }
 
   it should "return balance for withdrawn" in {
     val resultBalance  = Random.nextInt(100).toDouble
     val withdrawAmount = Random.nextInt(100).toDouble
-    test {
-      case Withdraw(_, value) => {
-        value shouldBe withdrawAmount
-        CurrentBalance(resultBalance)
+    test { case Withdraw(_, value) =>
+      value shouldBe withdrawAmount
+      CurrentBalance(resultBalance)
+    } { case (uuid, routes) =>
+      Put(s"/api/v1/account/${uuid}/withdraw/${withdrawAmount}") ~> routes ~> check {
+        status shouldEqual StatusCodes.Created
+        responseAs[Account] shouldEqual (Account(uuid, resultBalance))
       }
-    } {
-      case (uuid, routes) =>
-        Put(s"/api/v1/account/${uuid}/withdraw/${withdrawAmount}") ~> routes ~> check {
-          status shouldEqual StatusCodes.Created
-          responseAs[Account] shouldEqual (Account(uuid, resultBalance))
-        }
     }
   }
 
   it should "return conflict status when there is not enough funds" in {
     val withdrawAmount = Random.nextInt(100).toDouble
-    test {
-      case Withdraw(_, value) => {
-        value shouldBe withdrawAmount
-        InsufficientFunds
+    test { case Withdraw(_, value) =>
+      value shouldBe withdrawAmount
+      InsufficientFunds
+    } { case (uuid, routes) =>
+      Put(s"/api/v1/account/${uuid}/withdraw/${withdrawAmount}") ~> routes ~> check {
+        status shouldEqual StatusCodes.Conflict
       }
-    } {
-      case (uuid, routes) =>
-        Put(s"/api/v1/account/${uuid}/withdraw/${withdrawAmount}") ~> routes ~> check {
-          status shouldEqual StatusCodes.Conflict
-        }
     }
   }
 
   it should "return updated account status for deposit" in {
     val depositAmount = Random.nextInt(100).toDouble
-    test {
-      case Deposit(_, value) => {
-        value shouldBe depositAmount
-        CurrentBalance(depositAmount)
+    test { case Deposit(_, value) =>
+      value shouldBe depositAmount
+      CurrentBalance(depositAmount)
+    } { case (uuid, routes) =>
+      Put(s"/api/v1/account/${uuid}/deposit/${depositAmount}") ~> routes ~> check {
+        status shouldEqual StatusCodes.Created
+        responseAs[Account] shouldEqual (Account(uuid, depositAmount))
       }
-    } {
-      case (uuid, routes) =>
-        Put(s"/api/v1/account/${uuid}/deposit/${depositAmount}") ~> routes ~> check {
-          status shouldEqual StatusCodes.Created
-          responseAs[Account] shouldEqual (Account(uuid, depositAmount))
-        }
     }
   }
 
-  it should "return 500 when upstream actor doesn't respond" in test() {
-    case (uuid, routes) =>
-      implicit val timeout = RouteTestTimeout(5 seconds)
-      Get(s"/api/v1/account/${uuid}/balance") ~> routes ~> check {
-        status shouldEqual StatusCodes.InternalServerError
-      }
+  it should "return 500 when upstream actor doesn't respond" in test() { case (uuid, routes) =>
+    Get(s"/api/v1/account/${uuid}/balance") ~> routes ~> check {
+      status shouldEqual StatusCodes.InternalServerError
+    }
   }
 }

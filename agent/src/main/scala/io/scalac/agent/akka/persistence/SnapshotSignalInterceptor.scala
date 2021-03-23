@@ -7,14 +7,11 @@ case class SnapshotSignalHandler[O] private (
   private var inner: PartialFunction[(Any, Signal), Any] = PartialFunction.empty
 ) extends PartialFunction[(Any, Signal), O] {
 
-  private def pushEvent(persistenceId: String, seqId: Long): Unit = {
-
-  }
-
+  private def pushEvent(persistenceId: String, seqId: Long): Unit = {}
 
   override def apply(v1: (Any, Signal)): O =
     v1 match {
-      case (_, SnapshotCompleted(meta)) => {
+      case (_, SnapshotCompleted(meta)) =>
         /*
          * We should depend on this function to produce result only if this is a unit type
          * other than that inner function will be defined an we can depend on it's result type
@@ -25,7 +22,6 @@ case class SnapshotSignalHandler[O] private (
           result = inner.asInstanceOf[PartialFunction[(Any, Signal), O]](v1)
         }
         result
-      }
       case _ => inner.asInstanceOf[PartialFunction[(Any, Signal), O]](v1)
     }
 

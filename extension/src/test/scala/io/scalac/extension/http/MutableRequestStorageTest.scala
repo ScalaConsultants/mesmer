@@ -1,7 +1,9 @@
 package io.scalac.extension.http
 
+import io.scalac.core.model._
+import io.scalac.core.tagging._
 import io.scalac.core.util.Timestamp
-import io.scalac.extension.event.HttpEvent.{RequestCompleted, RequestFailed, RequestStarted}
+import io.scalac.extension.event.HttpEvent.{ RequestCompleted, RequestFailed, RequestStarted }
 import io.scalac.extension.util.TestOps
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
@@ -17,16 +19,15 @@ class MutableRequestStorageTest extends AnyFlatSpec with Matchers with TestOps {
     Function.untupled(body)(buffer, sut)
   }
 
-  "MutablePersistStorage" should "add started events to internal buffer" in test {
-    case (buffer, sut) =>
-      val events = List.fill(10) {
-        val id = createUniqueId
-        RequestStarted(id, Timestamp.create(), "/some/path", "GET")
-      }
-      events.foreach(sut.requestStarted)
+  "MutablePersistStorage" should "add started events to internal buffer" in test { case (buffer, sut) =>
+    val events = List.fill(10) {
+      val id = createUniqueId
+      RequestStarted(id, Timestamp.create(), "/some/path", "GET")
+    }
+    events.foreach(sut.requestStarted)
 
-      buffer should have size (events.size)
-      buffer.values should contain theSameElementsAs (events)
+    buffer should have size (events.size)
+    buffer.values should contain theSameElementsAs (events)
   }
 
   it should "remove started event from internal buffer when corresponding finish event is fired" in test {
@@ -39,7 +40,7 @@ class MutableRequestStorageTest extends AnyFlatSpec with Matchers with TestOps {
       events.foreach(sut.requestStarted)
       val finished = events
         .take(5)
-        .map(started => RequestCompleted(started.id, startTimestamp.plus(100.millis)))
+        .map(started => RequestCompleted(started.id, startTimestamp.plus(100.millis), "200"))
 
       finished.foreach(sut.requestCompleted)
 
@@ -47,37 +48,35 @@ class MutableRequestStorageTest extends AnyFlatSpec with Matchers with TestOps {
       buffer.values should contain theSameElementsAs (events.drop(5))
   }
 
-  it should "return same storage instance and corresponding starte event" in test {
-    case (_, sut) =>
-      val id             = createUniqueId
-      val startTimestamp = Timestamp.create()
-      val path           = "/some/path/"
+  it should "return same storage instance and corresponding starte event" in test { case (_, sut) =>
+    val id             = createUniqueId
+    val startTimestamp = Timestamp.create()
+    val path           = "/some/path/"
 
-      sut.requestStarted(RequestStarted(id, startTimestamp, path, "GET"))
+    sut.requestStarted(RequestStarted(id, startTimestamp, path, "GET"))
 
-      val Some((resultStorage, started)) =
-        sut.requestCompleted(RequestCompleted(id, startTimestamp.plus(123.millis)))
+    val Some((resultStorage, started)) =
+      sut.requestCompleted(RequestCompleted(id, startTimestamp.plus(123.millis), "200"))
 
-      resultStorage should be theSameInstanceAs (sut)
-      started.id should be(id)
+    resultStorage should be theSameInstanceAs (sut)
+    started.id should be(id)
   }
 
-  it should "remove stared event from internal buffer when requestFailed is fired" in test {
-    case (buffer, sut) =>
-      val startTimestamp = Timestamp.create()
-      val events = List.fill(10) {
-        val id = createUniqueId
-        RequestStarted(id, startTimestamp, "/some/path", "GET")
-      }
-      events.foreach(sut.requestStarted)
-      val finished = events
-        .take(5)
-        .map(started => RequestFailed(started.id, startTimestamp.plus(100.millis)))
+  it should "remove stared event from internal buffer when requestFailed is fired" in test { case (buffer, sut) =>
+    val startTimestamp = Timestamp.create()
+    val events = List.fill(10) {
+      val id = createUniqueId
+      RequestStarted(id, startTimestamp, "/some/path", "GET")
+    }
+    events.foreach(sut.requestStarted)
+    val finished = events
+      .take(5)
+      .map(started => RequestFailed(started.id, startTimestamp.plus(100.millis)))
 
-      finished.foreach(sut.requestFailed)
+    finished.foreach(sut.requestFailed)
 
-      buffer should have size (events.size - finished.size)
-      buffer.values should contain theSameElementsAs (events.drop(5))
+    buffer should have size (events.size - finished.size)
+    buffer.values should contain theSameElementsAs (events.drop(5))
   }
 
   it should "return None for requestCompleted if no corresponding started event is present" in test {
@@ -88,19 +87,18 @@ class MutableRequestStorageTest extends AnyFlatSpec with Matchers with TestOps {
         RequestStarted(id, startTimestamp, "/some/path", "GET")
       }
       events.foreach(sut.requestStarted)
-      sut.requestCompleted(RequestCompleted(createUniqueId, startTimestamp.plus(100.millis))) should be(None)
+      sut.requestCompleted(RequestCompleted(createUniqueId, startTimestamp.plus(100.millis), "200")) should be(None)
       buffer.values should contain theSameElementsAs (events)
   }
 
-  it should "return None for requestFailed if no corresponding started event is present" in test {
-    case (buffer, sut) =>
-      val startTimestamp = Timestamp.create()
-      val events = List.fill(10) {
-        val id = createUniqueId
-        RequestStarted(id, startTimestamp, "/some/path", "GET")
-      }
-      events.foreach(sut.requestStarted)
-      sut.requestFailed(RequestFailed(createUniqueId, startTimestamp.plus(100.millis))) should be(None)
-      buffer.values should contain theSameElementsAs (events)
+  it should "return None for requestFailed if no corresponding started event is present" in test { case (buffer, sut) =>
+    val startTimestamp = Timestamp.create()
+    val events = List.fill(10) {
+      val id = createUniqueId
+      RequestStarted(id, startTimestamp, "/some/path", "GET")
+    }
+    events.foreach(sut.requestStarted)
+    sut.requestFailed(RequestFailed(createUniqueId, startTimestamp.plus(100.millis))) should be(None)
+    buffer.values should contain theSameElementsAs (events)
   }
 }

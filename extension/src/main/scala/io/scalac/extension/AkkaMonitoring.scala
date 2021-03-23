@@ -9,7 +9,7 @@ import com.newrelic.telemetry.Attributes
 import com.newrelic.telemetry.opentelemetry.`export`.NewRelicMetricExporter
 import io.opentelemetry.sdk.OpenTelemetrySdk
 import io.opentelemetry.sdk.metrics.`export`.IntervalMetricReader
-import io.scalac.core.model.{ Module, SupportedVersion, Version }
+import io.scalac.core.model.{ Module, SupportedVersion, Version, _ }
 import io.scalac.core.support.ModulesSupport
 import io.scalac.core.util.ModuleInfo
 import io.scalac.core.util.ModuleInfo.Modules
@@ -17,7 +17,6 @@ import io.scalac.extension.actor.CleanableActorMetricsStorage
 import io.scalac.extension.config.{ AkkaMonitoringConfig, CachingConfig }
 import io.scalac.extension.http.CleanableRequestStorage
 import io.scalac.extension.metric.CachingMonitor
-import io.scalac.extension.model._
 import io.scalac.extension.persistence.{ CleanablePersistingStorage, CleanableRecoveryStorage }
 import io.scalac.extension.service.CommonRegexPathService
 import io.scalac.extension.upstream._
@@ -155,16 +154,18 @@ class AkkaMonitoring(private val system: ActorSystem[_], val config: AkkaMonitor
       case e                         => e.getMessage
     }.filterOrElse(_.isInstance(ref), s"Ref ${ref} is not instance of ${fqcn}").map(_ => ())
 
-  private lazy val clusterNodeName: Option[Node] = {
+  private lazy val clusterNodeName: Option[Node] =
     (for {
-      _       <- reflectiveIsInstanceOf("akka.actor.typed.internal.adapter.ActorSystemAdapter", system)
+      _ <- reflectiveIsInstanceOf("akka.actor.typed.internal.adapter.ActorSystemAdapter", system)
       classic = system.classicSystem.asInstanceOf[ExtendedActorSystem]
-      _       <- reflectiveIsInstanceOf("akka.cluster.ClusterActorRefProvider", classic.provider)
-    } yield Cluster(classic).selfUniqueAddress.toNode).fold(message => {
-      log.error(message)
-      None
-    }, Some.apply)
-  }
+      _ <- reflectiveIsInstanceOf("akka.cluster.ClusterActorRefProvider", classic.provider)
+    } yield Cluster(classic).selfUniqueAddress).fold(
+      message => {
+        log.error(message)
+        None
+      },
+      nodeName => Some(nodeName.toNode)
+    )
 
   def startActorMonitor(): Unit = {
     log.debug("Starting actor monitor")
@@ -176,7 +177,7 @@ class AkkaMonitoring(private val system: ActorSystem[_], val config: AkkaMonitor
 
     val streamMonitor = CachingMonitor(
       OpenTelemetryStreamMetricMonitor(instrumentationName, actorSystemConfig),
-      CachingConfig.fromConfig(actorSystemConfig, "stream")
+      CachingConfig.fromConfig(actorSystemConfig, ModulesSupport.akkaStreamModule)
     )
 
     val streamMonitorRef = system.systemActorOf(
@@ -230,7 +231,7 @@ class AkkaMonitoring(private val system: ActorSystem[_], val config: AkkaMonitor
 
     val openTelemetryPersistenceMonitor = CachingMonitor(
       OpenTelemetryPersistenceMetricMonitor(instrumentationName, actorSystemConfig),
-      CachingConfig.fromConfig(actorSystemConfig, "persistence")
+      CachingConfig.fromConfig(actorSystemConfig, ModulesSupport.akkaPersistenceTypedModule)
     )
 
     system.systemActorOf(
@@ -262,7 +263,7 @@ class AkkaMonitoring(private val system: ActorSystem[_], val config: AkkaMonitor
 
     val openTelemetryHttpMonitor = CachingMonitor(
       OpenTelemetryHttpMetricsMonitor(instrumentationName, actorSystemConfig),
-      CachingConfig.fromConfig(actorSystemConfig, "http")
+      CachingConfig.fromConfig(actorSystemConfig, ModulesSupport.akkaHttpModule)
     )
     val pathService = CommonRegexPathService
 

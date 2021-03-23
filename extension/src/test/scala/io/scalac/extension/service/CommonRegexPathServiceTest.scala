@@ -4,6 +4,8 @@ import java.util.UUID
 
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
+import io.scalac.core.model._
+import io.scalac.core.tagging._
 
 class CommonRegexPathServiceTest extends AnyFlatSpec with Matchers {
   import CommonRegexPathService._

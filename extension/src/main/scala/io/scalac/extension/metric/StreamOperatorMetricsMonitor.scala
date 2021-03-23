@@ -1,36 +1,34 @@
 package io.scalac.extension.metric
 
-import io.opentelemetry.api.common.{ Labels => OpenTelemetryLabels }
+import io.scalac.core.LabelSerializable
 import io.scalac.core.model.Tag._
-import io.scalac.extension.model._
+import io.scalac.core.model._
 
 object StreamOperatorMetricsMonitor {
 
-  case class Labels(
+  final case class Labels(
     operator: StageName,
     stream: StreamName,
+    terminal: Boolean,
     node: Option[Node],
-    connectedWith: Option[(String, Direction)]
-  ) {
-    def toOpenTelemetry: OpenTelemetryLabels = {
-      val required: Seq[String] = (operator.serialize ++ stream.serialize).flatMap {
-        case (name, value) => Seq(name, value)
-      }
-      val connected = connectedWith.fold[Seq[String]](Seq.empty) {
-        case (name, direction) =>
-          val (directionHeader, directionValue) = direction.serialize
-          Seq("connected_with", name, directionHeader, directionValue)
+    connectedWith: Option[String] // TODO change this to StageName
+  ) extends LabelSerializable {
+    override val serialize: RawLabels = {
+
+      val connected = connectedWith.fold[RawLabels](Seq.empty) { stageName =>
+        Seq("connected_with" -> stageName)
       }
 
-      val optional: Seq[String] =
-        node.map(n => Seq("node", n)).getOrElse(Seq.empty) ++ connected
-      OpenTelemetryLabels.of(optional ++ required: _*)
+      val terminalLabels = if (terminal) Seq("terminal" -> "true") else Seq.empty
+
+      operator.serialize ++ stream.serialize ++ node.serialize ++ connected ++ terminalLabels
     }
   }
 
   //TODO split processedMessages into processTime, processMessages and demand
   trait BoundMonitor extends Bound {
     def processedMessages: LazyMetricObserver[Long, StreamOperatorMetricsMonitor.Labels]
+    def demand: LazyMetricObserver[Long, StreamOperatorMetricsMonitor.Labels]
     def operators: LazyMetricObserver[Long, StreamOperatorMetricsMonitor.Labels]
   }
 }
