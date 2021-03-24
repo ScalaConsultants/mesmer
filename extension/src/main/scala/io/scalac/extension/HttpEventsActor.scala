@@ -37,16 +37,29 @@ object HttpEventsActor {
 
     Receptionist(ctx.system).ref ! Register(httpServiceKey, ctx.messageAdapter(HttpEventWrapper.apply))
 
-    def createLabels(path: Path, method: Method, status: Status): Labels =
-      Labels(node, pathService.template(path), method, status)
+    def createConnectionLabels(connectionEvent: ConnectionEvent): Labels =
+      ConnectionLabels(node, connectionEvent.interface, connectionEvent.port)
+
+    def createRequestLabels(path: Path, method: Method, status: Status): Labels =
+      RequestLabels(node, pathService.template(path), method, status)
 
     def monitorHttp(
       requestStorage: RequestStorage
     ): Behavior[Event] =
       Behaviors
         .receiveMessage[Event] {
+
+          case HttpEventWrapper(connectionEvent: ConnectionEvent) =>
+            val counter = httpMetricMonitor.bind(createConnectionLabels(connectionEvent)).connectionCounter
+            connectionEvent match {
+              case _: ConnectionStarted   => counter.incValue(1L)
+              case _: ConnectionCompleted => counter.decValue(1L)
+            }
+            Behaviors.same
+
           case HttpEventWrapper(started: RequestStarted) =>
             monitorHttp(requestStorage.requestStarted(started))
+
           case HttpEventWrapper(completed @ RequestCompleted(id, timestamp, status)) =>
             requestStorage
               .requestCompleted(completed)
@@ -55,7 +68,7 @@ object HttpEventsActor {
                 Behaviors.same[Event]
               } { case (storage, started) =>
                 val requestDuration = started.timestamp.interval(timestamp)
-                val monitorBoundary = createLabels(started.path, started.method, status)
+                val monitorBoundary = createRequestLabels(started.path, started.method, status)
                 val monitor         = httpMetricMonitor.bind(monitorBoundary)
 
                 monitor.requestTime.setValue(requestDuration)
@@ -64,6 +77,7 @@ object HttpEventsActor {
                 ctx.log.debug("request {} finished in {} millis", id, requestDuration)
                 monitorHttp(storage)
               }
+
           case HttpEventWrapper(failed @ RequestFailed(id, timestamp)) =>
             requestStorage
               .requestFailed(failed)
@@ -75,6 +89,7 @@ object HttpEventsActor {
                 ctx.log.error("request {} failed after {} millis", id, requestDuration)
                 monitorHttp(storage)
               }
+
         }
         .receiveSignal { case (_, PostStop) =>
           ctx.log.info("Http events monitor terminated")
