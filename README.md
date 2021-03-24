@@ -8,9 +8,72 @@ See [overview](https://github.com/ScalaConsultants/mesmer-akka-agent/blob/main/e
 
 Mesmer Akka Agent is an Akka extension allowing to monitor Akka ecosystem telemetry data and events.
 
-# OpenTelemetry
+Currently Mesmer Akka Agent supports the following metrics:
 
-Mesmer Akka Agent uses [OpenTelemetry](https://opentelemetry.io/) to allow end user choose where data will be stored. This means that application using this extension should include OpenTelemetry SDK and configure appropriate exporter. If no exporter is configured, default NOOP exporter is in use.
+### Akka core
+
+- Running actors
+- Mailbox size
+- Stash size
+- Mailbox time
+- Processed messages
+- Processing time
+- Sent messages
+
+### Akka Cluster
+
+- Shards per region
+- Reachable nodes
+- Unreachable nodes
+- Entities per region
+- Shard regions on node
+- Entities on node
+- Nodes down
+
+### Akka HTTP
+
+- Connections
+- Requests
+- Responses
+- Responses 2xx
+- Responses 3xx
+- Responses 4xx
+- Responses 5xx
+- Response time 
+- Response time 2xx
+- Response time 3xx
+- Response time 4xx
+- Response time 5xx
+- Endpoint responses
+- Endpoint responses 2xx 
+- Endpoint responses 3xx 
+- Endpoint responses 4xx 
+- Endpoint responses 5xx 
+- Endpoint response time 2xx
+- Endpoint response time 3xx
+- Endpoint response time 4xx
+- Endpoint response time 5xx
+
+### Akka Persistence
+
+- Persisted events
+- Event persistence time
+- Recovery total
+- Recovery time
+- Snapshots
+
+### Akka Streams
+
+- Running streams
+- Running operators per stream
+- Running operators
+- Stream throughput
+- Operator throughput
+- Operator processing time
+
+## OpenTelemetry
+
+Mesmer Akka Agent uses [OpenTelemetry](https://opentelemetry.io/) to allow end user to choose where the data will be stored. This means that application using this extension should include OpenTelemetry SDK and configure appropriate exporter. If no exporter is configured, default NOOP exporter is in use.
 
 # Local testing
 
