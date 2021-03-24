@@ -64,15 +64,6 @@ object StreamEvent {
    * @param streamName
    * @param shellInfo
    */
-  final case class LastStreamStats(ref: ActorRef, streamName: SubStreamName, shellInfo: Set[ShellInfo])
-      extends StreamEvent
+  final case class LastStreamStats(ref: ActorRef, streamName: SubStreamName, shellInfo: ShellInfo) extends StreamEvent
 
 }
-
-//final case class ActorInterpreterStats(
-//  ref: ActorRef,
-//  streamName: SubStreamName,
-//  shellInfo: Set[ShellInfo]
-//) extends AbstractEvent {
-//  override type Service = ActorInterpreterStats
-//}

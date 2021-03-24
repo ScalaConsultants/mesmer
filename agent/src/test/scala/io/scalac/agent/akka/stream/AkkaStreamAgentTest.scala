@@ -244,4 +244,21 @@ class AkkaStreamAgentTest
       }
     }
   }
+
+  it should "receive stats of short living streams in" in testCase { implicit c =>
+    def runShortStream: Unit = Source
+      .single(())
+      .to(Sink.ignore)
+      .run()
+
+    val StreamCount = 10
+
+    for {
+      _ <- 0 until StreamCount
+    } runShortStream
+
+    actors(StreamCount)
+
+    monitor.receiveMessages(StreamCount)
+  }
 }
