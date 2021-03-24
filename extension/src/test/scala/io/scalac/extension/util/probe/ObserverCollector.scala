@@ -1,9 +1,9 @@
 package io.scalac.extension.util.probe
 
-import scala.concurrent.duration.FiniteDuration
-
 import akka.actor.testkit.typed.scaladsl.TestProbe
 import akka.actor.typed.ActorSystem
+
+import scala.concurrent.duration.FiniteDuration
 
 /**
  * Emulates backend collector behavior: to register updaters to collect it later.

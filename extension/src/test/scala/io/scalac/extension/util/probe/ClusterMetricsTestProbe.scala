@@ -2,7 +2,6 @@ package io.scalac.extension.util.probe
 
 import akka.actor.testkit.typed.scaladsl.TestProbe
 import akka.actor.typed.ActorSystem
-
 import io.scalac.extension.metric.ClusterMetricsMonitor.Labels
 import io.scalac.extension.metric._
 import io.scalac.extension.util.TestProbeSynchronized

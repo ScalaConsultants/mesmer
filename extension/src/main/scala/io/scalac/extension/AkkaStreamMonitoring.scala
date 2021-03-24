@@ -2,6 +2,7 @@ package io.scalac.extension
 
 import akka.actor.ActorRef
 import akka.actor.typed._
+import akka.actor.typed.receptionist.Receptionist.Register
 import akka.actor.typed.scaladsl.adapter._
 import akka.actor.typed.scaladsl.{ AbstractBehavior, ActorContext, Behaviors, TimerScheduler }
 import io.scalac.core.akka.model.PushMetrics
@@ -11,6 +12,8 @@ import io.scalac.core.support.ModulesSupport
 import io.scalac.extension.AkkaStreamMonitoring._
 import io.scalac.extension.config.CachingConfig
 import io.scalac.extension.config.ConfigurationUtils._
+import io.scalac.extension.event.Service.streamService
+import io.scalac.extension.event.StreamEvent
 import io.scalac.extension.event.StreamEvent.StreamInterpreterInfo
 import io.scalac.extension.metric.MetricObserver.LazyResult
 import io.scalac.extension.metric.StreamMetricMonitor.{ EagerLabels, Labels => GlobalLabels }
@@ -31,7 +34,7 @@ object AkkaStreamMonitoring {
 
   sealed trait Command
 
-  private case class StatsReceived(actorInterpreterStats: StreamInterpreterInfo) extends Command
+  private case class StatsReceived(actorInterpreterStats: StreamEvent) extends Command
 
   case class StartStreamCollection(refs: Set[ActorRef]) extends Command
 
@@ -230,6 +233,8 @@ class AkkaStreamMonitoring(
   private[this] val localStreamStats       = mutable.Map.empty[StreamName, StreamStatsBuilder]
 
   private def init(): Unit = {
+    system.receptionist ! Register(streamService.serviceKey, metricsAdapter)
+
     boundStreamMonitor.streamProcessedMessages.setUpdater { result =>
       val streams = globalProcessedSnapshot.get()
       streams.foreach { statsSeq =>
@@ -256,7 +261,7 @@ class AkkaStreamMonitoring(
     }
   }
 
-  private val metricsAdapter = messageAdapter[StreamInterpreterInfo](StatsReceived.apply)
+  private val metricsAdapter = messageAdapter[StreamEvent](StatsReceived.apply)
 
   override def onMessage(msg: Command): Behavior[Command] = msg match {
     case StartStreamCollection(refs) if refs.nonEmpty =>

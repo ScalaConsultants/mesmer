@@ -1,11 +1,14 @@
-package io.scalac.extension.util
+package io.scalac.core.util
 
 import akka.actor.PoisonPill
-import akka.actor.typed.{ ActorRef, ActorSystem, Behavior }
 import akka.actor.typed.receptionist.ServiceKey
 import akka.actor.typed.scaladsl.Behaviors
+import akka.actor.typed.{ ActorRef, ActorSystem, Behavior }
 import akka.testkit.TestKit
 import akka.util.Timeout
+import io.scalac.core.tagging._
+import io.scalac.core.util.TestCase.MonitorWithServiceTestCaseFactory.SetupTag
+import io.scalac.extension.util.{ ReceptionistOps, TestConfig, TestOps }
 
 object TestCase {
 
@@ -25,21 +28,29 @@ object TestCase {
 
     // DSL
 
-    def testCaseWith[T](hackContext: Context => Context)(tc: Context => T): T = {
+    def testCaseWithSetupAndContext[T](hackContext: Context => Context)(tc: Setup => Context => T): T = {
       val env = startEnv()
       try {
         val ctx   = hackContext(createContext(env))
         val setup = setUp(ctx)
         try {
-          val result = tc(ctx)
+          val result = Function.uncurried(tc)(setup, ctx)
           result
         } finally tearDown(setup)
       } finally stopEnv(env)
     }
 
+    def testCaseWith[T](hackContext: Context => Context)(tc: Context => T): T =
+      testCaseWithSetupAndContext(hackContext)(_ => tc)
+
     def testCase[T](tc: Context => T): T =
       testCaseWith(identity)(tc)
 
+    def testCaseSetupContext[T](tc: Setup => Context => T): T =
+      testCaseWithSetupAndContext(identity)(tc)
+
+    def testCaseSetup[T](tc: Setup => T): T =
+      testCaseWithSetupAndContext(identity)(setup => _ => tc(setup))
   }
 
   // Test Impl
@@ -62,7 +73,7 @@ object TestCase {
   trait ProvidedActorSystemTestCaseFactory extends ActorSystemEnvTestCaseFactory {
 
     // add-on api
-    implicit def system: ActorSystem[_]
+    implicit protected def system: ActorSystem[_]
 
     // overrides
     protected final def startEnv(): ActorSystem[_] = system
@@ -73,6 +84,7 @@ object TestCase {
     val monitor: M
     implicit val system: ActorSystem[_]
   }
+
   object MonitorTestCaseContext {
     final case class BasicContext[+M](monitor: M, caching: Boolean = false)(implicit val system: ActorSystem[_])
         extends MonitorTestCaseContext[M] {
@@ -98,7 +110,8 @@ object TestCase {
 
   trait MonitorWithServiceTestCaseFactory extends AbstractMonitorTestCaseFactory with ReceptionistOps {
 
-    type Setup = ActorRef[_]
+    // setup can be used in dsl functions - without tag it would conflict with ActorSytem
+    type Setup = ActorRef[_] @@ SetupTag
 
     // add-on api
     protected def createMonitorBehavior(implicit context: Context): Behavior[_]
@@ -106,15 +119,20 @@ object TestCase {
     implicit def timeout: Timeout
 
     // overrides
-    override final protected def setUp(context: Context): ActorRef[_] = {
+    override final protected def setUp(context: Context): Setup = {
       val monitorBehavior = createMonitorBehavior(context)
       val monitorActor    = context.system.systemActorOf(monitorBehavior, createUniqueId)
       onlyRef(monitorActor, serviceKey)(context.system, timeout)
-      monitorActor
+      monitorActor.taggedWith[SetupTag]
     }
 
-    override final protected def tearDown(setup: ActorRef[_]): Unit =
+    override final protected def tearDown(setup: Setup): Unit =
       setup.unsafeUpcast[Any] ! PoisonPill
+  }
+
+  object MonitorWithServiceTestCaseFactory {
+    sealed trait SetupTag
+
   }
 
   import MonitorTestCaseContext.BasicContext

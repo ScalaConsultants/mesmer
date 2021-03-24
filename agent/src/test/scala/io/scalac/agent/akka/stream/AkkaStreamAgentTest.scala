@@ -4,12 +4,16 @@ import akka.Done
 import akka.actor.ActorRef
 import akka.actor.testkit.typed.scaladsl.TestProbe
 import akka.actor.typed.receptionist.Receptionist._
-import akka.actor.typed.scaladsl.adapter._
+import akka.actor.typed.receptionist.ServiceKey
+import akka.actor.typed.scaladsl.Behaviors
+import akka.actor.typed.{ ActorSystem, Behavior }
 import akka.stream.scaladsl._
 import akka.stream.{ Attributes, BufferOverflowException, OverflowStrategy, QueueOfferResult }
 import io.scalac.agent.utils.{ InstallAgent, SafeLoadSystem }
 import io.scalac.core.akka.model.PushMetrics
-import io.scalac.extension.event.{ ActorInterpreterStats, Service, TagEvent }
+import io.scalac.core.util.TestCase.CommonMonitorTestFactory
+import io.scalac.extension.event.StreamEvent.StreamInterpreterInfo
+import io.scalac.extension.event.{ Service, StreamEvent, TagEvent }
 import org.scalatest._
 import org.scalatest.concurrent.{ Futures, ScalaFutures }
 import org.scalatest.flatspec.AnyFlatSpecLike
@@ -29,7 +33,23 @@ class AkkaStreamAgentTest
     with Inspectors
     with ScalaFutures
     with Futures
-    with Inside {
+    with Inside
+    with CommonMonitorTestFactory {
+
+  protected def createMonitorBehavior(implicit context: Context): Behavior[_] = Behaviors.setup[StreamEvent] {
+    actorContext =>
+      actorContext.system.receptionist ! Register(Service.streamService.serviceKey, actorContext.self)
+
+      Behaviors.receiveMessage[StreamEvent] { case event =>
+        context.monitor.ref ! event
+        Behaviors.same
+      }
+  }
+
+  protected val serviceKey: ServiceKey[_] = Service.streamService.serviceKey
+
+  type Monitor = TestProbe[StreamEvent]
+  protected def createMonitor(implicit system: ActorSystem[_]): Monitor = TestProbe()
 
   implicit var streamService: ActorStreamRefService = _
 
@@ -92,11 +112,8 @@ class AkkaStreamAgentTest
     loop(num)
   }
 
-  "AkkaStreamAgentTest" should "accurately detect push / demand" in {
-
+  "AkkaStreamAgentTest" should "accurately detect push / demand" in testCase { implicit c =>
     implicit val ec: ExecutionContext = system.executionContext
-
-    val replyProbe = createTestProbe[ActorInterpreterStats]
 
     val Demand           = 5L
     val ExpectedElements = Demand + 1L // somehow sinkQueue demand 1 element in advance
@@ -120,9 +137,9 @@ class AkkaStreamAgentTest
     whenReady(elements) { _ =>
       val ref = actors(1).loneElement
 
-      ref ! PushMetrics(replyProbe.ref.toClassic)
+      ref ! PushMetrics
 
-      val stats = replyProbe.receiveMessage()
+      val stats = monitor.expectMessageType[StreamInterpreterInfo]
 
       val (stages, connections) = stats.shellInfo.loneElement
 
@@ -142,8 +159,8 @@ class AkkaStreamAgentTest
     }
   }
 
-  it should "find correct amount of actors for async streams" in {
-    val sutStream = Source
+  it should "find correct amount of actors for async streams" in testCase { implicit c =>
+    Source
       .single(())
       .async
       .map(_ => ())
@@ -154,11 +171,8 @@ class AkkaStreamAgentTest
     actors(3)
   }
 
-  it should "find accurate amount of push / demand for async streams" in {
-
+  it should "find accurate amount of push / demand for async streams" in testCase { implicit c =>
     implicit val ec: ExecutionContext = system.executionContext
-
-    val replyProbe = createTestProbe[ActorInterpreterStats]
 
     // seems like all input / output boundaries introduce off by one changes in demand
     val Demand                 = 1L
@@ -189,11 +203,9 @@ class AkkaStreamAgentTest
       // are started in reverse order
       val Seq(sinkRef, flowRef, sourceRef) = actors(3)
 
-//      refs.foreach(_ ! PushMetrics(replyProbe.ref.toClassic))
+      sinkRef ! PushMetrics
 
-      sinkRef ! PushMetrics(replyProbe.ref.toClassic)
-
-      val (sinkStages, sinkConnections) = replyProbe.receiveMessage().shellInfo.loneElement
+      val (sinkStages, sinkConnections) = monitor.expectMessageType[StreamInterpreterInfo].shellInfo.loneElement
 
       sinkStages should have size 2
       sinkConnections should have size 1
@@ -203,9 +215,9 @@ class AkkaStreamAgentTest
         connection.pull should be(SinkExpectedElements)
       }
 
-      flowRef ! PushMetrics(replyProbe.ref.toClassic)
+      flowRef ! PushMetrics
 
-      val (flowStages, flowConnections) = replyProbe.receiveMessage().shellInfo.loneElement
+      val (flowStages, flowConnections) = monitor.expectMessageType[StreamInterpreterInfo].shellInfo.loneElement
 
       flowStages should have size 4
 
@@ -218,9 +230,9 @@ class AkkaStreamAgentTest
         mapOutput.pull should be(FlowExpectedElements)
       }
 
-      sourceRef ! PushMetrics(replyProbe.ref.toClassic)
+      sourceRef ! PushMetrics
 
-      val (sourceStages, sourceConnections) = replyProbe.receiveMessage().shellInfo.loneElement
+      val (sourceStages, sourceConnections) = monitor.expectMessageType[StreamInterpreterInfo].shellInfo.loneElement
 
       sourceStages should have size 2
 

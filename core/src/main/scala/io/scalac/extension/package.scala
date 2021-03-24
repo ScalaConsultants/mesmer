@@ -1,7 +1,7 @@
 package io.scalac
 
 import akka.actor.typed.receptionist.ServiceKey
-import io.scalac.extension.event.{ActorEvent, HttpEvent, PersistenceEvent, StreamEvent, TagEvent}
+import io.scalac.extension.event.{ ActorEvent, HttpEvent, PersistenceEvent, StreamEvent, TagEvent }
 
 package object extension {
 

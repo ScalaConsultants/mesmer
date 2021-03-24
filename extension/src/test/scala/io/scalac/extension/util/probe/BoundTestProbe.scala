@@ -1,7 +1,6 @@
 package io.scalac.extension.util.probe
 
 import akka.actor.testkit.typed.scaladsl.TestProbe
-
 import io.scalac.extension.metric.MetricObserver.Updater
 import io.scalac.extension.metric._
 import io.scalac.extension.util.probe.BoundTestProbe._

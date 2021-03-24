@@ -2,7 +2,7 @@ package io.scalac.extension.util
 
 import io.scalac.extension.metric.Synchronized
 import io.scalac.extension.util.probe.BoundTestProbe.{ Dec, Inc, MetricRecorded }
-import io.scalac.extension.util.probe._
+import io.scalac.extension.util.probe.{ CounterTestProbeWrapper, RecorderTestProbeWrapper, SyncTestProbeWrapper }
 
 trait TestProbeSynchronized extends Synchronized {
   override type Instrument[L] = SyncTestProbeWrapper
