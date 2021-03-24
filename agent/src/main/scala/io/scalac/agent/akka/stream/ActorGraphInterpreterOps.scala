@@ -2,12 +2,14 @@ package io.scalac.agent.akka.stream
 
 import akka.AkkaMirrorTypes._
 import akka.actor.Actor
+import akka.actor.typed.scaladsl.adapter._
 import akka.stream.GraphLogicOps._
 import io.scalac.core.akka.model.PushMetrics
 import io.scalac.core.invoke.Lookup
 import io.scalac.core.model._
 import io.scalac.core.util.stream.subStreamNameFromActorRef
-import io.scalac.extension.event.ActorInterpreterStats
+import io.scalac.extension.event.EventBus
+import io.scalac.extension.event.StreamEvent.StreamInterpreterInfo
 
 import java.lang.invoke.MethodType._
 object ActorGraphInterpreterOps extends Lookup {
@@ -19,13 +21,13 @@ object ActorGraphInterpreterOps extends Lookup {
 
   def addCollectionReceive(
     receive: Actor.Receive,
-    thiz: Actor
+    self: Actor
   ): Actor.Receive =
-    receive.orElse { case PushMetrics(replyTo) =>
-      val subStreamName = subStreamNameFromActorRef(thiz.context.self)
+    receive.orElse { case PushMetrics =>
+      val subStreamName = subStreamNameFromActorRef(self.context.self)
 
       val currentShells = shells
-        .invoke(thiz)
+        .invoke(self)
         .asInstanceOf[Set[GraphInterpreterShellMirror]]
 
       var terminalFound = false
@@ -57,12 +59,10 @@ object ActorGraphInterpreterOps extends Lookup {
         }
 
         stageInfo -> connections
-
       }
 
-      val self = thiz.context.self
-
-      replyTo ! ActorInterpreterStats(self, subStreamName, stats)
+      EventBus(self.context.system.toTyped)
+        .publishEvent(StreamInterpreterInfo(self.context.self, subStreamName, stats))
     }
 
 }

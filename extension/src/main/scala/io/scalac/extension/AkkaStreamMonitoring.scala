@@ -11,7 +11,7 @@ import io.scalac.core.support.ModulesSupport
 import io.scalac.extension.AkkaStreamMonitoring._
 import io.scalac.extension.config.CachingConfig
 import io.scalac.extension.config.ConfigurationUtils._
-import io.scalac.extension.event.ActorInterpreterStats
+import io.scalac.extension.event.StreamEvent.StreamInterpreterInfo
 import io.scalac.extension.metric.MetricObserver.LazyResult
 import io.scalac.extension.metric.StreamMetricMonitor.{ EagerLabels, Labels => GlobalLabels }
 import io.scalac.extension.metric.StreamOperatorMetricsMonitor.Labels
@@ -31,7 +31,7 @@ object AkkaStreamMonitoring {
 
   sealed trait Command
 
-  private case class StatsReceived(actorInterpreterStats: ActorInterpreterStats) extends Command
+  private case class StatsReceived(actorInterpreterStats: StreamInterpreterInfo) extends Command
 
   case class StartStreamCollection(refs: Set[ActorRef]) extends Command
 
@@ -256,7 +256,7 @@ class AkkaStreamMonitoring(
     }
   }
 
-  private val metricsAdapter = messageAdapter[ActorInterpreterStats](StatsReceived.apply)
+  private val metricsAdapter = messageAdapter[StreamInterpreterInfo](StatsReceived.apply)
 
   override def onMessage(msg: Command): Behavior[Command] = msg match {
     case StartStreamCollection(refs) if refs.nonEmpty =>
@@ -265,7 +265,7 @@ class AkkaStreamMonitoring(
 
       refs.foreach { ref =>
         watch(ref)
-        ref ! PushMetrics(metricsAdapter.toClassic)
+        ref ! PushMetrics
       }
       collecting(refs)
     case StartStreamCollection(_) =>
@@ -343,7 +343,7 @@ class AkkaStreamMonitoring(
   private def collecting(refs: Set[ActorRef]): Behavior[Command] =
     Behaviors
       .receiveMessage[Command] {
-        case StatsReceived(ActorInterpreterStats(ref, subStreamName, shellInfo)) =>
+        case StatsReceived(StreamInterpreterInfo(ref, subStreamName, shellInfo)) =>
           val refsLeft = refs - ref
           unwatch(ref)
           val streamStats =

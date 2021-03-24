@@ -8,7 +8,8 @@ import io.scalac.core.akka.model.PushMetrics
 import io.scalac.core.model.Tag.{ StageName, SubStreamName }
 import io.scalac.core.model._
 import io.scalac.extension.AkkaStreamMonitoring.StartStreamCollection
-import io.scalac.extension.event.ActorInterpreterStats
+import io.scalac.extension.event.EventBus
+import io.scalac.extension.event.StreamEvent.StreamInterpreterInfo
 import io.scalac.extension.util.TestCase.{
   AbstractMonitorTestCaseFactory,
   MonitorTestCaseContext,
@@ -85,10 +86,10 @@ class AkkaStreamMonitoringTest
   def akkaStreamActorBehavior(
     shellInfo: Set[ShellInfo],
     subStream: SubStreamName,
-    monitor: Option[ActorRef[PushMetrics]]
-  ): Behavior[PushMetrics] = Behaviors.receive { case (ctx, pm @ PushMetrics(ref)) =>
-    monitor.foreach(_ ! pm)
-    ref ! ActorInterpreterStats(ctx.self.toClassic, subStream, shellInfo)
+    monitor: Option[ActorRef[PushMetrics.type]]
+  ): Behavior[PushMetrics.type] = Behaviors.receive { case (ctx, PushMetrics) =>
+    monitor.foreach(_ ! PushMetrics)
+    EventBus(ctx.system).publishEvent(StreamInterpreterInfo(ctx.self.toClassic, subStream, shellInfo))
     Behaviors.same
   }
 
@@ -97,14 +98,14 @@ class AkkaStreamMonitoringTest
   def operations(implicit c: TestCaseContext): StreamOperatorMonitorTestProbe  = c.monitor._1
 
   "AkkaStreamMonitoring" should "ask all received refs for metrics" in testCase { implicit c =>
-    val probes = List.fill(5)(TestProbe[PushMetrics]())
+    val probes = List.fill(5)(TestProbe[PushMetrics.type]())
     val refs = probes
       .map(probe => akkaStreamActorBehavior(Set.empty, SubStreamName(randomString(10), "1"), Some(probe.ref)))
       .map(behavior => system.systemActorOf(behavior, createUniqueId).toClassic)
 
     sut ! StartStreamCollection(refs.toSet)
 
-    forAll(probes)(_.expectMessageType[PushMetrics])
+    forAll(probes)(_.expectMessageType[PushMetrics.type])
   }
 
   it should "publish amount of actors running stream" in testCase { implicit c =>

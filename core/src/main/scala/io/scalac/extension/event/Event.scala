@@ -50,10 +50,28 @@ final case class TagEvent(ref: ActorRef, tag: Tag) extends AbstractEvent {
   override type Service = TagEvent
 }
 
-final case class ActorInterpreterStats(
-  ref: ActorRef,
-  streamName: SubStreamName,
-  shellInfo: Set[ShellInfo]
-) extends AbstractEvent {
-  override type Service = ActorInterpreterStats
+sealed trait StreamEvent extends AbstractEvent {
+  type Service = StreamEvent
 }
+
+object StreamEvent {
+  final case class StreamInterpreterInfo(ref: ActorRef, streamName: SubStreamName, shellInfo: Set[ShellInfo]) extends StreamEvent
+
+  /**
+   * Indicating that this part of stream has collapsed
+   * @param ref
+   * @param streamName
+   * @param shellInfo
+   */
+  final case class LastStreamStats(ref: ActorRef, streamName: SubStreamName, shellInfo: Set[ShellInfo])
+      extends StreamEvent
+
+}
+
+//final case class ActorInterpreterStats(
+//  ref: ActorRef,
+//  streamName: SubStreamName,
+//  shellInfo: Set[ShellInfo]
+//) extends AbstractEvent {
+//  override type Service = ActorInterpreterStats
+//}
