@@ -1,15 +1,16 @@
 import sbt._
 
-object Dependencies {
+object Versions {
   val AkkaHttpVersion       = "10.2.0"
   val AkkaVersion           = "2.6.8"
-  val CirceVersion          = "0.12.3"
-  val SlickVersion          = "3.3.3"
-  val PostgresVersion       = "9.4-1201-jdbc41"
   val LogbackVersion        = "1.2.3"
   val ScalatestVersion      = "3.1.2"
-  val AkkaManagementVersion = "1.0.9"
+}
 
+object Dependencies {  
+
+  import Versions._
+  
   val akka = Seq(
     "com.typesafe.akka" %% "akka-http"                   % AkkaHttpVersion,
     "com.typesafe.akka" %% "akka-http-spray-json"        % AkkaHttpVersion,
@@ -33,21 +34,6 @@ object Dependencies {
     "net.bytebuddy" % "byte-buddy-agent" % "1.10.18"
   )
 
-  val circe =
-    Seq(
-      "io.circe" %% "circe-core",
-      "io.circe" %% "circe-generic",
-      "io.circe" %% "circe-parser"
-    ).map(_ % CirceVersion)
-
-  val circeAkka = Seq("de.heikoseeberger" %% "akka-http-circe" % "1.30.0")
-
-  val slick = Seq(
-    "com.typesafe.slick" %% "slick"          % SlickVersion,
-    "com.typesafe.slick" %% "slick-hikaricp" % SlickVersion
-  )
-
-  val postgresDriver = Seq("org.postgresql" % "postgresql" % PostgresVersion)
 
   val logback = Seq("ch.qos.logback" % "logback-classic" % LogbackVersion)
 
@@ -70,14 +56,6 @@ object Dependencies {
     // For a while, we use it as a unmanaged dependency at extension/lib
     "com.newrelic.telemetry" % "telemetry"             % "0.10.0",
     "com.newrelic.telemetry" % "telemetry-http-okhttp" % "0.10.0"
-  )
-
-  val akkaManagement = Seq(
-    "com.typesafe.akka"             %% "akka-discovery"                    % AkkaVersion,
-    "com.lightbend.akka.management" %% "akka-management"                   % AkkaManagementVersion,
-    "com.lightbend.akka.management" %% "akka-management-cluster-http"      % AkkaManagementVersion,
-    "com.lightbend.akka.management" %% "akka-management-cluster-bootstrap" % AkkaManagementVersion,
-    "com.lightbend.akka.discovery"  %% "akka-discovery-kubernetes-api"     % AkkaManagementVersion
   )
 
   val akkaTestkit = Seq(
