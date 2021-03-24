@@ -22,7 +22,7 @@ import org.scalatest.time.{ Millis, Span }
 import org.scalatest.OptionValues
 
 import io.scalac.core.model._
-import io.scalac.core.util.ActorPathOps
+import io.scalac.core.util.{ ActorPathOps, ActorRefOps }
 import io.scalac.extension.actor.{ ActorCountsDecorators, ActorTimesDecorators }
 import io.scalac.extension.actorServiceKey
 import io.scalac.extension.event.ActorEvent
@@ -53,7 +53,7 @@ class AkkaActorAgentTest
 
   "AkkaActorAgent" should "record mailbox time properly" in {
     val idle      = 100.milliseconds
-    val tolerance = 50
+    val tolerance = 100
     testWithContextAndActor[String](_ =>
       Behaviors.receiveMessage {
         case "idle" =>
@@ -240,6 +240,83 @@ class AkkaActorAgentTest
         metrics.max should be(processing.toMillis +- tolerance)
       }
     }
+  }
+
+  it should "record the amount of sent messages properly in classic akka" in {
+    def sent(actorRef: classic.ActorRef, size: Int): Unit = {
+      val cell = eventually {
+        ActorRefOps.Local.cell(actorRef).fold(throw new RuntimeException("ref is not local"))(identity)
+      }
+      eventually {
+        ActorCountsDecorators.Sent.getValue(cell).value should be(size)
+      }
+      ActorCountsDecorators.Sent.reset(cell)
+    }
+
+    class Sender(receiver: classic.ActorRef) extends classic.Actor {
+      override def receive: Receive = { case "forward" =>
+        receiver ! "forwarded"
+      }
+    }
+
+    class Receiver extends classic.Actor with classic.ActorLogging {
+      override def receive: Receive = { case msg =>
+        log.info(s"receiver: {}", msg)
+      }
+    }
+
+    val classicSystem = system.classicSystem
+    val receiver      = classicSystem.actorOf(classic.Props(new Receiver), createUniqueId)
+    val sender        = system.classicSystem.actorOf(classic.Props(new Sender(receiver)), createUniqueId)
+
+    sender ! "forward"
+    Thread.sleep(100) // waiting actor initialization
+    sent(sender, 1)
+    sent(sender, 0)
+    sender ! "something else"
+    sent(sender, 0)
+    sender ! "forward"
+    sender ! "forward"
+    sent(sender, 2)
+    sent(sender, 0)
+
+    sender ! PoisonPill
+    receiver ! PoisonPill
+  }
+
+  it should "record the amount of sent messages properly in typed akka" in testWithContextAndActor[String] { ctx =>
+    val receiver = ctx.spawn(
+      Behaviors.receiveMessage[String] { msg =>
+        println(msg)
+        Behaviors.same
+      },
+      createUniqueId
+    )
+    Behaviors.receiveMessagePartial[String] { case "forward" =>
+      receiver ! "forwarded"
+      Behaviors.same
+    }
+  } { (ctx, sender) =>
+    def sent(size: Int): Unit = {
+      eventually {
+        ActorCountsDecorators.Sent.getValue(ctx).value should be(size)
+      }
+      ActorCountsDecorators.Sent.reset(ctx)
+    }
+
+    // Disclaimer: always 0 because isn't possible to fetch the sender of a message
+    // Ref: https://doc.akka.io/docs/akka/current/typed/from-classic.html#sender
+    sender ! "forward"
+    sent(0)
+    sent(0)
+    sender ! "something else"
+    sent(0)
+    sender ! "forward"
+    sender ! "forward"
+    sent(0)
+    sent(0)
+
+    sender.unsafeUpcast[Any] ! PoisonPill
   }
 
   def createExpectStashSize(monitor: Fixture, ref: ActorRef[_]): Int => Unit =

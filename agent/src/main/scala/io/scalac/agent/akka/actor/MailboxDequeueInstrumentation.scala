@@ -16,7 +16,7 @@ object MailboxDequeueInstrumentation {
     }
 
   @inline final def computeTime(envelope: Object): FiniteDuration =
-    EnvelopeOps.getTimestamp(envelope).interval().milliseconds
+    EnvelopeDecorator.getTimestamp(envelope).interval().milliseconds
 
   @inline final def add(mailbox: Object, time: FiniteDuration): Unit =
     ActorTimesDecorators.MailboxTime.addTime(MailboxOps.getActor(mailbox), time)

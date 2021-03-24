@@ -1,16 +1,10 @@
 package io.scalac.agent.akka.actor
 
-import java.lang.invoke.MethodHandles
+import io.scalac.core.util.ReflectionFieldUtils
 
 object MailboxOps {
 
-  private val lookup = MethodHandles.publicLookup()
-
-  private val actorGetterHandler = {
-    val field = Class.forName("akka.dispatch.Mailbox").getDeclaredField("actor")
-    field.setAccessible(true)
-    lookup.unreflectGetter(field)
-  }
+  private lazy val actorGetterHandler = ReflectionFieldUtils.getGetter("akka.dispatch.Mailbox", "actor")
 
   @inline final def getActor(mailbox: Object): Object =
     actorGetterHandler.invoke(mailbox)

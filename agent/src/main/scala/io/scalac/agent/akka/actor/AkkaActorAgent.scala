@@ -92,7 +92,7 @@ object AkkaActorAgent {
     ) { (agentBuilder, instrumentation, _) =>
       agentBuilder
         .`type`(named[TypeDescription](targetClassName))
-        .transform((builder, _, _, _) => builder.defineField(EnvelopeOps.TimestampVarName, classOf[Timestamp]))
+        .transform((builder, _, _, _) => builder.defineField(EnvelopeDecorator.TimestampVarName, classOf[Timestamp]))
         .installOn(instrumentation)
       LoadingResult(targetClassName)
     }
@@ -182,6 +182,10 @@ object AkkaActorAgent {
             .defineField(
               ActorCountsDecorators.FailHandled.fieldName,
               classOf[AtomicBoolean]
+            )
+            .defineField(
+              ActorCountsDecorators.Sent.fieldName,
+              classOf[AtomicLong]
             )
             .visit(
               Advice
