@@ -1,20 +1,18 @@
 package io.scalac.agent.akka.actor
 
-import java.util.concurrent.atomic.{ AtomicBoolean, AtomicLong, AtomicReference }
-
 import akka.actor.typed.Behavior
-
-import net.bytebuddy.asm.Advice
-import net.bytebuddy.description.`type`.TypeDescription
-import net.bytebuddy.description.method.MethodDescription
-import net.bytebuddy.matcher.ElementMatchers._
-
 import io.scalac.agent.Agent.LoadingResult
 import io.scalac.agent.{ Agent, AgentInstrumentation }
 import io.scalac.core.model._
 import io.scalac.core.support.ModulesSupport
 import io.scalac.core.util.Timestamp
 import io.scalac.extension.actor.{ ActorCountsDecorators, ActorTimesDecorators }
+import net.bytebuddy.asm.Advice
+import net.bytebuddy.description.`type`.TypeDescription
+import net.bytebuddy.description.method.MethodDescription
+import net.bytebuddy.matcher.ElementMatchers._
+
+import java.util.concurrent.atomic.{ AtomicBoolean, AtomicLong, AtomicReference }
 
 object AkkaActorAgent {
 
@@ -22,14 +20,18 @@ object AkkaActorAgent {
   val defaultVersion: Version   = Version(2, 6, 8)
   val version: SupportedVersion = ModulesSupport.akkaActor
 
-  private val classicStashInstrumentation = {
+  private val classicStashInitInstrumentation = {}
+
+  private val classicStashInstrumentationAgent = {
     val targetClassName = "akka.actor.StashSupport"
-    AgentInstrumentation(
+    val stashLogic = AgentInstrumentation(
       targetClassName,
       SupportedModules(moduleName, version)
     ) { (agentBuilder, instrumentation, _) =>
       agentBuilder
-        .`type`(named[TypeDescription](targetClassName))
+        .`type`(
+          named[TypeDescription](targetClassName)
+        )
         .transform { (builder, _, _, _) =>
           builder
             .visit(
@@ -50,6 +52,28 @@ object AkkaActorAgent {
         .installOn(instrumentation)
       LoadingResult(targetClassName)
     }
+    val stashConstructor = AgentInstrumentation(
+      targetClassName,
+      SupportedModules(moduleName, version)
+    ) { (agentBuilder, instrumentation, _) =>
+      agentBuilder
+        .`type`(
+          hasSuperType[TypeDescription](named[TypeDescription](targetClassName))
+            .and[TypeDescription](not[TypeDescription](isAbstract[TypeDescription]))
+        )
+        .transform { (builder, _, _, _) =>
+          builder
+            .visit(
+              Advice
+                .to(classOf[StashConstructorAdvice])
+                .on(isConstructor[MethodDescription])
+            )
+
+        }
+        .installOn(instrumentation)
+      LoadingResult(targetClassName)
+    }
+    Agent(stashLogic, stashConstructor)
   }
 
   private val typedStashInstrumentation = {
@@ -187,6 +211,10 @@ object AkkaActorAgent {
               ActorCountsDecorators.Sent.fieldName,
               classOf[AtomicLong]
             )
+            .defineField(
+              ActorCountsDecorators.Stash.fieldName,
+              classOf[AtomicLong]
+            )
             .visit(
               Advice
                 .to(classOf[ActorCellConstructorInstrumentation])
@@ -253,14 +281,12 @@ object AkkaActorAgent {
   }
 
   val agent: Agent = Agent(
-    classicStashInstrumentation,
-    typedStashInstrumentation,
     mailboxTimeTimestampInstrumentation,
     mailboxTimeSendMessageInstrumentation,
     mailboxTimeDequeueInstrumentation,
     actorCellInstrumentation,
     actorInstrumentation,
     abstractSupervisionInstrumentation
-  )
+  ) ++ classicStashInstrumentationAgent
 
 }

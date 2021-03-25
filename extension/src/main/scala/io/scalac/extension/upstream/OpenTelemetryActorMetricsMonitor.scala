@@ -3,7 +3,7 @@ package io.scalac.extension.upstream
 import com.typesafe.config.Config
 import io.opentelemetry.api.OpenTelemetry
 import io.opentelemetry.api.common.Labels
-import io.scalac.extension.metric.{ ActorMetricMonitor, MetricObserver, MetricRecorder }
+import io.scalac.extension.metric.{ ActorMetricMonitor, MetricObserver }
 import io.scalac.extension.upstream.OpenTelemetryActorMetricsMonitor.MetricNames
 import io.scalac.extension.upstream.opentelemetry._
 
@@ -172,10 +172,11 @@ class OpenTelemetryActorMetricsMonitor(instrumentationName: String, metricNames:
       .setDescription("Tracks the sum time of the messages in an Actor's mailbox")
   )
 
-  private val stashSizeCounter = meter
-    .longValueRecorderBuilder(metricNames.stashSize)
-    .setDescription("Tracks the size of an Actor's stash")
-    .build()
+  private val stashSizeCounter = new LongSumObserverBuilderAdapter(
+    meter
+      .longSumObserverBuilder(metricNames.stashSize)
+      .setDescription("Tracks the size of an Actor's stash")
+  )
 
   private val receivedMessagesSumObserver = new LongSumObserverBuilderAdapter(
     meter
@@ -247,8 +248,8 @@ class OpenTelemetryActorMetricsMonitor(instrumentationName: String, metricNames:
     val mailboxTimeSum: MetricObserver[Long] =
       mailboxTimeSumObserver.createObserver(labels)
 
-    val stashSize: MetricRecorder[Long] with WrappedSynchronousInstrument[Long] =
-      WrappedLongValueRecorder(stashSizeCounter, labels)
+    val stashSize: MetricObserver[Long] =
+      stashSizeCounter.createObserver(labels)
 
     val receivedMessages: MetricObserver[Long] =
       receivedMessagesSumObserver.createObserver(labels)
@@ -280,7 +281,7 @@ class OpenTelemetryActorMetricsMonitor(instrumentationName: String, metricNames:
       mailboxTimeMinObserver.removeObserver(labels)
       mailboxTimeMaxObserver.removeObserver(labels)
       mailboxTimeSumObserver.removeObserver(labels)
-      stashSize.unbind()
+      stashSizeCounter.removeObserver(labels)
       receivedMessagesSumObserver.removeObserver(labels)
       processedMessagesSumObserver.removeObserver(labels)
       failedMessagesSumObserver.removeObserver(labels)

@@ -1,34 +1,27 @@
 package io.scalac.extension
 
-import java.util.concurrent.atomic.{ AtomicInteger, AtomicLong, AtomicReference }
-
-import scala.concurrent.duration._
-
 import akka.actor.PoisonPill
 import akka.actor.testkit.typed.scaladsl.TestProbe
 import akka.actor.typed.receptionist.ServiceKey
 import akka.actor.typed.scaladsl.{ Behaviors, StashBuffer }
 import akka.actor.typed.{ ActorRef, ActorSystem, Behavior }
 import akka.util.Timeout
-
-import org.scalatest.Inspectors
-import org.scalatest.flatspec.AnyFlatSpecLike
-import org.scalatest.matchers.should.Matchers
-
 import io.scalac.core.model._
 import io.scalac.core.util.ActorPathOps
 import io.scalac.extension.ActorEventsMonitorActor._
 import io.scalac.extension.ActorEventsMonitorActorTest._
 import io.scalac.extension.actor.{ ActorMetrics, MutableActorMetricsStorage }
-import io.scalac.extension.event.ActorEvent.StashMeasurement
-import io.scalac.extension.event.EventBus
 import io.scalac.extension.metric.ActorMetricMonitor.Labels
 import io.scalac.extension.util.AggMetric.LongValueAggMetric
 import io.scalac.extension.util.TestCase._
-import io.scalac.extension.util.TimeSeries.LongTimeSeries
 import io.scalac.extension.util.probe.ActorMonitorTestProbe
-import io.scalac.extension.util.probe.BoundTestProbe.{ MetricObserved, MetricObserverCommand, MetricRecorded }
+import io.scalac.extension.util.probe.BoundTestProbe.{ MetricObserved, MetricObserverCommand }
 import io.scalac.extension.util.probe.ObserverCollector.CommonCollectorImpl
+import org.scalatest.Inspectors
+import org.scalatest.flatspec.AnyFlatSpecLike
+import org.scalatest.matchers.should.Matchers
+
+import scala.concurrent.duration._
 
 class ActorEventsMonitorActorTest
     extends AnyFlatSpecLike
@@ -87,25 +80,8 @@ class ActorEventsMonitorActorTest
   }
 
   it should "record stash size" in testCase { implicit c =>
-    val stashActor = system.systemActorOf(StashActor(10), "stashActor")
-    val bound      = monitor.bind(Labels(ActorPathOps.getPathString(stashActor)))
-    def stashMeasurement(size: Int): Unit =
-      EventBus(system).publishEvent(StashMeasurement(size, ActorPathOps.getPathString(stashActor)))
-    stashActor ! Message("random")
-    stashMeasurement(1)
-    bound.stashSizeProbe.expectMessage(MetricRecorded(1))
-    stashActor ! Message("42")
-    stashMeasurement(2)
-    bound.stashSizeProbe.expectMessage(MetricRecorded(2))
-    stashActor ! Open
-    stashMeasurement(0)
-    bound.stashSizeProbe.expectMessage(MetricRecorded(0))
-    stashActor ! Close
-    stashActor ! Message("emanuel")
-    stashMeasurement(1)
-    bound.stashSizeProbe.expectMessage(MetricRecorded(1))
-    stashActor.unsafeUpcast[Any] ! PoisonPill
-    bound.stashSizeProbe.expectTerminated(stashActor)
+    val bound = monitor.bind(Labels("/"))
+    shouldObserve(bound.stashSizeProbe, c.fakeStashedMessages, c.fakeStashedMessages += 10)
     bound.unbind()
   }
 
@@ -233,6 +209,7 @@ object ActorEventsMonitorActorTest {
     @volatile var fakeProcessedMessages = 10
     @volatile var fakeFailedMessages    = 2
     @volatile var fakeSentMessages      = 10
+    @volatile var fakeStashedMessages   = 19
 
     @volatile var fakeMailboxTime: LongValueAggMetric = LongValueAggMetric(1, 2, 1, 4, 3)
 
@@ -249,7 +226,8 @@ object ActorEventsMonitorActorTest {
           unhandledMessages = Some(fakeUnhandledMessages),
           failedMessages = Some(fakeFailedMessages),
           processingTime = Some(fakeProcessingTimes),
-          sentMessages = Some(fakeSentMessages)
+          sentMessages = Some(fakeSentMessages),
+          stashSize = Some(fakeStashedMessages)
         )
       )
     }

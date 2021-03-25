@@ -1,19 +1,21 @@
 package io.scalac.extension.actor
 
+import akka.actor.Actor
+import akka.actor.typed.TypedActorContext
+import io.scalac.core.util.{ CounterDecorator, ReflectionFieldUtils }
+
 import java.lang.invoke.MethodHandles
 import java.util.concurrent.atomic.AtomicBoolean
 
-import akka.actor.Actor
-import akka.actor.typed.TypedActorContext
-
-import io.scalac.core.util.{ CounterDecorator, ReflectionFieldUtils }
-
 object ActorCountsDecorators {
 
-  final object Received  extends CounterDecorator.FixedClass("akka.actor.ActorCell", "receivedMessages")
-  final object Failed    extends CounterDecorator.FixedClass("akka.actor.ActorCell", "failedMessages")
-  final object Unhandled extends CounterDecorator.FixedClass("akka.actor.ActorCell", "unhandledMessages")
-  final object Sent      extends CounterDecorator.FixedClass("akka.actor.ActorCell", "sentMessages")
+  private[this] val actorCellClass = "akka.actor.ActorCell"
+
+  final object Received  extends CounterDecorator.FixedClass(actorCellClass, "_receivedMessages")
+  final object Failed    extends CounterDecorator.FixedClass(actorCellClass, "_failedMessages")
+  final object Unhandled extends CounterDecorator.FixedClass(actorCellClass, "_unhandledMessages")
+  final object Sent      extends CounterDecorator.FixedClass(actorCellClass, "_sentMessages")
+  final object Stash     extends CounterDecorator.FixedClass(actorCellClass, "_stashedMessages")
 
   final object FailedAtSupervisor {
 
@@ -35,7 +37,7 @@ object ActorCountsDecorators {
 
   final object FailHandled {
     val fieldName                     = "exceptionHandledMarker"
-    private lazy val (getter, setter) = ReflectionFieldUtils.getHandlers("akka.actor.ActorCell", fieldName)
+    private lazy val (getter, setter) = ReflectionFieldUtils.getHandlers(actorCellClass, fieldName)
 
     @inline def initialize(actorCell: Object): Unit       = setter.invoke(actorCell, new AtomicBoolean(false))
     @inline def checkAndReset(actorCell: Object): Boolean = get(actorCell).getAndSet(false)

@@ -1,8 +1,7 @@
 package io.scalac.agent.akka.actor
 
-import net.bytebuddy.asm.Advice.{ OnMethodExit, This }
-
 import io.scalac.extension.actor.{ ActorCountsDecorators, ActorTimesDecorators }
+import net.bytebuddy.asm.Advice.{ OnMethodExit, This }
 
 class ActorCellConstructorInstrumentation
 object ActorCellConstructorInstrumentation {
@@ -18,6 +17,7 @@ object ActorCellConstructorInstrumentation {
     ActorCountsDecorators.Failed.initialize(actorCell)
     ActorCountsDecorators.FailHandled.initialize(actorCell)
     ActorCountsDecorators.Sent.initialize(actorCell)
+//    ActorCountsDecorators.Stash.initialize(actorCell)
   }
 
 }

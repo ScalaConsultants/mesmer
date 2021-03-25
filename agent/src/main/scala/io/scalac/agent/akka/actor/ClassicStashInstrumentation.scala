@@ -1,11 +1,22 @@
 package io.scalac.agent.akka.actor
 
+import akka.actor.{ Actor, ActorContext }
+import io.scalac.extension.actor.ActorCountsDecorators
+import net.bytebuddy.asm.Advice.{ OnMethodExit, This }
+
 import java.lang.invoke.MethodHandles
 import java.lang.invoke.MethodType.methodType
 
-import net.bytebuddy.asm.Advice.{ OnMethodExit, This }
+class StashConstructorAdvice
+object StashConstructorAdvice {
 
-import akka.actor.{ ActorContext, ActorRef }
+  @OnMethodExit
+  def initStash(@This self: Actor): Unit = {
+    println("Stash constuctor roll")
+    ActorCountsDecorators.Stash.initialize(self.context)
+  }
+
+}
 
 class ClassicStashInstrumentation
 object ClassicStashInstrumentation {
@@ -13,8 +24,11 @@ object ClassicStashInstrumentation {
   import Getters._
 
   @OnMethodExit
-  def onStashExit(@This stash: Any): Unit =
-    StashInstrumentation.publish(getStashSize(stash), getActorRef(stash), getContext(stash))
+  def onStashExit(@This stash: AnyRef): Unit = {
+    println("Stash work")
+    val size = getStashSize(stash)
+    ActorCountsDecorators.Stash.set(getActorCell(stash), size)
+  }
 
   private object Getters {
 
@@ -27,20 +41,14 @@ object ClassicStashInstrumentation {
     private lazy val theStashMethodHandle =
       lookup.findVirtual(stashSupportClass, "akka$actor$StashSupport$$theStash", methodType(classOf[Vector[_]]))
 
-    private lazy val getSelfMethodHandle =
-      lookup.findVirtual(stashSupportClass, "self", methodType(classOf[ActorRef]))
-
     private lazy val getContextMethodHandle =
       lookup.findVirtual(stashSupportClass, "context", methodType(classOf[ActorContext]))
 
-    @inline final def getStashSize(stashSupport: Any): Int =
+    @inline final def getStashSize(stashSupport: AnyRef): Int =
       theStashMethodHandle.invoke(stashSupport).asInstanceOf[Vector[_]].length
 
-    @inline final def getActorRef(stashSupport: Any): ActorRef =
-      getSelfMethodHandle.invoke(stashSupport).asInstanceOf[ActorRef]
-
-    @inline final def getContext(stashSupport: Any): ActorContext =
-      getContextMethodHandle.invoke(stashSupport).asInstanceOf[ActorContext]
+    @inline final def getActorCell(stashSupport: AnyRef): AnyRef =
+      getContextMethodHandle.invoke(stashSupport)
 
   }
 

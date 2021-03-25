@@ -1,27 +1,24 @@
 package io.scalac.extension
 
-import java.lang.invoke.MethodHandles
-
 import akka.actor.typed._
 import akka.actor.typed.receptionist.Receptionist
 import akka.actor.typed.receptionist.Receptionist.Register
 import akka.actor.typed.scaladsl.{ AbstractBehavior, ActorContext, Behaviors, TimerScheduler }
 import akka.{ actor => classic }
-
-import io.scalac.core.model.{ Tag, _ }
+import io.scalac.core.model.{ ActorKey, Node, Tag }
+import io.scalac.core.util.{ ActorCellOps, ActorRefOps }
 import io.scalac.extension.AkkaStreamMonitoring.StartStreamCollection
 import io.scalac.extension.actor.{ ActorCountsDecorators, ActorMetricStorage, ActorMetrics, ActorTimesDecorators }
 import io.scalac.extension.event.ActorEvent.StashMeasurement
 import io.scalac.extension.event.{ ActorEvent, TagEvent }
 import io.scalac.extension.metric.ActorMetricMonitor.Labels
 import io.scalac.extension.metric.{ ActorMetricMonitor, Unbind }
-import io.scalac.core.model.{ ActorKey, Node }
 import org.slf4j.LoggerFactory
+
+import java.lang.invoke.MethodHandles
 import scala.annotation.tailrec
 import scala.collection.{ immutable, mutable }
 import scala.concurrent.duration._
-
-import io.scalac.core.util.{ ActorCellOps, ActorRefOps }
 
 object ActorEventsMonitorActor {
 
@@ -95,7 +92,6 @@ object ActorEventsMonitorActor {
 
     def start(): Behavior[SyncCommand] = ActorEventWrapper.receiveMessage { case StashMeasurement(size, path) =>
       log.trace(s"Recorded stash size for actor $path: $size")
-      monitor.bind(Labels(path, node)).stashSize.setValue(size)
       Behaviors.same
     }
   }
@@ -292,6 +288,11 @@ object ActorEventsMonitorActor {
           bind.sentMessages.setUpdater(_.observe(sm))
         }
 
+        metrics.stashSize.foreach { ss =>
+          log.trace("Registering a new updaters for sent messages for actor {} with value {}", key, ss)
+          bind.stashSize.setUpdater(_.observe(ss))
+        }
+
       }
 
   }
@@ -351,7 +352,8 @@ object ActorEventsMonitorActor {
             receivedMessages = ActorCountsDecorators.Received.take(cell),
             unhandledMessages = ActorCountsDecorators.Unhandled.take(cell),
             failedMessages = ActorCountsDecorators.Failed.take(cell),
-            sentMessages = ActorCountsDecorators.Sent.take(cell)
+            sentMessages = ActorCountsDecorators.Sent.take(cell),
+            stashSize = ActorCountsDecorators.Stash.take(cell)
           )
         }
 

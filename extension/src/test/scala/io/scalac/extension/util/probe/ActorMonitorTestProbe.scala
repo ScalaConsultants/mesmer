@@ -2,9 +2,9 @@ package io.scalac.extension.util.probe
 
 import akka.actor.testkit.typed.scaladsl.TestProbe
 import akka.actor.typed.ActorSystem
-import io.scalac.extension.metric.{ ActorMetricMonitor, MetricObserver, MetricRecorder }
+import io.scalac.extension.metric.{ ActorMetricMonitor, MetricObserver }
 import io.scalac.extension.util.TestProbeSynchronized
-import io.scalac.extension.util.probe.BoundTestProbe.{ MetricObserverCommand, MetricRecorderCommand }
+import io.scalac.extension.util.probe.BoundTestProbe.MetricObserverCommand
 
 import scala.collection.mutable
 
@@ -49,7 +49,7 @@ object ActorMonitorTestProbe {
     val mailboxTimeMinProbe: TestProbe[MetricObserverCommand],
     val mailboxTimeMaxProbe: TestProbe[MetricObserverCommand],
     val mailboxTimeSumProbe: TestProbe[MetricObserverCommand],
-    val stashSizeProbe: TestProbe[MetricRecorderCommand],
+    val stashSizeProbe: TestProbe[MetricObserverCommand],
     val receivedMessagesProbe: TestProbe[MetricObserverCommand],
     val processedMessagesProbe: TestProbe[MetricObserverCommand],
     val failedMessagesProbe: TestProbe[MetricObserverCommand],
@@ -73,8 +73,8 @@ object ActorMonitorTestProbe {
       ObserverTestProbeWrapper(mailboxTimeMaxProbe, collector)
     val mailboxTimeSum: MetricObserver[Long] =
       ObserverTestProbeWrapper(mailboxTimeSumProbe, collector)
-    val stashSize: MetricRecorder[Long] with SyncTestProbeWrapper =
-      RecorderTestProbeWrapper(stashSizeProbe)
+    val stashSize: MetricObserver[Long] =
+      ObserverTestProbeWrapper(stashSizeProbe, collector)
     val receivedMessages: MetricObserver[Long] =
       ObserverTestProbeWrapper(receivedMessagesProbe, collector)
     val processedMessages: MetricObserver[Long] =

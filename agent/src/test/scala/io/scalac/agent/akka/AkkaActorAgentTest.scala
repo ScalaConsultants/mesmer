@@ -1,26 +1,15 @@
 package io.scalac.agent.akka
 
-import scala.concurrent._
-import scala.concurrent.duration._
-
 import akka.actor.PoisonPill
 import akka.actor.testkit.typed.FishingOutcome
 import akka.actor.testkit.typed.scaladsl.TestProbe
-import akka.actor.typed.scaladsl.adapter._
 import akka.actor.typed.receptionist.Receptionist
 import akka.actor.typed.receptionist.Receptionist.{ Deregister, Register }
+import akka.actor.typed.scaladsl.adapter._
 import akka.actor.typed.scaladsl.{ ActorContext, Behaviors, StashBuffer }
 import akka.actor.typed.{ ActorRef, Behavior, SupervisorStrategy }
 import akka.{ actor => classic }
-
 import io.scalac.agent.utils.{ InstallAgent, SafeLoadSystem }
-import org.scalatest.concurrent.Eventually
-import org.scalatest.flatspec.AnyFlatSpecLike
-import org.scalatest.matchers.should.Matchers
-
-import org.scalatest.time.{ Millis, Span }
-import org.scalatest.OptionValues
-
 import io.scalac.core.model._
 import io.scalac.core.util.{ ActorPathOps, ActorRefOps }
 import io.scalac.extension.actor.{ ActorCountsDecorators, ActorTimesDecorators }
@@ -28,6 +17,14 @@ import io.scalac.extension.actorServiceKey
 import io.scalac.extension.event.ActorEvent
 import io.scalac.extension.event.ActorEvent.StashMeasurement
 import io.scalac.extension.util.ReceptionistOps
+import org.scalatest.OptionValues
+import org.scalatest.concurrent.Eventually
+import org.scalatest.flatspec.AnyFlatSpecLike
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.time.{ Millis, Span }
+
+import scala.concurrent._
+import scala.concurrent.duration._
 
 class AkkaActorAgentTest
     extends InstallAgent
@@ -79,8 +76,15 @@ class AkkaActorAgentTest
   }
 
   it should "record classic stash properly" in test { monitor =>
-    val stashActor                   = system.classicSystem.actorOf(ClassicStashActor.props(), "stashActor")
-    val expectStashSize: Int => Unit = createExpectStashSize(monitor, "/user/stashActor")
+    val stashActor      = system.classicSystem.actorOf(ClassicStashActor.props(), "stashActor")
+    val inspectionProbe = createTestProbe[StashSize]
+
+    def expectStashSize(size: Int): Unit = {
+      stashActor ! Inspect(inspectionProbe.ref.toClassic)
+      inspectionProbe.expectMessage(StashSize(Some(size)))
+    }
+
+    //    val expectStashSize: Int => Unit = createExpectStashSize(monitor, "/user/stashActor")
     stashActor ! Message("random")
     expectStashSize(1)
     stashActor ! Message("42")
@@ -94,20 +98,26 @@ class AkkaActorAgentTest
     expectStashSize(1)
   }
 
-  it should "record typed stash properly" in test { monitor =>
-    val stashActor                   = system.systemActorOf(TypedStash(10), "typedStashActor")
-    val expectStashSize: Int => Unit = createExpectStashSize(monitor, stashActor)
+  it should "return no stash data for actors without stash" in test { monitor =>
+    val stashActor      = system.systemActorOf(TypedStash(10), "typedStashActor")
+    val inspectionProbe = createTestProbe[StashSize]
+
+    def expectNoStashData: Unit = {
+      stashActor ! Inspect(inspectionProbe.ref.toClassic)
+      inspectionProbe.expectMessage(StashSize(None))
+    }
+
     stashActor ! Message("random")
-    expectStashSize(1)
+    expectNoStashData
     stashActor ! Message("42")
-    expectStashSize(2)
+    expectNoStashData
     stashActor ! Open
-    expectStashSize(0)
+    expectNoStashData
     stashActor ! Message("normal")
     monitor.expectNoMessage()
     stashActor ! Close
     stashActor ! Message("emanuel")
-    expectStashSize(1)
+    expectNoStashData
   }
 
   it should "record the amount of received messages" in testWithContextAndActor[String](_ => Behaviors.ignore) {
@@ -363,27 +373,43 @@ object AkkaActorAgentTest {
   type Fixture = TestProbe[ActorEvent]
 
   sealed trait Command
-  final case object Open                 extends Command
-  final case object Close                extends Command
-  final case class Message(text: String) extends Command
+  final case object Open                              extends Command
+  final case object Close                             extends Command
+  final case class Message(text: String)              extends Command
+  final case class Inspect(replyTo: classic.ActorRef) extends Command
+  final case class StashSize(stash: Option[Long])
 
   object ClassicStashActor {
     def props(): classic.Props = classic.Props(new ClassicStashActor)
   }
   class ClassicStashActor extends classic.Actor with classic.Stash with classic.ActorLogging {
-    def receive: Receive = {
+    def receive: Receive = closed
+
+    private val closed: Receive = {
       case Open =>
         unstashAll()
         context
-          .become({
-            case Close =>
-              context.unbecome()
-            case Message(text) =>
-              log.warning(s"[working on] {}", text)
-          })
+          .become(opened)
       case Message(text) =>
-        log.warning(s"[stash] {}", text)
+        log.info(s"[stash] {}", text)
         stash()
+      case Inspect(ref) =>
+        inspectStashSize(ref)
+    }
+
+    private val opened: Receive = {
+      case Close =>
+        context.become(closed)
+      case Message(text) =>
+        log.info(s"[working on] {}", text)
+      case Inspect(ref) =>
+        inspectStashSize(ref)
+    }
+
+    private def inspectStashSize(ref: classic.ActorRef): Unit = {
+      log.info("Inspecting actor stash size")
+      val size = ActorCountsDecorators.Stash.getValue(context)
+      ref ! StashSize(size)
     }
   }
 
@@ -402,6 +428,9 @@ object AkkaActorAgentTest {
           log.warn(s"[typed] [stashing] {}", text)
           buffer.stash(message)
           Behaviors.same
+        case Inspect(ref) =>
+          inspectStashSize(ref)
+          Behaviors.same
       }
     private def open(): Behavior[Command] =
       Behaviors.receiveMessagePartial {
@@ -410,7 +439,16 @@ object AkkaActorAgentTest {
         case Message(text) =>
           log.warn(s"[typed] [working on] {}", text)
           Behaviors.same
+        case Inspect(ref) =>
+          inspectStashSize(ref)
+          Behaviors.same
       }
+
+    private def inspectStashSize(ref: classic.ActorRef): Unit = {
+      log.info("Inspecting actor stash size")
+      val size = ActorCountsDecorators.Stash.getValue(ctx.toClassic)
+      ref ! StashSize(size)
+    }
 
   }
 

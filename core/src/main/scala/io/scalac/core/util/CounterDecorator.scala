@@ -1,6 +1,6 @@
 package io.scalac.core.util
 
-import java.lang.invoke.{ MethodHandle, MethodHandles }
+import java.lang.invoke.MethodHandle
 import java.util.concurrent.atomic.AtomicLong
 
 sealed trait CounterDecorator {
@@ -8,26 +8,32 @@ sealed trait CounterDecorator {
   protected def getter(container: Object): MethodHandle
   protected def setter(container: Object): MethodHandle
 
-  @inline final def initialize(container: Object, value: Long = 0): Unit = set(container, value)
-
-  @inline final def set(container: Object, value: Long): Unit =
+  @inline final def initialize(container: Object, value: Long = 0): Unit =
     setter(container).invoke(container, new AtomicLong(value))
 
+  @inline final def set(container: Object, value: Long): Unit =
+    getRef(container)(_.set(value))
+
   @inline final def inc(container: Object): Unit =
-    getRef(container).foreach(_.getAndIncrement())
+    getRef(container)(_.getAndIncrement())
 
   @inline final def take(container: Object): Option[Long] =
-    getRef(container).map(_.getAndSet(0))
+    getRef(container)(_.getAndSet(0))
 
   @inline final def getValue(container: Object): Option[Long] =
-    getRef(container).map(_.get())
+    getRef(container)(_.get())
 
   // For a while, rest is for test propose
   @inline final def reset(container: Object): Unit =
-    getRef(container).foreach(_.set(0))
+    getRef(container)(_.set(0))
 
-  @inline final private def getRef(container: Object): Option[AtomicLong] =
-    Option(container).map(getter(container).invoke(_)).map(_.asInstanceOf[AtomicLong])
+  @inline final private def getRef[@specialized(Long) T](container: Object)(onSuccess: AtomicLong => T): Option[T] =
+    if (container ne null) {
+      val atomic = getter(container).invoke(container)
+      if (atomic ne null) {
+        Some(onSuccess(atomic.asInstanceOf[AtomicLong]))
+      } else None
+    } else None
 }
 
 object CounterDecorator {
