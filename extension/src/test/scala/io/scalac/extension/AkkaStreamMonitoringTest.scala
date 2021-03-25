@@ -12,7 +12,7 @@ import io.scalac.core.util.TestCase.{ CommonMonitorTestFactory, MonitorTestCaseC
 import io.scalac.extension.AkkaStreamMonitoring.StartStreamCollection
 import io.scalac.extension.event.EventBus
 import io.scalac.extension.event.Service.streamService
-import io.scalac.extension.event.StreamEvent.StreamInterpreterInfo
+import io.scalac.extension.event.StreamEvent.StreamInterpreterStats
 import io.scalac.extension.util.probe.BoundTestProbe.{ LazyMetricsObserved, MetricRecorded }
 import io.scalac.extension.util.probe.ObserverCollector.CommonCollectorImpl
 import io.scalac.extension.util.probe.{ StreamMonitorTestProbe, StreamOperatorMonitorTestProbe }
@@ -79,7 +79,7 @@ class AkkaStreamMonitoringTest
     monitor: Option[ActorRef[PushMetrics.type]]
   ): Behavior[PushMetrics.type] = Behaviors.receive { case (ctx, PushMetrics) =>
     monitor.foreach(_ ! PushMetrics)
-    EventBus(ctx.system).publishEvent(StreamInterpreterInfo(ctx.self.toClassic, subStream, shellInfo))
+    EventBus(ctx.system).publishEvent(StreamInterpreterStats(ctx.self.toClassic, subStream, shellInfo))
     Behaviors.same
   }
 

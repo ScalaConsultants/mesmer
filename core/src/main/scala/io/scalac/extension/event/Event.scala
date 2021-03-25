@@ -55,7 +55,7 @@ sealed trait StreamEvent extends AbstractEvent {
 }
 
 object StreamEvent {
-  final case class StreamInterpreterInfo(ref: ActorRef, streamName: SubStreamName, shellInfo: Set[ShellInfo])
+  final case class StreamInterpreterStats(ref: ActorRef, streamName: SubStreamName, shellInfo: Set[ShellInfo])
       extends StreamEvent
 
   /**

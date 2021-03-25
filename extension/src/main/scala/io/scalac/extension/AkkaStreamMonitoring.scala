@@ -14,7 +14,7 @@ import io.scalac.extension.config.CachingConfig
 import io.scalac.extension.config.ConfigurationUtils._
 import io.scalac.extension.event.Service.streamService
 import io.scalac.extension.event.StreamEvent
-import io.scalac.extension.event.StreamEvent.StreamInterpreterInfo
+import io.scalac.extension.event.StreamEvent.{ LastStreamStats, StreamInterpreterStats }
 import io.scalac.extension.metric.MetricObserver.LazyResult
 import io.scalac.extension.metric.StreamMetricMonitor.{ EagerLabels, Labels => GlobalLabels }
 import io.scalac.extension.metric.StreamOperatorMetricsMonitor.Labels
@@ -233,7 +233,7 @@ class AkkaStreamMonitoring(
   private[this] val localStreamStats       = mutable.Map.empty[StreamName, StreamStatsBuilder]
 
   private def init(): Unit = {
-    system.receptionist ! Register(streamService.serviceKey, metricsAdapter)
+    system.receptionist ! Register(streamService.serviceKey, messageAdapter[StreamEvent](StatsReceived.apply))
 
     boundStreamMonitor.streamProcessedMessages.setUpdater { result =>
       val streams = globalProcessedSnapshot.get()
@@ -261,28 +261,33 @@ class AkkaStreamMonitoring(
     }
   }
 
-  private val metricsAdapter = messageAdapter[StreamEvent](StatsReceived.apply)
+  override def onMessage(msg: Command): Behavior[Command] =
+    Behaviors.withStash(1024) { buffer =>
+      msg match {
+        case StartStreamCollection(refs) if refs.nonEmpty =>
+          log.debug("Start stream stats collection")
+          scheduler.startSingleTimer(CollectionTimeout, CollectionTimeout, Timeout)
 
-  override def onMessage(msg: Command): Behavior[Command] = msg match {
-    case StartStreamCollection(refs) if refs.nonEmpty =>
-      log.debug("Start stream stats collection")
-      scheduler.startSingleTimer(CollectionTimeout, CollectionTimeout, Timeout)
-
-      refs.foreach { ref =>
-        watch(ref)
-        ref ! PushMetrics
+          refs.foreach { ref =>
+            watch(ref)
+            ref ! PushMetrics
+          }
+          buffer.unstashAll(collecting(refs))
+        case StartStreamCollection(_) =>
+          log.warn("StartStreamCollection with empty refs")
+          this
+        case stats @ StatsReceived(_: LastStreamStats) =>
+          log.debug("Received last stats for shell")
+          buffer.stash(stats)
+          Behaviors.same
+        case StatsReceived(_) =>
+          log.warn("Received stream running statistics after timeout")
+          this
+        case CollectionTimeout =>
+          log.warn("[UNPLANNED SITUATION] CollectionTimeout on main behavior")
+          this
       }
-      collecting(refs)
-    case StartStreamCollection(_) =>
-      log.warn(s"StartStreamCollection with empty refs")
-      this
-    case StatsReceived(_) =>
-      log.warn("Received stream running statistics after timeout")
-      this
-    case CollectionTimeout =>
-      log.warn("[UNPLANNED SITUATION] CollectionTimeout on main behavior")
-      this
-  }
+    }
 
   def captureGlobalStats(): Unit = {
     boundStreamMonitor.runningStreamsTotal.setValue(localStreamStats.size)
@@ -348,9 +353,15 @@ class AkkaStreamMonitoring(
   private def collecting(refs: Set[ActorRef]): Behavior[Command] =
     Behaviors
       .receiveMessage[Command] {
-        case StatsReceived(StreamInterpreterInfo(ref, subStreamName, shellInfo)) =>
-          val refsLeft = refs - ref
-          unwatch(ref)
+        case StatsReceived(event) =>
+          val (refsLeft, subStreamName, shellInfo) = event match {
+            case StreamInterpreterStats(ref, subStreamName, shellInfo) =>
+              unwatch(ref)
+              (refs - ref, subStreamName, shellInfo)
+            case LastStreamStats(_, subStreamName, shellInfo) =>
+              (refs, subStreamName, Set(shellInfo))
+          }
+
           val streamStats =
             localStreamStats.getOrElseUpdate(subStreamName.streamName, new StreamStatsBuilder(subStreamName.streamName))
           streamStats.incActors()
@@ -385,6 +396,9 @@ class AkkaStreamMonitoring(
           } else {
             collecting(refsLeft)
           }
+
+        case StatsReceived(LastStreamStats(ref, subStreamName, shellInfo)) =>
+          collecting(refs)
 
         case CollectionTimeout =>
           log.warn("Collecting stats from running streams timeout")

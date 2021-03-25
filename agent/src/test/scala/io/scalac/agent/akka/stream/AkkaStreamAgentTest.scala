@@ -12,7 +12,7 @@ import akka.stream.{ Attributes, BufferOverflowException, OverflowStrategy, Queu
 import io.scalac.agent.utils.{ InstallAgent, SafeLoadSystem }
 import io.scalac.core.akka.model.PushMetrics
 import io.scalac.core.util.TestCase.CommonMonitorTestFactory
-import io.scalac.extension.event.StreamEvent.StreamInterpreterInfo
+import io.scalac.extension.event.StreamEvent.{ LastStreamStats, StreamInterpreterStats }
 import io.scalac.extension.event.{ Service, StreamEvent, TagEvent }
 import org.scalatest._
 import org.scalatest.concurrent.{ Futures, ScalaFutures }
@@ -139,7 +139,7 @@ class AkkaStreamAgentTest
 
       ref ! PushMetrics
 
-      val stats = monitor.expectMessageType[StreamInterpreterInfo]
+      val stats = monitor.expectMessageType[StreamInterpreterStats]
 
       val (stages, connections) = stats.shellInfo.loneElement
 
@@ -205,7 +205,7 @@ class AkkaStreamAgentTest
 
       sinkRef ! PushMetrics
 
-      val (sinkStages, sinkConnections) = monitor.expectMessageType[StreamInterpreterInfo].shellInfo.loneElement
+      val (sinkStages, sinkConnections) = monitor.expectMessageType[StreamInterpreterStats].shellInfo.loneElement
 
       sinkStages should have size 2
       sinkConnections should have size 1
@@ -217,7 +217,7 @@ class AkkaStreamAgentTest
 
       flowRef ! PushMetrics
 
-      val (flowStages, flowConnections) = monitor.expectMessageType[StreamInterpreterInfo].shellInfo.loneElement
+      val (flowStages, flowConnections) = monitor.expectMessageType[StreamInterpreterStats].shellInfo.loneElement
 
       flowStages should have size 4
 
@@ -232,7 +232,7 @@ class AkkaStreamAgentTest
 
       sourceRef ! PushMetrics
 
-      val (sourceStages, sourceConnections) = monitor.expectMessageType[StreamInterpreterInfo].shellInfo.loneElement
+      val (sourceStages, sourceConnections) = monitor.expectMessageType[StreamInterpreterStats].shellInfo.loneElement
 
       sourceStages should have size 2
 
@@ -259,6 +259,14 @@ class AkkaStreamAgentTest
 
     actors(StreamCount)
 
-    monitor.receiveMessages(StreamCount)
+    forAll(monitor.receiveMessages(StreamCount)) {
+      inside(_) { case LastStreamStats(_, _, shellInfo) =>
+        val (stages, connectionStats) = shellInfo
+        stages should have size (2)
+        val connection = connectionStats.toSeq.loneElement
+        connection.push should be(1L)
+        connection.pull should be(1L)
+      }
+    }
   }
 }

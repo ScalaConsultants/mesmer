@@ -10,7 +10,7 @@ import io.scalac.core.model.Tag.SubStreamName
 import io.scalac.core.model._
 import io.scalac.core.util.stream.subStreamNameFromActorRef
 import io.scalac.extension.event.EventBus
-import io.scalac.extension.event.StreamEvent.{ LastStreamStats, StreamInterpreterInfo }
+import io.scalac.extension.event.StreamEvent.{ LastStreamStats, StreamInterpreterStats }
 
 import java.lang.invoke.MethodType._
 object ActorGraphInterpreterDecorator extends Lookup {
@@ -82,7 +82,7 @@ object ActorGraphInterpreterDecorator extends Lookup {
       val stats = collectStats(currentShells, subStreamName)
 
       EventBus(self.context.system.toTyped)
-        .publishEvent(StreamInterpreterInfo(self.context.self, subStreamName, stats))
+        .publishEvent(StreamInterpreterStats(self.context.self, subStreamName, stats))
     }
 
   def shellFinished(shell: GraphInterpreterShellMirror, self: Actor): Unit = {
