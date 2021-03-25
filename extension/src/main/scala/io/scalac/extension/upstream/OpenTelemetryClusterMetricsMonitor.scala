@@ -134,7 +134,7 @@ class OpenTelemetryClusterMetricsMonitor(instrumentationName: String, val metric
   class ClusterBoundMonitor(labels: ClusterMetricsMonitor.Labels)
       extends opentelemetry.Synchronized(meter)
       with ClusterMetricsMonitor.BoundMonitor
-      with UnbindRoot
+      with RegisterRoot
       with SynchronousInstrumentFactory {
 
     private val otLabels = LabelsFactory.of(labels.serialize)

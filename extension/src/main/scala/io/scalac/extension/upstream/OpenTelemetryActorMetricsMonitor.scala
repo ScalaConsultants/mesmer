@@ -2,7 +2,7 @@ package io.scalac.extension.upstream
 
 import com.typesafe.config.Config
 import io.opentelemetry.api.OpenTelemetry
-import io.scalac.extension.metric.{ ActorMetricMonitor, MetricObserver, UnbindRoot }
+import io.scalac.extension.metric.{ ActorMetricMonitor, MetricObserver, RegisterRoot }
 import io.scalac.extension.upstream.OpenTelemetryActorMetricsMonitor.MetricNames
 import io.scalac.extension.upstream.opentelemetry._
 
@@ -216,7 +216,7 @@ class OpenTelemetryActorMetricsMonitor(instrumentationName: String, metricNames:
 
   class OpenTelemetryBoundMonitor
       extends ActorMetricMonitor.BoundMonitor
-      with UnbindRoot
+      with RegisterRoot
       with SynchronousInstrumentFactory {
 
     val mailboxSize: MetricObserver[Long, ActorMetricMonitor.Labels] = mailboxSizeObserver.createObserver.register(this)

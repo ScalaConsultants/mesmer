@@ -1,12 +1,13 @@
 package io.scalac.extension.upstream.opentelemetry
 
-import io.scalac.extension.metric.UnbindRoot
+import io.scalac.extension.metric.RegisterRoot
 
 /**
  * Using this as intermediate object prevent from creating instruments that are never bound
  */
-trait UnregisteredInstrument[T <: WrappedInstrument] {
-  def register(root: UnbindRoot): T#Self
+trait UnregisteredInstrument[T <: WrappedInstrument] extends (RegisterRoot => T#Self) {
+  def apply(root: RegisterRoot): T#Self = register(root)
+  def register(root: RegisterRoot): T#Self
 }
 
 /**

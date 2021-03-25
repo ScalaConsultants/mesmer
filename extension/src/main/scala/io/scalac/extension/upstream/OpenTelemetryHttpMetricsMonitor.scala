@@ -2,7 +2,7 @@ package io.scalac.extension.upstream
 
 import com.typesafe.config.Config
 import io.opentelemetry.api.OpenTelemetry
-import io.scalac.extension.metric.{ HttpMetricMonitor, UnbindRoot }
+import io.scalac.extension.metric.{ HttpMetricMonitor, RegisterRoot }
 import io.scalac.extension.upstream.opentelemetry._
 
 object OpenTelemetryHttpMetricsMonitor {
@@ -70,7 +70,7 @@ class OpenTelemetryHttpMetricsMonitor(
       extends opentelemetry.Synchronized(meter)
       with BoundMonitor
       with SynchronousInstrumentFactory
-      with UnbindRoot {
+      with RegisterRoot {
     private val openTelemetryLabels = LabelsFactory.of(labels.serialize)
 
     override val requestTime = metricRecorder(requestTimeRequest, openTelemetryLabels).register(this)

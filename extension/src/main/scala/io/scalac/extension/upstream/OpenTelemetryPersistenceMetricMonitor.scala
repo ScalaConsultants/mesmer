@@ -2,7 +2,7 @@ package io.scalac.extension.upstream
 
 import com.typesafe.config.Config
 import io.opentelemetry.api.OpenTelemetry
-import io.scalac.extension.metric.{ PersistenceMetricMonitor, UnbindRoot }
+import io.scalac.extension.metric.{ PersistenceMetricMonitor, RegisterRoot }
 import io.scalac.extension.upstream.OpenTelemetryPersistenceMetricMonitor._
 import io.scalac.extension.upstream.opentelemetry._
 
@@ -97,7 +97,7 @@ class OpenTelemetryPersistenceMetricMonitor(instrumentationName: String, metricN
 
   class OpenTelemetryBoundMonitor(labels: Labels)
       extends BoundMonitor
-      with UnbindRoot
+      with RegisterRoot
       with SynchronousInstrumentFactory {
     private val openTelemetryLabels = LabelsFactory.of(labels.serialize)
     override lazy val recoveryTime  = metricRecorder(recoveryTimeRecorder, openTelemetryLabels).register(this)

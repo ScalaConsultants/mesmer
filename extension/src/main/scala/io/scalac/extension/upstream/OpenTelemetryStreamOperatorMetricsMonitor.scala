@@ -3,7 +3,7 @@ package io.scalac.extension.upstream
 import com.typesafe.config.Config
 import io.opentelemetry.api.OpenTelemetry
 import io.scalac.extension.metric.StreamOperatorMetricsMonitor.{ BoundMonitor, Labels }
-import io.scalac.extension.metric.{ MetricObserver, StreamOperatorMetricsMonitor, UnbindRoot }
+import io.scalac.extension.metric.{ MetricObserver, StreamOperatorMetricsMonitor, RegisterRoot }
 import io.scalac.extension.upstream.OpenTelemetryStreamOperatorMetricsMonitor.MetricNames
 import io.scalac.extension.upstream.opentelemetry._
 
@@ -61,7 +61,7 @@ class OpenTelemetryStreamOperatorMetricsMonitor(instrumentationName: String, met
       .setDescription("Amount of operators in a system")
   )
 
-  override def bind(): StreamOperatorMetricsMonitor.BoundMonitor = new BoundMonitor with UnbindRoot {
+  override def bind(): StreamOperatorMetricsMonitor.BoundMonitor = new BoundMonitor with RegisterRoot {
 
     override lazy val processedMessages: MetricObserver[Long, Labels] =
       processedMessageAdapter.createObserver.register(this)
