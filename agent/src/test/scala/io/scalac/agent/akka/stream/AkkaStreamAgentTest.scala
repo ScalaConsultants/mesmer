@@ -269,4 +269,31 @@ class AkkaStreamAgentTest
       }
     }
   }
+
+  it should "push information on shells interpreting flatten stream" in testCase { implicit c =>
+    implicit val ec: ExecutionContext = system.executionContext
+
+    val Demand = 40L
+
+    val (inputQueue, outputQueue) = Source
+      .queue[Int](1024, OverflowStrategy.dropNew, 1)
+      .flatMapConcat(element => Source(List.fill(10)(element)).via(Flow[Int].map(_ + 100)))
+      .toMat(
+        Sink
+          .queue[Int]()
+          .withAttributes(Attributes.inputBuffer(1, 1))
+          .named("queueEnd")
+      )(Keep.both)
+      .run()
+
+    val elements = offerMany(inputQueue, List.tabulate(100)(identity))
+      .zipWith(expectMany(outputQueue, Demand))((_, _) => Done)
+
+    whenReady(elements) { _ =>
+      val ref = actors(1).loneElement
+      ref ! PushMetrics
+
+      monitor.expectMessageType[StreamInterpreterStats].shellInfo should have size (2)
+    }
+  }
 }
