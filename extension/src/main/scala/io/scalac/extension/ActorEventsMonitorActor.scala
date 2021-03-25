@@ -10,7 +10,7 @@ import akka.{ actor => classic }
 
 import io.scalac.core.model.{ Tag, _ }
 import io.scalac.extension.AkkaStreamMonitoring.StartStreamCollection
-import io.scalac.extension.actor.{ ActorCountsDecorators, ActorMetricStorage, ActorMetrics, ActorTimesDecorators }
+import io.scalac.extension.actor.{ ActorCellDecorator, ActorMetricStorage, ActorMetrics }
 import io.scalac.extension.event.ActorEvent.StashMeasurement
 import io.scalac.extension.event.{ ActorEvent, TagEvent }
 import io.scalac.extension.metric.ActorMetricMonitor.Labels
@@ -251,45 +251,47 @@ object ActorEventsMonitorActor {
           bind
         }
 
+        import metrics._
+
         metrics.mailboxSize.filter(0.<).foreach { ms =>
-          log.trace("Registering a new updater for mailbox size for actor {} with value {}", key, ms)
+          log.trace("A new updater for mailbox size for actor {} with value {}", key, ms)
           bind.mailboxSize.setUpdater(_.observe(ms))
         }
 
         metrics.mailboxTime.foreach { mt =>
-          log.trace("Registering a new updaters for mailbox time for actor {} with value {}", key, mt)
+          log.trace("A new updaters for mailbox time for actor {} with value {}", key, mt)
           bind.mailboxTimeAvg.setUpdater(_.observe(mt.avg))
           bind.mailboxTimeMin.setUpdater(_.observe(mt.min))
           bind.mailboxTimeMax.setUpdater(_.observe(mt.max))
           bind.mailboxTimeSum.setUpdater(_.observe(mt.sum))
         }
 
-        metrics.receivedMessages.filter(0.<).foreach { rm =>
-          log.trace("Registering a new updater for received messages for actor {} with value {}", key, rm)
-          bind.receivedMessages.setUpdater(_.observe(rm))
+        if (receivedMessages > 0) {
+          log.trace("A new updater for received messages for actor {} with value {}", key, receivedMessages)
+          bind.receivedMessages.setUpdater(_.observe(receivedMessages))
         }
 
-        metrics.processedMessages.filter(0.<).foreach { pm =>
-          log.trace("Registering a new updater for processed messages for actor {} with value {}", key, pm)
-          bind.processedMessages.setUpdater(_.observe(pm))
+        if (processedMessages > 0) {
+          log.trace("A new updater for processed messages for actor {} with value {}", key, processedMessages)
+          bind.processedMessages.setUpdater(_.observe(processedMessages))
         }
 
-        metrics.failedMessages.filter(0.<).foreach { fm =>
-          log.trace("Registering a new updater for failed messages for actor {} with value {}", key, fm)
-          bind.failedMessages.setUpdater(_.observe(fm))
+        if (failedMessages > 0) {
+          log.trace("A new updater for failed messages for actor {} with value {}", key, failedMessages)
+          bind.failedMessages.setUpdater(_.observe(failedMessages))
+        }
+
+        if (sentMessages > 0) {
+          log.trace("A new updaters for sent messages for actor {} with value {}", key, sentMessages)
+          bind.sentMessages.setUpdater(_.observe(sentMessages))
         }
 
         metrics.processingTime.foreach { pt =>
-          log.trace("Registering a new updaters for processing time for actor {} with value {}", key, pt)
+          log.trace("A new updaters for processing time for actor {} with value {}", key, pt)
           bind.processingTimeAvg.setUpdater(_.observe(pt.avg))
           bind.processingTimeMin.setUpdater(_.observe(pt.min))
           bind.processingTimeMax.setUpdater(_.observe(pt.max))
           bind.processingTimeSum.setUpdater(_.observe(pt.sum))
-        }
-
-        metrics.sentMessages.foreach { sm =>
-          log.trace("Registering a new updaters for sent messages for actor {} with value {}", key, sm)
-          bind.sentMessages.setUpdater(_.observe(sm))
         }
 
       }
@@ -341,19 +343,18 @@ object ActorEventsMonitorActor {
     private val logger = LoggerFactory.getLogger(getClass)
 
     def read(actor: classic.ActorRef): Option[ActorMetrics] =
-      ActorRefOps.Local
-        .cell(actor)
-        .map { cell =>
-          ActorMetrics(
-            mailboxSize = safeRead(ActorCellOps.numberOfMessages(cell)),
-            mailboxTime = ActorTimesDecorators.MailboxTime.getMetrics(cell),
-            processingTime = ActorTimesDecorators.ProcessingTime.getMetrics(cell),
-            receivedMessages = ActorCountsDecorators.Received.take(cell),
-            unhandledMessages = ActorCountsDecorators.Unhandled.take(cell),
-            failedMessages = ActorCountsDecorators.Failed.take(cell),
-            sentMessages = ActorCountsDecorators.Sent.take(cell)
-          )
-        }
+      for {
+        cell <- ActorRefOps.Local.cell(actor)
+        spy  <- ActorCellDecorator.get(cell)
+      } yield ActorMetrics(
+        mailboxSize = safeRead(ActorCellOps.numberOfMessages(cell)),
+        mailboxTime = spy.mailboxTimeAgg.metrics,
+        processingTime = spy.processingTimeAgg.metrics,
+        receivedMessages = spy.receivedMessages.take(),
+        unhandledMessages = spy.unhandledMessages.take(),
+        failedMessages = spy.failedMessages.take(),
+        sentMessages = spy.sentMessages.take()
+      )
 
     private def safeRead[T](value: => T): Option[T] =
       try Some(value)
