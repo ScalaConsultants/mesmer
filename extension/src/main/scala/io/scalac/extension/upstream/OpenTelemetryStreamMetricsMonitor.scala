@@ -2,7 +2,7 @@ package io.scalac.extension.upstream
 
 import com.typesafe.config.Config
 import io.opentelemetry.api.OpenTelemetry
-import io.scalac.extension.metric.{ MetricObserver, StreamMetricMonitor, RegisterRoot }
+import io.scalac.extension.metric.{ MetricObserver, RegisterRoot, StreamMetricMonitor }
 import io.scalac.extension.upstream.OpenTelemetryStreamMetricMonitor.MetricNames
 import io.scalac.extension.upstream.opentelemetry.{ LongSumObserverBuilderAdapter, SynchronousInstrumentFactory }
 
@@ -77,6 +77,6 @@ class OpenTelemetryStreamMetricMonitor(instrumentationName: String, metricNames:
       metricRecorder(streamActorsTotalRecorder, openTelemetryLabels).register(this)
 
     override lazy val streamProcessedMessages: MetricObserver[Long, Labels] =
-      streamProcessedMessagesBuilder.createObserver.register(this)
+      streamProcessedMessagesBuilder.createObserver(this)
   }
 }

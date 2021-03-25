@@ -222,40 +222,40 @@ class OpenTelemetryActorMetricsMonitor(instrumentationName: String, metricNames:
     val mailboxSize: MetricObserver[Long, ActorMetricMonitor.Labels] = mailboxSizeObserver.createObserver.register(this)
 
     val mailboxTimeAvg: MetricObserver[Long, ActorMetricMonitor.Labels] =
-      mailboxTimeAvgObserver.createObserver.register(this)
+      mailboxTimeAvgObserver.createObserver(this)
 
     val mailboxTimeMin: MetricObserver[Long, ActorMetricMonitor.Labels] =
-      mailboxTimeMinObserver.createObserver.register(this)
+      mailboxTimeMinObserver.createObserver(this)
 
     val mailboxTimeMax: MetricObserver[Long, ActorMetricMonitor.Labels] =
-      mailboxTimeMaxObserver.createObserver.register(this)
+      mailboxTimeMaxObserver.createObserver(this)
 
     val mailboxTimeSum: MetricObserver[Long, ActorMetricMonitor.Labels] =
-      mailboxTimeSumObserver.createObserver.register(this)
+      mailboxTimeSumObserver.createObserver(this)
 
     def stashSize(labels: ActorMetricMonitor.Labels) =
       metricRecorder(stashSizeCounter, LabelsFactory.of(labels.serialize)).register(this)
 
     val receivedMessages: MetricObserver[Long, ActorMetricMonitor.Labels] =
-      receivedMessagesSumObserver.createObserver.register(this)
+      receivedMessagesSumObserver.createObserver(this)
 
     val processedMessages: MetricObserver[Long, ActorMetricMonitor.Labels] =
-      processedMessagesSumObserver.createObserver.register(this)
+      processedMessagesSumObserver.createObserver(this)
 
     val failedMessages: MetricObserver[Long, ActorMetricMonitor.Labels] =
-      failedMessagesSumObserver.createObserver.register(this)
+      failedMessagesSumObserver.createObserver(this)
 
     val processingTimeAvg: MetricObserver[Long, ActorMetricMonitor.Labels] =
-      processingTimeAvgObserver.createObserver.register(this)
+      processingTimeAvgObserver.createObserver(this)
 
     val processingTimeMin: MetricObserver[Long, ActorMetricMonitor.Labels] =
-      processingTimeMinObserver.createObserver.register(this)
+      processingTimeMinObserver.createObserver(this)
 
     val processingTimeMax: MetricObserver[Long, ActorMetricMonitor.Labels] =
-      processingTimeMaxObserver.createObserver.register(this)
+      processingTimeMaxObserver.createObserver(this)
 
     val processingTimeSum: MetricObserver[Long, ActorMetricMonitor.Labels] =
-      processingTimeSumObserver.createObserver.register(this)
+      processingTimeSumObserver.createObserver(this)
   }
 
 }

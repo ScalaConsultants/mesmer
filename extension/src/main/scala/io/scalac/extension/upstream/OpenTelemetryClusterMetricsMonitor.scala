@@ -140,25 +140,25 @@ class OpenTelemetryClusterMetricsMonitor(instrumentationName: String, val metric
     private val otLabels = LabelsFactory.of(labels.serialize)
 
     override val shardPerRegions: MetricObserver[Long, ClusterMetricsMonitor.Labels] =
-      shardsPerRegionRecorder.createObserver.register(this)
+      shardsPerRegionRecorder.createObserver(this)
 
     override val entityPerRegion: MetricObserver[Long, ClusterMetricsMonitor.Labels] =
-      entityPerRegionRecorder.createObserver.register(this)
+      entityPerRegionRecorder.createObserver(this)
 
     override val shardRegionsOnNode: MetricObserver[Long, ClusterMetricsMonitor.Labels] =
-      shardRegionsOnNodeRecorder.createObserver.register(this)
+      shardRegionsOnNodeRecorder.createObserver(this)
 
     override val entitiesOnNode: MetricObserver[Long, ClusterMetricsMonitor.Labels] =
-      entitiesOnNodeObserver.createObserver.register(this)
+      entitiesOnNodeObserver.createObserver(this)
 
     override val reachableNodes: UpDownCounter[Long] with Instrument[Long] =
-      upDownCounter(reachableNodeCounter, otLabels).register(this)
+      upDownCounter(reachableNodeCounter, otLabels)(this)
 
     override val unreachableNodes: UpDownCounter[Long] with Instrument[Long] =
-      upDownCounter(unreachableNodeCounter, otLabels).register(this)
+      upDownCounter(unreachableNodeCounter, otLabels)(this)
 
     override val nodeDown: Counter[Long] with Instrument[Long] =
-      counter(nodeDownCounter, otLabels).register(this)
+      counter(nodeDownCounter, otLabels)(this)
 
   }
 }
