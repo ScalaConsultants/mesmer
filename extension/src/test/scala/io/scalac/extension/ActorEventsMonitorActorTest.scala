@@ -1,7 +1,5 @@
 package io.scalac.extension
 
-import java.util.concurrent.atomic.{ AtomicInteger, AtomicLong, AtomicReference }
-
 import scala.concurrent.duration._
 
 import akka.actor.PoisonPill
@@ -25,7 +23,6 @@ import io.scalac.extension.event.EventBus
 import io.scalac.extension.metric.ActorMetricMonitor.Labels
 import io.scalac.extension.util.AggMetric.LongValueAggMetric
 import io.scalac.extension.util.TestCase._
-import io.scalac.extension.util.TimeSeries.LongTimeSeries
 import io.scalac.extension.util.probe.ActorMonitorTestProbe
 import io.scalac.extension.util.probe.BoundTestProbe.{ MetricObserved, MetricObserverCommand, MetricRecorded }
 import io.scalac.extension.util.probe.ObserverCollector.CommonCollectorImpl
@@ -40,7 +37,7 @@ class ActorEventsMonitorActorTest
   type Monitor          = ActorMonitorTestProbe
   override type Context = TestContext[Monitor]
 
-  private val pingOffset: FiniteDuration     = 1.seconds
+  private val pingOffset: FiniteDuration     = 2.seconds
   private val reasonableTime: FiniteDuration = 3 * pingOffset
   implicit def timeout: Timeout              = pingOffset
 
@@ -77,17 +74,17 @@ class ActorEventsMonitorActorTest
   }
 
   it should "dead actors should not report" in testCase { implicit c =>
-    val tmp   = system.systemActorOf[Nothing](Behaviors.ignore, "tmp")
+    val tmp   = system.systemActorOf[Nothing](Behaviors.ignore, createUniqueId)
     val bound = monitor.bind(Labels(ActorPathOps.getPathString(tmp)))
-    bound.mailboxSizeProbe.expectMessageType[MetricObserved]
+    bound.mailboxSizeProbe.expectMessageType[MetricObserved](reasonableTime)
     tmp.unsafeUpcast[Any] ! PoisonPill
-    bound.mailboxSizeProbe.expectTerminated(tmp)
+    bound.mailboxSizeProbe.expectTerminated(tmp, reasonableTime)
     bound.mailboxSizeProbe.expectNoMessage(reasonableTime)
     bound.unbind()
   }
 
   it should "record stash size" in testCase { implicit c =>
-    val stashActor = system.systemActorOf(StashActor(10), "stashActor")
+    val stashActor = system.systemActorOf(StashActor(10), createUniqueId)
     val bound      = monitor.bind(Labels(ActorPathOps.getPathString(stashActor)))
     def stashMeasurement(size: Int): Unit =
       EventBus(system).publishEvent(StashMeasurement(size, ActorPathOps.getPathString(stashActor)))
@@ -224,7 +221,6 @@ class ActorEventsMonitorActorTest
 object ActorEventsMonitorActorTest {
 
   final case class TestContext[+M](monitor: M)(implicit val system: ActorSystem[_]) extends MonitorTestCaseContext[M] {
-    import scala.language.implicitConversions
 
     val TestActorTreeTraverser: ActorTreeTraverser = ReflectiveActorTreeTraverser
 
@@ -245,11 +241,11 @@ object ActorEventsMonitorActorTest {
         ActorMetrics(
           mailboxSize = Some(fakeMailboxSize),
           mailboxTime = Some(fakeMailboxTime),
-          receivedMessages = Some(fakeReceivedMessages),
-          unhandledMessages = Some(fakeUnhandledMessages),
-          failedMessages = Some(fakeFailedMessages),
+          receivedMessages = fakeReceivedMessages,
+          unhandledMessages = fakeUnhandledMessages,
+          failedMessages = fakeFailedMessages,
           processingTime = Some(fakeProcessingTimes),
-          sentMessages = Some(fakeSentMessages)
+          sentMessages = fakeSentMessages
         )
       )
     }
