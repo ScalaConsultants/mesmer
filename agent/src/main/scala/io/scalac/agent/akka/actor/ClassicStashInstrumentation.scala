@@ -11,10 +11,8 @@ class StashConstructorAdvice
 object StashConstructorAdvice {
 
   @OnMethodExit
-  def initStash(@This self: Actor): Unit = {
-    println("Stash constuctor roll")
+  def initStash(@This self: Actor): Unit =
     ActorCountsDecorators.Stash.initialize(self.context)
-  }
 
 }
 
@@ -25,7 +23,6 @@ object ClassicStashInstrumentation {
 
   @OnMethodExit
   def onStashExit(@This stash: AnyRef): Unit = {
-    println("Stash work")
     val size = getStashSize(stash)
     ActorCountsDecorators.Stash.set(getActorCell(stash), size)
   }

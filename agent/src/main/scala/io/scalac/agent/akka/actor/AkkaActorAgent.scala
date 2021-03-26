@@ -20,8 +20,6 @@ object AkkaActorAgent {
   val defaultVersion: Version   = Version(2, 6, 8)
   val version: SupportedVersion = ModulesSupport.akkaActor
 
-  private val classicStashInitInstrumentation = {}
-
   private val classicStashInstrumentationAgent = {
     val targetClassName = "akka.actor.StashSupport"
     val stashLogic = AgentInstrumentation(
