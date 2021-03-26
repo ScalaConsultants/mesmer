@@ -6,10 +6,11 @@ import io.scalac.extension.metric.StreamMetricMonitor.{ BoundMonitor, Labels }
 import io.scalac.extension.metric.{ StreamMetricMonitor, StreamOperatorMetricsMonitor }
 import io.scalac.extension.util.probe.BoundTestProbe.{ MetricObserverCommand, MetricRecorderCommand }
 
-class StreamOperatorMonitorTestProbe(
-  val processedTestProbe: TestProbe[MetricObserverCommand[StreamOperatorMetricsMonitor.Labels]],
-  val runningOperatorsTestProbe: TestProbe[MetricObserverCommand[StreamOperatorMetricsMonitor.Labels]],
-  val collector: ObserverCollector
+final case class StreamOperatorMonitorTestProbe(
+  processedTestProbe: TestProbe[MetricObserverCommand[StreamOperatorMetricsMonitor.Labels]],
+  runningOperatorsTestProbe: TestProbe[MetricObserverCommand[StreamOperatorMetricsMonitor.Labels]],
+  demandTestProbe: TestProbe[MetricObserverCommand[StreamOperatorMetricsMonitor.Labels]],
+  collector: ObserverCollector
 )(implicit val system: ActorSystem[_])
     extends StreamOperatorMetricsMonitor
     with Collected {
@@ -17,6 +18,7 @@ class StreamOperatorMonitorTestProbe(
   override def bind(): StreamOperatorMetricsMonitor.BoundMonitor = new StreamOperatorMetricsMonitor.BoundMonitor {
     val processedMessages = ObserverTestProbeWrapper(processedTestProbe, collector)
     val operators         = ObserverTestProbeWrapper(runningOperatorsTestProbe, collector)
+    val demand            = ObserverTestProbeWrapper(demandTestProbe, collector)
     def unbind(): Unit    = ()
   }
 }
@@ -25,10 +27,12 @@ object StreamOperatorMonitorTestProbe {
   def apply(collector: ObserverCollector)(implicit system: ActorSystem[_]): StreamOperatorMonitorTestProbe = {
     val processProbe =
       TestProbe[MetricObserverCommand[StreamOperatorMetricsMonitor.Labels]]("akka_stream_processed_messages")
+    val demandProbe =
+      TestProbe[MetricObserverCommand[StreamOperatorMetricsMonitor.Labels]]("akka_stream_demand")
     val runningOperators =
       TestProbe[MetricObserverCommand[StreamOperatorMetricsMonitor.Labels]]("akka_stream_running_operators")
 
-    new StreamOperatorMonitorTestProbe(processProbe, runningOperators, collector)
+    StreamOperatorMonitorTestProbe(processProbe, demandProbe, runningOperators, collector)
   }
 }
 

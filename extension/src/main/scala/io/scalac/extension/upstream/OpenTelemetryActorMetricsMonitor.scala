@@ -21,7 +21,8 @@ object OpenTelemetryActorMetricsMonitor {
     processingTimeAvg: String,
     processingTimeMin: String,
     processingTimeMax: String,
-    processingTimeSum: String
+    processingTimeSum: String,
+    sentMessages: String
   )
   object MetricNames {
 
@@ -39,7 +40,8 @@ object OpenTelemetryActorMetricsMonitor {
         "processing_time_avg",
         "processing_time_min",
         "processing_time_max",
-        "processing_time_sum"
+        "processing_time_sum",
+        "sent_messages"
       )
 
     def fromConfig(config: Config): MetricNames = {
@@ -103,6 +105,10 @@ object OpenTelemetryActorMetricsMonitor {
             .tryValue("processing-time-sum")(_.getString)
             .getOrElse(defaultCached.processingTimeSum)
 
+          val sentMessages = clusterMetricsConfig
+            .tryValue("sent-messages")(_.getString)
+            .getOrElse(defaultCached.sentMessages)
+
           MetricNames(
             mailboxSize,
             mailboxTimeAvg,
@@ -116,7 +122,8 @@ object OpenTelemetryActorMetricsMonitor {
             processingTimeAvg,
             processingTimeMin,
             processingTimeMax,
-            processingTimeSum
+            processingTimeSum,
+            sentMessages
           )
         }
         .getOrElse(defaultCached)
@@ -208,7 +215,13 @@ class OpenTelemetryActorMetricsMonitor(instrumentationName: String, metricNames:
   private val processingTimeSumObserver = new LongMetricObserverBuilderAdapter[ActorMetricMonitor.Labels](
     meter
       .longValueObserverBuilder(metricNames.processingTimeSum)
-      .setDescription("TTracks the sum processing time of an message in an Actor's receive handler")
+      .setDescription("Tracks the sum processing time of an message in an Actor's receive handler")
+  )
+
+  private val sentMessagesObserver = new LongSumObserverBuilderAdapter[ActorMetricMonitor.Labels](
+    meter
+      .longSumObserverBuilder(metricNames.sentMessages)
+      .setDescription("Tracks the sum of sent messages in an Actor")
   )
 
   override def bind(): OpenTelemetryBoundMonitor =
@@ -219,7 +232,7 @@ class OpenTelemetryActorMetricsMonitor(instrumentationName: String, metricNames:
       with RegisterRoot
       with SynchronousInstrumentFactory {
 
-    val mailboxSize: MetricObserver[Long, ActorMetricMonitor.Labels] = mailboxSizeObserver.createObserver.register(this)
+    val mailboxSize: MetricObserver[Long, ActorMetricMonitor.Labels] = mailboxSizeObserver.createObserver(this)
 
     val mailboxTimeAvg: MetricObserver[Long, ActorMetricMonitor.Labels] =
       mailboxTimeAvgObserver.createObserver(this)
@@ -256,6 +269,9 @@ class OpenTelemetryActorMetricsMonitor(instrumentationName: String, metricNames:
 
     val processingTimeSum: MetricObserver[Long, ActorMetricMonitor.Labels] =
       processingTimeSumObserver.createObserver(this)
+
+    val sentMessages: MetricObserver[Long, ActorMetricMonitor.Labels] =
+      sentMessagesObserver.createObserver(this)
   }
 
 }

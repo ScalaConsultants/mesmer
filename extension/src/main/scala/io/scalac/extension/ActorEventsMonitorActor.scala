@@ -6,8 +6,9 @@ import akka.actor.typed.receptionist.Receptionist.Register
 import akka.actor.typed.scaladsl.{ AbstractBehavior, ActorContext, Behaviors, TimerScheduler }
 import akka.{ actor => classic }
 import io.scalac.core.model.{ ActorKey, Node, Tag }
+import io.scalac.core.util.{ ActorCellOps, ActorRefOps }
 import io.scalac.extension.AkkaStreamMonitoring.StartStreamCollection
-import io.scalac.extension.actor.{ ActorCountsDecorators, ActorMetricStorage, ActorMetrics, ActorTimesDecorators }
+import io.scalac.extension.actor.{ ActorCellDecorator, ActorMetricStorage, ActorMetrics }
 import io.scalac.extension.event.ActorEvent.StashMeasurement
 import io.scalac.extension.event.{ ActorEvent, TagEvent }
 import io.scalac.extension.metric.ActorMetricMonitor
@@ -15,6 +16,7 @@ import io.scalac.extension.metric.ActorMetricMonitor.Labels
 import io.scalac.extension.metric.MetricObserver.Result
 import org.slf4j.LoggerFactory
 
+import java.lang.invoke.MethodHandles
 import java.util.concurrent.atomic.AtomicReference
 import scala.annotation.tailrec
 import scala.collection.{ immutable, mutable }
@@ -192,7 +194,7 @@ object ActorEventsMonitorActor {
       boundMonitor.processingTimeMin.setUpdater(updateMetric(_.processingTime.map(_.min)))
       boundMonitor.processingTimeMax.setUpdater(updateMetric(_.processingTime.map(_.max)))
       boundMonitor.processingTimeSum.setUpdater(updateMetric(_.processingTime.map(_.sum)))
-      //TODO add processed messages
+      boundMonitor.sentMessages.setUpdater(updateMetric(_.sentMessages))
       //start collection loop
       setTimeout()
     }
@@ -217,6 +219,8 @@ object ActorEventsMonitorActor {
           .add(tag)
         this
     }
+
+    private def setTimeout(): Unit = scheduler.startSingleTimer(UpdateActorMetrics, pingOffset)
 
     /**
      * Clean tags that wasn't found in last actor tree traversal
@@ -269,8 +273,6 @@ object ActorEventsMonitorActor {
       storage = storage.clear()
     }
 
-    private def setTimeout(): Unit = scheduler.startSingleTimer(UpdateActorMetrics, pingOffset)
-
   }
 
   trait ActorTreeTraverser {
@@ -279,30 +281,26 @@ object ActorEventsMonitorActor {
   }
 
   object ReflectiveActorTreeTraverser extends ActorTreeTraverser {
-    import ReflectiveActorMonitorsUtils._
 
     import java.lang.invoke.MethodType.methodType
 
     private val actorRefProviderClass = classOf[classic.ActorRefProvider]
 
-    private val providerMethodHandler = {
-      val mt = methodType(actorRefProviderClass)
-      lookup.findVirtual(classOf[classic.ActorSystem], "provider", mt)
-    }
-
-    private val rootGuardianMethodHandler = {
-      val mt = methodType(Class.forName("akka.actor.InternalActorRef"))
-      lookup.findVirtual(actorRefProviderClass, "rootGuardian", mt)
-    }
-
-    private val childrenMethodHandler = {
-      val mt = methodType(classOf[immutable.Iterable[classic.ActorRef]])
-      lookup.findVirtual(actorRefWithCellClass, "children", mt)
+    private val (providerMethodHandler, rootGuardianMethodHandler) = {
+      val lookup = MethodHandles.lookup()
+      (
+        lookup.findVirtual(classOf[classic.ActorSystem], "provider", methodType(actorRefProviderClass)),
+        lookup.findVirtual(
+          actorRefProviderClass,
+          "rootGuardian",
+          methodType(Class.forName("akka.actor.InternalActorRef"))
+        )
+      )
     }
 
     def getChildren(actor: classic.ActorRef): immutable.Iterable[classic.ActorRef] =
-      if (isLocalActorRefWithCell(actor)) {
-        childrenMethodHandler.invoke(actor).asInstanceOf[immutable.Iterable[classic.ActorRef]]
+      if (ActorRefOps.isLocal(actor)) {
+        ActorRefOps.children(actor)
       } else {
         immutable.Iterable.empty
       }
@@ -318,30 +316,22 @@ object ActorEventsMonitorActor {
   }
 
   object ReflectiveActorMetricsReader extends ActorMetricsReader {
-    import ReflectiveActorMonitorsUtils._
 
-    import java.lang.invoke.MethodType.methodType
-
-    private val logger = LoggerFactory.getLogger(getClass)
-
-    private val numberOfMessagesMethodHandler = {
-      val mt = methodType(classOf[Int])
-      lookup.findVirtual(cellClass, "numberOfMessages", mt)
-    }
+    private val logger = (LoggerFactory.getLogger(getClass))
 
     def read(actor: classic.ActorRef): Option[ActorMetrics] =
-      Option
-        .when(isLocalActorRefWithCell(actor)) {
-          val cell = underlyingMethodHandler.invoke(actor)
-          ActorMetrics(
-            mailboxSize = safeRead(mailboxSize(cell)),
-            mailboxTime = ActorTimesDecorators.MailboxTime.getMetrics(cell),
-            processingTime = ActorTimesDecorators.ProcessingTime.getMetrics(cell),
-            receivedMessages = ActorCountsDecorators.Received.take(cell),
-            unhandledMessages = ActorCountsDecorators.Unhandled.take(cell),
-            failedMessages = ActorCountsDecorators.Failed.take(cell)
-          )
-        }
+      for {
+        cell    <- ActorRefOps.Local.cell(actor)
+        metrics <- ActorCellDecorator.get(cell)
+      } yield ActorMetrics(
+        mailboxSize = safeRead(ActorCellOps.numberOfMessages(cell)),
+        mailboxTime = metrics.mailboxTimeAgg.metrics,
+        processingTime = metrics.processingTimeAgg.metrics,
+        receivedMessages = Some(metrics.receivedMessages.take()),
+        unhandledMessages = Some(metrics.unhandledMessages.take()),
+        failedMessages = Some(metrics.failedMessages.take()),
+        sentMessages = Some(metrics.sentMessages.take())
+      )
 
     private def safeRead[T](value: => T): Option[T] =
       try Some(value)
@@ -351,27 +341,6 @@ object ActorEventsMonitorActor {
           None
       }
 
-    private def mailboxSize(cell: Object): Int =
-      numberOfMessagesMethodHandler.invoke(cell).asInstanceOf[Int]
-
-  }
-
-  private object ReflectiveActorMonitorsUtils {
-    import java.lang.invoke.MethodHandles
-    import java.lang.invoke.MethodType.methodType
-
-    private[ActorEventsMonitorActor] val lookup = MethodHandles.lookup()
-
-    private[ActorEventsMonitorActor] val actorRefWithCellClass = Class.forName("akka.actor.ActorRefWithCell")
-    private[ActorEventsMonitorActor] val cellClass             = Class.forName("akka.actor.Cell")
-    private[ActorEventsMonitorActor] val underlyingMethodHandler =
-      lookup.findVirtual(actorRefWithCellClass, "underlying", methodType(cellClass))
-
-    private val isLocalMethodHandler = lookup.findVirtual(cellClass, "isLocal", methodType(classOf[Boolean]))
-
-    def isLocalActorRefWithCell(actorRef: classic.ActorRef): Boolean =
-      actorRefWithCellClass.isInstance(actorRef) &&
-        isLocalMethodHandler.invoke(underlyingMethodHandler.invoke(actorRef)).asInstanceOf[Boolean]
   }
 
 }

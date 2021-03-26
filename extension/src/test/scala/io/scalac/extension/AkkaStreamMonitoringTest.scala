@@ -70,7 +70,7 @@ class AkkaStreamMonitoringTest
   )(implicit system: ActorSystem[_]): Context = {
     val (operations, global) = monitor
     val ref                  = system.systemActorOf(AkkaStreamMonitoring(operations, global, None), createUniqueId)
-    TestCaseContext(monitor, ref, monitor._1.collector) // both monitors should point to same collector
+    TestCaseContext(monitor, ref, operations.collector) // both monitors should point to same collector
   }
 
   def singleActorLinearShellInfo(subStreamName: SubStreamName, flowCount: Int, push: Long, pull: Long): ShellInfo = {
@@ -144,7 +144,7 @@ class AkkaStreamMonitoringTest
     global.streamActorsProbe.receiveMessage(2.seconds) shouldBe (MetricRecorded(ExpectedCount * ActorPerStream))
   }
 
-  it should "collect amount of messages processed and operators" in testCase { implicit c =>
+  it should "collect amount of messages processed, demand and operators" in testCase { implicit c =>
     val ExpectedCount = 5
     val Flows         = 2
     val Push          = 11L
@@ -166,14 +166,21 @@ class AkkaStreamMonitoringTest
       operations.runningOperatorsTestProbe.receiveMessages(ExpectedCount * StagesNames.size, OperationsPing)
 
     val processed = operations.processedTestProbe.receiveMessages(ExpectedCount * (Flows + 1), OperationsPing)
+    val demand    = operations.demandTestProbe.receiveMessages(ExpectedCount * (Flows + 1), OperationsPing)
 
     forAll(processed)(inside(_) { case MetricObserved(value, labels) =>
       value shouldBe Push
       labels.node shouldBe empty
     })
+
     operators.collect { case MetricObserved(_, labels) =>
       labels.operator.name
     }.distinct should contain theSameElementsAs StagesNames
+
+    forAll(demand)(inside(_) { case MetricObserved(value, labels) =>
+      value shouldBe Pull
+      labels.node shouldBe empty
+    })
   }
 
   case class TestCaseContext(

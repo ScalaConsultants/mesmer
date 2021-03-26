@@ -6,8 +6,6 @@ import io.scalac.extension.metric.ActorMetricMonitor._
 import io.scalac.extension.metric._
 import io.scalac.extension.util.probe.BoundTestProbe.{ MetricObserverCommand, MetricRecorderCommand }
 
-import java.util.concurrent.atomic.AtomicInteger
-
 final case class ActorMonitorTestProbe(
   mailboxSizeProbe: TestProbe[MetricObserverCommand[Labels]],
   mailboxTimeAvgProbe: TestProbe[MetricObserverCommand[Labels]],
@@ -22,6 +20,7 @@ final case class ActorMonitorTestProbe(
   processingTimeMinProbe: TestProbe[MetricObserverCommand[Labels]],
   processingTimeMaxProbe: TestProbe[MetricObserverCommand[Labels]],
   processingTimeSumProbe: TestProbe[MetricObserverCommand[Labels]],
+  sentMessagesProbe: TestProbe[MetricObserverCommand[Labels]],
   collector: ObserverCollector
 )(implicit val actorSystem: ActorSystem[_])
     extends ActorMetricMonitor
@@ -58,6 +57,8 @@ final case class ActorMonitorTestProbe(
       ObserverTestProbeWrapper(processingTimeMaxProbe, collector)
     val processingTimeSum: MetricObserver[Long, Labels] =
       ObserverTestProbeWrapper(processingTimeSumProbe, collector)
+    val sentMessages: MetricObserver[Long, Labels] =
+      ObserverTestProbeWrapper(sentMessagesProbe, collector)
 
     override def stashSize(labels: Labels): MetricRecorder[Long] = RecorderTestProbeWrapper(stashSizeProbe)
 
@@ -74,13 +75,14 @@ final case class ActorMonitorTestProbe(
       collector.finish(processingTimeMinProbe)
       collector.finish(processingTimeMaxProbe)
       collector.finish(processingTimeSumProbe)
+      collector.finish(sentMessagesProbe)
     }
   }
 }
 
 object ActorMonitorTestProbe {
 
-  def apply(collector: ObserverCollector)(implicit system: ActorSystem[_]): ActorMonitorTestProbe =
+  def apply(collector: ObserverCollector)(implicit actorSystem: ActorSystem[_]): ActorMonitorTestProbe =
     ActorMonitorTestProbe(
       TestProbe("mailbox-size-probe"),
       TestProbe("mailbox-time-avg-probe"),
@@ -95,6 +97,8 @@ object ActorMonitorTestProbe {
       TestProbe("processing-time-min-probe"),
       TestProbe("processing-time-max-probe"),
       TestProbe("processing-time-sum-probe"),
+      TestProbe("sent-messages-probe"),
       collector
     )
+
 }

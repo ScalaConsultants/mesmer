@@ -11,22 +11,23 @@ object StreamOperatorMetricsMonitor {
     stream: StreamName,
     terminal: Boolean,
     node: Option[Node],
-    connectedWith: Option[(String, Direction)]
+    connectedWith: Option[String] // TODO change this to StageName
   ) extends LabelSerializable {
     override val serialize: RawLabels = {
 
-      val connected = connectedWith.fold[RawLabels](Seq.empty) { case (name, direction) =>
-        Seq("connected_with" -> name, direction.serialize)
+      val connected = connectedWith.fold[RawLabels](Seq.empty) { stageName =>
+        Seq("connected_with" -> stageName)
       }
+
       val terminalLabels = if (terminal) Seq("terminal" -> "true") else Seq.empty
 
       operator.serialize ++ stream.serialize ++ node.serialize ++ connected ++ terminalLabels
     }
   }
 
-  //TODO split processedMessages into processTime, processMessages and demand
   trait BoundMonitor extends Bound {
     def processedMessages: MetricObserver[Long, StreamOperatorMetricsMonitor.Labels]
     def operators: MetricObserver[Long, StreamOperatorMetricsMonitor.Labels]
+    def demand: MetricObserver[Long, StreamOperatorMetricsMonitor.Labels]
   }
 }

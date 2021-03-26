@@ -1,7 +1,5 @@
 package io.scalac.extension.event
 
-import scala.concurrent.duration.FiniteDuration
-
 import akka.actor.ActorRef
 import io.scalac.core.model.Tag.SubStreamName
 import io.scalac.core.model._
@@ -39,11 +37,12 @@ object PersistenceEvent {
 
 sealed trait HttpEvent extends AbstractEvent {
   type Service = HttpEvent
+  def id: String
 }
 
 object HttpEvent {
   case class RequestStarted(id: String, timestamp: Timestamp, path: Path, method: Method) extends HttpEvent
-  case class RequestCompleted(id: String, timestamp: Timestamp)                           extends HttpEvent
+  case class RequestCompleted(id: String, timestamp: Timestamp, status: Status)           extends HttpEvent
   case class RequestFailed(id: String, timestamp: Timestamp)                              extends HttpEvent
 }
 
