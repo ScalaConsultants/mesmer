@@ -8,14 +8,16 @@ import akka.{ actor => classic }
 import io.scalac.core.model.{ ActorKey, Node, Tag }
 import io.scalac.core.util.{ ActorCellOps, ActorRefOps }
 import io.scalac.extension.AkkaStreamMonitoring.StartStreamCollection
-import io.scalac.extension.actor.{ ActorCountsDecorators, ActorMetricStorage, ActorMetrics, ActorTimesDecorators }
+import io.scalac.extension.actor.{ ActorCellDecorator, ActorMetricStorage, ActorMetrics }
 import io.scalac.extension.event.ActorEvent.StashMeasurement
 import io.scalac.extension.event.{ ActorEvent, TagEvent }
+import io.scalac.extension.metric.ActorMetricMonitor
 import io.scalac.extension.metric.ActorMetricMonitor.Labels
-import io.scalac.extension.metric.{ ActorMetricMonitor, Unbind }
+import io.scalac.extension.metric.MetricObserver.Result
 import org.slf4j.LoggerFactory
 
 import java.lang.invoke.MethodHandles
+import java.util.concurrent.atomic.AtomicReference
 import scala.annotation.tailrec
 import scala.collection.{ immutable, mutable }
 import scala.concurrent.duration._
@@ -34,14 +36,6 @@ object ActorEventsMonitorActor {
     actorMetricsReader: ActorMetricsReader = ReflectiveActorMetricsReader
   ): Behavior[Command] =
     Behaviors.setup { ctx =>
-      val syncMetricsActor = ctx.spawn(
-        Behaviors
-          .supervise(
-            SyncMetricsActor(actorMonitor, node)
-          )
-          .onFailure(SupervisorStrategy.restart),
-        "syncMetricsActor"
-      )
       val asyncMetricsActor = ctx.spawn(
         Behaviors
           .supervise(
@@ -58,43 +52,9 @@ object ActorEventsMonitorActor {
           .onFailure(SupervisorStrategy.restart),
         "asyncMetricsActor"
       )
-      ctx.watch(syncMetricsActor)
       ctx.watch(asyncMetricsActor)
       Behaviors.ignore
     }
-
-  private object SyncMetricsActor {
-    private[ActorEventsMonitorActor] sealed trait SyncCommand          extends Command
-    private final case class ActorEventWrapper(actorEvent: ActorEvent) extends SyncCommand
-    private object ActorEventWrapper {
-      def receiveMessage(f: ActorEvent => Behavior[SyncCommand]): Behavior[SyncCommand] =
-        Behaviors.receiveMessage[SyncCommand] { case ActorEventWrapper(actorEvent) =>
-          f(actorEvent)
-        }
-    }
-
-    def apply(monitor: ActorMetricMonitor, node: Option[Node]): Behavior[SyncCommand] =
-      Behaviors.setup[SyncCommand](ctx => new SyncMetricsActor(monitor, node, ctx).start())
-  }
-
-  private class SyncMetricsActor private (
-    monitor: ActorMetricMonitor,
-    node: Option[Node],
-    ctx: ActorContext[SyncMetricsActor.SyncCommand]
-  ) {
-    import SyncMetricsActor._
-    import ctx.{ log, messageAdapter, system }
-
-    Receptionist(system).ref ! Register(
-      actorServiceKey,
-      messageAdapter(ActorEventWrapper.apply)
-    )
-
-    def start(): Behavior[SyncCommand] = ActorEventWrapper.receiveMessage { case StashMeasurement(size, path) =>
-      log.trace(s"Recorded stash size for actor $path: $size")
-      Behaviors.same
-    }
-  }
 
   private object AsyncMetricsActor {
 
@@ -146,27 +106,54 @@ object ActorEventsMonitorActor {
     actorTreeRunner: ActorTreeTraverser = ReflectiveActorTreeTraverser,
     actorMetricsReader: ActorMetricsReader = ReflectiveActorMetricsReader
   ) extends AbstractBehavior[AsyncMetricsActor.AsyncCommand](ctx) {
+
+    import context._
     // Disclaimer:
     // Due to the compute intensiveness of traverse the actors tree,
     // we're using AbstractBehavior, mutable state and var in intention to boost our performance.
 
     import AsyncMetricsActor._
-    import ctx.log
 
     private[this] val actorTags: mutable.Map[ActorKey, mutable.Set[Tag]] = mutable.Map.empty
 
     private[this] var refs: List[classic.ActorRef] = Nil
 
-    private[this] val unbinds = mutable.Map.empty[ActorKey, Unbind]
+    private[this] val boundMonitor = monitor.bind()
 
-    // start
-    setTimeout()
+    private[this] val treeSnapshot = new AtomicReference[Option[Seq[(Labels, ActorMetrics)]]](None)
+
+    init()
+
+    private def updateMetric(extractor: ActorMetrics => Option[Long])(result: Result[Long, Labels]): Unit = {
+      val state = treeSnapshot.get()
+      state
+        .foreach(_.foreach { case (labels, metrics) =>
+          extractor(metrics).foreach(value => result.observe(value, labels))
+        })
+    }
+
+    // this is not idempotent
+    private def init(): Unit = {
+      boundMonitor.mailboxSize.setUpdater(updateMetric(_.mailboxSize))
+      boundMonitor.failedMessages.setUpdater(updateMetric(_.failedMessages))
+      boundMonitor.processedMessages.setUpdater(updateMetric(_.processedMessages))
+      boundMonitor.receivedMessages.setUpdater(updateMetric(_.receivedMessages))
+      boundMonitor.mailboxTimeAvg.setUpdater(updateMetric(_.mailboxTime.map(_.avg)))
+      boundMonitor.mailboxTimeMax.setUpdater(updateMetric(_.mailboxTime.map(_.max)))
+      boundMonitor.mailboxTimeMin.setUpdater(updateMetric(_.mailboxTime.map(_.min)))
+      boundMonitor.mailboxTimeSum.setUpdater(updateMetric(_.mailboxTime.map(_.sum)))
+      boundMonitor.processingTimeAvg.setUpdater(updateMetric(_.processingTime.map(_.avg)))
+      boundMonitor.processingTimeMin.setUpdater(updateMetric(_.processingTime.map(_.min)))
+      boundMonitor.processingTimeMax.setUpdater(updateMetric(_.processingTime.map(_.max)))
+      boundMonitor.processingTimeSum.setUpdater(updateMetric(_.processingTime.map(_.sum)))
+      boundMonitor.sentMessages.setUpdater(updateMetric(_.sentMessages))
+      boundMonitor.stashSize.setUpdater(updateMetric(_.stashSize))
+      //start collection loop
+      setTimeout()
+    }
 
     override def onSignal: PartialFunction[Signal, Behavior[AsyncCommand]] = { case PostStop | PreRestart =>
-      storage.clear()
-      unbinds.clear()
-      actorTags.clear()
-      refs = Nil
+      boundMonitor.unbind()
       this
     }
 
@@ -178,7 +165,7 @@ object ActorEventsMonitorActor {
         setTimeout() // loop
         this
       case AddTag(ref, tag) =>
-        ctx.log.trace(s"Add tags {} for actor {}", tag, ref)
+        log.trace(s"Add tags {} for actor {}", tag, ref)
         refs ::= ref
         actorTags
           .getOrElseUpdate(storage.actorToKey(ref), mutable.Set.empty)
@@ -213,12 +200,10 @@ object ActorEventsMonitorActor {
           traverseActorTree(nextActors)
       }
 
-      def read(actorRef: classic.ActorRef): Unit = {
+      def read(actorRef: classic.ActorRef): Unit =
         actorMetricsReader
           .read(actorRef)
           .foreach(metrics => storage = storage.save(actorRef, metrics))
-        unbinds.remove(storage.actorToKey(actorRef))
-      }
 
       traverseActorTree(actorTreeRunner.getRootGuardian(ctx.system.classicSystem) :: Nil)
 
@@ -227,73 +212,19 @@ object ActorEventsMonitorActor {
 
     private def runSideEffects(): Unit = {
       startStreamCollection()
-      callUnbinds()
-      resetStorage()
-      registerUpdaters()
+      captureState()
     }
 
     private def startStreamCollection(): Unit = streamRef ! StartStreamCollection(refs.toSet)
 
-    private def callUnbinds(): Unit = unbinds.foreach(_._2.unbind())
-
-    private def resetStorage(): Unit = storage = unbinds.keys.foldLeft(storage)(_.remove(_))
-
-    private def registerUpdaters(): Unit =
-      storage.foreach { case (key, metrics) =>
-        lazy val bind = {
-          val tags = actorTags.get(key).fold(Set.empty[Tag])(_.toSet)
-          val bind = monitor.bind(Labels(key, node, tags))
-          unbinds.put(key, bind)
-          bind
-        }
-
-        metrics.mailboxSize.filter(0.<).foreach { ms =>
-          log.trace("Registering a new updater for mailbox size for actor {} with value {}", key, ms)
-          bind.mailboxSize.setUpdater(_.observe(ms))
-        }
-
-        metrics.mailboxTime.foreach { mt =>
-          log.trace("Registering a new updaters for mailbox time for actor {} with value {}", key, mt)
-          bind.mailboxTimeAvg.setUpdater(_.observe(mt.avg))
-          bind.mailboxTimeMin.setUpdater(_.observe(mt.min))
-          bind.mailboxTimeMax.setUpdater(_.observe(mt.max))
-          bind.mailboxTimeSum.setUpdater(_.observe(mt.sum))
-        }
-
-        metrics.receivedMessages.filter(0.<).foreach { rm =>
-          log.trace("Registering a new updater for received messages for actor {} with value {}", key, rm)
-          bind.receivedMessages.setUpdater(_.observe(rm))
-        }
-
-        metrics.processedMessages.filter(0.<).foreach { pm =>
-          log.trace("Registering a new updater for processed messages for actor {} with value {}", key, pm)
-          bind.processedMessages.setUpdater(_.observe(pm))
-        }
-
-        metrics.failedMessages.filter(0.<).foreach { fm =>
-          log.trace("Registering a new updater for failed messages for actor {} with value {}", key, fm)
-          bind.failedMessages.setUpdater(_.observe(fm))
-        }
-
-        metrics.processingTime.foreach { pt =>
-          log.trace("Registering a new updaters for processing time for actor {} with value {}", key, pt)
-          bind.processingTimeAvg.setUpdater(_.observe(pt.avg))
-          bind.processingTimeMin.setUpdater(_.observe(pt.min))
-          bind.processingTimeMax.setUpdater(_.observe(pt.max))
-          bind.processingTimeSum.setUpdater(_.observe(pt.sum))
-        }
-
-        metrics.sentMessages.foreach { sm =>
-          log.trace("Registering a new updaters for sent messages for actor {} with value {}", key, sm)
-          bind.sentMessages.setUpdater(_.observe(sm))
-        }
-
-        metrics.stashSize.foreach { ss =>
-          log.trace("Registering a new updaters for sent messages for actor {} with value {}", key, ss)
-          bind.stashSize.setUpdater(_.observe(ss))
-        }
-
-      }
+    private def captureState(): Unit = {
+      log.debug("Capturing current actor tree state")
+      treeSnapshot.set(Some(storage.snapshot.map { case (key, metrics) =>
+        val tags = actorTags.get(key).fold[Set[Tag]](Set.empty)(_.toSet)
+        (Labels(key, node, tags), metrics)
+      }))
+      storage = storage.clear()
+    }
 
   }
 
@@ -339,23 +270,22 @@ object ActorEventsMonitorActor {
 
   object ReflectiveActorMetricsReader extends ActorMetricsReader {
 
-    private val logger = LoggerFactory.getLogger(getClass)
+    private val logger = (LoggerFactory.getLogger(getClass))
 
     def read(actor: classic.ActorRef): Option[ActorMetrics] =
-      ActorRefOps.Local
-        .cell(actor)
-        .map { cell =>
-          ActorMetrics(
-            mailboxSize = safeRead(ActorCellOps.numberOfMessages(cell)),
-            mailboxTime = ActorTimesDecorators.MailboxTime.getMetrics(cell),
-            processingTime = ActorTimesDecorators.ProcessingTime.getMetrics(cell),
-            receivedMessages = ActorCountsDecorators.Received.take(cell),
-            unhandledMessages = ActorCountsDecorators.Unhandled.take(cell),
-            failedMessages = ActorCountsDecorators.Failed.take(cell),
-            sentMessages = ActorCountsDecorators.Sent.take(cell),
-            stashSize = ActorCountsDecorators.Stash.take(cell)
-          )
-        }
+      for {
+        cell    <- ActorRefOps.Local.cell(actor)
+        metrics <- ActorCellDecorator.get(cell)
+      } yield ActorMetrics(
+        mailboxSize = safeRead(ActorCellOps.numberOfMessages(cell)),
+        mailboxTime = metrics.mailboxTimeAgg.metrics,
+        processingTime = metrics.processingTimeAgg.metrics,
+        receivedMessages = Some(metrics.receivedMessages.take()),
+        unhandledMessages = Some(metrics.unhandledMessages.take()),
+        failedMessages = Some(metrics.failedMessages.take()),
+        sentMessages = Some(metrics.sentMessages.take()),
+        stashSize = metrics.stashSize.get()
+      )
 
     private def safeRead[T](value: => T): Option[T] =
       try Some(value)

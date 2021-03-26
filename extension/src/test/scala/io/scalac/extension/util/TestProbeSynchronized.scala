@@ -9,7 +9,7 @@ trait TestProbeSynchronized extends Synchronized {
 
   override def atomically[A, B](first: SyncTestProbeWrapper, second: SyncTestProbeWrapper): (A, B) => Unit = {
     def submitValue(value: Long, probe: SyncTestProbeWrapper): Unit = probe match {
-      case counter: CounterTestProbeWrapper =>
+      case counter: UpDownCounterTestProbeWrapper =>
         if (value >= 0L) counter.probe.ref ! Inc(value) else counter.probe.ref ! Dec(-value)
       case recorder: RecorderTestProbeWrapper =>
         recorder.probe.ref ! MetricRecorded(value)

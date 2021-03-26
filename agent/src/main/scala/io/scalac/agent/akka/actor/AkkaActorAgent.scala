@@ -6,13 +6,13 @@ import io.scalac.agent.{ Agent, AgentInstrumentation }
 import io.scalac.core.model._
 import io.scalac.core.support.ModulesSupport
 import io.scalac.core.util.Timestamp
-import io.scalac.extension.actor.{ ActorCountsDecorators, ActorTimesDecorators }
+import io.scalac.extension.actor.{ ActorCellDecorator, ActorCellMetrics }
 import net.bytebuddy.asm.Advice
 import net.bytebuddy.description.`type`.TypeDescription
 import net.bytebuddy.description.method.MethodDescription
 import net.bytebuddy.matcher.ElementMatchers._
 
-import java.util.concurrent.atomic.{ AtomicBoolean, AtomicLong, AtomicReference }
+import java.util.concurrent.atomic.AtomicLong
 
 object AkkaActorAgent {
 
@@ -27,9 +27,7 @@ object AkkaActorAgent {
       SupportedModules(moduleName, version)
     ) { (agentBuilder, instrumentation, _) =>
       agentBuilder
-        .`type`(
-          named[TypeDescription](targetClassName)
-        )
+        .`type`(named[TypeDescription](targetClassName))
         .transform { (builder, _, _, _) =>
           builder
             .visit(
@@ -178,40 +176,8 @@ object AkkaActorAgent {
         .transform { (builder, _, _, _) =>
           builder
             .defineField(
-              ActorTimesDecorators.MailboxTime.fieldName,
-              classOf[ActorTimesDecorators.FieldType]
-            )
-            .defineField(
-              ActorTimesDecorators.ProcessingTime.fieldName,
-              classOf[ActorTimesDecorators.FieldType]
-            )
-            .defineField(
-              ActorTimesDecorators.ProcessingTimeSupport.fieldName,
-              classOf[AtomicReference[Timestamp]]
-            )
-            .defineField(
-              ActorCountsDecorators.Received.fieldName,
-              classOf[AtomicLong]
-            )
-            .defineField(
-              ActorCountsDecorators.Unhandled.fieldName,
-              classOf[AtomicLong]
-            )
-            .defineField(
-              ActorCountsDecorators.Failed.fieldName,
-              classOf[AtomicLong]
-            )
-            .defineField(
-              ActorCountsDecorators.FailHandled.fieldName,
-              classOf[AtomicBoolean]
-            )
-            .defineField(
-              ActorCountsDecorators.Sent.fieldName,
-              classOf[AtomicLong]
-            )
-            .defineField(
-              ActorCountsDecorators.Stash.fieldName,
-              classOf[AtomicLong]
+              ActorCellDecorator.fieldName,
+              classOf[ActorCellMetrics]
             )
             .visit(
               Advice

@@ -1,11 +1,12 @@
 package io.scalac.extension.util
 
 import akka.actor.PoisonPill
-import akka.actor.typed.{ ActorRef, ActorSystem, Behavior }
 import akka.actor.typed.receptionist.ServiceKey
 import akka.actor.typed.scaladsl.Behaviors
+import akka.actor.typed.{ ActorRef, ActorSystem, Behavior }
 import akka.testkit.TestKit
 import akka.util.Timeout
+import io.scalac.extension.util.probe.{ Collected, ObserverCollector }
 
 object TestCase {
 
@@ -94,27 +95,39 @@ object TestCase {
 
     // DSL
     def monitor(implicit context: Context): Monitor = context.monitor
+
+    def collector(implicit context: Context, ev: Monitor <:< Collected): ObserverCollector = ev(monitor).collector
   }
 
-  trait MonitorWithServiceTestCaseFactory extends AbstractMonitorTestCaseFactory with ReceptionistOps {
-
+  trait MonitorWithActorRefSetupTestCaseFactory extends AbstractMonitorTestCaseFactory with TestOps {
     type Setup = ActorRef[_]
 
     // add-on api
     protected def createMonitorBehavior(implicit context: Context): Behavior[_]
-    protected val serviceKey: ServiceKey[_]
-    implicit def timeout: Timeout
 
     // overrides
-    override final protected def setUp(context: Context): ActorRef[_] = {
+    override protected def setUp(context: Context): ActorRef[_] = {
       val monitorBehavior = createMonitorBehavior(context)
       val monitorActor    = context.system.systemActorOf(monitorBehavior, createUniqueId)
-      onlyRef(monitorActor, serviceKey)(context.system, timeout)
       monitorActor
     }
 
     override final protected def tearDown(setup: ActorRef[_]): Unit =
       setup.unsafeUpcast[Any] ! PoisonPill
+  }
+
+  trait MonitorWithServiceTestCaseFactory extends MonitorWithActorRefSetupTestCaseFactory with ReceptionistOps {
+
+    protected val serviceKey: ServiceKey[_]
+    implicit def timeout: Timeout
+
+    // overrides
+    override final protected def setUp(context: Context): ActorRef[_] = {
+      val monitorActor = super[MonitorWithActorRefSetupTestCaseFactory].setUp(context)
+      onlyRef(monitorActor, serviceKey)(context.system, timeout)
+      monitorActor
+    }
+
   }
 
   import MonitorTestCaseContext.BasicContext

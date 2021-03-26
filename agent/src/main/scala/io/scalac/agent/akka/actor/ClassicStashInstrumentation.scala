@@ -1,7 +1,7 @@
 package io.scalac.agent.akka.actor
 
 import akka.actor.{ Actor, ActorContext }
-import io.scalac.extension.actor.ActorCountsDecorators
+import io.scalac.extension.actor.ActorCellDecorator
 import net.bytebuddy.asm.Advice.{ OnMethodExit, This }
 
 import java.lang.invoke.MethodHandles
@@ -12,7 +12,9 @@ object StashConstructorAdvice {
 
   @OnMethodExit
   def initStash(@This self: Actor): Unit =
-    ActorCountsDecorators.Stash.initialize(self.context)
+    ActorCellDecorator
+      .get(ClassicActorOps.getContext(self))
+      .foreach(_.stashSize.initialize())
 
 }
 
@@ -24,7 +26,7 @@ object ClassicStashInstrumentation {
   @OnMethodExit
   def onStashExit(@This stash: AnyRef): Unit = {
     val size = getStashSize(stash)
-    ActorCountsDecorators.Stash.set(getActorCell(stash), size)
+    ActorCellDecorator.get(getActorCell(stash)).foreach(_.stashSize.set(size))
   }
 
   private object Getters {
@@ -46,7 +48,5 @@ object ClassicStashInstrumentation {
 
     @inline final def getActorCell(stashSupport: AnyRef): AnyRef =
       getContextMethodHandle.invoke(stashSupport)
-
   }
-
 }
