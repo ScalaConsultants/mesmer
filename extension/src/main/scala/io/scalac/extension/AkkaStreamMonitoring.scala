@@ -10,8 +10,8 @@ import io.scalac.core.model.Tag.{ StageName, StreamName }
 import io.scalac.core.model._
 import io.scalac.core.support.ModulesSupport
 import io.scalac.extension.AkkaStreamMonitoring._
-import io.scalac.extension.config.CachingConfig
 import io.scalac.extension.config.ConfigurationUtils._
+import io.scalac.extension.config.{ BufferConfig, CachingConfig }
 import io.scalac.extension.event.Service.streamService
 import io.scalac.extension.event.StreamEvent
 import io.scalac.extension.event.StreamEvent.{ LastStreamStats, StreamInterpreterStats }
@@ -213,10 +213,12 @@ class AkkaStreamMonitoring(
   scheduler: TimerScheduler[Command],
   node: Option[Node]
 ) extends AbstractBehavior[Command](ctx) {
+  import ModulesSupport._
 
   private val Timeout: FiniteDuration = streamCollectionTimeout
 
-  private val cachingConfig          = CachingConfig.fromConfig(ctx.system.settings.config, ModulesSupport.akkaStreamModule)
+  private val cachingConfig          = CachingConfig.fromConfig(ctx.system.settings.config, akkaStreamModule)
+  private val bufferConfig           = BufferConfig.fromConfig(ctx.system.settings.config, akkaStreamModule)
   private val indexCache             = ConnectionsIndexCache.bounded(cachingConfig.maxEntries)
   private val operationsBoundMonitor = streamOperatorMonitor.bind()
   private val boundStreamMonitor     = streamMonitor.bind(EagerLabels(node))
@@ -262,7 +264,7 @@ class AkkaStreamMonitoring(
   }
 
   override def onMessage(msg: Command): Behavior[Command] =
-    Behaviors.withStash(1024) { buffer =>
+    Behaviors.withStash(bufferConfig.size) { buffer =>
       msg match {
         case StartStreamCollection(refs) if refs.nonEmpty =>
           log.debug("Start stream stats collection")
