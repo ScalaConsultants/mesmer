@@ -16,9 +16,9 @@ object HttpMetricMonitor {
   }
 
   trait BoundMonitor extends Synchronized with Bound {
-    def connectionCounter: Counter[Long] with Instrument[Long]
+    def connectionCounter: UpDownCounter[Long] with Instrument[Long]
     def requestTime: MetricRecorder[Long] with Instrument[Long]
-    def requestCounter: UpCounter[Long] with Instrument[Long]
+    def requestCounter: Counter[Long] with Instrument[Long]
   }
 
 }

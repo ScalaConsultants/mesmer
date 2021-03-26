@@ -5,8 +5,7 @@ import java.util.concurrent.atomic.AtomicInteger
 
 import akka.actor.testkit.typed.scaladsl.TestProbe
 import akka.actor.typed.ActorSystem
-
-import io.scalac.extension.metric.{ Counter, HttpMetricMonitor, MetricRecorder, UpCounter }
+import io.scalac.extension.metric.{ Counter, HttpMetricMonitor, MetricRecorder }
 import io.scalac.extension.util.TestProbeSynchronized
 import io.scalac.extension.util.probe.BoundTestProbe.{ CounterCommand, MetricRecorderCommand }
 import scala.collection.concurrent.{ Map => CMap }
@@ -41,13 +40,13 @@ class HttpMetricsTestProbe(implicit val system: ActorSystem[_]) extends HttpMetr
       with TestProbeSynchronized {
 
     override val connectionCounter: Counter[Long] with SyncTestProbeWrapper =
-      CounterTestProbeWrapper(connectionCounterProbe, Some(globalConnectionCounter))
+      UpDownCounterTestProbeWrapper(connectionCounterProbe, Some(globalConnectionCounter))
 
     override val requestTime: MetricRecorder[Long] with SyncTestProbeWrapper =
       RecorderTestProbeWrapper(requestTimeProbe)
 
-    override val requestCounter: UpCounter[Long] with SyncTestProbeWrapper =
-      CounterTestProbeWrapper(requestCounterProbe, Some(globalRequestCounter))
+    override val requestCounter: Counter[Long] with SyncTestProbeWrapper =
+      UpDownCounterTestProbeWrapper(requestCounterProbe, Some(globalRequestCounter))
 
     override def unbind(): Unit = ()
   }
