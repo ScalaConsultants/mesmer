@@ -10,7 +10,7 @@ import io.scalac.extension.event.HttpEvent
 import io.scalac.extension.event.HttpEvent._
 import io.scalac.extension.http.RequestStorage
 import io.scalac.extension.metric.HttpMetricMonitor
-import io.scalac.extension.metric.HttpMetricMonitor._
+import io.scalac.extension.metric.HttpConnectionMetricMonitor
 import io.scalac.extension.service.PathService
 
 import scala.language.postfixOps
@@ -27,6 +27,7 @@ object HttpEventsActor {
 
   def apply(
     httpMetricMonitor: HttpMetricMonitor,
+    httpConnectionMetricMonitor: HttpConnectionMetricMonitor,
     initRequestStorage: RequestStorage,
     pathService: PathService,
     node: Option[Node] = None
@@ -37,11 +38,11 @@ object HttpEventsActor {
 
     Receptionist(ctx.system).ref ! Register(httpServiceKey, ctx.messageAdapter(HttpEventWrapper.apply))
 
-    def createConnectionLabels(connectionEvent: ConnectionEvent): Labels =
-      ConnectionLabels(node, connectionEvent.interface, connectionEvent.port)
+    def createConnectionLabels(connectionEvent: ConnectionEvent): HttpConnectionMetricMonitor.Labels =
+      HttpConnectionMetricMonitor.Labels(node, connectionEvent.interface, connectionEvent.port)
 
-    def createRequestLabels(path: Path, method: Method, status: Status): Labels =
-      RequestLabels(node, pathService.template(path), method, status)
+    def createRequestLabels(path: Path, method: Method, status: Status): HttpMetricMonitor.Labels =
+      HttpMetricMonitor.Labels(node, pathService.template(path), method, status)
 
     def monitorHttp(
       requestStorage: RequestStorage
@@ -50,7 +51,7 @@ object HttpEventsActor {
         .receiveMessage[Event] {
 
           case HttpEventWrapper(connectionEvent: ConnectionEvent) =>
-            val counter = httpMetricMonitor.bind(createConnectionLabels(connectionEvent)).connectionCounter
+            val counter = httpConnectionMetricMonitor.bind(createConnectionLabels(connectionEvent)).connectionCounter
             connectionEvent match {
               case _: ConnectionStarted   => counter.incValue(1L)
               case _: ConnectionCompleted => counter.decValue(1L)

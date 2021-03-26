@@ -10,11 +10,12 @@ import io.scalac.extension.event.EventBus
 import io.scalac.extension.event.HttpEvent.{ ConnectionCompleted, ConnectionStarted, RequestCompleted, RequestStarted }
 import io.scalac.extension.http.MutableRequestStorage
 import io.scalac.extension.metric.CachingMonitor
-import io.scalac.extension.metric.HttpMetricMonitor.{ ConnectionLabels, RequestLabels }
+import io.scalac.extension.metric.HttpMetricMonitor
+import io.scalac.extension.metric.HttpConnectionMetricMonitor
 import io.scalac.extension.util.TestCase.CommonMonitorTestFactory
 import io.scalac.extension.util.TestCase.MonitorTestCaseContext.BasicContext
 import io.scalac.extension.util.probe.BoundTestProbe._
-import io.scalac.extension.util.probe.HttpMetricsTestProbe
+import io.scalac.extension.util.probe.{ HttpConnectionMetricsTestProbe, HttpMetricsTestProbe }
 import io.scalac.extension.util.{ IdentityPathService, TestOps, _ }
 import org.scalatest.concurrent.Eventually
 import org.scalatest.flatspec.AnyFlatSpecLike
@@ -36,26 +37,31 @@ class HttpEventsActorTest
     with TestOps
     with CommonMonitorTestFactory {
 
-  type Monitor = HttpMetricsTestProbe
+  type Monitor = _Monitor
+  case class _Monitor(request: HttpMetricsTestProbe, connection: HttpConnectionMetricsTestProbe)
 
   protected val serviceKey: ServiceKey[_] = httpServiceKey
 
-  protected def createMonitorBehavior(implicit context: BasicContext[HttpMetricsTestProbe]): Behavior[_] =
+  protected def createMonitorBehavior(implicit context: BasicContext[Monitor]): Behavior[_] = {
+    val _Monitor(requestMonitor, connectionMonitor) = monitor
     HttpEventsActor(
-      if (context.caching) CachingMonitor(monitor) else monitor,
+      if (context.caching) CachingMonitor(requestMonitor) else requestMonitor,
+      if (context.caching) CachingMonitor(connectionMonitor) else connectionMonitor,
       MutableRequestStorage.empty,
       IdentityPathService
     )
+  }
 
-  protected def createMonitor(implicit s: ActorSystem[_]): HttpMetricsTestProbe = new HttpMetricsTestProbe()(s)
+  protected def createMonitor(implicit s: ActorSystem[_]): Monitor =
+    _Monitor(new HttpMetricsTestProbe()(s), new HttpConnectionMetricsTestProbe()(s))
 
-  def connectionStarted(labels: ConnectionLabels): Unit =
+  def connectionStarted(labels: HttpConnectionMetricMonitor.Labels): Unit =
     EventBus(system).publishEvent(ConnectionStarted(labels.interface, labels.port))
 
-  def connectionCompleted(labels: ConnectionLabels): Unit =
+  def connectionCompleted(labels: HttpConnectionMetricMonitor.Labels): Unit =
     EventBus(system).publishEvent(ConnectionCompleted(labels.interface, labels.port))
 
-  def requestStarted(id: String, labels: RequestLabels): Unit =
+  def requestStarted(id: String, labels: HttpMetricMonitor.Labels): Unit =
     EventBus(system).publishEvent(RequestStarted(id, Timestamp.create(), labels.path, labels.method))
 
   def requestCompleted(id: String, status: Status): Unit =
@@ -63,27 +69,28 @@ class HttpEventsActorTest
 
   "HttpEventsActor" should "collect metrics for single request" in testCase { implicit c =>
     val status: Status           = "200"
-    val expectedConnectionLabels = ConnectionLabels(None, "0.0.0.0", 8080)
-    val expectedRequestLabels    = RequestLabels(None, "/api/v1/test", "GET", status)
+    val expectedConnectionLabels = HttpConnectionMetricMonitor.Labels(None, "0.0.0.0", 8080)
+    val expectedRequestLabels    = HttpMetricMonitor.Labels(None, "/api/v1/test", "GET", status)
 
     connectionStarted(expectedConnectionLabels)
-    eventually(monitor.boundSize shouldBe 1)(patienceConfig, implicitly, implicitly)
+    eventually(monitor.connection.boundSize shouldBe 1)(patienceConfig, implicitly, implicitly)
 
     val id = createUniqueId
     requestStarted(id, expectedRequestLabels)
     Thread.sleep(1050)
     requestCompleted(id, status)
-    eventually(monitor.boundSize shouldBe 2)(patienceConfig, implicitly, implicitly)
+    eventually(monitor.request.boundSize shouldBe 1)(patienceConfig, implicitly, implicitly)
 
-    monitor.boundLabels should contain theSameElementsAs (Seq(expectedConnectionLabels, expectedRequestLabels))
+    monitor.connection.boundLabels should contain theSameElementsAs Seq(expectedConnectionLabels)
+    monitor.request.boundLabels should contain theSameElementsAs Seq(expectedRequestLabels)
 
-    val requestBoundProbes = monitor.probes(expectedRequestLabels)
+    val requestBoundProbes = monitor.request.probes(expectedRequestLabels)
     requestBoundProbes.value.requestCounterProbe.receiveMessage() should be(Inc(1L))
     inside(requestBoundProbes.value.requestTimeProbe.receiveMessage()) { case MetricRecorded(value) =>
       value shouldBe 1000L +- 100L
     }
 
-    val connectionBoundProbes = monitor.probes(expectedConnectionLabels)
+    val connectionBoundProbes = monitor.connection.probes(expectedConnectionLabels)
     connectionBoundProbes.value.connectionCounterProbe.receiveMessage() should be(Inc(1L))
     connectionCompleted(expectedConnectionLabels)
     connectionBoundProbes.value.connectionCounterProbe.receiveMessage() should be(Dec(1L))
@@ -92,13 +99,13 @@ class HttpEventsActorTest
 
   it should "reuse monitors for same labels" in testCaseWith(_.withCaching) { implicit c =>
     val expectedConnectionLabels = List(
-      ConnectionLabels(None, "0.0.0.0", 8080),
-      ConnectionLabels(None, "0.0.0.0", 8081)
+      HttpConnectionMetricMonitor.Labels(None, "0.0.0.0", 8080),
+      HttpConnectionMetricMonitor.Labels(None, "0.0.0.0", 8081)
     )
 
     val expectedRequestLabels = List(
-      RequestLabels(None, "/api/v1/test", "GET", "200"),
-      RequestLabels(None, "/api/v2/test", "POST", "201")
+      HttpMetricMonitor.Labels(None, "/api/v1/test", "GET", "200"),
+      HttpMetricMonitor.Labels(None, "/api/v2/test", "POST", "201")
     )
     val requestCount = 10
 
@@ -114,17 +121,18 @@ class HttpEventsActorTest
 
     expectedConnectionLabels.foreach(connectionCompleted)
 
-    monitor.globalRequestCounter.receiveMessages(requestCount * expectedRequestLabels.size)
-    monitor.globalConnectionCounter.receiveMessages(2 * expectedConnectionLabels.size)
+    monitor.connection.globalConnectionCounter.receiveMessages(2 * expectedConnectionLabels.size)
+    monitor.request.globalRequestCounter.receiveMessages(requestCount * expectedRequestLabels.size)
 
-    monitor.binds should be(expectedConnectionLabels.size + expectedRequestLabels.size)
+    monitor.connection.binds should be(expectedConnectionLabels.size)
+    monitor.request.binds should be(expectedRequestLabels.size)
   }
 
   it should "collect metric for several concurrent requests" in testCaseWith(_.withCaching) { implicit c =>
-    val connectionLabels = List.tabulate(10)(i => ConnectionLabels(None, "0.0.0.0", 8080 + i))
+    val connectionLabels = List.tabulate(10)(i => HttpConnectionMetricMonitor.Labels(None, "0.0.0.0", 8080 + i))
     connectionLabels.foreach(connectionStarted)
 
-    val requestLabels = List.fill(10)(createUniqueId).map(id => RequestLabels(None, id, "GET", "204"))
+    val requestLabels = List.fill(10)(createUniqueId).map(id => HttpMetricMonitor.Labels(None, id, "GET", "204"))
     val requests      = requestLabels.map(l => createUniqueId -> l).toMap
     requests.foreach(Function.tupled(requestStarted))
     Thread.sleep(1050)
@@ -134,12 +142,13 @@ class HttpEventsActorTest
 
     connectionLabels.foreach(connectionCompleted)
 
-    monitor.globalConnectionCounter.receiveMessages(connectionLabels.size)
-    monitor.globalRequestCounter.receiveMessages(requests.size)
+    monitor.connection.globalConnectionCounter.receiveMessages(connectionLabels.size)
+    monitor.request.globalRequestCounter.receiveMessages(requests.size)
 
-    monitor.boundLabels should contain theSameElementsAs (connectionLabels ++ requestLabels)
+    monitor.connection.boundLabels should contain theSameElementsAs connectionLabels
+    monitor.request.boundLabels should contain theSameElementsAs requestLabels
 
-    val connectionProbes = connectionLabels.flatMap(monitor.probes)
+    val connectionProbes = connectionLabels.flatMap(monitor.connection.probes)
     connectionProbes should have size connectionLabels.size
     forAll(connectionProbes) { probes =>
       import probes._
@@ -148,7 +157,7 @@ class HttpEventsActorTest
       }
     }
 
-    val requestProbes = requestLabels.flatMap(monitor.probes)
+    val requestProbes = requestLabels.flatMap(monitor.request.probes)
     requestProbes should have size requestLabels.size
     forAll(requestProbes) { probes =>
       import probes._

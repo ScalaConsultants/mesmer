@@ -7,7 +7,6 @@ import io.scalac.extension.upstream.opentelemetry._
 
 object OpenTelemetryHttpMetricsMonitor {
   case class MetricNames(
-    connectionTotal: String,
     requestDuration: String,
     requestTotal: String
   )
@@ -15,7 +14,6 @@ object OpenTelemetryHttpMetricsMonitor {
   object MetricNames {
     def default: MetricNames =
       MetricNames(
-        "connection_total",
         "request_duration",
         "request_total"
       )
@@ -29,10 +27,6 @@ object OpenTelemetryHttpMetricsMonitor {
           _.getConfig
         )
         .map { clusterMetricsConfig =>
-          val connectionTotal = clusterMetricsConfig
-            .tryValue("connection-total")(_.getString)
-            .getOrElse(defaultCached.connectionTotal)
-
           val requestDuration = clusterMetricsConfig
             .tryValue("request-duration")(_.getString)
             .getOrElse(defaultCached.requestDuration)
@@ -41,7 +35,7 @@ object OpenTelemetryHttpMetricsMonitor {
             .tryValue("request-total")(_.getString)
             .getOrElse(defaultCached.requestTotal)
 
-          MetricNames(connectionTotal, requestDuration, requestTotal)
+          MetricNames(requestDuration, requestTotal)
         }
         .getOrElse(defaultCached)
     }
@@ -59,11 +53,6 @@ class OpenTelemetryHttpMetricsMonitor(
 
   private val meter = OpenTelemetry
     .getGlobalMeter(instrumentationName)
-
-  private val connectionTotalCounter = meter
-    .longUpDownCounterBuilder(metricNames.connectionTotal)
-    .setDescription("Amount of connections")
-    .build()
 
   private val requestTimeRequest = meter
     .longValueRecorderBuilder(metricNames.requestDuration)
@@ -83,8 +72,6 @@ class OpenTelemetryHttpMetricsMonitor(
       with SynchronousInstrumentFactory
       with RegisterRoot {
     private val openTelemetryLabels = LabelsFactory.of(labels.serialize)
-
-    override val connectionCounter = upDownCounter(connectionTotalCounter, openTelemetryLabels).register(this)
 
     override val requestTime = metricRecorder(requestTimeRequest, openTelemetryLabels).register(this)
 
