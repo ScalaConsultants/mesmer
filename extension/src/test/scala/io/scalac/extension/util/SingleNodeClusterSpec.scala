@@ -22,7 +22,7 @@ import com.typesafe.config.{ Config, ConfigFactory, ConfigValueFactory }
 import io.scalac.extension.util.probe.ClusterMetricsTestProbe
 import org.scalatest.{ Assertion, AsyncTestSuite }
 
-import io.scalac.extension.util.probe.ObserverCollector.CommonCollectorImpl
+import io.scalac.extension.util.probe.ObserverCollector.ScheduledCollectorImpl
 
 trait SingleNodeClusterSpec extends AsyncTestSuite {
 
@@ -80,7 +80,7 @@ trait SingleNodeClusterSpec extends AsyncTestSuite {
         sharding.init(entity)
       }
 
-      val collector: CommonCollectorImpl = new CommonCollectorImpl(pingOffset)
+      val collector: ScheduledCollectorImpl = new ScheduledCollectorImpl(pingOffset)
 
       val clusterProbe = ClusterMetricsTestProbe(collector)
 

@@ -25,10 +25,9 @@ object StreamOperatorMetricsMonitor {
     }
   }
 
-  //TODO split processedMessages into processTime, processMessages and demand
   trait BoundMonitor extends Bound {
-    def processedMessages: LazyMetricObserver[Long, StreamOperatorMetricsMonitor.Labels]
-    def demand: LazyMetricObserver[Long, StreamOperatorMetricsMonitor.Labels]
-    def operators: LazyMetricObserver[Long, StreamOperatorMetricsMonitor.Labels]
+    def processedMessages: MetricObserver[Long, StreamOperatorMetricsMonitor.Labels]
+    def operators: MetricObserver[Long, StreamOperatorMetricsMonitor.Labels]
+    def demand: MetricObserver[Long, StreamOperatorMetricsMonitor.Labels]
   }
 }
