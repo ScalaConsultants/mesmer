@@ -14,9 +14,7 @@ package object i13n {
 
   final private[i13n] type TypeDesc   = ElementMatcher.Junction[TypeDescription]
   final private[i13n] type MethodDesc = ElementMatcher.Junction[MethodDescription]
-  final class Type private[i13n] (private[i13n] val name: String, private[i13n] val desc: TypeDesc) {
-    def and(desc: TypeDesc): Type = new Type(name, desc)
-  }
+  final class Type private[i13n] (private[i13n] val name: String, private[i13n] val desc: TypeDesc)
 
   // DSL
 
@@ -75,9 +73,21 @@ package object i13n {
 
   // extensions
 
-  final implicit class TypeOps(val tpe: Type) extends AnyVal {
-    def overrides(methodDesc: MethodDesc): Type = declares(methodDesc.isOverriddenFrom(tpe.desc))
-    def declares(methodDesc: MethodDesc): Type  = tpe.and(EM.declaresMethod(methodDesc))
+  sealed trait TypeDescLike[T] extends Any {
+    // This trait intents to reuse all the transformations available both TypeDesc and Type
+    def overrides(methodDesc: MethodDesc): T = declares(methodDesc.isOverriddenFrom(typeDesc))
+    def declares(methodDesc: MethodDesc): T  = and(EM.declaresMethod(methodDesc))
+    protected def typeDesc: TypeDesc
+    protected def and(that: TypeDesc): T
+  }
+
+  final implicit class TypeOps(val tpe: Type) extends AnyVal with TypeDescLike[Type] {
+    protected def and(that: TypeDesc): Type = new Type(tpe.name, tpe.desc.and(that))
+    protected def typeDesc: TypeDesc        = tpe.desc
+  }
+
+  final implicit class TypeDescOps(val typeDesc: TypeDesc) extends AnyVal with TypeDescLike[TypeDesc] {
+    protected def and(that: TypeDesc): TypeDesc = typeDesc.and(that)
   }
 
   final implicit class MethodDescOps(val methodDesc: MethodDesc) extends AnyVal {
