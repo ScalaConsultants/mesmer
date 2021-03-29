@@ -8,6 +8,8 @@ ThisBuild / organizationName := "scalac"
 
 ThisBuild / dependencyOverrides ++= openTelemetryDependenciesOverrides
 
+ThisBuild / scalacOptions ++= Seq("-deprecation", "-feature")
+
 def runWithAgent = Command.command("runWithAgent") { state =>
   val extracted = Project extract state
   val newState =
