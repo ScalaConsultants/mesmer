@@ -17,9 +17,7 @@ object AkkaActorAgent extends InstrumentModuleFactory {
 
   private val classicStashInstrumentation = instrument("akka.actor.StashSupport") { implicit b =>
     visit[ClassicStashInstrumentation](
-      method("stash")
-        .or(method("prepend"))
-        .or(method("unstash"))
+      methods("stash", "prepend", "unstash")
         .or(method("unstashAll").takesArguments(1))
     )
   }

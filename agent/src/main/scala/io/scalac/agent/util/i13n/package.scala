@@ -33,7 +33,8 @@ package object i13n {
   final def defineField[T](name: String)(implicit ct: ClassTag[T], builder: Builder): Unit =
     builder.defineField(name)
 
-  final def method(name: String): MethodDesc = EM.named[MethodDescription](name)
+  final def method(name: String): MethodDesc                  = EM.named[MethodDescription](name)
+  final def methods(first: String, rest: String*): MethodDesc = rest.map(method).fold(method(first))(_.or(_))
 
   final def constructor: MethodDesc = EM.isConstructor
 
@@ -47,7 +48,7 @@ package object i13n {
 
   final private[i13n] type WrappedBuilder = DynamicType.Builder[_]
 
-  final class Builder(private[this] var wrapped: WrappedBuilder) {
+  final class Builder private[i13n] (private[this] var wrapped: WrappedBuilder) {
     private[i13n] def get(): WrappedBuilder = wrapped
 
     private[i13n] def visit[T](method: MethodDesc)(implicit ct: ClassTag[T]): Unit =
@@ -61,12 +62,13 @@ package object i13n {
 
     private[this] def change(nextValue: WrappedBuilder => WrappedBuilder): Unit =
       wrapped = nextValue(wrapped)
+
   }
 
   final private[i13n] object Builder {
-    def apply(wrapped: WrappedBuilder)(block: Builder => Unit): WrappedBuilder = {
+    def build(wrapped: WrappedBuilder, buildFn: Builder => Unit): WrappedBuilder = {
       val wrapper = new Builder(wrapped)
-      block(wrapper)
+      buildFn(wrapper)
       wrapper.get()
     }
   }

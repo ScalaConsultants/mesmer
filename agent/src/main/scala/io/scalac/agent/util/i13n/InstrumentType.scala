@@ -6,12 +6,12 @@ import io.scalac.core.model.SupportedModules
 
 final class InstrumentType(tpe: Type, modules: SupportedModules) {
 
-  def apply(build: Builder => Unit): AgentInstrumentation =
+  def apply(buildFn: Builder => Unit): AgentInstrumentation =
     AgentInstrumentation(tpe.name, modules) { (agentBuilder, instrumentation, _) =>
       agentBuilder
         .`type`(tpe.desc)
-        .transform { (builder, _, _, _) =>
-          Builder(builder)(build)
+        .transform { (underlying, _, _, _) =>
+          Builder.build(underlying, buildFn)
         }
         .installOn(instrumentation)
       LoadingResult(tpe.name)
