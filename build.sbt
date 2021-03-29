@@ -12,14 +12,14 @@ lazy val all = (project in file("."))
   .disablePlugins(sbtassembly.AssemblyPlugin)
   .settings(
     name := "mesmer-all",
-    skip in publish := true)
+    publish / skip := true)
   .aggregate(extension, agent, example, core)
 
 lazy val core = (project in file("core"))
   .disablePlugins(sbtassembly.AssemblyPlugin)
   .settings(
     name := "mesmer-akka-core",
-    skip in publish := true,
+    publish / skip := true,
     libraryDependencies ++= {
       akka ++ 
       openTelemetryApi ++ 
@@ -35,7 +35,6 @@ lazy val extension = (project in file("extension"))
   .settings(
     parallelExecution in Test := true,
     name := "mesmer-akka-extension",
-    assemblyMergeStrategySettings,
     libraryDependencies ++= {
       akka ++ 
       openTelemetryApi ++ 
@@ -52,7 +51,7 @@ lazy val extension = (project in file("extension"))
 lazy val agent = (project in file("agent"))
   .settings(
     name := "mesmer-akka-agent",
-    skip in publish := true,
+    publish / skip := true,
     libraryDependencies ++= {
       akka.map(_      % "provided") ++
       logback.map(_ % Test) ++
@@ -90,7 +89,7 @@ lazy val example = (project in file("example"))
   .enablePlugins(JavaAppPackaging, DockerPlugin, UniversalPlugin)
   .settings(
     name := "mesmer-akka-example",
-    skip in publish := true,
+    publish / skip := true,
     libraryDependencies ++= {
       val CirceVersion          = "0.12.3"
       val SlickVersion          = "3.3.3"

@@ -110,7 +110,7 @@ object Boot extends App with FailFastCirceSupport with JsonCodecs {
     }
   }
 
-  val local = sys.env.get("env").exists(_.toLowerCase() == "local")
+  val local = sys.props.get("env").exists(_.toLowerCase() == "local")
   if (local) {
     logger.info("Starting application with static seed nodes")
   } else {
