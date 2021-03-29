@@ -37,13 +37,13 @@ class HttpEventsActorTest
     with TestOps
     with CommonMonitorTestFactory {
 
-  type Monitor = _Monitor
-  case class _Monitor(request: HttpMetricsTestProbe, connection: HttpConnectionMetricsTestProbe)
+  type Monitor = MonitorImpl
+  case class MonitorImpl(request: HttpMetricsTestProbe, connection: HttpConnectionMetricsTestProbe)
 
   protected val serviceKey: ServiceKey[_] = httpServiceKey
 
   protected def createMonitorBehavior(implicit context: BasicContext[Monitor]): Behavior[_] = {
-    val _Monitor(requestMonitor, connectionMonitor) = monitor
+    val MonitorImpl(requestMonitor, connectionMonitor) = monitor
     HttpEventsActor(
       if (context.caching) CachingMonitor(requestMonitor) else requestMonitor,
       if (context.caching) CachingMonitor(connectionMonitor) else connectionMonitor,
@@ -53,7 +53,7 @@ class HttpEventsActorTest
   }
 
   protected def createMonitor(implicit s: ActorSystem[_]): Monitor =
-    _Monitor(new HttpMetricsTestProbe()(s), new HttpConnectionMetricsTestProbe()(s))
+    MonitorImpl(new HttpMetricsTestProbe()(s), new HttpConnectionMetricsTestProbe()(s))
 
   def connectionStarted(labels: HttpConnectionMetricMonitor.Labels): Unit =
     EventBus(system).publishEvent(ConnectionStarted(labels.interface, labels.port))
