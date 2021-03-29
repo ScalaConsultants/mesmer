@@ -9,20 +9,22 @@ object ActorMetricMonitor {
     override val serialize: RawLabels = node.serialize ++ actorPath.serialize ++ tags.flatMap(_.serialize)
   }
 
-  trait BoundMonitor extends Synchronized with Bound {
-    def mailboxSize: MetricObserver[Long]
+  trait BoundMonitor extends Bound {
+    def mailboxSize: MetricObserver[Long, Labels]
     // TODO Create an abstraction to aggregate multiple metrics (e.g: mailboxTimeAgg: MetricObserverAgg[Long])
-    def mailboxTimeAvg: MetricObserver[Long]
-    def mailboxTimeMin: MetricObserver[Long]
-    def mailboxTimeMax: MetricObserver[Long]
-    def mailboxTimeSum: MetricObserver[Long]
-    def stashSize: MetricRecorder[Long] with Instrument[Long]
-    def receivedMessages: MetricObserver[Long]
-    def processedMessages: MetricObserver[Long]
-    def failedMessages: MetricObserver[Long]
-    def processingTimeAvg: MetricObserver[Long]
-    def processingTimeMin: MetricObserver[Long]
-    def processingTimeMax: MetricObserver[Long]
-    def processingTimeSum: MetricObserver[Long]
+    def mailboxTimeAvg: MetricObserver[Long, Labels]
+    def mailboxTimeMin: MetricObserver[Long, Labels]
+    def mailboxTimeMax: MetricObserver[Long, Labels]
+    def mailboxTimeSum: MetricObserver[Long, Labels]
+    def stashSize(labels: Labels): MetricRecorder[Long] // TODO stash should be MetricObserver too
+    def receivedMessages: MetricObserver[Long, Labels]
+    def processedMessages: MetricObserver[Long, Labels]
+    def failedMessages: MetricObserver[Long, Labels]
+    def processingTimeAvg: MetricObserver[Long, Labels]
+    def processingTimeMin: MetricObserver[Long, Labels]
+    def processingTimeMax: MetricObserver[Long, Labels]
+    def processingTimeSum: MetricObserver[Long, Labels]
+    def sentMessages: MetricObserver[Long, Labels]
+
   }
 }

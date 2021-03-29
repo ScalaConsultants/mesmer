@@ -9,6 +9,7 @@ trait ActorMetricStorage {
   def save(actorRef: ActorRef, metrics: ActorMetrics): ActorMetricStorage
   def remove(key: ActorKey): ActorMetricStorage
   def foreach(f: ((ActorKey, ActorMetrics)) => Unit): Unit
+  def snapshot: Seq[(ActorKey, ActorMetrics)]
   def has(key: ActorKey): Boolean
   def clear(): ActorMetricStorage
   private[extension] def actorToKey(actorRef: ActorRef): ActorKey = ActorPathOps.getPathString(actorRef)

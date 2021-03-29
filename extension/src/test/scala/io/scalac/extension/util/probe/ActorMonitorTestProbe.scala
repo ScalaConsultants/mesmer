@@ -2,92 +2,67 @@ package io.scalac.extension.util.probe
 
 import akka.actor.testkit.typed.scaladsl.TestProbe
 import akka.actor.typed.ActorSystem
-import io.scalac.extension.metric.{ ActorMetricMonitor, MetricObserver, MetricRecorder }
-import io.scalac.extension.util.TestProbeSynchronized
+import io.scalac.extension.metric.ActorMetricMonitor._
+import io.scalac.extension.metric._
 import io.scalac.extension.util.probe.BoundTestProbe.{ MetricObserverCommand, MetricRecorderCommand }
 
-import scala.collection.mutable
+final case class ActorMonitorTestProbe(
+  mailboxSizeProbe: TestProbe[MetricObserverCommand[Labels]],
+  mailboxTimeAvgProbe: TestProbe[MetricObserverCommand[Labels]],
+  mailboxTimeMinProbe: TestProbe[MetricObserverCommand[Labels]],
+  mailboxTimeMaxProbe: TestProbe[MetricObserverCommand[Labels]],
+  mailboxTimeSumProbe: TestProbe[MetricObserverCommand[Labels]],
+  stashSizeProbe: TestProbe[MetricRecorderCommand],
+  receivedMessagesProbe: TestProbe[MetricObserverCommand[Labels]],
+  processedMessagesProbe: TestProbe[MetricObserverCommand[Labels]],
+  failedMessagesProbe: TestProbe[MetricObserverCommand[Labels]],
+  processingTimeAvgProbe: TestProbe[MetricObserverCommand[Labels]],
+  processingTimeMinProbe: TestProbe[MetricObserverCommand[Labels]],
+  processingTimeMaxProbe: TestProbe[MetricObserverCommand[Labels]],
+  processingTimeSumProbe: TestProbe[MetricObserverCommand[Labels]],
+  sentMessagesProbe: TestProbe[MetricObserverCommand[Labels]],
+  collector: ObserverCollector
+)(implicit val actorSystem: ActorSystem[_])
+    extends ActorMetricMonitor
+    with BindUnbindMonitor
+    with Collected {
 
-class ActorMonitorTestProbe(collector: ObserverCollector)(implicit val actorSystem: ActorSystem[_])
-    extends ActorMetricMonitor {
+  def bind() = {
+    onBind()
+    new ActorMonitorTestBoundMonitor with UnbindMonitor
+  }
 
-  import ActorMetricMonitor._
-  import ActorMonitorTestProbe._
-
-  private val bindsMap = mutable.HashMap.empty[Labels, TestBoundMonitor]
-
-  override def bind(labels: Labels): TestBoundMonitor =
-    bindsMap.getOrElseUpdate(
-      labels,
-      new TestBoundMonitor(
-        TestProbe("mailbox-size-probe"),
-        TestProbe("mailbox-time-avg-probe"),
-        TestProbe("mailbox-time-min-probe"),
-        TestProbe("mailbox-time-max-probe"),
-        TestProbe("mailbox-time-sum-probe"),
-        TestProbe("stash-size-probe"),
-        TestProbe("received-messages-probe"),
-        TestProbe("processed-messages-probe"),
-        TestProbe("failed-messages-probe"),
-        TestProbe("processing-time-avg-probe"),
-        TestProbe("processing-time-min-probe"),
-        TestProbe("processing-time-max-probe"),
-        TestProbe("processing-time-sum-probe"),
-        collector,
-        () => bindsMap.remove(labels)
-      )
-    )
-
-}
-
-object ActorMonitorTestProbe {
-  import ActorMetricMonitor._
-  class TestBoundMonitor(
-    val mailboxSizeProbe: TestProbe[MetricObserverCommand],
-    val mailboxTimeAvgProbe: TestProbe[MetricObserverCommand],
-    val mailboxTimeMinProbe: TestProbe[MetricObserverCommand],
-    val mailboxTimeMaxProbe: TestProbe[MetricObserverCommand],
-    val mailboxTimeSumProbe: TestProbe[MetricObserverCommand],
-    val stashSizeProbe: TestProbe[MetricRecorderCommand],
-    val receivedMessagesProbe: TestProbe[MetricObserverCommand],
-    val processedMessagesProbe: TestProbe[MetricObserverCommand],
-    val failedMessagesProbe: TestProbe[MetricObserverCommand],
-    val processingTimeAvgProbe: TestProbe[MetricObserverCommand],
-    val processingTimeMinProbe: TestProbe[MetricObserverCommand],
-    val processingTimeMaxProbe: TestProbe[MetricObserverCommand],
-    val processingTimeSumProbe: TestProbe[MetricObserverCommand],
-    collector: ObserverCollector,
-    onUnbind: () => Unit
-  )(implicit actorSystem: ActorSystem[_])
-      extends BoundMonitor
-      with TestProbeSynchronized {
-    val mailboxSize: MetricObserver[Long] =
+  class ActorMonitorTestBoundMonitor extends BoundMonitor {
+    val mailboxSize: MetricObserver[Long, Labels] =
       ObserverTestProbeWrapper(mailboxSizeProbe, collector)
-    val mailboxTimeAvg: MetricObserver[Long] =
+    val mailboxTimeAvg: MetricObserver[Long, Labels] =
       ObserverTestProbeWrapper(mailboxTimeAvgProbe, collector)
-    val mailboxTimeMin: MetricObserver[Long] =
+    val mailboxTimeMin: MetricObserver[Long, Labels] =
       ObserverTestProbeWrapper(mailboxTimeMinProbe, collector)
-    val mailboxTimeMax: MetricObserver[Long] =
+    val mailboxTimeMax: MetricObserver[Long, Labels] =
       ObserverTestProbeWrapper(mailboxTimeMaxProbe, collector)
-    val mailboxTimeSum: MetricObserver[Long] =
+    val mailboxTimeSum: MetricObserver[Long, Labels] =
       ObserverTestProbeWrapper(mailboxTimeSumProbe, collector)
-    val stashSize: MetricRecorder[Long] with SyncTestProbeWrapper =
-      RecorderTestProbeWrapper(stashSizeProbe)
-    val receivedMessages: MetricObserver[Long] =
+    val receivedMessages: MetricObserver[Long, Labels] =
       ObserverTestProbeWrapper(receivedMessagesProbe, collector)
-    val processedMessages: MetricObserver[Long] =
+    val processedMessages: MetricObserver[Long, Labels] =
       ObserverTestProbeWrapper(processedMessagesProbe, collector)
-    val failedMessages: MetricObserver[Long] =
+    val failedMessages: MetricObserver[Long, Labels] =
       ObserverTestProbeWrapper(failedMessagesProbe, collector)
-    val processingTimeAvg: MetricObserver[Long] =
+    val processingTimeAvg: MetricObserver[Long, Labels] =
       ObserverTestProbeWrapper(processingTimeAvgProbe, collector)
-    val processingTimeMin: MetricObserver[Long] =
+    val processingTimeMin: MetricObserver[Long, Labels] =
       ObserverTestProbeWrapper(processingTimeMinProbe, collector)
-    val processingTimeMax: MetricObserver[Long] =
+    val processingTimeMax: MetricObserver[Long, Labels] =
       ObserverTestProbeWrapper(processingTimeMaxProbe, collector)
-    val processingTimeSum: MetricObserver[Long] =
+    val processingTimeSum: MetricObserver[Long, Labels] =
       ObserverTestProbeWrapper(processingTimeSumProbe, collector)
-    override def unbind(): Unit = {
+    val sentMessages: MetricObserver[Long, Labels] =
+      ObserverTestProbeWrapper(sentMessagesProbe, collector)
+
+    override def stashSize(labels: Labels): MetricRecorder[Long] = RecorderTestProbeWrapper(stashSizeProbe)
+
+    def unbind(): Unit = {
       collector.finish(mailboxSizeProbe)
       collector.finish(mailboxTimeAvgProbe)
       collector.finish(mailboxTimeMinProbe)
@@ -100,7 +75,30 @@ object ActorMonitorTestProbe {
       collector.finish(processingTimeMinProbe)
       collector.finish(processingTimeMaxProbe)
       collector.finish(processingTimeSumProbe)
-      onUnbind()
+      collector.finish(sentMessagesProbe)
     }
   }
+}
+
+object ActorMonitorTestProbe {
+
+  def apply(collector: ObserverCollector)(implicit actorSystem: ActorSystem[_]): ActorMonitorTestProbe =
+    ActorMonitorTestProbe(
+      TestProbe("mailbox-size-probe"),
+      TestProbe("mailbox-time-avg-probe"),
+      TestProbe("mailbox-time-min-probe"),
+      TestProbe("mailbox-time-max-probe"),
+      TestProbe("mailbox-time-sum-probe"),
+      TestProbe("stash-size-probe"),
+      TestProbe("received-messages-probe"),
+      TestProbe("processed-messages-probe"),
+      TestProbe("failed-messages-probe"),
+      TestProbe("processing-time-avg-probe"),
+      TestProbe("processing-time-min-probe"),
+      TestProbe("processing-time-max-probe"),
+      TestProbe("processing-time-sum-probe"),
+      TestProbe("sent-messages-probe"),
+      collector
+    )
+
 }

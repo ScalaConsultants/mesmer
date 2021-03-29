@@ -1,11 +1,12 @@
 package io.scalac.extension.util
 
 import akka.actor.PoisonPill
-import akka.actor.typed.{ ActorRef, ActorSystem, Behavior }
 import akka.actor.typed.receptionist.ServiceKey
 import akka.actor.typed.scaladsl.Behaviors
+import akka.actor.typed.{ ActorRef, ActorSystem, Behavior }
 import akka.testkit.TestKit
 import akka.util.Timeout
+import io.scalac.extension.util.probe.{ Collected, ObserverCollector }
 
 object TestCase {
 
@@ -94,6 +95,8 @@ object TestCase {
 
     // DSL
     def monitor(implicit context: Context): Monitor = context.monitor
+
+    def collector(implicit context: Context, ev: Monitor <:< Collected): ObserverCollector = ev(monitor).collector
   }
 
   trait MonitorWithServiceTestCaseFactory extends AbstractMonitorTestCaseFactory with ReceptionistOps {
