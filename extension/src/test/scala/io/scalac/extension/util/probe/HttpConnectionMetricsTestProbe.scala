@@ -3,19 +3,21 @@ package io.scalac.extension.util.probe
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicInteger
 
-import akka.actor.testkit.typed.scaladsl.TestProbe
-import akka.actor.typed.ActorSystem
-import io.scalac.extension.metric.{ Counter, HttpMetricMonitor, MetricRecorder }
-import io.scalac.extension.util.TestProbeSynchronized
-import io.scalac.extension.util.probe.BoundTestProbe.{ CounterCommand, MetricRecorderCommand }
 import scala.collection.concurrent.{ Map => CMap }
 import scala.jdk.CollectionConverters._
 
-class HttpMetricsTestProbe(implicit val system: ActorSystem[_]) extends HttpMetricMonitor {
+import akka.actor.testkit.typed.scaladsl.TestProbe
+import akka.actor.typed.ActorSystem
 
-  import HttpMetricMonitor._
+import io.scalac.extension.metric.{ HttpConnectionMetricMonitor, UpDownCounter }
+import io.scalac.extension.util.TestProbeSynchronized
+import io.scalac.extension.util.probe.BoundTestProbe.CounterCommand
 
-  val globalRequestCounter: TestProbe[CounterCommand] = TestProbe[CounterCommand]()
+class HttpConnectionMetricsTestProbe(implicit val system: ActorSystem[_]) extends HttpConnectionMetricMonitor {
+
+  import HttpConnectionMetricMonitor._
+
+  val globalConnectionCounter: TestProbe[CounterCommand] = TestProbe[CounterCommand]()
 
   private[this] val monitors: CMap[Labels, BoundHttpProbes] = new ConcurrentHashMap[Labels, BoundHttpProbes]().asScala
   private[this] val _binds: AtomicInteger                   = new AtomicInteger(0)
@@ -29,19 +31,15 @@ class HttpMetricsTestProbe(implicit val system: ActorSystem[_]) extends HttpMetr
   def boundLabels: Set[Labels]                        = monitors.keys.toSet
   def boundSize: Int                                  = monitors.size
   def binds: Int                                      = _binds.get()
-  private def createBoundProbes: BoundHttpProbes      = new BoundHttpProbes(TestProbe(), TestProbe())
+  private def createBoundProbes: BoundHttpProbes      = new BoundHttpProbes(TestProbe())
 
   class BoundHttpProbes(
-    val requestTimeProbe: TestProbe[MetricRecorderCommand],
-    val requestCounterProbe: TestProbe[CounterCommand]
+    val connectionCounterProbe: TestProbe[CounterCommand]
   ) extends BoundMonitor
       with TestProbeSynchronized {
 
-    override val requestTime: MetricRecorder[Long] with SyncTestProbeWrapper =
-      RecorderTestProbeWrapper(requestTimeProbe)
-
-    override val requestCounter: Counter[Long] with SyncTestProbeWrapper =
-      UpDownCounterTestProbeWrapper(requestCounterProbe, Some(globalRequestCounter))
+    override val connectionCounter: UpDownCounter[Long] with SyncTestProbeWrapper =
+      UpDownCounterTestProbeWrapper(connectionCounterProbe, Some(globalConnectionCounter))
 
     override def unbind(): Unit = ()
   }
