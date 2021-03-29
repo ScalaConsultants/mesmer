@@ -54,8 +54,8 @@ object HttpInstrumentation {
             .repeat(())
             .map(_ => UUID.randomUUID().toString)
 
-          val zipRequest = builder.add(Zip[HttpRequest, String])
-          val zipRespone = builder.add(Zip[HttpResponse, String])
+          val zipRequest = builder.add(Zip[HttpRequest, String]())
+          val zipRespone = builder.add(Zip[HttpResponse, String]())
 
           val idBroadcast = builder.add(Broadcast[String](2))
 
