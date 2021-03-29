@@ -1,12 +1,13 @@
 package io.scalac.extension.upstream
 
 import com.typesafe.config.Config
-import io.opentelemetry.api.OpenTelemetry
+import io.opentelemetry.api.metrics.Meter
+
 import io.scalac.extension.metric.{ MetricObserver, RegisterRoot, StreamMetricMonitor }
-import io.scalac.extension.upstream.OpenTelemetryStreamMetricMonitor.MetricNames
+import io.scalac.extension.upstream.OpenTelemetryStreamMetricsMonitor.MetricNames
 import io.scalac.extension.upstream.opentelemetry.{ LongSumObserverBuilderAdapter, SynchronousInstrumentFactory }
 
-object OpenTelemetryStreamMetricMonitor {
+object OpenTelemetryStreamMetricsMonitor {
   case class MetricNames(runningStreams: String, streamActors: String, streamProcessed: String)
 
   object MetricNames {
@@ -34,17 +35,13 @@ object OpenTelemetryStreamMetricMonitor {
     }.getOrElse(defaults)
   }
 
-  def apply(instrumentationName: String, config: Config): OpenTelemetryStreamMetricMonitor =
-    new OpenTelemetryStreamMetricMonitor(instrumentationName, MetricNames.fromConfig(config))
+  def apply(meter: Meter, config: Config): OpenTelemetryStreamMetricsMonitor =
+    new OpenTelemetryStreamMetricsMonitor(meter, MetricNames.fromConfig(config))
 }
 
-class OpenTelemetryStreamMetricMonitor(instrumentationName: String, metricNames: MetricNames)
-    extends StreamMetricMonitor {
+final class OpenTelemetryStreamMetricsMonitor(meter: Meter, metricNames: MetricNames) extends StreamMetricMonitor {
 
   import StreamMetricMonitor._
-
-  private val meter = OpenTelemetry
-    .getGlobalMeter(instrumentationName)
 
   private val runningStreamsTotalRecorder = meter
     .longValueRecorderBuilder(metricNames.runningStreams)

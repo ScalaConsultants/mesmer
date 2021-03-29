@@ -1,9 +1,9 @@
 package io.scalac.extension.upstream
 
 import com.typesafe.config.Config
-import io.opentelemetry.api.OpenTelemetry
+import io.opentelemetry.api.metrics.Meter
 
-import io.scalac.extension.metric.{ HttpConnectionMetricMonitor, RegisterRoot }
+import io.scalac.extension.metric.{ HttpConnectionMetricMonitor, RegisterRoot, UpDownCounter }
 import io.scalac.extension.upstream.opentelemetry._
 import OpenTelemetryHttpConnectionMetricMonitor.MetricNames
 
@@ -31,19 +31,14 @@ object OpenTelemetryHttpConnectionMetricMonitor {
         .getOrElse(defaultCached)
     }
   }
-  def apply(instrumentationName: String, config: Config): OpenTelemetryHttpConnectionMetricMonitor =
-    new OpenTelemetryHttpConnectionMetricMonitor(instrumentationName, MetricNames.fromConfig(config))
+  def apply(meter: Meter, config: Config): OpenTelemetryHttpConnectionMetricMonitor =
+    new OpenTelemetryHttpConnectionMetricMonitor(meter, MetricNames.fromConfig(config))
 }
 
-class OpenTelemetryHttpConnectionMetricMonitor(
-  instrumentationName: String,
-  metricNames: MetricNames
-) extends HttpConnectionMetricMonitor {
+class OpenTelemetryHttpConnectionMetricMonitor(meter: Meter, metricNames: MetricNames)
+    extends HttpConnectionMetricMonitor {
 
   import HttpConnectionMetricMonitor._
-
-  private val meter = OpenTelemetry
-    .getGlobalMeter(instrumentationName)
 
   private val connectionTotalCounter = meter
     .longUpDownCounterBuilder(metricNames.connectionTotal)
@@ -59,7 +54,8 @@ class OpenTelemetryHttpConnectionMetricMonitor(
       with RegisterRoot {
     private val openTelemetryLabels = LabelsFactory.of(labels.serialize)
 
-    override val connectionCounter = upDownCounter(connectionTotalCounter, openTelemetryLabels).register(this)
+    override val connectionCounter: UpDownCounter[Long] with Instrument[Long] =
+      upDownCounter(connectionTotalCounter, openTelemetryLabels).register(this)
 
   }
 }
