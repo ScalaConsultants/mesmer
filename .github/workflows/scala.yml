@@ -20,6 +20,8 @@ jobs:
           java-version: 1.8
       - name: Lint code
         run: sbt scalafmtCheckAll
+      - name: Fix Scala code
+        run: sbt "scalafixAll --check"
 
   build:
 
