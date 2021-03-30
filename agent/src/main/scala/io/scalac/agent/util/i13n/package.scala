@@ -18,23 +18,9 @@ package object i13n {
 
   // DSL
 
-  final def visit[T](methodName: String)(implicit ct: ClassTag[T], builder: Builder): Unit =
-    visit(method(methodName))
+  final def method(name: String): MethodDesc = EM.named[MethodDescription](name)
 
-  final def visit[T](method: MethodDesc)(implicit ct: ClassTag[T], builder: Builder): Unit =
-    builder.visit(method)
-
-  final def intercept[T](methodName: String)(implicit ct: ClassTag[T], builder: Builder): Unit =
-    intercept(method(methodName))
-
-  final def intercept[T](method: MethodDesc)(implicit ct: ClassTag[T], builder: Builder): Unit =
-    builder.intercept(method)
-
-  final def defineField[T](name: String)(implicit ct: ClassTag[T], builder: Builder): Unit =
-    builder.defineField(name)
-
-  final def method(name: String): MethodDesc                  = EM.named[MethodDescription](name)
-  final def methods(first: String, rest: String*): MethodDesc = rest.map(method).fold(method(first))(_.or(_))
+  final def methods(first: MethodDesc, rest: MethodDesc*): MethodDesc = rest.fold(first)(_.or(_))
 
   final def constructor: MethodDesc = EM.isConstructor
 
@@ -44,33 +30,39 @@ package object i13n {
   final def hierarchy(name: String): Type =
     new Type(name, EM.hasSuperType[TypeDescription](EM.named[TypeDescription](name)))
 
+  def visit[T](method: MethodDesc)(implicit ct: ClassTag[T]): BuilderTransformer =
+    BuilderTransformer.unit.visit(method)
+
+  def intercept[T](method: MethodDesc)(implicit ct: ClassTag[T]): BuilderTransformer =
+    BuilderTransformer.unit.intercept(method)
+
+  def defineField[T](name: String)(implicit ct: ClassTag[T]): BuilderTransformer =
+    BuilderTransformer.unit.defineField(name)
+
   // wrappers
 
-  final private[i13n] type WrappedBuilder = DynamicType.Builder[_]
+  final private[i13n] type Builder = DynamicType.Builder[_]
 
-  final class Builder private[i13n] (private[this] var wrapped: WrappedBuilder) {
-    private[i13n] def get(): WrappedBuilder = wrapped
+  final class BuilderTransformer private (transform: Builder => Builder) extends (Builder => Builder) {
 
-    private[i13n] def visit[T](method: MethodDesc)(implicit ct: ClassTag[T]): Unit =
-      change(_.visit(Advice.to(ct.runtimeClass).on(method)))
+    override def apply(v1: Builder): Builder = transform(v1)
 
-    private[i13n] def intercept[T](method: MethodDesc)(implicit ct: ClassTag[T]): Unit =
-      change(_.method(method).intercept(Advice.to(ct.runtimeClass)))
+    def visit[T](method: MethodDesc)(implicit ct: ClassTag[T]): BuilderTransformer =
+      thisAndThan(_.visit(Advice.to(ct.runtimeClass).on(method)))
 
-    private[i13n] def defineField[T](name: String)(implicit ct: ClassTag[T]): Unit =
-      change(_.defineField(name, ct.runtimeClass))
+    def intercept[T](method: MethodDesc)(implicit ct: ClassTag[T]): BuilderTransformer =
+      thisAndThan(_.method(method).intercept(Advice.to(ct.runtimeClass)))
 
-    private[this] def change(nextValue: WrappedBuilder => WrappedBuilder): Unit =
-      wrapped = nextValue(wrapped)
+    def defineField[T](name: String)(implicit ct: ClassTag[T]): BuilderTransformer =
+      thisAndThan(_.defineField(name, ct.runtimeClass))
+
+    def thisAndThan(that: Builder => Builder): BuilderTransformer =
+      new BuilderTransformer(transform.andThen(that))
 
   }
 
-  final private[i13n] object Builder {
-    def build(wrapped: WrappedBuilder, buildFn: Builder => Unit): WrappedBuilder = {
-      val wrapper = new Builder(wrapped)
-      buildFn(wrapper)
-      wrapper.get()
-    }
+  private[i13n] final object BuilderTransformer {
+    private[i13n] val unit: BuilderTransformer = new BuilderTransformer(identity)
   }
 
   // extensions
@@ -103,4 +95,7 @@ package object i13n {
       methodDesc.and(EM.isOverriddenFrom(typeDesc))
   }
 
+  // implicit conversion
+  final implicit def methodNameToMethodDesc(methodName: String): MethodDesc = method(methodName)
+  final implicit def typeNameToType(typeName: String): Type                 = `type`(typeName)
 }

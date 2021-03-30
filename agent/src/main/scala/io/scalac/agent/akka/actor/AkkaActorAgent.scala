@@ -15,52 +15,56 @@ object AkkaActorAgent extends InstrumentModuleFactory {
   val version: SupportedVersion = ModulesSupport.akkaActor
   val defaultVersion: Version   = Version(2, 6, 8)
 
-  private val classicStashInstrumentation = instrument("akka.actor.StashSupport") { implicit b =>
+  private val classicStashInstrumentation = instrument("akka.actor.StashSupport")(
     visit[ClassicStashInstrumentation](
-      methods("stash", "prepend", "unstash")
-        .or(method("unstashAll").takesArguments(1))
+      methods(
+        "stash",
+        "prepend",
+        "unstash",
+        method("unstashAll").takesArguments(1)
+      )
     )
-  }
+  )
 
-  private val typedStashInstrumentation = instrument("akka.actor.typed.internal.StashBufferImpl") { implicit b =>
-    visit[TypedStashInstrumentation]("stash")
-    visit[TypedUnstashInstrumentation](
-      method("unstash")
-        .takesArguments[Behavior[_], Int, (_) => _]
+  private val typedStashInstrumentation = instrument("akka.actor.typed.internal.StashBufferImpl")(
+    visit[TypedStashInstrumentation](
+      methods(
+        "stash",
+        method("unstash").takesArguments[Behavior[_], Int, (_) => _]
+      )
     )
-  }
+  )
 
-  private val mailboxTimeTimestampInstrumentation = instrument("akka.dispatch.Envelope") { implicit b =>
+  private val mailboxTimeTimestampInstrumentation = instrument("akka.dispatch.Envelope")(
     defineField[Timestamp](EnvelopeDecorator.TimestampVarName)
-  }
+  )
 
-  private val mailboxTimeSendMessageInstrumentation = instrument("akka.actor.dungeon.Dispatch") { implicit b =>
+  private val mailboxTimeSendMessageInstrumentation = instrument("akka.actor.dungeon.Dispatch")(
     visit[ActorCellSendMessageInstrumentation](
-      method("sendMessage")
-        .takesArgument(0, "akka.dispatch.Envelope")
+      method("sendMessage").takesArgument(0, "akka.dispatch.Envelope")
     )
-  }
+  )
 
-  private val mailboxTimeDequeueInstrumentation = instrument("akka.dispatch.Mailbox") { implicit b =>
+  private val mailboxTimeDequeueInstrumentation = instrument("akka.dispatch.Mailbox")(
     visit[MailboxDequeueInstrumentation]("dequeue")
-  }
+  )
 
-  private val actorCellInstrumentation = instrument("akka.actor.ActorCell") { implicit b =>
+  private val actorCellInstrumentation = instrument("akka.actor.ActorCell")(
     defineField[ActorCellMetrics](ActorCellDecorator.fieldName)
-    visit[ActorCellConstructorInstrumentation](constructor)
-    visit[ActorCellReceiveMessageInstrumentation]("receiveMessage")
-  }
+      .visit[ActorCellConstructorInstrumentation](constructor)
+      .visit[ActorCellReceiveMessageInstrumentation]("receiveMessage")
+  )
 
-  private val actorInstrumentation = instrument("akka.actor.Actor") { implicit b =>
+  private val actorInstrumentation = instrument("akka.actor.Actor")(
     visit[ActorUnhandledInstrumentation]("unhandled")
-  }
+  )
 
   private val abstractSupervisionInstrumentation = instrument(
     hierarchy("akka.actor.typed.internal.AbstractSupervisor")
-      .overrides(method("handleReceiveException"))
-  ) { implicit b =>
+      .overrides("handleReceiveException")
+  )(
     intercept[SupervisorHandleReceiveExceptionInstrumentation]("handleReceiveException")
-  }
+  )
 
   val agent: Agent = Agent(
     classicStashInstrumentation,
