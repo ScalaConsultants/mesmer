@@ -8,6 +8,12 @@ ThisBuild / organizationName := "scalac"
 
 ThisBuild / dependencyOverrides ++= openTelemetryDependenciesOverrides
 
+// Scalafix settings
+ThisBuild / semanticdbEnabled := true
+ThisBuild / semanticdbVersion := scalafixSemanticdb.revision
+ThisBuild / scalacOptions += "-Wunused:imports"
+ThisBuild / scalafixDependencies += "com.github.liancheng" %% "organize-imports" % "0.5.0"
+
 def runWithAgent = Command.command("runWithAgent") { state =>
   val extracted = Project extract state
   val newState =
