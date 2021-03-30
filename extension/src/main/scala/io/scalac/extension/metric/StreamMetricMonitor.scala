@@ -19,7 +19,7 @@ object StreamMetricMonitor {
   trait BoundMonitor extends Bound {
     def runningStreamsTotal: MetricRecorder[Long]
     def streamActorsTotal: MetricRecorder[Long]
-    def streamProcessedMessages: LazyMetricObserver[Long, Labels]
+    def streamProcessedMessages: MetricObserver[Long, Labels]
   }
 
 }

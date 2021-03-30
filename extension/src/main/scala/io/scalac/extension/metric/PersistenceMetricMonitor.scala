@@ -8,12 +8,12 @@ object PersistenceMetricMonitor {
     override val serialize: RawLabels = node.serialize ++ path.serialize ++ persistenceId.serialize
   }
 
-  trait BoundMonitor extends Synchronized with Bound {
-    def recoveryTime: Instrument[Long] with MetricRecorder[Long]
-    def recoveryTotal: Instrument[Long] with UpCounter[Long]
-    def persistentEvent: Instrument[Long] with MetricRecorder[Long]
-    def persistentEventTotal: Instrument[Long] with UpCounter[Long]
-    def snapshot: Instrument[Long] with UpCounter[Long]
+  trait BoundMonitor extends Bound {
+    def recoveryTime: MetricRecorder[Long]
+    def recoveryTotal: Counter[Long]
+    def persistentEvent: MetricRecorder[Long]
+    def persistentEventTotal: Counter[Long]
+    def snapshot: Counter[Long]
   }
 
 }

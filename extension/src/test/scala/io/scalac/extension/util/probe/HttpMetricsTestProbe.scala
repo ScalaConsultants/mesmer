@@ -2,7 +2,7 @@ package io.scalac.extension.util.probe
 
 import akka.actor.testkit.typed.scaladsl.TestProbe
 import akka.actor.typed.ActorSystem
-import io.scalac.extension.metric.{ HttpMetricMonitor, MetricRecorder, UpCounter }
+import io.scalac.extension.metric.{ Counter, HttpMetricMonitor, MetricRecorder }
 import io.scalac.extension.util.TestProbeSynchronized
 import io.scalac.extension.util.probe.BoundTestProbe.{ CounterCommand, MetricRecorderCommand }
 
@@ -37,11 +37,11 @@ class HttpMetricsTestProbe(implicit val system: ActorSystem[_]) extends HttpMetr
   ) extends BoundMonitor
       with TestProbeSynchronized {
 
-    override def requestTime: MetricRecorder[Long] with SyncTestProbeWrapper =
+    override val requestTime: MetricRecorder[Long] with SyncTestProbeWrapper =
       RecorderTestProbeWrapper(requestTimeProbe)
 
-    override def requestCounter: UpCounter[Long] with SyncTestProbeWrapper =
-      CounterTestProbeWrapper(requestCounterProbe, Some(globalRequestCounter))
+    override val requestCounter: Counter[Long] with SyncTestProbeWrapper =
+      UpDownCounterTestProbeWrapper(requestCounterProbe, Some(globalRequestCounter))
 
     override def unbind(): Unit = ()
   }

@@ -8,14 +8,23 @@ import akka.actor.typed.{ ActorRef, ActorSystem, Behavior }
 import io.scalac.core.akka.model.PushMetrics
 import io.scalac.core.model.Tag.{ StageName, SubStreamName }
 import io.scalac.core.model._
-import io.scalac.core.util.TestCase.{ CommonMonitorTestFactory, MonitorTestCaseContext }
+import io.scalac.core.util.TestCase.{
+  MonitorTestCaseContext,
+  MonitorWithServiceTestCaseFactory,
+  ProvidedActorSystemTestCaseFactory
+}
 import io.scalac.extension.AkkaStreamMonitoring.StartStreamCollection
 import io.scalac.extension.event.EventBus
 import io.scalac.extension.event.Service.streamService
 import io.scalac.extension.event.StreamEvent.StreamInterpreterStats
-import io.scalac.extension.util.probe.BoundTestProbe.{ LazyMetricsObserved, MetricRecorded }
-import io.scalac.extension.util.probe.ObserverCollector.CommonCollectorImpl
-import io.scalac.extension.util.probe.{ StreamMonitorTestProbe, StreamOperatorMonitorTestProbe }
+import io.scalac.extension.util.probe.BoundTestProbe.{ MetricObserved, MetricRecorded }
+import io.scalac.extension.util.probe.ObserverCollector.ScheduledCollectorImpl
+import io.scalac.extension.util.probe.{
+  ObserverCollector,
+  StreamMonitorTestProbe,
+  StreamOperatorMonitorTestProbe,
+  Collected => CollectedObserver
+}
 import io.scalac.extension.util.{ TestConfig, TestOps }
 import org.scalatest._
 import org.scalatest.concurrent.Eventually
@@ -36,9 +45,16 @@ class AkkaStreamMonitoringTest
     with BeforeAndAfterAll
     with LoneElement
     with TestOps
-    with CommonMonitorTestFactory {
+    with ProvidedActorSystemTestCaseFactory
+    with MonitorWithServiceTestCaseFactory {
 
   type Monitor = (StreamOperatorMonitorTestProbe, StreamMonitorTestProbe)
+  type Context = TestCaseContext
+
+  protected def createContextFromMonitor(monitor: (StreamOperatorMonitorTestProbe, StreamMonitorTestProbe))(implicit
+    system: ActorSystem[_]
+  ): TestCaseContext =
+    TestCaseContext(monitor, monitor._1.collector)
 
   protected def createMonitorBehavior(implicit context: Context): Behavior[_] =
     AkkaStreamMonitoring(operations, global, None)
@@ -51,11 +67,13 @@ class AkkaStreamMonitoringTest
   private final val FlowName                       = "map"
   private final val StagesNames                    = Seq(SourceName, SinkName, FlowName)
 
-  override protected def createMonitor(implicit system: ActorSystem[_]): Monitor =
+  override protected def createMonitor(implicit system: ActorSystem[_]): Monitor = {
+    val collector = new ScheduledCollectorImpl(OperationsPing)
     (
-      StreamOperatorMonitorTestProbe(new CommonCollectorImpl(OperationsPing)),
-      StreamMonitorTestProbe(new CommonCollectorImpl(OperationsPing))
+      StreamOperatorMonitorTestProbe(collector),
+      StreamMonitorTestProbe(collector)
     )
+  }
 
   def singleActorLinearShellInfo(subStreamName: SubStreamName, flowCount: Int, push: Long, pull: Long): ShellInfo = {
     val source = StageInfo(0, StageName(SourceName, 0), subStreamName)
@@ -85,6 +103,7 @@ class AkkaStreamMonitoringTest
 
   def sut(implicit s: Setup): ActorRef[AkkaStreamMonitoring.Command] =
     s.asInstanceOf[ActorRef[AkkaStreamMonitoring.Command]]
+
   def global(implicit c: Context): StreamMonitorTestProbe             = c.monitor._2
   def operations(implicit c: Context): StreamOperatorMonitorTestProbe = c.monitor._1
 
@@ -155,21 +174,27 @@ class AkkaStreamMonitoringTest
       val processed = operations.processedTestProbe.receiveMessages(ExpectedCount * (Flows + 1), OperationsPing)
       val demand    = operations.demandTestProbe.receiveMessages(ExpectedCount * (Flows + 1), OperationsPing)
 
-      forAll(processed)(inside(_) { case LazyMetricsObserved(value, labels) =>
+      forAll(processed)(inside(_) { case MetricObserved(value, labels) =>
         value shouldBe Push
         labels.node shouldBe empty
       })
 
-      forAll(demand)(inside(_) { case LazyMetricsObserved(value, labels) =>
+      operators.collect { case MetricObserved(_, labels) =>
+        labels.operator.name
+      }.distinct should contain theSameElementsAs StagesNames
+
+      forAll(demand)(inside(_) { case MetricObserved(value, labels) =>
         value shouldBe Pull
         labels.node shouldBe empty
       })
-
-      operators.map(_.labels.operator.name).distinct should contain theSameElementsAs StagesNames
   }
 
-  case class TestCaseContext(monitor: Monitor, ref: ActorRef[AkkaStreamMonitoring.Command])(implicit
+  case class TestCaseContext(
+    monitor: Monitor,
+    collector: ObserverCollector
+  )(implicit
     val system: ActorSystem[_]
   ) extends MonitorTestCaseContext[Monitor]
+      with CollectedObserver
 
 }

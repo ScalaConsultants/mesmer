@@ -15,7 +15,7 @@ import io.scalac.extension.config.{ BufferConfig, CachingConfig }
 import io.scalac.extension.event.Service.streamService
 import io.scalac.extension.event.StreamEvent
 import io.scalac.extension.event.StreamEvent.{ LastStreamStats, StreamInterpreterStats }
-import io.scalac.extension.metric.MetricObserver.LazyResult
+import io.scalac.extension.metric.MetricObserver.Result
 import io.scalac.extension.metric.StreamMetricMonitor.{ EagerLabels, Labels => GlobalLabels }
 import io.scalac.extension.metric.StreamOperatorMetricsMonitor.Labels
 import io.scalac.extension.metric.{ StreamMetricMonitor, StreamOperatorMetricsMonitor }
@@ -399,9 +399,6 @@ class AkkaStreamMonitoring(
             collecting(refsLeft)
           }
 
-        case StatsReceived(LastStreamStats(ref, subStreamName, shellInfo)) =>
-          collecting(refs)
-
         case CollectionTimeout =>
           log.warn("Collecting stats from running streams timeout")
           refs.foreach(ref => unwatch(ref))
@@ -424,7 +421,7 @@ class AkkaStreamMonitoring(
           }
       )
 
-  private def observeSnapshot(result: LazyResult[Long, Labels], snapshot: Option[Seq[SnapshotEntry]]): Unit =
+  private def observeSnapshot(result: Result[Long, Labels], snapshot: Option[Seq[SnapshotEntry]]): Unit =
     snapshot.foreach(_.foreach {
       case SnapshotEntry(stageInfo, Some(StageData(value, connectedWith))) =>
         val labels =
@@ -439,7 +436,7 @@ class AkkaStreamMonitoring(
       case _ => // ignore metrics without data
     })
 
-  private def observeOperators(result: LazyResult[Long, Labels], snapshot: Option[Seq[SnapshotEntry]]): Unit =
+  private def observeOperators(result: Result[Long, Labels], snapshot: Option[Seq[SnapshotEntry]]): Unit =
     snapshot.foreach(_.groupBy(_.stage.subStreamName.streamName).foreach { case (streamName, snapshots) =>
       snapshots.groupBy(_.stage.stageName.nameOnly).foreach { case (stageName, elems) =>
         val labels = Labels(stageName, streamName, false, node, None)

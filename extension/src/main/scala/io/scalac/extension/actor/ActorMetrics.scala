@@ -4,7 +4,7 @@ import io.scalac.core.util.Timestamp
 import io.scalac.extension.util.AggMetric.LongValueAggMetric
 
 final case class ActorMetrics(
-  mailboxSize: Option[Int],
+  mailboxSize: Option[Long],
   mailboxTime: Option[LongValueAggMetric],
   receivedMessages: Option[Long],
   unhandledMessages: Option[Long],
@@ -13,8 +13,9 @@ final case class ActorMetrics(
   sentMessages: Option[Long],
   timestamp: Timestamp = Timestamp.create()
 ) {
-  lazy val processedMessages: Option[Long] = for {
-    r <- receivedMessages
-    u <- unhandledMessages
-  } yield r - u
+  lazy val processedMessages: Option[Long] =
+    for {
+      received  <- receivedMessages
+      unhandled <- unhandledMessages
+    } yield received - unhandled
 }

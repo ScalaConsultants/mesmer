@@ -3,61 +3,56 @@ package io.scalac.extension.util.probe
 import akka.actor.testkit.typed.scaladsl.TestProbe
 import akka.actor.typed.ActorSystem
 import io.scalac.extension.metric.StreamMetricMonitor.{ BoundMonitor, Labels }
-import io.scalac.extension.metric.{
-  LazyMetricObserver,
-  MetricRecorder,
-  StreamMetricMonitor,
-  StreamOperatorMetricsMonitor
-}
-import io.scalac.extension.util.probe.BoundTestProbe.{ LazyMetricsObserved, MetricRecorderCommand }
+import io.scalac.extension.metric.{ StreamMetricMonitor, StreamOperatorMetricsMonitor }
+import io.scalac.extension.util.probe.BoundTestProbe.{ MetricObserverCommand, MetricRecorderCommand }
 
-class StreamOperatorMonitorTestProbe(
-  val processedTestProbe: TestProbe[LazyMetricsObserved[StreamOperatorMetricsMonitor.Labels]],
-  val demandTestProbe: TestProbe[LazyMetricsObserved[StreamOperatorMetricsMonitor.Labels]],
-  val runningOperatorsTestProbe: TestProbe[LazyMetricsObserved[StreamOperatorMetricsMonitor.Labels]],
+final case class StreamOperatorMonitorTestProbe(
+  processedTestProbe: TestProbe[MetricObserverCommand[StreamOperatorMetricsMonitor.Labels]],
+  runningOperatorsTestProbe: TestProbe[MetricObserverCommand[StreamOperatorMetricsMonitor.Labels]],
+  demandTestProbe: TestProbe[MetricObserverCommand[StreamOperatorMetricsMonitor.Labels]],
   collector: ObserverCollector
 )(implicit val system: ActorSystem[_])
-    extends StreamOperatorMetricsMonitor {
+    extends StreamOperatorMetricsMonitor
+    with Collected {
 
   override def bind(): StreamOperatorMetricsMonitor.BoundMonitor = new StreamOperatorMetricsMonitor.BoundMonitor {
-
-    override def processedMessages = LazyObserverTestProbeWrapper(processedTestProbe, collector)
-    override def demand            = LazyObserverTestProbeWrapper(demandTestProbe, collector)
-    override def operators         = LazyObserverTestProbeWrapper(runningOperatorsTestProbe, collector)
-    override def unbind(): Unit    = ()
+    val processedMessages = ObserverTestProbeWrapper(processedTestProbe, collector)
+    val operators         = ObserverTestProbeWrapper(runningOperatorsTestProbe, collector)
+    val demand            = ObserverTestProbeWrapper(demandTestProbe, collector)
+    def unbind(): Unit    = ()
   }
 }
 
 object StreamOperatorMonitorTestProbe {
   def apply(collector: ObserverCollector)(implicit system: ActorSystem[_]): StreamOperatorMonitorTestProbe = {
     val processProbe =
-      TestProbe[LazyMetricsObserved[StreamOperatorMetricsMonitor.Labels]]("akka_stream_processed_messages")
+      TestProbe[MetricObserverCommand[StreamOperatorMetricsMonitor.Labels]]("akka_stream_processed_messages")
     val demandProbe =
-      TestProbe[LazyMetricsObserved[StreamOperatorMetricsMonitor.Labels]]("akka_stream_operator_demand")
+      TestProbe[MetricObserverCommand[StreamOperatorMetricsMonitor.Labels]]("akka_stream_demand")
     val runningOperators =
-      TestProbe[LazyMetricsObserved[StreamOperatorMetricsMonitor.Labels]]("akka_stream_running_operators")
+      TestProbe[MetricObserverCommand[StreamOperatorMetricsMonitor.Labels]]("akka_stream_running_operators")
 
-    new StreamOperatorMonitorTestProbe(processProbe, demandProbe, runningOperators, collector)
+    StreamOperatorMonitorTestProbe(processProbe, demandProbe, runningOperators, collector)
   }
 }
 
 class StreamMonitorTestProbe(
   val runningStreamsProbe: TestProbe[MetricRecorderCommand],
   val streamActorsProbe: TestProbe[MetricRecorderCommand],
-  val processedMessagesProbe: TestProbe[LazyMetricsObserved[Labels]],
-  collector: ObserverCollector
+  val processedMessagesProbe: TestProbe[MetricObserverCommand[Labels]],
+  val collector: ObserverCollector
 )(implicit val system: ActorSystem[_])
-    extends StreamMetricMonitor {
+    extends StreamMetricMonitor
+    with Collected {
   override def bind(labels: StreamMetricMonitor.EagerLabels): StreamMetricMonitor.BoundMonitor = new BoundMonitor {
 
-    override def runningStreamsTotal = RecorderTestProbeWrapper(runningStreamsProbe)
+    val runningStreamsTotal = RecorderTestProbeWrapper(runningStreamsProbe)
 
-    override def streamActorsTotal: MetricRecorder[Long] = RecorderTestProbeWrapper(streamActorsProbe)
+    val streamActorsTotal = RecorderTestProbeWrapper(streamActorsProbe)
 
-    override def streamProcessedMessages: LazyMetricObserver[Long, StreamMetricMonitor.Labels] =
-      LazyObserverTestProbeWrapper(processedMessagesProbe, collector)
+    val streamProcessedMessages = ObserverTestProbeWrapper(processedMessagesProbe, collector)
 
-    override def unbind(): Unit = ()
+    def unbind(): Unit = ()
   }
 }
 
@@ -65,7 +60,7 @@ object StreamMonitorTestProbe {
   def apply(collector: ObserverCollector)(implicit system: ActorSystem[_]): StreamMonitorTestProbe = {
     val runningStream         = TestProbe[MetricRecorderCommand]
     val streamActorsProbe     = TestProbe[MetricRecorderCommand]
-    val procesedMessagesProbe = TestProbe[LazyMetricsObserved[Labels]]
+    val procesedMessagesProbe = TestProbe[MetricObserverCommand[Labels]]
     new StreamMonitorTestProbe(runningStream, streamActorsProbe, procesedMessagesProbe, collector)
   }
 }

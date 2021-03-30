@@ -8,6 +8,7 @@ import akka.testkit.TestKit
 import akka.util.Timeout
 import io.scalac.core.tagging._
 import io.scalac.core.util.TestCase.MonitorWithServiceTestCaseFactory.SetupTag
+import io.scalac.extension.util.probe.{ Collected, ObserverCollector }
 import io.scalac.extension.util.{ ReceptionistOps, TestConfig, TestOps }
 
 object TestCase {
@@ -106,6 +107,8 @@ object TestCase {
 
     // DSL
     def monitor(implicit context: Context): Monitor = context.monitor
+
+    def collector(implicit context: Context, ev: Monitor <:< Collected): ObserverCollector = ev(monitor).collector
   }
 
   trait MonitorWithServiceTestCaseFactory extends AbstractMonitorTestCaseFactory with ReceptionistOps {

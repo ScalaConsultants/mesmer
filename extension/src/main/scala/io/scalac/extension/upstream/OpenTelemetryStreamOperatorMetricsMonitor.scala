@@ -3,7 +3,7 @@ package io.scalac.extension.upstream
 import com.typesafe.config.Config
 import io.opentelemetry.api.OpenTelemetry
 import io.scalac.extension.metric.StreamOperatorMetricsMonitor.{ BoundMonitor, Labels }
-import io.scalac.extension.metric.{ LazyMetricObserver, StreamOperatorMetricsMonitor }
+import io.scalac.extension.metric.{ MetricObserver, RegisterRoot, StreamOperatorMetricsMonitor }
 import io.scalac.extension.upstream.OpenTelemetryStreamOperatorMetricsMonitor.MetricNames
 import io.scalac.extension.upstream.opentelemetry._
 
@@ -54,45 +54,31 @@ class OpenTelemetryStreamOperatorMetricsMonitor(instrumentationName: String, met
   private val meter = OpenTelemetry
     .getGlobalMeter(instrumentationName)
 
-  private val processedMessageAdapter = new LazyLongSumObserverBuilderAdapter[Labels](
+  private val processedMessageAdapter = new LongSumObserverBuilderAdapter[Labels](
     meter
       .longSumObserverBuilder(metricNames.operatorProcessed)
       .setDescription("Amount of messages process by operator")
   )
 
-  private val demandAdapter = new LazyLongSumObserverBuilderAdapter[Labels](
-    meter
-      .longSumObserverBuilder(metricNames.demand)
-      .setDescription("Amount of messages demanded by operator")
-  )
-
-  private val operatorsAdapter = new LazyLongValueObserverBuilderAdapter[Labels](
+  private val operatorsAdapter = new LongMetricObserverBuilderAdapter[Labels](
     meter
       .longValueObserverBuilder(metricNames.runningOperators)
       .setDescription("Amount of operators in a system")
   )
 
-  override def bind(): StreamOperatorMetricsMonitor.BoundMonitor = new BoundMonitor {
-    private var unbinds: List[ObserverHandle] = Nil
+  private val demandAdapter = new LongSumObserverBuilderAdapter[Labels](
+    meter
+      .longSumObserverBuilder(metricNames.demand)
+      .setDescription("Amount of messages demanded by operator")
+  )
 
-    override lazy val processedMessages: LazyMetricObserver[Long, Labels] = {
-      val (unbind, observer) = processedMessageAdapter.createObserver()
-      unbinds ::= unbind
-      observer
-    }
+  override def bind(): StreamOperatorMetricsMonitor.BoundMonitor = new BoundMonitor with RegisterRoot {
 
-    override lazy val operators: LazyMetricObserver[Long, Labels] = {
-      val (unbind, observer) = operatorsAdapter.createObserver()
-      unbinds ::= unbind
-      observer
-    }
+    override lazy val processedMessages: MetricObserver[Long, Labels] =
+      processedMessageAdapter.createObserver(this)
 
-    override def demand: LazyMetricObserver[Long, Labels] = {
-      val (unbind, observer) = demandAdapter.createObserver()
-      unbinds ::= unbind
-      observer
-    }
+    override lazy val operators: MetricObserver[Long, Labels] = operatorsAdapter.createObserver(this)
 
-    override def unbind(): Unit = unbinds.foreach(_.unbindObserver())
+    override lazy val demand: MetricObserver[Long, Labels] = demandAdapter.createObserver(this)
   }
 }

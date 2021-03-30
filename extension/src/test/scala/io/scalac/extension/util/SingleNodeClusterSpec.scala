@@ -10,7 +10,7 @@ import akka.cluster.typed.{ Cluster, SelfUp, Subscribe }
 import akka.util.Timeout
 import com.typesafe.config.{ Config, ConfigFactory, ConfigValueFactory }
 import io.scalac.extension.util.probe.ClusterMetricsTestProbe
-import io.scalac.extension.util.probe.ObserverCollector.CommonCollectorImpl
+import io.scalac.extension.util.probe.ObserverCollector.ScheduledCollectorImpl
 import org.scalatest.{ Assertion, AsyncTestSuite }
 
 import java.util.UUID
@@ -75,7 +75,7 @@ trait SingleNodeClusterSpec extends AsyncTestSuite {
         sharding.init(entity)
       }
 
-      val collector: CommonCollectorImpl = new CommonCollectorImpl(pingOffset)
+      val collector: ScheduledCollectorImpl = new ScheduledCollectorImpl(pingOffset)
 
       val clusterProbe = ClusterMetricsTestProbe(collector)
 

@@ -37,13 +37,22 @@ object PersistenceEvent {
 
 sealed trait HttpEvent extends AbstractEvent {
   type Service = HttpEvent
-  def id: String
 }
 
 object HttpEvent {
-  case class RequestStarted(id: String, timestamp: Timestamp, path: Path, method: Method) extends HttpEvent
-  case class RequestCompleted(id: String, timestamp: Timestamp, status: Status)           extends HttpEvent
-  case class RequestFailed(id: String, timestamp: Timestamp)                              extends HttpEvent
+  sealed trait ConnectionEvent extends HttpEvent {
+    def interface: String
+    def port: Int
+  }
+  case class ConnectionStarted(interface: String, port: Int)   extends ConnectionEvent
+  case class ConnectionCompleted(interface: String, port: Int) extends ConnectionEvent
+
+  sealed trait RequestEvent extends HttpEvent {
+    def id: String
+  }
+  case class RequestStarted(id: String, timestamp: Timestamp, path: Path, method: Method) extends RequestEvent
+  case class RequestCompleted(id: String, timestamp: Timestamp, status: Status)           extends RequestEvent
+  case class RequestFailed(id: String, timestamp: Timestamp)                              extends RequestEvent
 }
 
 final case class TagEvent(ref: ActorRef, tag: Tag) extends AbstractEvent {

@@ -5,24 +5,25 @@ import akka.actor.typed
 import akka.actor.typed.receptionist.Receptionist
 import akka.actor.typed.receptionist.Receptionist.{ Deregister, Register }
 import akka.actor.typed.scaladsl.adapter._
-import akka.http.scaladsl.model.StatusCodes
+import akka.http.scaladsl.model.{ HttpHeader, StatusCodes }
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
 import akka.http.scaladsl.testkit.{ RouteTestTimeout, ScalatestRouteTest }
+
 import com.typesafe.config.{ Config, ConfigFactory }
+
 import io.scalac.agent.utils.InstallAgent
 import io.scalac.extension.event.HttpEvent
-import io.scalac.extension.event.HttpEvent.{ RequestCompleted, RequestStarted }
+import io.scalac.extension.event.HttpEvent.{ ConnectionCompleted, ConnectionStarted, RequestCompleted, RequestStarted }
 import io.scalac.extension.httpServiceKey
 import org.scalatest.flatspec.AnyFlatSpecLike
 import org.scalatest.matchers.should.Matchers
-
 import scala.concurrent.duration._
 import scala.language.postfixOps
 
-class AkkaHttpAgentTest extends InstallAgent with AnyFlatSpecLike with ScalatestRouteTest with Matchers {
+import akka.http.scaladsl.model.headers.Connection
 
-  // implicit val askTimeout = Timeout(1 minute)
+class AkkaHttpAgentTest extends InstallAgent with AnyFlatSpecLike with ScalatestRouteTest with Matchers {
 
   override def testConfig: Config = ConfigFactory.load("application-test")
 
@@ -30,7 +31,7 @@ class AkkaHttpAgentTest extends InstallAgent with AnyFlatSpecLike with Scalatest
 
   val testRoute: Route = path("test") {
     get {
-      complete("")
+      complete((StatusCodes.OK, collection.immutable.Seq(Connection("close"))))
     }
   }
 
@@ -47,8 +48,10 @@ class AkkaHttpAgentTest extends InstallAgent with AnyFlatSpecLike with Scalatest
     Get("/test") ~!> testRoute ~> check {
       status should be(StatusCodes.OK)
     }
+    monitor.expectMessageType[ConnectionStarted]
     monitor.expectMessageType[RequestStarted]
     monitor.expectMessageType[RequestCompleted]
+    monitor.expectMessageType[ConnectionCompleted]
   }
 
 }
