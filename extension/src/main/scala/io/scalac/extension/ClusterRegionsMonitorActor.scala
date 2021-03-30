@@ -1,21 +1,29 @@
 package io.scalac.extension
 
+import scala.concurrent.ExecutionContext
+import scala.concurrent.Future
+import scala.concurrent.duration._
+import scala.jdk.DurationConverters.JavaDurationOps
+
+import akka.actor.typed.ActorSystem
+import akka.actor.typed.Behavior
+import akka.actor.typed.PostStop
+import akka.actor.typed.PreRestart
 import akka.actor.typed.scaladsl.Behaviors
-import akka.actor.typed.{ ActorSystem, Behavior, PostStop, PreRestart }
-import akka.cluster.sharding.ShardRegion.{ GetShardRegionStats, ShardRegionStats }
-import akka.cluster.sharding.{ ClusterSharding, ShardRegion }
+import akka.cluster.sharding.ClusterSharding
+import akka.cluster.sharding.ShardRegion
+import akka.cluster.sharding.ShardRegion.GetShardRegionStats
+import akka.cluster.sharding.ShardRegion.ShardRegionStats
 import akka.pattern.ask
 import akka.util.Timeout
+
+import org.slf4j.LoggerFactory
+
 import io.scalac.core.model._
 import io.scalac.extension.config.ConfigurationUtils.ConfigOps
 import io.scalac.extension.metric.ClusterMetricsMonitor
 import io.scalac.extension.metric.ClusterMetricsMonitor.Labels
 import io.scalac.extension.util.CachedQueryResult
-import org.slf4j.LoggerFactory
-
-import scala.concurrent.duration._
-import scala.concurrent.{ ExecutionContext, Future }
-import scala.jdk.DurationConverters.JavaDurationOps
 
 class ClusterRegionsMonitorActor
 object ClusterRegionsMonitorActor extends ClusterMonitorActor {

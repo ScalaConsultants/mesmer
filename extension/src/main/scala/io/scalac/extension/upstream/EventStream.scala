@@ -1,24 +1,28 @@
 package io.scalac.extension.upstream
 
+import scala.concurrent.Future
+import scala.concurrent.duration._
+import scala.language.postfixOps
+
 import akka.Done
 import akka.actor.ActorSystem
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.coding.Gzip
 import akka.http.scaladsl.model._
+import akka.http.scaladsl.model.headers.`Content-Encoding`
 import akka.http.scaladsl.model.headers.HttpEncodings.gzip
-import akka.http.scaladsl.model.headers.{ `Content-Encoding`, RawHeader }
+import akka.http.scaladsl.model.headers.RawHeader
+import akka.stream.OverflowStrategy
+import akka.stream.QueueOfferResult
 import akka.stream.scaladsl._
-import akka.stream.{ OverflowStrategy, QueueOfferResult }
 import akka.util.ByteString
+
 import com.typesafe.config.Config
+
 import io.scalac.extension.config.ConfigurationUtils._
 import io.scalac.extension.model.Event
 import io.scalac.extension.model.Event.ClusterChangedEvent
 import io.scalac.extension.upstream.NewRelicEventStream._
-
-import scala.concurrent.Future
-import scala.concurrent.duration._
-import scala.language.postfixOps
 
 trait EventStream[-T] {
 

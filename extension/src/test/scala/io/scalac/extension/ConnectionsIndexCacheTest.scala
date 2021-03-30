@@ -1,13 +1,14 @@
 package io.scalac.extension
 
+import org.scalatest.Inspectors
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
+
 import io.scalac.core.model.Tag.StageName.StreamUniqueStageName
 import io.scalac.core.model.Tag.SubStreamName
 import io.scalac.core.model._
 import io.scalac.extension.AkkaStreamMonitoring.ConnectionsIndexCache
 import io.scalac.extension.util.TestOps
-import org.scalatest.Inspectors
-import org.scalatest.flatspec.AnyFlatSpec
-import org.scalatest.matchers.should.Matchers
 
 class ConnectionsIndexCacheTest extends AnyFlatSpec with Matchers with TestOps with Inspectors {
 

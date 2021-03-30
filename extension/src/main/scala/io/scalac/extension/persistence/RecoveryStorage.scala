@@ -1,6 +1,8 @@
 package io.scalac.extension.persistence
 
-import io.scalac.extension.event.PersistenceEvent.{ RecoveryEvent, RecoveryFinished, RecoveryStarted }
+import io.scalac.extension.event.PersistenceEvent.RecoveryEvent
+import io.scalac.extension.event.PersistenceEvent.RecoveryFinished
+import io.scalac.extension.event.PersistenceEvent.RecoveryStarted
 
 trait RecoveryStorage {
 

@@ -1,26 +1,39 @@
 package io.scalac.extension
 
+import java.lang.invoke.MethodHandles
+import java.util.concurrent.atomic.AtomicReference
+
+import scala.annotation.tailrec
+import scala.collection.immutable
+import scala.collection.mutable
+import scala.concurrent.duration._
+
 import akka.actor.typed._
 import akka.actor.typed.receptionist.Receptionist
 import akka.actor.typed.receptionist.Receptionist.Register
-import akka.actor.typed.scaladsl.{ AbstractBehavior, ActorContext, Behaviors, TimerScheduler }
+import akka.actor.typed.scaladsl.AbstractBehavior
+import akka.actor.typed.scaladsl.ActorContext
+import akka.actor.typed.scaladsl.Behaviors
+import akka.actor.typed.scaladsl.TimerScheduler
 import akka.{ actor => classic }
-import io.scalac.core.model.{ ActorKey, Node, Tag }
-import io.scalac.core.util.{ ActorCellOps, ActorRefOps }
+
+import org.slf4j.LoggerFactory
+
+import io.scalac.core.model.ActorKey
+import io.scalac.core.model.Node
+import io.scalac.core.model.Tag
+import io.scalac.core.util.ActorCellOps
+import io.scalac.core.util.ActorRefOps
 import io.scalac.extension.AkkaStreamMonitoring.StartStreamCollection
-import io.scalac.extension.actor.{ ActorCellDecorator, ActorMetricStorage, ActorMetrics }
+import io.scalac.extension.actor.ActorCellDecorator
+import io.scalac.extension.actor.ActorMetricStorage
+import io.scalac.extension.actor.ActorMetrics
+import io.scalac.extension.event.ActorEvent
 import io.scalac.extension.event.ActorEvent.StashMeasurement
-import io.scalac.extension.event.{ ActorEvent, TagEvent }
+import io.scalac.extension.event.TagEvent
 import io.scalac.extension.metric.ActorMetricMonitor
 import io.scalac.extension.metric.ActorMetricMonitor.Labels
 import io.scalac.extension.metric.MetricObserver.Result
-import org.slf4j.LoggerFactory
-
-import java.lang.invoke.MethodHandles
-import java.util.concurrent.atomic.AtomicReference
-import scala.annotation.tailrec
-import scala.collection.{ immutable, mutable }
-import scala.concurrent.duration._
 
 object ActorEventsMonitorActor {
 

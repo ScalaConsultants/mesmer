@@ -1,16 +1,17 @@
 package io.scalac.extension.persistence
 
-import io.scalac.core.model._
-import io.scalac.core.tagging._
-import io.scalac.core.util.Timestamp
-import io.scalac.extension.event.PersistenceEvent.{ PersistingEventFinished, PersistingEventStarted }
-import io.scalac.extension.persistence.PersistStorage.PersistEventKey
-import io.scalac.extension.util.TestOps
+import scala.collection.mutable
+import scala.concurrent.duration._
+
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
-import scala.collection.mutable
-import scala.concurrent.duration._
+import io.scalac.core.model._
+import io.scalac.core.util.Timestamp
+import io.scalac.extension.event.PersistenceEvent.PersistingEventFinished
+import io.scalac.extension.event.PersistenceEvent.PersistingEventStarted
+import io.scalac.extension.persistence.PersistStorage.PersistEventKey
+import io.scalac.extension.util.TestOps
 
 class MutablePersistStorageTest extends AnyFlatSpec with Matchers with TestOps {
   type Fixture = (mutable.Map[PersistEventKey, PersistingEventStarted], MutablePersistStorage)

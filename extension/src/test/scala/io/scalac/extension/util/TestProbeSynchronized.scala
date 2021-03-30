@@ -1,7 +1,9 @@
 package io.scalac.extension.util
 
 import io.scalac.extension.metric.Synchronized
-import io.scalac.extension.util.probe.BoundTestProbe.{ Dec, Inc, MetricRecorded }
+import io.scalac.extension.util.probe.BoundTestProbe.Dec
+import io.scalac.extension.util.probe.BoundTestProbe.Inc
+import io.scalac.extension.util.probe.BoundTestProbe.MetricRecorded
 import io.scalac.extension.util.probe._
 
 trait TestProbeSynchronized extends Synchronized {

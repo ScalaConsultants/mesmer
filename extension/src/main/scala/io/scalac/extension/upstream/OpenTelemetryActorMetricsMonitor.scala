@@ -2,7 +2,10 @@ package io.scalac.extension.upstream
 
 import com.typesafe.config.Config
 import io.opentelemetry.api.OpenTelemetry
-import io.scalac.extension.metric.{ ActorMetricMonitor, MetricObserver, RegisterRoot }
+
+import io.scalac.extension.metric.ActorMetricMonitor
+import io.scalac.extension.metric.MetricObserver
+import io.scalac.extension.metric.RegisterRoot
 import io.scalac.extension.upstream.OpenTelemetryActorMetricsMonitor.MetricNames
 import io.scalac.extension.upstream.opentelemetry._
 

@@ -1,15 +1,17 @@
 package io.scalac.extension.util
 
+import scala.concurrent.duration._
+import scala.language.postfixOps
+
 import akka.actor.PoisonPill
 import akka.actor.testkit.typed.scaladsl.ScalaTestWithActorTestKit
 import akka.actor.typed.scaladsl.AskPattern._
-import io.scalac.extension.util.TerminationRegistry._
+
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.flatspec.AnyFlatSpecLike
 import org.scalatest.matchers.should.Matchers
 
-import scala.concurrent.duration._
-import scala.language.postfixOps
+import io.scalac.extension.util.TerminationRegistry._
 
 class TerminationRegistryTest
     extends ScalaTestWithActorTestKit(TestConfig.localActorProvider)

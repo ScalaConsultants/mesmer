@@ -1,10 +1,11 @@
 package io.scalac.extension.actor
 
+import scala.collection.mutable
+
 import akka.actor.ActorRef
+
 import io.scalac.core.model.ActorKey
 import io.scalac.extension.resource.MutableStorage
-
-import scala.collection.mutable
 
 class MutableActorMetricsStorage private[actor] (override val buffer: mutable.Map[ActorKey, ActorMetrics])
     extends MutableStorage[ActorKey, ActorMetrics]

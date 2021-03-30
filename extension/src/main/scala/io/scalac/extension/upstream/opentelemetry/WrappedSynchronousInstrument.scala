@@ -1,7 +1,11 @@
 package io.scalac.extension.upstream.opentelemetry
 
 import io.opentelemetry.api.common.Labels
-import io.opentelemetry.api.metrics.{ LongCounter, LongUpDownCounter, LongValueRecorder, SynchronousInstrument }
+import io.opentelemetry.api.metrics.LongCounter
+import io.opentelemetry.api.metrics.LongUpDownCounter
+import io.opentelemetry.api.metrics.LongValueRecorder
+import io.opentelemetry.api.metrics.SynchronousInstrument
+
 import io.scalac.extension.metric._
 
 trait SynchronousInstrumentFactory {

@@ -1,13 +1,14 @@
 package io.scalac.extension.metric
 
-import io.scalac.core.LabelSerializable
-import io.scalac.core.model._
-import io.scalac.extension.config.CachingConfig
+import scala.collection.mutable.ListBuffer
+
 import org.scalatest.Inspectors
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
-import scala.collection.mutable.ListBuffer
+import io.scalac.core.LabelSerializable
+import io.scalac.core.model._
+import io.scalac.extension.config.CachingConfig
 
 class CachingMonitorTest extends AnyFlatSpec with Matchers with Inspectors {
 

@@ -2,7 +2,9 @@ package io.scalac.extension.upstream
 
 import com.typesafe.config.Config
 import io.opentelemetry.api.OpenTelemetry
-import io.scalac.extension.metric.{ PersistenceMetricMonitor, RegisterRoot }
+
+import io.scalac.extension.metric.PersistenceMetricMonitor
+import io.scalac.extension.metric.RegisterRoot
 import io.scalac.extension.upstream.OpenTelemetryPersistenceMetricMonitor._
 import io.scalac.extension.upstream.opentelemetry._
 

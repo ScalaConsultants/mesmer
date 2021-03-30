@@ -1,36 +1,40 @@
 package io.scalac.extension
 
-import akka.actor.testkit.typed.scaladsl.{ ScalaTestWithActorTestKit, TestProbe }
+import scala.concurrent.duration._
+
+import akka.actor.testkit.typed.scaladsl.ScalaTestWithActorTestKit
+import akka.actor.testkit.typed.scaladsl.TestProbe
+import akka.actor.typed.ActorRef
+import akka.actor.typed.ActorSystem
+import akka.actor.typed.Behavior
 import akka.actor.typed.scaladsl.Behaviors
 import akka.actor.typed.scaladsl.adapter._
-import akka.actor.typed.{ ActorRef, ActorSystem, Behavior }
-import io.scalac.core.akka.model.PushMetrics
-import io.scalac.core.model.Tag.{ StageName, SubStreamName }
-import io.scalac.core.model._
-import io.scalac.extension.AkkaStreamMonitoring.StartStreamCollection
-import io.scalac.extension.event.ActorInterpreterStats
-import io.scalac.extension.util.TestCase.{
-  AbstractMonitorTestCaseFactory,
-  MonitorTestCaseContext,
-  NoSetupTestCaseFactory,
-  ProvidedActorSystemTestCaseFactory
-}
-import io.scalac.extension.util.probe.BoundTestProbe.{ MetricObserved, MetricRecorded }
-import io.scalac.extension.util.probe.ObserverCollector.ScheduledCollectorImpl
-import io.scalac.extension.util.probe.{
-  ObserverCollector,
-  StreamMonitorTestProbe,
-  StreamOperatorMonitorTestProbe,
-  Collected => CollectedObserver
-}
-import io.scalac.extension.util.{ TestConfig, TestOps }
+
 import org.scalatest._
 import org.scalatest.concurrent.Eventually
 import org.scalatest.enablers.Emptiness.emptinessOfOption
 import org.scalatest.flatspec.AnyFlatSpecLike
 import org.scalatest.matchers.should.Matchers
 
-import scala.concurrent.duration._
+import io.scalac.core.akka.model.PushMetrics
+import io.scalac.core.model.Tag.StageName
+import io.scalac.core.model.Tag.SubStreamName
+import io.scalac.core.model._
+import io.scalac.extension.AkkaStreamMonitoring.StartStreamCollection
+import io.scalac.extension.event.ActorInterpreterStats
+import io.scalac.extension.util.TestCase.AbstractMonitorTestCaseFactory
+import io.scalac.extension.util.TestCase.MonitorTestCaseContext
+import io.scalac.extension.util.TestCase.NoSetupTestCaseFactory
+import io.scalac.extension.util.TestCase.ProvidedActorSystemTestCaseFactory
+import io.scalac.extension.util.TestConfig
+import io.scalac.extension.util.TestOps
+import io.scalac.extension.util.probe.BoundTestProbe.MetricObserved
+import io.scalac.extension.util.probe.BoundTestProbe.MetricRecorded
+import io.scalac.extension.util.probe.ObserverCollector
+import io.scalac.extension.util.probe.ObserverCollector.ScheduledCollectorImpl
+import io.scalac.extension.util.probe.StreamMonitorTestProbe
+import io.scalac.extension.util.probe.StreamOperatorMonitorTestProbe
+import io.scalac.extension.util.probe.{Collected => CollectedObserver}
 
 class AkkaStreamMonitoringTest
     extends ScalaTestWithActorTestKit(TestConfig.localActorProvider)

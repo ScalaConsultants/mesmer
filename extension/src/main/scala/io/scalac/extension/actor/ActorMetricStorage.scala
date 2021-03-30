@@ -1,8 +1,8 @@
 package io.scalac.extension.actor
 
 import akka.actor.ActorRef
-import io.scalac.core.model.{ ActorKey, _ }
 
+import io.scalac.core.model.ActorKey
 import io.scalac.core.util.ActorPathOps
 
 trait ActorMetricStorage {

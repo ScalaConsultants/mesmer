@@ -1,11 +1,12 @@
 package io.scalac.extension.util.probe
 
-import akka.actor.testkit.typed.scaladsl.TestProbe
-import akka.actor.typed.ActorSystem
-import io.scalac.extension.util.probe.ObserverCollector.ProbeKey
-
 import scala.collection.concurrent.TrieMap
 import scala.concurrent.duration.FiniteDuration
+
+import akka.actor.testkit.typed.scaladsl.TestProbe
+import akka.actor.typed.ActorSystem
+
+import io.scalac.extension.util.probe.ObserverCollector.ProbeKey
 
 /**
  * Emulates backend collector behavior: to register updaters to collect it later.

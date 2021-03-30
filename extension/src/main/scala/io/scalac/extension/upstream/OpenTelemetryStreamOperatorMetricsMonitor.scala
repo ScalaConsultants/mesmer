@@ -2,8 +2,12 @@ package io.scalac.extension.upstream
 
 import com.typesafe.config.Config
 import io.opentelemetry.api.OpenTelemetry
-import io.scalac.extension.metric.StreamOperatorMetricsMonitor.{ BoundMonitor, Labels }
-import io.scalac.extension.metric.{ MetricObserver, RegisterRoot, StreamOperatorMetricsMonitor }
+
+import io.scalac.extension.metric.MetricObserver
+import io.scalac.extension.metric.RegisterRoot
+import io.scalac.extension.metric.StreamOperatorMetricsMonitor
+import io.scalac.extension.metric.StreamOperatorMetricsMonitor.BoundMonitor
+import io.scalac.extension.metric.StreamOperatorMetricsMonitor.Labels
 import io.scalac.extension.upstream.OpenTelemetryStreamOperatorMetricsMonitor.MetricNames
 import io.scalac.extension.upstream.opentelemetry._
 

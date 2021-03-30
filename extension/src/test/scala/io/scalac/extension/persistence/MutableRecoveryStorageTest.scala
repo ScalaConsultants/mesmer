@@ -1,14 +1,15 @@
 package io.scalac.extension.persistence
 
+import scala.collection.mutable
+import scala.concurrent.duration._
+
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
+
 import io.scalac.core.model._
 import io.scalac.core.util.Timestamp
 import io.scalac.extension.event.PersistenceEvent._
 import io.scalac.extension.util.TestOps
-import org.scalatest.flatspec.AnyFlatSpec
-import org.scalatest.matchers.should.Matchers
-
-import scala.collection.mutable
-import scala.concurrent.duration._
 
 class MutableRecoveryStorageTest extends AnyFlatSpec with Matchers with TestOps {
   type Fixture = (mutable.Map[String, RecoveryStarted], MutableRecoveryStorage)

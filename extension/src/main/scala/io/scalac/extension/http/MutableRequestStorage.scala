@@ -1,9 +1,11 @@
 package io.scalac.extension.http
 
-import io.scalac.extension.event.HttpEvent.{ RequestCompleted, RequestFailed, RequestStarted }
-import io.scalac.extension.resource.MutableStorage
-
 import scala.collection.mutable
+
+import io.scalac.extension.event.HttpEvent.RequestCompleted
+import io.scalac.extension.event.HttpEvent.RequestFailed
+import io.scalac.extension.event.HttpEvent.RequestStarted
+import io.scalac.extension.resource.MutableStorage
 
 class MutableRequestStorage private[http] (protected val buffer: mutable.Map[String, RequestStarted])
     extends MutableStorage[String, RequestStarted]

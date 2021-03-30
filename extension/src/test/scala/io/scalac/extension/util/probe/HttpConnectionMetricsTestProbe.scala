@@ -9,7 +9,8 @@ import scala.jdk.CollectionConverters._
 import akka.actor.testkit.typed.scaladsl.TestProbe
 import akka.actor.typed.ActorSystem
 
-import io.scalac.extension.metric.{ HttpConnectionMetricMonitor, UpDownCounter }
+import io.scalac.extension.metric.HttpConnectionMetricMonitor
+import io.scalac.extension.metric.UpDownCounter
 import io.scalac.extension.util.TestProbeSynchronized
 import io.scalac.extension.util.probe.BoundTestProbe.CounterCommand
 

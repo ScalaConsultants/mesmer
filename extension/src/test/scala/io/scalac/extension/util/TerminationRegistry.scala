@@ -1,8 +1,10 @@
 package io.scalac.extension.util
 
 import akka.actor.Status.Failure
+import akka.actor.typed.ActorRef
+import akka.actor.typed.Behavior
+import akka.actor.typed.Terminated
 import akka.actor.typed.scaladsl.Behaviors
-import akka.actor.typed.{ ActorRef, Behavior, Terminated }
 
 object TerminationRegistry {
 

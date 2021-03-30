@@ -1,23 +1,19 @@
 package io.scalac.extension
-
-import scala.language.postfixOps
-
 import akka.actor.typed.Behavior
 import akka.actor.typed.scaladsl.Behaviors
-import akka.cluster.ClusterEvent.{
-  MemberEvent,
-  MemberRemoved,
-  MemberUp,
-  ReachableMember,
-  UnreachableMember,
-  ReachabilityEvent => AkkaReachabilityEvent
-}
+import akka.cluster.ClusterEvent.MemberEvent
+import akka.cluster.ClusterEvent.MemberRemoved
+import akka.cluster.ClusterEvent.MemberUp
+import akka.cluster.ClusterEvent.ReachableMember
+import akka.cluster.ClusterEvent.UnreachableMember
+import akka.cluster.ClusterEvent.{ReachabilityEvent => AkkaReachabilityEvent}
 import akka.cluster.UniqueAddress
-import akka.cluster.typed.{ Cluster, Subscribe }
+import akka.cluster.typed.Cluster
+import akka.cluster.typed.Subscribe
 
+import io.scalac.core.model.AkkaNodeOps
 import io.scalac.extension.metric.ClusterMetricsMonitor
 import io.scalac.extension.metric.ClusterMetricsMonitor.Labels
-import io.scalac.core.model.AkkaNodeOps
 
 class ClusterSelfNodeEventsActor
 object ClusterSelfNodeEventsActor extends ClusterMonitorActor {

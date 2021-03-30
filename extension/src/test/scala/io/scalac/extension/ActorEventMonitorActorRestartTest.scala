@@ -1,21 +1,29 @@
 package io.scalac.extension
 
+import scala.concurrent.duration.FiniteDuration
+import scala.concurrent.duration._
+import scala.util.control.NoStackTrace
+
 import akka.actor.PoisonPill
 import akka.actor.testkit.typed.scaladsl.ScalaTestWithActorTestKit
+import akka.actor.typed.ActorRef
+import akka.actor.typed.ActorSystem
+import akka.actor.typed.SupervisorStrategy
 import akka.actor.typed.scaladsl.Behaviors
-import akka.actor.typed.{ ActorRef, ActorSystem, SupervisorStrategy }
-import io.scalac.extension.ActorEventsMonitorActor.{ ActorMetricsReader, ReflectiveActorTreeTraverser }
-import io.scalac.extension.actor.MutableActorMetricsStorage
-import io.scalac.extension.util.TestCase.MonitorTestCaseContext.BasicContext
-import io.scalac.extension.util.TestCase.{ MonitorWithBasicContextTestCaseFactory, ProvidedActorSystemTestCaseFactory }
-import io.scalac.extension.util.probe.ActorMonitorTestProbe
-import io.scalac.extension.util.probe.ObserverCollector.ManualCollectorImpl
-import io.scalac.extension.util.{ TestConfig, TestOps }
+
 import org.scalatest.concurrent.Eventually
 import org.scalatest.flatspec.AnyFlatSpecLike
 
-import scala.concurrent.duration.{ FiniteDuration, _ }
-import scala.util.control.NoStackTrace
+import io.scalac.extension.ActorEventsMonitorActor.ActorMetricsReader
+import io.scalac.extension.ActorEventsMonitorActor.ReflectiveActorTreeTraverser
+import io.scalac.extension.actor.MutableActorMetricsStorage
+import io.scalac.extension.util.TestCase.MonitorTestCaseContext.BasicContext
+import io.scalac.extension.util.TestCase.MonitorWithBasicContextTestCaseFactory
+import io.scalac.extension.util.TestCase.ProvidedActorSystemTestCaseFactory
+import io.scalac.extension.util.TestConfig
+import io.scalac.extension.util.TestOps
+import io.scalac.extension.util.probe.ActorMonitorTestProbe
+import io.scalac.extension.util.probe.ObserverCollector.ManualCollectorImpl
 
 class ActorEventMonitorActorRestartTest
     extends ScalaTestWithActorTestKit(TestConfig.localActorProvider)
