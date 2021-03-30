@@ -1,8 +1,8 @@
 package io.scalac.core.actor
 
+import io.scalac.core.model.ActorKey
 import io.scalac.core.util.Timestamp
 import io.scalac.extension.config.CleaningSettings
-import io.scalac.core.model.ActorKey
 import io.scalac.extension.resource.MutableCleanableStorage
 
 import scala.collection.mutable
