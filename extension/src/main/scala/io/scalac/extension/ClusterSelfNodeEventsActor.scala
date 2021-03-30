@@ -6,7 +6,7 @@ import akka.cluster.ClusterEvent.MemberRemoved
 import akka.cluster.ClusterEvent.MemberUp
 import akka.cluster.ClusterEvent.ReachableMember
 import akka.cluster.ClusterEvent.UnreachableMember
-import akka.cluster.ClusterEvent.{ReachabilityEvent => AkkaReachabilityEvent}
+import akka.cluster.ClusterEvent.{ ReachabilityEvent => AkkaReachabilityEvent }
 import akka.cluster.UniqueAddress
 import akka.cluster.typed.Cluster
 import akka.cluster.typed.Subscribe

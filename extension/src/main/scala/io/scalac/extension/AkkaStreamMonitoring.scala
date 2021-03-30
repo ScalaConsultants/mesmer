@@ -32,7 +32,7 @@ import io.scalac.extension.event.ActorInterpreterStats
 import io.scalac.extension.metric.MetricObserver.Result
 import io.scalac.extension.metric.StreamMetricMonitor
 import io.scalac.extension.metric.StreamMetricMonitor.EagerLabels
-import io.scalac.extension.metric.StreamMetricMonitor.{Labels => GlobalLabels}
+import io.scalac.extension.metric.StreamMetricMonitor.{ Labels => GlobalLabels }
 import io.scalac.extension.metric.StreamOperatorMetricsMonitor
 import io.scalac.extension.metric.StreamOperatorMetricsMonitor.Labels
 

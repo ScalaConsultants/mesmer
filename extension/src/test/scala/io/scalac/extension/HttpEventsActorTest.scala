@@ -8,11 +8,12 @@ import akka.actor.typed.ActorSystem
 import akka.actor.typed.Behavior
 import akka.actor.typed.receptionist.ServiceKey
 
+import org.scalatest._
 import org.scalatest.concurrent.Eventually
 import org.scalatest.flatspec.AnyFlatSpecLike
 import org.scalatest.matchers.should.Matchers
-import org.scalatest.{Status => _, _}
 
+import io.scalac.core.model
 import io.scalac.core.model._
 import io.scalac.core.util.Timestamp
 import io.scalac.extension.event.EventBus
@@ -73,11 +74,11 @@ class HttpEventsActorTest
   def requestStarted(id: String, labels: HttpMetricMonitor.Labels): Unit =
     EventBus(system).publishEvent(RequestStarted(id, Timestamp.create(), labels.path, labels.method))
 
-  def requestCompleted(id: String, status: Status): Unit =
+  def requestCompleted(id: String, status: model.Status): Unit =
     EventBus(system).publishEvent(RequestCompleted(id, Timestamp.create(), status))
 
   "HttpEventsActor" should "collect metrics for single request" in testCase { implicit c =>
-    val status: Status           = "200"
+    val status: model.Status     = "200"
     val expectedConnectionLabels = HttpConnectionMetricMonitor.Labels(None, "0.0.0.0", 8080)
     val expectedRequestLabels    = HttpMetricMonitor.Labels(None, "/api/v1/test", "GET", status)
 

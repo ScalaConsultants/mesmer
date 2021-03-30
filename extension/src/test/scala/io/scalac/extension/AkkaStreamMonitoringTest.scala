@@ -34,7 +34,7 @@ import io.scalac.extension.util.probe.ObserverCollector
 import io.scalac.extension.util.probe.ObserverCollector.ScheduledCollectorImpl
 import io.scalac.extension.util.probe.StreamMonitorTestProbe
 import io.scalac.extension.util.probe.StreamOperatorMonitorTestProbe
-import io.scalac.extension.util.probe.{Collected => CollectedObserver}
+import io.scalac.extension.util.probe.{ Collected => CollectedObserver }
 
 class AkkaStreamMonitoringTest
     extends ScalaTestWithActorTestKit(TestConfig.localActorProvider)
