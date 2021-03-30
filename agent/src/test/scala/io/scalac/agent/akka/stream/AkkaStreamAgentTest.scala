@@ -1,22 +1,32 @@
 package io.scalac.agent.akka.stream
 
+import scala.concurrent.ExecutionContext
+import scala.concurrent.Future
+import scala.concurrent.duration._
+
 import akka.Done
 import akka.actor.ActorRef
 import akka.actor.testkit.typed.scaladsl.TestProbe
 import akka.actor.typed.receptionist.Receptionist._
 import akka.actor.typed.scaladsl.adapter._
+import akka.stream.Attributes
+import akka.stream.BufferOverflowException
+import akka.stream.OverflowStrategy
+import akka.stream.QueueOfferResult
 import akka.stream.scaladsl._
-import akka.stream.{ Attributes, BufferOverflowException, OverflowStrategy, QueueOfferResult }
-import io.scalac.agent.utils.{ InstallAgent, SafeLoadSystem }
-import io.scalac.core.akka.model.PushMetrics
-import io.scalac.extension.event.{ ActorInterpreterStats, Service, TagEvent }
+
 import org.scalatest._
-import org.scalatest.concurrent.{ Futures, ScalaFutures }
+import org.scalatest.concurrent.Futures
+import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.flatspec.AnyFlatSpecLike
 import org.scalatest.matchers.should.Matchers
 
-import scala.concurrent.duration._
-import scala.concurrent.{ ExecutionContext, Future }
+import io.scalac.agent.utils.InstallAgent
+import io.scalac.agent.utils.SafeLoadSystem
+import io.scalac.core.akka.model.PushMetrics
+import io.scalac.extension.event.ActorInterpreterStats
+import io.scalac.extension.event.Service
+import io.scalac.extension.event.TagEvent
 
 class AkkaStreamAgentTest
     extends InstallAgent

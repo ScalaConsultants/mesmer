@@ -3,13 +3,18 @@ package io.scalac.agent.akka.stream
 import akka.ActorGraphInterpreterAdvice
 import akka.actor.Props
 import akka.stream.GraphStageIslandAdvice
-import io.scalac.agent.Agent.LoadingResult
-import io.scalac.agent.{ Agent, AgentInstrumentation }
-import io.scalac.core.model.{ Module, SupportedModules, SupportedVersion }
+
 import net.bytebuddy.asm.Advice
 import net.bytebuddy.description.`type`.TypeDescription
 import net.bytebuddy.description.method.MethodDescription
 import net.bytebuddy.matcher.ElementMatchers._
+
+import io.scalac.agent.Agent
+import io.scalac.agent.Agent.LoadingResult
+import io.scalac.agent.AgentInstrumentation
+import io.scalac.core.model.Module
+import io.scalac.core.model.SupportedModules
+import io.scalac.core.model.SupportedVersion
 
 object AkkaStreamAgent {
 

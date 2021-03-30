@@ -6,23 +6,32 @@ import scala.concurrent.duration._
 import akka.actor.PoisonPill
 import akka.actor.testkit.typed.FishingOutcome
 import akka.actor.testkit.typed.scaladsl.TestProbe
+import akka.actor.typed.ActorRef
+import akka.actor.typed.Behavior
+import akka.actor.typed.SupervisorStrategy
 import akka.actor.typed.receptionist.Receptionist
-import akka.actor.typed.receptionist.Receptionist.{ Deregister, Register }
+import akka.actor.typed.receptionist.Receptionist.Deregister
+import akka.actor.typed.receptionist.Receptionist.Register
+import akka.actor.typed.scaladsl.ActorContext
+import akka.actor.typed.scaladsl.Behaviors
+import akka.actor.typed.scaladsl.StashBuffer
 import akka.actor.typed.scaladsl.adapter._
-import akka.actor.typed.scaladsl.{ ActorContext, Behaviors, StashBuffer }
-import akka.actor.typed.{ ActorRef, Behavior, SupervisorStrategy }
 import akka.{ actor => classic }
 
 import org.scalatest.OptionValues
 import org.scalatest.concurrent.Eventually
 import org.scalatest.flatspec.AnyFlatSpecLike
 import org.scalatest.matchers.should.Matchers
-import org.scalatest.time.{ Millis, Span }
+import org.scalatest.time.Millis
+import org.scalatest.time.Span
 
-import io.scalac.agent.utils.{ InstallAgent, SafeLoadSystem }
+import io.scalac.agent.utils.InstallAgent
+import io.scalac.agent.utils.SafeLoadSystem
 import io.scalac.core.model._
-import io.scalac.core.util.{ ActorPathOps, MetricsToolKit }
-import io.scalac.extension.actor.{ ActorCellDecorator, ActorCellMetrics }
+import io.scalac.core.util.ActorPathOps
+import io.scalac.core.util.MetricsToolKit
+import io.scalac.extension.actor.ActorCellDecorator
+import io.scalac.extension.actor.ActorCellMetrics
 import io.scalac.extension.actorServiceKey
 import io.scalac.extension.event.ActorEvent
 import io.scalac.extension.event.ActorEvent.StashMeasurement

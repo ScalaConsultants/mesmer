@@ -1,10 +1,10 @@
 package io.scalac.core.model
 
+import scala.util.Random
+
 import org.scalatest.Inspectors
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
-
-import scala.util.Random
 
 class SupportedVersionTest extends AnyFlatSpec with Matchers with Inspectors {
 

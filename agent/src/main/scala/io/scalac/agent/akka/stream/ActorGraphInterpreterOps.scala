@@ -1,15 +1,16 @@
 package io.scalac.agent.akka.stream
 
+import java.lang.invoke.MethodType._
+
 import akka.AkkaMirrorTypes._
 import akka.actor.Actor
 import akka.stream.GraphLogicOps._
+
 import io.scalac.core.akka.model.PushMetrics
 import io.scalac.core.invoke.Lookup
 import io.scalac.core.model._
 import io.scalac.core.util.stream.subStreamNameFromActorRef
 import io.scalac.extension.event.ActorInterpreterStats
-
-import java.lang.invoke.MethodType._
 object ActorGraphInterpreterOps extends Lookup {
 
   private lazy val shells = {

@@ -2,13 +2,17 @@ package io.scalac.agent
 
 import java.lang.instrument.Instrumentation
 
-import io.scalac.agent.Agent.LoadingResult
-import io.scalac.core.model.{ Module, SupportedModules, SupportedVersion, Version }
-import io.scalac.core.util.ModuleInfo.Modules
 import net.bytebuddy.agent.ByteBuddyAgent
 import net.bytebuddy.agent.builder.AgentBuilder
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
+
+import io.scalac.agent.Agent.LoadingResult
+import io.scalac.core.model.Module
+import io.scalac.core.model.SupportedModules
+import io.scalac.core.model.SupportedVersion
+import io.scalac.core.model.Version
+import io.scalac.core.util.ModuleInfo.Modules
 
 class AgentTest extends AnyFlatSpec with Matchers {
 

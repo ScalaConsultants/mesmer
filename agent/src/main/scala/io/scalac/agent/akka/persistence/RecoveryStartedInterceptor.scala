@@ -1,15 +1,15 @@
 package io.scalac.agent.akka.persistence
 
+import scala.util.Try
+
 import _root_.akka.actor.typed.scaladsl.ActorContext
 import _root_.akka.persistence.typed.PersistenceId
+import net.bytebuddy.asm.Advice
+
+import io.scalac.core.model._
 import io.scalac.core.util.Timestamp
 import io.scalac.extension.event.EventBus
 import io.scalac.extension.event.PersistenceEvent.RecoveryStarted
-import net.bytebuddy.asm.Advice
-import io.scalac.core.model._
-import io.scalac.core.tagging._
-
-import scala.util.Try
 
 class RecoveryStartedInterceptor
 

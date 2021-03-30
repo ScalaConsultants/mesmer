@@ -1,8 +1,10 @@
 package io.scalac.agent.util
 
-import java.time.{ Duration, Instant }
+import java.time.Duration
+import java.time.Instant
 
-import scala.concurrent.{ ExecutionContext, Future }
+import scala.concurrent.ExecutionContext
+import scala.concurrent.Future
 import scala.util.Success
 
 trait FunctionOps {

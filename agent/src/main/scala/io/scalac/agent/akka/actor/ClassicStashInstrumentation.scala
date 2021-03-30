@@ -3,9 +3,11 @@ package io.scalac.agent.akka.actor
 import java.lang.invoke.MethodHandles
 import java.lang.invoke.MethodType.methodType
 
-import net.bytebuddy.asm.Advice.{ OnMethodExit, This }
+import akka.actor.ActorContext
+import akka.actor.ActorRef
 
-import akka.actor.{ ActorContext, ActorRef }
+import net.bytebuddy.asm.Advice.OnMethodExit
+import net.bytebuddy.asm.Advice.This
 
 class ClassicStashInstrumentation
 object ClassicStashInstrumentation {

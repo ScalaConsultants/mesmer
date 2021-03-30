@@ -1,6 +1,7 @@
 package io.scalac.extension.event
 
 import akka.actor.typed.receptionist.ServiceKey
+
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 

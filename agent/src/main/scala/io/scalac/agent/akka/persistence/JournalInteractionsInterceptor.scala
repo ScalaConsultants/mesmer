@@ -1,12 +1,13 @@
 package io.scalac.agent.akka.persistence
 import akka.actor.typed.scaladsl.ActorContext
 import akka.persistence.PersistentRepr
+
+import net.bytebuddy.asm.Advice._
+
 import io.scalac.core.model._
-import io.scalac.core.tagging._
 import io.scalac.core.util.Timestamp
 import io.scalac.extension.event.EventBus
 import io.scalac.extension.event.PersistenceEvent.PersistingEventStarted
-import net.bytebuddy.asm.Advice._
 
 class JournalInteractionsInterceptor
 object JournalInteractionsInterceptor {

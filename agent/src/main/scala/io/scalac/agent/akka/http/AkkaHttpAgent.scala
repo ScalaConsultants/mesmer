@@ -1,14 +1,19 @@
 package io.scalac.agent.akka.http
 
-import io.scalac.agent.Agent.LoadingResult
-import io.scalac.agent.{ Agent, AgentInstrumentation }
-import io.scalac.core.model.{ Module, SupportedModules, SupportedVersion, Version }
 import net.bytebuddy.description.`type`.TypeDescription
 import net.bytebuddy.description.method.MethodDescription
 import net.bytebuddy.implementation.MethodDelegation
 import net.bytebuddy.matcher.ElementMatchers
 import net.bytebuddy.matcher.ElementMatchers._
 import org.slf4j.LoggerFactory
+
+import io.scalac.agent.Agent
+import io.scalac.agent.Agent.LoadingResult
+import io.scalac.agent.AgentInstrumentation
+import io.scalac.core.model.Module
+import io.scalac.core.model.SupportedModules
+import io.scalac.core.model.SupportedVersion
+import io.scalac.core.model.Version
 
 object AkkaHttpAgent {
 

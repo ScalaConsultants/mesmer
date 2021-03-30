@@ -1,15 +1,17 @@
 package io.scalac.agent.akka.persistence
 
-import akka.actor.typed.scaladsl.{ AbstractBehavior, ActorContext }
+import scala.util.Try
+
+import akka.actor.typed.scaladsl.AbstractBehavior
+import akka.actor.typed.scaladsl.ActorContext
 import akka.persistence.SaveSnapshotSuccess
+
+import net.bytebuddy.asm.Advice._
+
+import io.scalac.core.model._
 import io.scalac.core.util.Timestamp
 import io.scalac.extension.event.EventBus
 import io.scalac.extension.event.PersistenceEvent.SnapshotCreated
-import net.bytebuddy.asm.Advice._
-import io.scalac.core.model._
-import io.scalac.core.tagging._
-
-import scala.util.Try
 class StoringSnapshotInterceptor
 object StoringSnapshotInterceptor {
   import AkkaPersistenceAgent.logger

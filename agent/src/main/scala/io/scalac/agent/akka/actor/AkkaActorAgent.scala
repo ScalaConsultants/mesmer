@@ -7,12 +7,14 @@ import net.bytebuddy.description.`type`.TypeDescription
 import net.bytebuddy.description.method.MethodDescription
 import net.bytebuddy.matcher.ElementMatchers._
 
+import io.scalac.agent.Agent
 import io.scalac.agent.Agent.LoadingResult
-import io.scalac.agent.{ Agent, AgentInstrumentation }
+import io.scalac.agent.AgentInstrumentation
 import io.scalac.core.model._
 import io.scalac.core.support.ModulesSupport
 import io.scalac.core.util.Timestamp
-import io.scalac.extension.actor.{ ActorCellDecorator, ActorCellMetrics }
+import io.scalac.extension.actor.ActorCellDecorator
+import io.scalac.extension.actor.ActorCellMetrics
 
 object AkkaActorAgent {
 
