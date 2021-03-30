@@ -7,7 +7,7 @@ import io.scalac.core.akka.model.PushMetrics
 import io.scalac.core.invoke.Lookup
 import io.scalac.core.model._
 import io.scalac.core.util.stream.subStreamNameFromActorRef
-import io.scalac.extension.event.ActorInterpreterStats
+import io.scalac.core.event.ActorInterpreterStats
 
 import java.lang.invoke.MethodType._
 object ActorGraphInterpreterOps extends Lookup {

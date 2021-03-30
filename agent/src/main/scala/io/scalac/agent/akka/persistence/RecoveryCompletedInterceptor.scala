@@ -5,8 +5,8 @@ import _root_.akka.persistence.typed.PersistenceId
 import io.scalac.core.model._
 import io.scalac.core.tagging._
 import io.scalac.core.util.Timestamp
-import io.scalac.extension.event.EventBus
-import io.scalac.extension.event.PersistenceEvent.RecoveryFinished
+import io.scalac.core.event.EventBus
+import io.scalac.core.event.PersistenceEvent.RecoveryFinished
 import net.bytebuddy.asm.Advice
 
 import scala.util.Try

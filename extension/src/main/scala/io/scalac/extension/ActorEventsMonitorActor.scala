@@ -1,16 +1,15 @@
 package io.scalac.extension
 
 import akka.actor.typed._
-import akka.actor.typed.receptionist.Receptionist
 import akka.actor.typed.receptionist.Receptionist.Register
 import akka.actor.typed.scaladsl.{ AbstractBehavior, ActorContext, Behaviors, TimerScheduler }
 import akka.{ actor => classic }
+import io.scalac.core._
 import io.scalac.core.model.{ ActorKey, Node, Tag }
 import io.scalac.core.util.{ ActorCellOps, ActorRefOps }
 import io.scalac.extension.AkkaStreamMonitoring.StartStreamCollection
-import io.scalac.extension.actor.{ ActorCellDecorator, ActorMetricStorage, ActorMetrics }
-import io.scalac.extension.event.ActorEvent.StashMeasurement
-import io.scalac.extension.event.{ ActorEvent, TagEvent }
+import io.scalac.core.actor.{ ActorCellDecorator, ActorMetricStorage, ActorMetrics }
+import io.scalac.core.event.TagEvent
 import io.scalac.extension.metric.ActorMetricMonitor
 import io.scalac.extension.metric.ActorMetricMonitor.Labels
 import io.scalac.extension.metric.MetricObserver.Result

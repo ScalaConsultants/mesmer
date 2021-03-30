@@ -5,8 +5,8 @@ import akka.actor.typed.scaladsl.ActorContext
 import akka.actor.typed.scaladsl.adapter._
 import akka.{ actor => classic }
 import io.scalac.core.util.ActorPathOps
-import io.scalac.extension.event.ActorEvent.StashMeasurement
-import io.scalac.extension.event.EventBus
+import io.scalac.core.event.ActorEvent.StashMeasurement
+import io.scalac.core.event.EventBus
 
 object StashInstrumentation {
 

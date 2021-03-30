@@ -1,7 +1,7 @@
 package io.scalac.core.util
 
-import io.scalac.extension.util.AggMetric.LongValueAggMetric
-import io.scalac.extension.util.LongNoLockAggregator
+import io.scalac.core.util.AggMetric.LongValueAggMetric
+import io.scalac.core.util.LongNoLockAggregator
 
 import java.util.concurrent.atomic.{ AtomicBoolean, AtomicLong, AtomicReference }
 import scala.concurrent.duration._
@@ -49,7 +49,6 @@ object MetricsToolKit {
 
     private def ifInitialized[@specialized(Long) T](map: AtomicLong => T): Option[T] =
       if (counter ne null) Some(map(counter)) else None
-
   }
 
 }

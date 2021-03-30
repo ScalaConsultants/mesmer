@@ -1,6 +1,6 @@
 package io.scalac.extension.persistence
 
-import io.scalac.extension.event.PersistenceEvent._
+import io.scalac.core.event.PersistenceEvent._
 import io.scalac.extension.persistence.PersistStorage.PersistEventKey
 
 trait PersistStorage {

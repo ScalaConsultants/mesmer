@@ -9,7 +9,7 @@ import org.scalatest.matchers.should.Matchers
 
 import io.scalac.core.util.ActorPathOps
 import io.scalac.extension.ActorEventsMonitorActor.ReflectiveActorTreeTraverser
-import io.scalac.extension.util.TestConfig
+import io.scalac.core.util.TestConfig
 
 class ActorTreeTraverserTest
     extends ScalaTestWithActorTestKit(TestConfig.localActorProvider)

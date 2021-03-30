@@ -9,7 +9,7 @@ import akka.stream.scaladsl._
 import akka.stream.{ Attributes, BufferOverflowException, OverflowStrategy, QueueOfferResult }
 import io.scalac.agent.utils.{ InstallAgent, SafeLoadSystem }
 import io.scalac.core.akka.model.PushMetrics
-import io.scalac.extension.event.{ ActorInterpreterStats, Service, TagEvent }
+import io.scalac.core.event.{ ActorInterpreterStats, Service, TagEvent }
 import org.scalatest._
 import org.scalatest.concurrent.{ Futures, ScalaFutures }
 import org.scalatest.flatspec.AnyFlatSpecLike

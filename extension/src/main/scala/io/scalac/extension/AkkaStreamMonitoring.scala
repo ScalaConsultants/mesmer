@@ -11,7 +11,7 @@ import io.scalac.core.support.ModulesSupport
 import io.scalac.extension.AkkaStreamMonitoring._
 import io.scalac.extension.config.CachingConfig
 import io.scalac.extension.config.ConfigurationUtils._
-import io.scalac.extension.event.ActorInterpreterStats
+import io.scalac.core.event.ActorInterpreterStats
 import io.scalac.extension.metric.MetricObserver.Result
 import io.scalac.extension.metric.StreamMetricMonitor.{ EagerLabels, Labels => GlobalLabels }
 import io.scalac.extension.metric.StreamOperatorMetricsMonitor.Labels

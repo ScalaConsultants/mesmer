@@ -6,7 +6,7 @@ import io.scalac.agent.{ Agent, AgentInstrumentation }
 import io.scalac.core.model._
 import io.scalac.core.support.ModulesSupport
 import io.scalac.core.util.Timestamp
-import io.scalac.extension.actor.{ ActorCellDecorator, ActorCellMetrics }
+import io.scalac.core.actor.{ ActorCellDecorator, ActorCellMetrics }
 import net.bytebuddy.asm.Advice
 import net.bytebuddy.description.`type`.TypeDescription
 import net.bytebuddy.description.method.MethodDescription
@@ -218,6 +218,34 @@ object AkkaActorAgent {
 
   private val abstractSupervisionInstrumentation = {
     val abstractSupervisor = "akka.actor.typed.internal.AbstractSupervisor"
+    AgentInstrumentation(
+      abstractSupervisor,
+      SupportedModules(moduleName, version)
+    ) { (agentBuilder, instrumentation, _) =>
+      agentBuilder
+        .`type`(
+          hasSuperType[TypeDescription](named[TypeDescription](abstractSupervisor))
+            .and[TypeDescription](
+              declaresMethod[TypeDescription](
+                named[MethodDescription]("handleReceiveException")
+                  .and[MethodDescription](
+                    isOverriddenFrom[MethodDescription](named[TypeDescription](abstractSupervisor))
+                  )
+              )
+            )
+        )
+        .transform { (builder, _, _, _) =>
+          builder
+            .method(named[MethodDescription]("handleReceiveException"))
+            .intercept(Advice.to(classOf[SupervisorHandleReceiveExceptionInstrumentation]))
+        }
+        .installOn(instrumentation)
+      LoadingResult(abstractSupervisor)
+    }
+  }
+
+  private val stashBufferImplementation = {
+    val abstractSupervisor = "akka.actor.typed.internal.StashBufferImpl"
     AgentInstrumentation(
       abstractSupervisor,
       SupportedModules(moduleName, version)

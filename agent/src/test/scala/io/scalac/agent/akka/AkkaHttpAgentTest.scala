@@ -11,9 +11,9 @@ import akka.http.scaladsl.server.Route
 import akka.http.scaladsl.testkit.{ RouteTestTimeout, ScalatestRouteTest }
 import com.typesafe.config.{ Config, ConfigFactory }
 import io.scalac.agent.utils.InstallAgent
-import io.scalac.extension.event.HttpEvent
-import io.scalac.extension.event.HttpEvent.{ RequestCompleted, RequestStarted }
-import io.scalac.extension.httpServiceKey
+import io.scalac.core.httpServiceKey
+import io.scalac.core.event.HttpEvent
+import io.scalac.core.event.HttpEvent.{ RequestCompleted, RequestStarted }
 import org.scalatest.flatspec.AnyFlatSpecLike
 import org.scalatest.matchers.should.Matchers
 

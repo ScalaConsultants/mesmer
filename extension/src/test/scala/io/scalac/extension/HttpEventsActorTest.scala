@@ -3,18 +3,19 @@ package io.scalac.extension
 import akka.actor.testkit.typed.scaladsl.ScalaTestWithActorTestKit
 import akka.actor.typed.receptionist.ServiceKey
 import akka.actor.typed.{ ActorSystem, Behavior }
+import io.scalac.core._
 import io.scalac.core.model._
 import io.scalac.core.util.Timestamp
-import io.scalac.extension.event.EventBus
-import io.scalac.extension.event.HttpEvent.{ RequestCompleted, RequestStarted }
+import io.scalac.core.event.EventBus
+import io.scalac.core.event.HttpEvent.{ RequestCompleted, RequestStarted }
 import io.scalac.extension.http.MutableRequestStorage
 import io.scalac.extension.metric.CachingMonitor
 import io.scalac.extension.metric.HttpMetricMonitor.Labels
-import io.scalac.extension.util.TestCase.CommonMonitorTestFactory
-import io.scalac.extension.util.TestCase.MonitorTestCaseContext.BasicContext
-import io.scalac.extension.util.probe.BoundTestProbe._
-import io.scalac.extension.util.probe.HttpMetricsTestProbe
-import io.scalac.extension.util.{ IdentityPathService, TestOps, _ }
+import io.scalac.core.util.TestCase.CommonMonitorTestFactory
+import io.scalac.core.util.TestCase.MonitorTestCaseContext.BasicContext
+import io.scalac.core.util.probe.BoundTestProbe._
+import io.scalac.core.util.probe.HttpMetricsTestProbe
+import io.scalac.core.util.{ IdentityPathService, TestOps, _ }
 import org.scalatest.concurrent.Eventually
 import org.scalatest.flatspec.AnyFlatSpecLike
 import org.scalatest.matchers.should.Matchers

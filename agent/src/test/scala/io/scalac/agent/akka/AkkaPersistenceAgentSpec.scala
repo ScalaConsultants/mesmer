@@ -6,10 +6,10 @@ import _root_.akka.actor.typed.receptionist.Receptionist.{ Deregister, Register 
 import _root_.akka.util.Timeout
 import io.scalac.agent.utils.DummyEventSourcedActor.{ DoNothing, Persist }
 import io.scalac.agent.utils.{ DummyEventSourcedActor, InstallAgent, SafeLoadSystem }
-import io.scalac.extension.event.PersistenceEvent
-import io.scalac.extension.event.PersistenceEvent._
-import io.scalac.extension.persistenceServiceKey
-import io.scalac.extension.util.ReceptionistOps
+import io.scalac.core.persistenceServiceKey
+import io.scalac.core.event.PersistenceEvent
+import io.scalac.core.event.PersistenceEvent._
+import io.scalac.core.util.ReceptionistOps
 import org.scalatest.OptionValues
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.flatspec.AnyFlatSpecLike

@@ -10,8 +10,8 @@ import akka.http.scaladsl.{ ConnectionContext, HttpExt }
 import akka.stream.scaladsl.{ Broadcast, Flow, GraphDSL, Source, Zip }
 import io.scalac.core.model._
 import io.scalac.core.util.Timestamp
-import io.scalac.extension.event.EventBus
-import io.scalac.extension.event.HttpEvent._
+import io.scalac.core.event.EventBus
+import io.scalac.core.event.HttpEvent._
 import net.bytebuddy.implementation.bind.annotation._
 
 import java.lang.reflect.Method

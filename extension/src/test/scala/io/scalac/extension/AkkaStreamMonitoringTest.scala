@@ -8,22 +8,22 @@ import io.scalac.core.akka.model.PushMetrics
 import io.scalac.core.model.Tag.{ StageName, SubStreamName }
 import io.scalac.core.model._
 import io.scalac.extension.AkkaStreamMonitoring.StartStreamCollection
-import io.scalac.extension.event.ActorInterpreterStats
-import io.scalac.extension.util.TestCase.{
+import io.scalac.core.event.ActorInterpreterStats
+import io.scalac.core.util.TestCase.{
   AbstractMonitorTestCaseFactory,
   MonitorTestCaseContext,
   NoSetupTestCaseFactory,
   ProvidedActorSystemTestCaseFactory
 }
-import io.scalac.extension.util.probe.BoundTestProbe.{ MetricObserved, MetricRecorded }
-import io.scalac.extension.util.probe.ObserverCollector.ScheduledCollectorImpl
-import io.scalac.extension.util.probe.{
+import io.scalac.core.util.probe.BoundTestProbe.{ MetricObserved, MetricRecorded }
+import io.scalac.core.util.probe.ObserverCollector.ScheduledCollectorImpl
+import io.scalac.core.util.probe.{
   ObserverCollector,
   StreamMonitorTestProbe,
   StreamOperatorMonitorTestProbe,
   Collected => CollectedObserver
 }
-import io.scalac.extension.util.{ TestConfig, TestOps }
+import io.scalac.core.util.{ TestConfig, TestOps }
 import org.scalatest._
 import org.scalatest.concurrent.Eventually
 import org.scalatest.enablers.Emptiness.emptinessOfOption

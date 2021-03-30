@@ -5,9 +5,10 @@ import akka.actor.typed.receptionist.Receptionist.{ Deregister, Register }
 import akka.actor.typed.scaladsl.Behaviors
 import akka.actor.typed.{ Behavior, PostStop }
 import akka.util.Timeout
+import io.scalac.core._
 import io.scalac.core.model.{ Method, Path, _ }
-import io.scalac.extension.event.HttpEvent
-import io.scalac.extension.event.HttpEvent._
+import io.scalac.core.event.HttpEvent
+import io.scalac.core.event.HttpEvent._
 import io.scalac.extension.http.RequestStorage
 import io.scalac.extension.metric.HttpMetricMonitor
 import io.scalac.extension.metric.HttpMetricMonitor._

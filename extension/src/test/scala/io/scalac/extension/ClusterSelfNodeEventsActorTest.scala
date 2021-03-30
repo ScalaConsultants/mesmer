@@ -3,8 +3,8 @@ package io.scalac.extension
 import akka.cluster.sharding.typed.ShardingEnvelope
 import io.scalac.core.model._
 import io.scalac.extension.metric.ClusterMetricsMonitor.Labels
-import io.scalac.extension.util.probe.BoundTestProbe._
-import io.scalac.extension.util.{ ActorFailing, SingleNodeClusterSpec, TestBehavior }
+import io.scalac.core.util.probe.BoundTestProbe._
+import io.scalac.core.util.{ ActorFailing, SingleNodeClusterSpec, TestBehavior }
 import org.scalatest.Inspectors
 import org.scalatest.flatspec.AsyncFlatSpec
 import org.scalatest.matchers.should.Matchers
@@ -14,7 +14,7 @@ import scala.language.postfixOps
 
 class ClusterSelfNodeEventsActorTest extends AsyncFlatSpec with SingleNodeClusterSpec with Matchers with Inspectors {
 
-  import util.TestBehavior.Command._
+  import io.scalac.core.util.TestBehavior.Command._
 
   "ClusterSelfNodeEventsActor" should "show proper amount of entities per region" in setup(TestBehavior.apply) {
     case (system, member, ref, monitor, region) =>

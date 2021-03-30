@@ -1,7 +1,7 @@
 package io.scalac.agent.akka.actor
 
 import akka.actor.{ Actor, ActorContext }
-import io.scalac.extension.actor.ActorCellDecorator
+import io.scalac.core.actor.ActorCellDecorator
 import net.bytebuddy.asm.Advice.{ OnMethodExit, This }
 
 import java.lang.invoke.MethodHandles

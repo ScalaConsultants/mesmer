@@ -10,13 +10,13 @@ import akka.actor.typed.scaladsl.{ ActorContext, Behaviors, StashBuffer }
 import akka.actor.typed.{ ActorRef, Behavior, SupervisorStrategy }
 import akka.{ actor => classic }
 import io.scalac.agent.utils.{ InstallAgent, SafeLoadSystem }
+import io.scalac.core.actorServiceKey
 import io.scalac.core.model._
 import io.scalac.core.util.{ ActorPathOps, MetricsToolKit }
-import io.scalac.extension.actor.{ ActorCellDecorator, ActorCellMetrics }
-import io.scalac.extension.actorServiceKey
-import io.scalac.extension.event.ActorEvent
-import io.scalac.extension.event.ActorEvent.StashMeasurement
-import io.scalac.extension.util.ReceptionistOps
+import io.scalac.core.actor.{ ActorCellDecorator, ActorCellMetrics }
+import io.scalac.core.event.ActorEvent
+import io.scalac.core.event.ActorEvent.StashMeasurement
+import io.scalac.core.util.ReceptionistOps
 import org.scalatest.OptionValues
 import org.scalatest.concurrent.Eventually
 import org.scalatest.flatspec.AnyFlatSpecLike
