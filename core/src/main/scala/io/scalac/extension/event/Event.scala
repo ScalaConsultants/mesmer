@@ -1,6 +1,7 @@
 package io.scalac.extension.event
 
 import akka.actor.ActorRef
+
 import io.scalac.core.model.Tag.SubStreamName
 import io.scalac.core.model._
 import io.scalac.core.util.Timestamp

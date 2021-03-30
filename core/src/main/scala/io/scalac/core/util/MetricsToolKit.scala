@@ -1,6 +1,8 @@
 package io.scalac.core.util
 
-import java.util.concurrent.atomic.{ AtomicBoolean, AtomicLong, AtomicReference }
+import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.AtomicLong
+import java.util.concurrent.atomic.AtomicReference
 
 import scala.concurrent.duration._
 

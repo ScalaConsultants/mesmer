@@ -1,11 +1,13 @@
 package io.scalac.extension.util
 
+import java.util.UUID
+
+import scala.util.Random
+
 import akka.actor.typed.ActorRef
 
-import org.scalatest.matchers.{ MatchResult, Matcher }
-
-import java.util.UUID
-import scala.util.Random
+import org.scalatest.matchers.MatchResult
+import org.scalatest.matchers.Matcher
 
 trait TestOps {
 

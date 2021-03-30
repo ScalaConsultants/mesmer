@@ -1,9 +1,12 @@
 package io.scalac.core.util
 
-import java.util.jar.{ Attributes, Manifest }
+import java.util.jar.Attributes
+import java.util.jar.Manifest
 
-import io.scalac.core.model.{ Module, Version }
 import scala.jdk.CollectionConverters._
+
+import io.scalac.core.model.Module
+import io.scalac.core.model.Version
 
 object ModuleInfo {
 

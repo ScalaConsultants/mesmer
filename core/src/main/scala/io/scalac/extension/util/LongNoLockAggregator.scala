@@ -1,13 +1,14 @@
 package io.scalac.extension.util
 
-import io.scalac.extension.util.AggMetric.LongValueAggMetric
-import io.scalac.extension.util.TimeSeries.LongTimeSeries
-
 import java.util.concurrent.ArrayBlockingQueue
 import java.util.concurrent.atomic.AtomicReference
 import java.util.concurrent.locks.ReentrantLock
+
 import scala.collection.mutable.ListBuffer
 import scala.jdk.CollectionConverters._
+
+import io.scalac.extension.util.AggMetric.LongValueAggMetric
+import io.scalac.extension.util.TimeSeries.LongTimeSeries
 
 // TODO Can we generalize it?
 final class LongNoLockAggregator(val maxSize: Int = 100, val compactionRemainingSize: Int = 25) {
