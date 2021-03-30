@@ -33,6 +33,8 @@ package object model {
 
   sealed trait ModelTag
   sealed trait NodeTag          extends ModelTag
+  sealed trait InterfaceTag     extends ModelTag
+  sealed trait PortTag          extends ModelTag
   sealed trait RegionTag        extends ModelTag
   sealed trait PathTag          extends ModelTag
   sealed trait StatusTag        extends ModelTag
@@ -41,6 +43,8 @@ package object model {
   sealed trait ActorPathTag     extends ModelTag
 
   type Node          = String @@ NodeTag
+  type Interface     = String @@ InterfaceTag
+  type Port          = Int @@ PortTag
   type Region        = String @@ RegionTag
   type Path          = String @@ PathTag
   type Status        = String @@ StatusTag
@@ -50,9 +54,11 @@ package object model {
   type ActorKey      = ActorPath
   type RawLabels     = Seq[(String, String)]
 
-  implicit val nodeLabelSerializer: LabelSerializer[Node]     = node => Seq("node" -> node.unwrap)
-  implicit val regionLabelSerializer: LabelSerializer[Region] = region => Seq("region" -> region.unwrap)
-  implicit val pathLabelSerializer: LabelSerializer[Path]     = path => Seq("path" -> path.unwrap)
+  implicit val nodeLabelSerializer: LabelSerializer[Node]           = node => Seq("node" -> node.unwrap)
+  implicit val interfaceLabelSerializer: LabelSerializer[Interface] = interface => Seq("interface" -> interface.unwrap)
+  implicit val portLabelSerializer: LabelSerializer[Port]           = port => Seq("port" -> port.unwrap.toString)
+  implicit val regionLabelSerializer: LabelSerializer[Region]       = region => Seq("region" -> region.unwrap)
+  implicit val pathLabelSerializer: LabelSerializer[Path]           = path => Seq("path" -> path.unwrap)
   implicit val statusLabelSerializer: LabelSerializer[Status] = status =>
     Seq("status" -> status.unwrap, "status_group" -> s"${status.charAt(0)}xx")
 
@@ -67,6 +73,7 @@ package object model {
    * @return
    */
   implicit def stringAutomaticTagger[Tag <: ModelTag](value: String): String @@ Tag = value.taggedWith[Tag]
+  implicit def intAutomaticTagger[Tag <: ModelTag](value: Int): Int @@ Tag          = value.taggedWith[Tag]
 
   implicit class AkkaNodeOps(val value: UniqueAddress) extends AnyVal {
     def toNode: Node = value.address.toString.taggedWith[NodeTag] // @todo change to some meaningful name
