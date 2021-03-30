@@ -1,15 +1,15 @@
 import sbt._
 
-object Versions {
+object Dependencies {  
+
   val AkkaHttpVersion       = "10.2.0"
   val AkkaVersion           = "2.6.8"
   val LogbackVersion        = "1.2.3"
   val ScalatestVersion      = "3.1.2"
-}
-
-object Dependencies {  
-
-  import Versions._
+  val CirceVersion          = "0.12.3"
+  val SlickVersion          = "3.3.3"
+  val PostgresVersion       = "9.4-1201-jdbc41"
+  val AkkaManagementVersion = "1.0.9"
   
   val akka = Seq(
     "com.typesafe.akka" %% "akka-http"                   % AkkaHttpVersion,
@@ -76,5 +76,22 @@ object Dependencies {
   val prometheus = Seq(
     "io.opentelemetry" % "opentelemetry-exporter-prometheus" % "0.13.1",
     "fr.davit"         %% "akka-http-metrics-prometheus"     % "1.1.1"
+  )
+
+  val exampleDependencies = Seq(
+    "io.circe"                      %% "circe-core"                        % CirceVersion,
+    "io.circe"                      %% "circe-generic"                     % CirceVersion,
+    "io.circe"                      %% "circe-parser"                      % CirceVersion,
+    "de.heikoseeberger"             %% "akka-http-circe"                   % "1.30.0",
+    "org.postgresql"                %  "postgresql"                        % PostgresVersion,
+    "com.typesafe.slick"            %% "slick"                             % SlickVersion,
+    "com.typesafe.slick"            %% "slick-hikaricp"                    % SlickVersion,
+    "com.typesafe.akka"             %% "akka-discovery"                    % AkkaVersion,
+    "com.lightbend.akka.management" %% "akka-management"                   % AkkaManagementVersion,
+    "com.lightbend.akka.management" %% "akka-management-cluster-http"      % AkkaManagementVersion,
+    "com.lightbend.akka.management" %% "akka-management-cluster-bootstrap" % AkkaManagementVersion,
+    "com.lightbend.akka.discovery"  %% "akka-discovery-kubernetes-api"     % AkkaManagementVersion,
+    "io.opentelemetry"              %  "opentelemetry-exporter-prometheus" % "0.13.1",
+    "fr.davit"                      %% "akka-http-metrics-prometheus"      % "1.1.1"
   )
 }

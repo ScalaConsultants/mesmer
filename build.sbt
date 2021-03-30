@@ -91,35 +91,13 @@ lazy val example = (project in file("example"))
     name := "mesmer-akka-example",
     publish / skip := true,
     libraryDependencies ++= {
-      val CirceVersion          = "0.12.3"
-      val SlickVersion          = "3.3.3"
-      val PostgresVersion       = "9.4-1201-jdbc41"
-      val AkkaManagementVersion = "1.0.9"
-      
-      import Versions._
-      
       akka ++ 
       scalatest ++ 
       akkaTestkit ++ 
       akkaPersistance ++ 
       logback ++ 
       newRelicSdk ++
-      Seq(
-        "io.circe"                      %% "circe-core"                        % CirceVersion,
-        "io.circe"                      %% "circe-generic"                     % CirceVersion,
-        "io.circe"                      %% "circe-parser"                      % CirceVersion,
-        "de.heikoseeberger"             %% "akka-http-circe"                   % "1.30.0",
-        "org.postgresql"                %  "postgresql"                        % PostgresVersion,
-        "com.typesafe.slick"            %% "slick"                             % SlickVersion,
-        "com.typesafe.slick"            %% "slick-hikaricp"                    % SlickVersion,
-        "com.typesafe.akka"             %% "akka-discovery"                    % AkkaVersion,
-        "com.lightbend.akka.management" %% "akka-management"                   % AkkaManagementVersion,
-        "com.lightbend.akka.management" %% "akka-management-cluster-http"      % AkkaManagementVersion,
-        "com.lightbend.akka.management" %% "akka-management-cluster-bootstrap" % AkkaManagementVersion,
-        "com.lightbend.akka.discovery"  %% "akka-discovery-kubernetes-api"     % AkkaManagementVersion,
-        "io.opentelemetry"              %  "opentelemetry-exporter-prometheus" % "0.13.1",
-        "fr.davit"                      %% "akka-http-metrics-prometheus"      % "1.1.1"
-      )
+      exampleDependencies
     },
     assemblyMergeStrategySettings,
     assembly / mainClass := Some("io.scalac.Boot"),
@@ -137,10 +115,10 @@ lazy val example = (project in file("example"))
     commands += runWithAgent,
     Universal / mappings += {
       val jar = (agent / assembly).value
-      jar -> "scalac.agent.jar"
+      jar -> "mesmer.agent.jar"
     },
     dockerEnvVars := {
-      Map("JAVA_OPTS" -> s"-javaagent:/opt/docker/scalac.agent.jar -Dconfig.resource=dev/application.conf")
+      Map("JAVA_OPTS" -> s"-javaagent:/opt/docker/mesmer.agent.jar -Dconfig.resource=dev/application.conf")
     },
     dockerExposedPorts ++= Seq(8080),
     Docker / dockerRepository := {
@@ -157,7 +135,7 @@ lazy val example = (project in file("example"))
   )
   .dependsOn(extension)
 
-val assemblyMergeStrategySettings = assembly / assemblyMergeStrategy := {
+lazy val assemblyMergeStrategySettings = assembly / assemblyMergeStrategy := {
   case PathList("META-INF", "services", _ @_*)           => MergeStrategy.concat
   case PathList("META-INF", xs @ _*)                     => MergeStrategy.discard
   case PathList("reference.conf")                        => MergeStrategy.concat

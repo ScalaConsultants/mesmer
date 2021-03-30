@@ -15,7 +15,3 @@ Otherwise you might need to override the expected values in the application by s
 - `DB_NAME` (default: `akka`)
 - `DB_USER` (default: `postgres`)
 - `DB_PASS` (default: `12345`)
-
-## New Relic agent
-
-This is not required to run this with NR agent, as this tool functionality should be orthogonal to NR agent. Nonetheless, `test_app` is tested under New Relic Java agent version `6.0.0`.
