@@ -19,19 +19,3 @@ object CachingConfig {
 
   def empty: CachingConfig = CachingConfig(DefaultSize)
 }
-
-case class BufferConfig private (size: Int)
-
-object BufferConfig {
-  private val DefaultSize = 1024
-
-  def fromConfig(config: Config, module: Module): BufferConfig =
-    (
-      for {
-        bufferConfig <- config.tryValue(s"io.scalac.akka-monitoring.internal-buffer.${module.name}")(_.getConfig)
-        maxEntries = bufferConfig.tryValue("size")(_.getInt).getOrElse(DefaultSize)
-      } yield BufferConfig(maxEntries)
-    ).getOrElse(BufferConfig.empty)
-
-  def empty: BufferConfig = BufferConfig(DefaultSize)
-}
