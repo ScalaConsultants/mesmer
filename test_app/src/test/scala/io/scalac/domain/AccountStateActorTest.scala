@@ -2,15 +2,18 @@ package io.scalac.domain
 
 import java.util.UUID
 
-import akka.actor.testkit.typed.scaladsl.{ ActorTestKit, ScalaTestWithActorTestKit, TestProbe }
-import akka.persistence.testkit.PersistenceTestKitPlugin
-import akka.persistence.testkit.scaladsl.PersistenceTestKit
-import org.scalatest.flatspec.AnyFlatSpecLike
-import org.scalatest.matchers.should.Matchers
-
 import scala.concurrent.duration._
 import scala.language.postfixOps
 import scala.util.Random
+
+import akka.actor.testkit.typed.scaladsl.ActorTestKit
+import akka.actor.testkit.typed.scaladsl.ScalaTestWithActorTestKit
+import akka.actor.testkit.typed.scaladsl.TestProbe
+import akka.persistence.testkit.PersistenceTestKitPlugin
+import akka.persistence.testkit.scaladsl.PersistenceTestKit
+
+import org.scalatest.flatspec.AnyFlatSpecLike
+import org.scalatest.matchers.should.Matchers
 
 object AccountStateActorTest {
   val config = PersistenceTestKitPlugin.config.withFallback(ActorTestKit.ApplicationTestConfig)

@@ -3,12 +3,18 @@ package io.scalac.domain
 import java.io.IOException
 import java.{ util => ju }
 
+import akka.actor.typed.ActorRef
+import akka.actor.typed.Behavior
 import akka.actor.typed.scaladsl.Behaviors
-import akka.actor.typed.{ ActorRef, Behavior }
-import akka.persistence.typed.scaladsl.{ Effect, EventSourcedBehavior, RetentionCriteria }
-import akka.persistence.typed.{ PersistenceId, SnapshotCompleted }
-import io.scalac.domain.AccountStateActor.Event.{ MoneyDeposit, MoneyWithdrawn }
-import io.scalac.domain.AccountStateActor.Reply.{ CurrentBalance, InsufficientFunds }
+import akka.persistence.typed.PersistenceId
+import akka.persistence.typed.scaladsl.Effect
+import akka.persistence.typed.scaladsl.EventSourcedBehavior
+import akka.persistence.typed.scaladsl.RetentionCriteria
+
+import io.scalac.domain.AccountStateActor.Event.MoneyDeposit
+import io.scalac.domain.AccountStateActor.Event.MoneyWithdrawn
+import io.scalac.domain.AccountStateActor.Reply.CurrentBalance
+import io.scalac.domain.AccountStateActor.Reply.InsufficientFunds
 import io.scalac.serialization.SerializableMessage
 
 object AccountStateActor {
