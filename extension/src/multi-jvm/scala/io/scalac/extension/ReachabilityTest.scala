@@ -15,7 +15,7 @@ import org.scalatest.Inspectors
 import scala.concurrent.duration._
 import scala.language.postfixOps
 
-import io.scalac.extension.util.probe.ObserverCollector.CommonCollectorImpl
+import io.scalac.extension.util.probe.ObserverCollector.ScheduledCollectorImpl
 
 class ReachabilityTestMultiJvmNode1 extends ReachabilityTest
 class ReachabilityTestMultiJvmNode2 extends ReachabilityTest
@@ -26,7 +26,7 @@ class ReachabilityTest extends MultiNodeSpec(ThreeNodesConfig) with ScalaTestMul
 
   implicit val typedSystem: ActorSystem[Nothing] = system.toTyped
 
-  val monitor = ClusterMetricsTestProbe(new CommonCollectorImpl(5.seconds))
+  val monitor = ClusterMetricsTestProbe(new ScheduledCollectorImpl(5.seconds))
 
   import ThreeNodesConfig._
 

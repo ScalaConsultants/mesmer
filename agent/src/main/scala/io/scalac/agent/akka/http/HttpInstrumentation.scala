@@ -1,22 +1,26 @@
 package io.scalac.agent.akka.http
 
+import java.lang.reflect.Method
+import java.util.UUID
+
+import scala.concurrent.Future
+
 import _root_.akka.http.scaladsl.model.{ HttpRequest, HttpResponse }
 import _root_.akka.http.scaladsl.settings.ServerSettings
-import _root_.akka.stream.{ FlowShape, Materializer }
+import _root_.akka.stream.{ BidiShape, Materializer }
 import akka.actor.typed.scaladsl.adapter._
 import akka.event.LoggingAdapter
 import akka.http.scaladsl.Http.ServerBinding
 import akka.http.scaladsl.{ ConnectionContext, HttpExt }
-import akka.stream.scaladsl.{ Broadcast, Flow, GraphDSL, Source, Zip }
+import akka.stream.scaladsl.{ BidiFlow, Broadcast, Flow, GraphDSL, Source, Zip }
+
+import net.bytebuddy.implementation.bind.annotation._
+
+import io.scalac.core.akka.stream.BidiFlowForward
 import io.scalac.core.model._
 import io.scalac.core.util.Timestamp
 import io.scalac.extension.event.EventBus
 import io.scalac.extension.event.HttpEvent._
-import net.bytebuddy.implementation.bind.annotation._
-
-import java.lang.reflect.Method
-import java.util.UUID
-import scala.concurrent.Future
 
 class HttpInstrumentation
 object HttpInstrumentation {
@@ -32,54 +36,59 @@ object HttpInstrumentation {
     @SuperMethod method: Method,
     @This self: Any
   ): Future[ServerBinding] = {
-    implicit val system = self.asInstanceOf[HttpExt].system
 
-    val newHandler = Flow.fromGraph[HttpRequest, HttpResponse, Any](GraphDSL.create() { implicit builder =>
-      import GraphDSL.Implicits._
-      val outerRequest  = builder.add(Flow[HttpRequest])
-      val outerResponse = builder.add(Flow[HttpResponse])
-      val flow          = builder.add(handler)
-      val idGenerator = Source
-        .repeat(())
-        .map(_ => UUID.randomUUID().toString)
+    val system = self.asInstanceOf[HttpExt].system.toTyped
 
-      val zipRequest = builder.add(Zip[HttpRequest, String])
-      val zipRespone = builder.add(Zip[HttpResponse, String])
+    val connectionsCountFlow = BidiFlowForward[HttpRequest, HttpResponse](
+      onPreStart = () => EventBus(system).publishEvent(ConnectionStarted(interface, port)),
+      onPostStop = () => EventBus(system).publishEvent(ConnectionCompleted(interface, port))
+    )
 
-      val idBroadcast = builder.add(Broadcast[String](2))
+    val requestIdFlow =
+      BidiFlow.fromGraph[HttpRequest, HttpRequest, HttpResponse, HttpResponse, Any](GraphDSL.create() {
+        implicit builder =>
+          import GraphDSL.Implicits._
+          val outerRequest  = builder.add(Flow[HttpRequest])
+          val outerResponse = builder.add(Flow[HttpResponse])
+          val idGenerator = Source
+            .repeat(())
+            .map(_ => UUID.randomUUID().toString)
 
-      idGenerator ~> idBroadcast.in
+          val zipRequest = builder.add(Zip[HttpRequest, String])
+          val zipRespone = builder.add(Zip[HttpResponse, String])
 
-      outerRequest ~> zipRequest.in0
-      idBroadcast ~> zipRequest.in1
+          val idBroadcast = builder.add(Broadcast[String](2))
 
-      System.nanoTime()
+          idGenerator ~> idBroadcast.in
 
-      zipRequest.out.map { case (request, id) =>
-        val path   = request.uri.path.toPath
-        val method = request.method.toMethod
-        EventBus(system.toTyped).publishEvent(RequestStarted(id, Timestamp.create(), path, method))
-        request
-      } ~> flow
+          outerRequest ~> zipRequest.in0
+          idBroadcast ~> zipRequest.in1
 
-      flow ~> zipRespone.in0
-      idBroadcast ~> zipRespone.in1
+          val outerRequestOut = zipRequest.out.map { case (request, id) =>
+            val path   = request.uri.path.toPath
+            val method = request.method.toMethod
+            EventBus(system).publishEvent(RequestStarted(id, Timestamp.create(), path, method))
+            request
+          }
 
-      zipRespone.out.map { case (response, id) =>
-        EventBus(system.toTyped).publishEvent(
-          RequestCompleted(id, Timestamp.create(), response.status.intValue().toString)
-        )
-        response
-      } ~> outerResponse.in
+          idBroadcast ~> zipRespone.in1
 
-      FlowShape(outerRequest.in, outerResponse.out)
+          zipRespone.out.map { case (response, id) =>
+            EventBus(system).publishEvent(
+              RequestCompleted(id, Timestamp.create(), response.status.intValue().toString)
+            )
+            response
+          } ~> outerResponse.in
 
-    })
+          BidiShape(outerRequest.in, outerRequestOut.outlet, zipRespone.in0, outerResponse.out)
+      })
 
     method
       .invoke(
         self,
-        newHandler,
+        connectionsCountFlow
+          .atop(requestIdFlow)
+          .join(handler),
         interface,
         port,
         connectionContext,

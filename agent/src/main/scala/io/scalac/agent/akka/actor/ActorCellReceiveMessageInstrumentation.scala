@@ -2,26 +2,25 @@ package io.scalac.agent.akka.actor
 
 import net.bytebuddy.asm.Advice._
 
-import io.scalac.extension.actor.{ ActorCountsDecorators, ActorTimesDecorators }
+import io.scalac.extension.actor.ActorCellDecorator
 
 class ActorCellReceiveMessageInstrumentation
 object ActorCellReceiveMessageInstrumentation {
 
   @OnMethodEnter
-  def onEnter(@This actorCell: Object): Unit = {
-    ActorCountsDecorators.Received.inc(actorCell)
-    ActorTimesDecorators.ProcessingTimeSupport.set(actorCell)
-  }
+  def onEnter(@This actorCell: Object): Unit =
+    ActorCellDecorator.get(actorCell).foreach { spy =>
+      spy.receivedMessages.inc()
+      spy.processingTimer.start()
+    }
 
   @OnMethodExit(onThrowable = classOf[Throwable])
-  def onExit(@This actorCell: Object, @Thrown exception: Throwable): Unit = {
-    if (exception != null && !ActorCountsDecorators.FailHandled.checkAndReset(actorCell)) {
-      ActorCountsDecorators.Failed.inc(actorCell)
+  def onExit(@This actorCell: Object, @Thrown exception: Throwable): Unit =
+    ActorCellDecorator.get(actorCell).foreach { spy =>
+      if (exception != null && !spy.exceptionHandledMarker.checkAndReset()) {
+        spy.failedMessages.inc()
+      }
+      spy.processingTimeAgg.add(spy.processingTimer.interval())
     }
-    ActorTimesDecorators.ProcessingTime.addTime(
-      actorCell,
-      ActorTimesDecorators.ProcessingTimeSupport.interval(actorCell)
-    )
-  }
 
 }

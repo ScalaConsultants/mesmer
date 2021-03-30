@@ -28,6 +28,8 @@ class MutableActorMetricsStorage private[actor] (override val buffer: mutable.Ma
     buffer.clear()
     this
   }
+
+  override def snapshot: Seq[(ActorKey, ActorMetrics)] = buffer.toSeq
 }
 
 object MutableActorMetricsStorage {

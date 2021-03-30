@@ -12,7 +12,7 @@ import scala.concurrent.duration._
 import scala.language.postfixOps
 
 class TerminationRegistryTest
-    extends ScalaTestWithActorTestKit
+    extends ScalaTestWithActorTestKit(TestConfig.localActorProvider)
     with AnyFlatSpecLike
     with Matchers
     with TestOps

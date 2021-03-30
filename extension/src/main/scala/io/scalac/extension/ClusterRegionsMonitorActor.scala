@@ -1,7 +1,7 @@
 package io.scalac.extension
 
 import akka.actor.typed.scaladsl.Behaviors
-import akka.actor.typed.{ ActorSystem, Behavior }
+import akka.actor.typed.{ ActorSystem, Behavior, PostStop, PreRestart }
 import akka.cluster.sharding.ShardRegion.{ GetShardRegionStats, ShardRegionStats }
 import akka.cluster.sharding.{ ClusterSharding, ShardRegion }
 import akka.pattern.ask
@@ -33,50 +33,51 @@ object ClusterRegionsMonitorActor extends ClusterMonitorActor {
         val system = ctx.system
         import system.executionContext
 
-        val labels = Labels(selfMember.uniqueAddress.toNode)
-        val bound  = monitor.bind(labels)
+        val node         = selfMember.uniqueAddress.toNode
+        val labels       = Labels(node)
+        val boundMonitor = monitor.bind(labels)
 
         val regions = new Regions(
           system,
           onCreateEntry = (region, entry) => {
 
-            val regionBound = monitor.bind(labels.withRegion(region))
-
-            regionBound.entityPerRegion
+            boundMonitor.entityPerRegion
               .setUpdater(result =>
                 entry.get.foreach { regionStats =>
                   val entities = regionStats.values.sum
-                  result.observe(entities)
+                  result.observe(entities, Labels(node, Some(region)))
                   logger.trace("Recorded amount of entities per region {}", entities)
                 }
               )
 
-            regionBound.shardPerRegions
+            boundMonitor.shardPerRegions
               .setUpdater(result =>
                 entry.get.foreach { regionStats =>
                   val shards = regionStats.size
-                  result.observe(shards)
+                  result.observe(shards, Labels(node, Some(region)))
                   logger.trace("Recorded amount of shards per region {}", shards)
                 }
               )
-
           }
         )
 
-        bound.entitiesOnNode.setUpdater { result =>
+        boundMonitor.entitiesOnNode.setUpdater { result =>
           regions.regionStats.map { regionsStats =>
             val entities = regionsStats.view.values.flatMap(_.values).sum
-            result.observe(entities)
+            result.observe(entities, labels)
             logger.trace("Recorded amount of entities on node {}", entities)
           }
         }
 
-        bound.shardRegionsOnNode.setUpdater { result =>
-          result.observe(regions.size)
+        boundMonitor.shardRegionsOnNode.setUpdater { result =>
+          result.observe(regions.size, labels)
           logger.trace("Recorded amount of regions on node {}", regions)
         }
 
-        Behaviors.same
+        Behaviors.receiveSignal { case (ctx, PreRestart | PostStop) =>
+          boundMonitor.unbind()
+          Behaviors.same
+        }
       }
 
     }

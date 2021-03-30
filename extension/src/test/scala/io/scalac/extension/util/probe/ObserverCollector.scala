@@ -1,34 +1,43 @@
 package io.scalac.extension.util.probe
 
-import scala.concurrent.duration.FiniteDuration
-
 import akka.actor.testkit.typed.scaladsl.TestProbe
 import akka.actor.typed.ActorSystem
+import io.scalac.extension.util.probe.ObserverCollector.ProbeKey
+
+import scala.collection.concurrent.TrieMap
+import scala.concurrent.duration.FiniteDuration
 
 /**
  * Emulates backend collector behavior: to register updaters to collect it later.
  */
 trait ObserverCollector {
-  def update(probe: TestProbe[_], cb: () => Unit): Unit
-  def remove(probe: TestProbe[_]): Unit
-  def finish(probe: TestProbe[_]): Unit = {
-    remove(probe)
+  private[util] def update(probe: TestProbe[_], cb: () => Unit): Unit
+  private[util] def finish(probe: TestProbe[_]): Unit = {
+    remove(ProbeKey(probe))
     probe.stop()
   }
+  protected def remove(probe: ProbeKey): Unit
   def collectAll(): Unit
 }
 
 object ObserverCollector {
 
-  trait MapBasedObserverCollector { self: ObserverCollector =>
-    private val map                                       = collection.mutable.HashMap.empty[TestProbe[_], () => Unit]
-    def update(probe: TestProbe[_], cb: () => Unit): Unit = map(probe) = cb
-    def remove(probe: TestProbe[_]): Unit                 = map - probe
-    def collectAll(): Unit                                = map.foreach(_._2.apply())
+  /**
+   * TestProbeImpl does not implement hashCode so we need to wrap it
+   * @param probe underlying probe
+   */
+  case class ProbeKey(probe: TestProbe[_])
+
+  trait MapBasedObserverCollector extends ObserverCollector {
+
+    private[this] val observers = TrieMap.empty[ProbeKey, () => Unit]
+
+    private[util] def update(probe: TestProbe[_], cb: () => Unit): Unit = observers(ProbeKey(probe)) = cb
+    protected def remove(key: ProbeKey): Unit                           = observers - key
+    def collectAll(): Unit                                              = observers.foreach(_._2.apply())
   }
 
-  trait ScheduledCollector { self: ObserverCollector =>
-    def pingOffset: FiniteDuration
+  abstract class ScheduledCollector(val pingOffset: FiniteDuration) { self: ObserverCollector =>
     def system: ActorSystem[_]
     def start(): Unit =
       system.scheduler.scheduleWithFixedDelay(pingOffset / 2, pingOffset)(() => collectAll())(
@@ -40,10 +49,11 @@ object ObserverCollector {
     start()
   }
 
-  class CommonCollectorImpl(val pingOffset: FiniteDuration)(implicit val system: ActorSystem[_])
-      extends ObserverCollector
+  class ScheduledCollectorImpl(pingOffset: FiniteDuration)(implicit val system: ActorSystem[_])
+      extends ScheduledCollector(pingOffset)
       with MapBasedObserverCollector
-      with ScheduledCollector
       with AutoStartCollector
+
+  class ManualCollectorImpl extends ObserverCollector with MapBasedObserverCollector
 
 }

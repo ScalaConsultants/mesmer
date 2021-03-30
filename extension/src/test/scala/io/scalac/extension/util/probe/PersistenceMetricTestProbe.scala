@@ -3,8 +3,7 @@ package io.scalac.extension.util.probe
 import akka.actor.testkit.typed.scaladsl.TestProbe
 import akka.actor.typed.ActorSystem
 import io.scalac.extension.metric.PersistenceMetricMonitor.Labels
-import io.scalac.extension.metric.{ Bindable, MetricRecorder, PersistenceMetricMonitor, UpCounter }
-import io.scalac.extension.util.TestProbeSynchronized
+import io.scalac.extension.metric.{ Counter, MetricRecorder, PersistenceMetricMonitor }
 import io.scalac.extension.util.probe.BoundTestProbe.{ CounterCommand, MetricRecorderCommand }
 
 import java.util.concurrent.ConcurrentHashMap
@@ -65,22 +64,21 @@ class PersistenceMetricTestProbe(implicit val system: ActorSystem[_])
     val persistentEventProbe: TestProbe[MetricRecorderCommand],
     val persistentEventTotalProbe: TestProbe[CounterCommand],
     val snapshotProbe: TestProbe[CounterCommand]
-  ) extends PersistenceMetricMonitor.BoundMonitor
-      with TestProbeSynchronized {
+  ) extends PersistenceMetricMonitor.BoundMonitor {
     override def recoveryTime: SyncTestProbeWrapper with MetricRecorder[Long] =
       RecorderTestProbeWrapper(recoveryTimeProbe)
 
-    override def recoveryTotal: SyncTestProbeWrapper with UpCounter[Long] =
-      CounterTestProbeWrapper(recoveryTotalProbe, Some(globalCounter))
+    override def recoveryTotal: SyncTestProbeWrapper with Counter[Long] =
+      UpDownCounterTestProbeWrapper(recoveryTotalProbe, Some(globalCounter))
 
     override def persistentEvent: SyncTestProbeWrapper with MetricRecorder[Long] =
       RecorderTestProbeWrapper(persistentEventProbe)
 
-    override def persistentEventTotal: SyncTestProbeWrapper with UpCounter[Long] =
-      CounterTestProbeWrapper(persistentEventTotalProbe, Some(globalCounter))
+    override def persistentEventTotal: SyncTestProbeWrapper with Counter[Long] =
+      UpDownCounterTestProbeWrapper(persistentEventTotalProbe, Some(globalCounter))
 
-    override def snapshot: SyncTestProbeWrapper with UpCounter[Long] =
-      CounterTestProbeWrapper(snapshotProbe, Some(globalCounter))
+    override def snapshot: SyncTestProbeWrapper with Counter[Long] =
+      UpDownCounterTestProbeWrapper(snapshotProbe, Some(globalCounter))
 
     override def unbind(): Unit = ()
   }
