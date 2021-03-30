@@ -33,7 +33,7 @@ object ObserverCollector {
     private[this] val observers = TrieMap.empty[ProbeKey, () => Unit]
 
     private[util] def update(probe: TestProbe[_], cb: () => Unit): Unit = observers(ProbeKey(probe)) = cb
-    protected def remove(key: ProbeKey): Unit                           = observers - key
+    protected def remove(key: ProbeKey): Unit                           = observers.remove(key)
     def collectAll(): Unit                                              = observers.foreach(_._2.apply())
   }
 

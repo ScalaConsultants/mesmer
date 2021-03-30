@@ -21,6 +21,7 @@ import org.scalatest.matchers.should.Matchers
 
 import scala.concurrent.duration._
 import scala.language.postfixOps
+import scala.language.existentials
 
 class PersistenceEventsActorTest
     extends ScalaTestWithActorTestKit(TestConfig.localActorProvider)

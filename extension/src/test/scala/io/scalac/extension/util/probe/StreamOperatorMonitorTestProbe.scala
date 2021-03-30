@@ -58,9 +58,9 @@ class StreamMonitorTestProbe(
 
 object StreamMonitorTestProbe {
   def apply(collector: ObserverCollector)(implicit system: ActorSystem[_]): StreamMonitorTestProbe = {
-    val runningStream         = TestProbe[MetricRecorderCommand]
-    val streamActorsProbe     = TestProbe[MetricRecorderCommand]
-    val procesedMessagesProbe = TestProbe[MetricObserverCommand[Labels]]
+    val runningStream         = TestProbe[MetricRecorderCommand]()
+    val streamActorsProbe     = TestProbe[MetricRecorderCommand]()
+    val procesedMessagesProbe = TestProbe[MetricObserverCommand[Labels]]()
     new StreamMonitorTestProbe(runningStream, streamActorsProbe, procesedMessagesProbe, collector)
   }
 }

@@ -37,7 +37,7 @@ class AkkaHttpAgentTest extends InstallAgent with AnyFlatSpecLike with Scalatest
 
   def test(body: Fixture => Any): Any = {
     implicit val typedSystem: typed.ActorSystem[Nothing] = system.toTyped
-    val monitor                                          = TestProbe[HttpEvent]
+    val monitor                                          = TestProbe[HttpEvent]()
     Receptionist(typedSystem).ref ! Register(httpServiceKey, monitor.ref)
     body(monitor)
     Receptionist(typedSystem).ref ! Deregister(httpServiceKey, monitor.ref)
