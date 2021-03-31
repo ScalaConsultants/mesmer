@@ -8,7 +8,6 @@ import akka.actor.typed.ActorSystem
 import io.scalac.extension.metric.{ Counter, HttpMetricMonitor, MetricRecorder }
 import io.scalac.core.util.TestProbeSynchronized
 import io.scalac.core.util.probe.BoundTestProbe.{ CounterCommand, MetricRecorderCommand }
-
 import scala.collection.concurrent.{ Map => CMap }
 import scala.jdk.CollectionConverters._
 
@@ -38,10 +37,10 @@ class HttpMetricsTestProbe(implicit val system: ActorSystem[_]) extends HttpMetr
   ) extends BoundMonitor
       with TestProbeSynchronized {
 
-    override def requestTime: MetricRecorder[Long] with SyncTestProbeWrapper =
+    override val requestTime: MetricRecorder[Long] with SyncTestProbeWrapper =
       RecorderTestProbeWrapper(requestTimeProbe)
 
-    override def requestCounter: Counter[Long] with SyncTestProbeWrapper =
+    override val requestCounter: Counter[Long] with SyncTestProbeWrapper =
       UpDownCounterTestProbeWrapper(requestCounterProbe, Some(globalRequestCounter))
 
     override def unbind(): Unit = ()

@@ -6,6 +6,7 @@ import akka.actor.typed.receptionist.Receptionist
 import akka.actor.typed.receptionist.Receptionist.{ Deregister, Register }
 import akka.actor.typed.scaladsl.adapter._
 import akka.http.scaladsl.model.StatusCodes
+import akka.http.scaladsl.model.headers.Connection
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
 import akka.http.scaladsl.testkit.{ RouteTestTimeout, ScalatestRouteTest }
@@ -13,7 +14,7 @@ import com.typesafe.config.{ Config, ConfigFactory }
 import io.scalac.agent.akka.http.AkkaHttpAgent
 import io.scalac.agent.utils.InstallAgent
 import io.scalac.core.event.HttpEvent
-import io.scalac.core.event.HttpEvent.{ RequestCompleted, RequestStarted }
+import io.scalac.core.event.HttpEvent.{ ConnectionCompleted, ConnectionStarted, RequestCompleted, RequestStarted }
 import io.scalac.core.httpServiceKey
 import org.scalatest.flatspec.AnyFlatSpecLike
 import org.scalatest.matchers.should.Matchers
@@ -31,7 +32,7 @@ class AkkaHttpAgentTest extends InstallAgent with AnyFlatSpecLike with Scalatest
 
   val testRoute: Route = path("test") {
     get {
-      complete("")
+      complete((StatusCodes.OK, collection.immutable.Seq(Connection("close"))))
     }
   }
 
@@ -49,8 +50,10 @@ class AkkaHttpAgentTest extends InstallAgent with AnyFlatSpecLike with Scalatest
     Get("/test") ~!> testRoute ~> check {
       status should be(StatusCodes.OK)
     }
+    monitor.expectMessageType[ConnectionStarted]
     monitor.expectMessageType[RequestStarted]
     monitor.expectMessageType[RequestCompleted]
+    monitor.expectMessageType[ConnectionCompleted]
   }
 
 }

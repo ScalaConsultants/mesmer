@@ -11,7 +11,7 @@ import io.scalac.core.event.HttpEvent
 import io.scalac.core.event.HttpEvent._
 import io.scalac.extension.http.RequestStorage
 import io.scalac.extension.metric.HttpMetricMonitor
-import io.scalac.extension.metric.HttpMetricMonitor._
+import io.scalac.extension.metric.HttpConnectionMetricMonitor
 import io.scalac.extension.service.PathService
 
 import scala.language.postfixOps
@@ -28,6 +28,7 @@ object HttpEventsActor {
 
   def apply(
     httpMetricMonitor: HttpMetricMonitor,
+    httpConnectionMetricMonitor: HttpConnectionMetricMonitor,
     initRequestStorage: RequestStorage,
     pathService: PathService,
     node: Option[Node] = None
@@ -38,16 +39,29 @@ object HttpEventsActor {
 
     Receptionist(ctx.system).ref ! Register(httpServiceKey, ctx.messageAdapter(HttpEventWrapper.apply))
 
-    def createLabels(path: Path, method: Method, status: Status): Labels =
-      Labels(node, pathService.template(path), method, status)
+    def createConnectionLabels(connectionEvent: ConnectionEvent): HttpConnectionMetricMonitor.Labels =
+      HttpConnectionMetricMonitor.Labels(node, connectionEvent.interface, connectionEvent.port)
+
+    def createRequestLabels(path: Path, method: Method, status: Status): HttpMetricMonitor.Labels =
+      HttpMetricMonitor.Labels(node, pathService.template(path), method, status)
 
     def monitorHttp(
       requestStorage: RequestStorage
     ): Behavior[Event] =
       Behaviors
         .receiveMessage[Event] {
+
+          case HttpEventWrapper(connectionEvent: ConnectionEvent) =>
+            val counter = httpConnectionMetricMonitor.bind(createConnectionLabels(connectionEvent)).connectionCounter
+            connectionEvent match {
+              case _: ConnectionStarted   => counter.incValue(1L)
+              case _: ConnectionCompleted => counter.decValue(1L)
+            }
+            Behaviors.same
+
           case HttpEventWrapper(started: RequestStarted) =>
             monitorHttp(requestStorage.requestStarted(started))
+
           case HttpEventWrapper(completed @ RequestCompleted(id, timestamp, status)) =>
             requestStorage
               .requestCompleted(completed)
@@ -56,7 +70,7 @@ object HttpEventsActor {
                 Behaviors.same[Event]
               } { case (storage, started) =>
                 val requestDuration = started.timestamp.interval(timestamp)
-                val monitorBoundary = createLabels(started.path, started.method, status)
+                val monitorBoundary = createRequestLabels(started.path, started.method, status)
                 val monitor         = httpMetricMonitor.bind(monitorBoundary)
 
                 monitor.requestTime.setValue(requestDuration)
@@ -65,6 +79,7 @@ object HttpEventsActor {
                 ctx.log.debug("request {} finished in {} millis", id, requestDuration)
                 monitorHttp(storage)
               }
+
           case HttpEventWrapper(failed @ RequestFailed(id, timestamp)) =>
             requestStorage
               .requestFailed(failed)
@@ -76,6 +91,7 @@ object HttpEventsActor {
                 ctx.log.error("request {} failed after {} millis", id, requestDuration)
                 monitorHttp(storage)
               }
+
         }
         .receiveSignal { case (_, PostStop) =>
           ctx.log.info("Http events monitor terminated")

@@ -265,6 +265,12 @@ class AkkaMonitoring(private val system: ActorSystem[_], val config: AkkaMonitor
       OpenTelemetryHttpMetricsMonitor(instrumentationName, actorSystemConfig),
       CachingConfig.fromConfig(actorSystemConfig, ModulesSupport.akkaHttpModule)
     )
+
+    val openTelemetryHttpConnectionMonitor = CachingMonitor(
+      OpenTelemetryHttpConnectionMetricMonitor(instrumentationName, actorSystemConfig),
+      CachingConfig.fromConfig(actorSystemConfig, ModulesSupport.akkaHttpModule)
+    )
+
     val pathService = CommonRegexPathService
 
     system.systemActorOf(
@@ -273,7 +279,8 @@ class AkkaMonitoring(private val system: ActorSystem[_], val config: AkkaMonitor
           WithSelfCleaningState
             .clean(CleanableRequestStorage.withConfig(config.cleaning))
             .every(config.cleaning.every)(rs =>
-              HttpEventsActor.apply(openTelemetryHttpMonitor, rs, pathService, clusterNodeName)
+              HttpEventsActor
+                .apply(openTelemetryHttpMonitor, openTelemetryHttpConnectionMonitor, rs, pathService, clusterNodeName)
             )
         )
         .onFailure[Exception](SupervisorStrategy.restart),
