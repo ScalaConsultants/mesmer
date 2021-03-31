@@ -2,11 +2,11 @@ package io.scalac.agent.akka
 
 import _root_.akka.actor.testkit.typed.scaladsl.TestProbe
 import _root_.akka.actor.typed.receptionist.Receptionist
-import _root_.akka.actor.typed.receptionist.Receptionist.{Deregister, Register}
+import _root_.akka.actor.typed.receptionist.Receptionist.{ Deregister, Register }
 import _root_.akka.util.Timeout
 import io.scalac.agent.akka.persistence.AkkaPersistenceAgent
-import io.scalac.agent.utils.DummyEventSourcedActor.{DoNothing, Persist}
-import io.scalac.agent.utils.{DummyEventSourcedActor, InstallAgent, SafeLoadSystem}
+import io.scalac.agent.utils.DummyEventSourcedActor.{ DoNothing, Persist }
+import io.scalac.agent.utils.{ DummyEventSourcedActor, InstallAgent, SafeLoadSystem }
 import io.scalac.core.persistenceServiceKey
 import io.scalac.core.event.PersistenceEvent
 import io.scalac.core.event.PersistenceEvent._
@@ -15,7 +15,7 @@ import org.scalatest.OptionValues
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.flatspec.AnyFlatSpecLike
 import org.scalatest.matchers.should.Matchers
-import org.scalatest.time.{Minute, Second, Span}
+import org.scalatest.time.{ Minute, Second, Span }
 
 import java.util.UUID
 import scala.concurrent.duration._
