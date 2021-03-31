@@ -28,9 +28,9 @@ jobs:
       - name: Build image
         run: sbt docker:publishLocal
       - name: Tag image
-        run: docker tag mesmer-akka-example:latest ${{ secrets.AWS_REPOSITORY_ENDPOINT }}/akka-metrics-test-app:latest
+        run: docker tag mesmer-akka-example:latest ${{ secrets.AWS_REPOSITORY_ENDPOINT }}/mesmer-akka-example:latest
       - name: Push images
-        run: docker push ${{ secrets.AWS_REPOSITORY_ENDPOINT }}/akka-metrics-test-app:latest
+        run: docker push ${{ secrets.AWS_REPOSITORY_ENDPOINT }}/mesmer-akka-example:latest
       - name: Rollout new deployment
         uses: kodermax/kubectl-aws-eks@master
         env:
