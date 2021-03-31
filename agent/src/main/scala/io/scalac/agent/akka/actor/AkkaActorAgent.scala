@@ -11,9 +11,7 @@ import io.scalac.extension.actor.{ ActorCellDecorator, ActorCellMetrics }
 
 object AkkaActorAgent extends InstrumentModuleFactory {
 
-  val moduleName: Module        = ModulesSupport.akkaActorModule
-  val version: SupportedVersion = ModulesSupport.akkaActor
-  val defaultVersion: Version   = Version(2, 6, 8)
+  protected final val supportedModules = SupportedModules(ModulesSupport.akkaActorModule, ModulesSupport.akkaActor)
 
   private val classicStashInstrumentation = instrument("akka.actor.StashSupport")(
     _.visit[ClassicStashInstrumentation](

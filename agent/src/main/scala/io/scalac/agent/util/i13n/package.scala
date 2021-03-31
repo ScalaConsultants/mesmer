@@ -9,6 +9,7 @@ import net.bytebuddy.matcher.ElementMatcher
 import net.bytebuddy.matcher.{ ElementMatchers => EM }
 import net.bytebuddy.asm.Advice
 import net.bytebuddy.description.`type`.TypeDescription
+import net.bytebuddy.implementation.MethodDelegation
 
 package object i13n {
 
@@ -43,6 +44,9 @@ package object i13n {
 
     def intercept[T](method: MethodDesc)(implicit ct: ClassTag[T]): BuilderTransformer =
       chain(_.method(method).intercept(Advice.to(ct.runtimeClass)))
+
+    def delegate[T](method: MethodDesc)(implicit ct: ClassTag[T]): BuilderTransformer =
+      chain(_.method(method).intercept(MethodDelegation.to(ct.runtimeClass)))
 
     def defineField[T](name: String)(implicit ct: ClassTag[T]): BuilderTransformer =
       chain(_.defineField(name, ct.runtimeClass))
