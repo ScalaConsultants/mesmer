@@ -3,17 +3,14 @@ package io.scalac.extension
 import akka.actor.testkit.typed.scaladsl.ScalaTestWithActorTestKit
 import akka.actor.typed.receptionist.ServiceKey
 import akka.actor.typed.{ ActorSystem, Behavior }
-
 import io.scalac.core.model._
+import io.scalac.core.util.TestCase.CommonMonitorTestFactory
+import io.scalac.core.util.TestCase.MonitorTestCaseContext.BasicContext
 import io.scalac.core.util.Timestamp
 import io.scalac.extension.event.EventBus
 import io.scalac.extension.event.HttpEvent.{ ConnectionCompleted, ConnectionStarted, RequestCompleted, RequestStarted }
 import io.scalac.extension.http.MutableRequestStorage
-import io.scalac.extension.metric.CachingMonitor
-import io.scalac.extension.metric.HttpMetricMonitor
-import io.scalac.extension.metric.HttpConnectionMetricMonitor
-import io.scalac.extension.util.TestCase.CommonMonitorTestFactory
-import io.scalac.extension.util.TestCase.MonitorTestCaseContext.BasicContext
+import io.scalac.extension.metric.{ CachingMonitor, HttpConnectionMetricMonitor, HttpMetricMonitor }
 import io.scalac.extension.util.probe.BoundTestProbe._
 import io.scalac.extension.util.probe.{ HttpConnectionMetricsTestProbe, HttpMetricsTestProbe }
 import io.scalac.extension.util.{ IdentityPathService, TestOps, _ }
@@ -21,6 +18,7 @@ import org.scalatest.concurrent.Eventually
 import org.scalatest.flatspec.AnyFlatSpecLike
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.{ Status => _, _ }
+
 import scala.concurrent.duration._
 import scala.language.postfixOps
 
