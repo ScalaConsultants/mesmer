@@ -2,7 +2,7 @@ name: Deployment
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
 
 jobs:
   build:
@@ -28,7 +28,7 @@ jobs:
       - name: Build image
         run: sbt docker:publishLocal
       - name: Tag image
-        run: docker tag mesmer-akka-test-app:latest ${{ secrets.AWS_REPOSITORY_ENDPOINT }}/akka-metrics-test-app:latest
+        run: docker tag mesmer-akka-example:latest ${{ secrets.AWS_REPOSITORY_ENDPOINT }}/akka-metrics-test-app:latest
       - name: Push images
         run: docker push ${{ secrets.AWS_REPOSITORY_ENDPOINT }}/akka-metrics-test-app:latest
       - name: Rollout new deployment
