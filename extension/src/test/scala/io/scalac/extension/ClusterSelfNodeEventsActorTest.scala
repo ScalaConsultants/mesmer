@@ -4,7 +4,7 @@ import akka.cluster.sharding.typed.ShardingEnvelope
 import io.scalac.core.model._
 import io.scalac.extension.metric.ClusterMetricsMonitor.Labels
 import io.scalac.extension.util.probe.BoundTestProbe._
-import io.scalac.extension.util.{ ActorFailing, SingleNodeClusterSpec, TestBehavior }
+import io.scalac.extension.util.{ SingleNodeClusterSpec, TestBehavior }
 import org.scalatest.Inspectors
 import org.scalatest.flatspec.AsyncFlatSpec
 import org.scalatest.matchers.should.Matchers

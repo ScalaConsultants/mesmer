@@ -2,15 +2,12 @@ package io.scalac.extension.config
 
 import com.typesafe.config.Config
 import io.scalac.core.model.Module
-import io.scalac.extension.config.CachingConfig._
 import io.scalac.extension.config.ConfigurationUtils.ConfigOps
 
-case class CachingConfig(
-  maxEntries: Int = DefaultSize
-)
+case class CachingConfig private (maxEntries: Int)
 
 object CachingConfig {
-  val DefaultSize = 10
+  private val DefaultSize = 10
 
   def fromConfig(config: Config, module: Module): CachingConfig =
     (
@@ -20,5 +17,5 @@ object CachingConfig {
       } yield CachingConfig(maxEntries)
     ).getOrElse(CachingConfig.empty)
 
-  def empty: CachingConfig = CachingConfig()
+  def empty: CachingConfig = CachingConfig(DefaultSize)
 }
