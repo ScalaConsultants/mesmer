@@ -29,6 +29,8 @@ import scala.language.postfixOps
 import scala.reflect.ClassTag
 import scala.util.Try
 
+import io.opentelemetry.sdk.metrics.SdkMeterProvider
+
 object AkkaMonitoring extends ExtensionId[AkkaMonitoring] {
 
   private val ExportInterval = 5.seconds
@@ -122,10 +124,11 @@ object AkkaMonitoring extends ExtensionId[AkkaMonitoring] {
         newRelicExporterBuilder.build()
       }
 
+    // TODO OpenTelemetrySDK could not be available. All references the references to `io.opentelemetry.sdk` are here.
     IntervalMetricReader
       .builder()
       .setMetricProducers(
-        Collections.singleton(InstrumentationLibrary.meterProducer)
+        Collections.singleton(InstrumentationLibrary.meterProvider.asInstanceOf[SdkMeterProvider].getMetricProducer)
       )
       .setExportIntervalMillis(ExportInterval.toMillis)
       .setMetricExporter(newRelicExporter)
@@ -137,9 +140,9 @@ final class AkkaMonitoring(private val system: ActorSystem[_], val config: AkkaM
   import AkkaMonitoring.ExportInterval
   import system.log
 
-  private val meter                                   = InstrumentationLibrary.meter
-  private val actorSystemConfig                       = system.settings.config
-  private lazy val openTelemetryClusterMetricsMonitor = OpenTelemetryClusterMetricsMonitor(meter, actorSystemConfig)
+  private val meter                              = InstrumentationLibrary.meter
+  private val actorSystemConfig                  = system.settings.config
+  private val openTelemetryClusterMetricsMonitor = OpenTelemetryClusterMetricsMonitor(meter, actorSystemConfig)
 
   implicit private val timeout: Timeout = 5 seconds
 
@@ -147,7 +150,7 @@ final class AkkaMonitoring(private val system: ActorSystem[_], val config: AkkaM
     Try(Class.forName(fqcn)).toEither.left.map {
       case _: ClassNotFoundException => s"Class $fqcn not found"
       case e                         => e.getMessage
-    }.filterOrElse(_.isInstance(ref), s"Ref ${ref} is not instance of $fqcn").map(_ => ())
+    }.filterOrElse(_.isInstance(ref), s"Ref $ref is not instance of $fqcn").map(_ => ())
 
   private lazy val clusterNodeName: Option[Node] =
     (for {
