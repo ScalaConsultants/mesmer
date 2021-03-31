@@ -30,15 +30,6 @@ package object i13n {
   final def hierarchy(name: String): Type =
     new Type(name, EM.hasSuperType[TypeDescription](EM.named[TypeDescription](name)))
 
-  def visit[T](method: MethodDesc)(implicit ct: ClassTag[T]): BuilderTransformer =
-    BuilderTransformer.unit.visit(method)
-
-  def intercept[T](method: MethodDesc)(implicit ct: ClassTag[T]): BuilderTransformer =
-    BuilderTransformer.unit.intercept(method)
-
-  def defineField[T](name: String)(implicit ct: ClassTag[T]): BuilderTransformer =
-    BuilderTransformer.unit.defineField(name)
-
   // wrappers
 
   final private[i13n] type Builder = DynamicType.Builder[_]
@@ -48,15 +39,15 @@ package object i13n {
     override def apply(v1: Builder): Builder = transform(v1)
 
     def visit[T](method: MethodDesc)(implicit ct: ClassTag[T]): BuilderTransformer =
-      thisAndThan(_.visit(Advice.to(ct.runtimeClass).on(method)))
+      chain(_.visit(Advice.to(ct.runtimeClass).on(method)))
 
     def intercept[T](method: MethodDesc)(implicit ct: ClassTag[T]): BuilderTransformer =
-      thisAndThan(_.method(method).intercept(Advice.to(ct.runtimeClass)))
+      chain(_.method(method).intercept(Advice.to(ct.runtimeClass)))
 
     def defineField[T](name: String)(implicit ct: ClassTag[T]): BuilderTransformer =
-      thisAndThan(_.defineField(name, ct.runtimeClass))
+      chain(_.defineField(name, ct.runtimeClass))
 
-    def thisAndThan(that: Builder => Builder): BuilderTransformer =
+    private def chain(that: Builder => Builder): BuilderTransformer =
       new BuilderTransformer(transform.andThen(that))
 
   }

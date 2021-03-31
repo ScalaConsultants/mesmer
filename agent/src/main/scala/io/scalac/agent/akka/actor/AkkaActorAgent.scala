@@ -16,7 +16,7 @@ object AkkaActorAgent extends InstrumentModuleFactory {
   val defaultVersion: Version   = Version(2, 6, 8)
 
   private val classicStashInstrumentation = instrument("akka.actor.StashSupport")(
-    visit[ClassicStashInstrumentation](
+    _.visit[ClassicStashInstrumentation](
       methods(
         "stash",
         "prepend",
@@ -27,7 +27,7 @@ object AkkaActorAgent extends InstrumentModuleFactory {
   )
 
   private val typedStashInstrumentation = instrument("akka.actor.typed.internal.StashBufferImpl")(
-    visit[TypedStashInstrumentation](
+    _.visit[TypedStashInstrumentation](
       methods(
         "stash",
         method("unstash").takesArguments[Behavior[_], Int, (_) => _]
@@ -36,34 +36,34 @@ object AkkaActorAgent extends InstrumentModuleFactory {
   )
 
   private val mailboxTimeTimestampInstrumentation = instrument("akka.dispatch.Envelope")(
-    defineField[Timestamp](EnvelopeDecorator.TimestampVarName)
+    _.defineField[Timestamp](EnvelopeDecorator.TimestampVarName)
   )
 
   private val mailboxTimeSendMessageInstrumentation = instrument("akka.actor.dungeon.Dispatch")(
-    visit[ActorCellSendMessageInstrumentation](
+    _.visit[ActorCellSendMessageInstrumentation](
       method("sendMessage").takesArgument(0, "akka.dispatch.Envelope")
     )
   )
 
   private val mailboxTimeDequeueInstrumentation = instrument("akka.dispatch.Mailbox")(
-    visit[MailboxDequeueInstrumentation]("dequeue")
+    _.visit[MailboxDequeueInstrumentation]("dequeue")
   )
 
   private val actorCellInstrumentation = instrument("akka.actor.ActorCell")(
-    defineField[ActorCellMetrics](ActorCellDecorator.fieldName)
+    _.defineField[ActorCellMetrics](ActorCellDecorator.fieldName)
       .visit[ActorCellConstructorInstrumentation](constructor)
       .visit[ActorCellReceiveMessageInstrumentation]("receiveMessage")
   )
 
   private val actorInstrumentation = instrument("akka.actor.Actor")(
-    visit[ActorUnhandledInstrumentation]("unhandled")
+    _.visit[ActorUnhandledInstrumentation]("unhandled")
   )
 
   private val abstractSupervisionInstrumentation = instrument(
     hierarchy("akka.actor.typed.internal.AbstractSupervisor")
       .overrides("handleReceiveException")
   )(
-    intercept[SupervisorHandleReceiveExceptionInstrumentation]("handleReceiveException")
+    _.intercept[SupervisorHandleReceiveExceptionInstrumentation]("handleReceiveException")
   )
 
   val agent: Agent = Agent(
