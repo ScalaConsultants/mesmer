@@ -9,6 +9,7 @@ import akka.actor.typed.{ ActorRef, ActorSystem, Behavior }
 import akka.util.Timeout
 import io.scalac.core.model._
 import io.scalac.core.util.ActorPathOps
+import io.scalac.core.util.TestCase._
 import io.scalac.extension.ActorEventsMonitorActor._
 import io.scalac.extension.ActorEventsMonitorActorTest._
 import io.scalac.extension.actor.{ ActorMetrics, MutableActorMetricsStorage }
@@ -16,14 +17,11 @@ import io.scalac.extension.event.ActorEvent.StashMeasurement
 import io.scalac.extension.event.EventBus
 import io.scalac.extension.metric.ActorMetricMonitor.Labels
 import io.scalac.extension.util.AggMetric.LongValueAggMetric
-import io.scalac.extension.util.TestCase._
 import io.scalac.extension.util.probe.ActorMonitorTestProbe
 import io.scalac.extension.util.probe.BoundTestProbe.{ MetricObserved, MetricObserverCommand, MetricRecorded }
 import io.scalac.extension.util.probe.ObserverCollector.ScheduledCollectorImpl
+import org.scalatest.TestSuite
 import org.scalatest.concurrent.ScaledTimeSpans
-import org.scalatest.flatspec.AnyFlatSpecLike
-import org.scalatest.matchers.should.Matchers
-import org.scalatest.{ Inspectors, TestSuite }
 
 import scala.concurrent.duration._
 
@@ -34,6 +32,9 @@ trait ActorEventMonitorActorTestConfig {
   protected val reasonableTime: FiniteDuration = 3 * pingOffset
   implicit val timeout: Timeout                = pingOffset
 }
+import org.scalatest.Inspectors
+import org.scalatest.flatspec.AnyFlatSpecLike
+import org.scalatest.matchers.should.Matchers
 
 class ActorEventsMonitorActorTest
     extends AnyFlatSpecLike
