@@ -1,18 +1,15 @@
 package io.scalac.agent.akka.actor
 
-import akka.actor.typed.Behavior
 import io.scalac.agent.Agent.LoadingResult
 import io.scalac.agent.{ Agent, AgentInstrumentation }
+import io.scalac.core.actor.{ ActorCellDecorator, ActorCellMetrics }
 import io.scalac.core.model._
 import io.scalac.core.support.ModulesSupport
 import io.scalac.core.util.Timestamp
-import io.scalac.core.actor.{ ActorCellDecorator, ActorCellMetrics }
 import net.bytebuddy.asm.Advice
 import net.bytebuddy.description.`type`.TypeDescription
 import net.bytebuddy.description.method.MethodDescription
 import net.bytebuddy.matcher.ElementMatchers._
-
-import java.util.concurrent.atomic.AtomicLong
 
 object AkkaActorAgent {
 
@@ -32,22 +29,21 @@ object AkkaActorAgent {
           builder
             .visit(
               Advice
-                .to(classOf[ClassicStashInstrumentation])
+                .to(classOf[ClassicStashInstrumentationStash])
                 .on(
                   named[MethodDescription]("stash")
-                    .or[MethodDescription](named[MethodDescription]("prepend"))
-                    .or[MethodDescription](named[MethodDescription]("unstash"))
-                    .or[MethodDescription](
-                      named[MethodDescription]("unstashAll")
-                        .and[MethodDescription](takesArguments[MethodDescription](1))
-                    )
-                    .or[MethodDescription](named[MethodDescription]("clearStash"))
                 )
+            )
+            .visit(
+              Advice
+                .to(classOf[ClassicStashInstrumentationPrepend])
+                .on(named[MethodDescription]("prepend"))
             )
         }
         .installOn(instrumentation)
       LoadingResult(targetClassName)
     }
+
     val stashConstructor = AgentInstrumentation(
       targetClassName,
       SupportedModules(moduleName, version)
@@ -70,38 +66,6 @@ object AkkaActorAgent {
       LoadingResult(targetClassName)
     }
     Agent(stashLogic, stashConstructor)
-  }
-
-  private val typedStashInstrumentation = {
-    val targetClassName = "akka.actor.typed.internal.StashBufferImpl"
-    AgentInstrumentation(
-      targetClassName,
-      SupportedModules(moduleName, version)
-    ) { (agentBuilder, instrumentation, _) =>
-      agentBuilder
-        .`type`(named[TypeDescription](targetClassName))
-        .transform { (builder, _, _, _) =>
-          builder
-            .visit(
-              Advice
-                .to(classOf[TypedStashInstrumentation])
-                .on(named[MethodDescription]("stash"))
-            )
-            .visit(
-              Advice
-                .to(classOf[TypedUnstashInstrumentation])
-                .on(
-                  named[MethodDescription]("unstash")
-                    // since there're two `unstash` methods, we need to specify parameter types
-                    .and[MethodDescription](
-                      takesArguments[MethodDescription](classOf[Behavior[_]], classOf[Int], classOf[(_) => _])
-                    )
-                )
-            )
-        }
-        .installOn(instrumentation)
-      LoadingResult(targetClassName)
-    }
   }
 
   private val mailboxTimeTimestampInstrumentation = {
@@ -245,30 +209,22 @@ object AkkaActorAgent {
   }
 
   private val stashBufferImplementation = {
-    val abstractSupervisor = "akka.actor.typed.internal.StashBufferImpl"
+    val stashBufferImpl = "akka.actor.typed.internal.StashBufferImpl"
     AgentInstrumentation(
-      abstractSupervisor,
+      stashBufferImpl,
       SupportedModules(moduleName, version)
     ) { (agentBuilder, instrumentation, _) =>
       agentBuilder
         .`type`(
-          hasSuperType[TypeDescription](named[TypeDescription](abstractSupervisor))
-            .and[TypeDescription](
-              declaresMethod[TypeDescription](
-                named[MethodDescription]("handleReceiveException")
-                  .and[MethodDescription](
-                    isOverriddenFrom[MethodDescription](named[TypeDescription](abstractSupervisor))
-                  )
-              )
-            )
+          hasSuperType[TypeDescription](named[TypeDescription](stashBufferImpl))
         )
         .transform { (builder, _, _, _) =>
           builder
-            .method(named[MethodDescription]("handleReceiveException"))
-            .intercept(Advice.to(classOf[SupervisorHandleReceiveExceptionInstrumentation]))
+            .method(named[MethodDescription]("stash"))
+            .intercept(Advice.to(classOf[StashBufferAdvice]))
         }
         .installOn(instrumentation)
-      LoadingResult(abstractSupervisor)
+      LoadingResult(stashBufferImpl)
     }
   }
 
@@ -278,7 +234,8 @@ object AkkaActorAgent {
     mailboxTimeDequeueInstrumentation,
     actorCellInstrumentation,
     actorInstrumentation,
-    abstractSupervisionInstrumentation
+    abstractSupervisionInstrumentation,
+    stashBufferImplementation
   ) ++ classicStashInstrumentationAgent
 
 }
