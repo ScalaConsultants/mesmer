@@ -18,31 +18,31 @@ object AkkaStreamAgent extends InstrumentModuleFactory {
   /**
    * actorOf methods is called when island decide to materialize itself
    */
-  private val phasedFusingActorMeterializerAgent = instrument("akka.stream.impl.PhasedFusingActorMaterializer")(
-    _.intercept[PhasedFusingActorMeterializerAdvice](method("actorOf").takesArguments[Props, String])
-  )
+  private val phasedFusingActorMeterializerAgent =
+    instrument("akka.stream.impl.PhasedFusingActorMaterializer")
+      .intercept[PhasedFusingActorMeterializerAdvice](method("actorOf").takesArguments[Props, String])
 
-  private val graphInterpreterAgent = instrument("akka.stream.impl.fusing.GraphInterpreter")(
-    _.intercept[GraphInterpreterPushAdvice]("processPush")
+  private val graphInterpreterAgent =
+    instrument("akka.stream.impl.fusing.GraphInterpreter")
+      .intercept[GraphInterpreterPushAdvice]("processPush")
       .intercept[GraphInterpreterPullAdvice]("processPull")
-  )
 
-  private val graphInterpreterConnectionAgent = instrument("akka.stream.impl.fusing.GraphInterpreter$Connection")(
-    _.defineField[Long](ConnectionOps.PullCounterVarName)
+  private val graphInterpreterConnectionAgent =
+    instrument("akka.stream.impl.fusing.GraphInterpreter$Connection")
+      .defineField[Long](ConnectionOps.PullCounterVarName)
       .defineField[Long](ConnectionOps.PushCounterVarName)
-  )
 
-  private val actorGraphInterpreterAgent = instrument("akka.stream.impl.fusing.ActorGraphInterpreter")(
-    _.visit[ActorGraphInterpreterAdvice]("receive")
+  private val actorGraphInterpreterAgent =
+    instrument("akka.stream.impl.fusing.ActorGraphInterpreter")
+      .visit[ActorGraphInterpreterAdvice]("receive")
       .visit[ActorGraphInterpreterProcessEventAdvice]("processEvent")
       .visit[ActorGraphInterpreterTryInitAdvice]("tryInit")
-  )
 
-  private val graphStageIslandAgent = instrument("akka.stream.impl.GraphStageIsland")(
-    _.visit[GraphStageIslandAdvice]("materializeAtomic")
-  )
+  private val graphStageIslandAgent =
+    instrument("akka.stream.impl.GraphStageIsland")
+      .visit[GraphStageIslandAdvice]("materializeAtomic")
 
-  val agent = Agent(
+  val agent: Agent = Agent(
     phasedFusingActorMeterializerAgent,
     actorGraphInterpreterAgent,
     graphInterpreterAgent,

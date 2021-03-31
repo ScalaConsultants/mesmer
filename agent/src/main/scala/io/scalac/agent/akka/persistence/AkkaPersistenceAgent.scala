@@ -14,22 +14,22 @@ object AkkaPersistenceAgent extends InstrumentModuleFactory {
   protected val supportedModules: SupportedModules =
     SupportedModules(ModulesSupport.akkaPersistenceTypedModule, ModulesSupport.akkaPersistenceTyped)
 
-  private val recoveryStartedAgent = instrument("akka.persistence.typed.internal.ReplayingSnapshot")(
-    _.intercept[RecoveryStartedInterceptor]("onRecoveryStart")
-  )
+  private val recoveryStartedAgent =
+    instrument("akka.persistence.typed.internal.ReplayingSnapshot")
+      .intercept[RecoveryStartedInterceptor]("onRecoveryStart")
 
-  private val recoveryCompletedAgent = instrument("akka.persistence.typed.internal.ReplayingEvents")(
-    _.intercept[RecoveryCompletedInterceptor]("onRecoveryComplete")
-  )
+  private val recoveryCompletedAgent =
+    instrument("akka.persistence.typed.internal.ReplayingEvents")
+      .intercept[RecoveryCompletedInterceptor]("onRecoveryComplete")
 
-  private val eventWriteSuccessInstrumentation = instrument("akka.persistence.typed.internal.Running")(
-    _.intercept[PersistingEventSuccessInterceptor]("onWriteSuccess")
+  private val eventWriteSuccessInstrumentation =
+    instrument("akka.persistence.typed.internal.Running")
+      .intercept[PersistingEventSuccessInterceptor]("onWriteSuccess")
       .intercept[JournalInteractionsInterceptor]("onWriteInitiated")
-  )
 
-  private val snapshotLoadingInstrumentation = instrument("akka.persistence.typed.internal.Running$StoringSnapshot")(
-    _.intercept[StoringSnapshotInterceptor]("onSaveSnapshotResponse")
-  )
+  private val snapshotLoadingInstrumentation =
+    instrument("akka.persistence.typed.internal.Running$StoringSnapshot")
+      .intercept[StoringSnapshotInterceptor]("onSaveSnapshotResponse")
 
   val agent: Agent =
     Agent(

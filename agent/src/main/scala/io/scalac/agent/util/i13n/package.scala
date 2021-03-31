@@ -11,6 +11,9 @@ import net.bytebuddy.asm.Advice
 import net.bytebuddy.description.`type`.TypeDescription
 import net.bytebuddy.implementation.MethodDelegation
 
+import io.scalac.agent.AgentInstrumentation
+import io.scalac.core.model.SupportedModules
+
 package object i13n {
 
   final private[i13n] type TypeDesc   = ElementMatcher.Junction[TypeDescription]
@@ -35,30 +38,33 @@ package object i13n {
 
   final private[i13n] type Builder = DynamicType.Builder[_]
 
-  final class BuilderTransformer private (transform: Builder => Builder) extends (Builder => Builder) {
+  final class TypeInstrumentation private (
+    private[i13n] val target: TypeTarget,
+    private[i13n] val transformBuilder: Builder => Builder
+  ) {
 
-    override def apply(v1: Builder): Builder = transform(v1)
-
-    def visit[T](method: MethodDesc)(implicit ct: ClassTag[T]): BuilderTransformer =
+    def visit[T](method: MethodDesc)(implicit ct: ClassTag[T]): TypeInstrumentation =
       chain(_.visit(Advice.to(ct.runtimeClass).on(method)))
 
-    def intercept[T](method: MethodDesc)(implicit ct: ClassTag[T]): BuilderTransformer =
+    def intercept[T](method: MethodDesc)(implicit ct: ClassTag[T]): TypeInstrumentation =
       chain(_.method(method).intercept(Advice.to(ct.runtimeClass)))
 
-    def delegate[T](method: MethodDesc)(implicit ct: ClassTag[T]): BuilderTransformer =
+    def delegate[T](method: MethodDesc)(implicit ct: ClassTag[T]): TypeInstrumentation =
       chain(_.method(method).intercept(MethodDelegation.to(ct.runtimeClass)))
 
-    def defineField[T](name: String)(implicit ct: ClassTag[T]): BuilderTransformer =
+    def defineField[T](name: String)(implicit ct: ClassTag[T]): TypeInstrumentation =
       chain(_.defineField(name, ct.runtimeClass))
 
-    private def chain(that: Builder => Builder): BuilderTransformer =
-      new BuilderTransformer(transform.andThen(that))
+    private def chain(that: Builder => Builder): TypeInstrumentation =
+      new TypeInstrumentation(target, transformBuilder.andThen(that))
 
   }
 
-  private[i13n] final object BuilderTransformer {
-    private[i13n] val unit: BuilderTransformer = new BuilderTransformer(identity)
+  private[i13n] final object TypeInstrumentation {
+    private[i13n] def apply(target: TypeTarget): TypeInstrumentation = new TypeInstrumentation(target, identity)
   }
+
+  final private[i13n] case class TypeTarget(tpe: Type, modules: SupportedModules)
 
   // extensions
 
@@ -97,4 +103,6 @@ package object i13n {
   // implicit conversion
   final implicit def methodNameToMethodDesc(methodName: String): MethodDesc = method(methodName)
   final implicit def typeNameToType(typeName: String): Type                 = `type`(typeName)
+  final implicit def typeToAgentInstrumentation(typeInstrumentation: TypeInstrumentation): AgentInstrumentation =
+    AgentInstrumentationFactory(typeInstrumentation)
 }
