@@ -82,8 +82,12 @@ package object i13n {
   final implicit class MethodDescOps(val methodDesc: MethodDesc) extends AnyVal {
     def takesArguments(n: Int): MethodDesc =
       methodDesc.and(EM.takesArguments(n))
+    def takesArguments[A, B](implicit cta: ClassTag[A], ctb: ClassTag[B]): MethodDesc =
+      takesArguments(cta.runtimeClass, ctb.runtimeClass)
     def takesArguments[A, B, C](implicit cta: ClassTag[A], ctb: ClassTag[B], ctc: ClassTag[C]): MethodDesc =
-      methodDesc.and(EM.takesArguments(cta.runtimeClass, ctb.runtimeClass, ctc.runtimeClass))
+      takesArguments(cta.runtimeClass, ctb.runtimeClass, ctc.runtimeClass)
+    private def takesArguments(classes: Class[_]*): MethodDesc =
+      methodDesc.and(EM.takesArguments(classes: _*))
     def takesArgument(index: Int, className: String): MethodDesc =
       methodDesc.and(EM.takesArgument(index, EM.named[TypeDescription](className)))
     def isOverriddenFrom(typeDesc: TypeDesc): MethodDesc =
