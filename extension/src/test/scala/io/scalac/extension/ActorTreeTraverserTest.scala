@@ -2,14 +2,12 @@ package io.scalac.extension
 
 import akka.actor.testkit.typed.scaladsl.ScalaTestWithActorTestKit
 import akka.actor.typed.scaladsl.Behaviors
-
-import org.scalatest.Inspectors
-import org.scalatest.flatspec.AnyFlatSpecLike
-import org.scalatest.matchers.should.Matchers
-
 import io.scalac.core.util.ActorPathOps
 import io.scalac.extension.ActorEventsMonitorActor.ReflectiveActorTreeTraverser
 import io.scalac.extension.util.TestConfig
+import org.scalatest.Inspectors
+import org.scalatest.flatspec.AnyFlatSpecLike
+import org.scalatest.matchers.should.Matchers
 
 class ActorTreeTraverserTest
     extends ScalaTestWithActorTestKit(TestConfig.localActorProvider)

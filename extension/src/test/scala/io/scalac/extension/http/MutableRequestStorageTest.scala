@@ -1,7 +1,6 @@
 package io.scalac.extension.http
 
 import io.scalac.core.model._
-import io.scalac.core.tagging._
 import io.scalac.core.util.Timestamp
 import io.scalac.extension.event.HttpEvent.{ RequestCompleted, RequestFailed, RequestStarted }
 import io.scalac.extension.util.TestOps

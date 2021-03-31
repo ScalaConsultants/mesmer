@@ -1,7 +1,6 @@
 package io.scalac.extension.util
 
 import akka.actor.typed.ActorRef
-
 import org.scalatest.matchers.{ MatchResult, Matcher }
 
 import java.util.UUID

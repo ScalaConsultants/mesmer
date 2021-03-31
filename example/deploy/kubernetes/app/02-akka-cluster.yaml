@@ -17,12 +17,12 @@ spec:
         app: accounts
         actorSystemName: accounts
       annotations:
-         prometheus.io/scrape: 'true'
-         prometheus.io/port: '8080'
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8080"
     spec:
       containers:
         - name: accounts
-          image: 830835002888.dkr.ecr.eu-central-1.amazonaws.com/akka-metrics-test-app:latest
+          image: 830835002888.dkr.ecr.eu-central-1.amazonaws.com/mesmer-akka-example:latest
           ports:
             - name: remoting
               containerPort: 2551

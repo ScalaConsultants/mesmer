@@ -2,20 +2,81 @@
 
 # Mesmer Akka Agent
 
+Mesmer Akka Agent is an [OpenTelemetry](https://opentelemetry.io/) instrumentation library for [Akka](https://akka.io/) applications. 
+
+Currently supports the following Akka modules and metrics:
+
+### Akka core
+
+- Running actors
+- Mailbox size
+- Stash size
+- Mailbox time
+- Processed messages
+- Processing time
+- Sent messages
+
+### Akka Cluster
+
+- Shards per region
+- Reachable nodes
+- Unreachable nodes
+- Entities per region
+- Shard regions on node
+- Entities on node
+- Nodes down
+
+### Akka HTTP
+
+- Connections
+- Requests
+- Responses
+- Responses 2xx
+- Responses 3xx
+- Responses 4xx
+- Responses 5xx
+- Response time 
+- Response time 2xx
+- Response time 3xx
+- Response time 4xx
+- Response time 5xx
+- Endpoint responses
+- Endpoint responses 2xx 
+- Endpoint responses 3xx 
+- Endpoint responses 4xx 
+- Endpoint responses 5xx 
+- Endpoint response time 2xx
+- Endpoint response time 3xx
+- Endpoint response time 4xx
+- Endpoint response time 5xx
+
+### Akka Persistence
+
+- Persisted events
+- Event persistence time
+- Recovery total
+- Recovery time
+- Snapshots
+
+### Akka Streams
+
+- Running streams
+- Running operators per stream
+- Running operators
+- Stream throughput
+- Operator throughput
+- Operator processing time
+
+## Getting started
+
+//TODO
+
 # Architecture 
 
 See [overview](https://github.com/ScalaConsultants/mesmer-akka-agent/blob/main/extension_overview.png).
 
-Mesmer Akka Agent is an Akka extension allowing to monitor Akka ecosystem telemetry data and events.
-
-# OpenTelemetry
-
-Mesmer Akka Agent uses [OpenTelemetry](https://opentelemetry.io/) to allow end user choose where data will be stored. This means that application using this extension should include OpenTelemetry SDK and configure appropriate exporter. If no exporter is configured, default NOOP exporter is in use.
+//TODO
 
 # Local testing
 
-There is subproject test_app that contains simple application that uses Akka cluster sharding and uses Akka Agent extension. It requires postgres instance running with database akka created (schema will be created automatically)
-
-## New Relic agent
-
-This is not required to run this with NR agent, as this tool functionality should be orthogonal to NR agent. Nonetheless, `test_app` is tested under New Relic Java agent version `6.0.0`.
+`example` subproject contains a test application that uses Akka Cluster sharding with Mesmer Akka Agent extension. Go [here](example/README.md) for more information.
