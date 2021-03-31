@@ -3,9 +3,9 @@ package io.scalac.extension.util
 import java.util.UUID
 
 import scala.concurrent.Future
+import scala.concurrent.duration.FiniteDuration
 import scala.concurrent.duration._
 import scala.jdk.CollectionConverters._
-import scala.language.postfixOps
 import scala.reflect.ClassTag
 
 import akka.actor.typed.ActorRef
@@ -35,8 +35,8 @@ import io.scalac.extension.util.probe.ObserverCollector.ScheduledCollectorImpl
 trait SingleNodeClusterSpec extends AsyncTestSuite {
 
   protected val portGenerator: PortGenerator = PortGeneratorImpl
-  implicit val timeout: Timeout              = 30 seconds
-  protected val pingOffset: FiniteDuration   = 1 seconds
+  implicit val timeout: Timeout              = 30.seconds
+  protected val pingOffset: FiniteDuration   = 1.seconds
 
   type Fixture[C[_], T] =
     (ActorSystem[Nothing], Member, C[ActorRef[ShardingEnvelope[T]]], ClusterMetricsTestProbe, C[String])

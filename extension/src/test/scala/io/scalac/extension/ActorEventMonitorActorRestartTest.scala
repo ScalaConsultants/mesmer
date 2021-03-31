@@ -14,12 +14,12 @@ import akka.actor.typed.scaladsl.Behaviors
 import org.scalatest.concurrent.Eventually
 import org.scalatest.flatspec.AnyFlatSpecLike
 
+import io.scalac.core.util.TestCase.MonitorTestCaseContext.BasicContext
+import io.scalac.core.util.TestCase.MonitorWithBasicContextTestCaseFactory
+import io.scalac.core.util.TestCase.ProvidedActorSystemTestCaseFactory
 import io.scalac.extension.ActorEventsMonitorActor.ActorMetricsReader
 import io.scalac.extension.ActorEventsMonitorActor.ReflectiveActorTreeTraverser
 import io.scalac.extension.actor.MutableActorMetricsStorage
-import io.scalac.extension.util.TestCase.MonitorTestCaseContext.BasicContext
-import io.scalac.extension.util.TestCase.MonitorWithBasicContextTestCaseFactory
-import io.scalac.extension.util.TestCase.ProvidedActorSystemTestCaseFactory
 import io.scalac.extension.util.TestConfig
 import io.scalac.extension.util.TestOps
 import io.scalac.extension.util.probe.ActorMonitorTestProbe
@@ -44,9 +44,8 @@ class ActorEventMonitorActorRestartTest
 
   val FailingReader: ActorMetricsReader = _ => throw new RuntimeException("Planned failure") with NoStackTrace
 
-  override protected def createMonitor(implicit system: ActorSystem[_]) = ActorMonitorTestProbe(
-    new ManualCollectorImpl()
-  )
+  override protected def createMonitor(implicit system: ActorSystem[_]): Monitor =
+    ActorMonitorTestProbe(new ManualCollectorImpl())
 
   "ActorTest" should "unbind monitors on restart" in testCase { implicit context =>
     eventually {

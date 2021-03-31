@@ -3,6 +3,8 @@ package io.scalac.agent.akka.stream
 import akka.ActorGraphInterpreterAdvice
 import akka.actor.Props
 import akka.stream.GraphStageIslandAdvice
+import akka.stream.impl.fusing.ActorGraphInterpreterProcessEventAdvice
+import akka.stream.impl.fusing.ActorGraphInterpreterTryInitAdvice
 
 import net.bytebuddy.asm.Advice
 import net.bytebuddy.description.`type`.TypeDescription
@@ -92,10 +94,21 @@ object AkkaStreamAgent {
       .`type`(named[TypeDescription]("akka.stream.impl.fusing.ActorGraphInterpreter"))
       .transform { (builder, _, _, _) =>
         builder
-          .method(
-            named[MethodDescription]("receive")
+          .visit(
+            Advice
+              .to(classOf[ActorGraphInterpreterAdvice])
+              .on(named[MethodDescription]("receive"))
           )
-          .intercept(Advice.to(classOf[ActorGraphInterpreterAdvice]))
+          .visit(
+            Advice
+              .to(classOf[ActorGraphInterpreterProcessEventAdvice])
+              .on(named[MethodDescription]("processEvent"))
+          )
+          .visit(
+            Advice
+              .to(classOf[ActorGraphInterpreterTryInitAdvice])
+              .on(named[MethodDescription]("tryInit"))
+          )
       }
       .installOn(instrumentation)
     LoadingResult("akka.stream.impl.fusing.ActorGraphInterpreter")

@@ -1,5 +1,4 @@
 package io.scalac.extension.util
-
 import java.util.UUID
 
 import scala.util.Random

@@ -1,7 +1,6 @@
 package io.scalac.extension
 
 import java.util
-import java.util.Map
 import java.util.concurrent.atomic.AtomicReference
 
 import scala.annotation.tailrec
@@ -14,6 +13,7 @@ import scala.jdk.DurationConverters._
 
 import akka.actor.ActorRef
 import akka.actor.typed._
+import akka.actor.typed.receptionist.Receptionist.Register
 import akka.actor.typed.scaladsl.AbstractBehavior
 import akka.actor.typed.scaladsl.ActorContext
 import akka.actor.typed.scaladsl.Behaviors
@@ -26,9 +26,13 @@ import io.scalac.core.model.Tag.StreamName
 import io.scalac.core.model._
 import io.scalac.core.support.ModulesSupport
 import io.scalac.extension.AkkaStreamMonitoring._
+import io.scalac.extension.config.BufferConfig
 import io.scalac.extension.config.CachingConfig
 import io.scalac.extension.config.ConfigurationUtils._
-import io.scalac.extension.event.ActorInterpreterStats
+import io.scalac.extension.event.Service.streamService
+import io.scalac.extension.event.StreamEvent
+import io.scalac.extension.event.StreamEvent.LastStreamStats
+import io.scalac.extension.event.StreamEvent.StreamInterpreterStats
 import io.scalac.extension.metric.MetricObserver.Result
 import io.scalac.extension.metric.StreamMetricMonitor
 import io.scalac.extension.metric.StreamMetricMonitor.EagerLabels
@@ -40,7 +44,7 @@ object AkkaStreamMonitoring {
 
   sealed trait Command
 
-  private case class StatsReceived(actorInterpreterStats: ActorInterpreterStats) extends Command
+  private case class StatsReceived(actorInterpreterStats: StreamEvent) extends Command
 
   case class StartStreamCollection(refs: Set[ActorRef]) extends Command
 
@@ -195,7 +199,7 @@ object AkkaStreamMonitoring {
 
       val mutableMap: mutable.Map[StageInfo, IndexCacheEntry] =
         new util.LinkedHashMap[StageInfo, IndexCacheEntry](entries, 0.75f, true) {
-          override def removeEldestEntry(eldest: Map.Entry[StageInfo, IndexCacheEntry]): Boolean =
+          override def removeEldestEntry(eldest: util.Map.Entry[StageInfo, IndexCacheEntry]): Boolean =
             this.size() >= entries
         }.asScala
 
@@ -204,7 +208,6 @@ object AkkaStreamMonitoring {
 
     /**
      * Exists solely for testing purpose
-     * @param map
      * @return
      */
     private[extension] def empty = new ConnectionsIndexCache(mutable.Map.empty)
@@ -219,10 +222,12 @@ class AkkaStreamMonitoring(
   scheduler: TimerScheduler[Command],
   node: Option[Node]
 ) extends AbstractBehavior[Command](ctx) {
+  import ModulesSupport._
 
   private val Timeout: FiniteDuration = streamCollectionTimeout
 
-  private val cachingConfig          = CachingConfig.fromConfig(ctx.system.settings.config, ModulesSupport.akkaStreamModule)
+  private val cachingConfig          = CachingConfig.fromConfig(ctx.system.settings.config, akkaStreamModule)
+  private val bufferConfig           = BufferConfig.fromConfig(ctx.system.settings.config, akkaStreamModule)
   private val indexCache             = ConnectionsIndexCache.bounded(cachingConfig.maxEntries)
   private val operationsBoundMonitor = streamOperatorMonitor.bind()
   private val boundStreamMonitor     = streamMonitor.bind(EagerLabels(node))
@@ -239,6 +244,8 @@ class AkkaStreamMonitoring(
   private[this] val localStreamStats       = mutable.Map.empty[StreamName, StreamStatsBuilder]
 
   private def init(): Unit = {
+    system.receptionist ! Register(streamService.serviceKey, messageAdapter[StreamEvent](StatsReceived.apply))
+
     boundStreamMonitor.streamProcessedMessages.setUpdater { result =>
       val streams = globalProcessedSnapshot.get()
       streams.foreach { statsSeq =>
@@ -265,28 +272,33 @@ class AkkaStreamMonitoring(
     }
   }
 
-  private val metricsAdapter = messageAdapter[ActorInterpreterStats](StatsReceived.apply)
+  override def onMessage(msg: Command): Behavior[Command] =
+    Behaviors.withStash(bufferConfig.size) { buffer =>
+      msg match {
+        case StartStreamCollection(refs) if refs.nonEmpty =>
+          log.debug("Start stream stats collection")
+          scheduler.startSingleTimer(CollectionTimeout, CollectionTimeout, Timeout)
 
-  override def onMessage(msg: Command): Behavior[Command] = msg match {
-    case StartStreamCollection(refs) if refs.nonEmpty =>
-      log.debug("Start stream stats collection")
-      scheduler.startSingleTimer(CollectionTimeout, CollectionTimeout, Timeout)
-
-      refs.foreach { ref =>
-        watch(ref)
-        ref ! PushMetrics(metricsAdapter.toClassic)
+          refs.foreach { ref =>
+            watch(ref)
+            ref ! PushMetrics
+          }
+          buffer.unstashAll(collecting(refs))
+        case StartStreamCollection(_) =>
+          log.warn("StartStreamCollection with empty refs")
+          this
+        case stats @ StatsReceived(_: LastStreamStats) =>
+          log.debug("Received last stats for shell")
+          buffer.stash(stats)
+          Behaviors.same
+        case StatsReceived(_) =>
+          log.warn("Received stream running statistics after timeout")
+          this
+        case CollectionTimeout =>
+          log.warn("[UNPLANNED SITUATION] CollectionTimeout on main behavior")
+          this
       }
-      collecting(refs)
-    case StartStreamCollection(_) =>
-      log.warn(s"StartStreamCollection with empty refs")
-      this
-    case StatsReceived(_) =>
-      log.warn("Received stream running statistics after timeout")
-      this
-    case CollectionTimeout =>
-      log.warn("[UNPLANNED SITUATION] CollectionTimeout on main behavior")
-      this
-  }
+    }
 
   def captureGlobalStats(): Unit = {
     boundStreamMonitor.runningStreamsTotal.setValue(localStreamStats.size)
@@ -308,14 +320,16 @@ class AkkaStreamMonitoring(
     connectionStats: Set[ConnectionStats],
     stages: Array[StageInfo],
     distinct: Boolean = false
-  ) = updateLocalState(stage, connectionStats, stages, distinct, conn => (conn.out, conn.push), localProcessedSnapshot)
+  ): Unit =
+    updateLocalState(stage, connectionStats, stages, distinct, conn => (conn.out, conn.push), localProcessedSnapshot)
 
   private def updateLocalDemandState(
     stage: StageInfo,
     connectionStats: Set[ConnectionStats],
     stages: Array[StageInfo],
     distinct: Boolean = false
-  ) = updateLocalState(stage, connectionStats, stages, distinct, conn => (conn.in, conn.pull), localDemandSnapshot)
+  ): Unit =
+    updateLocalState(stage, connectionStats, stages, distinct, conn => (conn.in, conn.pull), localDemandSnapshot)
 
   private def updateLocalState(
     stage: StageInfo,
@@ -352,9 +366,15 @@ class AkkaStreamMonitoring(
   private def collecting(refs: Set[ActorRef]): Behavior[Command] =
     Behaviors
       .receiveMessage[Command] {
-        case StatsReceived(ActorInterpreterStats(ref, subStreamName, shellInfo)) =>
-          val refsLeft = refs - ref
-          unwatch(ref)
+        case StatsReceived(event) =>
+          val (refsLeft, subStreamName, shellInfo) = event match {
+            case StreamInterpreterStats(ref, subStreamName, shellInfo) =>
+              unwatch(ref)
+              (refs - ref, subStreamName, shellInfo)
+            case LastStreamStats(_, subStreamName, shellInfo) =>
+              (refs, subStreamName, Set(shellInfo))
+          }
+
           val streamStats =
             localStreamStats.getOrElseUpdate(subStreamName.streamName, new StreamStatsBuilder(subStreamName.streamName))
           streamStats.incActors()
@@ -430,7 +450,7 @@ class AkkaStreamMonitoring(
   private def observeOperators(result: Result[Long, Labels], snapshot: Option[Seq[SnapshotEntry]]): Unit =
     snapshot.foreach(_.groupBy(_.stage.subStreamName.streamName).foreach { case (streamName, snapshots) =>
       snapshots.groupBy(_.stage.stageName.nameOnly).foreach { case (stageName, elems) =>
-        val labels = Labels(stageName, streamName, false, node, None)
+        val labels = Labels(stageName, streamName, terminal = false, node, None)
         result.observe(elems.size, labels)
       }
     })

@@ -50,8 +50,8 @@ sealed abstract class MetricObserverBuilderAdapter[R <: AsynchronousInstrument.R
     observer
   }
 
-  private def registerUpdater(observer: WrappedMetricObserver[T, L]): () => Unit = () => {
-    if (instrumentStarted.get()) {
+  private def registerUpdater(observer: => WrappedMetricObserver[T, L]): () => Unit = () => {
+    if (!instrumentStarted.get()) {
       if (instrumentStarted.compareAndSet(false, true)) { // no-lock way to ensure this is going to be called once
         builder
           .setUpdater(updateAll)

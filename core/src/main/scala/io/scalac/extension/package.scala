@@ -3,9 +3,9 @@ package io.scalac
 import akka.actor.typed.receptionist.ServiceKey
 
 import io.scalac.extension.event.ActorEvent
-import io.scalac.extension.event.ActorInterpreterStats
 import io.scalac.extension.event.HttpEvent
 import io.scalac.extension.event.PersistenceEvent
+import io.scalac.extension.event.StreamEvent
 import io.scalac.extension.event.TagEvent
 
 package object extension {
@@ -21,6 +21,6 @@ package object extension {
 
   val tagServiceKey: ServiceKey[TagEvent] = ServiceKey[TagEvent]("io.scalac.meta.tag")
 
-  val streamServiceKey: ServiceKey[ActorInterpreterStats] = ServiceKey[ActorInterpreterStats]("io.scalac.metric.stream")
+  val streamServiceKey: ServiceKey[StreamEvent] = ServiceKey[StreamEvent]("io.scalac.metric.stream")
 
 }

@@ -1,5 +1,4 @@
 package io.scalac.extension
-
 import scala.concurrent.duration._
 import scala.language.postfixOps
 
@@ -15,6 +14,8 @@ import org.scalatest.matchers.should.Matchers
 
 import io.scalac.core.model
 import io.scalac.core.model._
+import io.scalac.core.util.TestCase.CommonMonitorTestFactory
+import io.scalac.core.util.TestCase.MonitorTestCaseContext.BasicContext
 import io.scalac.core.util.Timestamp
 import io.scalac.extension.event.EventBus
 import io.scalac.extension.event.HttpEvent.ConnectionCompleted
@@ -26,8 +27,6 @@ import io.scalac.extension.metric.CachingMonitor
 import io.scalac.extension.metric.HttpConnectionMetricMonitor
 import io.scalac.extension.metric.HttpMetricMonitor
 import io.scalac.extension.util.IdentityPathService
-import io.scalac.extension.util.TestCase.CommonMonitorTestFactory
-import io.scalac.extension.util.TestCase.MonitorTestCaseContext.BasicContext
 import io.scalac.extension.util.TestOps
 import io.scalac.extension.util._
 import io.scalac.extension.util.probe.BoundTestProbe._

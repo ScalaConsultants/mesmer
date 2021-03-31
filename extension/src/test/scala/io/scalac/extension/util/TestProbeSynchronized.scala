@@ -4,7 +4,9 @@ import io.scalac.extension.metric.Synchronized
 import io.scalac.extension.util.probe.BoundTestProbe.Dec
 import io.scalac.extension.util.probe.BoundTestProbe.Inc
 import io.scalac.extension.util.probe.BoundTestProbe.MetricRecorded
-import io.scalac.extension.util.probe._
+import io.scalac.extension.util.probe.RecorderTestProbeWrapper
+import io.scalac.extension.util.probe.SyncTestProbeWrapper
+import io.scalac.extension.util.probe.UpDownCounterTestProbeWrapper
 
 trait TestProbeSynchronized extends Synchronized {
   override type Instrument[L] = SyncTestProbeWrapper

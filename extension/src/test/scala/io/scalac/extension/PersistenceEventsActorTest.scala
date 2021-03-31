@@ -1,5 +1,4 @@
 package io.scalac.extension
-
 import scala.concurrent.duration._
 import scala.language.postfixOps
 
@@ -13,6 +12,8 @@ import org.scalatest.flatspec.AnyFlatSpecLike
 import org.scalatest.matchers.should.Matchers
 
 import io.scalac.core.model._
+import io.scalac.core.util.TestCase.CommonMonitorTestFactory
+import io.scalac.core.util.TestCase.MonitorTestCaseContext.BasicContext
 import io.scalac.core.util.Timestamp
 import io.scalac.extension.event.EventBus
 import io.scalac.extension.event.PersistenceEvent._
@@ -21,8 +22,6 @@ import io.scalac.extension.metric.PersistenceMetricMonitor.Labels
 import io.scalac.extension.persistence.ImmutablePersistStorage
 import io.scalac.extension.persistence.ImmutableRecoveryStorage
 import io.scalac.extension.util.IdentityPathService
-import io.scalac.extension.util.TestCase.CommonMonitorTestFactory
-import io.scalac.extension.util.TestCase.MonitorTestCaseContext.BasicContext
 import io.scalac.extension.util.TestConfig
 import io.scalac.extension.util.probe.BoundTestProbe.Inc
 import io.scalac.extension.util.probe.BoundTestProbe.MetricRecorded
