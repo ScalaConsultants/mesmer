@@ -174,7 +174,7 @@ class OpenTelemetryActorMetricsMonitor(instrumentationName: String, metricNames:
   private val stashSizeCounter = new LongSumObserverBuilderAdapter[ActorMetricMonitor.Labels](
     meter
       .longSumObserverBuilder(metricNames.stashSize)
-      .setDescription("Tracks the size of an Actor's stash")
+      .setDescription("Tracks stash operations on actors")
   )
 
   private val receivedMessagesSumObserver = new LongSumObserverBuilderAdapter[ActorMetricMonitor.Labels](

@@ -1,8 +1,8 @@
 package io.scalac.agent.akka.actor
 
-import akka.actor.{Actor, ActorContext}
+import akka.actor.{ Actor, ActorContext }
 import io.scalac.core.actor.ActorCellDecorator
-import net.bytebuddy.asm.Advice.{Argument, OnMethodExit, This}
+import net.bytebuddy.asm.Advice.{ Argument, OnMethodExit, This }
 
 import java.lang.invoke.MethodHandles
 import java.lang.invoke.MethodType.methodType
@@ -27,7 +27,7 @@ trait StashGetters {
   // Disclaimer:  The way we access the stash vector of and StashSupport is a quite ugly because it's an private field.
   //              We discovered its name during the debug and we aren't sure if this pattern is consistent through the compiler variations and versions.
   private lazy val theStashMethodHandle =
-  lookup.findVirtual(stashSupportClass, "akka$actor$StashSupport$$theStash", methodType(classOf[Vector[_]]))
+    lookup.findVirtual(stashSupportClass, "akka$actor$StashSupport$$theStash", methodType(classOf[Vector[_]]))
 
   private lazy val getContextMethodHandle =
     lookup.findVirtual(stashSupportClass, "context", methodType(classOf[ActorContext]))
@@ -43,10 +43,8 @@ class ClassicStashInstrumentationStash
 object ClassicStashInstrumentationStash extends StashGetters {
 
   @OnMethodExit
-  def onStashExit(@This stash: AnyRef): Unit = {
+  def onStashExit(@This stash: AnyRef): Unit =
     ActorCellDecorator.get(getActorCell(stash)).foreach(_.stashSize.inc())
-  }
-
 
 }
 
@@ -54,11 +52,7 @@ class ClassicStashInstrumentationPrepend
 object ClassicStashInstrumentationPrepend extends StashGetters {
 
   @OnMethodExit
-  def onStashExit(@This stash: AnyRef, @Argument(0) seq: Seq[_]): Unit = {
+  def onStashExit(@This stash: AnyRef, @Argument(0) seq: Seq[_]): Unit =
     ActorCellDecorator.get(getActorCell(stash)).foreach(_.stashSize.add(seq.size))
-  }
-
 
 }
-
-
