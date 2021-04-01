@@ -3,6 +3,7 @@ package io.scalac.core.util
 import akka.actor.PoisonPill
 import akka.actor.testkit.typed.scaladsl.ScalaTestWithActorTestKit
 import akka.actor.typed.scaladsl.AskPattern._
+import io.scalac.core.util.TerminationRegistry
 import io.scalac.core.util.TerminationRegistry._
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.flatspec.AnyFlatSpecLike

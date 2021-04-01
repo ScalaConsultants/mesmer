@@ -1,9 +1,9 @@
 package io.scalac.core.util
 
-import scala.concurrent.Future
-
 import org.scalatest.flatspec.AsyncFlatSpec
 import org.scalatest.matchers.should.Matchers
+
+import scala.concurrent.Future
 
 class LongNoLockAggregatorTest extends AsyncFlatSpec with Matchers {
 

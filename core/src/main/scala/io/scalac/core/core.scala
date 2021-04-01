@@ -16,6 +16,6 @@ package object core {
 
   val tagServiceKey: ServiceKey[TagEvent] = ServiceKey[TagEvent]("io.scalac.meta.tag")
 
-  val streamServiceKey: ServiceKey[ActorInterpreterStats] = ServiceKey[ActorInterpreterStats]("io.scalac.metric.stream")
+  val streamServiceKey: ServiceKey[StreamEvent] = ServiceKey[StreamEvent]("io.scalac.metric.stream")
 
 }

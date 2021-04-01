@@ -1,13 +1,5 @@
 package io.scalac.core.util
 
-import java.util.UUID
-
-import scala.concurrent.Future
-import scala.concurrent.duration._
-import scala.jdk.CollectionConverters._
-import scala.language.postfixOps
-import scala.reflect.ClassTag
-
 import akka.actor.typed.scaladsl.AskPattern._
 import akka.actor.typed.scaladsl.Behaviors
 import akka.actor.typed.{ ActorRef, ActorSystem, Behavior }
@@ -16,19 +8,22 @@ import akka.cluster.sharding.typed.ShardingEnvelope
 import akka.cluster.sharding.typed.scaladsl.{ ClusterSharding, Entity, EntityTypeKey }
 import akka.cluster.typed.{ Cluster, SelfUp, Subscribe }
 import akka.util.Timeout
-
 import com.typesafe.config.{ Config, ConfigFactory, ConfigValueFactory }
-
 import io.scalac.core.util.probe.ClusterMetricsTestProbe
+import io.scalac.core.util.probe.ObserverCollector.ScheduledCollectorImpl
 import org.scalatest.{ Assertion, AsyncTestSuite }
 
-import io.scalac.core.util.probe.ObserverCollector.ScheduledCollectorImpl
+import java.util.UUID
+import scala.concurrent.Future
+import scala.concurrent.duration.{ FiniteDuration, _ }
+import scala.jdk.CollectionConverters._
+import scala.reflect.ClassTag
 
 trait SingleNodeClusterSpec extends AsyncTestSuite {
 
   protected val portGenerator: PortGenerator = PortGeneratorImpl
-  implicit val timeout: Timeout              = 30 seconds
-  protected val pingOffset: FiniteDuration   = 1 seconds
+  implicit val timeout: Timeout              = 30.seconds
+  protected val pingOffset: FiniteDuration   = 1.seconds
 
   type Fixture[C[_], T] =
     (ActorSystem[Nothing], Member, C[ActorRef[ShardingEnvelope[T]]], ClusterMetricsTestProbe, C[String])

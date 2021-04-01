@@ -1,4 +1,5 @@
 package io.scalac.core.util
+
 import com.typesafe.config._
 
 object TestConfig {

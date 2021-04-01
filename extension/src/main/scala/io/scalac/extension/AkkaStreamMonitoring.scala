@@ -2,16 +2,19 @@ package io.scalac.extension
 
 import akka.actor.ActorRef
 import akka.actor.typed._
+import akka.actor.typed.receptionist.Receptionist.Register
 import akka.actor.typed.scaladsl.adapter._
 import akka.actor.typed.scaladsl.{ AbstractBehavior, ActorContext, Behaviors, TimerScheduler }
 import io.scalac.core.akka.model.PushMetrics
+import io.scalac.core.event.Service.streamService
+import io.scalac.core.event.StreamEvent
+import io.scalac.core.event.StreamEvent.{ LastStreamStats, StreamInterpreterStats }
 import io.scalac.core.model.Tag.{ StageName, StreamName }
 import io.scalac.core.model._
 import io.scalac.core.support.ModulesSupport
 import io.scalac.extension.AkkaStreamMonitoring._
-import io.scalac.extension.config.CachingConfig
 import io.scalac.extension.config.ConfigurationUtils._
-import io.scalac.core.event.ActorInterpreterStats
+import io.scalac.extension.config.{ BufferConfig, CachingConfig }
 import io.scalac.extension.metric.MetricObserver.Result
 import io.scalac.extension.metric.StreamMetricMonitor.{ EagerLabels, Labels => GlobalLabels }
 import io.scalac.extension.metric.StreamOperatorMetricsMonitor.Labels
@@ -31,7 +34,7 @@ object AkkaStreamMonitoring {
 
   sealed trait Command
 
-  private case class StatsReceived(actorInterpreterStats: ActorInterpreterStats) extends Command
+  private case class StatsReceived(actorInterpreterStats: StreamEvent) extends Command
 
   case class StartStreamCollection(refs: Set[ActorRef]) extends Command
 
@@ -210,10 +213,12 @@ class AkkaStreamMonitoring(
   scheduler: TimerScheduler[Command],
   node: Option[Node]
 ) extends AbstractBehavior[Command](ctx) {
+  import ModulesSupport._
 
   private val Timeout: FiniteDuration = streamCollectionTimeout
 
-  private val cachingConfig          = CachingConfig.fromConfig(ctx.system.settings.config, ModulesSupport.akkaStreamModule)
+  private val cachingConfig          = CachingConfig.fromConfig(ctx.system.settings.config, akkaStreamModule)
+  private val bufferConfig           = BufferConfig.fromConfig(ctx.system.settings.config, akkaStreamModule)
   private val indexCache             = ConnectionsIndexCache.bounded(cachingConfig.maxEntries)
   private val operationsBoundMonitor = streamOperatorMonitor.bind()
   private val boundStreamMonitor     = streamMonitor.bind(EagerLabels(node))
@@ -230,6 +235,8 @@ class AkkaStreamMonitoring(
   private[this] val localStreamStats       = mutable.Map.empty[StreamName, StreamStatsBuilder]
 
   private def init(): Unit = {
+    system.receptionist ! Register(streamService.serviceKey, messageAdapter[StreamEvent](StatsReceived.apply))
+
     boundStreamMonitor.streamProcessedMessages.setUpdater { result =>
       val streams = globalProcessedSnapshot.get()
       streams.foreach { statsSeq =>
@@ -256,28 +263,33 @@ class AkkaStreamMonitoring(
     }
   }
 
-  private val metricsAdapter = messageAdapter[ActorInterpreterStats](StatsReceived.apply)
+  override def onMessage(msg: Command): Behavior[Command] =
+    Behaviors.withStash(bufferConfig.size) { buffer =>
+      msg match {
+        case StartStreamCollection(refs) if refs.nonEmpty =>
+          log.debug("Start stream stats collection")
+          scheduler.startSingleTimer(CollectionTimeout, CollectionTimeout, Timeout)
 
-  override def onMessage(msg: Command): Behavior[Command] = msg match {
-    case StartStreamCollection(refs) if refs.nonEmpty =>
-      log.debug("Start stream stats collection")
-      scheduler.startSingleTimer(CollectionTimeout, CollectionTimeout, Timeout)
-
-      refs.foreach { ref =>
-        watch(ref)
-        ref ! PushMetrics(metricsAdapter.toClassic)
+          refs.foreach { ref =>
+            watch(ref)
+            ref ! PushMetrics
+          }
+          buffer.unstashAll(collecting(refs))
+        case StartStreamCollection(_) =>
+          log.warn("StartStreamCollection with empty refs")
+          this
+        case stats @ StatsReceived(_: LastStreamStats) =>
+          log.debug("Received last stats for shell")
+          buffer.stash(stats)
+          Behaviors.same
+        case StatsReceived(_) =>
+          log.warn("Received stream running statistics after timeout")
+          this
+        case CollectionTimeout =>
+          log.warn("[UNPLANNED SITUATION] CollectionTimeout on main behavior")
+          this
       }
-      collecting(refs)
-    case StartStreamCollection(_) =>
-      log.warn(s"StartStreamCollection with empty refs")
-      this
-    case StatsReceived(_) =>
-      log.warn("Received stream running statistics after timeout")
-      this
-    case CollectionTimeout =>
-      log.warn("[UNPLANNED SITUATION] CollectionTimeout on main behavior")
-      this
-  }
+    }
 
   def captureGlobalStats(): Unit = {
     boundStreamMonitor.runningStreamsTotal.setValue(localStreamStats.size)
@@ -343,9 +355,15 @@ class AkkaStreamMonitoring(
   private def collecting(refs: Set[ActorRef]): Behavior[Command] =
     Behaviors
       .receiveMessage[Command] {
-        case StatsReceived(ActorInterpreterStats(ref, subStreamName, shellInfo)) =>
-          val refsLeft = refs - ref
-          unwatch(ref)
+        case StatsReceived(event) =>
+          val (refsLeft, subStreamName, shellInfo) = event match {
+            case StreamInterpreterStats(ref, subStreamName, shellInfo) =>
+              unwatch(ref)
+              (refs - ref, subStreamName, shellInfo)
+            case LastStreamStats(_, subStreamName, shellInfo) =>
+              (refs, subStreamName, Set(shellInfo))
+          }
+
           val streamStats =
             localStreamStats.getOrElseUpdate(subStreamName.streamName, new StreamStatsBuilder(subStreamName.streamName))
           streamStats.incActors()

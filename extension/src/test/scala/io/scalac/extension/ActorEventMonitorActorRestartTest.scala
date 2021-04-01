@@ -4,13 +4,13 @@ import akka.actor.PoisonPill
 import akka.actor.testkit.typed.scaladsl.ScalaTestWithActorTestKit
 import akka.actor.typed.scaladsl.Behaviors
 import akka.actor.typed.{ ActorRef, ActorSystem, SupervisorStrategy }
-import io.scalac.extension.ActorEventsMonitorActor.{ ActorMetricsReader, ReflectiveActorTreeTraverser }
 import io.scalac.core.actor.MutableActorMetricsStorage
 import io.scalac.core.util.TestCase.MonitorTestCaseContext.BasicContext
 import io.scalac.core.util.TestCase.{ MonitorWithBasicContextTestCaseFactory, ProvidedActorSystemTestCaseFactory }
 import io.scalac.core.util.probe.ActorMonitorTestProbe
 import io.scalac.core.util.probe.ObserverCollector.ManualCollectorImpl
 import io.scalac.core.util.{ TestConfig, TestOps }
+import io.scalac.extension.ActorEventsMonitorActor.{ ActorMetricsReader, ReflectiveActorTreeTraverser }
 import org.scalatest.concurrent.Eventually
 import org.scalatest.flatspec.AnyFlatSpecLike
 
