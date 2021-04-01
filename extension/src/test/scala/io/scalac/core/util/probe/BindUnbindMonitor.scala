@@ -1,8 +1,8 @@
 package io.scalac.core.util.probe
 
-import io.scalac.extension.metric.Bound
-
 import java.util.concurrent.atomic.AtomicInteger
+
+import io.scalac.extension.metric.Bound
 
 trait BindUnbindMonitor {
 

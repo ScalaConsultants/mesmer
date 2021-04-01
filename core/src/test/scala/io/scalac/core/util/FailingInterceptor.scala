@@ -1,10 +1,11 @@
 package io.scalac.core.util
 
 import akka.actor.typed._
-import io.scalac.core.util.FailingInterceptor.sendFailSignal
 
 import scala.reflect.ClassTag
 import scala.util.control.NoStackTrace
+
+import io.scalac.core.util.FailingInterceptor.sendFailSignal
 
 private class FailingInterceptor[A: ClassTag] private (val probe: Option[ActorRef[A]])
     extends BehaviorInterceptor[A, A] {

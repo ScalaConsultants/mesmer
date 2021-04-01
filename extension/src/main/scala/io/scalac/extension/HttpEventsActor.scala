@@ -1,20 +1,23 @@
 package io.scalac.extension
 
+import akka.actor.typed.Behavior
+import akka.actor.typed.PostStop
 import akka.actor.typed.receptionist.Receptionist
-import akka.actor.typed.receptionist.Receptionist.{ Deregister, Register }
+import akka.actor.typed.receptionist.Receptionist.Deregister
+import akka.actor.typed.receptionist.Receptionist.Register
 import akka.actor.typed.scaladsl.Behaviors
-import akka.actor.typed.{ Behavior, PostStop }
 import akka.util.Timeout
+
 import io.scalac.core._
-import io.scalac.core.model.{ Method, Path, _ }
 import io.scalac.core.event.HttpEvent
 import io.scalac.core.event.HttpEvent._
+import io.scalac.core.model.Method
+import io.scalac.core.model.Path
+import io.scalac.core.model._
 import io.scalac.extension.http.RequestStorage
-import io.scalac.extension.metric.HttpMetricMonitor
 import io.scalac.extension.metric.HttpConnectionMetricMonitor
+import io.scalac.extension.metric.HttpMetricMonitor
 import io.scalac.extension.service.PathService
-
-import scala.language.postfixOps
 
 class HttpEventsActor
 

@@ -1,8 +1,9 @@
 package io.scalac.core.util
 import akka.actor.ActorRef
-import io.scalac.core.model.Tag._
 
 import scala.annotation.tailrec
+
+import io.scalac.core.model.Tag._
 
 object stream {
 

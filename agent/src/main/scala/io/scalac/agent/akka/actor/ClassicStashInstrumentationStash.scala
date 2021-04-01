@@ -1,11 +1,15 @@
 package io.scalac.agent.akka.actor
 
-import akka.actor.{ Actor, ActorContext }
-import io.scalac.core.actor.ActorCellDecorator
-import net.bytebuddy.asm.Advice.{ Argument, OnMethodExit, This }
-
 import java.lang.invoke.MethodHandles
 import java.lang.invoke.MethodType.methodType
+
+import akka.actor.Actor
+import akka.actor.ActorContext
+import net.bytebuddy.asm.Advice.Argument
+import net.bytebuddy.asm.Advice.OnMethodExit
+import net.bytebuddy.asm.Advice.This
+
+import io.scalac.core.actor.ActorCellDecorator
 
 class StashConstructorAdvice
 object StashConstructorAdvice {

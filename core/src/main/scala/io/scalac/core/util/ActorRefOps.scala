@@ -3,9 +3,9 @@ package io.scalac.core.util
 import java.lang.invoke.MethodHandles
 import java.lang.invoke.MethodType.methodType
 
-import scala.collection.immutable
-
 import akka.actor.ActorRef
+
+import scala.collection.immutable
 
 object ActorRefOps {
 

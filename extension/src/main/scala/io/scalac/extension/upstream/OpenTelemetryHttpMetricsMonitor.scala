@@ -3,7 +3,8 @@ package io.scalac.extension.upstream
 import com.typesafe.config.Config
 import io.opentelemetry.api.metrics.Meter
 
-import io.scalac.extension.metric.{ HttpMetricMonitor, RegisterRoot }
+import io.scalac.extension.metric.HttpMetricMonitor
+import io.scalac.extension.metric.RegisterRoot
 import io.scalac.extension.upstream.opentelemetry._
 
 import OpenTelemetryHttpMetricsMonitor.MetricNames
@@ -70,9 +71,10 @@ class OpenTelemetryHttpMetricsMonitor(meter: Meter, metricNames: MetricNames) ex
       with RegisterRoot {
     private val openTelemetryLabels = LabelsFactory.of(labels.serialize)
 
-    override val requestTime = metricRecorder(requestTimeRequest, openTelemetryLabels).register(this)
+    override val requestTime: WrappedLongValueRecorder =
+      metricRecorder(requestTimeRequest, openTelemetryLabels).register(this)
 
-    override val requestCounter = counter(requestTotalCounter, openTelemetryLabels).register(this)
+    override val requestCounter: WrappedCounter = counter(requestTotalCounter, openTelemetryLabels).register(this)
 
   }
 }

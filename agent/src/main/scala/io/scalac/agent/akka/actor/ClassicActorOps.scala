@@ -1,6 +1,7 @@
 package io.scalac.agent.akka.actor
 
-import akka.actor.{ Actor, ActorContext }
+import akka.actor.Actor
+import akka.actor.ActorContext
 
 object ClassicActorOps {
 

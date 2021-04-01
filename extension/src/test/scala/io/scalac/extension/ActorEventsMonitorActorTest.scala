@@ -1,28 +1,34 @@
 package io.scalac.extension
-
 import akka.actor.PoisonPill
 import akka.actor.testkit.typed.javadsl.FishingOutcomes
 import akka.actor.testkit.typed.scaladsl.TestProbe
+import akka.actor.typed.ActorRef
+import akka.actor.typed.ActorSystem
+import akka.actor.typed.Behavior
 import akka.actor.typed.receptionist.ServiceKey
-import akka.actor.typed.scaladsl.{ Behaviors, StashBuffer }
-import akka.actor.typed.{ ActorRef, ActorSystem, Behavior }
+import akka.actor.typed.scaladsl.Behaviors
+import akka.actor.typed.scaladsl.StashBuffer
 import akka.util.Timeout
-import io.scalac.core.actor.{ ActorMetrics, MutableActorMetricsStorage }
+import org.scalatest.LoneElement
+import org.scalatest.TestSuite
+import org.scalatest.concurrent.ScaledTimeSpans
+
+import scala.concurrent.duration._
+
+import io.scalac.core.actor.ActorMetrics
+import io.scalac.core.actor.MutableActorMetricsStorage
 import io.scalac.core.actorServiceKey
 import io.scalac.core.model._
 import io.scalac.core.util.ActorPathOps
 import io.scalac.core.util.AggMetric.LongValueAggMetric
 import io.scalac.core.util.TestCase._
 import io.scalac.core.util.probe.ActorMonitorTestProbe
-import io.scalac.core.util.probe.BoundTestProbe.{ MetricObserved, MetricObserverCommand }
+import io.scalac.core.util.probe.BoundTestProbe.MetricObserved
+import io.scalac.core.util.probe.BoundTestProbe.MetricObserverCommand
 import io.scalac.core.util.probe.ObserverCollector.ScheduledCollectorImpl
 import io.scalac.extension.ActorEventsMonitorActor._
 import io.scalac.extension.ActorEventsMonitorActorTest._
 import io.scalac.extension.metric.ActorMetricMonitor.Labels
-import org.scalatest.concurrent.ScaledTimeSpans
-import org.scalatest.{ LoneElement, TestSuite }
-
-import scala.concurrent.duration._
 
 trait ActorEventMonitorActorTestConfig {
   this: TestSuite with ScaledTimeSpans =>

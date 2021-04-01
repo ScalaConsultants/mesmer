@@ -3,15 +3,17 @@ package io.scalac.core.event
 import java.util.UUID
 
 import akka.actor.typed._
+import akka.actor.typed.receptionist.Receptionist
 import akka.actor.typed.receptionist.Receptionist.Subscribe
-import akka.actor.typed.receptionist.{ Receptionist, ServiceKey }
+import akka.actor.typed.receptionist.ServiceKey
 import akka.actor.typed.scaladsl.Behaviors
 import akka.util.Timeout
-import io.scalac.core.util.MutableTypedMap
 
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
 import scala.language.postfixOps
+
+import io.scalac.core.util.MutableTypedMap
 
 trait EventBus extends Extension {
   def publishEvent[T <: AbstractEvent](event: T)(implicit service: Service[event.Service]): Unit

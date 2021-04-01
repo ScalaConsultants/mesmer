@@ -2,14 +2,19 @@ package io.scalac.extension.util.probe
 
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicInteger
-import scala.collection.concurrent.{ Map => CMap }
-import scala.jdk.CollectionConverters._
+
 import akka.actor.testkit.typed.scaladsl.TestProbe
 import akka.actor.typed.ActorSystem
-import io.scalac.extension.metric.{ HttpConnectionMetricMonitor, UpDownCounter }
+
+import scala.collection.concurrent.{ Map => CMap }
+import scala.jdk.CollectionConverters._
+
 import io.scalac.core.util.TestProbeSynchronized
 import io.scalac.core.util.probe.BoundTestProbe.CounterCommand
-import io.scalac.core.util.probe.{ SyncTestProbeWrapper, UpDownCounterTestProbeWrapper }
+import io.scalac.core.util.probe.SyncTestProbeWrapper
+import io.scalac.core.util.probe.UpDownCounterTestProbeWrapper
+import io.scalac.extension.metric.HttpConnectionMetricMonitor
+import io.scalac.extension.metric.UpDownCounter
 
 class HttpConnectionMetricsTestProbe(implicit val system: ActorSystem[_]) extends HttpConnectionMetricMonitor {
 

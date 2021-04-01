@@ -6,9 +6,20 @@ ThisBuild / version := "0.1.0-SNAPSHOT"
 ThisBuild / organization := "io.scalac"
 ThisBuild / organizationName := "scalac"
 
-ThisBuild / dependencyOverrides ++= openTelemetryDependenciesOverrides
+inThisBuild(
+  List(
+    
+    dependencyOverrides ++= openTelemetryDependenciesOverrides,
 
-ThisBuild / scalacOptions ++= Seq("-deprecation", "-feature")
+    scalacOptions ++= Seq("-deprecation", "-feature"),
+    
+    semanticdbEnabled := true,
+    semanticdbVersion := scalafixSemanticdb.revision,
+    scalacOptions += "-Wunused:imports",
+    scalafixDependencies += "com.github.liancheng" %% "organize-imports" % "0.5.0",
+    scalafixScalaBinaryVersion := "2.13"
+  )
+)
 
 lazy val all = (project in file("."))
   .disablePlugins(sbtassembly.AssemblyPlugin)

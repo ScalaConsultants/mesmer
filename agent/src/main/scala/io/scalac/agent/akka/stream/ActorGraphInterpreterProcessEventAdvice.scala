@@ -3,8 +3,9 @@ package akka.stream.impl.fusing
 import akka.AkkaMirrorTypes.GraphInterpreterShellMirror
 import akka.actor.Actor
 import akka.stream.impl.fusing.ActorGraphInterpreter.BoundaryEvent
-import io.scalac.agent.akka.stream.ActorGraphInterpreterDecorator
 import net.bytebuddy.asm.Advice
+
+import io.scalac.agent.akka.stream.ActorGraphInterpreterDecorator
 
 class ActorGraphInterpreterProcessEventAdvice
 object ActorGraphInterpreterProcessEventAdvice {

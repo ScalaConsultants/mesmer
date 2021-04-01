@@ -1,14 +1,16 @@
 package io.scalac.core
 
-import scala.language.implicitConversions
-
 import _root_.akka.actor.{ ActorPath => AkkaActorPath }
 import _root_.akka.cluster.UniqueAddress
 import _root_.akka.http.scaladsl.model.HttpMethod
 import _root_.akka.http.scaladsl.model.Uri.{ Path => AkkaPath }
+
+import scala.language.implicitConversions
+
 import io.scalac.core.model.Tag.StageName.StreamUniqueStageName
 import io.scalac.core.model.Tag._
-import io.scalac.core.tagging.{ @@, _ }
+import io.scalac.core.tagging.@@
+import io.scalac.core.tagging._
 
 package object model {
 
@@ -77,28 +79,28 @@ package object model {
   implicit def stringAutomaticTagger[Tag <: ModelTag](value: String): String @@ Tag = value.taggedWith[Tag]
   implicit def intAutomaticTagger[Tag <: ModelTag](value: Int): Int @@ Tag          = value.taggedWith[Tag]
 
-  implicit class AkkaNodeOps(val value: UniqueAddress) extends AnyVal {
+  implicit class AkkaNodeOps(private val value: UniqueAddress) extends AnyVal {
     def toNode: Node = value.address.toString.taggedWith[NodeTag] // @todo change to some meaningful name
   }
 
-  implicit class AkkaHttpPathOps(val path: AkkaPath) extends AnyVal {
+  implicit class AkkaHttpPathOps(private val path: AkkaPath) extends AnyVal {
     def toPath: Path = path.toString.taggedWith[PathTag]
   }
 
-  implicit class AkkaHttpMethodOps(val method: HttpMethod) extends AnyVal {
+  implicit class AkkaHttpMethodOps(private val method: HttpMethod) extends AnyVal {
     def toMethod: Method = method.value.taggedWith[MethodTag]
   }
 
-  implicit class AkkaActorPathOps(val path: AkkaActorPath) extends AnyVal {
+  implicit class AkkaActorPathOps(private val path: AkkaActorPath) extends AnyVal {
     def toPath: Path           = path.toStringWithoutAddress.taggedWith[PathTag]
     def toActorPath: ActorPath = path.toStringWithoutAddress.taggedWith[ActorPathTag]
   }
 
-  implicit class SerializationOps[T](val tag: T) extends AnyVal {
+  implicit class SerializationOps[T](private val tag: T) extends AnyVal {
     def serialize(implicit ls: LabelSerializer[T]): RawLabels = ls.serialize(tag)
   }
 
-  implicit class OptionSerializationOps[T](val optTag: Option[T]) extends AnyVal {
+  implicit class OptionSerializationOps[T](private val optTag: Option[T]) extends AnyVal {
     def serialize(implicit ls: LabelSerializer[T]): RawLabels = optTag.fold[RawLabels](Seq.empty)(ls.serialize)
   }
 

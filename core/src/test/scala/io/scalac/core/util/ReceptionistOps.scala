@@ -1,14 +1,17 @@
 package io.scalac.core.util
 
+import akka.actor.typed.ActorRef
+import akka.actor.typed.ActorSystem
+import akka.actor.typed.receptionist.Receptionist
 import akka.actor.typed.receptionist.Receptionist.Listing
-import akka.actor.typed.receptionist.{ Receptionist, ServiceKey }
+import akka.actor.typed.receptionist.ServiceKey
 import akka.actor.typed.scaladsl.AskPattern._
-import akka.actor.typed.{ ActorRef, ActorSystem }
 import akka.util.Timeout
+import org.scalatest.Inside
+import org.scalatest.LoneElement
 import org.scalatest.concurrent.Eventually
 import org.scalatest.concurrent.ScalaFutures.convertScalaFuture
 import org.scalatest.matchers.should.Matchers.convertToAnyShouldWrapper
-import org.scalatest.{ Inside, LoneElement }
 
 trait ReceptionistOps extends TestOps with Eventually with Inside with LoneElement {
 

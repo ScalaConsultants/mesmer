@@ -1,16 +1,21 @@
 package io.scalac.core.util
 
 import akka.actor.PoisonPill
+import akka.actor.typed.ActorRef
+import akka.actor.typed.ActorSystem
+import akka.actor.typed.Behavior
 import akka.actor.typed.receptionist.ServiceKey
 import akka.actor.typed.scaladsl.Behaviors
-import akka.actor.typed.{ ActorRef, ActorSystem, Behavior }
 import akka.testkit.TestKit
 import akka.util.Timeout
-import io.scalac.core.util.probe.{ Collected, ObserverCollector }
+
 import io.scalac.core.tagging._
+import io.scalac.core.util.ReceptionistOps
 import io.scalac.core.util.TestCase.MonitorWithServiceTestCaseFactory.SetupTag
-import io.scalac.core.util.probe.{ Collected, ObserverCollector }
-import io.scalac.core.util.{ ReceptionistOps, TestConfig, TestOps }
+import io.scalac.core.util.TestConfig
+import io.scalac.core.util.TestOps
+import io.scalac.core.util.probe.Collected
+import io.scalac.core.util.probe.ObserverCollector
 
 object TestCase {
 

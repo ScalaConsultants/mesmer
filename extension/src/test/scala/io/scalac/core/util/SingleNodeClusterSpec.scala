@@ -1,23 +1,35 @@
 package io.scalac.core.util
 
+import java.util.UUID
+
+import akka.actor.typed.ActorRef
+import akka.actor.typed.ActorSystem
+import akka.actor.typed.Behavior
 import akka.actor.typed.scaladsl.AskPattern._
 import akka.actor.typed.scaladsl.Behaviors
-import akka.actor.typed.{ ActorRef, ActorSystem, Behavior }
 import akka.cluster.Member
 import akka.cluster.sharding.typed.ShardingEnvelope
-import akka.cluster.sharding.typed.scaladsl.{ ClusterSharding, Entity, EntityTypeKey }
-import akka.cluster.typed.{ Cluster, SelfUp, Subscribe }
+import akka.cluster.sharding.typed.scaladsl.ClusterSharding
+import akka.cluster.sharding.typed.scaladsl.Entity
+import akka.cluster.sharding.typed.scaladsl.EntityTypeKey
+import akka.cluster.typed.Cluster
+import akka.cluster.typed.SelfUp
+import akka.cluster.typed.Subscribe
 import akka.util.Timeout
-import com.typesafe.config.{ Config, ConfigFactory, ConfigValueFactory }
-import io.scalac.core.util.probe.ClusterMetricsTestProbe
-import io.scalac.core.util.probe.ObserverCollector.ScheduledCollectorImpl
-import org.scalatest.{ Assertion, AsyncTestSuite }
+import com.typesafe.config.Config
+import com.typesafe.config.ConfigFactory
+import com.typesafe.config.ConfigValueFactory
+import org.scalatest.Assertion
+import org.scalatest.AsyncTestSuite
 
-import java.util.UUID
 import scala.concurrent.Future
-import scala.concurrent.duration.{ FiniteDuration, _ }
+import scala.concurrent.duration.FiniteDuration
+import scala.concurrent.duration._
 import scala.jdk.CollectionConverters._
 import scala.reflect.ClassTag
+
+import io.scalac.core.util.probe.ClusterMetricsTestProbe
+import io.scalac.core.util.probe.ObserverCollector.ScheduledCollectorImpl
 
 trait SingleNodeClusterSpec extends AsyncTestSuite {
 

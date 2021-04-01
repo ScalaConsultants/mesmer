@@ -3,24 +3,31 @@ package io.scalac.agent.akka
 import akka.actor.testkit.typed.scaladsl.TestProbe
 import akka.actor.typed
 import akka.actor.typed.receptionist.Receptionist
-import akka.actor.typed.receptionist.Receptionist.{ Deregister, Register }
+import akka.actor.typed.receptionist.Receptionist.Deregister
+import akka.actor.typed.receptionist.Receptionist.Register
 import akka.actor.typed.scaladsl.adapter._
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.model.headers.Connection
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
-import akka.http.scaladsl.testkit.{ RouteTestTimeout, ScalatestRouteTest }
-import com.typesafe.config.{ Config, ConfigFactory }
-import io.scalac.agent.akka.http.AkkaHttpAgent
-import io.scalac.agent.utils.InstallAgent
-import io.scalac.core.event.HttpEvent
-import io.scalac.core.event.HttpEvent.{ ConnectionCompleted, ConnectionStarted, RequestCompleted, RequestStarted }
-import io.scalac.core.httpServiceKey
+import akka.http.scaladsl.testkit.RouteTestTimeout
+import akka.http.scaladsl.testkit.ScalatestRouteTest
+import com.typesafe.config.Config
+import com.typesafe.config.ConfigFactory
 import org.scalatest.flatspec.AnyFlatSpecLike
 import org.scalatest.matchers.should.Matchers
 
 import scala.concurrent.duration._
 import scala.language.postfixOps
+
+import io.scalac.agent.akka.http.AkkaHttpAgent
+import io.scalac.agent.utils.InstallAgent
+import io.scalac.core.event.HttpEvent
+import io.scalac.core.event.HttpEvent.ConnectionCompleted
+import io.scalac.core.event.HttpEvent.ConnectionStarted
+import io.scalac.core.event.HttpEvent.RequestCompleted
+import io.scalac.core.event.HttpEvent.RequestStarted
+import io.scalac.core.httpServiceKey
 
 class AkkaHttpAgentTest extends InstallAgent with AnyFlatSpecLike with ScalatestRouteTest with Matchers {
 

@@ -1,6 +1,7 @@
 package io.scalac
 
 import akka.actor.typed.receptionist.ServiceKey
+
 import io.scalac.core.event._
 
 package object core {

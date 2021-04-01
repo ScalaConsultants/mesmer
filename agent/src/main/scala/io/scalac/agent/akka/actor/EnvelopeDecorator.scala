@@ -2,7 +2,8 @@ package io.scalac.agent.akka.actor
 
 import akka.dispatch.Envelope
 
-import io.scalac.core.util.{ ReflectionFieldUtils, Timestamp }
+import io.scalac.core.util.ReflectionFieldUtils
+import io.scalac.core.util.Timestamp
 
 object EnvelopeDecorator {
 

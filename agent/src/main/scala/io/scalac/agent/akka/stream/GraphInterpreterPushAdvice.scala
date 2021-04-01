@@ -1,6 +1,7 @@
 package io.scalac.agent.akka.stream
-import io.scalac.agent.akka.stream.ConnectionOps._
 import net.bytebuddy.asm.Advice._
+
+import io.scalac.agent.akka.stream.ConnectionOps._
 
 class GraphInterpreterPushAdvice
 

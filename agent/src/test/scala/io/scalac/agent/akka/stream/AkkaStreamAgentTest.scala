@@ -3,24 +3,35 @@ package io.scalac.agent.akka.stream
 import akka.Done
 import akka.actor.ActorRef
 import akka.actor.testkit.typed.scaladsl.TestProbe
+import akka.actor.typed.ActorSystem
+import akka.actor.typed.Behavior
 import akka.actor.typed.receptionist.Receptionist._
 import akka.actor.typed.receptionist.ServiceKey
 import akka.actor.typed.scaladsl.Behaviors
-import akka.actor.typed.{ ActorSystem, Behavior }
+import akka.stream.Attributes
+import akka.stream.BufferOverflowException
+import akka.stream.OverflowStrategy
+import akka.stream.QueueOfferResult
 import akka.stream.scaladsl._
-import akka.stream.{ Attributes, BufferOverflowException, OverflowStrategy, QueueOfferResult }
-import io.scalac.agent.utils.{ InstallAgent, SafeLoadSystem }
-import io.scalac.core.akka.model.PushMetrics
-import io.scalac.core.event.StreamEvent.{ LastStreamStats, StreamInterpreterStats }
-import io.scalac.core.event.{ Service, StreamEvent, TagEvent }
-import io.scalac.core.util.TestCase.CommonMonitorTestFactory
 import org.scalatest._
-import org.scalatest.concurrent.{ Futures, ScalaFutures }
+import org.scalatest.concurrent.Futures
+import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.flatspec.AnyFlatSpecLike
 import org.scalatest.matchers.should.Matchers
 
+import scala.concurrent.ExecutionContext
+import scala.concurrent.Future
 import scala.concurrent.duration._
-import scala.concurrent.{ ExecutionContext, Future }
+
+import io.scalac.agent.utils.InstallAgent
+import io.scalac.agent.utils.SafeLoadSystem
+import io.scalac.core.akka.model.PushMetrics
+import io.scalac.core.event.Service
+import io.scalac.core.event.StreamEvent
+import io.scalac.core.event.StreamEvent.LastStreamStats
+import io.scalac.core.event.StreamEvent.StreamInterpreterStats
+import io.scalac.core.event.TagEvent
+import io.scalac.core.util.TestCase.CommonMonitorTestFactory
 
 class AkkaStreamAgentTest
     extends InstallAgent
@@ -40,7 +51,7 @@ class AkkaStreamAgentTest
     actorContext =>
       actorContext.system.receptionist ! Register(Service.streamService.serviceKey, actorContext.self)
 
-      Behaviors.receiveMessage[StreamEvent] { case event =>
+      Behaviors.receiveMessage[StreamEvent] { event =>
         context.monitor.ref ! event
         Behaviors.same
       }
@@ -54,7 +65,7 @@ class AkkaStreamAgentTest
   implicit var streamService: ActorStreamRefService = _
 
   def actors(num: Int)(implicit refService: ActorStreamRefService): Seq[ActorRef] = refService.actors(num)
-  def clear(implicit refService: ActorStreamRefService): Unit                     = refService.clear
+  def clear(implicit refService: ActorStreamRefService): Unit                     = refService.clear()
 
   override def beforeAll(): Unit = {
     super.beforeAll() // order is important!
@@ -78,7 +89,7 @@ class AkkaStreamAgentTest
     /**
      * Make sure no more actors are created
      */
-    def clear: Unit = probe.expectNoMessage(2.seconds)
+    def clear(): Unit = probe.expectNoMessage(2.seconds)
 
     system.receptionist ! Register(Service.tagService.serviceKey, probe.ref)
   }
@@ -246,7 +257,7 @@ class AkkaStreamAgentTest
   }
 
   it should "receive stats of short living streams in" in testCase { implicit c =>
-    def runShortStream: Unit = Source
+    def runShortStream(): Unit = Source
       .single(())
       .to(Sink.ignore)
       .run()
@@ -255,14 +266,14 @@ class AkkaStreamAgentTest
 
     for {
       _ <- 0 until StreamCount
-    } runShortStream
+    } runShortStream()
 
     actors(StreamCount)
 
     forAll(monitor.receiveMessages(StreamCount)) {
       inside(_) { case LastStreamStats(_, _, shellInfo) =>
         val (stages, connectionStats) = shellInfo
-        stages should have size (2)
+        stages should have size 2
         val connection = connectionStats.toSeq.loneElement
         connection.push should be(1L)
         connection.pull should be(1L)
@@ -293,7 +304,7 @@ class AkkaStreamAgentTest
       val ref = actors(1).loneElement
       ref ! PushMetrics
 
-      monitor.expectMessageType[StreamInterpreterStats].shellInfo should have size (2)
+      monitor.expectMessageType[StreamInterpreterStats].shellInfo should have size 2
     }
   }
 }

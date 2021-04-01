@@ -1,7 +1,11 @@
 package io.scalac.core.util
 
-import io.scalac.core.util.probe.BoundTestProbe.{ Dec, Inc, MetricRecorded }
-import io.scalac.core.util.probe.{ RecorderTestProbeWrapper, SyncTestProbeWrapper, UpDownCounterTestProbeWrapper }
+import io.scalac.core.util.probe.BoundTestProbe.Dec
+import io.scalac.core.util.probe.BoundTestProbe.Inc
+import io.scalac.core.util.probe.BoundTestProbe.MetricRecorded
+import io.scalac.core.util.probe.RecorderTestProbeWrapper
+import io.scalac.core.util.probe.SyncTestProbeWrapper
+import io.scalac.core.util.probe.UpDownCounterTestProbeWrapper
 import io.scalac.extension.metric.Synchronized
 
 trait TestProbeSynchronized extends Synchronized {

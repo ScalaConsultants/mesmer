@@ -1,12 +1,12 @@
 package io.scalac.agent.akka.persistence
 import akka.actor.typed.scaladsl.ActorContext
 import akka.persistence.PersistentRepr
-import io.scalac.core.model._
-import io.scalac.core.tagging._
-import io.scalac.core.util.Timestamp
+import net.bytebuddy.asm.Advice._
+
 import io.scalac.core.event.EventBus
 import io.scalac.core.event.PersistenceEvent.PersistingEventFinished
-import net.bytebuddy.asm.Advice._
+import io.scalac.core.model._
+import io.scalac.core.util.Timestamp
 class PersistingEventSuccessInterceptor
 object PersistingEventSuccessInterceptor {
 

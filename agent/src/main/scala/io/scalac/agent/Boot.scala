@@ -1,15 +1,16 @@
 package io.scalac.agent
 
-import io.scalac.agent.akka.http.AkkaHttpAgent
-import io.scalac.agent.akka.persistence.AkkaPersistenceAgent
-import io.scalac.agent.akka.stream.AkkaStreamAgent
-import io.scalac.core.util.ModuleInfo
+import java.lang.instrument.Instrumentation
+
 import net.bytebuddy.ByteBuddy
 import net.bytebuddy.agent.builder.AgentBuilder
 import net.bytebuddy.dynamic.scaffold.TypeValidation
 
 import io.scalac.agent.akka.actor.AkkaActorAgent
-import java.lang.instrument.Instrumentation
+import io.scalac.agent.akka.http.AkkaHttpAgent
+import io.scalac.agent.akka.persistence.AkkaPersistenceAgent
+import io.scalac.agent.akka.stream.AkkaStreamAgent
+import io.scalac.core.util.ModuleInfo
 
 object Boot {
 

@@ -1,9 +1,11 @@
 package io.scalac.extension.upstream.opentelemetry
 import io.opentelemetry.api.common.Labels
-import io.opentelemetry.api.metrics.{ BatchRecorder, Meter }
-import io.scalac.extension.metric.{ Synchronized => BaseSynchronized }
+import io.opentelemetry.api.metrics.BatchRecorder
+import io.opentelemetry.api.metrics.Meter
 
 import scala.collection.mutable.ListBuffer
+
+import io.scalac.extension.metric.{ Synchronized => BaseSynchronized }
 
 abstract class Synchronized(private val meter: Meter) extends BaseSynchronized {
   import Synchronized._
@@ -28,7 +30,7 @@ abstract class Synchronized(private val meter: Meter) extends BaseSynchronized {
 }
 
 object Synchronized {
-  private[opentelemetry] implicit class RecorderExt(val recorder: BatchRecorder) extends AnyVal {
+  private[opentelemetry] implicit class RecorderExt(private val recorder: BatchRecorder) extends AnyVal {
     def putValue[L](instrument: WrappedSynchronousInstrument[L], value: L): BatchRecorder = {
       instrument match {
         case WrappedLongValueRecorder(underlying, _) => recorder.put(underlying, value)

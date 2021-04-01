@@ -2,14 +2,16 @@ package io.scalac.agent.akka.actor
 
 import io.scalac.agent.Agent
 import io.scalac.agent.util.i13n._
-import io.scalac.core.actor.{ ActorCellDecorator, ActorCellMetrics }
+import io.scalac.core.actor.ActorCellDecorator
+import io.scalac.core.actor.ActorCellMetrics
 import io.scalac.core.model._
 import io.scalac.core.support.ModulesSupport
 import io.scalac.core.util.Timestamp
 
 object AkkaActorAgent extends InstrumentModuleFactory {
 
-  protected final val supportedModules = SupportedModules(ModulesSupport.akkaActorModule, ModulesSupport.akkaActor)
+  protected final val supportedModules: SupportedModules =
+    SupportedModules(ModulesSupport.akkaActorModule, ModulesSupport.akkaActor)
 
   private val classicStashInstrumentationAgent = {
 

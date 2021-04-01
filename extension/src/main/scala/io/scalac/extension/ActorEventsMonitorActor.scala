@@ -1,26 +1,37 @@
 package io.scalac.extension
 
+import java.lang.invoke.MethodHandles
+import java.util.concurrent.atomic.AtomicReference
+
 import akka.actor.typed._
 import akka.actor.typed.receptionist.Receptionist.Register
-import akka.actor.typed.scaladsl.{ AbstractBehavior, ActorContext, Behaviors, TimerScheduler }
+import akka.actor.typed.scaladsl.AbstractBehavior
+import akka.actor.typed.scaladsl.ActorContext
+import akka.actor.typed.scaladsl.Behaviors
+import akka.actor.typed.scaladsl.TimerScheduler
 import akka.{ actor => classic }
+import org.slf4j.LoggerFactory
+
+import scala.annotation.tailrec
+import scala.collection.immutable
+import scala.collection.mutable
+import scala.concurrent.duration._
+
 import io.scalac.core._
-import io.scalac.core.actor.{ ActorCellDecorator, ActorMetricStorage, ActorMetrics }
+import io.scalac.core.actor.ActorCellDecorator
+import io.scalac.core.actor.ActorMetricStorage
+import io.scalac.core.actor.ActorMetrics
 import io.scalac.core.event.TagEvent
-import io.scalac.core.model.{ ActorKey, Node, Tag }
-import io.scalac.core.util.{ ActorCellOps, ActorRefOps }
+import io.scalac.core.model.ActorKey
+import io.scalac.core.model.Node
+import io.scalac.core.model.Tag
+import io.scalac.core.util.ActorCellOps
+import io.scalac.core.util.ActorRefOps
 import io.scalac.extension.ActorEventsMonitorActor._
 import io.scalac.extension.AkkaStreamMonitoring.StartStreamCollection
 import io.scalac.extension.metric.ActorMetricMonitor
 import io.scalac.extension.metric.ActorMetricMonitor.Labels
 import io.scalac.extension.metric.MetricObserver.Result
-import org.slf4j.LoggerFactory
-
-import java.lang.invoke.MethodHandles
-import java.util.concurrent.atomic.AtomicReference
-import scala.annotation.tailrec
-import scala.collection.{ immutable, mutable }
-import scala.concurrent.duration._
 
 object ActorEventsMonitorActor {
 
@@ -124,7 +135,7 @@ object ActorEventsMonitorActor {
 
   object ReflectiveActorMetricsReader extends ActorMetricsReader {
 
-    private val logger = (LoggerFactory.getLogger(getClass))
+    private val logger = LoggerFactory.getLogger(getClass)
 
     def read(actor: classic.ActorRef): Option[ActorMetrics] =
       for {
