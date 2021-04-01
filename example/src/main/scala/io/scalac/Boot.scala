@@ -61,7 +61,7 @@ object Boot extends App with FailFastCirceSupport with JsonCodecs {
 
     val collector: Collector = PrometheusCollector
       .builder()
-      .setMetricProducer(InstrumentationLibrary.meterProducer)
+      .setMetricProducer(InstrumentationLibrary.meterProvider.asInstanceOf[SdkMeterProvider].getMetricProducer)
       .build()
 
     val collectorRegistry: CollectorRegistry = CollectorRegistry.defaultRegistry
