@@ -1,5 +1,7 @@
 package io.scalac
 
+import java.lang.instrument.Instrumentation
+
 import akka.actor.typed.ActorSystem
 import akka.actor.typed.scaladsl.Behaviors
 import akka.cluster.sharding.typed.scaladsl.{ ClusterSharding, Entity, EntityTypeKey }
@@ -30,6 +32,11 @@ import scala.jdk.CollectionConverters._
 import scala.language.postfixOps
 import scala.util.{ Failure, Success }
 
+import io.opentelemetry.api.metrics.GlobalMetricsProvider
+import io.opentelemetry.sdk.metrics.SdkMeterProvider
+
+import io.scalac.extension.config.InstrumentationLibrary
+
 object Boot extends App with FailFastCirceSupport with JsonCodecs {
   val logger = LoggerFactory.getLogger(Boot.getClass)
 
@@ -54,7 +61,7 @@ object Boot extends App with FailFastCirceSupport with JsonCodecs {
 
     val collector: Collector = PrometheusCollector
       .builder()
-      .setMetricProducer(OpenTelemetrySdk.getGlobalMeterProvider.getMetricProducer)
+      .setMetricProducer(InstrumentationLibrary.meterProvider.asInstanceOf[SdkMeterProvider].getMetricProducer)
       .build()
 
     val collectorRegistry: CollectorRegistry = CollectorRegistry.defaultRegistry

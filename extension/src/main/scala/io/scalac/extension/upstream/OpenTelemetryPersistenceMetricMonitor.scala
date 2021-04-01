@@ -1,8 +1,9 @@
 package io.scalac.extension.upstream
 
 import com.typesafe.config.Config
-import io.opentelemetry.api.OpenTelemetry
-import io.scalac.extension.metric.{ PersistenceMetricMonitor, RegisterRoot }
+import io.opentelemetry.api.metrics.Meter
+
+import io.scalac.extension.metric.{ Counter, MetricRecorder, PersistenceMetricMonitor, RegisterRoot }
 import io.scalac.extension.upstream.OpenTelemetryPersistenceMetricMonitor._
 import io.scalac.extension.upstream.opentelemetry._
 
@@ -55,40 +56,34 @@ object OpenTelemetryPersistenceMetricMonitor {
         .getOrElse(defaultCached)
     }
   }
-  def apply(instrumentationName: String, config: Config): OpenTelemetryPersistenceMetricMonitor =
-    new OpenTelemetryPersistenceMetricMonitor(instrumentationName, MetricNames.fromConfig(config))
+  def apply(meter: Meter, config: Config): OpenTelemetryPersistenceMetricMonitor =
+    new OpenTelemetryPersistenceMetricMonitor(meter, MetricNames.fromConfig(config))
 }
 
-class OpenTelemetryPersistenceMetricMonitor(instrumentationName: String, metricNames: MetricNames)
-    extends PersistenceMetricMonitor {
+class OpenTelemetryPersistenceMetricMonitor(meter: Meter, metricNames: MetricNames) extends PersistenceMetricMonitor {
   import PersistenceMetricMonitor._
 
-  private val recoveryTimeRecorder = OpenTelemetry
-    .getGlobalMeter(instrumentationName)
+  private val recoveryTimeRecorder = meter
     .longValueRecorderBuilder(metricNames.recoveryTime)
     .setDescription("Amount of time needed for entity recovery")
     .build()
 
-  private val recoveryTotalCounter = OpenTelemetry
-    .getGlobalMeter(instrumentationName)
+  private val recoveryTotalCounter = meter
     .longCounterBuilder(metricNames.recoveryTotal)
     .setDescription("Amount of recoveries")
     .build()
 
-  private val persistentEventRecorder = OpenTelemetry
-    .getGlobalMeter(instrumentationName)
+  private val persistentEventRecorder = meter
     .longValueRecorderBuilder(metricNames.persistentEvent)
     .setDescription("Amount of time needed for entity to persist events")
     .build()
 
-  private val persistentEventTotalCounter = OpenTelemetry
-    .getGlobalMeter(instrumentationName)
+  private val persistentEventTotalCounter = meter
     .longCounterBuilder(metricNames.persistentEventTotal)
     .setDescription("Amount of persist events")
     .build()
 
-  private val snapshotCounter = OpenTelemetry
-    .getGlobalMeter(instrumentationName)
+  private val snapshotCounter = meter
     .longCounterBuilder(metricNames.snapshotTotal)
     .setDescription("Amount of snapshots created")
     .build()
@@ -100,18 +95,20 @@ class OpenTelemetryPersistenceMetricMonitor(instrumentationName: String, metricN
       with RegisterRoot
       with SynchronousInstrumentFactory {
     private val openTelemetryLabels = LabelsFactory.of(labels.serialize)
-    override lazy val recoveryTime  = metricRecorder(recoveryTimeRecorder, openTelemetryLabels).register(this)
 
-    override lazy val persistentEvent =
+    override lazy val recoveryTime: MetricRecorder[Long] =
+      metricRecorder(recoveryTimeRecorder, openTelemetryLabels).register(this)
+
+    override lazy val persistentEvent: MetricRecorder[Long] =
       metricRecorder(persistentEventRecorder, openTelemetryLabels).register(this)
 
-    override lazy val persistentEventTotal =
+    override lazy val persistentEventTotal: Counter[Long] =
       counter(persistentEventTotalCounter, openTelemetryLabels).register(this)
 
-    override lazy val snapshot =
+    override lazy val snapshot: Counter[Long] =
       counter(snapshotCounter, openTelemetryLabels).register(this)
 
-    override lazy val recoveryTotal =
+    override lazy val recoveryTotal: Counter[Long] =
       counter(recoveryTotalCounter, openTelemetryLabels).register(this)
 
   }

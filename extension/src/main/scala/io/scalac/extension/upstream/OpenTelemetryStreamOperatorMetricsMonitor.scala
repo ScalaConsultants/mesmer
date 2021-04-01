@@ -1,7 +1,8 @@
 package io.scalac.extension.upstream
 
 import com.typesafe.config.Config
-import io.opentelemetry.api.OpenTelemetry
+import io.opentelemetry.api.metrics.Meter
+
 import io.scalac.extension.metric.StreamOperatorMetricsMonitor.{ BoundMonitor, Labels }
 import io.scalac.extension.metric.{ MetricObserver, RegisterRoot, StreamOperatorMetricsMonitor }
 import io.scalac.extension.upstream.OpenTelemetryStreamOperatorMetricsMonitor.MetricNames
@@ -44,15 +45,12 @@ object OpenTelemetryStreamOperatorMetricsMonitor {
     }.getOrElse(defaults)
   }
 
-  def apply(instrumentationName: String, config: Config): OpenTelemetryStreamOperatorMetricsMonitor =
-    new OpenTelemetryStreamOperatorMetricsMonitor(instrumentationName, MetricNames.fromConfig(config))
+  def apply(meter: Meter, config: Config): OpenTelemetryStreamOperatorMetricsMonitor =
+    new OpenTelemetryStreamOperatorMetricsMonitor(meter, MetricNames.fromConfig(config))
 }
 
-class OpenTelemetryStreamOperatorMetricsMonitor(instrumentationName: String, metricNames: MetricNames)
+class OpenTelemetryStreamOperatorMetricsMonitor(meter: Meter, metricNames: MetricNames)
     extends StreamOperatorMetricsMonitor {
-
-  private val meter = OpenTelemetry
-    .getGlobalMeter(instrumentationName)
 
   private val processedMessageAdapter = new LongSumObserverBuilderAdapter[Labels](
     meter
