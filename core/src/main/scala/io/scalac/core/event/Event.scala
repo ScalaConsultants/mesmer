@@ -14,7 +14,6 @@ sealed trait ActorEvent extends AbstractEvent {
 }
 
 object ActorEvent {
-  final case class StashMeasurement(size: Int, path: ActorPath) extends ActorEvent
 }
 
 sealed trait PersistenceEvent extends AbstractEvent {
@@ -74,5 +73,4 @@ object StreamEvent {
    * @param shellInfo
    */
   final case class LastStreamStats(ref: ActorRef, streamName: SubStreamName, shellInfo: ShellInfo) extends StreamEvent
-
 }

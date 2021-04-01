@@ -10,7 +10,6 @@ import akka.{ actor => classic }
 import io.scalac.agent.utils.{ InstallAgent, SafeLoadSystem }
 import io.scalac.core.actor.{ ActorCellDecorator, ActorCellMetrics }
 import io.scalac.core.event.ActorEvent
-import io.scalac.core.event.ActorEvent.StashMeasurement
 import io.scalac.core.model._
 import io.scalac.core.util.{ ActorPathOps, MetricsToolKit, ReceptionistOps }
 import org.scalatest.OptionValues
@@ -301,16 +300,6 @@ class AkkaActorAgentTest
     sender.unsafeUpcast[Any] ! PoisonPill
   }
 
-  def createExpectStashSize(monitor: Fixture, ref: ActorRef[_]): Int => Unit =
-    createExpectStashSize(monitor, ActorPathOps.getPathString(ref))
-
-  def createExpectStashSize(monitor: Fixture, path: ActorPath): Int => Unit = { size =>
-    val msg = monitor.fishForMessage(2.seconds) {
-      case StashMeasurement(`size`, `path`) => FishingOutcome.Complete
-      case _                                => FishingOutcome.ContinueAndIgnore
-    }
-    msg.size should not be (0)
-  }
 
   def testWithContextAndActor[T](
     behavior: ActorContext[T] => Behavior[T]
