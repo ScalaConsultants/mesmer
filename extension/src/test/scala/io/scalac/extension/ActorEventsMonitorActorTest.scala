@@ -7,21 +7,20 @@ import akka.actor.typed.receptionist.ServiceKey
 import akka.actor.typed.scaladsl.{ Behaviors, StashBuffer }
 import akka.actor.typed.{ ActorRef, ActorSystem, Behavior }
 import akka.util.Timeout
+import io.scalac.core.actor.{ ActorMetrics, MutableActorMetricsStorage }
+import io.scalac.core.actorServiceKey
 import io.scalac.core.model._
 import io.scalac.core.util.ActorPathOps
+import io.scalac.core.util.AggMetric.LongValueAggMetric
 import io.scalac.core.util.TestCase._
+import io.scalac.core.util.probe.ActorMonitorTestProbe
+import io.scalac.core.util.probe.BoundTestProbe.{ MetricObserved, MetricObserverCommand }
+import io.scalac.core.util.probe.ObserverCollector.ScheduledCollectorImpl
 import io.scalac.extension.ActorEventsMonitorActor._
 import io.scalac.extension.ActorEventsMonitorActorTest._
-import io.scalac.extension.actor.{ ActorMetrics, MutableActorMetricsStorage }
-import io.scalac.extension.event.ActorEvent.StashMeasurement
-import io.scalac.extension.event.EventBus
 import io.scalac.extension.metric.ActorMetricMonitor.Labels
-import io.scalac.extension.util.AggMetric.LongValueAggMetric
-import io.scalac.extension.util.probe.ActorMonitorTestProbe
-import io.scalac.extension.util.probe.BoundTestProbe.{ MetricObserved, MetricObserverCommand, MetricRecorded }
-import io.scalac.extension.util.probe.ObserverCollector.ScheduledCollectorImpl
-import org.scalatest.TestSuite
 import org.scalatest.concurrent.ScaledTimeSpans
+import org.scalatest.{ LoneElement, TestSuite }
 
 import scala.concurrent.duration._
 
@@ -40,11 +39,13 @@ class ActorEventsMonitorActorTest
     extends AnyFlatSpecLike
     with Matchers
     with Inspectors
-    with MonitorWithServiceTestCaseFactory
+    with MonitorWithActorRefSetupTestCaseFactory
     with FreshActorSystemTestCaseFactory
-    with ActorEventMonitorActorTestConfig {
+    with ActorEventMonitorActorTestConfig
+    with ScaledTimeSpans
+    with LoneElement {
 
-  type Monitor          = ActorMonitorTestProbe
+  override type Monitor = ActorMonitorTestProbe
   override type Context = TestContext[Monitor]
 
   protected val serviceKey: ServiceKey[_] = actorServiceKey
@@ -98,28 +99,7 @@ class ActorEventsMonitorActorTest
   }
 
   it should "record stash size" in testCase { implicit c =>
-    val stashActor = system.systemActorOf(StashActor(10), "stashActor")
-    val actorPath  = ActorPathOps.getPathString(stashActor)
-
-    def stashMeasurement(size: Int): Unit =
-      EventBus(system).publishEvent(StashMeasurement(size, actorPath))
-
-    stashActor ! Message("random")
-    stashMeasurement(1)
-    monitor.stashSizeProbe.expectMessage(MetricRecorded(1))
-    stashActor ! Message("42")
-    stashMeasurement(2)
-    monitor.stashSizeProbe.expectMessage(MetricRecorded(2))
-    stashActor ! Open
-    stashMeasurement(0)
-    monitor.stashSizeProbe.expectMessage(MetricRecorded(0))
-    stashActor ! Close
-    stashActor ! Message("emanuel")
-    stashMeasurement(1)
-    monitor.stashSizeProbe.expectMessage(MetricRecorded(1))
-    stashActor.unsafeUpcast[Any] ! PoisonPill
-    monitor.stashSizeProbe.expectTerminated(stashActor)
-
+    shouldObserveWithChange(monitor.stashSizeProbe, CommonLabels, c.fakeStashedMessages, c.fakeStashedMessages += 10)
   }
 
   it should "record avg mailbox time" in testCase { implicit c =>
@@ -256,6 +236,7 @@ object ActorEventsMonitorActorTest {
     @volatile var fakeProcessedMessages = 10
     @volatile var fakeFailedMessages    = 2
     @volatile var fakeSentMessages      = 10
+    @volatile var fakeStashedMessages   = 19
 
     @volatile var fakeMailboxTime: LongValueAggMetric = LongValueAggMetric(1, 2, 1, 4, 3)
 
@@ -272,7 +253,8 @@ object ActorEventsMonitorActorTest {
           unhandledMessages = Some(fakeUnhandledMessages),
           failedMessages = Some(fakeFailedMessages),
           processingTime = Some(fakeProcessingTimes),
-          sentMessages = Some(fakeSentMessages)
+          sentMessages = Some(fakeSentMessages),
+          stashSize = Some(fakeStashedMessages)
         )
       )
     }

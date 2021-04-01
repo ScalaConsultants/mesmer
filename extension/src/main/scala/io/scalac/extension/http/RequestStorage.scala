@@ -1,6 +1,6 @@
 package io.scalac.extension.http
 
-import io.scalac.extension.event.HttpEvent.{ RequestCompleted, RequestEvent, RequestFailed, RequestStarted }
+import io.scalac.core.event.HttpEvent.{ RequestCompleted, RequestEvent, RequestFailed, RequestStarted }
 
 trait RequestStorage {
   def requestStarted(event: RequestStarted): RequestStorage

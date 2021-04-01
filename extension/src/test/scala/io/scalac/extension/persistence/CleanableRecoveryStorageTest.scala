@@ -3,8 +3,8 @@ package io.scalac.extension.persistence
 import io.scalac.core.model._
 import io.scalac.core.util.Timestamp
 import io.scalac.extension.config.CleaningSettings
-import io.scalac.extension.event.PersistenceEvent.RecoveryStarted
-import io.scalac.extension.util.TestOps
+import io.scalac.core.event.PersistenceEvent.RecoveryStarted
+import io.scalac.core.util.TestOps
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 

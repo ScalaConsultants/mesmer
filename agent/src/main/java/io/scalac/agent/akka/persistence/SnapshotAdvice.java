@@ -9,7 +9,6 @@ import scala.runtime.BoxedUnit;
 public class SnapshotAdvice {
     @Advice.OnMethodEnter
     public static void onConstructorEnter(@Advice.Argument(value = 14, readOnly = false) PartialFunction<Tuple2<Object, Signal>, BoxedUnit> singnalHandler) {
-        System.out.println("Constructing EventSourcedBehaviorImpl");
         singnalHandler = SnapshotSignalInterceptor.constructorAdvice(singnalHandler);
     }
 }

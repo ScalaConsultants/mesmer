@@ -1,6 +1,6 @@
 package io.scalac.extension.persistence
 
-import io.scalac.extension.event.PersistenceEvent.{ PersistingEventFinished, PersistingEventStarted }
+import io.scalac.core.event.PersistenceEvent.{ PersistingEventFinished, PersistingEventStarted }
 import io.scalac.extension.persistence.PersistStorage.PersistEventKey
 import io.scalac.extension.resource.MutableStorage
 
