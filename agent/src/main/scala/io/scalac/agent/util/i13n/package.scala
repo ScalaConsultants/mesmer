@@ -22,21 +22,21 @@ package object i13n {
 
   // DSL
 
-  final def method(name: String): MethodDesc = EM.named[MethodDescription](name)
+  def method(name: String): MethodDesc = EM.named[MethodDescription](name)
 
-  final def methods(first: MethodDesc, rest: MethodDesc*): MethodDesc = rest.fold(first)(_.or(_))
+  def methods(first: MethodDesc, rest: MethodDesc*): MethodDesc = rest.fold(first)(_.or(_))
 
-  final def constructor: MethodDesc = EM.isConstructor
+  def constructor: MethodDesc = EM.isConstructor
 
-  final def `type`(name: String): Type =
+  def `type`(name: String): Type =
     new Type(name, EM.named[TypeDescription](name))
 
-  final def hierarchy(name: String): Type =
+  def hierarchy(name: String): Type =
     new Type(name, EM.hasSuperType[TypeDescription](EM.named[TypeDescription](name)))
 
   // wrappers
 
-  final private[i13n] type Builder = DynamicType.Builder[_]
+  private[i13n] type Builder = DynamicType.Builder[_]
 
   final class TypeInstrumentation private (
     private[i13n] val target: TypeTarget,
@@ -60,7 +60,7 @@ package object i13n {
 
   }
 
-  private[i13n] final object TypeInstrumentation {
+  private[i13n] object TypeInstrumentation {
     private[i13n] def apply(target: TypeTarget): TypeInstrumentation = new TypeInstrumentation(target, identity)
   }
 
@@ -72,6 +72,7 @@ package object i13n {
     // This trait intents to reuse all the transformations available both TypeDesc and Type
     def overrides(methodDesc: MethodDesc): T = declares(methodDesc.isOverriddenFrom(typeDesc))
     def declares(methodDesc: MethodDesc): T  = and(EM.declaresMethod(methodDesc))
+    def concreteOnly: T                      = and(EM.not[TypeDescription](EM.isAbstract[TypeDescription]))
     protected def typeDesc: TypeDesc
     protected def and(that: TypeDesc): T
   }
@@ -101,8 +102,8 @@ package object i13n {
   }
 
   // implicit conversion
-  final implicit def methodNameToMethodDesc(methodName: String): MethodDesc = method(methodName)
-  final implicit def typeNameToType(typeName: String): Type                 = `type`(typeName)
-  final implicit def typeToAgentInstrumentation(typeInstrumentation: TypeInstrumentation): AgentInstrumentation =
+  implicit def methodNameToMethodDesc(methodName: String): MethodDesc = method(methodName)
+  implicit def typeNameToType(typeName: String): Type                 = `type`(typeName)
+  implicit def typeToAgentInstrumentation(typeInstrumentation: TypeInstrumentation): AgentInstrumentation =
     AgentInstrumentationFactory(typeInstrumentation)
 }
