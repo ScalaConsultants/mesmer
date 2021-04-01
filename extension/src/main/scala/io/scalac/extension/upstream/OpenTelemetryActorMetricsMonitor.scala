@@ -1,7 +1,8 @@
 package io.scalac.extension.upstream
 
 import com.typesafe.config.Config
-import io.opentelemetry.api.OpenTelemetry
+import io.opentelemetry.api.metrics.Meter
+
 import io.scalac.extension.metric.{ ActorMetricMonitor, MetricObserver, RegisterRoot }
 import io.scalac.extension.upstream.OpenTelemetryActorMetricsMonitor.MetricNames
 import io.scalac.extension.upstream.opentelemetry._
@@ -131,15 +132,12 @@ object OpenTelemetryActorMetricsMonitor {
 
   }
 
-  def apply(instrumentationName: String, config: Config): OpenTelemetryActorMetricsMonitor =
-    new OpenTelemetryActorMetricsMonitor(instrumentationName, MetricNames.fromConfig(config))
+  def apply(meter: Meter, config: Config): OpenTelemetryActorMetricsMonitor =
+    new OpenTelemetryActorMetricsMonitor(meter, MetricNames.fromConfig(config))
 
 }
 
-class OpenTelemetryActorMetricsMonitor(instrumentationName: String, metricNames: MetricNames)
-    extends ActorMetricMonitor {
-
-  private val meter = OpenTelemetry.getGlobalMeter(instrumentationName)
+class OpenTelemetryActorMetricsMonitor(meter: Meter, metricNames: MetricNames) extends ActorMetricMonitor {
 
   private val mailboxSizeObserver = new LongMetricObserverBuilderAdapter[ActorMetricMonitor.Labels](
     meter
