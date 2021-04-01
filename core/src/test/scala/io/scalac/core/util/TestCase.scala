@@ -8,14 +8,11 @@ import akka.actor.typed.receptionist.ServiceKey
 import akka.actor.typed.scaladsl.Behaviors
 import akka.testkit.TestKit
 import akka.util.Timeout
-
+import io.scalac.core.util.probe.{ Collected, ObserverCollector }
 import io.scalac.core.tagging._
 import io.scalac.core.util.TestCase.MonitorWithServiceTestCaseFactory.SetupTag
-import io.scalac.extension.util.ReceptionistOps
-import io.scalac.extension.util.TestConfig
-import io.scalac.extension.util.TestOps
-import io.scalac.extension.util.probe.Collected
-import io.scalac.extension.util.probe.ObserverCollector
+import io.scalac.core.util.probe.{ Collected, ObserverCollector }
+import io.scalac.core.util.{ ReceptionistOps, TestConfig, TestOps }
 
 object TestCase {
 
@@ -117,26 +114,39 @@ object TestCase {
     def collector(implicit context: Context, ev: Monitor <:< Collected): ObserverCollector = ev(monitor).collector
   }
 
-  trait MonitorWithServiceTestCaseFactory extends AbstractMonitorTestCaseFactory with ReceptionistOps {
-
-    // setup can be used in dsl functions - without tag it would conflict with ActorSytem
+  trait MonitorWithActorRefSetupTestCaseFactory extends AbstractMonitorTestCaseFactory with TestOps {
     type Setup = ActorRef[_] @@ SetupTag
 
     // add-on api
     protected def createMonitorBehavior(implicit context: Context): Behavior[_]
-    protected val serviceKey: ServiceKey[_]
-    implicit def timeout: Timeout
 
     // overrides
-    override final protected def setUp(context: Context): Setup = {
+    override protected def setUp(context: Context): Setup = {
       val monitorBehavior = createMonitorBehavior(context)
       val monitorActor    = context.system.systemActorOf(monitorBehavior, createUniqueId)
-      onlyRef(monitorActor, serviceKey)(context.system, timeout)
       monitorActor.taggedWith[SetupTag]
     }
 
     override final protected def tearDown(setup: Setup): Unit =
       setup.unsafeUpcast[Any] ! PoisonPill
+  }
+
+  object MonitorWithActorRefSetupTestCaseFactory {
+    sealed trait SetupTag
+  }
+
+  trait MonitorWithServiceTestCaseFactory extends MonitorWithActorRefSetupTestCaseFactory with ReceptionistOps {
+
+    protected val serviceKey: ServiceKey[_]
+    implicit def timeout: Timeout
+
+    // overrides
+    override final protected def setUp(context: Context): Setup = {
+      val monitorActor = super[MonitorWithActorRefSetupTestCaseFactory].setUp(context)
+      onlyRef(monitorActor, serviceKey)(context.system, timeout)
+      monitorActor.taggedWith[SetupTag]
+    }
+
   }
 
   object MonitorWithServiceTestCaseFactory {

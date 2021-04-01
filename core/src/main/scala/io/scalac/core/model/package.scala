@@ -1,5 +1,7 @@
 package io.scalac.core
 
+import scala.language.implicitConversions
+
 import _root_.akka.actor.{ ActorPath => AkkaActorPath }
 import _root_.akka.cluster.UniqueAddress
 import _root_.akka.http.scaladsl.model.HttpMethod

@@ -1,11 +1,9 @@
 package io.scalac.extension.upstream
 
 import com.typesafe.config.Config
-import io.opentelemetry.api.OpenTelemetry
+import io.opentelemetry.api.metrics.Meter
 
-import io.scalac.extension.metric.ActorMetricMonitor
-import io.scalac.extension.metric.MetricObserver
-import io.scalac.extension.metric.RegisterRoot
+import io.scalac.extension.metric.{ ActorMetricMonitor, MetricObserver, RegisterRoot }
 import io.scalac.extension.upstream.OpenTelemetryActorMetricsMonitor.MetricNames
 import io.scalac.extension.upstream.opentelemetry._
 
@@ -134,15 +132,12 @@ object OpenTelemetryActorMetricsMonitor {
 
   }
 
-  def apply(instrumentationName: String, config: Config): OpenTelemetryActorMetricsMonitor =
-    new OpenTelemetryActorMetricsMonitor(instrumentationName, MetricNames.fromConfig(config))
+  def apply(meter: Meter, config: Config): OpenTelemetryActorMetricsMonitor =
+    new OpenTelemetryActorMetricsMonitor(meter, MetricNames.fromConfig(config))
 
 }
 
-class OpenTelemetryActorMetricsMonitor(instrumentationName: String, metricNames: MetricNames)
-    extends ActorMetricMonitor {
-
-  private val meter = OpenTelemetry.getGlobalMeter(instrumentationName)
+class OpenTelemetryActorMetricsMonitor(meter: Meter, metricNames: MetricNames) extends ActorMetricMonitor {
 
   private val mailboxSizeObserver = new LongMetricObserverBuilderAdapter[ActorMetricMonitor.Labels](
     meter
@@ -174,10 +169,11 @@ class OpenTelemetryActorMetricsMonitor(instrumentationName: String, metricNames:
       .setDescription("Tracks the sum time of the messages in an Actor's mailbox")
   )
 
-  private val stashSizeCounter = meter
-    .longValueRecorderBuilder(metricNames.stashSize)
-    .setDescription("Tracks the size of an Actor's stash")
-    .build()
+  private val stashSizeCounter = new LongSumObserverBuilderAdapter[ActorMetricMonitor.Labels](
+    meter
+      .longSumObserverBuilder(metricNames.stashSize)
+      .setDescription("Tracks stash operations on actors")
+  )
 
   private val receivedMessagesSumObserver = new LongSumObserverBuilderAdapter[ActorMetricMonitor.Labels](
     meter
@@ -249,8 +245,8 @@ class OpenTelemetryActorMetricsMonitor(instrumentationName: String, metricNames:
     val mailboxTimeSum: MetricObserver[Long, ActorMetricMonitor.Labels] =
       mailboxTimeSumObserver.createObserver(this)
 
-    def stashSize(labels: ActorMetricMonitor.Labels): WrappedLongValueRecorder =
-      metricRecorder(stashSizeCounter, LabelsFactory.of(labels.serialize)).register(this)
+    val stashSize: MetricObserver[Long, ActorMetricMonitor.Labels] =
+      stashSizeCounter.createObserver(this)
 
     val receivedMessages: MetricObserver[Long, ActorMetricMonitor.Labels] =
       receivedMessagesSumObserver.createObserver(this)

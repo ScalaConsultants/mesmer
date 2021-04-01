@@ -1,11 +1,12 @@
 package io.scalac.extension.upstream
 
 import com.typesafe.config.Config
-import io.opentelemetry.api.OpenTelemetry
+import io.opentelemetry.api.metrics.Meter
 
-import io.scalac.extension.metric.HttpMetricMonitor
-import io.scalac.extension.metric.RegisterRoot
+import io.scalac.extension.metric.{ HttpMetricMonitor, RegisterRoot }
 import io.scalac.extension.upstream.opentelemetry._
+
+import OpenTelemetryHttpMetricsMonitor.MetricNames
 
 object OpenTelemetryHttpMetricsMonitor {
   case class MetricNames(
@@ -42,19 +43,13 @@ object OpenTelemetryHttpMetricsMonitor {
         .getOrElse(defaultCached)
     }
   }
-  def apply(instrumentationName: String, config: Config): OpenTelemetryHttpMetricsMonitor =
-    new OpenTelemetryHttpMetricsMonitor(instrumentationName, MetricNames.fromConfig(config))
+  def apply(meter: Meter, config: Config): OpenTelemetryHttpMetricsMonitor =
+    new OpenTelemetryHttpMetricsMonitor(meter, MetricNames.fromConfig(config))
 }
 
-class OpenTelemetryHttpMetricsMonitor(
-  instrumentationName: String,
-  metricNames: OpenTelemetryHttpMetricsMonitor.MetricNames
-) extends HttpMetricMonitor {
+class OpenTelemetryHttpMetricsMonitor(meter: Meter, metricNames: MetricNames) extends HttpMetricMonitor {
 
   import HttpMetricMonitor._
-
-  private val meter = OpenTelemetry
-    .getGlobalMeter(instrumentationName)
 
   private val requestTimeRequest = meter
     .longValueRecorderBuilder(metricNames.requestDuration)

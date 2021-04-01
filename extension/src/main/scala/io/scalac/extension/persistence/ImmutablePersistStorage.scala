@@ -1,7 +1,6 @@
 package io.scalac.extension.persistence
 
-import io.scalac.extension.event.PersistenceEvent.PersistingEventFinished
-import io.scalac.extension.event.PersistenceEvent.PersistingEventStarted
+import io.scalac.core.event.PersistenceEvent.{ PersistingEventFinished, PersistingEventStarted }
 import io.scalac.extension.persistence.PersistStorage.PersistEventKey
 
 class ImmutablePersistStorage private (private val persist: Map[PersistEventKey, PersistingEventStarted])

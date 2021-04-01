@@ -8,32 +8,32 @@ import akka.actor.typed._
 import akka.actor.typed.scaladsl.Behaviors
 import akka.cluster.Cluster
 import akka.util.Timeout
+
 import com.newrelic.telemetry.Attributes
 import com.newrelic.telemetry.opentelemetry.`export`.NewRelicMetricExporter
-import io.opentelemetry.sdk.OpenTelemetrySdk
 import io.opentelemetry.sdk.metrics.`export`.IntervalMetricReader
 
-import scala.concurrent.duration._
-import scala.language.postfixOps
-import scala.reflect.ClassTag
-import scala.util.Try
-
-import io.scalac.core.model.Module
-import io.scalac.core.model.SupportedVersion
-import io.scalac.core.model.Version
-import io.scalac.core.model._
+import io.scalac.core.model.{ Module, SupportedVersion, _ }
 import io.scalac.core.support.ModulesSupport
 import io.scalac.core.util.ModuleInfo
 import io.scalac.core.util.ModuleInfo.Modules
-import io.scalac.extension.actor.CleanableActorMetricsStorage
-import io.scalac.extension.config.AkkaMonitoringConfig
-import io.scalac.extension.config.CachingConfig
+import io.scalac.core.actor.CleanableActorMetricsStorage
+import io.scalac.extension.config.{ AkkaMonitoringConfig, CachingConfig, InstrumentationLibrary }
 import io.scalac.extension.http.CleanableRequestStorage
 import io.scalac.extension.metric.CachingMonitor
 import io.scalac.extension.persistence.CleanablePersistingStorage
 import io.scalac.extension.persistence.CleanableRecoveryStorage
 import io.scalac.extension.service.CommonRegexPathService
 import io.scalac.extension.upstream._
+import java.net.URI
+import java.util.Collections
+
+import scala.concurrent.duration._
+import scala.language.postfixOps
+import scala.reflect.ClassTag
+import scala.util.Try
+
+import io.opentelemetry.sdk.metrics.SdkMeterProvider
 
 object AkkaMonitoring extends ExtensionId[AkkaMonitoring] {
 
@@ -47,9 +47,7 @@ object AkkaMonitoring extends ExtensionId[AkkaMonitoring] {
 
     modules
       .get(ModulesSupport.akkaActorModule)
-      .fold {
-        system.log.error("No akka version detected")
-      }(akkaVersion => startMonitors(monitor, config, akkaVersion, modules, ModulesSupport))
+      .fold(system.log.error("No akka version detected"))(_ => startMonitors(monitor, config, modules, ModulesSupport))
 
     monitor
   }
@@ -57,7 +55,6 @@ object AkkaMonitoring extends ExtensionId[AkkaMonitoring] {
   private def startMonitors(
     monitoring: AkkaMonitoring,
     config: AkkaMonitoringConfig,
-    akkaVersion: Version,
     modules: Modules,
     modulesSupport: ModulesSupport
   ): Unit = {
@@ -131,10 +128,11 @@ object AkkaMonitoring extends ExtensionId[AkkaMonitoring] {
         newRelicExporterBuilder.build()
       }
 
+    // TODO OpenTelemetrySDK could not be available. All references the references to `io.opentelemetry.sdk` are here.
     IntervalMetricReader
       .builder()
       .setMetricProducers(
-        Collections.singleton(OpenTelemetrySdk.getGlobalMeterProvider.getMetricProducer)
+        Collections.singleton(InstrumentationLibrary.meterProvider.asInstanceOf[SdkMeterProvider].getMetricProducer)
       )
       .setExportIntervalMillis(ExportInterval.toMillis)
       .setMetricExporter(newRelicExporter)
@@ -142,24 +140,21 @@ object AkkaMonitoring extends ExtensionId[AkkaMonitoring] {
   }
 }
 
-class AkkaMonitoring(private val system: ActorSystem[_], val config: AkkaMonitoringConfig) extends Extension {
+final class AkkaMonitoring(private val system: ActorSystem[_], val config: AkkaMonitoringConfig) extends Extension {
   import AkkaMonitoring.ExportInterval
   import system.log
 
-  private val instrumentationName = "scalac_akka_metrics"
-  private val actorSystemConfig   = system.settings.config
-  private lazy val openTelemetryClusterMetricsMonitor = OpenTelemetryClusterMetricsMonitor(
-    instrumentationName,
-    actorSystemConfig
-  )
+  private val meter                              = InstrumentationLibrary.meter
+  private val actorSystemConfig                  = system.settings.config
+  private val openTelemetryClusterMetricsMonitor = OpenTelemetryClusterMetricsMonitor(meter, actorSystemConfig)
 
   implicit private val timeout: Timeout = 5 seconds
 
   private def reflectiveIsInstanceOf(fqcn: String, ref: Any): Either[String, Unit] =
     Try(Class.forName(fqcn)).toEither.left.map {
-      case _: ClassNotFoundException => s"Class ${fqcn} not found"
+      case _: ClassNotFoundException => s"Class $fqcn not found"
       case e                         => e.getMessage
-    }.filterOrElse(_.isInstance(ref), s"Ref ${ref} is not instance of ${fqcn}").map(_ => ())
+    }.filterOrElse(_.isInstance(ref), s"Ref $ref is not instance of $fqcn").map(_ => ())
 
   private lazy val clusterNodeName: Option[Node] =
     (for {
@@ -177,13 +172,12 @@ class AkkaMonitoring(private val system: ActorSystem[_], val config: AkkaMonitor
   def startActorMonitor(): Unit = {
     log.debug("Starting actor monitor")
 
-    val streamOperatorMonitor =
-      OpenTelemetryStreamOperatorMetricsMonitor(instrumentationName, actorSystemConfig)
+    val streamOperatorMonitor = OpenTelemetryStreamOperatorMetricsMonitor(meter, actorSystemConfig)
 
-    val actorMonitor = OpenTelemetryActorMetricsMonitor(instrumentationName, actorSystemConfig)
+    val actorMonitor = OpenTelemetryActorMetricsMonitor(meter, actorSystemConfig)
 
     val streamMonitor = CachingMonitor(
-      OpenTelemetryStreamMetricMonitor(instrumentationName, actorSystemConfig),
+      OpenTelemetryStreamMetricsMonitor(meter, actorSystemConfig),
       CachingConfig.fromConfig(actorSystemConfig, ModulesSupport.akkaStreamModule)
     )
 
@@ -237,7 +231,7 @@ class AkkaMonitoring(private val system: ActorSystem[_], val config: AkkaMonitor
     log.debug("Starting PersistenceEventsListener")
 
     val openTelemetryPersistenceMonitor = CachingMonitor(
-      OpenTelemetryPersistenceMetricMonitor(instrumentationName, actorSystemConfig),
+      OpenTelemetryPersistenceMetricMonitor(meter, actorSystemConfig),
       CachingConfig.fromConfig(actorSystemConfig, ModulesSupport.akkaPersistenceTypedModule)
     )
 
@@ -269,12 +263,12 @@ class AkkaMonitoring(private val system: ActorSystem[_], val config: AkkaMonitor
     log.info("Starting local http event listener")
 
     val openTelemetryHttpMonitor = CachingMonitor(
-      OpenTelemetryHttpMetricsMonitor(instrumentationName, actorSystemConfig),
+      OpenTelemetryHttpMetricsMonitor(meter, actorSystemConfig),
       CachingConfig.fromConfig(actorSystemConfig, ModulesSupport.akkaHttpModule)
     )
 
     val openTelemetryHttpConnectionMonitor = CachingMonitor(
-      OpenTelemetryHttpConnectionMetricMonitor(instrumentationName, actorSystemConfig),
+      OpenTelemetryHttpConnectionMetricMonitor(meter, actorSystemConfig),
       CachingConfig.fromConfig(actorSystemConfig, ModulesSupport.akkaHttpModule)
     )
 

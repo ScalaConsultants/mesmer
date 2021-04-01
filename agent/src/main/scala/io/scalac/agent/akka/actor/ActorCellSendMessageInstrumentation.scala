@@ -4,7 +4,7 @@ import akka.actor.Actor
 import net.bytebuddy.asm.Advice._
 
 import io.scalac.core.util.ActorRefOps
-import io.scalac.extension.actor.ActorCellDecorator
+import io.scalac.core.actor.ActorCellDecorator
 
 class ActorCellSendMessageInstrumentation
 object ActorCellSendMessageInstrumentation {

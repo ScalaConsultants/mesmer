@@ -5,8 +5,9 @@ import net.bytebuddy.asm.Advice._
 
 import io.scalac.core.model._
 import io.scalac.core.util.Timestamp
-import io.scalac.extension.event.EventBus
-import io.scalac.extension.event.PersistenceEvent.PersistingEventStarted
+import io.scalac.core.event.EventBus
+import io.scalac.core.event.PersistenceEvent.PersistingEventStarted
+import net.bytebuddy.asm.Advice._
 
 class JournalInteractionsInterceptor
 object JournalInteractionsInterceptor {

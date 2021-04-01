@@ -21,18 +21,17 @@ import scala.jdk.CollectionConverters._
 import scala.jdk.DurationConverters._
 
 import io.scalac.core.akka.model.PushMetrics
-import io.scalac.core.model.Tag.StageName
-import io.scalac.core.model.Tag.StreamName
+import io.scalac.core.event.Service.streamService
+import io.scalac.core.event.StreamEvent
+import io.scalac.core.event.StreamEvent.{ LastStreamStats, StreamInterpreterStats }
+import io.scalac.core.model.Tag.{ StageName, StreamName }
 import io.scalac.core.model._
 import io.scalac.core.support.ModulesSupport
 import io.scalac.extension.AkkaStreamMonitoring._
 import io.scalac.extension.config.BufferConfig
 import io.scalac.extension.config.CachingConfig
 import io.scalac.extension.config.ConfigurationUtils._
-import io.scalac.extension.event.Service.streamService
-import io.scalac.extension.event.StreamEvent
-import io.scalac.extension.event.StreamEvent.LastStreamStats
-import io.scalac.extension.event.StreamEvent.StreamInterpreterStats
+import io.scalac.extension.config.{ BufferConfig, CachingConfig }
 import io.scalac.extension.metric.MetricObserver.Result
 import io.scalac.extension.metric.StreamMetricMonitor
 import io.scalac.extension.metric.StreamMetricMonitor.EagerLabels

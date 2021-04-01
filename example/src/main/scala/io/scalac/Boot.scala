@@ -1,6 +1,6 @@
 package io.scalac
 
-import java.{ util => ju }
+import java.lang.instrument.Instrumentation
 
 import akka.actor.typed.ActorSystem
 import akka.actor.typed.scaladsl.Behaviors
@@ -40,6 +40,11 @@ import io.scalac.api.AccountRoutes
 import io.scalac.domain.AccountStateActor
 import io.scalac.domain.JsonCodecs
 
+import io.opentelemetry.api.metrics.GlobalMetricsProvider
+import io.opentelemetry.sdk.metrics.SdkMeterProvider
+
+import io.scalac.extension.config.InstrumentationLibrary
+
 object Boot extends App with FailFastCirceSupport with JsonCodecs {
   val logger: Logger = LoggerFactory.getLogger(Boot.getClass)
 
@@ -64,7 +69,7 @@ object Boot extends App with FailFastCirceSupport with JsonCodecs {
 
     val collector: Collector = PrometheusCollector
       .builder()
-      .setMetricProducer(OpenTelemetrySdk.getGlobalMeterProvider.getMetricProducer)
+      .setMetricProducer(InstrumentationLibrary.meterProvider.asInstanceOf[SdkMeterProvider].getMetricProducer)
       .build()
 
     val collectorRegistry: CollectorRegistry = CollectorRegistry.defaultRegistry

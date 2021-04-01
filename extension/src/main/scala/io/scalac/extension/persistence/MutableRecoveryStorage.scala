@@ -1,5 +1,8 @@
 package io.scalac.extension.persistence
 
+import io.scalac.core.event.PersistenceEvent.{ RecoveryFinished, RecoveryStarted }
+import io.scalac.extension.resource.MutableStorage
+
 import scala.collection.mutable
 
 import io.scalac.extension.event.PersistenceEvent.RecoveryFinished

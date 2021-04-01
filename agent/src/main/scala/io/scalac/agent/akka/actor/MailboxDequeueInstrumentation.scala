@@ -2,9 +2,9 @@ package io.scalac.agent.akka.actor
 
 import net.bytebuddy.asm.Advice._
 
-import scala.concurrent.duration._
+import scala.concurrent.duration.FiniteDuration
 
-import io.scalac.extension.actor.ActorCellDecorator
+import io.scalac.core.actor.ActorCellDecorator
 
 class MailboxDequeueInstrumentation
 object MailboxDequeueInstrumentation {

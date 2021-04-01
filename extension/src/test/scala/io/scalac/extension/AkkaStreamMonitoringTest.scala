@@ -8,9 +8,31 @@ import akka.actor.typed.Behavior
 import akka.actor.typed.receptionist.ServiceKey
 import akka.actor.typed.scaladsl.Behaviors
 import akka.actor.typed.scaladsl.adapter._
+import akka.actor.typed.{ ActorRef, ActorSystem, Behavior }
+import io.scalac.core.akka.model.PushMetrics
+import io.scalac.core.event.EventBus
+import io.scalac.core.event.Service.streamService
+import io.scalac.core.event.StreamEvent.StreamInterpreterStats
+import io.scalac.core.model.Tag.{ StageName, SubStreamName }
+import io.scalac.core.model._
+import io.scalac.core.util.TestCase.{
+  MonitorTestCaseContext,
+  MonitorWithServiceTestCaseFactory,
+  ProvidedActorSystemTestCaseFactory
+}
+import io.scalac.core.util.probe.BoundTestProbe.{ MetricObserved, MetricRecorded }
+import io.scalac.core.util.probe.ObserverCollector.ScheduledCollectorImpl
+import io.scalac.core.util.probe.{
+  ObserverCollector,
+  StreamMonitorTestProbe,
+  StreamOperatorMonitorTestProbe,
+  Collected => CollectedObserver
+}
+import io.scalac.core.util.{ TestConfig, TestOps }
+import io.scalac.extension.AkkaStreamMonitoring.StartStreamCollection
+import io.scalac.core.util.probe.ObserverCollector.ScheduledCollectorImpl
 import org.scalatest._
 import org.scalatest.concurrent.Eventually
-import org.scalatest.enablers.Emptiness.emptinessOfOption
 import org.scalatest.flatspec.AnyFlatSpecLike
 import org.scalatest.matchers.should.Matchers
 

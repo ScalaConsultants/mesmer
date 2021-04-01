@@ -4,7 +4,7 @@ import scala.collection.mutable.{ Map => MMap }
 
 import io.scalac.core.util.Timestamp
 import io.scalac.extension.config.CleaningSettings
-import io.scalac.extension.event.PersistenceEvent.PersistingEventStarted
+import io.scalac.core.event.PersistenceEvent.PersistingEventStarted
 import io.scalac.extension.persistence.PersistStorage.PersistEventKey
 import io.scalac.extension.resource.MutableCleanableStorage
 

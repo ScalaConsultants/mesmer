@@ -6,10 +6,13 @@ ThisBuild / version := "0.1.0-SNAPSHOT"
 ThisBuild / organization := "io.scalac"
 ThisBuild / organizationName := "scalac"
 
-ThisBuild / dependencyOverrides ++= openTelemetryDependenciesOverrides
-
 inThisBuild(
   List(
+    
+    dependencyOverrides ++= openTelemetryDependenciesOverrides,
+
+    scalacOptions ++= Seq("-deprecation", "-feature"),
+    
     semanticdbEnabled := true,
     semanticdbVersion := scalafixSemanticdb.revision,
     scalacOptions += "-Wunused:imports",

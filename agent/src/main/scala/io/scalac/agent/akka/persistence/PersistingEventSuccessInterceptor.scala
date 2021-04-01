@@ -5,8 +5,9 @@ import net.bytebuddy.asm.Advice._
 
 import io.scalac.core.model._
 import io.scalac.core.util.Timestamp
-import io.scalac.extension.event.EventBus
-import io.scalac.extension.event.PersistenceEvent.PersistingEventFinished
+import io.scalac.core.event.EventBus
+import io.scalac.core.event.PersistenceEvent.PersistingEventFinished
+import net.bytebuddy.asm.Advice._
 class PersistingEventSuccessInterceptor
 object PersistingEventSuccessInterceptor {
 
