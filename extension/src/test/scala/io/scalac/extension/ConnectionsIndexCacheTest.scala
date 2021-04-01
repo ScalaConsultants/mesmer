@@ -4,7 +4,7 @@ import io.scalac.core.model.Tag.StageName.StreamUniqueStageName
 import io.scalac.core.model.Tag.SubStreamName
 import io.scalac.core.model._
 import io.scalac.extension.AkkaStreamMonitoring.ConnectionsIndexCache
-import io.scalac.extension.util.TestOps
+import io.scalac.core.util.TestOps
 import org.scalatest.Inspectors
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers

@@ -4,13 +4,13 @@ import akka.actor.PoisonPill
 import akka.actor.testkit.typed.scaladsl.ScalaTestWithActorTestKit
 import akka.actor.typed.scaladsl.Behaviors
 import akka.actor.typed.{ ActorRef, ActorSystem, SupervisorStrategy }
+import io.scalac.core.actor.MutableActorMetricsStorage
 import io.scalac.core.util.TestCase.MonitorTestCaseContext.BasicContext
 import io.scalac.core.util.TestCase.{ MonitorWithBasicContextTestCaseFactory, ProvidedActorSystemTestCaseFactory }
+import io.scalac.core.util.probe.ActorMonitorTestProbe
+import io.scalac.core.util.probe.ObserverCollector.ManualCollectorImpl
+import io.scalac.core.util.{ TestConfig, TestOps }
 import io.scalac.extension.ActorEventsMonitorActor.{ ActorMetricsReader, ReflectiveActorTreeTraverser }
-import io.scalac.extension.actor.MutableActorMetricsStorage
-import io.scalac.extension.util.probe.ActorMonitorTestProbe
-import io.scalac.extension.util.probe.ObserverCollector.ManualCollectorImpl
-import io.scalac.extension.util.{ TestConfig, TestOps }
 import org.scalatest.concurrent.Eventually
 import org.scalatest.flatspec.AnyFlatSpecLike
 
@@ -43,7 +43,7 @@ class ActorEventMonitorActorRestartTest
   "ActorTest" should "unbind monitors on restart" in testCase { implicit context =>
     eventually {
       monitor.unbinds should be(1)
-      monitor.binds should be(3) // Sync x1 + Async x2
+      monitor.binds should be(2)
     }
   }
 

@@ -3,8 +3,8 @@ package io.scalac.extension.http
 import io.scalac.core.model._
 import io.scalac.core.util.Timestamp
 import io.scalac.extension.config.CleaningSettings
-import io.scalac.extension.event.HttpEvent._
-import io.scalac.extension.util.TestOps
+import io.scalac.core.event.HttpEvent._
+import io.scalac.core.util.TestOps
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 

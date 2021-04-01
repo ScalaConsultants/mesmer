@@ -9,14 +9,14 @@ import akka.remote.testkit.MultiNodeSpec
 import akka.remote.transport.ThrottlerTransportAdapter.Direction
 
 import io.scalac.extension.ThreeNodesConfig._
-import io.scalac.extension.util.probe.BoundTestProbe.{ Dec, Inc }
-import io.scalac.extension.util.ScalaTestMultiNodeSpec
-import io.scalac.extension.util.probe.ClusterMetricsTestProbe
+import io.scalac.core.util.probe.BoundTestProbe.{ Dec, Inc }
+import io.scalac.core.util.ScalaTestMultiNodeSpec
+import io.scalac.core.util.probe.ClusterMetricsTestProbe
 import org.scalatest.{ BeforeAndAfterAll, Inspectors }
 import scala.concurrent.duration._
 import scala.language.postfixOps
 
-import io.scalac.extension.util.probe.ObserverCollector.ScheduledCollectorImpl
+import io.scalac.core.util.probe.ObserverCollector.ScheduledCollectorImpl
 
 class DownTestMultiJvmNode1 extends DownTest
 class DownTestMultiJvmNode2 extends DownTest

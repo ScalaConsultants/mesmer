@@ -1,6 +1,6 @@
 package io.scalac.extension.http
 
-import io.scalac.extension.event.HttpEvent.{ RequestCompleted, RequestFailed, RequestStarted }
+import io.scalac.core.event.HttpEvent.{ RequestCompleted, RequestFailed, RequestStarted }
 import io.scalac.extension.resource.MutableStorage
 
 import scala.collection.mutable

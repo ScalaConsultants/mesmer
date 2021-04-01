@@ -11,9 +11,9 @@ import akka.stream.scaladsl._
 import akka.stream.{ Attributes, BufferOverflowException, OverflowStrategy, QueueOfferResult }
 import io.scalac.agent.utils.{ InstallAgent, SafeLoadSystem }
 import io.scalac.core.akka.model.PushMetrics
+import io.scalac.core.event.StreamEvent.{ LastStreamStats, StreamInterpreterStats }
+import io.scalac.core.event.{ Service, StreamEvent, TagEvent }
 import io.scalac.core.util.TestCase.CommonMonitorTestFactory
-import io.scalac.extension.event.StreamEvent.{ LastStreamStats, StreamInterpreterStats }
-import io.scalac.extension.event.{ Service, StreamEvent, TagEvent }
 import org.scalatest._
 import org.scalatest.concurrent.{ Futures, ScalaFutures }
 import org.scalatest.flatspec.AnyFlatSpecLike

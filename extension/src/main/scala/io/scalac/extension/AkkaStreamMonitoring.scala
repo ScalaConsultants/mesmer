@@ -6,15 +6,15 @@ import akka.actor.typed.receptionist.Receptionist.Register
 import akka.actor.typed.scaladsl.adapter._
 import akka.actor.typed.scaladsl.{ AbstractBehavior, ActorContext, Behaviors, TimerScheduler }
 import io.scalac.core.akka.model.PushMetrics
+import io.scalac.core.event.Service.streamService
+import io.scalac.core.event.StreamEvent
+import io.scalac.core.event.StreamEvent.{ LastStreamStats, StreamInterpreterStats }
 import io.scalac.core.model.Tag.{ StageName, StreamName }
 import io.scalac.core.model._
 import io.scalac.core.support.ModulesSupport
 import io.scalac.extension.AkkaStreamMonitoring._
 import io.scalac.extension.config.ConfigurationUtils._
 import io.scalac.extension.config.{ BufferConfig, CachingConfig }
-import io.scalac.extension.event.Service.streamService
-import io.scalac.extension.event.StreamEvent
-import io.scalac.extension.event.StreamEvent.{ LastStreamStats, StreamInterpreterStats }
 import io.scalac.extension.metric.MetricObserver.Result
 import io.scalac.extension.metric.StreamMetricMonitor.{ EagerLabels, Labels => GlobalLabels }
 import io.scalac.extension.metric.StreamOperatorMetricsMonitor.Labels

@@ -1,37 +1,29 @@
 package io.scalac.agent.akka.actor
 
-import akka.actor.typed.Behavior
-
 import io.scalac.agent.Agent
 import io.scalac.agent.util.i13n._
+import io.scalac.core.actor.{ ActorCellDecorator, ActorCellMetrics }
 import io.scalac.core.model._
 import io.scalac.core.support.ModulesSupport
 import io.scalac.core.util.Timestamp
-import io.scalac.extension.actor.{ ActorCellDecorator, ActorCellMetrics }
 
 object AkkaActorAgent extends InstrumentModuleFactory {
 
   protected final val supportedModules = SupportedModules(ModulesSupport.akkaActorModule, ModulesSupport.akkaActor)
 
-  private val classicStashInstrumentation =
-    instrument("akka.actor.StashSupport")
-      .visit[ClassicStashInstrumentation](
-        methods(
-          "stash",
-          "prepend",
-          "unstash",
-          method("unstashAll").takesArguments(1)
-        )
-      )
+  private val classicStashInstrumentationAgent = {
 
-  private val typedStashInstrumentation =
-    instrument("akka.actor.typed.internal.StashBufferImpl")
-      .visit[TypedStashInstrumentation](
-        methods(
-          "stash",
-          method("unstash").takesArguments[Behavior[_], Int, (_) => _]
-        )
-      )
+    val stashLogic =
+      instrument("akka.actor.StashSupport")
+        .visit[ClassicStashInstrumentationStash]("stash")
+        .visit[ClassicStashInstrumentationPrepend]("prepend")
+
+    val stashConstructor =
+      instrument(hierarchy("akka.actor.StashSupport").concreteOnly)
+        .visit[StashConstructorAdvice](constructor)
+
+    Agent(stashLogic, stashConstructor)
+  }
 
   private val mailboxTimeTimestampInstrumentation =
     instrument("akka.dispatch.Envelope")
@@ -63,15 +55,18 @@ object AkkaActorAgent extends InstrumentModuleFactory {
         .overrides("handleReceiveException")
     ).intercept[SupervisorHandleReceiveExceptionInstrumentation]("handleReceiveException")
 
+  private val stashBufferImplementation =
+    instrument(hierarchy("akka.actor.typed.internal.StashBufferImpl"))
+      .visit[StashBufferAdvice]("stash")
+
   val agent: Agent = Agent(
-    classicStashInstrumentation,
-    typedStashInstrumentation,
     mailboxTimeTimestampInstrumentation,
     mailboxTimeSendMessageInstrumentation,
     mailboxTimeDequeueInstrumentation,
     actorCellInstrumentation,
     actorInstrumentation,
-    abstractSupervisionInstrumentation
-  )
+    abstractSupervisionInstrumentation,
+    stashBufferImplementation
+  ) ++ classicStashInstrumentationAgent
 
 }
