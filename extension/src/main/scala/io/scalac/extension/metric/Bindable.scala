@@ -4,7 +4,7 @@ import io.scalac.core.LabelSerializable
 import io.scalac.core.model.RawLabels
 
 trait Unbind {
-  private[extension] def unbind(): Unit
+  private[scalac] def unbind(): Unit
 }
 
 trait RegisterRoot extends Unbind {

@@ -1,18 +1,15 @@
 package io.scalac.agent.akka.actor
 
-import akka.actor.typed.Behavior
-
+import io.scalac.agent.Agent.LoadingResult
+import io.scalac.agent.{ Agent, AgentInstrumentation }
+import io.scalac.core.actor.{ ActorCellDecorator, ActorCellMetrics }
+import io.scalac.core.model._
+import io.scalac.core.support.ModulesSupport
+import io.scalac.core.util.Timestamp
 import net.bytebuddy.asm.Advice
 import net.bytebuddy.description.`type`.TypeDescription
 import net.bytebuddy.description.method.MethodDescription
 import net.bytebuddy.matcher.ElementMatchers._
-
-import io.scalac.agent.Agent.LoadingResult
-import io.scalac.agent.{ Agent, AgentInstrumentation }
-import io.scalac.core.model._
-import io.scalac.core.support.ModulesSupport
-import io.scalac.core.util.Timestamp
-import io.scalac.extension.actor.{ ActorCellDecorator, ActorCellMetrics }
 
 object AkkaActorAgent {
 
@@ -20,9 +17,9 @@ object AkkaActorAgent {
   val defaultVersion: Version   = Version(2, 6, 8)
   val version: SupportedVersion = ModulesSupport.akkaActor
 
-  private val classicStashInstrumentation = {
+  private val classicStashInstrumentationAgent = {
     val targetClassName = "akka.actor.StashSupport"
-    AgentInstrumentation(
+    val stashLogic = AgentInstrumentation(
       targetClassName,
       SupportedModules(moduleName, version)
     ) { (agentBuilder, instrumentation, _) =>
@@ -32,54 +29,43 @@ object AkkaActorAgent {
           builder
             .visit(
               Advice
-                .to(classOf[ClassicStashInstrumentation])
+                .to(classOf[ClassicStashInstrumentationStash])
                 .on(
                   named[MethodDescription]("stash")
-                    .or[MethodDescription](named[MethodDescription]("prepend"))
-                    .or[MethodDescription](named[MethodDescription]("unstash"))
-                    .or[MethodDescription](
-                      named[MethodDescription]("unstashAll")
-                        .and[MethodDescription](takesArguments[MethodDescription](1))
-                    )
-                    .or[MethodDescription](named[MethodDescription]("clearStash"))
                 )
+            )
+            .visit(
+              Advice
+                .to(classOf[ClassicStashInstrumentationPrepend])
+                .on(named[MethodDescription]("prepend"))
             )
         }
         .installOn(instrumentation)
       LoadingResult(targetClassName)
     }
-  }
 
-  private val typedStashInstrumentation = {
-    val targetClassName = "akka.actor.typed.internal.StashBufferImpl"
-    AgentInstrumentation(
+    val stashConstructor = AgentInstrumentation(
       targetClassName,
       SupportedModules(moduleName, version)
     ) { (agentBuilder, instrumentation, _) =>
       agentBuilder
-        .`type`(named[TypeDescription](targetClassName))
+        .`type`(
+          hasSuperType[TypeDescription](named[TypeDescription](targetClassName))
+            .and[TypeDescription](not[TypeDescription](isAbstract[TypeDescription]))
+        )
         .transform { (builder, _, _, _) =>
           builder
             .visit(
               Advice
-                .to(classOf[TypedStashInstrumentation])
-                .on(named[MethodDescription]("stash"))
+                .to(classOf[StashConstructorAdvice])
+                .on(isConstructor[MethodDescription])
             )
-            .visit(
-              Advice
-                .to(classOf[TypedUnstashInstrumentation])
-                .on(
-                  named[MethodDescription]("unstash")
-                    // since there're two `unstash` methods, we need to specify parameter types
-                    .and[MethodDescription](
-                      takesArguments[MethodDescription](classOf[Behavior[_]], classOf[Int], classOf[(_) => _])
-                    )
-                )
-            )
+
         }
         .installOn(instrumentation)
       LoadingResult(targetClassName)
     }
+    Agent(stashLogic, stashConstructor)
   }
 
   private val mailboxTimeTimestampInstrumentation = {
@@ -222,15 +208,34 @@ object AkkaActorAgent {
     }
   }
 
+  private val stashBufferImplementation = {
+    val stashBufferImpl = "akka.actor.typed.internal.StashBufferImpl"
+    AgentInstrumentation(
+      stashBufferImpl,
+      SupportedModules(moduleName, version)
+    ) { (agentBuilder, instrumentation, _) =>
+      agentBuilder
+        .`type`(
+          hasSuperType[TypeDescription](named[TypeDescription](stashBufferImpl))
+        )
+        .transform { (builder, _, _, _) =>
+          builder
+            .method(named[MethodDescription]("stash"))
+            .intercept(Advice.to(classOf[StashBufferAdvice]))
+        }
+        .installOn(instrumentation)
+      LoadingResult(stashBufferImpl)
+    }
+  }
+
   val agent: Agent = Agent(
-    classicStashInstrumentation,
-    typedStashInstrumentation,
     mailboxTimeTimestampInstrumentation,
     mailboxTimeSendMessageInstrumentation,
     mailboxTimeDequeueInstrumentation,
     actorCellInstrumentation,
     actorInstrumentation,
-    abstractSupervisionInstrumentation
-  )
+    abstractSupervisionInstrumentation,
+    stashBufferImplementation
+  ) ++ classicStashInstrumentationAgent
 
 }

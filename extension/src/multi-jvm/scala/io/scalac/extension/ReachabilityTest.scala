@@ -8,14 +8,14 @@ import akka.remote.transport.ThrottlerTransportAdapter.Direction
 
 import com.typesafe.config.ConfigFactory
 
-import io.scalac.extension.util.probe.BoundTestProbe.{ Dec, Inc }
-import io.scalac.extension.util.ScalaTestMultiNodeSpec
-import io.scalac.extension.util.probe.ClusterMetricsTestProbe
+import io.scalac.core.util.probe.BoundTestProbe.{ Dec, Inc }
+import io.scalac.core.util.ScalaTestMultiNodeSpec
+import io.scalac.core.util.probe.ClusterMetricsTestProbe
 import org.scalatest.Inspectors
 import scala.concurrent.duration._
 import scala.language.postfixOps
 
-import io.scalac.extension.util.probe.ObserverCollector.ScheduledCollectorImpl
+import io.scalac.core.util.probe.ObserverCollector.ScheduledCollectorImpl
 
 class ReachabilityTestMultiJvmNode1 extends ReachabilityTest
 class ReachabilityTestMultiJvmNode2 extends ReachabilityTest

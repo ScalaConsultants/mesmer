@@ -14,7 +14,7 @@ import io.scalac.core.model.{ Module, SupportedVersion, _ }
 import io.scalac.core.support.ModulesSupport
 import io.scalac.core.util.ModuleInfo
 import io.scalac.core.util.ModuleInfo.Modules
-import io.scalac.extension.actor.CleanableActorMetricsStorage
+import io.scalac.core.actor.CleanableActorMetricsStorage
 import io.scalac.extension.config.{ AkkaMonitoringConfig, CachingConfig, InstrumentationLibrary }
 import io.scalac.extension.http.CleanableRequestStorage
 import io.scalac.extension.metric.CachingMonitor

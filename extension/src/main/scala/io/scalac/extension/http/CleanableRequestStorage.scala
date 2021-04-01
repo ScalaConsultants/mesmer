@@ -2,7 +2,7 @@ package io.scalac.extension.http
 
 import io.scalac.core.util.Timestamp
 import io.scalac.extension.config.CleaningSettings
-import io.scalac.extension.event.HttpEvent.RequestStarted
+import io.scalac.core.event.HttpEvent.RequestStarted
 import io.scalac.extension.resource.MutableCleanableStorage
 
 import scala.collection.mutable
