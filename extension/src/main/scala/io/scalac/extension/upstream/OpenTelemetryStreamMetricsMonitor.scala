@@ -3,9 +3,13 @@ package io.scalac.extension.upstream
 import com.typesafe.config.Config
 import io.opentelemetry.api.metrics.Meter
 
-import io.scalac.extension.metric.{ MetricObserver, RegisterRoot, StreamMetricMonitor }
+import io.scalac.extension.metric.MetricObserver
+import io.scalac.extension.metric.RegisterRoot
+import io.scalac.extension.metric.StreamMetricMonitor
 import io.scalac.extension.upstream.OpenTelemetryStreamMetricsMonitor.MetricNames
-import io.scalac.extension.upstream.opentelemetry.{ LongSumObserverBuilderAdapter, SynchronousInstrumentFactory }
+import io.scalac.extension.upstream.opentelemetry.LongSumObserverBuilderAdapter
+import io.scalac.extension.upstream.opentelemetry.SynchronousInstrumentFactory
+import io.scalac.extension.upstream.opentelemetry.WrappedLongValueRecorder
 
 object OpenTelemetryStreamMetricsMonitor {
   case class MetricNames(runningStreams: String, streamActors: String, streamProcessed: String)

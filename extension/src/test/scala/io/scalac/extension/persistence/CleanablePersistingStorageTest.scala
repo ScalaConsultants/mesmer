@@ -7,12 +7,11 @@ import scala.collection.mutable
 import scala.concurrent.duration._
 import scala.util.Random
 
-import io.scalac.core.model._
+import io.scalac.core.event.PersistenceEvent.PersistingEventStarted
+import io.scalac.core.util.TestOps
 import io.scalac.core.util.Timestamp
 import io.scalac.extension.config.CleaningSettings
-import io.scalac.extension.event.PersistenceEvent.PersistingEventStarted
 import io.scalac.extension.persistence.PersistStorage.PersistEventKey
-import io.scalac.extension.util.TestOps
 
 class CleanablePersistingStorageTest extends AnyFlatSpec with Matchers with TestOps {
 

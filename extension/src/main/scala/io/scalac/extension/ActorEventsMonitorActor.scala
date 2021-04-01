@@ -10,11 +10,23 @@ import akka.actor.typed.scaladsl.ActorContext
 import akka.actor.typed.scaladsl.Behaviors
 import akka.actor.typed.scaladsl.TimerScheduler
 import akka.{ actor => classic }
+import org.slf4j.LoggerFactory
+
+import scala.annotation.tailrec
+import scala.collection.immutable
+import scala.collection.mutable
+import scala.concurrent.duration._
+
 import io.scalac.core._
-import io.scalac.core.actor.{ ActorCellDecorator, ActorMetricStorage, ActorMetrics }
+import io.scalac.core.actor.ActorCellDecorator
+import io.scalac.core.actor.ActorMetricStorage
+import io.scalac.core.actor.ActorMetrics
 import io.scalac.core.event.TagEvent
-import io.scalac.core.model.{ ActorKey, Node, Tag }
-import io.scalac.core.util.{ ActorCellOps, ActorRefOps }
+import io.scalac.core.model.ActorKey
+import io.scalac.core.model.Node
+import io.scalac.core.model.Tag
+import io.scalac.core.util.ActorCellOps
+import io.scalac.core.util.ActorRefOps
 import io.scalac.extension.ActorEventsMonitorActor._
 import io.scalac.extension.AkkaStreamMonitoring.StartStreamCollection
 import io.scalac.extension.metric.ActorMetricMonitor
@@ -123,7 +135,7 @@ object ActorEventsMonitorActor {
 
   object ReflectiveActorMetricsReader extends ActorMetricsReader {
 
-    private val logger = (LoggerFactory.getLogger(getClass))
+    private val logger = LoggerFactory.getLogger(getClass)
 
     def read(actor: classic.ActorRef): Option[ActorMetrics] =
       for {

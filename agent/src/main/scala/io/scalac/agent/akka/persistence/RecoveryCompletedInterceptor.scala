@@ -6,13 +6,10 @@ import net.bytebuddy.asm.Advice
 
 import scala.util.Try
 
-import io.scalac.core.model._
-import io.scalac.core.util.Timestamp
 import io.scalac.core.event.EventBus
 import io.scalac.core.event.PersistenceEvent.RecoveryFinished
-import net.bytebuddy.asm.Advice
-
-import scala.util.Try
+import io.scalac.core.model._
+import io.scalac.core.util.Timestamp
 
 class RecoveryCompletedInterceptor
 

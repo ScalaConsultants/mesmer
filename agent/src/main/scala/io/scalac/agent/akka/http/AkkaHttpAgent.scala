@@ -8,7 +8,8 @@ import io.scalac.core.support.ModulesSupport
 object AkkaHttpAgent extends InstrumentModuleFactory {
 
   // @ToDo tests all supported versions
-  protected final val supportedModules = SupportedModules(ModulesSupport.akkaHttpModule, ModulesSupport.akkaHttp)
+  protected final val supportedModules: SupportedModules =
+    SupportedModules(ModulesSupport.akkaHttpModule, ModulesSupport.akkaHttp)
 
 //  private val routeAgent =
 //    instrument("akka.http.scaladsl.server.Route$")

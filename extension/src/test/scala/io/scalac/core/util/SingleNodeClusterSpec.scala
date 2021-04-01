@@ -16,10 +16,11 @@ import akka.cluster.typed.Cluster
 import akka.cluster.typed.SelfUp
 import akka.cluster.typed.Subscribe
 import akka.util.Timeout
-import com.typesafe.config.{ Config, ConfigFactory, ConfigValueFactory }
-import io.scalac.core.util.probe.ClusterMetricsTestProbe
-import io.scalac.core.util.probe.ObserverCollector.ScheduledCollectorImpl
-import org.scalatest.{ Assertion, AsyncTestSuite }
+import com.typesafe.config.Config
+import com.typesafe.config.ConfigFactory
+import com.typesafe.config.ConfigValueFactory
+import org.scalatest.Assertion
+import org.scalatest.AsyncTestSuite
 
 import scala.concurrent.Future
 import scala.concurrent.duration.FiniteDuration
@@ -27,8 +28,8 @@ import scala.concurrent.duration._
 import scala.jdk.CollectionConverters._
 import scala.reflect.ClassTag
 
-import io.scalac.extension.util.probe.ClusterMetricsTestProbe
-import io.scalac.extension.util.probe.ObserverCollector.ScheduledCollectorImpl
+import io.scalac.core.util.probe.ClusterMetricsTestProbe
+import io.scalac.core.util.probe.ObserverCollector.ScheduledCollectorImpl
 
 trait SingleNodeClusterSpec extends AsyncTestSuite {
 

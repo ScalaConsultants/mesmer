@@ -3,11 +3,14 @@ package io.scalac.agent.akka.stream
 import akka.ActorGraphInterpreterAdvice
 import akka.actor.Props
 import akka.stream.GraphStageIslandAdvice
-import akka.stream.impl.fusing.{ ActorGraphInterpreterProcessEventAdvice, ActorGraphInterpreterTryInitAdvice }
+import akka.stream.impl.fusing.ActorGraphInterpreterProcessEventAdvice
+import akka.stream.impl.fusing.ActorGraphInterpreterTryInitAdvice
 
 import io.scalac.agent.Agent
 import io.scalac.agent.util.i13n._
-import io.scalac.core.model.{ Module, SupportedModules, SupportedVersion }
+import io.scalac.core.model.Module
+import io.scalac.core.model.SupportedModules
+import io.scalac.core.model.SupportedVersion
 
 object AkkaStreamAgent extends InstrumentModuleFactory {
 

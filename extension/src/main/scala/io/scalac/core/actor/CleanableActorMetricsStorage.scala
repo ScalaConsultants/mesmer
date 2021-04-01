@@ -1,5 +1,7 @@
 package io.scalac.core.actor
 
+import scala.collection.mutable
+
 import io.scalac.core.model.ActorKey
 import io.scalac.core.util.Timestamp
 import io.scalac.extension.config.CleaningSettings

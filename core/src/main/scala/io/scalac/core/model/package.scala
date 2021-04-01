@@ -1,11 +1,11 @@
 package io.scalac.core
 
-import scala.language.implicitConversions
-
 import _root_.akka.actor.{ ActorPath => AkkaActorPath }
 import _root_.akka.cluster.UniqueAddress
 import _root_.akka.http.scaladsl.model.HttpMethod
 import _root_.akka.http.scaladsl.model.Uri.{ Path => AkkaPath }
+
+import scala.language.implicitConversions
 
 import io.scalac.core.model.Tag.StageName.StreamUniqueStageName
 import io.scalac.core.model.Tag._

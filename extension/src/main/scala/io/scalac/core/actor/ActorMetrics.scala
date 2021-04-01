@@ -1,7 +1,7 @@
 package io.scalac.core.actor
 
-import io.scalac.core.util.Timestamp
 import io.scalac.core.util.AggMetric.LongValueAggMetric
+import io.scalac.core.util.Timestamp
 
 final case class ActorMetrics(
   mailboxSize: Option[Long],

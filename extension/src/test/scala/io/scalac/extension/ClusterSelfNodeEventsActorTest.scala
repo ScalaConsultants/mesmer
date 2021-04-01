@@ -1,11 +1,6 @@
 package io.scalac.extension
 
 import akka.cluster.sharding.typed.ShardingEnvelope
-import io.scalac.core.model._
-import io.scalac.core.util.TestBehavior.Command._
-import io.scalac.core.util.probe.BoundTestProbe._
-import io.scalac.core.util.{ SingleNodeClusterSpec, TestBehavior }
-import io.scalac.extension.metric.ClusterMetricsMonitor.Labels
 import org.scalatest.Inspectors
 import org.scalatest.flatspec.AsyncFlatSpec
 import org.scalatest.matchers.should.Matchers
@@ -13,10 +8,11 @@ import org.scalatest.matchers.should.Matchers
 import scala.concurrent.duration._
 
 import io.scalac.core.model._
+import io.scalac.core.util.SingleNodeClusterSpec
+import io.scalac.core.util.TestBehavior
+import io.scalac.core.util.TestBehavior.Command._
+import io.scalac.core.util.probe.BoundTestProbe._
 import io.scalac.extension.metric.ClusterMetricsMonitor.Labels
-import io.scalac.extension.util.SingleNodeClusterSpec
-import io.scalac.extension.util.TestBehavior
-import io.scalac.extension.util.probe.BoundTestProbe._
 
 class ClusterSelfNodeEventsActorTest extends AsyncFlatSpec with SingleNodeClusterSpec with Matchers with Inspectors {
 

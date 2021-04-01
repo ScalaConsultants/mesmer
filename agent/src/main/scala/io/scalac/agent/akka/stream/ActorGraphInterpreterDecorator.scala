@@ -1,5 +1,4 @@
 package io.scalac.agent.akka.stream
-
 import java.lang.invoke.MethodType._
 
 import akka.AkkaMirrorTypes._
@@ -8,14 +7,13 @@ import akka.actor.typed.scaladsl.adapter._
 import akka.stream.GraphLogicOps._
 
 import io.scalac.core.akka.model.PushMetrics
+import io.scalac.core.event.EventBus
+import io.scalac.core.event.StreamEvent.LastStreamStats
+import io.scalac.core.event.StreamEvent.StreamInterpreterStats
 import io.scalac.core.invoke.Lookup
 import io.scalac.core.model.Tag.SubStreamName
 import io.scalac.core.model._
 import io.scalac.core.util.stream.subStreamNameFromActorRef
-import io.scalac.core.event.EventBus
-import io.scalac.core.event.StreamEvent.{ LastStreamStats, StreamInterpreterStats }
-
-import java.lang.invoke.MethodType._
 object ActorGraphInterpreterDecorator extends Lookup {
 
   private lazy val shells = {

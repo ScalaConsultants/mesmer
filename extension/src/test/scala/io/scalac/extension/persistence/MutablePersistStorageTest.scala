@@ -6,12 +6,12 @@ import org.scalatest.matchers.should.Matchers
 import scala.collection.mutable
 import scala.concurrent.duration._
 
+import io.scalac.core.event.PersistenceEvent.PersistingEventFinished
+import io.scalac.core.event.PersistenceEvent.PersistingEventStarted
 import io.scalac.core.model._
+import io.scalac.core.util.TestOps
 import io.scalac.core.util.Timestamp
-import io.scalac.extension.event.PersistenceEvent.PersistingEventFinished
-import io.scalac.extension.event.PersistenceEvent.PersistingEventStarted
 import io.scalac.extension.persistence.PersistStorage.PersistEventKey
-import io.scalac.extension.util.TestOps
 
 class MutablePersistStorageTest extends AnyFlatSpec with Matchers with TestOps {
   type Fixture = (mutable.Map[PersistEventKey, PersistingEventStarted], MutablePersistStorage)

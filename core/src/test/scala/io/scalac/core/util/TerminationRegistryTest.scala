@@ -3,8 +3,6 @@ package io.scalac.core.util
 import akka.actor.PoisonPill
 import akka.actor.testkit.typed.scaladsl.ScalaTestWithActorTestKit
 import akka.actor.typed.scaladsl.AskPattern._
-import io.scalac.core.util.TerminationRegistry
-import io.scalac.core.util.TerminationRegistry._
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.flatspec.AnyFlatSpecLike
 import org.scalatest.matchers.should.Matchers
@@ -12,7 +10,7 @@ import org.scalatest.matchers.should.Matchers
 import scala.concurrent.duration._
 import scala.language.postfixOps
 
-import io.scalac.extension.util.TerminationRegistry._
+import io.scalac.core.util.TerminationRegistry._
 
 class TerminationRegistryTest
     extends ScalaTestWithActorTestKit(TestConfig.localActorProvider)
@@ -39,6 +37,6 @@ class TerminationRegistryTest
     registry.ask[Ack](reply => Watch(testActor, Some(reply))).isReadyWithin(1 second)
     val waitForTermination = registry.ask[Ack](reply => WaitForTermination(testActor, reply))
     registry ! UnwatchAll
-    waitForTermination.failed.futureValue shouldBe (UnwatchAllException)
+    waitForTermination.failed.futureValue shouldBe UnwatchAllException
   }
 }

@@ -1,6 +1,10 @@
 package io.scalac.agent.akka.http
 
-import _root_.akka.http.scaladsl.model.{ HttpRequest, HttpResponse }
+import java.lang.reflect.Method
+import java.util.UUID
+
+import _root_.akka.http.scaladsl.model.HttpRequest
+import _root_.akka.http.scaladsl.model.HttpResponse
 import _root_.akka.http.scaladsl.settings.ServerSettings
 import _root_.akka.stream.BidiShape
 import _root_.akka.stream.Materializer
@@ -8,18 +12,22 @@ import akka.actor.typed.scaladsl.adapter._
 import akka.event.LoggingAdapter
 import akka.http.scaladsl.ConnectionContext
 import akka.http.scaladsl.Http.ServerBinding
-import akka.http.scaladsl.{ ConnectionContext, HttpExt }
-import akka.stream.scaladsl.{ BidiFlow, Broadcast, Flow, GraphDSL, Source, Zip }
+import akka.http.scaladsl.HttpExt
+import akka.stream.scaladsl.BidiFlow
+import akka.stream.scaladsl.Broadcast
+import akka.stream.scaladsl.Flow
+import akka.stream.scaladsl.GraphDSL
+import akka.stream.scaladsl.Source
+import akka.stream.scaladsl.Zip
+import net.bytebuddy.implementation.bind.annotation._
+
+import scala.concurrent.Future
+
 import io.scalac.core.akka.stream.BidiFlowForward
 import io.scalac.core.event.EventBus
 import io.scalac.core.event.HttpEvent._
 import io.scalac.core.model._
 import io.scalac.core.util.Timestamp
-import net.bytebuddy.implementation.bind.annotation._
-
-import java.lang.reflect.Method
-import java.util.UUID
-import scala.concurrent.Future
 
 class HttpInstrumentation
 object HttpInstrumentation {

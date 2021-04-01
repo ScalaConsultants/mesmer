@@ -3,9 +3,10 @@ package io.scalac.core.util.probe
 import akka.actor.testkit.typed.scaladsl.TestProbe
 import akka.actor.typed.ActorSystem
 
-import io.scalac.extension.metric.ActorMetricMonitor._
-import io.scalac.extension.metric.{ ActorMetricMonitor, MetricObserver }
 import io.scalac.core.util.probe.BoundTestProbe.MetricObserverCommand
+import io.scalac.extension.metric.ActorMetricMonitor
+import io.scalac.extension.metric.ActorMetricMonitor._
+import io.scalac.extension.metric.MetricObserver
 
 final case class ActorMonitorTestProbe(
   mailboxSizeProbe: TestProbe[MetricObserverCommand[Labels]],

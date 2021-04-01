@@ -1,12 +1,9 @@
 package io.scalac.extension.persistence
 
-import io.scalac.core.event.PersistenceEvent.{ RecoveryFinished, RecoveryStarted }
-import io.scalac.extension.resource.MutableStorage
-
 import scala.collection.mutable
 
-import io.scalac.extension.event.PersistenceEvent.RecoveryFinished
-import io.scalac.extension.event.PersistenceEvent.RecoveryStarted
+import io.scalac.core.event.PersistenceEvent.RecoveryFinished
+import io.scalac.core.event.PersistenceEvent.RecoveryStarted
 import io.scalac.extension.resource.MutableStorage
 
 class MutableRecoveryStorage private[persistence] (protected val buffer: mutable.Map[String, RecoveryStarted])

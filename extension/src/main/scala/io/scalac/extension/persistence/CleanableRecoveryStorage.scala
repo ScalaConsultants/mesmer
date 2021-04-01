@@ -2,9 +2,9 @@ package io.scalac.extension.persistence
 
 import scala.collection.mutable
 
+import io.scalac.core.event.PersistenceEvent.RecoveryStarted
 import io.scalac.core.util.Timestamp
 import io.scalac.extension.config.CleaningSettings
-import io.scalac.core.event.PersistenceEvent.RecoveryStarted
 import io.scalac.extension.resource.MutableCleanableStorage
 
 class CleanableRecoveryStorage private[persistence] (_recoveries: mutable.Map[String, RecoveryStarted])(

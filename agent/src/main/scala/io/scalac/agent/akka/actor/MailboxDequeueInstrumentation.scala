@@ -2,7 +2,7 @@ package io.scalac.agent.akka.actor
 
 import net.bytebuddy.asm.Advice._
 
-import scala.concurrent.duration.FiniteDuration
+import scala.concurrent.duration._
 
 import io.scalac.core.actor.ActorCellDecorator
 

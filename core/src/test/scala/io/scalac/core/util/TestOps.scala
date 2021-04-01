@@ -8,7 +8,7 @@ import scala.util.Random
 
 trait TestOps {
 
-  def createUniqueId: String = UUID.randomUUID().toString
+  def createUniqueId: String = java.util.UUID.randomUUID().toString
 
   def sameOrParent(parent: ActorRef[_]): Matcher[ActorRef[_]] = ref => {
     MatchResult(

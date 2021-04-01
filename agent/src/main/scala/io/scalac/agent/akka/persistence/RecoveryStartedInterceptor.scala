@@ -2,17 +2,14 @@ package io.scalac.agent.akka.persistence
 
 import _root_.akka.actor.typed.scaladsl.ActorContext
 import _root_.akka.persistence.typed.PersistenceId
-import io.scalac.core.util.Timestamp
-import io.scalac.core.event.EventBus
-import io.scalac.core.event.PersistenceEvent.RecoveryStarted
 import net.bytebuddy.asm.Advice
 
 import scala.util.Try
 
+import io.scalac.core.event.EventBus
+import io.scalac.core.event.PersistenceEvent.RecoveryStarted
 import io.scalac.core.model._
 import io.scalac.core.util.Timestamp
-import io.scalac.extension.event.EventBus
-import io.scalac.extension.event.PersistenceEvent.RecoveryStarted
 
 class RecoveryStartedInterceptor
 

@@ -7,13 +7,6 @@ import _root_.akka.actor.typed.receptionist.Receptionist
 import _root_.akka.actor.typed.receptionist.Receptionist.Deregister
 import _root_.akka.actor.typed.receptionist.Receptionist.Register
 import _root_.akka.util.Timeout
-import io.scalac.agent.akka.persistence.AkkaPersistenceAgent
-import io.scalac.agent.utils.DummyEventSourcedActor.{ DoNothing, Persist }
-import io.scalac.agent.utils.{ DummyEventSourcedActor, InstallAgent, SafeLoadSystem }
-import io.scalac.core.persistenceServiceKey
-import io.scalac.core.event.PersistenceEvent
-import io.scalac.core.event.PersistenceEvent._
-import io.scalac.core.util.ReceptionistOps
 import org.scalatest.OptionValues
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.flatspec.AnyFlatSpecLike
@@ -24,15 +17,16 @@ import org.scalatest.time.Span
 
 import scala.concurrent.duration._
 
+import io.scalac.agent.akka.persistence.AkkaPersistenceAgent
 import io.scalac.agent.utils.DummyEventSourcedActor
 import io.scalac.agent.utils.DummyEventSourcedActor.DoNothing
 import io.scalac.agent.utils.DummyEventSourcedActor.Persist
 import io.scalac.agent.utils.InstallAgent
 import io.scalac.agent.utils.SafeLoadSystem
-import io.scalac.extension.event.PersistenceEvent
-import io.scalac.extension.event.PersistenceEvent._
-import io.scalac.extension.persistenceServiceKey
-import io.scalac.extension.util.ReceptionistOps
+import io.scalac.core.event.PersistenceEvent
+import io.scalac.core.event.PersistenceEvent._
+import io.scalac.core.persistenceServiceKey
+import io.scalac.core.util.ReceptionistOps
 
 class AkkaPersistenceAgentSpec
     extends InstallAgent
@@ -45,7 +39,7 @@ class AkkaPersistenceAgentSpec
 
   override protected val agent = AkkaPersistenceAgent.agent
 
-  implicit val askTimeout = Timeout(1.minute)
+  implicit val askTimeout: Timeout = Timeout(1.minute)
   override implicit val patienceConfig: PatienceConfig =
     PatienceConfig(scaled(Span(1, Minute)), scaled(Span(1, Second)))
 

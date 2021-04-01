@@ -3,8 +3,8 @@ package io.scalac.agent.akka.actor
 import akka.actor.Actor
 import net.bytebuddy.asm.Advice._
 
-import io.scalac.core.util.ActorRefOps
 import io.scalac.core.actor.ActorCellDecorator
+import io.scalac.core.util.ActorRefOps
 
 class ActorCellSendMessageInstrumentation
 object ActorCellSendMessageInstrumentation {

@@ -1,6 +1,9 @@
 package io.scalac.extension.persistence
 
-import io.scalac.core.event.PersistenceEvent.{ PersistingEventFinished, PersistingEventStarted }
+import scala.collection.mutable
+
+import io.scalac.core.event.PersistenceEvent.PersistingEventFinished
+import io.scalac.core.event.PersistenceEvent.PersistingEventStarted
 import io.scalac.extension.persistence.PersistStorage.PersistEventKey
 import io.scalac.extension.resource.MutableStorage
 

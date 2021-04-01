@@ -9,10 +9,12 @@ import akka.actor.typed.ActorSystem
 import scala.collection.concurrent.{ Map => CMap }
 import scala.jdk.CollectionConverters._
 
+import io.scalac.core.util.TestProbeSynchronized
+import io.scalac.core.util.probe.BoundTestProbe.CounterCommand
+import io.scalac.core.util.probe.SyncTestProbeWrapper
+import io.scalac.core.util.probe.UpDownCounterTestProbeWrapper
 import io.scalac.extension.metric.HttpConnectionMetricMonitor
 import io.scalac.extension.metric.UpDownCounter
-import io.scalac.extension.util.TestProbeSynchronized
-import io.scalac.extension.util.probe.BoundTestProbe.CounterCommand
 
 class HttpConnectionMetricsTestProbe(implicit val system: ActorSystem[_]) extends HttpConnectionMetricMonitor {
 

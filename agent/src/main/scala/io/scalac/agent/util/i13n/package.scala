@@ -1,15 +1,15 @@
 package io.scalac.agent.util
 
-import scala.reflect.ClassTag
-import scala.language.implicitConversions
-
-import net.bytebuddy.description.method.MethodDescription
-import net.bytebuddy.dynamic.DynamicType
-import net.bytebuddy.matcher.ElementMatcher
-import net.bytebuddy.matcher.{ ElementMatchers => EM }
 import net.bytebuddy.asm.Advice
 import net.bytebuddy.description.`type`.TypeDescription
+import net.bytebuddy.description.method.MethodDescription
+import net.bytebuddy.dynamic.DynamicType
 import net.bytebuddy.implementation.MethodDelegation
+import net.bytebuddy.matcher.ElementMatcher
+import net.bytebuddy.matcher.{ ElementMatchers => EM }
+
+import scala.language.implicitConversions
+import scala.reflect.ClassTag
 
 import io.scalac.agent.AgentInstrumentation
 import io.scalac.core.model.SupportedModules
@@ -86,7 +86,7 @@ package object i13n {
     protected def and(that: TypeDesc): TypeDesc = typeDesc.and(that)
   }
 
-  final implicit class MethodDescOps(val methodDesc: MethodDesc) extends AnyVal {
+  final implicit class MethodDescOps(private val methodDesc: MethodDesc) extends AnyVal {
     def takesArguments(n: Int): MethodDesc =
       methodDesc.and(EM.takesArguments(n))
     def takesArguments[A, B](implicit cta: ClassTag[A], ctb: ClassTag[B]): MethodDesc =

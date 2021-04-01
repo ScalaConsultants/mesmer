@@ -1,6 +1,8 @@
 package io.scalac.extension.config
 
-import io.opentelemetry.api.metrics.{ GlobalMetricsProvider, Meter, MeterProvider }
+import io.opentelemetry.api.metrics.GlobalMetricsProvider
+import io.opentelemetry.api.metrics.Meter
+import io.opentelemetry.api.metrics.MeterProvider
 
 object InstrumentationLibrary {
 

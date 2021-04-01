@@ -3,14 +3,15 @@ package io.scalac.core.util
 import akka.actor.testkit.typed.scaladsl.ScalaTestWithActorTestKit
 import akka.actor.typed.ActorRef
 import akka.actor.typed.scaladsl.AskPattern._
-import io.scalac.core.util.TerminationRegistry.{ Ack, WaitForTermination }
+import org.scalatest.BeforeAndAfterAll
+import org.scalatest.Suite
 import org.scalatest.concurrent.ScalaFutures
 
 import scala.concurrent.duration._
 import scala.language.postfixOps
 
-import io.scalac.extension.util.TerminationRegistry.Ack
-import io.scalac.extension.util.TerminationRegistry.WaitForTermination
+import io.scalac.core.util.TerminationRegistry.Ack
+import io.scalac.core.util.TerminationRegistry.WaitForTermination
 
 trait TerminationRegistryOps extends ScalaTestWithActorTestKit with BeforeAndAfterAll with ScalaFutures {
   this: Suite =>

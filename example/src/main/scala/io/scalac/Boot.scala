@@ -1,7 +1,4 @@
 package io.scalac
-
-import java.lang.instrument.Instrumentation
-
 import akka.actor.typed.ActorSystem
 import akka.actor.typed.scaladsl.Behaviors
 import akka.cluster.sharding.typed.scaladsl.ClusterSharding
@@ -23,12 +20,13 @@ import fr.davit.akka.http.metrics.prometheus.PrometheusRegistry
 import fr.davit.akka.http.metrics.prometheus.PrometheusSettings
 import fr.davit.akka.http.metrics.prometheus.marshalling.PrometheusMarshallers.{ marshaller => prommarsh }
 import io.opentelemetry.exporter.prometheus.PrometheusCollector
-import io.opentelemetry.sdk.OpenTelemetrySdk
+import io.opentelemetry.sdk.metrics.SdkMeterProvider
 import io.prometheus.client.Collector
 import io.prometheus.client.CollectorRegistry
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
+import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
 import scala.io.StdIn
 import scala.jdk.CollectionConverters._
@@ -39,10 +37,6 @@ import scala.util.Success
 import io.scalac.api.AccountRoutes
 import io.scalac.domain.AccountStateActor
 import io.scalac.domain.JsonCodecs
-
-import io.opentelemetry.api.metrics.GlobalMetricsProvider
-import io.opentelemetry.sdk.metrics.SdkMeterProvider
-
 import io.scalac.extension.config.InstrumentationLibrary
 
 object Boot extends App with FailFastCirceSupport with JsonCodecs {
@@ -81,11 +75,11 @@ object Boot extends App with FailFastCirceSupport with JsonCodecs {
 
     val metricsRoutes: Route = (get & path("metrics"))(metrics(registry)(prommarsh))
 
-    implicit val system =
+    implicit val system: ActorSystem[Nothing] =
       ActorSystem[Nothing](Behaviors.empty, config.getString("app.systemName"), config)
 
-    implicit val executionContext = system.executionContext
-    implicit val timeout: Timeout = 10 seconds
+    implicit val executionContext: ExecutionContext = system.executionContext
+    implicit val timeout: Timeout                   = 10 seconds
 
     AkkaManagement(system).start().onComplete {
       case Success(value)     => logger.info("Started akka management on uri: {}", value)
@@ -101,7 +95,7 @@ object Boot extends App with FailFastCirceSupport with JsonCodecs {
     val accountsShards = ClusterSharding(system)
       .init(Entity(entity) { entityContext =>
         AccountStateActor(
-          ju.UUID.fromString(entityContext.entityId)
+          java.util.UUID.fromString(entityContext.entityId)
         )
       })
 

@@ -13,12 +13,6 @@ import akka.stream.BufferOverflowException
 import akka.stream.OverflowStrategy
 import akka.stream.QueueOfferResult
 import akka.stream.scaladsl._
-import akka.stream.{ Attributes, BufferOverflowException, OverflowStrategy, QueueOfferResult }
-import io.scalac.agent.utils.{ InstallAgent, SafeLoadSystem }
-import io.scalac.core.akka.model.PushMetrics
-import io.scalac.core.event.StreamEvent.{ LastStreamStats, StreamInterpreterStats }
-import io.scalac.core.event.{ Service, StreamEvent, TagEvent }
-import io.scalac.core.util.TestCase.CommonMonitorTestFactory
 import org.scalatest._
 import org.scalatest.concurrent.Futures
 import org.scalatest.concurrent.ScalaFutures
@@ -32,12 +26,12 @@ import scala.concurrent.duration._
 import io.scalac.agent.utils.InstallAgent
 import io.scalac.agent.utils.SafeLoadSystem
 import io.scalac.core.akka.model.PushMetrics
+import io.scalac.core.event.Service
+import io.scalac.core.event.StreamEvent
+import io.scalac.core.event.StreamEvent.LastStreamStats
+import io.scalac.core.event.StreamEvent.StreamInterpreterStats
+import io.scalac.core.event.TagEvent
 import io.scalac.core.util.TestCase.CommonMonitorTestFactory
-import io.scalac.extension.event.Service
-import io.scalac.extension.event.StreamEvent
-import io.scalac.extension.event.StreamEvent.LastStreamStats
-import io.scalac.extension.event.StreamEvent.StreamInterpreterStats
-import io.scalac.extension.event.TagEvent
 
 class AkkaStreamAgentTest
     extends InstallAgent

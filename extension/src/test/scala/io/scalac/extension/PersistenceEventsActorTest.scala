@@ -3,26 +3,30 @@ import akka.actor.testkit.typed.scaladsl.ScalaTestWithActorTestKit
 import akka.actor.typed.ActorSystem
 import akka.actor.typed.Behavior
 import akka.actor.typed.receptionist.ServiceKey
-import akka.actor.typed.{ ActorSystem, Behavior }
-import io.scalac.core._
-import io.scalac.core.event.EventBus
-import io.scalac.core.event.PersistenceEvent._
-import io.scalac.core.model._
-import io.scalac.core.util.TestCase.CommonMonitorTestFactory
-import io.scalac.core.util.TestCase.MonitorTestCaseContext.BasicContext
-import io.scalac.core.util.probe.BoundTestProbe.{ Inc, MetricRecorded }
-import io.scalac.core.util.probe.PersistenceMetricTestProbe
-import io.scalac.core.util.{ IdentityPathService, TestConfig, Timestamp }
-import io.scalac.extension.metric.CachingMonitor
-import io.scalac.extension.metric.PersistenceMetricMonitor.Labels
-import io.scalac.extension.persistence.{ ImmutablePersistStorage, ImmutableRecoveryStorage }
 import org.scalatest._
 import org.scalatest.flatspec.AnyFlatSpecLike
 import org.scalatest.matchers.should.Matchers
 
 import scala.concurrent.duration._
-import scala.language.postfixOps
 import scala.language.existentials
+import scala.language.postfixOps
+
+import io.scalac.core._
+import io.scalac.core.event.EventBus
+import io.scalac.core.event.PersistenceEvent._
+import io.scalac.core.model._
+import io.scalac.core.util.IdentityPathService
+import io.scalac.core.util.TestCase.CommonMonitorTestFactory
+import io.scalac.core.util.TestCase.MonitorTestCaseContext.BasicContext
+import io.scalac.core.util.TestConfig
+import io.scalac.core.util.Timestamp
+import io.scalac.core.util.probe.BoundTestProbe.Inc
+import io.scalac.core.util.probe.BoundTestProbe.MetricRecorded
+import io.scalac.core.util.probe.PersistenceMetricTestProbe
+import io.scalac.extension.metric.CachingMonitor
+import io.scalac.extension.metric.PersistenceMetricMonitor.Labels
+import io.scalac.extension.persistence.ImmutablePersistStorage
+import io.scalac.extension.persistence.ImmutableRecoveryStorage
 
 class PersistenceEventsActorTest
     extends ScalaTestWithActorTestKit(TestConfig.localActorProvider)
