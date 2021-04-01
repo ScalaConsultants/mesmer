@@ -2,13 +2,6 @@ package io.scalac
 
 import java.{ util => ju }
 
-import scala.concurrent.duration._
-import scala.io.StdIn
-import scala.jdk.CollectionConverters._
-import scala.language.postfixOps
-import scala.util.Failure
-import scala.util.Success
-
 import akka.actor.typed.ActorSystem
 import akka.actor.typed.scaladsl.Behaviors
 import akka.cluster.sharding.typed.scaladsl.ClusterSharding
@@ -22,7 +15,6 @@ import akka.http.scaladsl.server.Route
 import akka.management.cluster.bootstrap.ClusterBootstrap
 import akka.management.scaladsl.AkkaManagement
 import akka.util.Timeout
-
 import com.typesafe.config.ConfigFactory
 import com.typesafe.config.ConfigValueFactory
 import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport
@@ -34,14 +26,22 @@ import io.opentelemetry.exporter.prometheus.PrometheusCollector
 import io.opentelemetry.sdk.OpenTelemetrySdk
 import io.prometheus.client.Collector
 import io.prometheus.client.CollectorRegistry
+import org.slf4j.Logger
 import org.slf4j.LoggerFactory
+
+import scala.concurrent.duration._
+import scala.io.StdIn
+import scala.jdk.CollectionConverters._
+import scala.language.postfixOps
+import scala.util.Failure
+import scala.util.Success
 
 import io.scalac.api.AccountRoutes
 import io.scalac.domain.AccountStateActor
 import io.scalac.domain.JsonCodecs
 
 object Boot extends App with FailFastCirceSupport with JsonCodecs {
-  val logger = LoggerFactory.getLogger(Boot.getClass)
+  val logger: Logger = LoggerFactory.getLogger(Boot.getClass)
 
   private val fallbackConfig = ConfigFactory
     .empty()
@@ -120,7 +120,7 @@ object Boot extends App with FailFastCirceSupport with JsonCodecs {
     }
   }
 
-  val local = sys.props.get("env").exists(_.toLowerCase() == "local")
+  val local: Boolean = sys.props.get("env").exists(_.toLowerCase() == "local")
   if (local) {
     logger.info("Starting application with static seed nodes")
   } else {

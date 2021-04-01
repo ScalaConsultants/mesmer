@@ -16,7 +16,7 @@ import io.scalac.core.util.ModuleInfo.Modules
 import io.scalac.core.util.ModuleInfo.extractModulesInformation
 
 object InstallAgent {
-  val allInstrumentations =
+  val allInstrumentations: Agent =
     AkkaActorAgent.agent ++ AkkaHttpAgent.agent ++ AkkaPersistenceAgent.agent ++ AkkaStreamAgent.agent
 }
 

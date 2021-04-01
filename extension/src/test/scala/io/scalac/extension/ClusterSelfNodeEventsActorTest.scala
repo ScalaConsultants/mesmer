@@ -1,12 +1,11 @@
 package io.scalac.extension
 
-import scala.concurrent.duration._
-
 import akka.cluster.sharding.typed.ShardingEnvelope
-
 import org.scalatest.Inspectors
 import org.scalatest.flatspec.AsyncFlatSpec
 import org.scalatest.matchers.should.Matchers
+
+import scala.concurrent.duration._
 
 import io.scalac.core.model._
 import io.scalac.extension.metric.ClusterMetricsMonitor.Labels

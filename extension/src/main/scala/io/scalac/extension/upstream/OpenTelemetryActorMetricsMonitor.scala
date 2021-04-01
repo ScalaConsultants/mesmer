@@ -249,7 +249,7 @@ class OpenTelemetryActorMetricsMonitor(instrumentationName: String, metricNames:
     val mailboxTimeSum: MetricObserver[Long, ActorMetricMonitor.Labels] =
       mailboxTimeSumObserver.createObserver(this)
 
-    def stashSize(labels: ActorMetricMonitor.Labels) =
+    def stashSize(labels: ActorMetricMonitor.Labels): WrappedLongValueRecorder =
       metricRecorder(stashSizeCounter, LabelsFactory.of(labels.serialize)).register(this)
 
     val receivedMessages: MetricObserver[Long, ActorMetricMonitor.Labels] =

@@ -1,9 +1,9 @@
 package io.scalac.extension.upstream
 
+import io.opentelemetry.api.common.Labels
+
 import scala.annotation.switch
 import scala.collection.mutable.ArrayBuffer
-
-import io.opentelemetry.api.common.Labels
 
 object LabelsFactory {
 

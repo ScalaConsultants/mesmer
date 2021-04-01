@@ -1,10 +1,10 @@
 package io.scalac.agent.akka.persistence
 
-import scala.util.Try
-
 import _root_.akka.actor.typed.scaladsl.ActorContext
 import _root_.akka.persistence.typed.PersistenceId
 import net.bytebuddy.asm.Advice
+
+import scala.util.Try
 
 import io.scalac.core.model._
 import io.scalac.core.util.Timestamp

@@ -1,7 +1,6 @@
 package io.scalac.agent.akka.persistence
 import akka.actor.typed.scaladsl.ActorContext
 import akka.persistence.PersistentRepr
-
 import net.bytebuddy.asm.Advice._
 
 import io.scalac.core.model._

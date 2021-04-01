@@ -1,7 +1,6 @@
 package io.scalac.agent.akka.actor
 
 import akka.actor.typed.Behavior
-
 import net.bytebuddy.asm.Advice
 import net.bytebuddy.description.`type`.TypeDescription
 import net.bytebuddy.description.method.MethodDescription

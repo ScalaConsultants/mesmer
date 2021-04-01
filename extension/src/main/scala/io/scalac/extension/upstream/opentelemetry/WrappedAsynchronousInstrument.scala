@@ -3,12 +3,12 @@ package io.scalac.extension.upstream.opentelemetry
 import java.util.concurrent.CopyOnWriteArrayList
 import java.util.concurrent.atomic.AtomicBoolean
 
-import scala.jdk.CollectionConverters._
-
 import io.opentelemetry.api.common.Labels
 import io.opentelemetry.api.metrics.AsynchronousInstrument
 import io.opentelemetry.api.metrics.AsynchronousInstrument.LongResult
 import io.opentelemetry.api.metrics._
+
+import scala.jdk.CollectionConverters._
 
 import io.scalac.core.LabelSerializable
 import io.scalac.extension.metric.MetricObserver

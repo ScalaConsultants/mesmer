@@ -1,9 +1,9 @@
 package io.scalac.extension.config
 
+import com.typesafe.config.Config
+
 import scala.concurrent.duration._
 import scala.jdk.DurationConverters._
-
-import com.typesafe.config.Config
 
 import io.scalac.extension.config
 

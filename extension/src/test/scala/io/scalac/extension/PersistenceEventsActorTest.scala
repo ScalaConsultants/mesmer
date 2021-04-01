@@ -1,15 +1,14 @@
 package io.scalac.extension
-import scala.concurrent.duration._
-import scala.language.postfixOps
-
 import akka.actor.testkit.typed.scaladsl.ScalaTestWithActorTestKit
 import akka.actor.typed.ActorSystem
 import akka.actor.typed.Behavior
 import akka.actor.typed.receptionist.ServiceKey
-
 import org.scalatest._
 import org.scalatest.flatspec.AnyFlatSpecLike
 import org.scalatest.matchers.should.Matchers
+
+import scala.concurrent.duration._
+import scala.language.postfixOps
 
 import io.scalac.core.model._
 import io.scalac.core.util.TestCase.CommonMonitorTestFactory

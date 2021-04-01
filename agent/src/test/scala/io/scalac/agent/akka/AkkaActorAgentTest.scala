@@ -1,8 +1,5 @@
 package io.scalac.agent.akka
 
-import scala.concurrent._
-import scala.concurrent.duration._
-
 import akka.actor.PoisonPill
 import akka.actor.testkit.typed.FishingOutcome
 import akka.actor.testkit.typed.scaladsl.TestProbe
@@ -17,13 +14,15 @@ import akka.actor.typed.scaladsl.Behaviors
 import akka.actor.typed.scaladsl.StashBuffer
 import akka.actor.typed.scaladsl.adapter._
 import akka.{ actor => classic }
-
 import org.scalatest.OptionValues
 import org.scalatest.concurrent.Eventually
 import org.scalatest.flatspec.AnyFlatSpecLike
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.time.Millis
 import org.scalatest.time.Span
+
+import scala.concurrent._
+import scala.concurrent.duration._
 
 import io.scalac.agent.utils.InstallAgent
 import io.scalac.agent.utils.SafeLoadSystem

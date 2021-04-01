@@ -5,7 +5,6 @@ import akka.actor.Props
 import akka.stream.GraphStageIslandAdvice
 import akka.stream.impl.fusing.ActorGraphInterpreterProcessEventAdvice
 import akka.stream.impl.fusing.ActorGraphInterpreterTryInitAdvice
-
 import net.bytebuddy.asm.Advice
 import net.bytebuddy.description.`type`.TypeDescription
 import net.bytebuddy.description.method.MethodDescription
@@ -135,7 +134,7 @@ object AkkaStreamAgent {
     }
   }
 
-  val agent = Agent(
+  val agent: Agent = Agent(
     phasedFusingActorMeterializerAgent,
     actorGraphInterpreterAgent,
     graphInterpreterAgent,

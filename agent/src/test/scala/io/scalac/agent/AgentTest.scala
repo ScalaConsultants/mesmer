@@ -16,8 +16,8 @@ import io.scalac.core.util.ModuleInfo.Modules
 
 class AgentTest extends AnyFlatSpec with Matchers {
 
-  val testModuleOne             = Module("test-module-1")
-  val testModuleTwo             = Module("test-module-2")
+  val testModuleOne: Module     = Module("test-module-1")
+  val testModuleTwo: Module     = Module("test-module-2")
   val moduleOneVersion: Version = Version(2, 2, 2)
   val moduleTwoVersion: Version = Version(3, 3, 3)
   val modules: Modules          = Map(testModuleOne -> moduleOneVersion, testModuleTwo -> moduleTwoVersion)

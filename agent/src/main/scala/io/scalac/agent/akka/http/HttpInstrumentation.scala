@@ -3,8 +3,11 @@ package io.scalac.agent.akka.http
 import java.lang.reflect.Method
 import java.util.UUID
 
-import scala.concurrent.Future
-
+import _root_.akka.http.scaladsl.model.HttpRequest
+import _root_.akka.http.scaladsl.model.HttpResponse
+import _root_.akka.http.scaladsl.settings.ServerSettings
+import _root_.akka.stream.BidiShape
+import _root_.akka.stream.Materializer
 import akka.actor.typed.scaladsl.adapter._
 import akka.event.LoggingAdapter
 import akka.http.scaladsl.ConnectionContext
@@ -16,13 +19,9 @@ import akka.stream.scaladsl.Flow
 import akka.stream.scaladsl.GraphDSL
 import akka.stream.scaladsl.Source
 import akka.stream.scaladsl.Zip
-
-import _root_.akka.http.scaladsl.model.HttpRequest
-import _root_.akka.http.scaladsl.model.HttpResponse
-import _root_.akka.http.scaladsl.settings.ServerSettings
-import _root_.akka.stream.BidiShape
-import _root_.akka.stream.Materializer
 import net.bytebuddy.implementation.bind.annotation._
+
+import scala.concurrent.Future
 
 import io.scalac.core.akka.stream.BidiFlowForward
 import io.scalac.core.model._

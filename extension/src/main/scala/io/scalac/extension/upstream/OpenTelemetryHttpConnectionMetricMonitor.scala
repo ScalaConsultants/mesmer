@@ -61,7 +61,8 @@ class OpenTelemetryHttpConnectionMetricMonitor(
       with RegisterRoot {
     private val openTelemetryLabels = LabelsFactory.of(labels.serialize)
 
-    override val connectionCounter = upDownCounter(connectionTotalCounter, openTelemetryLabels).register(this)
+    override val connectionCounter: WrappedUpDownCounter =
+      upDownCounter(connectionTotalCounter, openTelemetryLabels).register(this)
 
   }
 }

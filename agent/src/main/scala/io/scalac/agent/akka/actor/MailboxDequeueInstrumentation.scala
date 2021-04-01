@@ -1,8 +1,8 @@
 package io.scalac.agent.akka.actor
 
-import scala.concurrent.duration._
-
 import net.bytebuddy.asm.Advice._
+
+import scala.concurrent.duration._
 
 import io.scalac.extension.actor.ActorCellDecorator
 

@@ -3,11 +3,11 @@ package io.scalac.extension.util.probe
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicInteger
 
-import scala.collection.concurrent.{ Map => CMap }
-import scala.jdk.CollectionConverters._
-
 import akka.actor.testkit.typed.scaladsl.TestProbe
 import akka.actor.typed.ActorSystem
+
+import scala.collection.concurrent.{ Map => CMap }
+import scala.jdk.CollectionConverters._
 
 import io.scalac.extension.metric.HttpConnectionMetricMonitor
 import io.scalac.extension.metric.UpDownCounter

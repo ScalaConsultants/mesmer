@@ -1,8 +1,5 @@
 package io.scalac.agent.akka
 
-import scala.concurrent.duration._
-import scala.language.postfixOps
-
 import akka.actor.testkit.typed.scaladsl.TestProbe
 import akka.actor.typed
 import akka.actor.typed.receptionist.Receptionist
@@ -15,11 +12,13 @@ import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
 import akka.http.scaladsl.testkit.RouteTestTimeout
 import akka.http.scaladsl.testkit.ScalatestRouteTest
-
 import com.typesafe.config.Config
 import com.typesafe.config.ConfigFactory
 import org.scalatest.flatspec.AnyFlatSpecLike
 import org.scalatest.matchers.should.Matchers
+
+import scala.concurrent.duration._
+import scala.language.postfixOps
 
 import io.scalac.agent.utils.InstallAgent
 import io.scalac.extension.event.HttpEvent

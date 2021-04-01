@@ -1,9 +1,9 @@
 package io.scalac.extension.util
 
+import akka.actor.typed._
+
 import scala.reflect.ClassTag
 import scala.util.control.NoStackTrace
-
-import akka.actor.typed._
 
 import io.scalac.extension.util.FailingInterceptor.sendFailSignal
 

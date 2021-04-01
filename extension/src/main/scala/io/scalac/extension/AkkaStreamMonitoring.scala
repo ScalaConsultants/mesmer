@@ -3,14 +3,6 @@ package io.scalac.extension
 import java.util
 import java.util.concurrent.atomic.AtomicReference
 
-import scala.annotation.tailrec
-import scala.collection.mutable
-import scala.collection.mutable.ListBuffer
-import scala.concurrent.duration.FiniteDuration
-import scala.concurrent.duration._
-import scala.jdk.CollectionConverters._
-import scala.jdk.DurationConverters._
-
 import akka.actor.ActorRef
 import akka.actor.typed._
 import akka.actor.typed.receptionist.Receptionist.Register
@@ -19,6 +11,14 @@ import akka.actor.typed.scaladsl.ActorContext
 import akka.actor.typed.scaladsl.Behaviors
 import akka.actor.typed.scaladsl.TimerScheduler
 import akka.actor.typed.scaladsl.adapter._
+
+import scala.annotation.tailrec
+import scala.collection.mutable
+import scala.collection.mutable.ListBuffer
+import scala.concurrent.duration.FiniteDuration
+import scala.concurrent.duration._
+import scala.jdk.CollectionConverters._
+import scala.jdk.DurationConverters._
 
 import io.scalac.core.akka.model.PushMetrics
 import io.scalac.core.model.Tag.StageName

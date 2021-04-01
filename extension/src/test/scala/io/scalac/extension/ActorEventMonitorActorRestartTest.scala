@@ -1,18 +1,17 @@
 package io.scalac.extension
 
-import scala.concurrent.duration.FiniteDuration
-import scala.concurrent.duration._
-import scala.util.control.NoStackTrace
-
 import akka.actor.PoisonPill
 import akka.actor.testkit.typed.scaladsl.ScalaTestWithActorTestKit
 import akka.actor.typed.ActorRef
 import akka.actor.typed.ActorSystem
 import akka.actor.typed.SupervisorStrategy
 import akka.actor.typed.scaladsl.Behaviors
-
 import org.scalatest.concurrent.Eventually
 import org.scalatest.flatspec.AnyFlatSpecLike
+
+import scala.concurrent.duration.FiniteDuration
+import scala.concurrent.duration._
+import scala.util.control.NoStackTrace
 
 import io.scalac.core.util.TestCase.MonitorTestCaseContext.BasicContext
 import io.scalac.core.util.TestCase.MonitorWithBasicContextTestCaseFactory

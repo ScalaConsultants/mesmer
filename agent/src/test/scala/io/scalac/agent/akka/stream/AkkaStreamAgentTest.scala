@@ -1,9 +1,5 @@
 package io.scalac.agent.akka.stream
 
-import scala.concurrent.ExecutionContext
-import scala.concurrent.Future
-import scala.concurrent.duration._
-
 import akka.Done
 import akka.actor.ActorRef
 import akka.actor.testkit.typed.scaladsl.TestProbe
@@ -17,12 +13,15 @@ import akka.stream.BufferOverflowException
 import akka.stream.OverflowStrategy
 import akka.stream.QueueOfferResult
 import akka.stream.scaladsl._
-
 import org.scalatest._
 import org.scalatest.concurrent.Futures
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.flatspec.AnyFlatSpecLike
 import org.scalatest.matchers.should.Matchers
+
+import scala.concurrent.ExecutionContext
+import scala.concurrent.Future
+import scala.concurrent.duration._
 
 import io.scalac.agent.utils.InstallAgent
 import io.scalac.agent.utils.SafeLoadSystem

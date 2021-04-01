@@ -18,9 +18,9 @@ object AkkaPersistenceAgent {
 
   private[persistence] val logger = LoggerFactory.getLogger(AkkaPersistenceAgent.getClass)
 
-  val defaultVersion    = Version(2, 6, 8)
-  val supportedVersions = SupportedVersion.majors("2") && SupportedVersion.minors("6")
-  val moduleName        = Module("akka-persistence-typed")
+  val defaultVersion: Version             = Version(2, 6, 8)
+  val supportedVersions: SupportedVersion = SupportedVersion.majors("2") && SupportedVersion.minors("6")
+  val moduleName: Module                  = Module("akka-persistence-typed")
 
   private val recoveryStartedAgent = AgentInstrumentation(
     "akka.persistence.typed.internal.ReplayingSnapshot",
@@ -84,7 +84,7 @@ object AkkaPersistenceAgent {
     LoadingResult("akka.persistence.typed.internal.Running$StoringSnapshot")
   }
 
-  val agent =
+  val agent: Agent =
     Agent(
       recoveryStartedAgent,
       recoveryCompletedAgent,

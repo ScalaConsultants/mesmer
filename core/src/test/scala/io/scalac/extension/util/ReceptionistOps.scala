@@ -7,7 +7,6 @@ import akka.actor.typed.receptionist.Receptionist.Listing
 import akka.actor.typed.receptionist.ServiceKey
 import akka.actor.typed.scaladsl.AskPattern._
 import akka.util.Timeout
-
 import org.scalatest.Inside
 import org.scalatest.LoneElement
 import org.scalatest.concurrent.Eventually

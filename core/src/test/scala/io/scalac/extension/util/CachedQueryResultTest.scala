@@ -1,9 +1,9 @@
 package io.scalac.extension.util
 
-import scala.concurrent.duration._
-
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
+
+import scala.concurrent.duration._
 
 class CachedQueryResultTest extends AnyFlatSpec with Matchers {
 

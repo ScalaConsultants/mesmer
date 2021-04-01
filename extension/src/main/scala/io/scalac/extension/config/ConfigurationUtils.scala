@@ -1,11 +1,11 @@
 package io.scalac.extension.config
 
+import com.typesafe.config.Config
+import com.typesafe.config.ConfigException
+
 import scala.reflect.ClassTag
 import scala.reflect.classTag
 import scala.util.Try
-
-import com.typesafe.config.Config
-import com.typesafe.config.ConfigException
 
 object ConfigurationUtils {
 

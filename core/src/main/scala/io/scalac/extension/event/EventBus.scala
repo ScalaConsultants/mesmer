@@ -2,16 +2,16 @@ package io.scalac.extension.event
 
 import java.util.UUID
 
-import scala.concurrent.ExecutionContext
-import scala.concurrent.duration._
-import scala.language.postfixOps
-
 import akka.actor.typed._
 import akka.actor.typed.receptionist.Receptionist
 import akka.actor.typed.receptionist.Receptionist.Subscribe
 import akka.actor.typed.receptionist.ServiceKey
 import akka.actor.typed.scaladsl.Behaviors
 import akka.util.Timeout
+
+import scala.concurrent.ExecutionContext
+import scala.concurrent.duration._
+import scala.language.postfixOps
 
 import io.scalac.extension.util.MutableTypedMap
 

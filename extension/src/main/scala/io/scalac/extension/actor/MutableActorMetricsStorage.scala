@@ -1,8 +1,8 @@
 package io.scalac.extension.actor
 
-import scala.collection.mutable
-
 import akka.actor.ActorRef
+
+import scala.collection.mutable
 
 import io.scalac.core.model.ActorKey
 import io.scalac.extension.resource.MutableStorage

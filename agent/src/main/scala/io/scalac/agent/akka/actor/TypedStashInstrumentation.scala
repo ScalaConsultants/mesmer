@@ -1,7 +1,6 @@
 package io.scalac.agent.akka.actor
 
 import akka.actor.typed.scaladsl.ActorContext
-
 import net.bytebuddy.asm.Advice._
 
 import io.scalac.extension.event.ActorEvent.StashMeasurement

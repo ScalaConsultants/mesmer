@@ -1,6 +1,4 @@
 package io.scalac.extension
-import scala.concurrent.duration._
-
 import akka.actor.PoisonPill
 import akka.actor.testkit.typed.javadsl.FishingOutcomes
 import akka.actor.testkit.typed.scaladsl.TestProbe
@@ -11,9 +9,10 @@ import akka.actor.typed.receptionist.ServiceKey
 import akka.actor.typed.scaladsl.Behaviors
 import akka.actor.typed.scaladsl.StashBuffer
 import akka.util.Timeout
-
 import org.scalatest.TestSuite
 import org.scalatest.concurrent.ScaledTimeSpans
+
+import scala.concurrent.duration._
 
 import io.scalac.core.model._
 import io.scalac.core.util.ActorPathOps

@@ -1,13 +1,12 @@
 package io.scalac.extension.event
 
 import akka.actor.typed.receptionist.ServiceKey
-
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
 class ServiceTest extends AnyFlatSpec with Matchers {
-  val anyServiceKey    = ServiceKey[Any]("somekey")
-  val stringServiceKey = ServiceKey[String]("otherkey")
+  val anyServiceKey: ServiceKey[Any]       = ServiceKey[Any]("somekey")
+  val stringServiceKey: ServiceKey[String] = ServiceKey[String]("otherkey")
 
   "Service" should "should equal if internal serviceKey equals" in {
     val serviceLeft  = Service(anyServiceKey)

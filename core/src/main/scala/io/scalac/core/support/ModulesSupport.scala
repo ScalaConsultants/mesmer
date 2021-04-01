@@ -13,12 +13,12 @@ trait ModulesSupport {
 }
 
 object ModulesSupport extends ModulesSupport {
-  val akkaHttpModule             = Module("akka-http")
-  val akkaClusterTypedModule     = Module("akka-cluster-typed")
-  val akkaPersistenceTypedModule = Module("akka-persistence-typed")
-  val akkaActorTypedModule       = Module("akka-actor-typed")
-  val akkaActorModule            = Module("akka-actor")
-  val akkaStreamModule           = Module("akka-stream")
+  val akkaHttpModule: Module             = Module("akka-http")
+  val akkaClusterTypedModule: Module     = Module("akka-cluster-typed")
+  val akkaPersistenceTypedModule: Module = Module("akka-persistence-typed")
+  val akkaActorTypedModule: Module       = Module("akka-actor-typed")
+  val akkaActorModule: Module            = Module("akka-actor")
+  val akkaStreamModule: Module           = Module("akka-stream")
 
   override def akkaActor: SupportedVersion = majors("2").and(minors("6")).and(patches("8"))
 

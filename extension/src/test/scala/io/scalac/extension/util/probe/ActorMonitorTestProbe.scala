@@ -29,7 +29,7 @@ final case class ActorMonitorTestProbe(
     with BindUnbindMonitor
     with Collected {
 
-  def bind() = {
+  def bind(): ActorMonitorTestBoundMonitor with UnbindMonitor = {
     onBind()
     new ActorMonitorTestBoundMonitor with UnbindMonitor
   }

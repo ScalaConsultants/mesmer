@@ -2,9 +2,6 @@ package io.scalac.agent.akka.http
 
 import java.lang.reflect.Method
 
-import scala.concurrent.ExecutionContextExecutor
-import scala.concurrent.Future
-
 import akka.http.scaladsl.model.HttpRequest
 import akka.http.scaladsl.model.HttpResponse
 import akka.http.scaladsl.server._
@@ -12,9 +9,11 @@ import akka.http.scaladsl.settings.ParserSettings
 import akka.http.scaladsl.settings.RoutingSettings
 import akka.stream.Materializer
 import akka.stream.SystemMaterializer
-
 import net.bytebuddy.implementation.bind.annotation.SuperMethod
 import net.bytebuddy.implementation.bind.annotation.This
+
+import scala.concurrent.ExecutionContextExecutor
+import scala.concurrent.Future
 
 import io.scalac.agent.util.FunctionOps._
 

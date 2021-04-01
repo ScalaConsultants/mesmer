@@ -1,9 +1,5 @@
 package io.scalac.api
 
-import scala.util.Failure
-import scala.util.Success
-import scala.util.Try
-
 import akka.actor.typed.ActorRef
 import akka.actor.typed.ActorSystem
 import akka.actor.typed.scaladsl.AskPattern._
@@ -12,8 +8,11 @@ import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server._
 import akka.util.Timeout
-
 import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport
+
+import scala.util.Failure
+import scala.util.Success
+import scala.util.Try
 
 import io.scalac.domain.AccountStateActor
 import io.scalac.domain.JsonCodecs

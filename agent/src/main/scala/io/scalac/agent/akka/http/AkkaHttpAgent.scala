@@ -70,5 +70,5 @@ object AkkaHttpAgent {
     LoadingResult("akka.http.scaladsl.HttpExt")
   }
 
-  val agent = Agent(httpAgent)
+  val agent: Agent = Agent(httpAgent)
 }

@@ -2,8 +2,6 @@ package io.scalac.agent.akka
 
 import java.util.UUID
 
-import scala.concurrent.duration._
-
 import _root_.akka.actor.testkit.typed.scaladsl.TestProbe
 import _root_.akka.actor.typed.receptionist.Receptionist
 import _root_.akka.actor.typed.receptionist.Receptionist.Deregister
@@ -16,6 +14,8 @@ import org.scalatest.matchers.should.Matchers
 import org.scalatest.time.Minute
 import org.scalatest.time.Second
 import org.scalatest.time.Span
+
+import scala.concurrent.duration._
 
 import io.scalac.agent.utils.DummyEventSourcedActor
 import io.scalac.agent.utils.DummyEventSourcedActor.DoNothing
@@ -36,7 +36,7 @@ class AkkaPersistenceAgentSpec
     with ReceptionistOps
     with SafeLoadSystem {
 
-  implicit val askTimeout = Timeout(1.minute)
+  implicit val askTimeout: Timeout = Timeout(1.minute)
   override implicit val patienceConfig: PatienceConfig =
     PatienceConfig(scaled(Span(1, Minute)), scaled(Span(1, Second)))
 

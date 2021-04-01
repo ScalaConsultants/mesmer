@@ -75,9 +75,10 @@ class OpenTelemetryHttpMetricsMonitor(
       with RegisterRoot {
     private val openTelemetryLabels = LabelsFactory.of(labels.serialize)
 
-    override val requestTime = metricRecorder(requestTimeRequest, openTelemetryLabels).register(this)
+    override val requestTime: WrappedLongValueRecorder =
+      metricRecorder(requestTimeRequest, openTelemetryLabels).register(this)
 
-    override val requestCounter = counter(requestTotalCounter, openTelemetryLabels).register(this)
+    override val requestCounter: WrappedCounter = counter(requestTotalCounter, openTelemetryLabels).register(this)
 
   }
 }

@@ -5,7 +5,7 @@ import io.scalac.core.model.Tag.StreamName.StreamNameLabel
 sealed trait Tag extends Any {
   def serialize: Seq[(String, String)]
 
-  override def toString =
+  override def toString: String =
     this.serialize.map { case (label, value) =>
       s"$label -> $value"
     }.mkString("[", ", ", "]")

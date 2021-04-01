@@ -1,12 +1,12 @@
 package io.scalac.extension
 
-import scala.concurrent.duration._
-import scala.reflect.ClassTag
-
 import akka.actor.typed.Behavior
 import akka.actor.typed.BehaviorInterceptor
 import akka.actor.typed.TypedActorContext
 import akka.actor.typed.scaladsl.Behaviors
+
+import scala.concurrent.duration._
+import scala.reflect.ClassTag
 
 import io.scalac.extension.resource.SelfCleaning
 

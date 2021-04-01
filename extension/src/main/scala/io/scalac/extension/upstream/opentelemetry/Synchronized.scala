@@ -1,9 +1,9 @@
 package io.scalac.extension.upstream.opentelemetry
-import scala.collection.mutable.ListBuffer
-
 import io.opentelemetry.api.common.Labels
 import io.opentelemetry.api.metrics.BatchRecorder
 import io.opentelemetry.api.metrics.Meter
+
+import scala.collection.mutable.ListBuffer
 
 import io.scalac.extension.metric.{ Synchronized => BaseSynchronized }
 

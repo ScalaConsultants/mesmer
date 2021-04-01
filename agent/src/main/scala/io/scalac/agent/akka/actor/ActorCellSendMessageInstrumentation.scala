@@ -1,7 +1,6 @@
 package io.scalac.agent.akka.actor
 
 import akka.actor.Actor
-
 import net.bytebuddy.asm.Advice._
 
 import io.scalac.core.util.ActorRefOps

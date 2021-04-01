@@ -1,10 +1,5 @@
 package io.scalac.extension
 
-import scala.concurrent.ExecutionContext
-import scala.concurrent.Future
-import scala.concurrent.duration._
-import scala.jdk.DurationConverters.JavaDurationOps
-
 import akka.actor.typed.ActorSystem
 import akka.actor.typed.Behavior
 import akka.actor.typed.PostStop
@@ -16,8 +11,12 @@ import akka.cluster.sharding.ShardRegion.GetShardRegionStats
 import akka.cluster.sharding.ShardRegion.ShardRegionStats
 import akka.pattern.ask
 import akka.util.Timeout
-
 import org.slf4j.LoggerFactory
+
+import scala.concurrent.ExecutionContext
+import scala.concurrent.Future
+import scala.concurrent.duration._
+import scala.jdk.DurationConverters.JavaDurationOps
 
 import io.scalac.core.model._
 import io.scalac.extension.config.ConfigurationUtils.ConfigOps

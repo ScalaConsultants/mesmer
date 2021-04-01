@@ -3,21 +3,20 @@ package io.scalac.extension
 import java.net.URI
 import java.util.Collections
 
-import scala.concurrent.duration._
-import scala.language.postfixOps
-import scala.reflect.ClassTag
-import scala.util.Try
-
 import akka.actor.ExtendedActorSystem
 import akka.actor.typed._
 import akka.actor.typed.scaladsl.Behaviors
 import akka.cluster.Cluster
 import akka.util.Timeout
-
 import com.newrelic.telemetry.Attributes
 import com.newrelic.telemetry.opentelemetry.`export`.NewRelicMetricExporter
 import io.opentelemetry.sdk.OpenTelemetrySdk
 import io.opentelemetry.sdk.metrics.`export`.IntervalMetricReader
+
+import scala.concurrent.duration._
+import scala.language.postfixOps
+import scala.reflect.ClassTag
+import scala.util.Try
 
 import io.scalac.core.model.Module
 import io.scalac.core.model.SupportedVersion

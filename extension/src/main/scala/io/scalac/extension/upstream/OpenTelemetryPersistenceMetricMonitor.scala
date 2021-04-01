@@ -102,18 +102,19 @@ class OpenTelemetryPersistenceMetricMonitor(instrumentationName: String, metricN
       with RegisterRoot
       with SynchronousInstrumentFactory {
     private val openTelemetryLabels = LabelsFactory.of(labels.serialize)
-    override lazy val recoveryTime  = metricRecorder(recoveryTimeRecorder, openTelemetryLabels).register(this)
+    override lazy val recoveryTime: WrappedLongValueRecorder =
+      metricRecorder(recoveryTimeRecorder, openTelemetryLabels).register(this)
 
-    override lazy val persistentEvent =
+    override lazy val persistentEvent: WrappedLongValueRecorder =
       metricRecorder(persistentEventRecorder, openTelemetryLabels).register(this)
 
-    override lazy val persistentEventTotal =
+    override lazy val persistentEventTotal: WrappedCounter =
       counter(persistentEventTotalCounter, openTelemetryLabels).register(this)
 
-    override lazy val snapshot =
+    override lazy val snapshot: WrappedCounter =
       counter(snapshotCounter, openTelemetryLabels).register(this)
 
-    override lazy val recoveryTotal =
+    override lazy val recoveryTotal: WrappedCounter =
       counter(recoveryTotalCounter, openTelemetryLabels).register(this)
 
   }

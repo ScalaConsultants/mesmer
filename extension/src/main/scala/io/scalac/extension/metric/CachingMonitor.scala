@@ -2,10 +2,10 @@ package io.scalac.extension.metric
 
 import java.util
 
+import org.slf4j.LoggerFactory
+
 import scala.collection.mutable.{ Map => MutableMap }
 import scala.jdk.CollectionConverters._
-
-import org.slf4j.LoggerFactory
 
 import io.scalac.core.LabelSerializable
 import io.scalac.extension.config.CachingConfig

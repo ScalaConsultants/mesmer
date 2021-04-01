@@ -1,10 +1,10 @@
 package io.scalac.extension.http
 
-import scala.collection.mutable
-import scala.concurrent.duration._
-
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
+
+import scala.collection.mutable
+import scala.concurrent.duration._
 
 import io.scalac.core.model._
 import io.scalac.core.util.Timestamp

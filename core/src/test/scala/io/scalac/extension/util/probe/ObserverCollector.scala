@@ -1,10 +1,10 @@
 package io.scalac.extension.util.probe
 
-import scala.collection.concurrent.TrieMap
-import scala.concurrent.duration.FiniteDuration
-
 import akka.actor.testkit.typed.scaladsl.TestProbe
 import akka.actor.typed.ActorSystem
+
+import scala.collection.concurrent.TrieMap
+import scala.concurrent.duration.FiniteDuration
 
 import io.scalac.extension.util.probe.ObserverCollector.ProbeKey
 

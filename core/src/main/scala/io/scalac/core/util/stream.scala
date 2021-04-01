@@ -1,7 +1,7 @@
 package io.scalac.core.util
-import scala.annotation.tailrec
-
 import akka.actor.ActorRef
+
+import scala.annotation.tailrec
 
 import io.scalac.core.model.Tag._
 

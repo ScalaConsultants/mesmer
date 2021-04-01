@@ -1,11 +1,11 @@
 package io.scalac.extension.http
 
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
+
 import scala.collection.mutable
 import scala.concurrent.duration._
 import scala.util.Random
-
-import org.scalatest.flatspec.AnyFlatSpec
-import org.scalatest.matchers.should.Matchers
 
 import io.scalac.core.model._
 import io.scalac.core.util.Timestamp

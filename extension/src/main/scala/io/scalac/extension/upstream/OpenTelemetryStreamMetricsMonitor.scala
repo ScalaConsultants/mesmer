@@ -9,6 +9,7 @@ import io.scalac.extension.metric.StreamMetricMonitor
 import io.scalac.extension.upstream.OpenTelemetryStreamMetricMonitor.MetricNames
 import io.scalac.extension.upstream.opentelemetry.LongSumObserverBuilderAdapter
 import io.scalac.extension.upstream.opentelemetry.SynchronousInstrumentFactory
+import io.scalac.extension.upstream.opentelemetry.WrappedLongValueRecorder
 
 object OpenTelemetryStreamMetricMonitor {
   case class MetricNames(runningStreams: String, streamActors: String, streamProcessed: String)
@@ -74,10 +75,10 @@ class OpenTelemetryStreamMetricMonitor(instrumentationName: String, metricNames:
       with SynchronousInstrumentFactory {
     private val openTelemetryLabels = LabelsFactory.of(labels.serialize)
 
-    override val runningStreamsTotal =
+    override val runningStreamsTotal: WrappedLongValueRecorder =
       metricRecorder(runningStreamsTotalRecorder, openTelemetryLabels).register(this)
 
-    override val streamActorsTotal =
+    override val streamActorsTotal: WrappedLongValueRecorder =
       metricRecorder(streamActorsTotalRecorder, openTelemetryLabels).register(this)
 
     override lazy val streamProcessedMessages: MetricObserver[Long, Labels] =

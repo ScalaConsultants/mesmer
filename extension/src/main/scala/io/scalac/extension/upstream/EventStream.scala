@@ -1,9 +1,5 @@
 package io.scalac.extension.upstream
 
-import scala.concurrent.Future
-import scala.concurrent.duration._
-import scala.language.postfixOps
-
 import akka.Done
 import akka.actor.ActorSystem
 import akka.http.scaladsl.Http
@@ -16,8 +12,11 @@ import akka.stream.OverflowStrategy
 import akka.stream.QueueOfferResult
 import akka.stream.scaladsl._
 import akka.util.ByteString
-
 import com.typesafe.config.Config
+
+import scala.concurrent.Future
+import scala.concurrent.duration._
+import scala.language.postfixOps
 
 import io.scalac.extension.config.ConfigurationUtils._
 import io.scalac.extension.model.Event

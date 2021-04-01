@@ -1,17 +1,16 @@
 package io.scalac.agent.utils
 
-import scala.concurrent.duration._
-
 import akka.actor.testkit.typed.scaladsl.TestProbe
 import akka.actor.typed.ActorSystem
 import akka.actor.typed.scaladsl.adapter._
 import akka.util.Timeout
 import akka.{ actor => classic }
-
 import com.typesafe.config.Config
 import com.typesafe.config.ConfigFactory
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.Suite
+
+import scala.concurrent.duration._
 
 trait SafeLoadSystem extends BeforeAndAfterAll {
   this: Suite =>

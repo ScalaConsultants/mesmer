@@ -1,12 +1,11 @@
 package io.scalac.agent.akka.persistence
 
-import scala.util.Try
-
 import akka.actor.typed.scaladsl.AbstractBehavior
 import akka.actor.typed.scaladsl.ActorContext
 import akka.persistence.SaveSnapshotSuccess
-
 import net.bytebuddy.asm.Advice._
+
+import scala.util.Try
 
 import io.scalac.core.model._
 import io.scalac.core.util.Timestamp

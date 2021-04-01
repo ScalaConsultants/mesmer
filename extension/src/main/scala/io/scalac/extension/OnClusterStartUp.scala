@@ -1,7 +1,5 @@
 package io.scalac.extension
 
-import scala.concurrent.duration.FiniteDuration
-
 import akka.actor.typed.Behavior
 import akka.actor.typed.scaladsl.Behaviors
 import akka.cluster.ClusterEvent.CurrentClusterState
@@ -9,6 +7,8 @@ import akka.cluster.Member
 import akka.cluster.typed.Cluster
 import akka.cluster.typed.SelfUp
 import akka.cluster.typed.Subscribe
+
+import scala.concurrent.duration.FiniteDuration
 
 object OnClusterStartUp {
 

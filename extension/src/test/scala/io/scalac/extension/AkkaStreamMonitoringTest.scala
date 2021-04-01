@@ -1,7 +1,5 @@
 package io.scalac.extension
 
-import scala.concurrent.duration._
-
 import akka.actor.testkit.typed.scaladsl.ScalaTestWithActorTestKit
 import akka.actor.testkit.typed.scaladsl.TestProbe
 import akka.actor.typed.ActorRef
@@ -10,12 +8,13 @@ import akka.actor.typed.Behavior
 import akka.actor.typed.receptionist.ServiceKey
 import akka.actor.typed.scaladsl.Behaviors
 import akka.actor.typed.scaladsl.adapter._
-
 import org.scalatest._
 import org.scalatest.concurrent.Eventually
 import org.scalatest.enablers.Emptiness.emptinessOfOption
 import org.scalatest.flatspec.AnyFlatSpecLike
 import org.scalatest.matchers.should.Matchers
+
+import scala.concurrent.duration._
 
 import io.scalac.core.akka.model.PushMetrics
 import io.scalac.core.model.Tag.StageName
