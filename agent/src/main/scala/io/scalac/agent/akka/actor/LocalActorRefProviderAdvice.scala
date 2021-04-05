@@ -9,8 +9,6 @@ class LocalActorRefProviderAdvice
 object LocalActorRefProviderAdvice {
 
   @OnMethodExit
-  def actorOf(@Return ref: ActorRef, @Argument(0) system: ActorSystem): Unit = {
-    println(s"Create ref ${ref}")
+  def actorOf(@Return ref: ActorRef, @Argument(0) system: ActorSystem): Unit =
     EventBus(system.toTyped).publishEvent(ActorCreated(ref))
-  }
 }

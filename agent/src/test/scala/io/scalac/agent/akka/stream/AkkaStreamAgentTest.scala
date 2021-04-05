@@ -37,10 +37,13 @@ class AkkaStreamAgentTest
     with Inside
     with CommonMonitorTestFactory {
 
-  protected def createMonitorBehavior(implicit context: Context): Behavior[_] =
+
+  override type Command = StreamEvent
+
+  protected def createMonitorBehavior(implicit context: Context): Behavior[Command] =
     ReceptionistPass(Service.streamService.serviceKey, monitor.ref)
 
-  protected val serviceKey: ServiceKey[_] = Service.streamService.serviceKey
+  protected val serviceKey: ServiceKey[Command] = Service.streamService.serviceKey
 
   type Monitor = TestProbe[StreamEvent]
   protected def createMonitor(implicit system: ActorSystem[_]): Monitor = TestProbe()
