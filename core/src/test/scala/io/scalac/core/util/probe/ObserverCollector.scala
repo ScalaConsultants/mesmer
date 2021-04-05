@@ -11,8 +11,8 @@ import scala.concurrent.duration.FiniteDuration
  * Emulates backend collector behavior: to register updaters to collect it later.
  */
 trait ObserverCollector {
-  private[util] def update(probe: TestProbe[_], cb: () => Unit): Unit
-  private[util] def finish(probe: TestProbe[_]): Unit = {
+  private[scalac] def update(probe: TestProbe[_], cb: () => Unit): Unit
+  private[scalac] def finish(probe: TestProbe[_]): Unit = {
     remove(ProbeKey(probe))
     probe.stop()
   }
@@ -32,7 +32,7 @@ object ObserverCollector {
 
     private[this] val observers = TrieMap.empty[ProbeKey, () => Unit]
 
-    private[util] def update(probe: TestProbe[_], cb: () => Unit): Unit = observers(ProbeKey(probe)) = cb
+    private[scalac] def update(probe: TestProbe[_], cb: () => Unit): Unit = observers(ProbeKey(probe)) = cb
     protected def remove(key: ProbeKey): Unit                           = observers - key
     def collectAll(): Unit                                              = observers.foreach(_._2.apply())
   }

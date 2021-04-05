@@ -216,7 +216,7 @@ object AkkaActorAgent {
     ) { (agentBuilder, instrumentation, _) =>
       agentBuilder
         .`type`(
-          hasSuperType[TypeDescription](named[TypeDescription](stashBufferImpl))
+          named[TypeDescription](stashBufferImpl)
         )
         .transform { (builder, _, _, _) =>
           builder
@@ -228,6 +228,26 @@ object AkkaActorAgent {
     }
   }
 
+  private val localActorRefProviderInstrumentation = {
+    val localRefProvider = "akka.actor.LocalActorRefProvider"
+    AgentInstrumentation(
+      localRefProvider,
+      SupportedModules(moduleName, version)
+    ) { (agentBuilder, instrumentation, _) =>
+      agentBuilder
+        .`type`(
+          named[TypeDescription](localRefProvider)
+        )
+        .transform { (builder, _, _, _) =>
+          builder
+            .method(named[MethodDescription]("actorOf"))
+            .intercept(Advice.to(classOf[LocalActorRefProviderAdvice]))
+        }
+        .installOn(instrumentation)
+      LoadingResult(localRefProvider)
+    }
+  }
+
   val agent: Agent = Agent(
     mailboxTimeTimestampInstrumentation,
     mailboxTimeSendMessageInstrumentation,
@@ -235,7 +255,8 @@ object AkkaActorAgent {
     actorCellInstrumentation,
     actorInstrumentation,
     abstractSupervisionInstrumentation,
-    stashBufferImplementation
+    stashBufferImplementation,
+    localActorRefProviderInstrumentation
   ) ++ classicStashInstrumentationAgent
 
 }

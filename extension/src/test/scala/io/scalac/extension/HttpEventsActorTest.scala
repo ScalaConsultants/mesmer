@@ -2,23 +2,23 @@ package io.scalac.extension
 
 import akka.actor.testkit.typed.scaladsl.ScalaTestWithActorTestKit
 import akka.actor.typed.receptionist.ServiceKey
-import akka.actor.typed.{ ActorSystem, Behavior }
+import akka.actor.typed.{ActorSystem, Behavior}
 import io.scalac.core._
 import io.scalac.core.event.EventBus
-import io.scalac.core.event.HttpEvent.{ ConnectionCompleted, ConnectionStarted, RequestCompleted, RequestStarted }
+import io.scalac.core.event.HttpEvent.{ConnectionCompleted, ConnectionStarted, RequestCompleted, RequestStarted}
 import io.scalac.core.model._
 import io.scalac.core.util.TestCase.CommonMonitorTestFactory
 import io.scalac.core.util.TestCase.MonitorTestCaseContext.BasicContext
-import io.scalac.core.util.probe.BoundTestProbe._
-import io.scalac.core.util.probe.HttpMetricsTestProbe
-import io.scalac.core.util.{ IdentityPathService, TestOps, Timestamp, _ }
+import io.scalac.extension.util.probe.BoundTestProbe._
+import io.scalac.core.util.{TestOps, Timestamp, _}
 import io.scalac.extension.http.MutableRequestStorage
-import io.scalac.extension.metric.{ CachingMonitor, HttpConnectionMetricMonitor, HttpMetricMonitor }
-import io.scalac.extension.util.probe.HttpConnectionMetricsTestProbe
+import io.scalac.extension.metric.{CachingMonitor, HttpConnectionMetricMonitor, HttpMetricMonitor}
+import io.scalac.extension.util.IdentityPathService
+import io.scalac.extension.util.probe.{HttpConnectionMetricsTestProbe, HttpMetricsTestProbe}
 import org.scalatest.concurrent.Eventually
 import org.scalatest.flatspec.AnyFlatSpecLike
 import org.scalatest.matchers.should.Matchers
-import org.scalatest.{ Status => _, _ }
+import org.scalatest.{Status => _, _}
 
 import scala.concurrent.duration._
 import scala.language.postfixOps
@@ -37,11 +37,12 @@ class HttpEventsActorTest
     with CommonMonitorTestFactory {
 
   type Monitor = MonitorImpl
+  type Command = HttpEventsActor.Event
   case class MonitorImpl(request: HttpMetricsTestProbe, connection: HttpConnectionMetricsTestProbe)
 
   protected val serviceKey: ServiceKey[_] = httpServiceKey
 
-  protected def createMonitorBehavior(implicit context: BasicContext[Monitor]): Behavior[_] = {
+  protected def createMonitorBehavior(implicit context: BasicContext[Monitor]): Behavior[Command] = {
     val MonitorImpl(requestMonitor, connectionMonitor) = monitor
     HttpEventsActor(
       if (context.caching) CachingMonitor(requestMonitor) else requestMonitor,

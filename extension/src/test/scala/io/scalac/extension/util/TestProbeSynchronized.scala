@@ -1,8 +1,8 @@
-package io.scalac.core.util
+package io.scalac.extension.util
 
-import io.scalac.core.util.probe.BoundTestProbe.{ Dec, Inc, MetricRecorded }
-import io.scalac.core.util.probe.{ RecorderTestProbeWrapper, SyncTestProbeWrapper, UpDownCounterTestProbeWrapper }
 import io.scalac.extension.metric.Synchronized
+import io.scalac.extension.util.probe.BoundTestProbe.{ Dec, Inc, MetricRecorded }
+import io.scalac.extension.util.probe.{ RecorderTestProbeWrapper, SyncTestProbeWrapper, UpDownCounterTestProbeWrapper }
 
 trait TestProbeSynchronized extends Synchronized {
   override type Instrument[L] = SyncTestProbeWrapper

@@ -1,7 +1,5 @@
 package io.scalac.core.event
 
-import java.util.UUID
-
 import akka.actor.typed._
 import akka.actor.typed.receptionist.Receptionist.Subscribe
 import akka.actor.typed.receptionist.{ Receptionist, ServiceKey }
@@ -9,9 +7,11 @@ import akka.actor.typed.scaladsl.Behaviors
 import akka.util.Timeout
 import io.scalac.core.util.MutableTypedMap
 
+import java.util.UUID
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
 import scala.language.postfixOps
+import scala.util.DynamicVariable
 
 trait EventBus extends Extension {
   def publishEvent[T <: AbstractEvent](event: T)(implicit service: Service[event.Service]): Unit
@@ -76,11 +76,20 @@ private[scalac] class ReceptionistBasedEventBus(implicit
 
   private[this] val serviceBuffers = MutableTypedMap[AbstractService, ServiceMapFunc]
 
-  def publishEvent[T <: AbstractEvent](event: T)(implicit service: Service[event.Service]): Unit = ref ! event
+  def publishEvent[T <: AbstractEvent](event: T)(implicit service: Service[event.Service]): Unit =
+    ref.fold(system.log.warn("Prevented positive loopback for event {}", event))(_ ! event)
 
-  @inline private def ref[S](implicit service: Service[S]): ActorRef[S] =
-    serviceBuffers.getOrCreate(service) {
-      system.log.debug("Initialize event buffer for service {}", service.serviceKey)
-      system.systemActorOf(cachingBehavior(service.serviceKey), UUID.randomUUID().toString)
-    }
+  private val positiveFeedbackLoopBarrierClosed = new DynamicVariable[Boolean](false)
+
+  @inline private def ref[S](implicit service: Service[S]): Option[ActorRef[S]] =
+    if (!positiveFeedbackLoopBarrierClosed.value) {
+      val ref = serviceBuffers.getOrCreate(service) {
+        positiveFeedbackLoopBarrierClosed.withValue(true) {
+          system.log.debug("Initialize event buffer for service {}", service.serviceKey)
+          system.systemActorOf(cachingBehavior(service.serviceKey), UUID.randomUUID().toString)
+        }
+      }
+      Some(ref)
+    } else None
+
 }

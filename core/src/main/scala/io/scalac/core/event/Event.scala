@@ -14,6 +14,9 @@ sealed trait ActorEvent extends AbstractEvent {
 }
 
 object ActorEvent {
+
+  // Actor termination will be extracted with watching facility
+  final case class ActorCreated(ref: ActorRef, tags: Set[Tag] = Set.empty) extends ActorEvent
 }
 
 sealed trait PersistenceEvent extends AbstractEvent {

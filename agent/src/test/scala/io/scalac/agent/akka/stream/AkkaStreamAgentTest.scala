@@ -6,21 +6,22 @@ import akka.actor.testkit.typed.scaladsl.TestProbe
 import akka.actor.typed.receptionist.Receptionist._
 import akka.actor.typed.receptionist.ServiceKey
 import akka.actor.typed.scaladsl.Behaviors
-import akka.actor.typed.{ ActorSystem, Behavior }
+import akka.actor.typed.{ActorSystem, Behavior}
 import akka.stream.scaladsl._
-import akka.stream.{ Attributes, BufferOverflowException, OverflowStrategy, QueueOfferResult }
-import io.scalac.agent.utils.{ InstallAgent, SafeLoadSystem }
+import akka.stream.{Attributes, BufferOverflowException, OverflowStrategy, QueueOfferResult}
+import io.scalac.agent.utils.{InstallAgent, SafeLoadSystem}
 import io.scalac.core.akka.model.PushMetrics
-import io.scalac.core.event.StreamEvent.{ LastStreamStats, StreamInterpreterStats }
-import io.scalac.core.event.{ Service, StreamEvent, TagEvent }
+import io.scalac.core.event.StreamEvent.{LastStreamStats, StreamInterpreterStats}
+import io.scalac.core.event.{Service, StreamEvent, TagEvent}
+import io.scalac.core.util.TestBehaviors.ReceptionistPass
 import io.scalac.core.util.TestCase.CommonMonitorTestFactory
 import org.scalatest._
-import org.scalatest.concurrent.{ Futures, ScalaFutures }
+import org.scalatest.concurrent.{Futures, ScalaFutures}
 import org.scalatest.flatspec.AnyFlatSpecLike
 import org.scalatest.matchers.should.Matchers
 
 import scala.concurrent.duration._
-import scala.concurrent.{ ExecutionContext, Future }
+import scala.concurrent.{ExecutionContext, Future}
 
 class AkkaStreamAgentTest
     extends InstallAgent
@@ -36,15 +37,8 @@ class AkkaStreamAgentTest
     with Inside
     with CommonMonitorTestFactory {
 
-  protected def createMonitorBehavior(implicit context: Context): Behavior[_] = Behaviors.setup[StreamEvent] {
-    actorContext =>
-      actorContext.system.receptionist ! Register(Service.streamService.serviceKey, actorContext.self)
-
-      Behaviors.receiveMessage[StreamEvent] { case event =>
-        context.monitor.ref ! event
-        Behaviors.same
-      }
-  }
+  protected def createMonitorBehavior(implicit context: Context): Behavior[_] =
+    ReceptionistPass(Service.streamService.serviceKey, monitor.ref)
 
   protected val serviceKey: ServiceKey[_] = Service.streamService.serviceKey
 

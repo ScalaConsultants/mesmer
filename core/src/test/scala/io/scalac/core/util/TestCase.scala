@@ -113,10 +113,12 @@ object TestCase {
   }
 
   trait MonitorWithActorRefSetupTestCaseFactory extends AbstractMonitorTestCaseFactory with TestOps {
-    type Setup = ActorRef[_] @@ SetupTag
+    type Command
+    type Setup = ActorRef[_ >: Command] @@ SetupTag
+
 
     // add-on api
-    protected def createMonitorBehavior(implicit context: Context): Behavior[_]
+    protected def createMonitorBehavior(implicit context: Context): Behavior[Command]
 
     // overrides
     override protected def setUp(context: Context): Setup = {

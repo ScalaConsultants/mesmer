@@ -2,19 +2,20 @@ package io.scalac.extension
 
 import akka.actor.testkit.typed.scaladsl.ScalaTestWithActorTestKit
 import akka.actor.typed.receptionist.ServiceKey
-import akka.actor.typed.{ ActorSystem, Behavior }
+import akka.actor.typed.{ActorSystem, Behavior}
 import io.scalac.core._
 import io.scalac.core.event.EventBus
 import io.scalac.core.event.PersistenceEvent._
 import io.scalac.core.model._
 import io.scalac.core.util.TestCase.CommonMonitorTestFactory
 import io.scalac.core.util.TestCase.MonitorTestCaseContext.BasicContext
-import io.scalac.core.util.probe.BoundTestProbe.{ Inc, MetricRecorded }
-import io.scalac.core.util.probe.PersistenceMetricTestProbe
-import io.scalac.core.util.{ IdentityPathService, TestConfig, Timestamp }
+import io.scalac.extension.util.probe.BoundTestProbe.{Inc, MetricRecorded}
+import io.scalac.core.util.{TestConfig, Timestamp}
 import io.scalac.extension.metric.CachingMonitor
 import io.scalac.extension.metric.PersistenceMetricMonitor.Labels
-import io.scalac.extension.persistence.{ ImmutablePersistStorage, ImmutableRecoveryStorage }
+import io.scalac.extension.persistence.{ImmutablePersistStorage, ImmutableRecoveryStorage}
+import io.scalac.extension.util.IdentityPathService
+import io.scalac.extension.util.probe.PersistenceMetricTestProbe
 import org.scalatest._
 import org.scalatest.flatspec.AnyFlatSpecLike
 import org.scalatest.matchers.should.Matchers
@@ -30,10 +31,11 @@ class PersistenceEventsActorTest
     with CommonMonitorTestFactory {
 
   type Monitor = PersistenceMetricTestProbe
+  type Command = PersistenceEventsActor.Event
 
   protected val serviceKey: ServiceKey[_] = persistenceServiceKey
 
-  protected def createMonitorBehavior(implicit context: BasicContext[PersistenceMetricTestProbe]): Behavior[_] =
+  protected def createMonitorBehavior(implicit context: BasicContext[PersistenceMetricTestProbe]): Behavior[Command] =
     PersistenceEventsActor(
       if (context.caching) CachingMonitor(monitor) else monitor,
       ImmutableRecoveryStorage.empty,

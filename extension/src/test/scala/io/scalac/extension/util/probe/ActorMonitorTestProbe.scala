@@ -1,10 +1,13 @@
-package io.scalac.core.util.probe
+package io.scalac.extension.util.probe
 
 import akka.actor.testkit.typed.scaladsl.TestProbe
 import akka.actor.typed.ActorSystem
+import io.scalac.core.util
+import io.scalac.core.util.probe.{Collected, ObserverCollector}
 import io.scalac.extension.metric.ActorMetricMonitor._
-import io.scalac.extension.metric.{ ActorMetricMonitor, MetricObserver }
-import io.scalac.core.util.probe.BoundTestProbe.MetricObserverCommand
+import io.scalac.extension.metric.{ActorMetricMonitor, MetricObserver}
+import io.scalac.extension.util.probe
+import BoundTestProbe.MetricObserverCommand
 
 final case class ActorMonitorTestProbe(
   mailboxSizeProbe: TestProbe[MetricObserverCommand[Labels]],
@@ -34,33 +37,33 @@ final case class ActorMonitorTestProbe(
 
   class ActorMonitorTestBoundMonitor extends BoundMonitor {
     val mailboxSize: MetricObserver[Long, Labels] =
-      ObserverTestProbeWrapper(mailboxSizeProbe, collector)
+      probe.ObserverTestProbeWrapper(mailboxSizeProbe, collector)
     val mailboxTimeAvg: MetricObserver[Long, Labels] =
-      ObserverTestProbeWrapper(mailboxTimeAvgProbe, collector)
+      probe.ObserverTestProbeWrapper(mailboxTimeAvgProbe, collector)
     val mailboxTimeMin: MetricObserver[Long, Labels] =
-      ObserverTestProbeWrapper(mailboxTimeMinProbe, collector)
+      probe.ObserverTestProbeWrapper(mailboxTimeMinProbe, collector)
     val mailboxTimeMax: MetricObserver[Long, Labels] =
-      ObserverTestProbeWrapper(mailboxTimeMaxProbe, collector)
+      probe.ObserverTestProbeWrapper(mailboxTimeMaxProbe, collector)
     val mailboxTimeSum: MetricObserver[Long, Labels] =
-      ObserverTestProbeWrapper(mailboxTimeSumProbe, collector)
+      probe.ObserverTestProbeWrapper(mailboxTimeSumProbe, collector)
     val stashSize: MetricObserver[Long, Labels] =
-      ObserverTestProbeWrapper(stashSizeProbe, collector)
+      probe.ObserverTestProbeWrapper(stashSizeProbe, collector)
     val receivedMessages: MetricObserver[Long, Labels] =
-      ObserverTestProbeWrapper(receivedMessagesProbe, collector)
+      probe.ObserverTestProbeWrapper(receivedMessagesProbe, collector)
     val processedMessages: MetricObserver[Long, Labels] =
-      ObserverTestProbeWrapper(processedMessagesProbe, collector)
+      probe.ObserverTestProbeWrapper(processedMessagesProbe, collector)
     val failedMessages: MetricObserver[Long, Labels] =
-      ObserverTestProbeWrapper(failedMessagesProbe, collector)
+      probe.ObserverTestProbeWrapper(failedMessagesProbe, collector)
     val processingTimeAvg: MetricObserver[Long, Labels] =
-      ObserverTestProbeWrapper(processingTimeAvgProbe, collector)
+      probe.ObserverTestProbeWrapper(processingTimeAvgProbe, collector)
     val processingTimeMin: MetricObserver[Long, Labels] =
-      ObserverTestProbeWrapper(processingTimeMinProbe, collector)
+      probe.ObserverTestProbeWrapper(processingTimeMinProbe, collector)
     val processingTimeMax: MetricObserver[Long, Labels] =
-      ObserverTestProbeWrapper(processingTimeMaxProbe, collector)
+      probe.ObserverTestProbeWrapper(processingTimeMaxProbe, collector)
     val processingTimeSum: MetricObserver[Long, Labels] =
-      ObserverTestProbeWrapper(processingTimeSumProbe, collector)
+      probe.ObserverTestProbeWrapper(processingTimeSumProbe, collector)
     val sentMessages: MetricObserver[Long, Labels] =
-      ObserverTestProbeWrapper(sentMessagesProbe, collector)
+      probe.ObserverTestProbeWrapper(sentMessagesProbe, collector)
 
     def unbind(): Unit = {
       collector.finish(mailboxSizeProbe)

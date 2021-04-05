@@ -1,11 +1,12 @@
-package io.scalac.core.util.probe
+package io.scalac.extension.util.probe
 
 import akka.actor.testkit.typed.scaladsl.TestProbe
 import akka.actor.typed.ActorSystem
+import io.scalac.core.util.probe.ObserverCollector
 import io.scalac.extension.metric.ClusterMetricsMonitor.Labels
 import io.scalac.extension.metric._
-import io.scalac.core.util.TestProbeSynchronized
-import io.scalac.core.util.probe.BoundTestProbe._
+import io.scalac.extension.util.{TestProbeSynchronized, probe}
+import BoundTestProbe._
 
 class ClusterMetricsTestProbe private (
   val shardPerRegionsProbe: TestProbe[MetricObserverCommand[Labels]],
@@ -24,14 +25,14 @@ class ClusterMetricsTestProbe private (
 
       private type CustomMetricObserver = MetricObserver[Long, Labels] with AsyncTestProbe[_]
 
-      override val shardPerRegions: CustomMetricObserver = ObserverTestProbeWrapper(shardPerRegionsProbe, collector)
+      override val shardPerRegions: CustomMetricObserver = probe.ObserverTestProbeWrapper(shardPerRegionsProbe, collector)
 
-      override val entityPerRegion: CustomMetricObserver = ObserverTestProbeWrapper(entityPerRegionProbe, collector)
+      override val entityPerRegion: CustomMetricObserver = probe.ObserverTestProbeWrapper(entityPerRegionProbe, collector)
 
       override val shardRegionsOnNode: CustomMetricObserver =
-        ObserverTestProbeWrapper(shardRegionsOnNodeProbe, collector)
+        probe.ObserverTestProbeWrapper(shardRegionsOnNodeProbe, collector)
 
-      override val entitiesOnNode: CustomMetricObserver = ObserverTestProbeWrapper(entitiesOnNodeProbe, collector)
+      override val entitiesOnNode: CustomMetricObserver = probe.ObserverTestProbeWrapper(entitiesOnNodeProbe, collector)
 
       override val reachableNodes: UpDownCounter[Long] with SyncTestProbeWrapper = UpDownCounterTestProbeWrapper(
         reachableNodesProbe

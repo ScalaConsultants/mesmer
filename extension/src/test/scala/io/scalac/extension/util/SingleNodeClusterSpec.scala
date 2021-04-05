@@ -1,4 +1,4 @@
-package io.scalac.core.util
+package io.scalac.extension.util
 
 import akka.actor.typed.scaladsl.AskPattern._
 import akka.actor.typed.scaladsl.Behaviors
@@ -9,8 +9,9 @@ import akka.cluster.sharding.typed.scaladsl.{ ClusterSharding, Entity, EntityTyp
 import akka.cluster.typed.{ Cluster, SelfUp, Subscribe }
 import akka.util.Timeout
 import com.typesafe.config.{ Config, ConfigFactory, ConfigValueFactory }
-import io.scalac.core.util.probe.ClusterMetricsTestProbe
 import io.scalac.core.util.probe.ObserverCollector.ScheduledCollectorImpl
+import io.scalac.core.util.{ PortGenerator, PortGeneratorImpl }
+import io.scalac.extension.util.probe.ClusterMetricsTestProbe
 import org.scalatest.{ Assertion, AsyncTestSuite }
 
 import java.util.UUID

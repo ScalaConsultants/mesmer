@@ -31,7 +31,7 @@ object OpenTelemetryClusterMetricsMonitor {
 
     def fromConfig(config: Config): MetricNames = {
       import io.scalac.extension.config.ConfigurationUtils._
-      val defaultCached = default
+      lazy val defaultCached = default
 
       config
         .tryValue("io.scalac.akka-monitoring.metrics.cluster-metrics")(
@@ -84,7 +84,7 @@ object OpenTelemetryClusterMetricsMonitor {
     new OpenTelemetryClusterMetricsMonitor(instrumentationName, MetricNames.fromConfig(config))
 }
 
-class OpenTelemetryClusterMetricsMonitor(instrumentationName: String, val metricNames: MetricNames)
+final class OpenTelemetryClusterMetricsMonitor(instrumentationName: String, val metricNames: MetricNames)
     extends ClusterMetricsMonitor {
 
   private[this] val meter = OpenTelemetry.getGlobalMeter(instrumentationName)
