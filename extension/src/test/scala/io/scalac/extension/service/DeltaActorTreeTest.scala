@@ -124,10 +124,11 @@ class DeltaActorTreeTest
     }
   }
 
-  it should "not publish initial actor tree state if no actors are created" in testCaseSetupContext { sut => implicit context =>
-    sut ! Subscribe(subscriber.ref)
+  it should "not publish initial actor tree state if no actors are created" in testCaseSetupContext {
+    sut => implicit context =>
+      sut ! Subscribe(subscriber.ref)
 
-    subscriber.expectNoMessage(ProbeTimeout)
+      subscriber.expectNoMessage(ProbeTimeout)
   }
 
   it should "not publish empty delta" in testCaseSetupContext { sut => implicit context =>

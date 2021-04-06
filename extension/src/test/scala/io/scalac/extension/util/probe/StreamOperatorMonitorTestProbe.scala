@@ -2,10 +2,10 @@ package io.scalac.extension.util.probe
 
 import akka.actor.testkit.typed.scaladsl.TestProbe
 import akka.actor.typed.ActorSystem
-import io.scalac.core.util.probe.{Collected, ObserverCollector}
-import io.scalac.extension.metric.StreamMetricMonitor.{BoundMonitor, Labels}
-import io.scalac.extension.metric.{StreamMetricMonitor, StreamOperatorMetricsMonitor}
-import BoundTestProbe.{MetricObserverCommand, MetricRecorderCommand}
+import io.scalac.core.util.probe.{ Collected, ObserverCollector }
+import io.scalac.extension.metric.StreamMetricMonitor.{ BoundMonitor, Labels }
+import io.scalac.extension.metric.{ StreamMetricMonitor, StreamOperatorMetricsMonitor }
+import BoundTestProbe.{ MetricObserverCommand, MetricRecorderCommand }
 import io.scalac.extension.util.probe
 
 final case class StreamOperatorMonitorTestProbe(

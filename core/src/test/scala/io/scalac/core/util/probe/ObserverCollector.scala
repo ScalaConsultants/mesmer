@@ -33,8 +33,8 @@ object ObserverCollector {
     private[this] val observers = TrieMap.empty[ProbeKey, () => Unit]
 
     private[scalac] def update(probe: TestProbe[_], cb: () => Unit): Unit = observers(ProbeKey(probe)) = cb
-    protected def remove(key: ProbeKey): Unit                           = observers - key
-    def collectAll(): Unit                                              = observers.foreach(_._2.apply())
+    protected def remove(key: ProbeKey): Unit                             = observers - key
+    def collectAll(): Unit                                                = observers.foreach(_._2.apply())
   }
 
   abstract class ScheduledCollector(val pingOffset: FiniteDuration) { self: ObserverCollector =>

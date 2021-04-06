@@ -116,7 +116,6 @@ object TestCase {
     type Command
     type Setup = ActorRef[_ >: Command] @@ SetupTag
 
-
     // add-on api
     protected def createMonitorBehavior(implicit context: Context): Behavior[Command]
 

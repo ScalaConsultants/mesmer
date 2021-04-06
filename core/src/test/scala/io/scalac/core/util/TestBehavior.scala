@@ -3,8 +3,8 @@ package io.scalac.core.util
 import akka.actor.typed.receptionist.Receptionist.Register
 import akka.actor.typed.receptionist.ServiceKey
 import akka.actor.typed.scaladsl.Behaviors
-import akka.actor.typed.{ActorRef, Behavior}
-import akka.actor.{Actor, ActorLogging, Props}
+import akka.actor.typed.{ ActorRef, Behavior }
+import akka.actor.{ Actor, ActorLogging, Props }
 
 import scala.util.control.NoStackTrace
 

@@ -5,9 +5,9 @@ import akka.actor.testkit.typed.scaladsl.TestProbe
 import akka.actor.typed.ActorSystem
 import akka.actor.typed.scaladsl.adapter._
 import akka.util.Timeout
-import akka.{actor => classic}
-import com.typesafe.config.{Config, ConfigFactory}
-import org.scalatest.{BeforeAndAfterAll, Suite}
+import akka.{ actor => classic }
+import com.typesafe.config.{ Config, ConfigFactory }
+import org.scalatest.{ BeforeAndAfterAll, Suite }
 
 import scala.concurrent.duration._
 
@@ -19,19 +19,15 @@ trait SafeLoadSystem extends BeforeAndAfterAll {
 
   protected def config: Config = ConfigFactory.load("application-test")
 
-
   //dsl
   def createTestProbe[M]: TestProbe[M] = TestProbe[M]()
 
   def classicSystem: ExtendedActorSystem = system.classicSystem.asInstanceOf[ExtendedActorSystem]
 
-
   override protected def beforeAll(): Unit = {
     super.beforeAll()
     system = classic.ActorSystem("test-system", config).toTyped // ensure adapter is in use
   }
-
-
 
   override protected def afterAll(): Unit = {
     system.terminate()

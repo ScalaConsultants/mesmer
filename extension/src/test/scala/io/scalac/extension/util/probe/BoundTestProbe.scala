@@ -4,7 +4,7 @@ import akka.actor.testkit.typed.scaladsl.TestProbe
 import io.scalac.core.LabelSerializable
 import io.scalac.core.util.probe.ObserverCollector
 import io.scalac.extension.metric.MetricObserver.Updater
-import io.scalac.extension.metric.{Counter, MetricObserver, MetricRecorder, UpDownCounter}
+import io.scalac.extension.metric.{ Counter, MetricObserver, MetricRecorder, UpDownCounter }
 import io.scalac.extension.util.probe.BoundTestProbe._
 
 object BoundTestProbe {

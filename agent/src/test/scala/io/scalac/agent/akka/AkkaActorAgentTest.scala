@@ -300,7 +300,6 @@ class AkkaActorAgentTest
     sender.unsafeUpcast[Any] ! PoisonPill
   }
 
-
   def testWithContextAndActor[T](
     behavior: ActorContext[T] => Behavior[T]
   )(

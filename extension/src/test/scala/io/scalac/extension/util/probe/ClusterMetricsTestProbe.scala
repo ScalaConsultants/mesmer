@@ -5,7 +5,7 @@ import akka.actor.typed.ActorSystem
 import io.scalac.core.util.probe.ObserverCollector
 import io.scalac.extension.metric.ClusterMetricsMonitor.Labels
 import io.scalac.extension.metric._
-import io.scalac.extension.util.{TestProbeSynchronized, probe}
+import io.scalac.extension.util.{ probe, TestProbeSynchronized }
 import BoundTestProbe._
 
 class ClusterMetricsTestProbe private (
@@ -25,9 +25,11 @@ class ClusterMetricsTestProbe private (
 
       private type CustomMetricObserver = MetricObserver[Long, Labels] with AsyncTestProbe[_]
 
-      override val shardPerRegions: CustomMetricObserver = probe.ObserverTestProbeWrapper(shardPerRegionsProbe, collector)
+      override val shardPerRegions: CustomMetricObserver =
+        probe.ObserverTestProbeWrapper(shardPerRegionsProbe, collector)
 
-      override val entityPerRegion: CustomMetricObserver = probe.ObserverTestProbeWrapper(entityPerRegionProbe, collector)
+      override val entityPerRegion: CustomMetricObserver =
+        probe.ObserverTestProbeWrapper(entityPerRegionProbe, collector)
 
       override val shardRegionsOnNode: CustomMetricObserver =
         probe.ObserverTestProbeWrapper(shardRegionsOnNodeProbe, collector)
