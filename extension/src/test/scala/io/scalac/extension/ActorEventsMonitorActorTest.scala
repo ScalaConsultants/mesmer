@@ -13,12 +13,13 @@ import io.scalac.core.model._
 import io.scalac.core.util.ActorPathOps
 import io.scalac.core.util.AggMetric.LongValueAggMetric
 import io.scalac.core.util.TestCase._
-import io.scalac.extension.util.probe.BoundTestProbe.{ MetricObserved, MetricObserverCommand }
 import io.scalac.core.util.probe.ObserverCollector.ScheduledCollectorImpl
 import io.scalac.extension.ActorEventsMonitorActor._
 import io.scalac.extension.ActorEventsMonitorActorTest._
 import io.scalac.extension.metric.ActorMetricMonitor.Labels
+import io.scalac.extension.service.{ ActorTreeTraverser, ReflectiveActorTreeTraverser }
 import io.scalac.extension.util.probe.ActorMonitorTestProbe
+import io.scalac.extension.util.probe.BoundTestProbe.{ MetricObserved, MetricObserverCommand }
 import org.scalatest.concurrent.ScaledTimeSpans
 import org.scalatest.{ LoneElement, TestSuite }
 

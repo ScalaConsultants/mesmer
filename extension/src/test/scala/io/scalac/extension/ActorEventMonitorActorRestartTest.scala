@@ -9,7 +9,8 @@ import io.scalac.core.util.TestCase.MonitorTestCaseContext.BasicContext
 import io.scalac.core.util.TestCase.{ MonitorWithBasicContextTestCaseFactory, ProvidedActorSystemTestCaseFactory }
 import io.scalac.core.util.probe.ObserverCollector.ManualCollectorImpl
 import io.scalac.core.util.{ TestConfig, TestOps }
-import io.scalac.extension.ActorEventsMonitorActor.{ ActorMetricsReader, ReflectiveActorTreeTraverser }
+import io.scalac.extension.ActorEventsMonitorActor.ActorMetricsReader
+import io.scalac.extension.service.ReflectiveActorTreeTraverser
 import io.scalac.extension.util.probe.ActorMonitorTestProbe
 import org.scalatest.concurrent.Eventually
 import org.scalatest.flatspec.AnyFlatSpecLike

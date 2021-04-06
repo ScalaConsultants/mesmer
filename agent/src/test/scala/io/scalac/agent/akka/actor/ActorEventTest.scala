@@ -30,7 +30,7 @@ class ActorEventTest
   override protected val serviceKey: ServiceKey[Command] = actorService.serviceKey
 
   protected def createMonitorBehavior(implicit context: Context): Behavior[Command] =
-    Pass(actorService.serviceKey, monitor.ref)
+    Pass.registerService(actorService.serviceKey, monitor.ref)
 
   override type Monitor = TestProbe[ActorEvent]
 

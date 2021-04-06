@@ -45,7 +45,13 @@ class DeltaActorTreeTest
   protected def createMonitorBehavior(implicit
     context: Context
   ): Behavior[Command] =
-    DeltaActorTree.apply(DeltaActorTreeConfig(BulkDuration, MaxBulkSize, MaxBulkSize), monitor, None)
+    DeltaActorTree.apply(
+      DeltaActorTreeConfig(BulkDuration, MaxBulkSize, MaxBulkSize),
+      monitor,
+      None,
+      false,
+      ReflectiveActorTreeTraverser
+    )
 
   implicit def connection(implicit context: Context): TestProbe[Delta] = context.subscriber
 

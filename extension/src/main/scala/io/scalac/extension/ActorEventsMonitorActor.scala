@@ -14,12 +14,12 @@ import io.scalac.extension.AkkaStreamMonitoring.StartStreamCollection
 import io.scalac.extension.metric.ActorMetricMonitor
 import io.scalac.extension.metric.ActorMetricMonitor.Labels
 import io.scalac.extension.metric.MetricObserver.Result
+import io.scalac.extension.service.{ ActorTreeTraverser, ReflectiveActorTreeTraverser }
 import org.slf4j.LoggerFactory
 
-import java.lang.invoke.MethodHandles
 import java.util.concurrent.atomic.AtomicReference
 import scala.annotation.tailrec
-import scala.collection.{ immutable, mutable }
+import scala.collection.mutable
 import scala.concurrent.duration._
 
 object ActorEventsMonitorActor {
@@ -79,42 +79,6 @@ object ActorEventsMonitorActor {
         actorTreeRunner,
         actorMetricsReader
       )
-    }
-  }
-
-  trait ActorTreeTraverser {
-    def getChildren(actor: classic.ActorRef): immutable.Iterable[classic.ActorRef]
-    def getRootGuardian(system: classic.ActorSystem): classic.ActorRef
-  }
-
-  object ReflectiveActorTreeTraverser extends ActorTreeTraverser {
-
-    import java.lang.invoke.MethodType.methodType
-
-    private val actorRefProviderClass = classOf[classic.ActorRefProvider]
-
-    private val (providerMethodHandler, rootGuardianMethodHandler) = {
-      val lookup = MethodHandles.lookup()
-      (
-        lookup.findVirtual(classOf[classic.ActorSystem], "provider", methodType(actorRefProviderClass)),
-        lookup.findVirtual(
-          actorRefProviderClass,
-          "rootGuardian",
-          methodType(Class.forName("akka.actor.InternalActorRef"))
-        )
-      )
-    }
-
-    def getChildren(actor: classic.ActorRef): immutable.Iterable[classic.ActorRef] =
-      if (ActorRefOps.isLocal(actor)) {
-        ActorRefOps.children(actor)
-      } else {
-        immutable.Iterable.empty
-      }
-
-    def getRootGuardian(system: classic.ActorSystem): classic.ActorRef = {
-      val provider = providerMethodHandler.invoke(system)
-      rootGuardianMethodHandler.invoke(provider).asInstanceOf[classic.ActorRef]
     }
   }
 

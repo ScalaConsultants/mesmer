@@ -50,6 +50,8 @@ object DeltaActorTree {
 
   sealed trait Api
 
+  private final case object ServiceRegistered extends Api
+
   sealed trait Event extends Api
 
   private final case class ActorTerminated(actorRef: classic.ActorRef) extends Event with DeltaBuilderCommand
@@ -96,30 +98,40 @@ object DeltaActorTree {
   private[service] def apply(
     config: DeltaActorTreeConfig,
     monitor: ActorSystemMonitor,
-    node: Option[Node]
-  ): Behavior[Command] =
-    Behaviors.setup[Api](context => new DeltaActorTree(context, monitor, Some(config), node).start()).narrow[Command]
+    node: Option[Node],
+    restart: Boolean,
+    backoffTraverser: ActorTreeTraverser
+  ): Behavior[Command] = Behaviors
+    .setup[Api](context => new DeltaActorTree(context, monitor, config, node, backoffTraverser).start(restart))
+    .narrow[Command]
 
   private[service] def apply(
     monitor: ActorSystemMonitor,
-    node: Option[Node]
+    node: Option[Node],
+    restart: Boolean = false,
+    backoffTraverser: ActorTreeTraverser = ReflectiveActorTreeTraverser
   ): Behavior[Command] =
-    Behaviors.setup[Api](context => new DeltaActorTree(context, monitor, None, node).start()).narrow[Command]
-
-  private[service] def apply(config: Config, monitor: ActorSystemMonitor, node: Option[Node]): Behavior[Command] =
-    apply(DeltaActorTreeConfig.fromConfig(config), monitor, node)
-
+    Behaviors
+      .setup[Api](context =>
+        new DeltaActorTree(
+          context,
+          monitor,
+          DeltaActorTreeConfig.fromConfig(context.system.settings.config),
+          node,
+          backoffTraverser
+        ).start(restart)
+      )
+      .narrow[Command]
 }
 
 final class DeltaActorTree private (
   context: ActorContext[Api],
   monitor: ActorSystemMonitor,
-  manualConfig: Option[DeltaActorTreeConfig],
-  node: Option[Node]
+  config: DeltaActorTreeConfig,
+  node: Option[Node],
+  backoffTraverser: ActorTreeTraverser
 ) {
   import context._
-
-  private[this] val config = manualConfig.getOrElse(DeltaActorTreeConfig.fromConfig(system.settings.config))
 
   private[this] val boundMonitor = monitor.bind(Labels(node))
 
@@ -127,12 +139,21 @@ final class DeltaActorTree private (
     ActorCreated(ref)
   }
 
-  def start(): Behavior[Api] = {
+  def start(restart: Boolean = false): Behavior[Api] = {
     system.receptionist ! Register(
       actorServiceKey,
-      registeredAdapter
+      registeredAdapter,
+      context.messageAdapter(_ => ServiceRegistered)
     )
-    waitingForConnection(List.empty)
+    waitForRegistration(restart)
+  }
+
+  private def waitForRegistration(restart: Boolean): Behavior[Api] = Behaviors.withStash(config.eventQueueSize) {
+    stash =>
+      Behaviors.receiveMessagePartial { case ServiceRegistered =>
+        val snapshot = if (restart) backoffTraverser.getActorTreeFromRootGuardian(system.classicSystem) else Nil
+        stash.unstashAll(waitingForConnection(snapshot))
+      }
   }
 
   private def connected(connected: SourceQueueWithComplete[DeltaBuilderCommand]): Behavior[Api] =
@@ -148,7 +169,7 @@ final class DeltaActorTree private (
     }
 
   private def waitingForConnection(snapshot: List[classic.ActorRef]): Behavior[Api] = Behaviors
-    .receiveMessage[Api] {
+    .receiveMessagePartial[Api] {
       case ActorCreated(ref) =>
         onCreated(ref)
         waitingForConnection(ref :: snapshot)

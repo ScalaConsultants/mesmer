@@ -25,7 +25,6 @@ object ActorTreeService {
   // for testing
   private[service] def apply(deltaActorTreeBehavior: Behavior[DeltaActorTree.Command]): Behavior[Command] =
     Behaviors.setup(ctx => new ActorTreeService(ctx, deltaActorTreeBehavior))
-
 }
 
 final class ActorTreeService(ctx: ActorContext[Command], deltaActorTreeBehavior: Behavior[DeltaActorTree.Command])

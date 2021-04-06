@@ -40,7 +40,7 @@ class AkkaStreamAgentTest
   override type Command = StreamEvent
 
   protected def createMonitorBehavior(implicit context: Context): Behavior[Command] =
-    Pass(Service.streamService.serviceKey, monitor.ref)
+    Pass.registerService(Service.streamService.serviceKey, monitor.ref)
 
   protected val serviceKey: ServiceKey[Command] = Service.streamService.serviceKey
 
