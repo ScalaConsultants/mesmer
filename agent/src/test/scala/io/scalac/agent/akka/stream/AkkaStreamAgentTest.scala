@@ -13,7 +13,7 @@ import io.scalac.agent.utils.{ InstallAgent, SafeLoadSystem }
 import io.scalac.core.akka.model.PushMetrics
 import io.scalac.core.event.StreamEvent.{ LastStreamStats, StreamInterpreterStats }
 import io.scalac.core.event.{ Service, StreamEvent, TagEvent }
-import io.scalac.core.util.TestBehaviors.ReceptionistPass
+import io.scalac.core.util.TestBehaviors.Pass
 import io.scalac.core.util.TestCase.CommonMonitorTestFactory
 import org.scalatest._
 import org.scalatest.concurrent.{ Futures, ScalaFutures }
@@ -40,7 +40,7 @@ class AkkaStreamAgentTest
   override type Command = StreamEvent
 
   protected def createMonitorBehavior(implicit context: Context): Behavior[Command] =
-    ReceptionistPass(Service.streamService.serviceKey, monitor.ref)
+    Pass(Service.streamService.serviceKey, monitor.ref)
 
   protected val serviceKey: ServiceKey[Command] = Service.streamService.serviceKey
 

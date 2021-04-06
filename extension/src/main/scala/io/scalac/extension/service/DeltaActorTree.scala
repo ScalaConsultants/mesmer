@@ -98,7 +98,13 @@ object DeltaActorTree {
     monitor: ActorSystemMonitor,
     node: Option[Node]
   ): Behavior[Command] =
-    Behaviors.setup[Api](context => new DeltaActorTree(context, monitor, config, node).start()).narrow[Command]
+    Behaviors.setup[Api](context => new DeltaActorTree(context, monitor, Some(config), node).start()).narrow[Command]
+
+  private[service] def apply(
+    monitor: ActorSystemMonitor,
+    node: Option[Node]
+  ): Behavior[Command] =
+    Behaviors.setup[Api](context => new DeltaActorTree(context, monitor, None, node).start()).narrow[Command]
 
   private[service] def apply(config: Config, monitor: ActorSystemMonitor, node: Option[Node]): Behavior[Command] =
     apply(DeltaActorTreeConfig.fromConfig(config), monitor, node)
@@ -108,10 +114,12 @@ object DeltaActorTree {
 final class DeltaActorTree private (
   context: ActorContext[Api],
   monitor: ActorSystemMonitor,
-  private val config: DeltaActorTreeConfig,
+  manualConfig: Option[DeltaActorTreeConfig],
   node: Option[Node]
 ) {
   import context._
+
+  private[this] val config = manualConfig.getOrElse(DeltaActorTreeConfig.fromConfig(system.settings.config))
 
   private[this] val boundMonitor = monitor.bind(Labels(node))
 

@@ -6,11 +6,9 @@ import akka.actor.typed.scaladsl.Behaviors
 import akka.actor.typed.{ ActorRef, ActorSystem, Behavior }
 import akka.testkit.TestKit
 import akka.util.Timeout
-import io.scalac.core.util.probe.{ Collected, ObserverCollector }
 import io.scalac.core.tagging._
 import io.scalac.core.util.TestCase.MonitorWithServiceTestCaseFactory.SetupTag
 import io.scalac.core.util.probe.{ Collected, ObserverCollector }
-import io.scalac.core.util.{ ReceptionistOps, TestConfig, TestOps }
 
 object TestCase {
 
@@ -166,8 +164,8 @@ object TestCase {
 
   trait NoSetupTestCaseFactory extends TestCaseFactory {
     type Setup = Unit
-    protected final def tearDown(setup: Setup): Unit = {}
-    protected final def setUp(context: Context): Unit = {}
+    protected final def tearDown(setup: Setup): Unit  = ()
+    protected final def setUp(context: Context): Unit = ()
   }
 
   // common types as aliases...

@@ -11,7 +11,7 @@ import io.scalac.core.event.ActorEvent
 import io.scalac.core.event.ActorEvent.ActorCreated
 import io.scalac.core.event.Service.actorService
 import io.scalac.core.util.TestBehaviors
-import io.scalac.core.util.TestBehaviors.ReceptionistPass
+import io.scalac.core.util.TestBehaviors.Pass
 import io.scalac.core.util.TestCase.CommonMonitorTestFactory
 import org.scalatest.flatspec.AnyFlatSpecLike
 import org.scalatest.matchers.should.Matchers
@@ -30,7 +30,7 @@ class ActorEventTest
   override protected val serviceKey: ServiceKey[Command] = actorService.serviceKey
 
   protected def createMonitorBehavior(implicit context: Context): Behavior[Command] =
-    ReceptionistPass(actorService.serviceKey, monitor.ref)
+    Pass(actorService.serviceKey, monitor.ref)
 
   override type Monitor = TestProbe[ActorEvent]
 

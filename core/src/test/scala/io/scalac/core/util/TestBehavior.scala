@@ -46,9 +46,9 @@ object TestBehaviors {
     }
   }
 
-  object ReceptionistPass {
+  object Pass {
 
-    def apply[A](serviceKey: ServiceKey[A], ref: ActorRef[A]): Behavior[A] =
+    def regiesterService[A](serviceKey: ServiceKey[A], ref: ActorRef[A]): Behavior[A] =
       Behaviors.setup[A] { context =>
         context.system.receptionist ! Register(serviceKey, context.self)
         Behaviors.receiveMessage[A] { case event =>
@@ -56,6 +56,11 @@ object TestBehaviors {
           Behaviors.same
         }
       }
+
+    def toRef[A](ref: ActorRef[A]): Behavior[A] = Behaviors.receiveMessage { case message =>
+      ref ! message
+      Behaviors.same
+    }
   }
 
   object Failing {
