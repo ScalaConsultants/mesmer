@@ -40,8 +40,8 @@ object TestCase {
       } finally stopEnv(env)
     }
 
-    def testCaseWith[T](hackContext: Context => Context)(tc: Context => T): T =
-      testCaseWithSetupAndContext(hackContext)(_ => tc)
+    def testCaseWith[T](mapContext: Context => Context)(tc: Context => T): T =
+      testCaseWithSetupAndContext(mapContext)(_ => tc)
 
     def testCase[T](tc: Context => T): T =
       testCaseWith(identity)(tc)

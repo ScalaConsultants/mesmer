@@ -1,11 +1,11 @@
 package io.scalac.extension.service
 
-import akka.actor.PoisonPill
 import akka.actor.testkit.typed.scaladsl.{ ScalaTestWithActorTestKit, TestProbe }
 import akka.actor.typed.receptionist.ServiceKey
 import akka.actor.typed.scaladsl.Behaviors
 import akka.actor.typed.scaladsl.adapter._
 import akka.actor.typed.{ ActorSystem, Behavior }
+import akka.actor.{ ActorRef, PoisonPill }
 import akka.{ actor => classic }
 import io.scalac.core.actorServiceKey
 import io.scalac.core.event.ActorEvent.ActorCreated
@@ -22,6 +22,7 @@ import org.scalatest.Inside
 import org.scalatest.flatspec.AnyFlatSpecLike
 import org.scalatest.matchers.should.Matchers
 
+import scala.collection.immutable
 import scala.concurrent.duration._
 
 class DeltaActorTreeTest
@@ -49,8 +50,8 @@ class DeltaActorTreeTest
       DeltaActorTreeConfig(BulkDuration, MaxBulkSize, MaxBulkSize),
       monitor,
       None,
-      false,
-      ReflectiveActorTreeTraverser
+      context.restart,
+      context.traverser
     )
 
   implicit def connection(implicit context: Context): TestProbe[Delta] = context.subscriber
@@ -136,7 +137,29 @@ class DeltaActorTreeTest
     connection.expectNoMessage(ProbeTimeout)
   }
 
-  final case class DeltaActorTestContext(subscriber: TestProbe[Delta], monitor: ActorSystemMonitorProbe)(implicit
+  it should "use backoff traverser on restart" in testCaseWithSetupAndContext(_.copy(restart = true)) {
+    sut => implicit context =>
+      sut ! Connect(connection.ref)
+
+      val root = context.traverser.getRootGuardian(system.toClassic)
+      inside(connection.receiveMessage()) { case Delta(Seq(`root`), Seq()) =>
+      }
+  }
+
+  final case class DeltaActorTestContext(
+    subscriber: TestProbe[Delta],
+    monitor: ActorSystemMonitorProbe,
+    restart: Boolean = false,
+    traverser: ActorTreeTraverser = RootOnlyTreeTraverser
+  )(implicit
     val system: ActorSystem[_]
   ) extends MonitorTestCaseContext[ActorSystemMonitorProbe]
+
+  final case object RootOnlyTreeTraverser extends ActorTreeTraverser {
+
+    override def getChildren(actor: ActorRef): immutable.Iterable[ActorRef] = Seq.empty
+    override def getRootGuardian(system: classic.ActorSystem): ActorRef =
+      ReflectiveActorTreeTraverser.getRootGuardian(system)
+  }
+
 }
