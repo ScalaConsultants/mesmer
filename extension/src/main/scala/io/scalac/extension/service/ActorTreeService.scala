@@ -20,15 +20,17 @@ object ActorTreeService {
   final case class GetActors(tags: Tag, reply: ActorRef[Seq[classic.ActorRef]]) extends Command
 
   def apply(actorSystemMonitor: ActorSystemMonitor, node: Option[Node]): Behavior[Command] =
-    apply(DeltaActorTree(actorSystemMonitor, node))
+    apply(restart => DeltaActorTree(actorSystemMonitor, node, restart))
 
   // for testing
-  private[service] def apply(deltaActorTreeBehavior: Behavior[DeltaActorTree.Command]): Behavior[Command] =
+  private[service] def apply(deltaActorTreeBehavior: Boolean => Behavior[DeltaActorTree.Command]): Behavior[Command] =
     Behaviors.setup(ctx => new ActorTreeService(ctx, deltaActorTreeBehavior))
 }
 
-final class ActorTreeService(ctx: ActorContext[Command], deltaActorTreeBehavior: Behavior[DeltaActorTree.Command])
-    extends AbstractBehavior[Command](ctx) {
+final class ActorTreeService(
+  ctx: ActorContext[Command],
+  deltaActorTreeBehaviorProducer: Boolean => Behavior[DeltaActorTree.Command]
+) extends AbstractBehavior[Command](ctx) {
   import context._
 
   private[this] val snapshot = ArrayBuffer.empty[classic.ActorRef]
@@ -54,10 +56,11 @@ final class ActorTreeService(ctx: ActorContext[Command], deltaActorTreeBehavior:
   private def spawnDeltaActorTree(@unused failed: Boolean): Unit = {
     val ref = context.spawn(
       Behaviors
-        .supervise(deltaActorTreeBehavior)
+        .supervise(deltaActorTreeBehaviorProducer(failed))
         .onFailure(SupervisorStrategy.stop), // we have to restart manually
       "mesmer-delta-actor-tree-"
     )
+    context.watch(ref)
 
     ref ! Connect(connectionAdapter)
   }

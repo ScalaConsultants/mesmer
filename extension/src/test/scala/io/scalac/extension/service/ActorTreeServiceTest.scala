@@ -3,12 +3,12 @@ package io.scalac.extension.service
 import akka.actor.testkit.typed.scaladsl.{ ScalaTestWithActorTestKit, TestProbe }
 import akka.actor.typed.scaladsl.Behaviors
 import akka.actor.typed.scaladsl.adapter._
-import akka.actor.typed.{ ActorSystem, Behavior }
+import akka.actor.typed.{ ActorRef, ActorSystem, Behavior }
 import akka.{ actor => classic }
 import io.scalac.core.model.Tag
 import io.scalac.core.util.TestCase.{
+  MonitorTestCaseContext,
   MonitorWithActorRefSetupTestCaseFactory,
-  MonitorWithBasicContextTestCaseFactory,
   ProvidedActorSystemTestCaseFactory
 }
 import io.scalac.core.util.{ TestBehaviors, TestConfig }
@@ -26,16 +26,29 @@ class ActorTreeServiceTest
     with Matchers
     with ProvidedActorSystemTestCaseFactory
     with MonitorWithActorRefSetupTestCaseFactory
-    with MonitorWithBasicContextTestCaseFactory
     with Inside {
 
-  override type Command = ActorTreeService.Command
+  type Command = ActorTreeService.Command
+  type Monitor = TestProbe[DeltaActorTree.Command]
+  type Context = ActorTreeServiceTestContext
 
-  override protected def createMonitorBehavior(implicit context: Context): Behavior[Command] = ActorTreeService(
-    TestBehaviors.Pass.toRef(monitor.ref)
-  )
+  protected def createContextFromMonitor(monitor: TestProbe[DeltaActorTree.Command])(implicit
+    system: ActorSystem[_]
+  ): Context = ActorTreeServiceTestContext(monitor)
 
-  override type Monitor = TestProbe[DeltaActorTree.Command]
+  protected def createMonitorBehavior(implicit context: Context): Behavior[Command] = {
+    val deltaTreeBehaviorProducer: Boolean => Behavior[DeltaActorTree.Command] =
+      if (context.failing) failThenPass(monitor.ref) else _ => TestBehaviors.Pass.toRef(monitor.ref)
+    ActorTreeService(
+      deltaTreeBehaviorProducer
+    )
+  }
+
+  private def failThenPass(
+    ref: ActorRef[DeltaActorTree.Command]
+  )(restarted: Boolean): Behavior[DeltaActorTree.Command] = if (restarted) {
+    TestBehaviors.Pass.toRef(ref)
+  } else TestBehaviors.Failing()
 
   override protected def createMonitor(implicit system: ActorSystem[_]): Monitor = createTestProbe()
 
@@ -72,7 +85,16 @@ class ActorTreeServiceTest
 
       frontTestProbe.receiveMessage() should contain theSameElementsAs (expectedResult)
     }
-
   }
+
+  it should "recreate DeltaActorTree on failure with restart flag set to true" in testCaseWith(
+    _.copy(failing = true)
+  ) { implicit context =>
+    monitor.expectMessageType[Connect]
+  }
+
+  final case class ActorTreeServiceTestContext(monitor: TestProbe[DeltaActorTree.Command], failing: Boolean = false)(
+    implicit val system: ActorSystem[_]
+  ) extends MonitorTestCaseContext[Monitor]
 
 }
