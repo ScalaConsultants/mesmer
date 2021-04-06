@@ -206,7 +206,7 @@ object AkkaStreamMonitoring {
   }
 }
 
-class AkkaStreamMonitoring(
+final class AkkaStreamMonitoring(
   ctx: ActorContext[Command],
   streamOperatorMonitor: StreamOperatorMetricsMonitor,
   streamMonitor: StreamMetricMonitor,

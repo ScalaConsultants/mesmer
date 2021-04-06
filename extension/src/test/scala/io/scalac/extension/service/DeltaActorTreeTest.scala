@@ -16,7 +16,7 @@ import io.scalac.core.util.TestCase.{
   ProvidedActorSystemTestCaseFactory
 }
 import io.scalac.core.util.TestConfig
-import io.scalac.extension.service.DeltaActorTree.{ Delta, Subscribe }
+import io.scalac.extension.service.DeltaActorTree.{ Connect, Delta }
 import io.scalac.extension.util.probe.ActorSystemMonitorProbe
 import org.scalatest.Inside
 import org.scalatest.flatspec.AnyFlatSpecLike
@@ -45,9 +45,9 @@ class DeltaActorTreeTest
   protected def createMonitorBehavior(implicit
     context: Context
   ): Behavior[Command] =
-    DeltaActorTree.apply(DeltaActorTreeConfig(BulkDuration, MaxBulkSize), monitor, None)
+    DeltaActorTree.apply(DeltaActorTreeConfig(BulkDuration, MaxBulkSize, MaxBulkSize), monitor, None)
 
-  implicit def subscriber(implicit context: Context): TestProbe[Delta] = context.subscriber
+  implicit def connection(implicit context: Context): TestProbe[Delta] = context.subscriber
 
   protected def createMonitor(implicit system: ActorSystem[_]): Monitor = ActorSystemMonitorProbe.apply
 
@@ -58,23 +58,23 @@ class DeltaActorTreeTest
   private def publishCreated(ref: classic.ActorRef)(implicit system: ActorSystem[_]): Unit =
     EventBus(system).publishEvent(ActorCreated(ref))
 
-  "DeltaActorTree" should "current actor structure for new subsriber" in testCaseSetupContext {
-    sut => implicit context =>
-      val RefCount = MaxBulkSize
-      val refs     = List.fill(RefCount)(system.systemActorOf(Behaviors.empty, createUniqueId)).map(_.toClassic)
-      refs.foreach(publishCreated)
+  "DeltaActorTree" should "publish created refs to connected actor" in testCaseSetupContext { sut => implicit context =>
+    sut ! Connect(connection.ref)
 
-      monitor.globalProbe.receiveMessages(RefCount)
-      sut ! Subscribe(subscriber.ref)
+    val RefCount = MaxBulkSize
+    val refs     = List.fill(RefCount)(system.systemActorOf(Behaviors.empty, createUniqueId)).map(_.toClassic)
+    refs.foreach(publishCreated)
 
-      inside(subscriber.receiveMessage(ProbeTimeout)) { case Delta(created, terminated) =>
-        created should not be (empty)
-        terminated should be(empty)
-      }
+    monitor.globalProbe.receiveMessages(RefCount)
+
+    inside(connection.receiveMessage(ProbeTimeout)) { case Delta(created, terminated) =>
+      created should not be (empty)
+      terminated should be(empty)
+    }
   }
 
-  it should "publish terminated actors" in testCaseSetupContext { sut => implicit context =>
-    sut ! Subscribe(subscriber.ref)
+  it should "publish terminated actors to connected actor" in testCaseSetupContext { sut => implicit context =>
+    sut ! Connect(connection.ref)
 
     val RefCount = MaxBulkSize
     val refs     = List.fill(RefCount)(system.systemActorOf(Behaviors.empty, createUniqueId)).map(_.toClassic)
@@ -83,7 +83,7 @@ class DeltaActorTreeTest
 
     monitor.globalProbe.receiveMessages(RefCount)
 
-    inside(subscriber.receiveMessage(ProbeTimeout)) { case Delta(created, terminated) =>
+    inside(connection.receiveMessage(ProbeTimeout)) { case Delta(created, terminated) =>
       created should contain theSameElementsAs (refs)
       terminated should be(empty)
     }
@@ -92,13 +92,13 @@ class DeltaActorTreeTest
 
     monitor.globalProbe.receiveMessages(RefCount)
 
-    inside(subscriber.receiveMessage(ProbeTimeout)) { case Delta(created, terminated) =>
+    inside(connection.receiveMessage(ProbeTimeout)) { case Delta(created, terminated) =>
       created should be(empty)
       terminated should contain theSameElementsAs (refs)
     }
   }
 
-  it should "publish current actor tree state on subscribe" in testCaseSetupContext { sut => implicit context =>
+  it should "keep local snapshot until actor connects" in testCaseSetupContext { sut => implicit context =>
     val RefCount = MaxBulkSize
 
     val refs = List.fill(RefCount)(system.systemActorOf(Behaviors.empty, createUniqueId)).map(_.toClassic)
@@ -116,25 +116,18 @@ class DeltaActorTreeTest
 
     monitor.globalProbe.receiveMessages(terminated.size)
 
-    sut ! Subscribe(subscriber.ref)
+    sut ! Connect(connection.ref)
 
-    inside(subscriber.receiveMessage(ProbeTimeout)) { case Delta(created, terminated) =>
+    inside(connection.receiveMessage(ProbeTimeout)) { case Delta(created, terminated) =>
       created should contain theSameElementsAs (expected)
       terminated should be(empty)
     }
   }
 
-  it should "not publish initial actor tree state if no actors are created" in testCaseSetupContext {
-    sut => implicit context =>
-      sut ! Subscribe(subscriber.ref)
+  it should "not publish empty deltas" in testCaseSetupContext { sut => implicit context =>
+    sut ! Connect(connection.ref)
 
-      subscriber.expectNoMessage(ProbeTimeout)
-  }
-
-  it should "not publish empty delta" in testCaseSetupContext { sut => implicit context =>
-    sut ! Subscribe(subscriber.ref)
-
-    subscriber.expectNoMessage(ProbeTimeout)
+    connection.expectNoMessage(ProbeTimeout)
   }
 
   final case class DeltaActorTestContext(subscriber: TestProbe[Delta], monitor: ActorSystemMonitorProbe)(implicit
