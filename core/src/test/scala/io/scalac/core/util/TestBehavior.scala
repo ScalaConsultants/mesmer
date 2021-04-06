@@ -3,7 +3,8 @@ package io.scalac.core.util
 import akka.actor.typed.receptionist.Receptionist.Register
 import akka.actor.typed.receptionist.ServiceKey
 import akka.actor.typed.scaladsl.Behaviors
-import akka.actor.typed.{ ActorRef, Behavior }
+import akka.actor.typed.{ActorRef, Behavior}
+import akka.actor.{Actor, ActorLogging, Props}
 
 import scala.util.control.NoStackTrace
 
@@ -66,6 +67,14 @@ object TestBehaviors {
           throw ExpectedFailure
         }
         .narrow[A]
+
+    def classic: Props = Props(new ClassicFailingActor)
+
+    private class ClassicFailingActor extends Actor with ActorLogging {
+      log.info("Failing actor initialized")
+      override def receive: Receive = _ => throw ExpectedFailure
+    }
+
   }
 
 }
