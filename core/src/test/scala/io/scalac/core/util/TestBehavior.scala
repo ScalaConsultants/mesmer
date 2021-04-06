@@ -5,6 +5,8 @@ import akka.actor.typed.receptionist.ServiceKey
 import akka.actor.typed.scaladsl.Behaviors
 import akka.actor.typed.{ ActorRef, Behavior }
 
+import scala.util.control.NoStackTrace
+
 object TestBehavior {
 
   sealed trait Command
@@ -14,7 +16,9 @@ object TestBehavior {
     case object Same extends Command
     case object Stop extends Command
   }
+
   import Command._
+
   def apply(id: String): Behavior[Command] = Behaviors.receiveMessage {
     case Same => Behaviors.same
     case Stop => Behaviors.stopped
@@ -32,6 +36,7 @@ object TestBehaviors {
       case object Same extends Command
       case object Stop extends Command
     }
+
     import Command._
 
     def apply(id: String): Behavior[Command] = Behaviors.receiveMessage {
@@ -52,7 +57,15 @@ object TestBehaviors {
       }
   }
 
+  object Failing {
+    final case object ExpectedFailure extends RuntimeException("Expected failure happened") with NoStackTrace
+
+    def apply[A](): Behavior[A] =
+      Behaviors
+        .receiveMessage[Any] { _ =>
+          throw ExpectedFailure
+        }
+        .narrow[A]
+  }
 
 }
-
-

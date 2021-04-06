@@ -136,11 +136,6 @@ class DeltaActorTreeTest
     subscriber.expectNoMessage(ProbeTimeout)
   }
 
-
-  it should "publish terminated followed by created on actor restart" in {
-    fail()
-  }
-
   final case class DeltaActorTestContext(subscriber: TestProbe[Delta], monitor: ActorSystemMonitorProbe)(implicit
     val system: ActorSystem[_]
   ) extends MonitorTestCaseContext[ActorSystemMonitorProbe]

@@ -4,11 +4,12 @@ import akka.actor.PoisonPill
 import akka.actor.testkit.typed.scaladsl.{ FishingOutcomes, TestProbe }
 import akka.actor.typed.receptionist.ServiceKey
 import akka.actor.typed.scaladsl.Behaviors
-import akka.actor.typed.{ ActorSystem, Behavior }
+import akka.actor.typed.{ ActorSystem, Behavior, SupervisorStrategy }
 import io.scalac.agent.utils.{ InstallAgent, SafeLoadSystem }
 import io.scalac.core.event.ActorEvent
 import io.scalac.core.event.ActorEvent.ActorCreated
 import io.scalac.core.event.Service.actorService
+import io.scalac.core.util.TestBehaviors
 import io.scalac.core.util.TestBehaviors.ReceptionistPass
 import io.scalac.core.util.TestCase.CommonMonitorTestFactory
 import org.scalatest.flatspec.AnyFlatSpecLike
@@ -44,6 +45,31 @@ class ActorEventTest
       case _                                                                       => FishingOutcomes.continueAndIgnore
     }
 
+    //cleanup
+    ref.unsafeUpcast[Any] ! PoisonPill
+  }
+
+  it should "not receive any information when typed actor restarts" in testCase { implicit context =>
+    val id           = createUniqueId
+    val ExpectedPath = s"/system/${id}"
+    val ref =
+      system.systemActorOf(
+        Behaviors
+          .supervise(TestBehaviors.Failing[Any]())
+          .onFailure(SupervisorStrategy.restart),
+        id
+      )
+
+    monitor.fishForMessage(Timeout) {
+      case ActorCreated(ref, _) if ref.path.toStringWithoutAddress == ExpectedPath => FishingOutcomes.complete
+      case _                                                                       => FishingOutcomes.continueAndIgnore
+    }
+
+    ref ! () // this will trigger restart
+
+    monitor.expectNoMessage(Timeout)
+
+    //cleanup
     ref.unsafeUpcast[Any] ! PoisonPill
   }
 
