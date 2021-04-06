@@ -1,18 +1,22 @@
 package io.scalac.extension.service
 
 import akka.actor.PoisonPill
-import akka.{actor => classic}
-import akka.actor.testkit.typed.scaladsl.{ScalaTestWithActorTestKit, TestProbe}
+import akka.actor.testkit.typed.scaladsl.{ ScalaTestWithActorTestKit, TestProbe }
 import akka.actor.typed.receptionist.ServiceKey
 import akka.actor.typed.scaladsl.Behaviors
 import akka.actor.typed.scaladsl.adapter._
-import akka.actor.typed.{ActorSystem, Behavior}
+import akka.actor.typed.{ ActorSystem, Behavior }
+import akka.{ actor => classic }
 import io.scalac.core.actorServiceKey
 import io.scalac.core.event.ActorEvent.ActorCreated
 import io.scalac.core.event.EventBus
-import io.scalac.core.util.TestCase.{MonitorTestCaseContext, MonitorWithServiceTestCaseFactory, ProvidedActorSystemTestCaseFactory}
+import io.scalac.core.util.TestCase.{
+  MonitorTestCaseContext,
+  MonitorWithServiceTestCaseFactory,
+  ProvidedActorSystemTestCaseFactory
+}
 import io.scalac.core.util.TestConfig
-import io.scalac.extension.service.DeltaActorTree.{ActorTerminated, Delta, Subscribe}
+import io.scalac.extension.service.DeltaActorTree.{ Delta, Subscribe }
 import io.scalac.extension.util.probe.ActorSystemMonitorProbe
 import org.scalatest.Inside
 import org.scalatest.flatspec.AnyFlatSpecLike
@@ -28,6 +32,7 @@ class DeltaActorTreeTest
     with MonitorWithServiceTestCaseFactory
     with Inside {
 
+  val MaxBulkSize  = 10
   val BulkDuration = 1.second
   val ProbeTimeout = BulkDuration * 2
 
@@ -40,7 +45,7 @@ class DeltaActorTreeTest
   protected def createMonitorBehavior(implicit
     context: Context
   ): Behavior[Command] =
-    DeltaActorTree.apply(DeltaActorTreeConfig(BulkDuration), monitor, None)
+    DeltaActorTree.apply(DeltaActorTreeConfig(BulkDuration, MaxBulkSize), monitor, None)
 
   implicit def subscriber(implicit context: Context): TestProbe[Delta] = context.subscriber
 
@@ -50,16 +55,13 @@ class DeltaActorTreeTest
     system: ActorSystem[_]
   ): DeltaActorTestContext = DeltaActorTestContext(createTestProbe, monitor)
 
-  private def publishCreated(ref: classic.ActorRef)(implicit system: ActorSystem[_]): Unit = {
+  private def publishCreated(ref: classic.ActorRef)(implicit system: ActorSystem[_]): Unit =
     EventBus(system).publishEvent(ActorCreated(ref))
-  }
-
 
   "DeltaActorTree" should "current actor structure for new subsriber" in testCaseSetupContext {
     sut => implicit context =>
-
-      val RefCount = 10
-      val refs = List.fill(RefCount)(system.systemActorOf(Behaviors.empty, createUniqueId)).map(_.toClassic)
+      val RefCount = MaxBulkSize
+      val refs     = List.fill(RefCount)(system.systemActorOf(Behaviors.empty, createUniqueId)).map(_.toClassic)
       refs.foreach(publishCreated)
 
       monitor.globalProbe.receiveMessages(RefCount)
@@ -71,12 +73,11 @@ class DeltaActorTreeTest
       }
   }
 
-  it should "publish actor events for subscribers" in testCaseSetupContext { sut => implicit context =>
-
+  it should "publish terminated actors" in testCaseSetupContext { sut => implicit context =>
     sut ! Subscribe(subscriber.ref)
 
-    val RefCount = 10
-    val refs = List.fill(RefCount)(system.systemActorOf(Behaviors.empty, createUniqueId)).map(_.toClassic)
+    val RefCount = MaxBulkSize
+    val refs     = List.fill(RefCount)(system.systemActorOf(Behaviors.empty, createUniqueId)).map(_.toClassic)
 
     refs.foreach(publishCreated)
 
@@ -95,6 +96,49 @@ class DeltaActorTreeTest
       created should be(empty)
       terminated should contain theSameElementsAs (refs)
     }
+  }
+
+  it should "publish current actor tree state on subscribe" in testCaseSetupContext { sut => implicit context =>
+    val RefCount = MaxBulkSize
+
+    val refs = List.fill(RefCount)(system.systemActorOf(Behaviors.empty, createUniqueId)).map(_.toClassic)
+    val (terminated, expected) = {
+      val (terminatedWithIndex, expectedWithIndex) = refs.zipWithIndex
+        .partition(_._2 % 2 == 0)
+      (terminatedWithIndex.map(_._1), expectedWithIndex.map(_._1))
+    }
+
+    refs.foreach(publishCreated)
+
+    monitor.globalProbe.receiveMessages(RefCount)
+
+    terminated.foreach(_.unsafeUpcast[Any] ! PoisonPill)
+
+    monitor.globalProbe.receiveMessages(terminated.size)
+
+    sut ! Subscribe(subscriber.ref)
+
+    inside(subscriber.receiveMessage(ProbeTimeout)) { case Delta(created, terminated) =>
+      created should contain theSameElementsAs (expected)
+      terminated should be(empty)
+    }
+  }
+
+  it should "not publish initial actor tree state if no actors are created" in testCaseSetupContext { sut => implicit context =>
+    sut ! Subscribe(subscriber.ref)
+
+    subscriber.expectNoMessage(ProbeTimeout)
+  }
+
+  it should "not publish empty delta" in testCaseSetupContext { sut => implicit context =>
+    sut ! Subscribe(subscriber.ref)
+
+    subscriber.expectNoMessage(ProbeTimeout)
+  }
+
+
+  it should "publish terminated followed by created on actor restart" in {
+    fail()
   }
 
   final case class DeltaActorTestContext(subscriber: TestProbe[Delta], monitor: ActorSystemMonitorProbe)(implicit
