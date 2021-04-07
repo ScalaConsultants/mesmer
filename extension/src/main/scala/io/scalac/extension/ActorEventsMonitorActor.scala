@@ -6,7 +6,6 @@ import akka.actor.typed.scaladsl.{ AbstractBehavior, ActorContext, Behaviors, Ti
 import akka.{ actor => classic }
 import io.scalac.core._
 import io.scalac.core.actor.{ ActorCellDecorator, ActorMetricStorage, ActorMetrics }
-import io.scalac.core.event.TagEvent
 import io.scalac.core.model.{ ActorKey, Node, Tag }
 import io.scalac.core.util.{ ActorCellOps, ActorRefOps }
 import io.scalac.extension.ActorEventsMonitorActor._
@@ -59,14 +58,7 @@ object ActorEventsMonitorActor {
     streamRef: ActorRef[AkkaStreamMonitoring.Command],
     actorTreeRunner: ActorTreeTraverser,
     actorMetricsReader: ActorMetricsReader
-  ): Behavior[Command] = {
-    context.system.receptionist ! Register(
-      tagServiceKey,
-      context.messageAdapter[TagEvent] { case TagEvent(ref, tag) =>
-        AddTag(ref, tag)
-      }
-    )
-
+  ): Behavior[Command] =
     Behaviors.withTimers[Command] { scheduler =>
       new ActorEventsMonitorActor(
         context,
@@ -80,7 +72,6 @@ object ActorEventsMonitorActor {
         actorMetricsReader
       )
     }
-  }
 
   trait ActorMetricsReader {
     def read(actor: classic.ActorRef): Option[ActorMetrics]

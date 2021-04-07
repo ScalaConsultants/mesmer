@@ -5,7 +5,7 @@ import akka.actor.typed.scaladsl.Behaviors
 import akka.actor.typed.scaladsl.adapter._
 import akka.actor.typed.{ ActorRef, ActorSystem, Behavior }
 import akka.{ actor => classic }
-import io.scalac.core.model.Tag
+import io.scalac.core.model.{ ActorRefDetails, Tag }
 import io.scalac.core.util.TestCase.{
   MonitorTestCaseContext,
   MonitorWithActorRefSetupTestCaseFactory,
@@ -52,22 +52,24 @@ class ActorTreeServiceTest
 
   override protected def createMonitor(implicit system: ActorSystem[_]): Monitor = createTestProbe()
 
-  "ActorTreeServiceTest" should "connect to DeltaActorTree" in testCaseSetupContext { sut => implicit context =>
+  "ActorTreeServiceTest" should "connect to DeltaActo`rTree" in testCaseSetupContext { sut => implicit context =>
     val message = monitor.expectMessageType[Connect]
     message.ref should sameOrParent(sut)
   }
 
   //TODO simplify test data creation
   it should "store local actor tree snapshot" in testCaseSetupContext { sut => implicit context =>
-    val Connect(ref)                     = monitor.expectMessageType[Connect]
-    val frontTestProbe                   = createTestProbe[Seq[classic.ActorRef]]()
-    val CreatedCount                     = 10
-    val createdRefs                      = List.fill(CreatedCount)(system.systemActorOf(Behaviors.empty, createUniqueId).toClassic)
+    val Connect(ref)   = monitor.expectMessageType[Connect]
+    val frontTestProbe = createTestProbe[Seq[classic.ActorRef]]()
+    val CreatedCount   = 10
+    val createdRefs = List
+      .fill(CreatedCount)(system.systemActorOf(Behaviors.empty, createUniqueId).toClassic)
+      .map(ActorRefDetails(_, Set.empty))
     val (terminatedRefs, expectedResult) = createdRefs.splitAt(CreatedCount / 2)
 
-    val createdDeltas = createdRefs.map(ref => Delta(created = Seq(ref), terminated = Seq.empty))
+    val createdDeltas = createdRefs.map(details => Delta(created = Seq(details), terminated = Seq.empty))
 
-    val terminatedDeltas = terminatedRefs.map(ref => Delta(terminated = Seq(ref), created = Seq.empty))
+    val terminatedDeltas = terminatedRefs.map(details => Delta(terminated = Seq(details.ref), created = Seq.empty))
 
     val deltas = (createdDeltas.take(terminatedDeltas.size) ++ Random
       .shuffle(
@@ -83,7 +85,7 @@ class ActorTreeServiceTest
     eventually {
       sut ! GetActors(Tag.all, frontTestProbe.ref)
 
-      frontTestProbe.receiveMessage() should contain theSameElementsAs (expectedResult)
+      frontTestProbe.receiveMessage() should contain theSameElementsAs (expectedResult.map(_.ref))
     }
   }
 

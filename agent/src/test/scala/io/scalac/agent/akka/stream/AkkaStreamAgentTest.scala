@@ -11,8 +11,11 @@ import akka.stream.scaladsl._
 import akka.stream.{ Attributes, BufferOverflowException, OverflowStrategy, QueueOfferResult }
 import io.scalac.agent.utils.{ InstallAgent, SafeLoadSystem }
 import io.scalac.core.akka.model.PushMetrics
+import io.scalac.core.event.ActorEvent.SetTags
 import io.scalac.core.event.StreamEvent.{ LastStreamStats, StreamInterpreterStats }
-import io.scalac.core.event.{ Service, StreamEvent, TagEvent }
+import io.scalac.core.event.{ ActorEvent, Service, StreamEvent }
+import io.scalac.core.model.ActorRefDetails
+import io.scalac.core.model.Tag.stream
 import io.scalac.core.util.TestBehaviors.Pass
 import io.scalac.core.util.TestCase.CommonMonitorTestFactory
 import org.scalatest._
@@ -53,30 +56,56 @@ class AkkaStreamAgentTest
   def clear(implicit refService: ActorStreamRefService): Unit                     = refService.clear
 
   override def beforeAll(): Unit = {
-    super.beforeAll() // order is important!
+    super.beforeAll() // order is important! actor system must be created
     streamService = new ActorStreamRefService()
+    streamService.start()
   }
 
   after {
     clear
   }
 
-  final class ActorStreamRefService {
-    private val probe = TestProbe[TagEvent]("stream_refs")
+  final class ActorStreamRefService(implicit system: ActorSystem[_]) {
+    private val probe = TestProbe[ActorRef]("stream_refs")
 
     def actors(number: Int): Seq[ActorRef] = probe
       .within(2.seconds) {
         val messages = probe.receiveMessages(number)
         probe.expectNoMessage(probe.remaining)
-        messages.map(_.ref)
+        messages
       }
+
+    sealed trait Command
+
+    private case class Ref(ref: ActorRef) extends Command
+
+    private case object Filter extends Command
 
     /**
      * Make sure no more actors are created
      */
     def clear: Unit = probe.expectNoMessage(2.seconds)
 
-    system.receptionist ! Register(Service.tagService.serviceKey, probe.ref)
+    def start(): Unit = system
+      .systemActorOf(
+        Behaviors.setup[Command] { context =>
+          context.system.receptionist ! Register(
+            Service.actorService.serviceKey,
+            context.messageAdapter[ActorEvent] {
+              case SetTags(ActorRefDetails(ref, tags)) if tags.contains(stream) =>
+                Ref(ref)
+              case _ => Filter
+            }
+          )
+          Behaviors.receiveMessage {
+            case Ref(ref) =>
+              probe.ref ! ref
+              Behaviors.same
+            case _ => Behaviors.same
+          }
+        },
+        "akka-stream-filter-actor"
+      )
   }
 
   def offerMany[T](input: SourceQueue[T], elements: List[T])(implicit ec: ExecutionContext): Future[Done] = {

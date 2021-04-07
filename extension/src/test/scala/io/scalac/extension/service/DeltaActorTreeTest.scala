@@ -10,6 +10,7 @@ import akka.{ actor => classic }
 import io.scalac.core.actorServiceKey
 import io.scalac.core.event.ActorEvent.ActorCreated
 import io.scalac.core.event.EventBus
+import io.scalac.core.model.ActorRefDetails
 import io.scalac.core.util.TestCase.{
   MonitorTestCaseContext,
   MonitorWithServiceTestCaseFactory,
@@ -63,45 +64,53 @@ class DeltaActorTreeTest
   ): DeltaActorTestContext = DeltaActorTestContext(createTestProbe, monitor)
 
   private def publishCreated(ref: classic.ActorRef)(implicit system: ActorSystem[_]): Unit =
-    EventBus(system).publishEvent(ActorCreated(ref))
+    EventBus(system).publishEvent(ActorCreated(ActorRefDetails(ref, Set.empty)))
 
   "DeltaActorTree" should "publish created refs to connected actor" in testCaseSetupContext { sut => implicit context =>
     sut ! Connect(connection.ref)
 
-    val RefCount = MaxBulkSize
-    val refs     = List.fill(RefCount)(system.systemActorOf(Behaviors.empty, createUniqueId)).map(_.toClassic)
+    val RefCount        = MaxBulkSize
+    val refs            = List.fill(RefCount)(system.systemActorOf(Behaviors.empty, createUniqueId)).map(_.toClassic)
+    val expectedDetails = refs.map(ActorRefDetails(_, Set.empty))
+
     refs.foreach(publishCreated)
 
     monitor.globalProbe.receiveMessages(RefCount)
 
-    inside(connection.receiveMessage(ProbeTimeout)) { case Delta(created, terminated) =>
+    inside(connection.receiveMessage(ProbeTimeout)) { case Delta(created, terminated, tagged) =>
       created should not be (empty)
       terminated should be(empty)
+      tagged should be(empty)
     }
   }
 
   it should "publish terminated actors to connected actor" in testCaseSetupContext { sut => implicit context =>
     sut ! Connect(connection.ref)
 
-    val RefCount = MaxBulkSize
-    val refs     = List.fill(RefCount)(system.systemActorOf(Behaviors.empty, createUniqueId)).map(_.toClassic)
+    val RefCount        = MaxBulkSize
+    val refs            = List.fill(RefCount)(system.systemActorOf(Behaviors.empty, createUniqueId)).map(_.toClassic)
+    val expectedDetails = refs.map(ActorRefDetails(_, Set.empty))
 
     refs.foreach(publishCreated)
 
     monitor.globalProbe.receiveMessages(RefCount)
 
-    inside(connection.receiveMessage(ProbeTimeout)) { case Delta(created, terminated) =>
-      created should contain theSameElementsAs (refs)
+    inside(connection.receiveMessage(ProbeTimeout)) { case Delta(created, terminated, tagged) =>
+      created should contain theSameElementsAs (expectedDetails)
       terminated should be(empty)
+      tagged should be(empty)
+
     }
 
     refs.foreach(_.unsafeUpcast[Any] ! PoisonPill)
 
     monitor.globalProbe.receiveMessages(RefCount)
 
-    inside(connection.receiveMessage(ProbeTimeout)) { case Delta(created, terminated) =>
+    inside(connection.receiveMessage(ProbeTimeout)) { case Delta(created, terminated, tagged) =>
       created should be(empty)
       terminated should contain theSameElementsAs (refs)
+      tagged should be(empty)
+
     }
   }
 
@@ -109,10 +118,11 @@ class DeltaActorTreeTest
     val RefCount = MaxBulkSize
 
     val refs = List.fill(RefCount)(system.systemActorOf(Behaviors.empty, createUniqueId)).map(_.toClassic)
+
     val (terminated, expected) = {
       val (terminatedWithIndex, expectedWithIndex) = refs.zipWithIndex
         .partition(_._2 % 2 == 0)
-      (terminatedWithIndex.map(_._1), expectedWithIndex.map(_._1))
+      (terminatedWithIndex.map(_._1), expectedWithIndex.map(_._1).map(ActorRefDetails(_, Set.empty)))
     }
 
     refs.foreach(publishCreated)
@@ -125,9 +135,11 @@ class DeltaActorTreeTest
 
     sut ! Connect(connection.ref)
 
-    inside(connection.receiveMessage(ProbeTimeout)) { case Delta(created, terminated) =>
+    inside(connection.receiveMessage(ProbeTimeout)) { case Delta(created, terminated, tagged) =>
       created should contain theSameElementsAs (expected)
       terminated should be(empty)
+      tagged should be(empty)
+
     }
   }
 
@@ -142,7 +154,7 @@ class DeltaActorTreeTest
       sut ! Connect(connection.ref)
 
       val root = context.traverser.getRootGuardian(system.toClassic)
-      inside(connection.receiveMessage()) { case Delta(Seq(`root`), Seq()) =>
+      inside(connection.receiveMessage()) { case Delta(Seq(ActorRefDetails(`root`, _)), Seq(), Seq()) =>
       }
   }
 

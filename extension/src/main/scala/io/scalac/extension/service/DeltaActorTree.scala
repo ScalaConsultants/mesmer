@@ -14,6 +14,7 @@ import io.scalac.core.model._
 import io.scalac.extension.config.Configuration
 import io.scalac.extension.metric.ActorSystemMonitor
 import io.scalac.extension.metric.ActorSystemMonitor.Labels
+import io.scalac.extension.service.DeltaActorTree.Delta.{ apply => _, _ }
 import io.scalac.extension.service.DeltaActorTree._
 
 import scala.collection.mutable.ListBuffer
@@ -48,51 +49,69 @@ object DeltaActorTreeConfig extends Configuration[DeltaActorTreeConfig] {
 
 object DeltaActorTree {
 
-  sealed trait Api
+  sealed trait Api extends Any
 
   private final case object ServiceRegistered extends Api
 
-  sealed trait Event extends Api
+  sealed trait Event extends Any with Api
 
-  private final case class ActorTerminated(actorRef: classic.ActorRef) extends Event with DeltaBuilderCommand
-  private final case class ActorCreated(actorRef: classic.ActorRef)    extends Event with DeltaBuilderCommand
+  private final case class ActorTerminated(actorRef: classic.ActorRef)
+      extends AnyVal
+      with Event
+      with DeltaBuilderCommand
+
+  private final case class ActorCreated(details: ActorRefDetails)  extends AnyVal with Event with DeltaBuilderCommand
+  private final case class ActorRetagged(details: ActorRefDetails) extends AnyVal with Event with DeltaBuilderCommand
 
   sealed trait Command extends Api
 
   final case class Connect(ref: ActorRef[Delta]) extends Command
 
-  final case class Delta(created: Seq[classic.ActorRef], terminated: Seq[classic.ActorRef]) {
+  object Delta {
 
-    lazy val nonEmpty: Boolean = created.nonEmpty || terminated.nonEmpty
-  }
+    sealed trait DeltaBuilderCommand extends Any
 
-  sealed trait DeltaBuilderCommand
+    private[DeltaActorTree] final case class BulkStateChange(delta: Delta) extends AnyVal with DeltaBuilderCommand
 
-  private final case class BulkStateChange(delta: Delta) extends DeltaBuilderCommand
+    private[DeltaActorTree] final class DeltaBuilder private () {
 
-  private[DeltaActorTree] final class DeltaBuilder private () {
+      private[this] val created    = ListBuffer.empty[ActorRefDetails]
+      private[this] val terminated = ListBuffer.empty[classic.ActorRef]
+      private[this] val retagged   = ListBuffer.empty[ActorRefDetails]
 
-    private[this] val created    = ListBuffer.empty[classic.ActorRef]
-    private[this] val terminated = ListBuffer.empty[classic.ActorRef]
-
-    def process(command: DeltaBuilderCommand): this.type = {
-      command match {
-        case BulkStateChange(delta) =>
-          created ++= delta.created
-          terminated ++= delta.terminated
-        case ActorCreated(ref)    => created += ref
-        case ActorTerminated(ref) => terminated += ref
+      //TODO check if this forces object wrapping
+      def process(command: DeltaBuilderCommand): this.type = {
+        command match {
+          case BulkStateChange(delta) =>
+            created ++= delta.created
+            terminated ++= delta.terminated
+            retagged ++= delta.retagged
+          case ActorCreated(details) =>
+            created += details
+          case ActorTerminated(ref) => terminated += ref
+          case ActorRetagged(details) =>
+            retagged += details
+        }
+        this
       }
-      this
+
+      def result: Delta =
+        Delta(created.toSeq, terminated.toSeq)
+
     }
 
-    def result: Delta =
-      Delta(created.toSeq, terminated.toSeq)
+    object DeltaBuilder {
+      def apply(): DeltaBuilder = new DeltaBuilder()
+    }
 
   }
 
-  object DeltaBuilder {
-    def apply(): DeltaBuilder = new DeltaBuilder()
+  final case class Delta(
+    created: Seq[ActorRefDetails],
+    terminated: Seq[classic.ActorRef],
+    retagged: Seq[ActorRefDetails] = Seq.empty
+  ) {
+    lazy val nonEmpty: Boolean = created.nonEmpty || terminated.nonEmpty
   }
 
   private[service] def apply(
@@ -135,8 +154,10 @@ final class DeltaActorTree private (
 
   private[this] val boundMonitor = monitor.bind(Labels(node))
 
-  private val registeredAdapter = context.messageAdapter[ActorEvent] { case ActorEvent.ActorCreated(ref, _) =>
-    ActorCreated(ref)
+  private val registeredAdapter = context.messageAdapter[ActorEvent] {
+    case created: ActorEvent.ActorCreated =>
+      ActorCreated(created.details)
+    case setTags: ActorEvent.SetTags => ActorRetagged(setTags.details)
   }
 
   def start(restart: Boolean = false): Behavior[Api] = {
@@ -151,14 +172,20 @@ final class DeltaActorTree private (
   private def waitForRegistration(restart: Boolean): Behavior[Api] = Behaviors.withStash(config.eventQueueSize) {
     stash =>
       Behaviors.receiveMessagePartial { case ServiceRegistered =>
-        val snapshot = if (restart) backoffTraverser.getActorTreeFromRootGuardian(system.classicSystem) else Nil
+        val snapshot =
+          if (restart)
+            backoffTraverser
+              .getActorTreeFromRootGuardian(system.classicSystem)
+              .map(ref => ActorRefDetails(ref, Set.empty))
+          else Nil
         stash.unstashAll(waitingForConnection(snapshot))
       }
   }
 
   private def connected(connected: SourceQueueWithComplete[DeltaBuilderCommand]): Behavior[Api] =
     Behaviors.receiveMessagePartial[Api] {
-      case created @ ActorCreated(ref) =>
+      case created @ ActorCreated(details) =>
+        import details._
         onCreated(ref)
         connected.offer(created)
         Behaviors.same
@@ -168,14 +195,15 @@ final class DeltaActorTree private (
         Behaviors.same
     }
 
-  private def waitingForConnection(snapshot: List[classic.ActorRef]): Behavior[Api] = Behaviors
+  private def waitingForConnection(snapshot: List[ActorRefDetails]): Behavior[Api] = Behaviors
     .receiveMessagePartial[Api] {
-      case ActorCreated(ref) =>
+      case ActorCreated(details) =>
+        import details._
         onCreated(ref)
-        waitingForConnection(ref :: snapshot)
+        waitingForConnection(details :: snapshot)
       case ActorTerminated(ref) =>
         onTerminated(ref)
-        waitingForConnection(snapshot.filter(_ != ref))
+        waitingForConnection(snapshot.filter(_.ref != ref))
       case Connect(ref) =>
         implicit val system = context.system
 

@@ -33,18 +33,25 @@ final class ActorTreeService(
 ) extends AbstractBehavior[Command](ctx) {
   import context._
 
-  private[this] val snapshot = ArrayBuffer.empty[classic.ActorRef]
+  private[this] val snapshot = ArrayBuffer.empty[ActorRefDetails]
 
   private[this] val connectionAdapter = context.messageAdapter[Delta](ActorTreeUpdate)
 
   override def onMessage(msg: Command): Behavior[Command] = msg match {
-    case ActorTreeUpdate(Delta(created, terminated)) =>
-      snapshot.subtractAll(terminated)
+    case ActorTreeUpdate(Delta(created, terminated, retagged)) =>
       snapshot ++= created
+      snapshot.mapInPlace { case details @ ActorRefDetails(ref, _) =>
+        retagged.find(_.ref == ref).fold(details)(identity) // override tags
+      }
+      snapshot.filterInPlace(details => !terminated.contains(details.ref))
+
       log.debug("Local snapshot {}", snapshot.toSeq)
       Behaviors.same
     case GetActors(Tag.all, reply) =>
-      reply ! snapshot.toSeq
+      reply ! snapshot.toSeq.map(_.ref)
+      Behaviors.same
+    case GetActors(tag, reply) =>
+      reply ! snapshot.filter(_.tags.contains(tag)).toSeq.map(_.ref)
       Behaviors.same
   }
 

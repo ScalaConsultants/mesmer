@@ -11,6 +11,7 @@ import io.scalac.core.event.ActorEvent
 import io.scalac.core.event.ActorEvent.ActorCreated
 import io.scalac.core.event.Service.actorService
 import io.scalac.core.util.TestBehaviors
+import io.scalac.core.model.ActorRefDetails
 import io.scalac.core.util.TestBehaviors.Pass
 import io.scalac.core.util.TestCase.CommonMonitorTestFactory
 import org.scalatest.flatspec.AnyFlatSpecLike
@@ -42,8 +43,8 @@ class ActorEventTest
     val expectedRef = ref.toClassic
 
     monitor.fishForMessage(Timeout) {
-      case ActorCreated(`expectedRef`, _) => FishingOutcomes.complete
-      case _                              => FishingOutcomes.continueAndIgnore
+      case ActorCreated(ActorRefDetails(`expectedRef`, _)) => FishingOutcomes.complete
+      case _                                               => FishingOutcomes.continueAndIgnore
     }
 
     //cleanup
@@ -63,8 +64,8 @@ class ActorEventTest
     val expectedRef = ref.toClassic
 
     monitor.fishForMessage(Timeout) {
-      case ActorCreated(`expectedRef`, _) => FishingOutcomes.complete
-      case _                              => FishingOutcomes.continueAndIgnore
+      case ActorCreated(ActorRefDetails(`expectedRef`, _)) => FishingOutcomes.complete
+      case _                                               => FishingOutcomes.continueAndIgnore
     }
 
     ref ! () // this will trigger restart
@@ -80,8 +81,8 @@ class ActorEventTest
     val ref = classicSystem.systemActorOf(TestBehaviors.Failing.classic, id)
 
     monitor.fishForMessage(Timeout) {
-      case ActorCreated(`ref`, _) => FishingOutcomes.complete
-      case _                      => FishingOutcomes.continueAndIgnore
+      case ActorCreated(ActorRefDetails(`ref`, _)) => FishingOutcomes.complete
+      case _                                       => FishingOutcomes.continueAndIgnore
     }
 
     ref ! () // this will init restart
