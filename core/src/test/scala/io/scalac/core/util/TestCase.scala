@@ -28,7 +28,7 @@ object TestCase {
 
     // DSL
 
-    def testCaseWithSetupAndContext[T](hackContext: Context => Context)(tc: Setup => Context => T): T = {
+    final def testCaseWithSetupAndContext[C2 <: Context, T](hackContext: Context => C2)(tc: Setup => C2 => T): T = {
       val env = startEnv()
       try {
         val ctx   = hackContext(createContext(env))
@@ -40,16 +40,16 @@ object TestCase {
       } finally stopEnv(env)
     }
 
-    def testCaseWith[T](mapContext: Context => Context)(tc: Context => T): T =
+    final def testCaseWith[C2 <: Context, T](mapContext: Context => C2)(tc: C2 => T): T =
       testCaseWithSetupAndContext(mapContext)(_ => tc)
 
-    def testCase[T](tc: Context => T): T =
+    final def testCase[T](tc: Context => T): T =
       testCaseWith(identity)(tc)
 
-    def testCaseSetupContext[T](tc: Setup => Context => T): T =
+    final def testCaseSetupContext[T](tc: Setup => Context => T): T =
       testCaseWithSetupAndContext(identity)(tc)
 
-    def testCaseSetup[T](tc: Setup => T): T =
+    final def testCaseSetup[T](tc: Setup => T): T =
       testCaseWithSetupAndContext(identity)(setup => _ => tc(setup))
   }
 

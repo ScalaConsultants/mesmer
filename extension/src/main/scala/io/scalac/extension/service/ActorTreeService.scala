@@ -1,6 +1,7 @@
 package io.scalac.extension.service
 
 import akka.actor.typed._
+import akka.actor.typed.receptionist.Receptionist.Register
 import akka.actor.typed.scaladsl.{ AbstractBehavior, ActorContext, Behaviors }
 import akka.{ actor => classic }
 import io.scalac.core.model.{ Tag, _ }
@@ -72,5 +73,10 @@ final class ActorTreeService(
     ref ! Connect(connectionAdapter)
   }
 
-  spawnDeltaActorTree(false)
+  def init(): Unit = {
+    system.receptionist ! Register(actorTreeService, context.self)
+    spawnDeltaActorTree(false)
+  }
+
+  init()
 }

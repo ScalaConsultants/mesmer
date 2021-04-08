@@ -9,11 +9,11 @@ import com.newrelic.telemetry.Attributes
 import com.newrelic.telemetry.opentelemetry.`export`.NewRelicMetricExporter
 import io.opentelemetry.sdk.OpenTelemetrySdk
 import io.opentelemetry.sdk.metrics.`export`.IntervalMetricReader
+import io.scalac.core.actor.MutableActorMetricsStorage
 import io.scalac.core.model.{ Module, SupportedVersion, Version, _ }
 import io.scalac.core.support.ModulesSupport
 import io.scalac.core.util.ModuleInfo
 import io.scalac.core.util.ModuleInfo.Modules
-import io.scalac.core.actor.CleanableActorMetricsStorage
 import io.scalac.extension.config.{ AkkaMonitoringConfig, CachingConfig }
 import io.scalac.extension.http.CleanableRequestStorage
 import io.scalac.extension.metric.CachingMonitor
@@ -192,11 +192,12 @@ class AkkaMonitoring(private val system: ActorSystem[_], val config: AkkaMonitor
     system.systemActorOf(
       Behaviors
         .supervise(
-          WithSelfCleaningState
-            .clean(CleanableActorMetricsStorage.withConfig(config.cleaning))
-            .every(config.cleaning.every)(storage =>
-              ActorEventsMonitorActor(actorMonitor, clusterNodeName, ExportInterval, storage, streamMonitorRef)
-            )
+          ActorEventsMonitorActor(
+            actorMonitor,
+            clusterNodeName,
+            ExportInterval,
+            () => MutableActorMetricsStorage.empty
+          )
         )
         .onFailure(SupervisorStrategy.restart),
       "actorMonitor"

@@ -1,39 +1,38 @@
 package io.scalac.extension
 
 import akka.actor.typed._
-import akka.actor.typed.receptionist.Receptionist.Register
-import akka.actor.typed.scaladsl.{ AbstractBehavior, ActorContext, Behaviors, TimerScheduler }
+import akka.actor.typed.receptionist.Receptionist
+import akka.actor.typed.receptionist.Receptionist.Listing
+import akka.actor.typed.scaladsl.{ ActorContext, Behaviors, TimerScheduler }
+import akka.util.Timeout
 import akka.{ actor => classic }
-import io.scalac.core._
 import io.scalac.core.actor.{ ActorCellDecorator, ActorMetricStorage, ActorMetrics }
-import io.scalac.core.model.{ ActorKey, Node, Tag }
+import io.scalac.core.model.{ Node, Tag }
 import io.scalac.core.util.{ ActorCellOps, ActorRefOps }
 import io.scalac.extension.ActorEventsMonitorActor._
-import io.scalac.extension.AkkaStreamMonitoring.StartStreamCollection
 import io.scalac.extension.metric.ActorMetricMonitor
 import io.scalac.extension.metric.ActorMetricMonitor.Labels
 import io.scalac.extension.metric.MetricObserver.Result
-import io.scalac.extension.service.{ ActorTreeTraverser, ReflectiveActorTreeTraverser }
+import io.scalac.extension.service.ActorTreeService.GetActors
+import io.scalac.extension.service.{ actorTreeService, ActorTreeService }
 import org.slf4j.LoggerFactory
 
 import java.util.concurrent.atomic.AtomicReference
-import scala.annotation.tailrec
-import scala.collection.mutable
 import scala.concurrent.duration._
+import scala.util.{ Failure, Success }
 
 object ActorEventsMonitorActor {
 
   sealed trait Command
-  private[ActorEventsMonitorActor] final case object UpdateActorMetrics                          extends Command
-  private[ActorEventsMonitorActor] final case class AddTag(actorRef: classic.ActorRef, tag: Tag) extends Command
+  private[ActorEventsMonitorActor] final case object StartActorsMeasurement                       extends Command
+  private[ActorEventsMonitorActor] final case class MeasureActorTree(refs: Seq[classic.ActorRef]) extends Command
+  private[ActorEventsMonitorActor] final case class ServiceListing(listing: Listing)              extends Command
 
   def apply(
     actorMonitor: ActorMetricMonitor,
     node: Option[Node],
     pingOffset: FiniteDuration,
-    storage: ActorMetricStorage,
-    streamRef: ActorRef[AkkaStreamMonitoring.Command],
-    actorTreeTraverser: ActorTreeTraverser = ReflectiveActorTreeTraverser,
+    storageFactory: () => ActorMetricStorage,
     actorMetricsReader: ActorMetricsReader = ReflectiveActorMetricsReader
   ): Behavior[Command] =
     Behaviors.setup[Command] { ctx =>
@@ -42,9 +41,7 @@ object ActorEventsMonitorActor {
         actorMonitor,
         node,
         pingOffset,
-        storage,
-        streamRef,
-        actorTreeTraverser,
+        storageFactory,
         actorMetricsReader
       )
     }
@@ -54,9 +51,7 @@ object ActorEventsMonitorActor {
     actorMonitor: ActorMetricMonitor,
     node: Option[Node],
     pingOffset: FiniteDuration,
-    storage: ActorMetricStorage,
-    streamRef: ActorRef[AkkaStreamMonitoring.Command],
-    actorTreeRunner: ActorTreeTraverser,
+    storageFactory: () => ActorMetricStorage,
     actorMetricsReader: ActorMetricsReader
   ): Behavior[Command] =
     Behaviors.withTimers[Command] { scheduler =>
@@ -65,12 +60,10 @@ object ActorEventsMonitorActor {
         actorMonitor,
         node,
         pingOffset,
-        storage,
-        streamRef,
+        storageFactory,
         scheduler,
-        actorTreeRunner,
         actorMetricsReader
-      )
+      ).start()
     }
 
   trait ActorMetricsReader {
@@ -109,31 +102,20 @@ object ActorEventsMonitorActor {
 }
 
 private class ActorEventsMonitorActor private (
-  ctx: ActorContext[Command],
+  context: ActorContext[Command],
   monitor: ActorMetricMonitor,
   node: Option[Node],
   pingOffset: FiniteDuration,
-  private var storage: ActorMetricStorage,
-  streamRef: ActorRef[AkkaStreamMonitoring.Command],
+  storageFactory: () => ActorMetricStorage,
   scheduler: TimerScheduler[Command],
-  actorTreeRunner: ActorTreeTraverser = ReflectiveActorTreeTraverser,
   actorMetricsReader: ActorMetricsReader = ReflectiveActorMetricsReader
-) extends AbstractBehavior[Command](ctx) {
+) {
 
   import context._
-  // Disclaimer:
-  // Due to the compute intensiveness of traverse the actors tree,
-  // we're using AbstractBehavior, mutable state and var in intention to boost our performance.
-
-  private[this] val actorTags: mutable.Map[ActorKey, mutable.Set[Tag]] = mutable.Map.empty
-
-  private[this] var refs: List[classic.ActorRef] = Nil
 
   private[this] val boundMonitor = monitor.bind()
 
   private[this] val treeSnapshot = new AtomicReference[Option[Seq[(Labels, ActorMetrics)]]](None)
-
-  init()
 
   private def updateMetric(extractor: ActorMetrics => Option[Long])(result: Result[Long, Labels]): Unit = {
     val state = treeSnapshot.get()
@@ -143,8 +125,8 @@ private class ActorEventsMonitorActor private (
       })
   }
 
-  // this is not idempotent
-  private def init(): Unit = {
+  // this is not idempotent!
+  private def registerUpdaters(): Unit = {
     boundMonitor.mailboxSize.setUpdater(updateMetric(_.mailboxSize))
     boundMonitor.failedMessages.setUpdater(updateMetric(_.failedMessages))
     boundMonitor.processedMessages.setUpdater(updateMetric(_.processedMessages))
@@ -159,82 +141,66 @@ private class ActorEventsMonitorActor private (
     boundMonitor.processingTimeSum.setUpdater(updateMetric(_.processingTime.map(_.sum)))
     boundMonitor.sentMessages.setUpdater(updateMetric(_.sentMessages))
     boundMonitor.stashSize.setUpdater(updateMetric(_.stashSize))
-    //start collection loop
-    setTimeout()
   }
 
-  override def onSignal: PartialFunction[Signal, Behavior[Command]] = { case PostStop | PreRestart =>
+  // this is not idempotent
+  def start(): Behavior[Command] = {
+
+    val adapter = context.messageAdapter[Listing](ServiceListing)
+    system.receptionist ! Receptionist.Subscribe(actorTreeService, adapter)
+    waitingForService(adapter)
+  }
+
+  private def waitingForService(adapter: ActorRef[_]): Behavior[Command] = Behaviors.receiveMessagePartial {
+    case ServiceListing(listing) =>
+      listing
+        .serviceInstances(actorTreeService)
+        .headOption
+        .fold[Behavior[Command]](Behaviors.same) { actorTreeService =>
+          context.stop(adapter) // hack to stop subscription
+          //start collection loop
+          setTimeout()
+          registerUpdaters()
+          loop(actorTreeService)
+        }
+  }
+
+  private def loop(actorService: ActorRef[ActorTreeService.Command]): Behavior[Command] = {
+    implicit val timeout: Timeout = 2.seconds
+
+    Behaviors.receiveMessage[Command] {
+      case StartActorsMeasurement =>
+        context
+          .ask[ActorTreeService.Command, Seq[classic.ActorRef]](actorService, adapter => GetActors(Tag.all, adapter)) {
+            case Success(value) => MeasureActorTree(value)
+            case Failure(_)     => StartActorsMeasurement // keep asking
+          }
+        Behaviors.same
+      case MeasureActorTree(refs) =>
+        update(refs)
+        setTimeout() // loop
+        Behaviors.same
+    }
+  }.receiveSignal { case (_, PreRestart | PostStop) =>
     boundMonitor.unbind()
-    this
+    Behaviors.same
   }
 
-  def onMessage(msg: Command): Behavior[Command] = msg match {
-    case UpdateActorMetrics =>
-      update()
-      cleanTags()
-      cleanRefs()
-      setTimeout() // loop
-      this
-    case AddTag(ref, tag) =>
-      log.trace(s"Add tags {} for actor {}", tag, ref)
-      refs ::= ref
-      actorTags
-        .getOrElseUpdate(storage.actorToKey(ref), mutable.Set.empty)
-        .add(tag)
-      this
-  }
+  private def setTimeout(): Unit = scheduler.startSingleTimer(StartActorsMeasurement, pingOffset)
 
-  private def setTimeout(): Unit = scheduler.startSingleTimer(UpdateActorMetrics, pingOffset)
-
-  /**
-   * Clean tags that wasn't found in last actor tree traversal
-   */
-  private def cleanTags(): Unit =
-    actorTags.keys.foreach { key =>
-      actorTags.updateWith(key) {
-        case s @ Some(_) if storage.has(key) => s
-        case _                               => None
-      }
+  private def update(refs: Seq[classic.ActorRef]): Unit = {
+    val storage = refs.foldLeft(storageFactory()) { case (acc, ref) =>
+      actorMetricsReader.read(ref).fold(acc)(acc.save(ref, _))
     }
 
-  private def cleanRefs(): Unit =
-    refs = refs.filter(ref => storage.has(storage.actorToKey(ref)))
-
-  private def update(): Unit = {
-
-    @tailrec
-    def traverseActorTree(actors: List[classic.ActorRef]): Unit = actors match {
-      case Nil =>
-      case h :: t =>
-        read(h)
-        val nextActors = t.prependedAll(actorTreeRunner.getChildren(h))
-        traverseActorTree(nextActors)
-    }
-
-    def read(actorRef: classic.ActorRef): Unit =
-      actorMetricsReader
-        .read(actorRef)
-        .foreach(metrics => storage = storage.save(actorRef, metrics))
-
-    traverseActorTree(actorTreeRunner.getRootGuardian(ctx.system.classicSystem) :: Nil)
-
-    runSideEffects()
+    captureState(storage)
   }
 
-  private def runSideEffects(): Unit = {
-    startStreamCollection()
-    captureState()
-  }
-
-  private def startStreamCollection(): Unit = streamRef ! StartStreamCollection(refs.toSet)
-
-  private def captureState(): Unit = {
+  private def captureState(storage: ActorMetricStorage): Unit = {
     log.debug("Capturing current actor tree state")
     treeSnapshot.set(Some(storage.snapshot.map { case (key, metrics) =>
-      val tags = actorTags.get(key).fold[Set[Tag]](Set.empty)(_.toSet)
-      (Labels(key, node, tags), metrics)
+      (Labels(key, node), metrics)
     }))
-    storage = storage.clear()
   }
 
 }
