@@ -152,25 +152,11 @@ private class ActorEventsMonitorActor private (
     registerUpdaters()
     loop(treeService)
   }
-//
-//  private def waitingForService(adapter: ActorRef[_]): Behavior[Command] = Behaviors.receiveMessagePartial {
-//    case ServiceListing(listing) =>
-//      listing
-//        .serviceInstances(actorTreeService)
-//        .headOption
-//        .fold[Behavior[Command]](Behaviors.same) { actorTreeService =>
-//          context.stop(adapter) // hack to stop subscription
-//          //start collection loop
-//          setTimeout()
-//          registerUpdaters()
-//          loop(actorTreeService)
-//        }
-//  }
 
   private def loop(actorService: ActorRef[ActorTreeService.Command]): Behavior[Command] = {
     implicit val timeout: Timeout = 2.seconds
 
-    Behaviors.receiveMessage[Command] {
+    Behaviors.receiveMessagePartial[Command] {
       case StartActorsMeasurement =>
         context
           .ask[ActorTreeService.Command, Seq[classic.ActorRef]](actorService, adapter => GetActors(Tag.all, adapter)) {

@@ -10,19 +10,19 @@ import io.scalac.core.event.EventBus
 import io.scalac.core.event.Service.streamService
 import io.scalac.core.event.StreamEvent.StreamInterpreterStats
 import io.scalac.core.model.Tag.{ StageName, SubStreamName }
-import io.scalac.core.model._
+import io.scalac.core.model.{ Tag, _ }
 import io.scalac.core.util.TestCase.{
   MonitorTestCaseContext,
   MonitorWithServiceTestCaseFactory,
   ProvidedActorSystemTestCaseFactory
 }
-import io.scalac.extension.util.probe.BoundTestProbe.{ MetricObserved, MetricRecorded }
 import io.scalac.core.util.probe.ObserverCollector.ScheduledCollectorImpl
 import io.scalac.core.util.probe.{ ObserverCollector, Collected => CollectedObserver }
 import io.scalac.core.util.{ TestConfig, TestOps }
-import io.scalac.extension.AkkaStreamMonitoring.StartStreamCollection
-import io.scalac.core.util.probe.ObserverCollector.ScheduledCollectorImpl
+import io.scalac.extension.service.ActorTreeService
+import io.scalac.extension.service.ActorTreeService.GetActors
 import io.scalac.extension.util.probe
+import io.scalac.extension.util.probe.BoundTestProbe.{ MetricObserved, MetricRecorded }
 import io.scalac.extension.util.probe.{ StreamMonitorTestProbe, StreamOperatorMonitorTestProbe }
 import org.scalatest._
 import org.scalatest.concurrent.Eventually
@@ -49,21 +49,26 @@ class AkkaStreamMonitoringTest
   type Context = TestCaseContext
   type Command = AkkaStreamMonitoring.Command
 
+  protected val serviceKey: ServiceKey[_] = streamService.serviceKey
+
   protected def createContextFromMonitor(monitor: (StreamOperatorMonitorTestProbe, StreamMonitorTestProbe))(implicit
     system: ActorSystem[_]
   ): TestCaseContext =
-    TestCaseContext(monitor, monitor._1.collector)
+    TestCaseContext(monitor, TestProbe(), monitor._1.collector)
 
   protected def createMonitorBehavior(implicit context: Context): Behavior[Command] =
-    AkkaStreamMonitoring(operations, global, None)
+    Behaviors.setup[Command](ctx =>
+      Behaviors.withTimers(scheduler =>
+        new AkkaStreamMonitoring(ctx, operations, global, scheduler, None, treeService.ref).start()
+      )
+    )
 
-  override protected val serviceKey: ServiceKey[_] = streamService.serviceKey
-  private final val OperationsPing                 = 1.seconds
-  private final val ReceiveWait                    = OperationsPing * 3
-  private final val SourceName                     = "sourceSingle"
-  private final val SinkName                       = "sinkIgnore"
-  private final val FlowName                       = "map"
-  private final val StagesNames                    = Seq(SourceName, SinkName, FlowName)
+  private final val OperationsPing = 3.seconds
+  private final val ReceiveWait    = OperationsPing * 3
+  private final val SourceName     = "sourceSingle"
+  private final val SinkName       = "sinkIgnore"
+  private final val FlowName       = "map"
+  private final val StagesNames    = Seq(SourceName, SinkName, FlowName)
 
   override protected def createMonitor(implicit system: ActorSystem[_]): Monitor = {
     val collector = new ScheduledCollectorImpl(OperationsPing)
@@ -105,6 +110,8 @@ class AkkaStreamMonitoringTest
   def global(implicit c: Context): StreamMonitorTestProbe             = c.monitor._2
   def operations(implicit c: Context): StreamOperatorMonitorTestProbe = c.monitor._1
 
+  def treeService(implicit c: Context): TestProbe[ActorTreeService.Command] = c.actorTreeService
+
   "AkkaStreamMonitoring" should "ask all received refs for metrics" in testCaseSetupContext {
     implicit setup => implicit c =>
       val probes = List.fill(5)(TestProbe[PushMetrics.type]())
@@ -112,20 +119,25 @@ class AkkaStreamMonitoringTest
         .map(probe => akkaStreamActorBehavior(Set.empty, SubStreamName(randomString(10), "1"), Some(probe.ref)))
         .map(behavior => system.systemActorOf(behavior, createUniqueId).toClassic)
 
-      sut ! StartStreamCollection(refs.toSet)
+      inside(treeService.receiveMessage()) { case GetActors(Tag.stream, reply) =>
+        reply ! refs
+      }
 
       forAll(probes)(_.expectMessageType[PushMetrics.type])
   }
 
   it should "publish amount of actors running stream" in testCaseSetupContext { implicit setup => implicit c =>
     val ExpectedCount = 5
-    val refs = generateUniqueString(ExpectedCount, 10).zipWithIndex.map { case (name, index) =>
+    val refs = generateUniqueStringSeq(ExpectedCount, 10).zipWithIndex.map { case (name, index) =>
       val streamName = SubStreamName(s"$name-$index", s"$index")
       val behavior   = akkaStreamActorBehavior(Set.empty, streamName, None)
       system.systemActorOf(behavior, s"$name-$index-$index-${randomString(10)}").toClassic
     }
 
-    sut ! StartStreamCollection(refs.toSet)
+//    sut ! StartStreamCollection
+    inside(treeService.receiveMessage()) { case GetActors(Tag.stream, reply) =>
+      reply ! refs
+    }
 
     global.streamActorsProbe.receiveMessage(ReceiveWait) shouldBe (MetricRecorded(ExpectedCount))
   }
@@ -133,7 +145,7 @@ class AkkaStreamMonitoringTest
   it should "publish amount of running streams" in testCaseSetupContext { implicit setup => implicit c =>
     val ExpectedCount  = 5
     val ActorPerStream = 3
-    val refs = generateUniqueString(ExpectedCount, 10).zipWithIndex.flatMap { case (name, index) =>
+    val refs = generateUniqueStringSeq(ExpectedCount, 10).zipWithIndex.flatMap { case (name, index) =>
       List.tabulate(ActorPerStream) { streamId =>
         val streamName = SubStreamName(s"$name-$index", s"$streamId")
         val behavior   = akkaStreamActorBehavior(Set.empty, streamName, None)
@@ -141,7 +153,10 @@ class AkkaStreamMonitoringTest
       }
     }
 
-    sut ! StartStreamCollection(refs.toSet)
+//    sut ! StartStreamCollection
+    inside(treeService.receiveMessage()) { case GetActors(Tag.stream, reply) =>
+      reply ! refs
+    }
 
     global.runningStreamsProbe.receiveMessage(2.seconds) shouldBe (MetricRecorded(ExpectedCount))
     global.streamActorsProbe.receiveMessage(2.seconds) shouldBe (MetricRecorded(ExpectedCount * ActorPerStream))
@@ -154,7 +169,7 @@ class AkkaStreamMonitoringTest
       val Push          = 11L
       val Pull          = 9L
 
-      val refs = generateUniqueString(ExpectedCount, 10).zipWithIndex.map { case (name, index) =>
+      val refs = generateUniqueStringSeq(ExpectedCount, 10).zipWithIndex.map { case (name, index) =>
         val streamName = SubStreamName(s"$name-$index", "0")
 
         val linearShellInfo = singleActorLinearShellInfo(streamName, Flows, Push, Pull)
@@ -164,7 +179,9 @@ class AkkaStreamMonitoringTest
         system.systemActorOf(behavior, s"$name-$index-$index-${randomString(10)}").toClassic
       }
 
-      sut ! StartStreamCollection(refs.toSet)
+      inside(treeService.receiveMessage()) { case GetActors(Tag.stream, reply) =>
+        reply ! refs
+      }
 
       val operators =
         operations.runningOperatorsTestProbe.receiveMessages(ExpectedCount * StagesNames.size, OperationsPing)
@@ -189,6 +206,7 @@ class AkkaStreamMonitoringTest
 
   case class TestCaseContext(
     monitor: Monitor,
+    actorTreeService: TestProbe[ActorTreeService.Command],
     collector: ObserverCollector
   )(implicit
     val system: ActorSystem[_]
