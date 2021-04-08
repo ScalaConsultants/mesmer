@@ -59,8 +59,8 @@ class ActorEventsMonitorActorTest
   private val FailingReaderFactory: MetricsContext => ActorMetricsReader = _ => {
     _ => throw new RuntimeException("Planned failure") with NoStackTrace
   }
-  private val FakeReaderFactory: MetricsContext => ActorMetricsReader = metrics => {
 
+  private val FakeReaderFactory: MetricsContext => ActorMetricsReader = metrics => {
     _ => {
       import metrics._
       Some(

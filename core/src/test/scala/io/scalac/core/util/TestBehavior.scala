@@ -8,24 +8,6 @@ import akka.actor.{ Actor, ActorLogging, Props }
 
 import scala.util.control.NoStackTrace
 
-object TestBehavior {
-
-  sealed trait Command
-
-  object Command {
-
-    case object Same extends Command
-    case object Stop extends Command
-  }
-
-  import Command._
-
-  def apply(id: String): Behavior[Command] = Behaviors.receiveMessage {
-    case Same => Behaviors.same
-    case Stop => Behaviors.stopped
-  }
-}
-
 object TestBehaviors {
 
   object SameStop {
