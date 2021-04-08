@@ -103,7 +103,7 @@ object ActorEventsMonitorActor {
 
 }
 
-private class ActorEventsMonitorActor private (
+private[extension] class ActorEventsMonitorActor private[extension] (
   context: ActorContext[Command],
   monitor: ActorMetricMonitor,
   node: Option[Node],
