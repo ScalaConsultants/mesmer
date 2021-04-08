@@ -1,7 +1,6 @@
 package io.scalac.extension
 
 import akka.actor.typed._
-import akka.actor.typed.receptionist.Receptionist
 import akka.actor.typed.receptionist.Receptionist.Listing
 import akka.actor.typed.scaladsl.{ ActorContext, Behaviors, TimerScheduler }
 import akka.util.Timeout
@@ -15,6 +14,7 @@ import io.scalac.extension.metric.ActorMetricMonitor.Labels
 import io.scalac.extension.metric.MetricObserver.Result
 import io.scalac.extension.service.ActorTreeService.GetActors
 import io.scalac.extension.service.{ actorTreeService, ActorTreeService }
+import io.scalac.extension.util.GenericBehaviors
 import org.slf4j.LoggerFactory
 
 import java.util.concurrent.atomic.AtomicReference
@@ -53,17 +53,19 @@ object ActorEventsMonitorActor {
     pingOffset: FiniteDuration,
     storageFactory: () => ActorMetricStorage,
     actorMetricsReader: ActorMetricsReader
-  ): Behavior[Command] =
-    Behaviors.withTimers[Command] { scheduler =>
-      new ActorEventsMonitorActor(
-        context,
-        actorMonitor,
-        node,
-        pingOffset,
-        storageFactory,
-        scheduler,
-        actorMetricsReader
-      ).start()
+  ): Behavior[Command] = GenericBehaviors
+    .waitForService(actorTreeService) { ref =>
+      Behaviors.withTimers[Command] { scheduler =>
+        new ActorEventsMonitorActor(
+          context,
+          actorMonitor,
+          node,
+          pingOffset,
+          storageFactory,
+          scheduler,
+          actorMetricsReader
+        ).start(ref)
+      }
     }
 
   trait ActorMetricsReader {
@@ -144,26 +146,26 @@ private class ActorEventsMonitorActor private (
   }
 
   // this is not idempotent
-  def start(): Behavior[Command] = {
+  def start(treeService: ActorRef[ActorTreeService.Command]): Behavior[Command] = {
 
-    val adapter = context.messageAdapter[Listing](ServiceListing)
-    system.receptionist ! Receptionist.Subscribe(actorTreeService, adapter)
-    waitingForService(adapter)
+    setTimeout()
+    registerUpdaters()
+    loop(treeService)
   }
-
-  private def waitingForService(adapter: ActorRef[_]): Behavior[Command] = Behaviors.receiveMessagePartial {
-    case ServiceListing(listing) =>
-      listing
-        .serviceInstances(actorTreeService)
-        .headOption
-        .fold[Behavior[Command]](Behaviors.same) { actorTreeService =>
-          context.stop(adapter) // hack to stop subscription
-          //start collection loop
-          setTimeout()
-          registerUpdaters()
-          loop(actorTreeService)
-        }
-  }
+//
+//  private def waitingForService(adapter: ActorRef[_]): Behavior[Command] = Behaviors.receiveMessagePartial {
+//    case ServiceListing(listing) =>
+//      listing
+//        .serviceInstances(actorTreeService)
+//        .headOption
+//        .fold[Behavior[Command]](Behaviors.same) { actorTreeService =>
+//          context.stop(adapter) // hack to stop subscription
+//          //start collection loop
+//          setTimeout()
+//          registerUpdaters()
+//          loop(actorTreeService)
+//        }
+//  }
 
   private def loop(actorService: ActorRef[ActorTreeService.Command]): Behavior[Command] = {
     implicit val timeout: Timeout = 2.seconds
