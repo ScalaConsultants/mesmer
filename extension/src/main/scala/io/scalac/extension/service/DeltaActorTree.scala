@@ -27,7 +27,7 @@ import io.scalac.core.model._
 import io.scalac.extension.config.Configuration
 import io.scalac.extension.metric.ActorSystemMonitor
 import io.scalac.extension.metric.ActorSystemMonitor.Labels
-import io.scalac.extension.service.DeltaActorTree.Delta.{ apply => _, _ }
+import io.scalac.extension.service.DeltaActorTree.Delta._
 import io.scalac.extension.service.DeltaActorTree._
 
 case class DeltaActorTreeConfig(

@@ -3,10 +3,10 @@ import akka.actor.testkit.typed.scaladsl.ScalaTestWithActorTestKit
 import akka.actor.typed.ActorSystem
 import akka.actor.typed.Behavior
 import akka.actor.typed.receptionist.ServiceKey
+import org.scalatest._
 import org.scalatest.concurrent.Eventually
 import org.scalatest.flatspec.AnyFlatSpecLike
 import org.scalatest.matchers.should.Matchers
-import org.scalatest.{ Status => _, _ }
 
 import scala.concurrent.duration._
 import scala.language.postfixOps

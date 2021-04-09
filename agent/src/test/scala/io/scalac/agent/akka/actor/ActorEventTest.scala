@@ -11,6 +11,7 @@ import akka.actor.typed.scaladsl.Behaviors
 import akka.actor.typed.scaladsl.adapter._
 import org.scalatest.flatspec.AnyFlatSpecLike
 import org.scalatest.matchers.should.Matchers
+import org.scalatest.time.Span
 
 import scala.concurrent.duration._
 
@@ -23,7 +24,6 @@ import io.scalac.core.model.ActorRefDetails
 import io.scalac.core.util.TestBehaviors
 import io.scalac.core.util.TestBehaviors.Pass
 import io.scalac.core.util.TestCase.CommonMonitorTestFactory
-import org.scalatest.time.Span
 
 class ActorEventTest
     extends InstallAgent
