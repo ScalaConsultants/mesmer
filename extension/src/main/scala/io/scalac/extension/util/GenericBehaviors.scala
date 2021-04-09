@@ -18,7 +18,9 @@ object GenericBehaviors {
    * @tparam I
    * @return
    */
-  def waitForService[T, I: ClassTag](serviceKey: ServiceKey[T])(next: ActorRef[T] => Behavior[I]): Behavior[I] =
+  def waitForService[T, I: ClassTag](serviceKey: ServiceKey[T], bufferSize: Int = 1024)(
+    next: ActorRef[T] => Behavior[I]
+  ): Behavior[I] =
     Behaviors
       .setup[Any] { context => // use any to mimic union types
         import context._
@@ -32,7 +34,7 @@ object GenericBehaviors {
         }
 
         def waitingForService(): Behavior[Any] =
-          Behaviors.withStash(1024) { buffer =>
+          Behaviors.withStash(bufferSize) { buffer =>
             Behaviors.receiveMessagePartial {
               case listing: Listing =>
                 listing
