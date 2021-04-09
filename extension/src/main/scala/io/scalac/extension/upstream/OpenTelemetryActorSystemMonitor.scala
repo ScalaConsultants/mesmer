@@ -49,7 +49,7 @@ final class OpenTelemetryActorSystemMonitor(val meter: Meter, metricNames: Metri
     .setDescription("Amount of actors terminated measured from Actor System start")
     .build()
 
-  override def bind(labels: ActorSystemMonitor.Labels): ActorSystemMonitor.BoundMonitor = ???
+  override def bind(labels: ActorSystemMonitor.Labels): ActorSystemMonitor.BoundMonitor = new ActorSystemBoundMonitor(labels)
 
   class ActorSystemBoundMonitor(labels: ActorSystemMonitor.Labels)
       extends BoundMonitor
