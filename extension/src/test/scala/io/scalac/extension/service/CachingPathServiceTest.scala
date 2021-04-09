@@ -1,7 +1,7 @@
 package io.scalac.extension.service
 
 import io.scalac.extension.config.CachingConfig
-import io.scalac.extension.util.TestOps
+import io.scalac.core.util.TestOps
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 

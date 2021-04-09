@@ -1,6 +1,7 @@
 package io.scalac;
 
 
+import io.scalac.extension.config.CachingConfig;
 import io.scalac.extension.service.*;
 import org.openjdk.jmh.annotations.*;
 import org.openjdk.jmh.infra.Blackhole;
@@ -45,11 +46,11 @@ public class PathServiceBench {
     }
 
 
-    private PathService regexOnly = OldCommonRegexPathService$.MODULE$;
+    private PathService regexOnly = RegexOnlyPathService$.MODULE$;
     private PathService regexOptimized = CommonRegexPathService$.MODULE$;
     private PathService regexDummy = DummyCommonRegexPathService$.MODULE$;
-    private PathService regexOptimizedCaches_100 = new CachingPathService(100);
-    private PathService regexOptimizedCaches_10 = new CachingPathService(10);
+    private PathService regexOptimizedCaches_100 = new CachingPathService(CachingConfig.apply(100));
+    private PathService regexOptimizedCaches_10 = new CachingPathService(CachingConfig.apply(10));
 
     @Benchmark
     @Fork(1)

@@ -1,7 +1,7 @@
 package io.scalac.extension.service
 
+import io.scalac.core.model.Path
 import io.scalac.extension.config.CachingConfig
-import io.scalac.extension.model.Path
 
 import java.util.{ LinkedHashMap, Map }
 import scala.annotation.tailrec
@@ -26,42 +26,36 @@ class CachingPathService(cachingConfig: CachingConfig) extends PathService {
     def replaceInPath(offset: Int, replacements: Vector[(Int, Int, String)]): Vector[(Int, Int, String)] = {
       var nextIndex = path.indexOf('/', offset)
       if (nextIndex <= -1) {
-        nextIndex = path.size
+        nextIndex = path.length
       }
-      if (offset >= path.size) {
+      if (offset >= path.length) {
         replacements
       } else {
         path.substring(offset, nextIndex) match {
           case subs if cache.contains(subs) =>
             replaceInPath(nextIndex + 1, replacements)
 
-          case subs if number.findPrefixOf(subs).isDefined => {
+          case subs if number.findPrefixOf(subs).isDefined =>
             replaceInPath(nextIndex + 1, replacements :+ (offset, nextIndex, numberTemplate))
-          }
-          case subs if (subs.length == 36 && uuid.findPrefixOf(subs).isDefined) => {
+          case subs if (subs.length == 36 && uuid.findPrefixOf(subs).isDefined) =>
             replaceInPath(nextIndex + 1, replacements :+ (offset, nextIndex, uuidTemplate))
-          }
-          case subs => {
+          case subs =>
             cache.put(subs, ())
             replaceInPath(nextIndex + 1, replacements)
-          }
         }
       }
     }
 
     replaceInPath(if (path.startsWith("/")) 1 else 0, Vector.empty) match {
       case Vector() => path
-      case replacements => {
-        val builder = new StringBuilder(path.size)
-        val last = replacements.foldLeft(0) {
-          case (begin, repl) => {
-            builder.append(path.substring(begin, repl._1)).append(repl._3)
-            repl._2
-          }
+      case replacements =>
+        val builder = new StringBuilder(path.length)
+        val last = replacements.foldLeft(0) { case (begin, repl) =>
+          builder.append(path.substring(begin, repl._1)).append(repl._3)
+          repl._2
         }
         builder.append(path.substring(last, path.length))
         builder.toString()
-      }
     }
   }
 }

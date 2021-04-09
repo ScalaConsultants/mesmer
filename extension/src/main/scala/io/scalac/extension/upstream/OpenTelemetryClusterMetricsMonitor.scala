@@ -1,10 +1,8 @@
 package io.scalac.extension.upstream
 
 import com.typesafe.config.Config
-import io.opentelemetry.api.OpenTelemetry
-import io.opentelemetry.api.common.Labels
-import io.scalac.extension.metric._
-import io.scalac.extension.model._
+import io.opentelemetry.api.metrics.Meter
+import io.scalac.extension.metric.{ ClusterMetricsMonitor, _ }
 import io.scalac.extension.upstream.OpenTelemetryClusterMetricsMonitor.MetricNames
 import io.scalac.extension.upstream.opentelemetry._
 
@@ -82,24 +80,23 @@ object OpenTelemetryClusterMetricsMonitor {
     }
   }
 
-  def apply(instrumentationName: String, config: Config): OpenTelemetryClusterMetricsMonitor =
-    new OpenTelemetryClusterMetricsMonitor(instrumentationName, MetricNames.fromConfig(config))
+  def apply(meter: Meter, config: Config): OpenTelemetryClusterMetricsMonitor =
+    new OpenTelemetryClusterMetricsMonitor(meter, MetricNames.fromConfig(config))
 }
 
-class OpenTelemetryClusterMetricsMonitor(instrumentationName: String, val metricNames: MetricNames)
-    extends ClusterMetricsMonitor {
+class OpenTelemetryClusterMetricsMonitor(meter: Meter, metricNames: MetricNames) extends ClusterMetricsMonitor {
 
-  private[this] val meter = OpenTelemetry.getGlobalMeter(instrumentationName)
+  private val shardsPerRegionRecorder = new LongMetricObserverBuilderAdapter[ClusterMetricsMonitor.Labels](
+    meter
+      .longValueObserverBuilder(metricNames.shardPerEntity)
+      .setDescription("Amount of shards in region")
+  )
 
-  private val shardsPerRegionRecorder = meter
-    .longValueRecorderBuilder(metricNames.shardPerEntity)
-    .setDescription("Amount of shards in region")
-    .build()
-
-  private val entityPerRegionRecorder = meter
-    .longValueRecorderBuilder(metricNames.entityPerRegion)
-    .setDescription("Amount of entities in region")
-    .build()
+  private val entityPerRegionRecorder = new LongMetricObserverBuilderAdapter[ClusterMetricsMonitor.Labels](
+    meter
+      .longValueObserverBuilder(metricNames.entityPerRegion)
+      .setDescription("Amount of entities in region")
+  )
 
   private val reachableNodeCounter = meter
     .longUpDownCounterBuilder(metricNames.reachableNodes)
@@ -111,55 +108,54 @@ class OpenTelemetryClusterMetricsMonitor(instrumentationName: String, val metric
     .setDescription("Amount of unreachable nodes")
     .build()
 
-  private val shardRegionsOnNodeRecorder = meter
-    .longValueRecorderBuilder(metricNames.shardRegionsOnNode)
-    .setDescription("Amount of shard regions on node")
-    .build()
+  private val shardRegionsOnNodeRecorder = new LongMetricObserverBuilderAdapter[ClusterMetricsMonitor.Labels](
+    meter
+      .longValueObserverBuilder(metricNames.shardRegionsOnNode)
+      .setDescription("Amount of shard regions on node")
+  )
 
-  private val entitiesOnNodeRecorder = meter
-    .longValueRecorderBuilder(metricNames.entitiesOnNode)
-    .setDescription("Amount of entities on node")
-    .build()
+  private val entitiesOnNodeObserver = new LongMetricObserverBuilderAdapter[ClusterMetricsMonitor.Labels](
+    meter
+      .longValueObserverBuilder(metricNames.entitiesOnNode)
+      .setDescription("Amount of entities on node")
+  )
 
   private val nodeDownCounter = meter
     .longCounterBuilder(metricNames.nodeDown)
     .setDescription("Counter for node down events")
     .build()
 
-  override def bind(node: Node): ClusterBoundMonitor = {
-    val boundLabels = Labels.of("node", node)
-    new ClusterBoundMonitor(boundLabels)
-  }
+  override def bind(labels: ClusterMetricsMonitor.Labels): ClusterBoundMonitor = new ClusterBoundMonitor(labels)
+//    new ClusterBoundMonitor(LabelsFactory.of(LabelNames.Node -> labels.node)(LabelNames.Region -> labels.region))
 
-  class ClusterBoundMonitor(labels: Labels) extends ClusterMetricsMonitor.BoundMonitor with opentelemetry.Synchronized {
-    override val shardPerRegions: MetricRecorder[Long] with Instrument[Long] =
-      WrappedLongValueRecorder(shardsPerRegionRecorder, labels)
+  class ClusterBoundMonitor(labels: ClusterMetricsMonitor.Labels)
+      extends opentelemetry.Synchronized(meter)
+      with ClusterMetricsMonitor.BoundMonitor
+      with RegisterRoot
+      with SynchronousInstrumentFactory {
 
-    override val entityPerRegion: MetricRecorder[Long] with Instrument[Long] =
-      WrappedLongValueRecorder(entityPerRegionRecorder, labels)
+    private val otLabels = LabelsFactory.of(labels.serialize)
 
-    override val shardRegionsOnNode: MetricRecorder[Long] with Instrument[Long] =
-      WrappedLongValueRecorder(shardRegionsOnNodeRecorder, labels)
+    override val shardPerRegions: MetricObserver[Long, ClusterMetricsMonitor.Labels] =
+      shardsPerRegionRecorder.createObserver(this)
 
-    override val entitiesOnNode: MetricRecorder[Long] with Instrument[Long] =
-      WrappedLongValueRecorder(entitiesOnNodeRecorder, labels)
+    override val entityPerRegion: MetricObserver[Long, ClusterMetricsMonitor.Labels] =
+      entityPerRegionRecorder.createObserver(this)
 
-    override val reachableNodes: Counter[Long] with Instrument[Long] =
-      WrappedUpDownCounter(reachableNodeCounter, labels)
+    override val shardRegionsOnNode: MetricObserver[Long, ClusterMetricsMonitor.Labels] =
+      shardRegionsOnNodeRecorder.createObserver(this)
 
-    override val unreachableNodes: Counter[Long] with Instrument[Long] =
-      WrappedUpDownCounter(unreachableNodeCounter, labels)
+    override val entitiesOnNode: MetricObserver[Long, ClusterMetricsMonitor.Labels] =
+      entitiesOnNodeObserver.createObserver(this)
 
-    override val nodeDown: UpCounter[Long] with Instrument[Long] = WrappedCounter(nodeDownCounter, labels)
+    override val reachableNodes: UpDownCounter[Long] with Instrument[Long] =
+      upDownCounter(reachableNodeCounter, otLabels)(this)
 
-    override def unbind(): Unit = {
-      shardPerRegions.unbind()
-      entityPerRegion.unbind()
-      shardRegionsOnNode.unbind()
-      entitiesOnNode.unbind()
-      reachableNodes.unbind()
-      unreachableNodes.unbind()
-      nodeDown.unbind()
-    }
+    override val unreachableNodes: UpDownCounter[Long] with Instrument[Long] =
+      upDownCounter(unreachableNodeCounter, otLabels)(this)
+
+    override val nodeDown: Counter[Long] with Instrument[Long] =
+      counter(nodeDownCounter, otLabels)(this)
+
   }
 }

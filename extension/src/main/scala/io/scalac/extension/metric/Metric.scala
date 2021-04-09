@@ -1,56 +1,27 @@
 package io.scalac.extension.metric
 
-import io.opentelemetry.api.common.Labels
-import io.opentelemetry.api.metrics.LongCounter.BoundLongCounter
-import io.opentelemetry.api.metrics.LongUpDownCounter.BoundLongUpDownCounter
-import io.opentelemetry.api.metrics.LongValueRecorder
-import io.opentelemetry.api.metrics.LongValueRecorder.BoundLongValueRecorder
-
 sealed trait Metric[T]
-
-object Metric {
-
-  implicit class OpenTelemetryLongRecorderOps(
-    val recorder: BoundLongValueRecorder
-  ) extends AnyVal {
-    def toMetricRecorder(): MetricRecorder[Long] =
-      value => recorder.record(value)
-  }
-
-  implicit class OpenTelemetryLongUpDownCounter(
-    val counter: BoundLongUpDownCounter
-  ) extends AnyVal {
-    def toCounter(): Counter[Long] = new Counter[Long] {
-      override def incValue(value: Long): Unit = counter.add(value)
-
-      override def decValue(value: Long): Unit = counter.add(-value)
-    }
-  }
-
-  implicit class OpenTelemetryLongUpCounter(val counter: BoundLongCounter) extends AnyVal {
-    def toUpCounter(): UpCounter[Long] = value => counter.add(value)
-  }
-}
 
 trait MetricRecorder[T] extends Metric[T] {
   def setValue(value: T): Unit
 }
 
-object MetricRecorder {
-
-  class BoundWrappedValueRecorder(val underlying: LongValueRecorder, val labels: Labels) extends MetricRecorder[Long] {
-
-    private[this] val bound = underlying.bind(labels)
-
-    override def setValue(value: Long): Unit = bound.record(value)
-  }
-}
-
-trait UpCounter[T] extends Metric[T] {
+trait Counter[T] extends Metric[T] {
   def incValue(value: T): Unit
 }
-trait Counter[T] extends UpCounter[T] {
+
+trait UpDownCounter[T] extends Counter[T] {
   def decValue(value: T): Unit
 }
 
+trait MetricObserver[T, L] extends Metric[T] {
+  def setUpdater(updater: MetricObserver.Updater[T, L]): Unit
+}
 
+object MetricObserver {
+  type Updater[T, L] = MetricObserver.Result[T, L] => Unit
+
+  trait Result[T, L] {
+    def observe(value: T, labels: L): Unit
+  }
+}

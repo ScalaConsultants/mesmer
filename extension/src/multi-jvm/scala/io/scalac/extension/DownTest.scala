@@ -2,30 +2,36 @@ package io.scalac.extension
 
 import akka.actor.typed.scaladsl.Behaviors
 import akka.actor.typed.scaladsl.adapter._
-import akka.actor.typed.{ActorSystem, SupervisorStrategy}
+import akka.actor.typed.{ ActorSystem, SupervisorStrategy }
 import akka.cluster.Cluster
-import akka.cluster.typed.{ClusterSingleton, SingletonActor}
+import akka.cluster.typed.{ ClusterSingleton, SingletonActor }
 import akka.remote.testkit.MultiNodeSpec
 import akka.remote.transport.ThrottlerTransportAdapter.Direction
-import io.scalac.extension.ThreeNodesConfig._
-import io.scalac.extension.util.probe.BoundTestProbe.{Dec, Inc}
-import io.scalac.extension.util.ScalaTestMultiNodeSpec
-import io.scalac.extension.util.probe.ClusterMetricsTestProbe
-import org.scalatest.Inspectors
 
+import io.scalac.extension.ThreeNodesConfig._
+import io.scalac.core.util.probe.BoundTestProbe.{ Dec, Inc }
+import io.scalac.core.util.ScalaTestMultiNodeSpec
+import io.scalac.core.util.probe.ClusterMetricsTestProbe
+import org.scalatest.{ BeforeAndAfterAll, Inspectors }
 import scala.concurrent.duration._
 import scala.language.postfixOps
+
+import io.scalac.core.util.probe.ObserverCollector.ScheduledCollectorImpl
 
 class DownTestMultiJvmNode1 extends DownTest
 class DownTestMultiJvmNode2 extends DownTest
 class DownTestMultiJvmNode3 extends DownTest
 
-class DownTest extends MultiNodeSpec(ThreeNodesConfig) with ScalaTestMultiNodeSpec with Inspectors {
+class DownTest
+    extends MultiNodeSpec(ThreeNodesConfig)
+    with ScalaTestMultiNodeSpec
+    with Inspectors
+    with BeforeAndAfterAll {
   override def initialParticipants: Int = 3
 
   implicit val typedSystem: ActorSystem[Nothing] = system.toTyped
 
-  val monitor = ClusterMetricsTestProbe()
+  val monitor = ClusterMetricsTestProbe(new ScheduledCollectorImpl(5.seconds))
 
   "Node down" should {
     "Wait for all nodes to join the cluster" in {
@@ -34,13 +40,13 @@ class DownTest extends MultiNodeSpec(ThreeNodesConfig) with ScalaTestMultiNodeSp
     }
 
     "start monitor" in {
-      system.log.error(s"Address, ${node(myself).address}")
+      system.log.error("Address, {}", node(myself).address)
       typedSystem.systemActorOf(ClusterSelfNodeEventsActor.apply(monitor), "monitor-test-1")
       ClusterSingleton(typedSystem)
         .init(
           SingletonActor(
             Behaviors
-              .supervise(OnClusterStartUp(_ => ClusterEventsMonitor(monitor), None))
+              .supervise(ClusterEventsMonitor(monitor))
               .onFailure[Exception](SupervisorStrategy.restart),
             "MemberMonitoringActor"
           )

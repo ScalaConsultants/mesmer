@@ -1,6 +1,7 @@
 package io.scalac.extension.persistence
 
-import io.scalac.extension.event.PersistenceEvent.{ RecoveryFinished, RecoveryStarted }
+import io.scalac.core.event.PersistenceEvent.RecoveryFinished
+import io.scalac.core.event.PersistenceEvent.RecoveryStarted
 
 class ImmutableRecoveryStorage private[persistence] (private val recoveries: Map[String, RecoveryStarted])
     extends RecoveryStorage {

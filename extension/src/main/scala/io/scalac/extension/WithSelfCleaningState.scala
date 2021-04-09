@@ -1,12 +1,14 @@
 package io.scalac.extension
 
+import akka.actor.typed.Behavior
+import akka.actor.typed.BehaviorInterceptor
+import akka.actor.typed.TypedActorContext
 import akka.actor.typed.scaladsl.Behaviors
-import akka.actor.typed.{Behavior, BehaviorInterceptor, TypedActorContext}
-import io.scalac.extension.resource.SelfCleaning
 
 import scala.concurrent.duration._
-import scala.language.postfixOps
 import scala.reflect.ClassTag
+
+import io.scalac.extension.resource.SelfCleaning
 
 class WithSelfCleaningState
 object WithSelfCleaningState {
@@ -22,11 +24,10 @@ object WithSelfCleaningState {
       msg: Any,
       target: BehaviorInterceptor.ReceiveTarget[C]
     ): Behavior[C] = msg match {
-      case CleanResource(tag) if tag == _tag => {
-        ctx.asScala.log.debug(s"Cleaning up resource ${tag}")
+      case CleanResource(tag) if tag == _tag =>
+        ctx.asScala.log.debug("Cleaning up resource {}", tag)
         resource.clean()
         Behaviors.same
-      }
       case internal: C @unchecked => target.apply(ctx, internal)
     }
   }

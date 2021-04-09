@@ -1,68 +1,20 @@
 package io.scalac.agent.akka.http
 
-import io.scalac.agent.Agent.LoadingResult
-import io.scalac.agent.{ Agent, AgentInstrumentation }
+import io.scalac.agent.Agent
+import io.scalac.agent.util.i13n._
 import io.scalac.core.model.SupportedModules
-import io.scalac.core.support.ModulesSupport._
-import net.bytebuddy.asm.Advice
-import net.bytebuddy.description.`type`.TypeDescription
-import net.bytebuddy.description.method.MethodDescription
-import net.bytebuddy.implementation.MethodDelegation
-import net.bytebuddy.matcher.ElementMatchers
-import net.bytebuddy.matcher.ElementMatchers._
-import org.slf4j.LoggerFactory
+import io.scalac.core.support.ModulesSupport
 
-object AkkaHttpAgent {
+object AkkaHttpAgent extends InstrumentModuleFactory {
 
-  private[http] val logger = LoggerFactory.getLogger(AkkaHttpAgent.getClass)
+  // @ToDo tests all supported versions
+  protected final val supportedModules: SupportedModules =
+    SupportedModules(ModulesSupport.akkaHttpModule, ModulesSupport.akkaHttp)
 
-  private[http] val supportedModules: SupportedModules = SupportedModules(akkaHttpModule, akkaHttp)
+  private val httpAgent =
+    instrument("akka.http.scaladsl.HttpExt")
+      .visit[HttpExtAdvice]("bindAndHandle")
 
-  private val routeAgent = AgentInstrumentation(
-    "akka.http.scaladsl.server.Route$",
-    supportedModules
-  ) { (agentBuilder, instrumentation, _) =>
-    agentBuilder
-      .`type`(
-        ElementMatchers.nameEndsWithIgnoreCase[TypeDescription](
-          "akka.http.scaladsl.server.Route$"
-        )
-      )
-      .transform { (builder, typeDescription, classLoader, module) =>
-        builder
-          .method(
-            (named[MethodDescription]("asyncHandler")
-              .and(isMethod[MethodDescription])
-              .and(not(isAbstract[MethodDescription])))
-          )
-          .intercept(MethodDelegation.to(classOf[RouteInstrumentation]))
-      }
-      .installOn(instrumentation)
-    LoadingResult("akka.http.scaladsl.server.Route$")
-  }
+  val agent: Agent = Agent(httpAgent)
 
-  private val httpAgent = AgentInstrumentation(
-    "akka.http.scaladsl.HttpExt",
-    supportedModules
-  ) { (agentBuilder, instrumentation, _) =>
-    agentBuilder
-      .`type`(
-        ElementMatchers.nameEndsWithIgnoreCase[TypeDescription](
-          "akka.http.scaladsl.HttpExt"
-        )
-      )
-      .transform { (builder, _, _, _) =>
-        builder
-          .method(
-            (named[MethodDescription]("bindAndHandle")
-              .and(isMethod[MethodDescription])
-              .and(not(isAbstract[MethodDescription])))
-          )
-          .intercept(Advice.to(classOf[HttpExtAdvice]))
-      }
-      .installOn(instrumentation)
-    LoadingResult("akka.http.scaladsl.HttpExt")
-  }
-
-  val agent = Agent(httpAgent)
 }

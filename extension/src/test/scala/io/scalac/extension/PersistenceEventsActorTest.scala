@@ -1,77 +1,82 @@
 package io.scalac.extension
-
 import akka.actor.testkit.typed.scaladsl.ScalaTestWithActorTestKit
-import akka.actor.typed.ActorRef
+import akka.actor.typed.ActorSystem
+import akka.actor.typed.Behavior
 import akka.actor.typed.receptionist.ServiceKey
-
-import io.scalac.core.util.Timestamp
-import io.scalac.extension.event.EventBus
-import io.scalac.extension.event.PersistenceEvent._
-import io.scalac.extension.metric.PersistenceMetricMonitor.Labels
-import io.scalac.extension.persistence.{ ImmutablePersistStorage, ImmutableRecoveryStorage }
-import io.scalac.extension.util.TestConfig.localActorProvider
-import io.scalac.extension.util.probe.BoundTestProbe.{ Inc, MetricRecorded }
-import io.scalac.extension.util.probe.PersistenceMetricTestProbe
-import io.scalac.extension.util.{ IdentityPathService, MonitorFixture }
 import org.scalatest._
 import org.scalatest.flatspec.AnyFlatSpecLike
 import org.scalatest.matchers.should.Matchers
+
 import scala.concurrent.duration._
+import scala.language.existentials
 import scala.language.postfixOps
 
-import io.scalac.extension.config.CachingConfig
+import io.scalac.core._
+import io.scalac.core.event.EventBus
+import io.scalac.core.event.PersistenceEvent._
+import io.scalac.core.model._
+import io.scalac.core.util.IdentityPathService
+import io.scalac.core.util.TestCase.CommonMonitorTestFactory
+import io.scalac.core.util.TestCase.MonitorTestCaseContext.BasicContext
+import io.scalac.core.util.TestConfig
+import io.scalac.core.util.Timestamp
+import io.scalac.core.util.probe.BoundTestProbe.Inc
+import io.scalac.core.util.probe.BoundTestProbe.MetricRecorded
+import io.scalac.core.util.probe.PersistenceMetricTestProbe
 import io.scalac.extension.metric.CachingMonitor
+import io.scalac.extension.metric.PersistenceMetricMonitor.Labels
+import io.scalac.extension.persistence.ImmutablePersistStorage
+import io.scalac.extension.persistence.ImmutableRecoveryStorage
 
 class PersistenceEventsActorTest
-    extends ScalaTestWithActorTestKit(localActorProvider)
+    extends ScalaTestWithActorTestKit(TestConfig.localActorProvider)
     with AnyFlatSpecLike
     with Matchers
     with Inspectors
-    with MonitorFixture {
-  override type Monitor = PersistenceMetricTestProbe
+    with CommonMonitorTestFactory {
 
-  override protected def createMonitor: Monitor = new PersistenceMetricTestProbe()
+  type Monitor = PersistenceMetricTestProbe
 
-  override protected def setUp(monitor: Monitor, cache: Boolean): ActorRef[_] =
-    system.systemActorOf(
-      PersistenceEventsActor(
-        if (cache) CachingMonitor(monitor) else monitor,
-        ImmutableRecoveryStorage.empty,
-        ImmutablePersistStorage.empty,
-        IdentityPathService
-      ),
-      createUniqueId
+  protected val serviceKey: ServiceKey[_] = persistenceServiceKey
+
+  protected def createMonitorBehavior(implicit context: BasicContext[PersistenceMetricTestProbe]): Behavior[_] =
+    PersistenceEventsActor(
+      if (context.caching) CachingMonitor(monitor) else monitor,
+      ImmutableRecoveryStorage.empty,
+      ImmutablePersistStorage.empty,
+      IdentityPathService
     )
 
-  def recoveryStarted(labels: Labels): Unit =
+  protected def createMonitor(implicit system: ActorSystem[_]): PersistenceMetricTestProbe =
+    new PersistenceMetricTestProbe()
+
+  def recoveryStarted(labels: Labels)(implicit ctx: BasicContext[PersistenceMetricTestProbe]): Unit =
     EventBus(system).publishEvent(RecoveryStarted(labels.path, labels.persistenceId, Timestamp.create()))
 
-  def recoveryFinished(labels: Labels): Unit =
+  def recoveryFinished(labels: Labels)(implicit ctx: BasicContext[PersistenceMetricTestProbe]): Unit =
     EventBus(system).publishEvent(RecoveryFinished(labels.path, labels.persistenceId, Timestamp.create()))
 
-  def persistEventStarted(seqNo: Long, labels: Labels): Unit =
+  def persistEventStarted(seqNo: Long, labels: Labels)(implicit ctx: BasicContext[PersistenceMetricTestProbe]): Unit =
     EventBus(system).publishEvent(
       PersistingEventStarted(labels.path, labels.persistenceId, seqNo, Timestamp.create())
     )
 
-  def persistEventFinished(seqNo: Long, labels: Labels): Unit =
+  def persistEventFinished(seqNo: Long, labels: Labels)(implicit ctx: BasicContext[PersistenceMetricTestProbe]): Unit =
     EventBus(system).publishEvent(
       PersistingEventFinished(labels.path, labels.persistenceId, seqNo, Timestamp.create())
     )
 
-  def snapshotCreated(seqNo: Long, labels: Labels): Unit =
+  def snapshotCreated(seqNo: Long, labels: Labels)(implicit ctx: BasicContext[PersistenceMetricTestProbe]): Unit =
     EventBus(system).publishEvent(SnapshotCreated(labels.path, labels.persistenceId, seqNo, Timestamp.create()))
 
-  def expectMetricsUpdates(monitor: Monitor, amount: Int): Unit =
+  def expectMetricsUpdates(monitor: PersistenceMetricTestProbe, amount: Int): Unit =
     monitor.globalCounter.within(1 second) {
       import monitor._
       globalCounter.receiveMessages(amount)
       globalCounter.expectNoMessage(globalCounter.remaining)
     }
 
-  override protected val serviceKey: ServiceKey[_] = persistenceServiceKey
-
-  "PersistenceEventsActor" should "capture recovery time" in test { monitor =>
+  "PersistenceEventsActor" should "capture recovery time" in testCase { implicit c =>
     val expectedLabels = Labels(None, "/some/path", createUniqueId)
     recoveryStarted(expectedLabels)
     Thread.sleep(1050)
@@ -80,12 +85,12 @@ class PersistenceEventsActorTest
     monitor.boundLabels should have size (1)
     val probes = monitor.boundLabels.flatMap(monitor.probes).loneElement
     probes.recoveryTotalProbe.receiveMessage() should be(Inc(1L))
-    inside(probes.recoveryTimeProbe.receiveMessage()) {
-      case MetricRecorded(value) => value should be(1000L +- 100)
+    inside(probes.recoveryTimeProbe.receiveMessage()) { case MetricRecorded(value) =>
+      value should be(1000L +- 100)
     }
   }
 
-  it should "capture persist event time" in test { monitor =>
+  it should "capture persist event time" in testCase { implicit c =>
     val seqNo          = 100L
     val expectedLabels = Labels(None, "/some/path", createUniqueId)
     persistEventStarted(seqNo, expectedLabels)
@@ -95,27 +100,30 @@ class PersistenceEventsActorTest
     monitor.boundLabels should have size (1)
     val probes = monitor.boundLabels.flatMap(monitor.probes).loneElement
     probes.persistentEventTotalProbe.receiveMessage() should be(Inc(1L))
-    inside(probes.persistentEventProbe.receiveMessage()) {
-      case MetricRecorded(value) => value should be(1000L +- 100)
+    inside(probes.persistentEventProbe.receiveMessage()) { case MetricRecorded(value) =>
+      value should be(1000L +- 100)
     }
   }
 
-  it should "capture amount of snapshots for same entity with same monitor" in testCaching { monitor =>
-    val seqNumbers     = (100 to 140 by 5).toList
-    val expectedLabels = Labels(None, "/some/path", createUniqueId)
-    for {
-      seqNo <- seqNumbers
-    } snapshotCreated(seqNo, expectedLabels)
+  it should "capture amount of snapshots for same entity with same monitor" in testCaseWith(_.withCaching) {
+    implicit c =>
+      val seqNumbers     = (100 to 140 by 5).toList
+      val expectedLabels = Labels(None, "/some/path", createUniqueId)
+      for {
+        seqNo <- seqNumbers
+      } snapshotCreated(seqNo, expectedLabels)
 
-    expectMetricsUpdates(monitor, seqNumbers.size)
-    monitor.boundLabels should have size (1)
-    monitor.binds should be(1)
+      expectMetricsUpdates(monitor, seqNumbers.size)
+      monitor.boundLabels should have size (1)
+      monitor.binds should be(1)
 
-    val probes = monitor.boundLabels.flatMap(monitor.probes).loneElement
-    forAll(probes.snapshotProbe.receiveMessages(seqNumbers.size))(_ should be(Inc(1L)))
+      val probes = monitor.boundLabels.flatMap(monitor.probes).loneElement
+      forAll(probes.snapshotProbe.receiveMessages(seqNumbers.size))(_ should be(Inc(1L)))
   }
 
-  it should "capture amount of snapshots for same different entities with reused monitors" in testCaching { monitor =>
+  it should "capture amount of snapshots for same different entities with reused monitors" in testCaseWith(
+    _.withCaching
+  ) { implicit c =>
     val seqNumbers = (100 to 140 by 5).toList
     val expectedLabels = List.fill(5) {
       val id = createUniqueId
@@ -135,35 +143,36 @@ class PersistenceEventsActorTest
     forAll(allProbes)(probes => forAll(probes.snapshotProbe.receiveMessages(seqNumbers.size))(_ should be(Inc(1L))))
   }
 
-  it should "capture persist event time with resued monitors for many events" in testCaching { monitor =>
-    val seqNo = 150
-    val expectedLabels = List.fill(5) {
-      val id = createUniqueId
-      Labels(None, s"/some/path/${id}", id)
-    }
-    for {
-      labels <- expectedLabels
-    } persistEventStarted(seqNo, labels)
-    Thread.sleep(1050)
-    for {
-      labels <- expectedLabels
-    } persistEventFinished(seqNo, labels)
-
-    expectMetricsUpdates(monitor, expectedLabels.size)
-    monitor.boundLabels should have size (expectedLabels.size)
-    monitor.binds should be(expectedLabels.size)
-
-    val allProbes = monitor.boundLabels.flatMap(monitor.probes)
-    allProbes should have size (expectedLabels.size)
-    forAll(allProbes) { probes =>
-      probes.persistentEventTotalProbe.receiveMessage() should be(Inc(1L))
-      inside(probes.persistentEventProbe.receiveMessage()) {
-        case MetricRecorded(value) => value should be(1000L +- 100L)
+  it should "capture persist event time with resued monitors for many events" in testCaseWith(_.withCaching) {
+    implicit c =>
+      val seqNo = 150
+      val expectedLabels = List.fill(5) {
+        val id = createUniqueId
+        Labels(None, s"/some/path/${id}", id)
       }
-    }
+      for {
+        labels <- expectedLabels
+      } persistEventStarted(seqNo, labels)
+      Thread.sleep(1050)
+      for {
+        labels <- expectedLabels
+      } persistEventFinished(seqNo, labels)
+
+      expectMetricsUpdates(monitor, expectedLabels.size)
+      monitor.boundLabels should have size (expectedLabels.size)
+      monitor.binds should be(expectedLabels.size)
+
+      val allProbes = monitor.boundLabels.flatMap(monitor.probes)
+      allProbes should have size (expectedLabels.size)
+      forAll(allProbes) { probes =>
+        probes.persistentEventTotalProbe.receiveMessage() should be(Inc(1L))
+        inside(probes.persistentEventProbe.receiveMessage()) { case MetricRecorded(value) =>
+          value should be(1000L +- 100L)
+        }
+      }
   }
 
-  it should "capture all metrics persist metrics with reused monitors" in testCaching { monitor =>
+  it should "capture all metrics persist metrics with reused monitors" in testCaseWith(_.withCaching) { implicit c =>
     val seqNbs                   = List(150, 151, 152)
     val expectedRecoveryTime     = 1000L
     val expectedPersistEventTime = 500L
@@ -198,15 +207,15 @@ class PersistenceEventsActorTest
     forAll(allProbes) { probes =>
       forAll(probes.persistentEventTotalProbe.receiveMessages(seqNbs.size))(_ should be(Inc(1L)))
       forAll(probes.persistentEventProbe.receiveMessages(seqNbs.size))(mr =>
-        inside(mr) {
-          case MetricRecorded(value) => value should be(expectedPersistEventTime +- 100L)
+        inside(mr) { case MetricRecorded(value) =>
+          value should be(expectedPersistEventTime +- 100L)
         }
       )
       forAll(probes.snapshotProbe.receiveMessages(seqNbs.size))(_ should be(Inc(1L)))
 
       probes.recoveryTotalProbe.receiveMessage() should be(Inc(1L))
-      inside(probes.recoveryTimeProbe.receiveMessage()) {
-        case MetricRecorded(value) => value should be(expectedRecoveryTime +- 100L)
+      inside(probes.recoveryTimeProbe.receiveMessage()) { case MetricRecorded(value) =>
+        value should be(expectedRecoveryTime +- 100L)
       }
     }
   }

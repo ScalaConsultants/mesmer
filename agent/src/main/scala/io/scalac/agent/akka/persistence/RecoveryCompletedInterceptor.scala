@@ -2,49 +2,52 @@ package io.scalac.agent.akka.persistence
 
 import _root_.akka.actor.typed.scaladsl.ActorContext
 import _root_.akka.persistence.typed.PersistenceId
+import io.scalac.core.event.EventBus
+import io.scalac.core.event.PersistenceEvent.RecoveryFinished
+import io.scalac.core.model._
 import io.scalac.core.util.Timestamp
-import io.scalac.extension.event.EventBus
-import io.scalac.extension.event.PersistenceEvent.RecoveryFinished
 import net.bytebuddy.asm.Advice
 
-import java.lang.invoke.{ MethodHandles, MethodType }
+import scala.util.Try
 
 class RecoveryCompletedInterceptor
 
 object RecoveryCompletedInterceptor {
 
-  private val replayingEventsClass = Class.forName("akka.persistence.typed.internal.ReplayingEvents")
-
-  private val behaviorSetupClass = Class.forName("akka.persistence.typed.internal.BehaviorSetup")
-
-  private val handle = {
-    val lookup = MethodHandles
-      .lookup()
-
-    import MethodHandles._
-    import MethodType._
-
-    val persistenceId =
-      lookup.findVirtual(behaviorSetupClass, "persistenceId", methodType(classOf[PersistenceId]))
-    val behavior = lookup.findVirtual(replayingEventsClass, "setup", methodType(behaviorSetupClass))
-
-    foldArguments(dropArguments(persistenceId, 1, replayingEventsClass), behavior)
+  private lazy val setupField = {
+    val setup = Class.forName("akka.persistence.typed.internal.ReplayingEvents").getDeclaredField("setup")
+    setup.setAccessible(true)
+    setup
   }
 
-  def getPersistenceId(ref: AnyRef): PersistenceId = handle.invoke(ref).asInstanceOf[PersistenceId]
+  private lazy val persistenceIdField = {
+    val persistenceId = Class.forName("akka.persistence.typed.internal.BehaviorSetup").getDeclaredField("persistenceId")
+    persistenceId.setAccessible(true)
+    persistenceId
+  }
 
+  val persistenceIdExtractor: Any => Try[PersistenceId] = ref => {
+    for {
+      setup         <- Try(setupField.get(ref))
+      persistenceId <- Try(persistenceIdField.get(setup))
+    } yield persistenceId.asInstanceOf[PersistenceId]
+  }
   import AkkaPersistenceAgent.logger
   @Advice.OnMethodEnter
   def enter(
     @Advice.Argument(0) actorContext: ActorContext[_],
     @Advice.This thiz: AnyRef
   ): Unit = {
-    val path = actorContext.self.path
+    val path = actorContext.self.path.toPath
     logger.trace("Recovery completed for {}", path)
 
-    val persistenceId = getPersistenceId(thiz).id
-    EventBus(actorContext.system)
-      .publishEvent(RecoveryFinished(path.toString, persistenceId, Timestamp.create()))
-
+    persistenceIdExtractor(thiz).fold(
+      _.printStackTrace(),
+      persistenceId =>
+        EventBus(actorContext.system)
+          .publishEvent(
+            RecoveryFinished(path, persistenceId.id, Timestamp.create())
+          )
+    )
   }
 }

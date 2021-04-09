@@ -8,7 +8,10 @@ import net.bytebuddy.asm.Advice;
 
 public class HttpExtAdvice {
     @Advice.OnMethodEnter
-    public static void bindAndHandle(@Advice.Argument(value = 0, readOnly = false) Flow<HttpRequest, HttpResponse, Object> handler, @Advice.This Object self) {
-        handler = HttpInstrumentation.bindAndHandleImpl(handler, (HttpExt) self);
+    public static void bindAndHandle(@Advice.Argument(value = 0, readOnly = false) Flow<HttpRequest, HttpResponse, Object> handler,
+                                     @Advice.Argument(1) String _interface,
+                                     @Advice.Argument(2) Integer port,
+                                     @Advice.This Object self) {
+        handler = HttpInstrumentation.bindAndHandleImpl(handler, _interface, port, (HttpExt) self);
     }
 }

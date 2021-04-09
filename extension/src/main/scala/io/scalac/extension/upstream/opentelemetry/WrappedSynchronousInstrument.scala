@@ -1,28 +1,66 @@
 package io.scalac.extension.upstream.opentelemetry
 
 import io.opentelemetry.api.common.Labels
-import io.opentelemetry.api.metrics.{ LongCounter, LongUpDownCounter, LongValueRecorder, SynchronousInstrument }
-import io.scalac.extension.metric.{ Counter, MetricRecorder, UpCounter }
+import io.opentelemetry.api.metrics.LongCounter
+import io.opentelemetry.api.metrics.LongUpDownCounter
+import io.opentelemetry.api.metrics.LongValueRecorder
+import io.opentelemetry.api.metrics.SynchronousInstrument
 
-sealed trait WrappedSynchronousInstrument[L] {
-  private[extension] def underlying: SynchronousInstrument[_]
-  private[extension] def labels: Labels
-  private[extension] def unbind(): Unit
+import io.scalac.extension.metric._
+
+trait SynchronousInstrumentFactory {
+
+//  private def wrappedLongValueFactor()
+  private[upstream] def metricRecorder(
+    underlying: LongValueRecorder,
+    labels: Labels
+  ): UnregisteredInstrument[WrappedLongValueRecorder] = { root =>
+    val instrument = WrappedLongValueRecorder(underlying, labels)
+    root.registerUnbind(instrument)
+    instrument
+  }
+
+  private[upstream] def counter(
+    underlying: LongCounter,
+    labels: Labels
+  ): UnregisteredInstrument[WrappedCounter] = { root =>
+    val instrument = WrappedCounter(underlying, labels)
+    root.registerUnbind(instrument)
+    instrument
+  }
+
+  private[upstream] def upDownCounter(
+    underlying: LongUpDownCounter,
+    labels: Labels
+  ): UnregisteredInstrument[WrappedUpDownCounter] = { root =>
+    val instrument = WrappedUpDownCounter(underlying, labels)
+    root.registerUnbind(instrument)
+    instrument
+  }
 }
 
-case class WrappedLongValueRecorder(underlying: LongValueRecorder, labels: Labels)
+sealed trait WrappedSynchronousInstrument[L] extends Unbind with WrappedInstrument {
+
+  private[extension] def underlying: SynchronousInstrument[_]
+  private[extension] def labels: Labels
+}
+
+final case class WrappedLongValueRecorder private[opentelemetry] (underlying: LongValueRecorder, labels: Labels)
     extends WrappedSynchronousInstrument[Long]
     with MetricRecorder[Long] {
+  override type Self = WrappedLongValueRecorder
+
   private[this] lazy val bound = underlying.bind(labels)
 
   override def setValue(value: Long): Unit = bound.record(value)
 
-  override private[extension] def unbind(): Unit = bound.unbind()
+  def unbind(): Unit = bound.unbind()
 }
 
-case class WrappedUpDownCounter(underlying: LongUpDownCounter, labels: Labels)
+final case class WrappedUpDownCounter private[opentelemetry] (underlying: LongUpDownCounter, labels: Labels)
     extends WrappedSynchronousInstrument[Long]
-    with Counter[Long] {
+    with UpDownCounter[Long] {
+  override type Self = WrappedUpDownCounter
 
   private[this] lazy val bound = underlying.bind(labels)
 
@@ -30,16 +68,17 @@ case class WrappedUpDownCounter(underlying: LongUpDownCounter, labels: Labels)
 
   override def incValue(value: Long): Unit = bound.add(value)
 
-  override private[extension] def unbind(): Unit = bound.unbind()
+  def unbind(): Unit = bound.unbind()
 }
 
-case class WrappedCounter(underlying: LongCounter, labels: Labels)
+final case class WrappedCounter private[opentelemetry] (underlying: LongCounter, labels: Labels)
     extends WrappedSynchronousInstrument[Long]
-    with UpCounter[Long] {
+    with Counter[Long] {
+  override type Self = WrappedCounter
 
   private[this] lazy val bound = underlying.bind(labels)
 
   override def incValue(value: Long): Unit = bound.add(value)
 
-  override private[extension] def unbind(): Unit = bound.unbind()
+  def unbind(): Unit = bound.unbind()
 }

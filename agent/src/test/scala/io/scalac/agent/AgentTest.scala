@@ -2,18 +2,22 @@ package io.scalac.agent
 
 import java.lang.instrument.Instrumentation
 
-import io.scalac.agent.Agent.LoadingResult
-import io.scalac.core.model.{Module, SupportedModules, SupportedVersion, Version}
-import io.scalac.core.util.ModuleInfo.Modules
 import net.bytebuddy.agent.ByteBuddyAgent
 import net.bytebuddy.agent.builder.AgentBuilder
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
+import io.scalac.agent.Agent.LoadingResult
+import io.scalac.core.model.Module
+import io.scalac.core.model.SupportedModules
+import io.scalac.core.model.SupportedVersion
+import io.scalac.core.model.Version
+import io.scalac.core.util.ModuleInfo.Modules
+
 class AgentTest extends AnyFlatSpec with Matchers {
 
-  val testModuleOne             = Module("test-module-1")
-  val testModuleTwo             = Module("test-module-2")
+  val testModuleOne: Module     = Module("test-module-1")
+  val testModuleTwo: Module     = Module("test-module-2")
   val moduleOneVersion: Version = Version(2, 2, 2)
   val moduleTwoVersion: Version = Version(3, 3, 3)
   val modules: Modules          = Map(testModuleOne -> moduleOneVersion, testModuleTwo -> moduleTwoVersion)
@@ -29,34 +33,31 @@ class AgentTest extends AnyFlatSpec with Matchers {
 
   def returning(result: LoadingResult): (AgentBuilder, Instrumentation, Modules) => LoadingResult = (_, _, _) => result
 
-  "Agent" should "execute instrumenting function when version match" in test {
-    case (instrumentation, builder) =>
-      val supportedModules = modules.foldLeft(SupportedModules.empty) {
-        case (supported, (module, version)) => supported ++ (module, SupportedVersion(version))
-      }
-      val expectedResult = LoadingResult("some.class", "other.class")
-      val sut            = Agent(AgentInstrumentation("sut", supportedModules)(returning(expectedResult)))
-      sut.installOn(builder, instrumentation, modules) shouldBe (expectedResult)
+  "Agent" should "execute instrumenting function when version match" in test { case (instrumentation, builder) =>
+    val supportedModules = modules.foldLeft(SupportedModules.empty) { case (supported, (module, version)) =>
+      supported ++ (module, SupportedVersion(version))
+    }
+    val expectedResult = LoadingResult("some.class", "other.class")
+    val sut            = Agent(AgentInstrumentation("sut", supportedModules)(returning(expectedResult)))
+    sut.installOn(builder, instrumentation, modules) shouldBe (expectedResult)
   }
 
-  it should "not execute instrumenting when no version match" in test {
-    case (instrumentation, builder) =>
-      val supportedModules = modules.foldLeft(SupportedModules.empty) {
-        case (supported, (module, _)) => supported ++ (module, SupportedVersion.none)
-      }
-      val expectedResult = LoadingResult("some.class", "other.class")
-      val sut            = Agent(AgentInstrumentation("sut", supportedModules)(returning(expectedResult)))
-      sut.installOn(builder, instrumentation, modules) shouldBe LoadingResult.empty
+  it should "not execute instrumenting when no version match" in test { case (instrumentation, builder) =>
+    val supportedModules = modules.foldLeft(SupportedModules.empty) { case (supported, (module, _)) =>
+      supported ++ (module, SupportedVersion.none)
+    }
+    val expectedResult = LoadingResult("some.class", "other.class")
+    val sut            = Agent(AgentInstrumentation("sut", supportedModules)(returning(expectedResult)))
+    sut.installOn(builder, instrumentation, modules) shouldBe LoadingResult.empty
   }
 
-  it should "not execute instrumenting when any version doesn't match" in test {
-    case (instrumentation, builder) =>
-      val supportedModules = modules.foldLeft(SupportedModules.empty) {
-        case (supported, (module, version)) => supported ++ (module, SupportedVersion(version))
-      } ++ (testModuleOne, SupportedVersion.none)
-      val expectedResult = LoadingResult("some.class", "other.class")
-      val sut            = Agent(AgentInstrumentation("sut", supportedModules)(returning(expectedResult)))
-      sut.installOn(builder, instrumentation, modules) shouldBe LoadingResult.empty
+  it should "not execute instrumenting when any version doesn't match" in test { case (instrumentation, builder) =>
+    val supportedModules = modules.foldLeft(SupportedModules.empty) { case (supported, (module, version)) =>
+      supported ++ (module, SupportedVersion(version))
+    } ++ (testModuleOne, SupportedVersion.none)
+    val expectedResult = LoadingResult("some.class", "other.class")
+    val sut            = Agent(AgentInstrumentation("sut", supportedModules)(returning(expectedResult)))
+    sut.installOn(builder, instrumentation, modules) shouldBe LoadingResult.empty
   }
 
   it should "partially instrument when several agent instrumentations are defined" in test {
