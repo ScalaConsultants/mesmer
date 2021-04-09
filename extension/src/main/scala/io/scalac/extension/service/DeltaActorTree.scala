@@ -1,13 +1,26 @@
 package io.scalac.extension.service
 
-import akka.actor.typed.receptionist.Receptionist.{ Deregister, Register }
+import akka.actor.typed.ActorRef
+import akka.actor.typed.Behavior
+import akka.actor.typed.PreRestart
+import akka.actor.typed.Signal
+import akka.actor.typed.receptionist.Receptionist.Deregister
+import akka.actor.typed.receptionist.Receptionist.Register
+import akka.actor.typed.scaladsl.ActorContext
+import akka.actor.typed.scaladsl.Behaviors
 import akka.actor.typed.scaladsl.adapter._
-import akka.actor.typed.scaladsl.{ ActorContext, Behaviors }
-import akka.actor.typed.{ ActorRef, Behavior, PreRestart, Signal }
 import akka.stream.OverflowStrategy
-import akka.stream.scaladsl.{ Keep, Sink, Source, SourceQueueWithComplete }
+import akka.stream.scaladsl.Keep
+import akka.stream.scaladsl.Sink
+import akka.stream.scaladsl.Source
+import akka.stream.scaladsl.SourceQueueWithComplete
 import akka.{ actor => classic }
 import com.typesafe.config.Config
+
+import scala.collection.mutable.ListBuffer
+import scala.concurrent.duration._
+import scala.jdk.DurationConverters._
+
 import io.scalac.core.actorServiceKey
 import io.scalac.core.event.ActorEvent
 import io.scalac.core.model._
@@ -16,10 +29,6 @@ import io.scalac.extension.metric.ActorSystemMonitor
 import io.scalac.extension.metric.ActorSystemMonitor.Labels
 import io.scalac.extension.service.DeltaActorTree.Delta.{ apply => _, _ }
 import io.scalac.extension.service.DeltaActorTree._
-
-import scala.collection.mutable.ListBuffer
-import scala.concurrent.duration._
-import scala.jdk.DurationConverters._
 
 case class DeltaActorTreeConfig(
   bulkWithin: FiniteDuration,

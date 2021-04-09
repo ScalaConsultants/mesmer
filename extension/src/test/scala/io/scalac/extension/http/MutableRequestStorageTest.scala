@@ -1,14 +1,17 @@
 package io.scalac.extension.http
 
-import io.scalac.core.model._
-import io.scalac.core.util.Timestamp
-import io.scalac.core.event.HttpEvent.{ RequestCompleted, RequestFailed, RequestStarted }
-import io.scalac.core.util.TestOps
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
 import scala.collection.mutable
 import scala.concurrent.duration._
+
+import io.scalac.core.event.HttpEvent.RequestCompleted
+import io.scalac.core.event.HttpEvent.RequestFailed
+import io.scalac.core.event.HttpEvent.RequestStarted
+import io.scalac.core.model._
+import io.scalac.core.util.TestOps
+import io.scalac.core.util.Timestamp
 
 class MutableRequestStorageTest extends AnyFlatSpec with Matchers with TestOps {
   type Fixture = (mutable.Map[String, RequestStarted], MutableRequestStorage)

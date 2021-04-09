@@ -1,9 +1,9 @@
 package io.scalac.core.akka.stream
 
 import akka.NotUsed
+import akka.stream._
 import akka.stream.scaladsl.BidiFlow
 import akka.stream.stage._
-import akka.stream._
 
 object BidiFlowForward {
 

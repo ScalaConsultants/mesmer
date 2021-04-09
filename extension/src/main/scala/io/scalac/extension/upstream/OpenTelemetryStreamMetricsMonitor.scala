@@ -1,12 +1,17 @@
 package io.scalac.extension.upstream
 
 import com.typesafe.config.Config
-import io.opentelemetry.api.OpenTelemetry
-import io.scalac.extension.metric.{ MetricObserver, RegisterRoot, StreamMetricMonitor }
-import io.scalac.extension.upstream.OpenTelemetryStreamMetricMonitor.MetricNames
-import io.scalac.extension.upstream.opentelemetry.{ LongSumObserverBuilderAdapter, SynchronousInstrumentFactory }
+import io.opentelemetry.api.metrics.Meter
 
-object OpenTelemetryStreamMetricMonitor {
+import io.scalac.extension.metric.MetricObserver
+import io.scalac.extension.metric.RegisterRoot
+import io.scalac.extension.metric.StreamMetricMonitor
+import io.scalac.extension.upstream.OpenTelemetryStreamMetricsMonitor.MetricNames
+import io.scalac.extension.upstream.opentelemetry.LongSumObserverBuilderAdapter
+import io.scalac.extension.upstream.opentelemetry.SynchronousInstrumentFactory
+import io.scalac.extension.upstream.opentelemetry.WrappedLongValueRecorder
+
+object OpenTelemetryStreamMetricsMonitor {
   case class MetricNames(runningStreams: String, streamActors: String, streamProcessed: String)
 
   object MetricNames {
@@ -34,17 +39,13 @@ object OpenTelemetryStreamMetricMonitor {
     }.getOrElse(defaults)
   }
 
-  def apply(instrumentationName: String, config: Config): OpenTelemetryStreamMetricMonitor =
-    new OpenTelemetryStreamMetricMonitor(instrumentationName, MetricNames.fromConfig(config))
+  def apply(meter: Meter, config: Config): OpenTelemetryStreamMetricsMonitor =
+    new OpenTelemetryStreamMetricsMonitor(meter, MetricNames.fromConfig(config))
 }
 
-class OpenTelemetryStreamMetricMonitor(instrumentationName: String, metricNames: MetricNames)
-    extends StreamMetricMonitor {
+final class OpenTelemetryStreamMetricsMonitor(meter: Meter, metricNames: MetricNames) extends StreamMetricMonitor {
 
   import StreamMetricMonitor._
-
-  private val meter = OpenTelemetry
-    .getGlobalMeter(instrumentationName)
 
   private val runningStreamsTotalRecorder = meter
     .longValueRecorderBuilder(metricNames.runningStreams)
@@ -70,10 +71,10 @@ class OpenTelemetryStreamMetricMonitor(instrumentationName: String, metricNames:
       with SynchronousInstrumentFactory {
     private val openTelemetryLabels = LabelsFactory.of(labels.serialize)
 
-    override val runningStreamsTotal =
+    override val runningStreamsTotal: WrappedLongValueRecorder =
       metricRecorder(runningStreamsTotalRecorder, openTelemetryLabels).register(this)
 
-    override val streamActorsTotal =
+    override val streamActorsTotal: WrappedLongValueRecorder =
       metricRecorder(streamActorsTotalRecorder, openTelemetryLabels).register(this)
 
     override lazy val streamProcessedMessages: MetricObserver[Long, Labels] =

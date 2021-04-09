@@ -3,7 +3,9 @@ package io.scalac.extension
 import akka.actor.typed.Behavior
 import akka.actor.typed.scaladsl.Behaviors
 import akka.cluster.ClusterEvent._
-import akka.cluster.typed.{ Cluster, Subscribe }
+import akka.cluster.typed.Cluster
+import akka.cluster.typed.Subscribe
+
 import io.scalac.core.model._
 import io.scalac.extension.ClusterEventsMonitor.Command.MemberEventWrapper
 import io.scalac.extension.metric.ClusterMetricsMonitor

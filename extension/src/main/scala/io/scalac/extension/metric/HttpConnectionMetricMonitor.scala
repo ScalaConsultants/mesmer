@@ -1,7 +1,10 @@
 package io.scalac.extension.metric
 
 import io.scalac.core.LabelSerializable
-import io.scalac.core.model.{ Interface, Node, Port, RawLabels }
+import io.scalac.core.model.Interface
+import io.scalac.core.model.Node
+import io.scalac.core.model.Port
+import io.scalac.core.model.RawLabels
 
 object HttpConnectionMetricMonitor {
 

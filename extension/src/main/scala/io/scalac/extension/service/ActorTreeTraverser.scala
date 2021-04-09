@@ -1,11 +1,13 @@
 package io.scalac.extension.service
 
-import akka.{ actor => classic }
-import io.scalac.core.util.ActorRefOps
-
 import java.lang.invoke.MethodHandles
+
+import akka.{ actor => classic }
+
 import scala.annotation.tailrec
 import scala.collection.immutable
+
+import io.scalac.core.util.ActorRefOps
 
 trait ActorTreeTraverser {
   def getChildren(actor: classic.ActorRef): immutable.Iterable[classic.ActorRef]

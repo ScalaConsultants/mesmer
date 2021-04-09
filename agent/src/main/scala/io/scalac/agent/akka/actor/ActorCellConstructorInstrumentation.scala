@@ -1,6 +1,7 @@
 package io.scalac.agent.akka.actor
 
-import net.bytebuddy.asm.Advice.{ OnMethodExit, This }
+import net.bytebuddy.asm.Advice.OnMethodExit
+import net.bytebuddy.asm.Advice.This
 
 import io.scalac.core.actor.ActorCellDecorator
 

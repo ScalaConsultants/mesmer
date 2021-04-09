@@ -1,8 +1,10 @@
 package io.scalac.extension.upstream
 
 import com.typesafe.config.Config
-import io.opentelemetry.api.OpenTelemetry
-import io.scalac.extension.metric.{ ClusterMetricsMonitor, _ }
+import io.opentelemetry.api.metrics.Meter
+
+import io.scalac.extension.metric.ClusterMetricsMonitor
+import io.scalac.extension.metric._
 import io.scalac.extension.upstream.OpenTelemetryClusterMetricsMonitor.MetricNames
 import io.scalac.extension.upstream.opentelemetry._
 
@@ -80,14 +82,11 @@ object OpenTelemetryClusterMetricsMonitor {
     }
   }
 
-  def apply(instrumentationName: String, config: Config): OpenTelemetryClusterMetricsMonitor =
-    new OpenTelemetryClusterMetricsMonitor(instrumentationName, MetricNames.fromConfig(config))
+  def apply(meter: Meter, config: Config): OpenTelemetryClusterMetricsMonitor =
+    new OpenTelemetryClusterMetricsMonitor(meter, MetricNames.fromConfig(config))
 }
 
-final class OpenTelemetryClusterMetricsMonitor(instrumentationName: String, val metricNames: MetricNames)
-    extends ClusterMetricsMonitor {
-
-  private[this] val meter = OpenTelemetry.getGlobalMeter(instrumentationName)
+final class OpenTelemetryClusterMetricsMonitor(meter: Meter, metricNames: MetricNames) extends ClusterMetricsMonitor {
 
   private val shardsPerRegionRecorder = new LongMetricObserverBuilderAdapter[ClusterMetricsMonitor.Labels](
     meter

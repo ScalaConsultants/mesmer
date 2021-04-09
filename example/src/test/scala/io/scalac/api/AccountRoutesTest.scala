@@ -1,25 +1,33 @@
 package io.scalac.api
 import java.util.UUID
 
+import akka.actor.typed.ActorSystem
 import akka.actor.typed.Behavior
 import akka.actor.typed.scaladsl.Behaviors
 import akka.actor.typed.scaladsl.adapter._
 import akka.cluster.sharding.typed.ShardingEnvelope
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.Route
-import akka.http.scaladsl.testkit.{ RouteTestTimeout, ScalatestRouteTest }
+import akka.http.scaladsl.testkit.RouteTestTimeout
+import akka.http.scaladsl.testkit.ScalatestRouteTest
 import akka.util.Timeout
-import com.typesafe.config.{ Config, ConfigFactory }
+import com.typesafe.config.Config
+import com.typesafe.config.ConfigFactory
 import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport
-import io.scalac.domain.AccountStateActor.Command.{ Deposit, GetBalance, Withdraw }
-import io.scalac.domain.AccountStateActor.Reply.{ CurrentBalance, InsufficientFunds }
-import io.scalac.domain.{ AccountStateActor, _ }
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
 import scala.concurrent.duration._
 import scala.language.postfixOps
 import scala.util.Random
+
+import io.scalac.domain.AccountStateActor
+import io.scalac.domain.AccountStateActor.Command.Deposit
+import io.scalac.domain.AccountStateActor.Command.GetBalance
+import io.scalac.domain.AccountStateActor.Command.Withdraw
+import io.scalac.domain.AccountStateActor.Reply.CurrentBalance
+import io.scalac.domain.AccountStateActor.Reply.InsufficientFunds
+import io.scalac.domain._
 
 class AccountRoutesTest
     extends AnyFlatSpec
@@ -28,7 +36,7 @@ class AccountRoutesTest
     with FailFastCirceSupport
     with JsonCodecs {
 
-  implicit val typedSystem                        = system.toTyped
+  implicit val typedSystem: ActorSystem[Nothing]  = system.toTyped
   implicit val timeoutDuration: FiniteDuration    = 2 seconds
   implicit val timeout: Timeout                   = timeoutDuration
   implicit val routeTimeTimeout: RouteTestTimeout = RouteTestTimeout(2 * timeoutDuration)

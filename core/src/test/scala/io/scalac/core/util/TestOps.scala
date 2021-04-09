@@ -1,14 +1,14 @@
 package io.scalac.core.util
 
 import akka.actor.typed.ActorRef
-import org.scalatest.matchers.{ MatchResult, Matcher }
+import org.scalatest.matchers.MatchResult
+import org.scalatest.matchers.Matcher
 
-import java.util.UUID
 import scala.util.Random
 
 trait TestOps {
 
-  def createUniqueId: String = UUID.randomUUID().toString
+  def createUniqueId: String = java.util.UUID.randomUUID().toString
 
   def sameOrParent(parent: ActorRef[_]): Matcher[ActorRef[_]] = ref => {
     MatchResult(

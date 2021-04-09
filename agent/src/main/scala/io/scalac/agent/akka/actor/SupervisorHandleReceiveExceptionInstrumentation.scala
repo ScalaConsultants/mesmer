@@ -1,8 +1,8 @@
 package io.scalac.agent.akka.actor
 
 import akka.actor.typed.TypedActorContext
-
-import net.bytebuddy.asm.Advice.{ Argument, OnMethodExit }
+import net.bytebuddy.asm.Advice.Argument
+import net.bytebuddy.asm.Advice.OnMethodExit
 
 import io.scalac.core.actor.ActorCellDecorator
 

@@ -1,12 +1,15 @@
 package io.scalac.extension.upstream
 
 import com.typesafe.config.Config
-import io.opentelemetry.api.OpenTelemetry
+import io.opentelemetry.api.metrics.Meter
+
 import io.scalac.extension.config.Configuration
+import io.scalac.extension.metric.ActorSystemMonitor
 import io.scalac.extension.metric.ActorSystemMonitor.BoundMonitor
-import io.scalac.extension.metric.{ ActorSystemMonitor, RegisterRoot }
+import io.scalac.extension.metric.RegisterRoot
 import io.scalac.extension.upstream.OpenTelemetryActorSystemMonitor.MetricNames
 import io.scalac.extension.upstream.opentelemetry.SynchronousInstrumentFactory
+import io.scalac.extension.upstream.opentelemetry.WrappedCounter
 
 object OpenTelemetryActorSystemMonitor {
 
@@ -30,14 +33,11 @@ object OpenTelemetryActorSystemMonitor {
     }
   }
 
-  def apply(instrumentationName: String, config: Config): OpenTelemetryActorSystemMonitor =
-    new OpenTelemetryActorSystemMonitor(instrumentationName, MetricNames.fromConfig(config))
+  def apply(meter: Meter, config: Config): OpenTelemetryActorSystemMonitor =
+    new OpenTelemetryActorSystemMonitor(meter, MetricNames.fromConfig(config))
 
 }
-final class OpenTelemetryActorSystemMonitor(val instrumentationName: String, metricNames: MetricNames)
-    extends ActorSystemMonitor {
-
-  private[this] val meter = OpenTelemetry.getGlobalMeter(instrumentationName)
+final class OpenTelemetryActorSystemMonitor(val meter: Meter, metricNames: MetricNames) extends ActorSystemMonitor {
 
   private val createdActorsCounter = meter
     .longCounterBuilder(metricNames.createdActors)
@@ -57,8 +57,8 @@ final class OpenTelemetryActorSystemMonitor(val instrumentationName: String, met
       with SynchronousInstrumentFactory {
     private[this] val otLabels = LabelsFactory.of(labels.serialize)
 
-    override lazy val createdActors = counter(createdActorsCounter, otLabels)(this)
+    override lazy val createdActors: WrappedCounter = counter(createdActorsCounter, otLabels)(this)
 
-    override lazy val terminatedActors = counter(terminatedActorsCounter, otLabels)(this)
+    override lazy val terminatedActors: WrappedCounter = counter(terminatedActorsCounter, otLabels)(this)
   }
 }

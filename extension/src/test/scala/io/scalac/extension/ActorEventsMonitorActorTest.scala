@@ -2,38 +2,53 @@ package io.scalac.extension
 
 import akka.actor.PoisonPill
 import akka.actor.testkit.typed.javadsl.FishingOutcomes
-import akka.actor.testkit.typed.scaladsl.{ ScalaTestWithActorTestKit, TestProbe }
+import akka.actor.testkit.typed.scaladsl.ScalaTestWithActorTestKit
+import akka.actor.testkit.typed.scaladsl.TestProbe
+import akka.actor.typed.ActorRef
+import akka.actor.typed.ActorSystem
+import akka.actor.typed.Behavior
+import akka.actor.typed.SupervisorStrategy
+import akka.actor.typed.scaladsl.Behaviors
+import akka.actor.typed.scaladsl.StashBuffer
 import akka.actor.typed.scaladsl.adapter._
-import akka.actor.typed.scaladsl.{ Behaviors, StashBuffer }
-import akka.actor.typed.{ ActorRef, ActorSystem, Behavior, SupervisorStrategy }
 import akka.util.Timeout
 import akka.{ actor => classic }
-import io.scalac.core.actor.{ ActorMetrics, MutableActorMetricsStorage }
+import org.scalatest.LoneElement
+import org.scalatest.TestSuite
+import org.scalatest.concurrent.PatienceConfiguration
+import org.scalatest.concurrent.ScaledTimeSpans
+
+import scala.concurrent.duration._
+import scala.util.Random
+import scala.util.control.NoStackTrace
+
+import io.scalac.core.actor.ActorMetrics
+import io.scalac.core.actor.MutableActorMetricsStorage
 import io.scalac.core.model._
+import io.scalac.core.util.ActorPathOps
 import io.scalac.core.util.AggMetric.LongValueAggMetric
+import io.scalac.core.util.ReceptionistOps
 import io.scalac.core.util.TestCase._
+import io.scalac.core.util.TestConfig
+import io.scalac.core.util.TestOps
 import io.scalac.core.util.probe.ObserverCollector.ScheduledCollectorImpl
-import io.scalac.core.util.{ ActorPathOps, ReceptionistOps, TestOps }
 import io.scalac.extension.ActorEventsMonitorActor._
 import io.scalac.extension.ActorEventsMonitorActorTest._
 import io.scalac.extension.metric.ActorMetricMonitor.Labels
 import io.scalac.extension.service.ActorTreeService
 import io.scalac.extension.service.ActorTreeService.GetActors
 import io.scalac.extension.util.probe.ActorMonitorTestProbe
-import io.scalac.extension.util.probe.BoundTestProbe.{ CounterCommand, Inc, MetricObserved, MetricObserverCommand }
-import org.scalatest.concurrent.{ PatienceConfiguration, ScaledTimeSpans }
-import org.scalatest.{ LoneElement, TestSuite }
-
-import scala.concurrent.duration._
-import scala.util.Random
-import scala.util.control.NoStackTrace
+import io.scalac.extension.util.probe.BoundTestProbe.CounterCommand
+import io.scalac.extension.util.probe.BoundTestProbe.Inc
+import io.scalac.extension.util.probe.BoundTestProbe.MetricObserved
+import io.scalac.extension.util.probe.BoundTestProbe.MetricObserverCommand
 
 trait ActorEventMonitorActorTestConfig {
   this: TestSuite with ScaledTimeSpans with ReceptionistOps with PatienceConfiguration =>
 
-  protected val pingOffset: FiniteDuration     = scaled(1.seconds)
-  protected val reasonableTime: FiniteDuration = 3 * pingOffset
-  override lazy val patienceConfig             = PatienceConfig(reasonableTime, scaled(100.millis))
+  protected val pingOffset: FiniteDuration         = scaled(1.seconds)
+  protected val reasonableTime: FiniteDuration     = 3 * pingOffset
+  override lazy val patienceConfig: PatienceConfig = PatienceConfig(reasonableTime, scaled(100.millis))
 }
 
 import org.scalatest.Inspectors
@@ -41,7 +56,7 @@ import org.scalatest.flatspec.AnyFlatSpecLike
 import org.scalatest.matchers.should.Matchers
 
 class ActorEventsMonitorActorTest
-    extends ScalaTestWithActorTestKit
+    extends ScalaTestWithActorTestKit(TestConfig.localActorProvider)
     with AnyFlatSpecLike
     with Matchers
     with Inspectors

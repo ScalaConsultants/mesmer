@@ -6,13 +6,24 @@ ThisBuild / version := "0.1.0-SNAPSHOT"
 ThisBuild / organization := "io.scalac"
 ThisBuild / organizationName := "scalac"
 
-ThisBuild / dependencyOverrides ++= openTelemetryDependenciesOverrides
+inThisBuild(
+  List(
+    
+    dependencyOverrides ++= openTelemetryDependenciesOverrides,
+
+    scalacOptions ++= Seq("-deprecation", "-feature"),
+    
+    semanticdbEnabled := true,
+    semanticdbVersion := scalafixSemanticdb.revision,
+    scalacOptions += "-Wunused:imports",
+    scalafixDependencies += "com.github.liancheng" %% "organize-imports" % "0.5.0",
+    scalafixScalaBinaryVersion := "2.13"
+  )
+)
 
 lazy val all = (project in file("."))
   .disablePlugins(sbtassembly.AssemblyPlugin)
-  .settings(
-    name := "mesmer-all",
-    publish / skip := true)
+  .settings(name := "mesmer-all", publish / skip := true)
   .aggregate(extension, agent, example, core)
 
 lazy val core = (project in file("core"))
@@ -21,9 +32,9 @@ lazy val core = (project in file("core"))
     name := "mesmer-akka-core",
     publish / skip := true,
     libraryDependencies ++= {
-      akka ++ 
-      openTelemetryApi ++ 
-      scalatest ++ 
+      akka ++
+      openTelemetryApi ++
+      scalatest ++
       akkaTestkit
     }
   )
@@ -36,12 +47,12 @@ lazy val extension = (project in file("extension"))
     parallelExecution in Test := true,
     name := "mesmer-akka-extension",
     libraryDependencies ++= {
-      akka ++ 
-      openTelemetryApi ++ 
-      akkaTestkit ++ 
-      scalatest ++ 
-      akkaMultiNodeTestKit ++ 
-      newRelicSdk ++ 
+      akka ++
+      openTelemetryApi ++
+      akkaTestkit ++
+      scalatest ++
+      akkaMultiNodeTestKit ++
+      newRelicSdk ++
       openTelemetrySdk ++
       logback.map(_ % Test)
     }
@@ -53,11 +64,11 @@ lazy val agent = (project in file("agent"))
     name := "mesmer-akka-agent",
     publish / skip := true,
     libraryDependencies ++= {
-      akka.map(_      % "provided") ++
+      akka.map(_    % "provided") ++
       logback.map(_ % Test) ++
-      byteBuddy ++ 
-      scalatest ++ 
-      akkaTestkit ++ 
+      byteBuddy ++
+      scalatest ++
+      akkaTestkit ++
       slf4jApi ++
       reflection(scalaVersion.value)
     },
@@ -91,11 +102,11 @@ lazy val example = (project in file("example"))
     name := "mesmer-akka-example",
     publish / skip := true,
     libraryDependencies ++= {
-      akka ++ 
-      scalatest ++ 
-      akkaTestkit ++ 
-      akkaPersistance ++ 
-      logback ++ 
+      akka ++
+      scalatest ++
+      akkaTestkit ++
+      akkaPersistance ++
+      logback ++
       newRelicSdk ++
       exampleDependencies
     },

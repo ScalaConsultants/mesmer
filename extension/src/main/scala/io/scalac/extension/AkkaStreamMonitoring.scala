@@ -1,40 +1,51 @@
 package io.scalac.extension
 
-import akka.actor.{ typed, ActorRef }
+import java.util
+import java.util.concurrent.atomic.AtomicReference
+
+import akka.actor.ActorRef
+import akka.actor.typed
 import akka.actor.typed._
 import akka.actor.typed.receptionist.Receptionist.Register
+import akka.actor.typed.scaladsl.ActorContext
+import akka.actor.typed.scaladsl.Behaviors
+import akka.actor.typed.scaladsl.TimerScheduler
 import akka.actor.typed.scaladsl.adapter._
-import akka.actor.typed.scaladsl.{ ActorContext, Behaviors, TimerScheduler }
 import akka.util.Timeout
-import io.scalac.core.akka.model.PushMetrics
-import io.scalac.core.event.Service.streamService
-import io.scalac.core.event.StreamEvent
-import io.scalac.core.event.StreamEvent.{ LastStreamStats, StreamInterpreterStats }
-import io.scalac.core.model.Tag.{ StageName, StreamName }
-import io.scalac.core.model._
-import io.scalac.core.support.ModulesSupport
-import io.scalac.extension.AkkaStreamMonitoring._
-import io.scalac.extension.service.actorTreeService
-import io.scalac.extension.config.ConfigurationUtils._
-import io.scalac.extension.config.{ BufferConfig, CachingConfig }
-import io.scalac.extension.metric.MetricObserver.Result
-import io.scalac.extension.metric.StreamMetricMonitor.{ EagerLabels, Labels => GlobalLabels }
-import io.scalac.extension.metric.StreamOperatorMetricsMonitor.Labels
-import io.scalac.extension.metric.{ StreamMetricMonitor, StreamOperatorMetricsMonitor }
-import io.scalac.extension.service.ActorTreeService
-import io.scalac.extension.service.ActorTreeService.GetActors
-import io.scalac.extension.util.GenericBehaviors
 
-import java.util
-import java.util.Map
-import java.util.concurrent.atomic.AtomicReference
 import scala.annotation.tailrec
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
-import scala.concurrent.duration.{ FiniteDuration, _ }
+import scala.concurrent.duration.FiniteDuration
+import scala.concurrent.duration._
 import scala.jdk.CollectionConverters._
 import scala.jdk.DurationConverters._
-import scala.util.{ Failure, Success }
+import scala.util.Failure
+import scala.util.Success
+
+import io.scalac.core.akka.model.PushMetrics
+import io.scalac.core.event.Service.streamService
+import io.scalac.core.event.StreamEvent
+import io.scalac.core.event.StreamEvent.LastStreamStats
+import io.scalac.core.event.StreamEvent.StreamInterpreterStats
+import io.scalac.core.model.Tag.StageName
+import io.scalac.core.model.Tag.StreamName
+import io.scalac.core.model._
+import io.scalac.core.support.ModulesSupport
+import io.scalac.extension.AkkaStreamMonitoring._
+import io.scalac.extension.config.BufferConfig
+import io.scalac.extension.config.CachingConfig
+import io.scalac.extension.config.ConfigurationUtils._
+import io.scalac.extension.metric.MetricObserver.Result
+import io.scalac.extension.metric.StreamMetricMonitor
+import io.scalac.extension.metric.StreamMetricMonitor.EagerLabels
+import io.scalac.extension.metric.StreamMetricMonitor.{ Labels => GlobalLabels }
+import io.scalac.extension.metric.StreamOperatorMetricsMonitor
+import io.scalac.extension.metric.StreamOperatorMetricsMonitor.Labels
+import io.scalac.extension.service.ActorTreeService
+import io.scalac.extension.service.ActorTreeService.GetActors
+import io.scalac.extension.service.actorTreeService
+import io.scalac.extension.util.GenericBehaviors
 
 object AkkaStreamMonitoring {
 
@@ -198,7 +209,7 @@ object AkkaStreamMonitoring {
 
       val mutableMap: mutable.Map[StageInfo, IndexCacheEntry] =
         new util.LinkedHashMap[StageInfo, IndexCacheEntry](entries, 0.75f, true) {
-          override def removeEldestEntry(eldest: Map.Entry[StageInfo, IndexCacheEntry]): Boolean =
+          override def removeEldestEntry(eldest: util.Map.Entry[StageInfo, IndexCacheEntry]): Boolean =
             this.size() >= entries
         }.asScala
 
@@ -207,7 +218,6 @@ object AkkaStreamMonitoring {
 
     /**
      * Exists solely for testing purpose
-     * @param map
      * @return
      */
     private[extension] def empty = new ConnectionsIndexCache(mutable.Map.empty)
@@ -407,14 +417,16 @@ final class AkkaStreamMonitoring(
     connectionStats: Set[ConnectionStats],
     stages: Array[StageInfo],
     distinct: Boolean = false
-  ) = updateLocalState(stage, connectionStats, stages, distinct, conn => (conn.out, conn.push), localProcessedSnapshot)
+  ): Unit =
+    updateLocalState(stage, connectionStats, stages, distinct, conn => (conn.out, conn.push), localProcessedSnapshot)
 
   private def updateLocalDemandState(
     stage: StageInfo,
     connectionStats: Set[ConnectionStats],
     stages: Array[StageInfo],
     distinct: Boolean = false
-  ) = updateLocalState(stage, connectionStats, stages, distinct, conn => (conn.in, conn.pull), localDemandSnapshot)
+  ): Unit =
+    updateLocalState(stage, connectionStats, stages, distinct, conn => (conn.in, conn.pull), localDemandSnapshot)
 
   private def updateLocalState(
     stage: StageInfo,
@@ -466,7 +478,7 @@ final class AkkaStreamMonitoring(
   private def observeOperators(result: Result[Long, Labels], snapshot: Option[Seq[SnapshotEntry]]): Unit =
     snapshot.foreach(_.groupBy(_.stage.subStreamName.streamName).foreach { case (streamName, snapshots) =>
       snapshots.groupBy(_.stage.stageName.nameOnly).foreach { case (stageName, elems) =>
-        val labels = Labels(stageName, streamName, false, node, None)
+        val labels = Labels(stageName, streamName, terminal = false, node, None)
         result.observe(elems.size, labels)
       }
     })

@@ -1,15 +1,18 @@
 package io.scalac.extension.util.probe
 
-import akka.actor.testkit.typed.scaladsl.TestProbe
-import akka.actor.typed.ActorSystem
-import io.scalac.extension.metric.{ HttpConnectionMetricMonitor, UpDownCounter }
-import io.scalac.extension.util.probe.BoundTestProbe.CounterCommand
-import io.scalac.extension.util.{ probe, TestProbeSynchronized }
-
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicInteger
+
+import akka.actor.testkit.typed.scaladsl.TestProbe
+import akka.actor.typed.ActorSystem
+
 import scala.collection.concurrent.{ Map => CMap }
 import scala.jdk.CollectionConverters._
+
+import io.scalac.extension.metric.HttpConnectionMetricMonitor
+import io.scalac.extension.metric.UpDownCounter
+import io.scalac.extension.util.TestProbeSynchronized
+import io.scalac.extension.util.probe.BoundTestProbe.CounterCommand
 
 class HttpConnectionMetricsTestProbe(implicit val system: ActorSystem[_]) extends HttpConnectionMetricMonitor {
 
@@ -37,7 +40,7 @@ class HttpConnectionMetricsTestProbe(implicit val system: ActorSystem[_]) extend
       with TestProbeSynchronized {
 
     override val connectionCounter: UpDownCounter[Long] with SyncTestProbeWrapper =
-      probe.UpDownCounterTestProbeWrapper(connectionCounterProbe, Some(globalConnectionCounter))
+      UpDownCounterTestProbeWrapper(connectionCounterProbe, Some(globalConnectionCounter))
 
     override def unbind(): Unit = ()
   }

@@ -1,18 +1,18 @@
 package io.scalac.extension
 
 import akka.cluster.sharding.typed.ShardingEnvelope
-import io.scalac.core.model._
-import io.scalac.extension.util.probe.BoundTestProbe._
-import io.scalac.core.util.TestBehaviors
-import io.scalac.core.util.TestBehaviors.SameStop.Command.Same
-import io.scalac.extension.metric.ClusterMetricsMonitor.Labels
-import io.scalac.extension.util.SingleNodeClusterSpec
 import org.scalatest.Inspectors
 import org.scalatest.flatspec.AsyncFlatSpec
 import org.scalatest.matchers.should.Matchers
 
 import scala.concurrent.duration._
-import scala.language.postfixOps
+
+import io.scalac.core.model._
+import io.scalac.core.util.TestBehaviors
+import io.scalac.core.util.TestBehaviors.SameStop.Command.Same
+import io.scalac.extension.metric.ClusterMetricsMonitor.Labels
+import io.scalac.extension.util.SingleNodeClusterSpec
+import io.scalac.extension.util.probe.BoundTestProbe._
 
 class ClusterSelfNodeEventsActorTest extends AsyncFlatSpec with SingleNodeClusterSpec with Matchers with Inspectors {
 
@@ -57,7 +57,7 @@ class ClusterSelfNodeEventsActorTest extends AsyncFlatSpec with SingleNodeCluste
   it should "show proper amount of reachable nodes" in setup(TestBehaviors.SameStop.apply) {
     case (system, _, _, monitor, _) =>
       system.systemActorOf(ClusterSelfNodeEventsActor(monitor), "sut")
-      monitor.reachableNodesProbe.within(5 seconds) {
+      monitor.reachableNodesProbe.within(5.seconds) {
         val probe = monitor.reachableNodesProbe
         probe.receiveMessage() shouldEqual (Inc(1L))
         probe.expectNoMessage(probe.remaining)

@@ -1,6 +1,7 @@
 package io.scalac.core.event
 
 import akka.actor.typed.receptionist.ServiceKey
+
 import io.scalac.core._
 
 trait AbstractService {

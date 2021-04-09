@@ -2,6 +2,7 @@ package io.scalac.extension.util.probe
 
 import akka.actor.testkit.typed.scaladsl.TestProbe
 import akka.actor.typed.ActorSystem
+
 import io.scalac.extension.metric.ActorSystemMonitor
 import io.scalac.extension.metric.ActorSystemMonitor.BoundMonitor
 import io.scalac.extension.util.probe.BoundTestProbe.CounterCommand
@@ -19,9 +20,11 @@ final case class ActorSystemMonitorProbe(
 
   class ActorSystemTestBoundMonitor extends BoundMonitor {
 
-    override lazy val createdActors = UpDownCounterTestProbeWrapper(createdActorsProbe, Some(globalProbe))
+    override lazy val createdActors: UpDownCounterTestProbeWrapper =
+      UpDownCounterTestProbeWrapper(createdActorsProbe, Some(globalProbe))
 
-    override lazy val terminatedActors = UpDownCounterTestProbeWrapper(terminatedActorsProbe, Some(globalProbe))
+    override lazy val terminatedActors: UpDownCounterTestProbeWrapper =
+      UpDownCounterTestProbeWrapper(terminatedActorsProbe, Some(globalProbe))
 
     override private[scalac] def unbind(): Unit = ()
   }

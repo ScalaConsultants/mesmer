@@ -1,10 +1,12 @@
 package io.scalac.agent.akka.actor
+import akka.actor.ActorRef
+import akka.actor.ActorSystem
 import akka.actor.typed.scaladsl.adapter._
-import akka.actor.{ ActorRef, ActorSystem }
+import net.bytebuddy.asm.Advice._
+
 import io.scalac.core.event.ActorEvent.ActorCreated
 import io.scalac.core.event.EventBus
 import io.scalac.core.model.ActorRefDetails
-import net.bytebuddy.asm.Advice._
 
 class LocalActorRefProviderAdvice
 object LocalActorRefProviderAdvice {

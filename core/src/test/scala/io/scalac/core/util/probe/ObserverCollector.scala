@@ -2,10 +2,11 @@ package io.scalac.core.util.probe
 
 import akka.actor.testkit.typed.scaladsl.TestProbe
 import akka.actor.typed.ActorSystem
-import io.scalac.core.util.probe.ObserverCollector.ProbeKey
 
 import scala.collection.concurrent.TrieMap
 import scala.concurrent.duration.FiniteDuration
+
+import io.scalac.core.util.probe.ObserverCollector.ProbeKey
 
 /**
  * Emulates backend collector behavior: to register updaters to collect it later.
@@ -33,7 +34,7 @@ object ObserverCollector {
     private[this] val observers = TrieMap.empty[ProbeKey, () => Unit]
 
     private[scalac] def update(probe: TestProbe[_], cb: () => Unit): Unit = observers(ProbeKey(probe)) = cb
-    protected def remove(key: ProbeKey): Unit                             = observers - key
+    protected def remove(key: ProbeKey): Unit                             = observers.remove(key)
     def collectAll(): Unit                                                = observers.foreach(_._2.apply())
   }
 

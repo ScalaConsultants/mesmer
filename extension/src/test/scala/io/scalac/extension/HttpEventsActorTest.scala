@@ -1,20 +1,8 @@
 package io.scalac.extension
-
 import akka.actor.testkit.typed.scaladsl.ScalaTestWithActorTestKit
+import akka.actor.typed.ActorSystem
+import akka.actor.typed.Behavior
 import akka.actor.typed.receptionist.ServiceKey
-import akka.actor.typed.{ ActorSystem, Behavior }
-import io.scalac.core._
-import io.scalac.core.event.EventBus
-import io.scalac.core.event.HttpEvent.{ ConnectionCompleted, ConnectionStarted, RequestCompleted, RequestStarted }
-import io.scalac.core.model._
-import io.scalac.core.util.TestCase.CommonMonitorTestFactory
-import io.scalac.core.util.TestCase.MonitorTestCaseContext.BasicContext
-import io.scalac.extension.util.probe.BoundTestProbe._
-import io.scalac.core.util.{ TestOps, Timestamp, _ }
-import io.scalac.extension.http.MutableRequestStorage
-import io.scalac.extension.metric.{ CachingMonitor, HttpConnectionMetricMonitor, HttpMetricMonitor }
-import io.scalac.extension.util.IdentityPathService
-import io.scalac.extension.util.probe.{ HttpConnectionMetricsTestProbe, HttpMetricsTestProbe }
 import org.scalatest.concurrent.Eventually
 import org.scalatest.flatspec.AnyFlatSpecLike
 import org.scalatest.matchers.should.Matchers
@@ -22,6 +10,28 @@ import org.scalatest.{ Status => _, _ }
 
 import scala.concurrent.duration._
 import scala.language.postfixOps
+
+import io.scalac.core._
+import io.scalac.core.event.EventBus
+import io.scalac.core.event.HttpEvent.ConnectionCompleted
+import io.scalac.core.event.HttpEvent.ConnectionStarted
+import io.scalac.core.event.HttpEvent.RequestCompleted
+import io.scalac.core.event.HttpEvent.RequestStarted
+import io.scalac.core.model
+import io.scalac.core.model._
+import io.scalac.core.util.TestCase.CommonMonitorTestFactory
+import io.scalac.core.util.TestCase.MonitorTestCaseContext.BasicContext
+import io.scalac.core.util.TestOps
+import io.scalac.core.util.Timestamp
+import io.scalac.core.util._
+import io.scalac.extension.http.MutableRequestStorage
+import io.scalac.extension.metric.CachingMonitor
+import io.scalac.extension.metric.HttpConnectionMetricMonitor
+import io.scalac.extension.metric.HttpMetricMonitor
+import io.scalac.extension.util.IdentityPathService
+import io.scalac.extension.util.probe.BoundTestProbe._
+import io.scalac.extension.util.probe.HttpConnectionMetricsTestProbe
+import io.scalac.extension.util.probe.HttpMetricsTestProbe
 
 class HttpEventsActorTest
     extends ScalaTestWithActorTestKit(TestConfig.localActorProvider)
@@ -64,11 +74,11 @@ class HttpEventsActorTest
   def requestStarted(id: String, labels: HttpMetricMonitor.Labels): Unit =
     EventBus(system).publishEvent(RequestStarted(id, Timestamp.create(), labels.path, labels.method))
 
-  def requestCompleted(id: String, status: Status): Unit =
+  def requestCompleted(id: String, status: model.Status): Unit =
     EventBus(system).publishEvent(RequestCompleted(id, Timestamp.create(), status))
 
   "HttpEventsActor" should "collect metrics for single request" in testCase { implicit c =>
-    val status: Status           = "200"
+    val status: model.Status     = "200"
     val expectedConnectionLabels = HttpConnectionMetricMonitor.Labels(None, "0.0.0.0", 8080)
     val expectedRequestLabels    = HttpMetricMonitor.Labels(None, "/api/v1/test", "GET", status)
 

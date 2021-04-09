@@ -2,9 +2,12 @@ package io.scalac.domain
 
 import java.util.UUID
 
-import akka.actor.testkit.typed.scaladsl.{ ActorTestKit, ScalaTestWithActorTestKit, TestProbe }
+import akka.actor.testkit.typed.scaladsl.ActorTestKit
+import akka.actor.testkit.typed.scaladsl.ScalaTestWithActorTestKit
+import akka.actor.testkit.typed.scaladsl.TestProbe
 import akka.persistence.testkit.PersistenceTestKitPlugin
 import akka.persistence.testkit.scaladsl.PersistenceTestKit
+import com.typesafe.config.Config
 import org.scalatest.flatspec.AnyFlatSpecLike
 import org.scalatest.matchers.should.Matchers
 
@@ -13,7 +16,7 @@ import scala.language.postfixOps
 import scala.util.Random
 
 object AccountStateActorTest {
-  val config = PersistenceTestKitPlugin.config.withFallback(ActorTestKit.ApplicationTestConfig)
+  val config: Config = PersistenceTestKitPlugin.config.withFallback(ActorTestKit.ApplicationTestConfig)
 }
 
 class AccountStateActorTest
@@ -28,7 +31,7 @@ class AccountStateActorTest
 
   type Fixture = (UUID, TestProbe[Reply])
 
-  val persistentTestKit                          = PersistenceTestKit(system)
+  val persistentTestKit: PersistenceTestKit      = PersistenceTestKit(system)
   override implicit val patience: PatienceConfig = PatienceConfig(scaled(500 millis), scaled(25 millis))
   val persistenceTimeout: FiniteDuration         = patience.timeout
 

@@ -1,30 +1,33 @@
 package io.scalac.extension.service
 
-import akka.actor.testkit.typed.scaladsl.{ ScalaTestWithActorTestKit, TestProbe }
+import akka.actor.ActorRef
+import akka.actor.PoisonPill
+import akka.actor.testkit.typed.scaladsl.ScalaTestWithActorTestKit
+import akka.actor.testkit.typed.scaladsl.TestProbe
+import akka.actor.typed.ActorSystem
+import akka.actor.typed.Behavior
 import akka.actor.typed.receptionist.ServiceKey
 import akka.actor.typed.scaladsl.Behaviors
 import akka.actor.typed.scaladsl.adapter._
-import akka.actor.typed.{ ActorSystem, Behavior }
-import akka.actor.{ ActorRef, PoisonPill }
 import akka.{ actor => classic }
-import io.scalac.core.actorServiceKey
-import io.scalac.core.event.ActorEvent.ActorCreated
-import io.scalac.core.event.EventBus
-import io.scalac.core.model.ActorRefDetails
-import io.scalac.core.util.TestCase.{
-  MonitorTestCaseContext,
-  MonitorWithServiceTestCaseFactory,
-  ProvidedActorSystemTestCaseFactory
-}
-import io.scalac.core.util.TestConfig
-import io.scalac.extension.service.DeltaActorTree.{ Connect, Delta }
-import io.scalac.extension.util.probe.ActorSystemMonitorProbe
 import org.scalatest.Inside
 import org.scalatest.flatspec.AnyFlatSpecLike
 import org.scalatest.matchers.should.Matchers
 
 import scala.collection.immutable
 import scala.concurrent.duration._
+
+import io.scalac.core.actorServiceKey
+import io.scalac.core.event.ActorEvent.ActorCreated
+import io.scalac.core.event.EventBus
+import io.scalac.core.model.ActorRefDetails
+import io.scalac.core.util.TestCase.MonitorTestCaseContext
+import io.scalac.core.util.TestCase.MonitorWithServiceTestCaseFactory
+import io.scalac.core.util.TestCase.ProvidedActorSystemTestCaseFactory
+import io.scalac.core.util.TestConfig
+import io.scalac.extension.service.DeltaActorTree.Connect
+import io.scalac.extension.service.DeltaActorTree.Delta
+import io.scalac.extension.util.probe.ActorSystemMonitorProbe
 
 class DeltaActorTreeTest
     extends ScalaTestWithActorTestKit(TestConfig.localActorProvider)
@@ -34,9 +37,9 @@ class DeltaActorTreeTest
     with MonitorWithServiceTestCaseFactory
     with Inside {
 
-  val MaxBulkSize  = 10
-  val BulkDuration = 1.second
-  val ProbeTimeout = BulkDuration * 2
+  val MaxBulkSize                  = 10
+  val BulkDuration: FiniteDuration = 1.second
+  val ProbeTimeout: FiniteDuration = BulkDuration * 2
 
   protected val serviceKey: ServiceKey[_] = actorServiceKey
 

@@ -1,14 +1,17 @@
 package io.scalac.extension.config
 
-import com.typesafe.config.{ Config, ConfigException }
-import io.scalac.extension.config.Configuration.ConfigOps
+import com.typesafe.config.Config
+import com.typesafe.config.ConfigException
 
-import scala.reflect.{ classTag, ClassTag }
+import scala.reflect.ClassTag
+import scala.reflect.classTag
 import scala.util.Try
+
+import io.scalac.extension.config.Configuration.ConfigOps
 
 object ConfigurationUtils {
 
-  private[extension] implicit class ConfigOps(val value: Config) extends AnyVal {
+  private[extension] implicit class ConfigOps(private val value: Config) extends AnyVal {
     def tryValue[T: ClassTag](
       path: String
     )(extractor: Config => String => T): Either[String, T] =

@@ -1,9 +1,12 @@
 package io.scalac.core.util
 
-import io.scalac.core.util.AggMetric.LongValueAggMetric
+import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.AtomicLong
+import java.util.concurrent.atomic.AtomicReference
 
-import java.util.concurrent.atomic.{ AtomicBoolean, AtomicLong, AtomicReference }
 import scala.concurrent.duration._
+
+import io.scalac.core.util.AggMetric.LongValueAggMetric
 
 object MetricsToolKit {
 

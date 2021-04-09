@@ -4,16 +4,16 @@ import akka.actor.typed.Behavior
 import akka.actor.typed.receptionist.Receptionist
 import akka.actor.typed.receptionist.Receptionist.Register
 import akka.actor.typed.scaladsl.Behaviors
+
 import io.scalac.core._
-import io.scalac.core.model._
 import io.scalac.core.event.PersistenceEvent
 import io.scalac.core.event.PersistenceEvent._
+import io.scalac.core.model._
 import io.scalac.extension.metric.PersistenceMetricMonitor
 import io.scalac.extension.metric.PersistenceMetricMonitor.Labels
-import io.scalac.extension.persistence.{ PersistStorage, RecoveryStorage }
+import io.scalac.extension.persistence.PersistStorage
+import io.scalac.extension.persistence.RecoveryStorage
 import io.scalac.extension.service.PathService
-
-import scala.language.postfixOps
 
 object PersistenceEventsActor {
 

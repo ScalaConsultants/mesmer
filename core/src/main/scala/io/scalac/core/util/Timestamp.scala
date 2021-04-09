@@ -1,8 +1,8 @@
 package io.scalac.core.util
 
-import io.scalac.core.util.Timestamp.moveTimestamp
-
 import scala.concurrent.duration.FiniteDuration
+
+import io.scalac.core.util.Timestamp.moveTimestamp
 
 /**
  * For performance and testing reasons [[Timestamp]] is implemented as value class but should be treated as abstract type with its

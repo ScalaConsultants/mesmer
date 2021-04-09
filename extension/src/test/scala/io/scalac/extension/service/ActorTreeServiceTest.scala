@@ -1,24 +1,29 @@
 package io.scalac.extension.service
 
-import akka.actor.testkit.typed.scaladsl.{ ScalaTestWithActorTestKit, TestProbe }
+import akka.actor.testkit.typed.scaladsl.ScalaTestWithActorTestKit
+import akka.actor.testkit.typed.scaladsl.TestProbe
+import akka.actor.typed.ActorRef
+import akka.actor.typed.ActorSystem
+import akka.actor.typed.Behavior
 import akka.actor.typed.scaladsl.Behaviors
 import akka.actor.typed.scaladsl.adapter._
-import akka.actor.typed.{ ActorRef, ActorSystem, Behavior }
 import akka.{ actor => classic }
-import io.scalac.core.model.{ ActorRefDetails, Tag }
-import io.scalac.core.util.TestCase.{
-  MonitorTestCaseContext,
-  MonitorWithActorRefSetupTestCaseFactory,
-  ProvidedActorSystemTestCaseFactory
-}
-import io.scalac.core.util.{ TestBehaviors, TestConfig }
-import io.scalac.extension.service.ActorTreeService.GetActors
-import io.scalac.extension.service.DeltaActorTree.{ Connect, Delta }
 import org.scalatest.Inside
 import org.scalatest.flatspec.AnyFlatSpecLike
 import org.scalatest.matchers.should.Matchers
 
 import scala.util.Random
+
+import io.scalac.core.model.ActorRefDetails
+import io.scalac.core.model.Tag
+import io.scalac.core.util.TestBehaviors
+import io.scalac.core.util.TestCase.MonitorTestCaseContext
+import io.scalac.core.util.TestCase.MonitorWithActorRefSetupTestCaseFactory
+import io.scalac.core.util.TestCase.ProvidedActorSystemTestCaseFactory
+import io.scalac.core.util.TestConfig
+import io.scalac.extension.service.ActorTreeService.GetActors
+import io.scalac.extension.service.DeltaActorTree.Connect
+import io.scalac.extension.service.DeltaActorTree.Delta
 
 class ActorTreeServiceTest
     extends ScalaTestWithActorTestKit(TestConfig.localActorProvider)

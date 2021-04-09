@@ -1,7 +1,5 @@
 package io.scalac.core.akka
 
-import akka.actor.ActorRef
-
 package object model {
 
   /**

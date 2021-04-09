@@ -1,10 +1,11 @@
 package io.scalac.extension.service
 
-import io.scalac.core.model._
+import java.util.UUID
+
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
-import java.util.UUID
+import io.scalac.core.model._
 
 class CommonRegexPathServiceTest extends AnyFlatSpec with Matchers {
   import CommonRegexPathService._

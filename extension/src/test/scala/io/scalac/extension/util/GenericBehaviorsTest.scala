@@ -1,18 +1,25 @@
 package io.scalac.extension.util
 
-import akka.actor.testkit.typed.scaladsl.{ ScalaTestWithActorTestKit, TestProbe }
+import akka.actor.testkit.typed.scaladsl.ScalaTestWithActorTestKit
+import akka.actor.testkit.typed.scaladsl.TestProbe
+import akka.actor.typed.ActorRef
+import akka.actor.typed.ActorSystem
 import akka.actor.typed.receptionist.Receptionist.Register
 import akka.actor.typed.receptionist.ServiceKey
 import akka.actor.typed.scaladsl.Behaviors
-import akka.actor.typed.{ ActorRef, ActorSystem }
-import io.scalac.core.util.TestCase.{ NoSetupTestCaseFactory, ProvidedActorSystemTestCaseFactory }
-import io.scalac.core.util.{ ReceptionistOps, TestBehaviors }
-import io.scalac.extension.util.GenericBehaviorsTest.Command
-import io.scalac.extension.util.probe.BoundTestProbe.{ CounterCommand, Dec, Inc }
 import org.scalatest.flatspec.AnyFlatSpecLike
 import org.scalatest.matchers.should.Matchers
 
 import scala.util.Random
+
+import io.scalac.core.util.ReceptionistOps
+import io.scalac.core.util.TestBehaviors
+import io.scalac.core.util.TestCase.NoSetupTestCaseFactory
+import io.scalac.core.util.TestCase.ProvidedActorSystemTestCaseFactory
+import io.scalac.extension.util.GenericBehaviorsTest.Command
+import io.scalac.extension.util.probe.BoundTestProbe.CounterCommand
+import io.scalac.extension.util.probe.BoundTestProbe.Dec
+import io.scalac.extension.util.probe.BoundTestProbe.Inc
 
 object GenericBehaviorsTest {
   sealed trait Command
@@ -30,7 +37,7 @@ class GenericBehaviorsTest
 
   type Context = Unit
 
-  val TestServiceKey = ServiceKey[Command]("test_service")
+  val TestServiceKey: ServiceKey[Command] = ServiceKey[Command]("test_service")
 
   override def setUp(context: Context): Unit = {
     killServices(TestServiceKey)

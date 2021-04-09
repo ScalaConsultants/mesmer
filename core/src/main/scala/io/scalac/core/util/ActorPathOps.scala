@@ -2,6 +2,7 @@ package io.scalac.core.util
 
 import akka.actor.typed.ActorRef
 import akka.{ actor => classic }
+
 import io.scalac.core.model._
 
 object ActorPathOps {

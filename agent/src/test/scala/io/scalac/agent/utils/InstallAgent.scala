@@ -1,19 +1,22 @@
 package io.scalac.agent.utils
 
+import net.bytebuddy.ByteBuddy
+import net.bytebuddy.agent.ByteBuddyAgent
+import net.bytebuddy.agent.builder.AgentBuilder
+import net.bytebuddy.dynamic.scaffold.TypeValidation
+import org.scalatest.BeforeAndAfterAll
+import org.scalatest.TestSuite
+
 import io.scalac.agent.Agent
 import io.scalac.agent.akka.actor.AkkaActorAgent
 import io.scalac.agent.akka.http.AkkaHttpAgent
 import io.scalac.agent.akka.persistence.AkkaPersistenceAgent
 import io.scalac.agent.akka.stream.AkkaStreamAgent
-import io.scalac.core.util.ModuleInfo.{ extractModulesInformation, Modules }
-import net.bytebuddy.ByteBuddy
-import net.bytebuddy.agent.ByteBuddyAgent
-import net.bytebuddy.agent.builder.AgentBuilder
-import net.bytebuddy.dynamic.scaffold.TypeValidation
-import org.scalatest.{ BeforeAndAfterAll, TestSuite }
+import io.scalac.core.util.ModuleInfo.Modules
+import io.scalac.core.util.ModuleInfo.extractModulesInformation
 
 object InstallAgent {
-  val allInstrumentations =
+  val allInstrumentations: Agent =
     AkkaActorAgent.agent ++ AkkaHttpAgent.agent ++ AkkaPersistenceAgent.agent ++ AkkaStreamAgent.agent
 }
 

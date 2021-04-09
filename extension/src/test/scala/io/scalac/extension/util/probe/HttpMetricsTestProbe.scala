@@ -1,15 +1,20 @@
 package io.scalac.extension.util.probe
 
-import akka.actor.testkit.typed.scaladsl.TestProbe
-import akka.actor.typed.ActorSystem
-import io.scalac.extension.metric.{ Counter, HttpMetricMonitor, MetricRecorder }
-import io.scalac.extension.util.TestProbeSynchronized
-import io.scalac.extension.util.probe.BoundTestProbe.{ CounterCommand, MetricRecorderCommand }
-
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicInteger
+
+import akka.actor.testkit.typed.scaladsl.TestProbe
+import akka.actor.typed.ActorSystem
+
 import scala.collection.concurrent.{ Map => CMap }
 import scala.jdk.CollectionConverters._
+
+import io.scalac.extension.metric.Counter
+import io.scalac.extension.metric.HttpMetricMonitor
+import io.scalac.extension.metric.MetricRecorder
+import io.scalac.extension.util.TestProbeSynchronized
+import io.scalac.extension.util.probe.BoundTestProbe.CounterCommand
+import io.scalac.extension.util.probe.BoundTestProbe.MetricRecorderCommand
 
 class HttpMetricsTestProbe(implicit val system: ActorSystem[_]) extends HttpMetricMonitor {
 

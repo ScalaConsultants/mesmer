@@ -1,13 +1,14 @@
 package io.scalac.core.util
 
+import akka.actor.Actor
+import akka.actor.ActorLogging
+import akka.actor.Props
+import akka.actor.typed.ActorRef
+import akka.actor.typed.Behavior
 import akka.actor.typed.receptionist.Receptionist.Register
 import akka.actor.typed.receptionist.ServiceKey
-import akka.actor.typed.scaladsl.{ ActorContext, Behaviors }
-import akka.actor.typed.{ ActorRef, Behavior }
-import akka.actor.{ Actor, ActorLogging, Props }
-import akka.util.Timeout
+import akka.actor.typed.scaladsl.Behaviors
 
-import scala.reflect.ClassTag
 import scala.util.control.NoStackTrace
 
 object TestBehaviors {

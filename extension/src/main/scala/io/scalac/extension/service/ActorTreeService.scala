@@ -2,15 +2,22 @@ package io.scalac.extension.service
 
 import akka.actor.typed._
 import akka.actor.typed.receptionist.Receptionist.Register
-import akka.actor.typed.scaladsl.{ AbstractBehavior, ActorContext, Behaviors }
+import akka.actor.typed.scaladsl.AbstractBehavior
+import akka.actor.typed.scaladsl.ActorContext
+import akka.actor.typed.scaladsl.Behaviors
 import akka.{ actor => classic }
-import io.scalac.core.model.{ Tag, _ }
-import io.scalac.extension.metric.ActorSystemMonitor
-import io.scalac.extension.service.ActorTreeService.{ ActorTreeUpdate, Command, GetActors }
-import io.scalac.extension.service.DeltaActorTree.{ Connect, Delta }
 
 import scala.annotation.unused
 import scala.collection.mutable.ArrayBuffer
+
+import io.scalac.core.model.Tag
+import io.scalac.core.model._
+import io.scalac.extension.metric.ActorSystemMonitor
+import io.scalac.extension.service.ActorTreeService.ActorTreeUpdate
+import io.scalac.extension.service.ActorTreeService.Command
+import io.scalac.extension.service.ActorTreeService.GetActors
+import io.scalac.extension.service.DeltaActorTree.Connect
+import io.scalac.extension.service.DeltaActorTree.Delta
 
 object ActorTreeService {
 

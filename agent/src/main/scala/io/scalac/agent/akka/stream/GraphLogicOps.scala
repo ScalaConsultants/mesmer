@@ -2,12 +2,13 @@ package akka.stream
 
 import akka.stream.impl.fusing.GraphInterpreter.Connection
 import akka.stream.stage.GraphStageLogic
+
 import io.scalac.agent.akka.stream.GraphStageIslandOps.TerminalSink
 import io.scalac.core.model.Tag.StageName
 import io.scalac.core.model.Tag.StageName.StreamUniqueStageName
 
 object GraphLogicOps {
-  implicit class GraphLogicEnh(val logic: GraphStageLogic) extends AnyVal {
+  implicit class GraphLogicEnh(private val logic: GraphStageLogic) extends AnyVal {
 
     def inConnections(): Array[Connection] =
       logic.portToConn.take(logic.inCount)

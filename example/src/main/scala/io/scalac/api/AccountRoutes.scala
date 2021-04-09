@@ -1,17 +1,22 @@
 package io.scalac.api
 
+import akka.actor.typed.ActorRef
+import akka.actor.typed.ActorSystem
 import akka.actor.typed.scaladsl.AskPattern._
-import akka.actor.typed.{ ActorRef, ActorSystem }
 import akka.cluster.sharding.typed.ShardingEnvelope
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server._
 import akka.util.Timeout
 import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport
-import io.scalac.domain.{ AccountStateActor, JsonCodecs, _ }
 
-import scala.language.postfixOps
-import scala.util.{ Failure, Success, Try }
+import scala.util.Failure
+import scala.util.Success
+import scala.util.Try
+
+import io.scalac.domain.AccountStateActor
+import io.scalac.domain.JsonCodecs
+import io.scalac.domain._
 
 class AccountRoutes(
   shardedRef: ActorRef[ShardingEnvelope[AccountStateActor.Command]]
@@ -74,7 +79,7 @@ class AccountRoutes(
 
 object AccountRoutes {
 
-  private implicit class Directive1Ops[T](val d: Directive1[Try[T]]) extends AnyVal {
+  private implicit class Directive1Ops[T](private val d: Directive1[Try[T]]) extends AnyVal {
     def map[U](
       handler: PartialFunction[T, StandardRoute]
     )(implicit system: ActorSystem[_]): Route =

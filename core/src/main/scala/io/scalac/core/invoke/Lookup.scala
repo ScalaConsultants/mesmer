@@ -6,6 +6,6 @@ import java.lang.invoke.MethodHandles
  */
 private[scalac] trait Lookup {
 
-  protected val lookup = MethodHandles.lookup()
+  protected val lookup: MethodHandles.Lookup = MethodHandles.lookup()
 
 }
