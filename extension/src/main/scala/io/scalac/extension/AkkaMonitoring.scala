@@ -1,4 +1,7 @@
 package io.scalac.extension
+import java.net.URI
+import java.util.Collections
+
 import akka.actor.ExtendedActorSystem
 import akka.actor.typed._
 import akka.actor.typed.scaladsl.Behaviors
@@ -8,29 +11,31 @@ import com.newrelic.telemetry.Attributes
 import com.newrelic.telemetry.opentelemetry.`export`.NewRelicMetricExporter
 import io.opentelemetry.sdk.metrics.SdkMeterProvider
 import io.opentelemetry.sdk.metrics.`export`.IntervalMetricReader
-import io.scalac.core.actor.CleanableActorMetricsStorage
-import io.scalac.core.model.{ Module, SupportedVersion, _ }
-import io.scalac.core.support.ModulesSupport
-import io.scalac.core.util.ModuleInfo
-import io.scalac.core.util.ModuleInfo.Modules
-import io.scalac.extension.config.{ AkkaMonitoringConfig, CachingConfig, InstrumentationLibrary }
-import io.scalac.extension.http.CleanableRequestStorage
-import io.scalac.extension.metric.CachingMonitor
-import io.scalac.extension.persistence.{ CleanablePersistingStorage, CleanableRecoveryStorage }
-import io.scalac.extension.service.CachingPathService
-import io.scalac.extension.upstream.{
-  OpenTelemetryClusterMetricsMonitor,
-  OpenTelemetryHttpMetricsMonitor,
-  OpenTelemetryPersistenceMetricMonitor,
-  _
-}
 
-import java.net.URI
-import java.util.Collections
 import scala.concurrent.duration._
 import scala.language.postfixOps
 import scala.reflect.ClassTag
 import scala.util.Try
+
+import io.scalac.core.actor.CleanableActorMetricsStorage
+import io.scalac.core.model.Module
+import io.scalac.core.model.SupportedVersion
+import io.scalac.core.model._
+import io.scalac.core.support.ModulesSupport
+import io.scalac.core.util.ModuleInfo
+import io.scalac.core.util.ModuleInfo.Modules
+import io.scalac.extension.config.AkkaMonitoringConfig
+import io.scalac.extension.config.CachingConfig
+import io.scalac.extension.config.InstrumentationLibrary
+import io.scalac.extension.http.CleanableRequestStorage
+import io.scalac.extension.metric.CachingMonitor
+import io.scalac.extension.persistence.CleanablePersistingStorage
+import io.scalac.extension.persistence.CleanableRecoveryStorage
+import io.scalac.extension.service.CachingPathService
+import io.scalac.extension.upstream.OpenTelemetryClusterMetricsMonitor
+import io.scalac.extension.upstream.OpenTelemetryHttpMetricsMonitor
+import io.scalac.extension.upstream.OpenTelemetryPersistenceMetricMonitor
+import io.scalac.extension.upstream._
 
 object AkkaMonitoring extends ExtensionId[AkkaMonitoring] {
 

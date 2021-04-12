@@ -1,9 +1,10 @@
 package io.scalac.extension.service
 
-import io.scalac.extension.config.CachingConfig
-import io.scalac.core.util.TestOps
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
+
+import io.scalac.core.util.TestOps
+import io.scalac.extension.config.CachingConfig
 
 class CachingPathServiceTest extends AnyFlatSpec with Matchers with PathServiceTest with TestOps {
 

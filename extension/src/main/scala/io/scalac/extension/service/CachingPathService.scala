@@ -1,11 +1,13 @@
 package io.scalac.extension.service
 
-import io.scalac.core.model.Path
-import io.scalac.extension.config.CachingConfig
+import java.util.LinkedHashMap
+import java.util.Map
 
-import java.util.{ LinkedHashMap, Map }
 import scala.annotation.tailrec
 import scala.jdk.CollectionConverters._
+
+import io.scalac.core.model.Path
+import io.scalac.extension.config.CachingConfig
 
 class CachingPathService(cachingConfig: CachingConfig) extends PathService {
 

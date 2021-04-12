@@ -2,13 +2,14 @@ package io.scalac.agent.akka.persistence
 
 import _root_.akka.actor.typed.scaladsl.ActorContext
 import _root_.akka.persistence.typed.PersistenceId
+import net.bytebuddy.asm.Advice
+
+import scala.util.Try
+
 import io.scalac.core.event.EventBus
 import io.scalac.core.event.PersistenceEvent.RecoveryFinished
 import io.scalac.core.model._
 import io.scalac.core.util.Timestamp
-import net.bytebuddy.asm.Advice
-
-import scala.util.Try
 
 class RecoveryCompletedInterceptor
 

@@ -1,7 +1,8 @@
 package io.scalac.core.support
 
+import io.scalac.core.model.Module
+import io.scalac.core.model.SupportedVersion
 import io.scalac.core.model.SupportedVersion._
-import io.scalac.core.model.{ Module, SupportedVersion }
 
 trait ModulesSupport {
   def akkaActor: SupportedVersion

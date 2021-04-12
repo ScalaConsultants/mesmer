@@ -2,7 +2,9 @@ package io.scalac.extension.upstream
 
 import com.typesafe.config.Config
 import io.opentelemetry.api.metrics.Meter
-import io.scalac.extension.metric.{ ClusterMetricsMonitor, _ }
+
+import io.scalac.extension.metric.ClusterMetricsMonitor
+import io.scalac.extension.metric._
 import io.scalac.extension.upstream.OpenTelemetryClusterMetricsMonitor.MetricNames
 import io.scalac.extension.upstream.opentelemetry._
 
