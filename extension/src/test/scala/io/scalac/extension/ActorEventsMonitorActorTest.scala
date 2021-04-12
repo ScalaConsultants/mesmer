@@ -33,7 +33,6 @@ import io.scalac.core.util.TestConfig
 import io.scalac.core.util.TestOps
 import io.scalac.core.util.probe.ObserverCollector.ScheduledCollectorImpl
 import io.scalac.extension.ActorEventsMonitorActor._
-import io.scalac.extension.ActorEventsMonitorActorTest._
 import io.scalac.extension.metric.ActorMetricMonitor.Labels
 import io.scalac.extension.service.ActorTreeService
 import io.scalac.extension.service.ActorTreeService.GetActors
@@ -67,6 +66,7 @@ class ActorEventsMonitorActorTest
     with TestOps
     with ReceptionistOps
     with ActorEventMonitorActorTestConfig {
+  import ActorEventsMonitorActorTest._
 
   final val ActorsPerCase = 10
 
@@ -121,7 +121,7 @@ class ActorEventsMonitorActorTest
     system: ActorSystem[_]
   ): Context = TestContext(monitor, TestProbe(), FakeReaderFactory, constRefsActorServiceTree)
 
-  protected type Setup = (Seq[classic.ActorRef], ActorRef[ActorEventsMonitorActor.Command])
+  protected type Setup = ActorEventSetup
 
   protected def setUp(c: Context): Setup = {
 
@@ -153,13 +153,11 @@ class ActorEventsMonitorActorTest
       createUniqueId
     )
 
-    (testActors :+ treeService.toClassic, sut)
+    ActorEventSetup(testActors, treeService, sut)
   }
 
-  protected def tearDown(setup: Setup): Unit = {
-    val (refs, sut) = setup
-    (refs :+ sut.toClassic).foreach(_.unsafeUpcast[Any] ! PoisonPill)
-  }
+  protected def tearDown(setup: Setup): Unit =
+    setup.allRefs.foreach(_.unsafeUpcast[Any] ! PoisonPill)
 
   type Monitor = ActorMonitorTestProbe
   type Context = TestContext
@@ -169,9 +167,9 @@ class ActorEventsMonitorActorTest
     Labels(ActorPathOps.getPathString(ref))
   }
 
-  def refs(implicit setup: Setup): Seq[classic.ActorRef] = setup._1
+  def refs(implicit setup: Setup): Seq[classic.ActorRef] = setup.refs
 
-  def sut(implicit setup: Setup): ActorRef[ActorEventsMonitorActor.Command] = setup._2
+  def sut(implicit setup: Setup): ActorRef[ActorEventsMonitorActor.Command] = setup.sut
 
   def metrics(implicit context: Context): MetricsContext = context.metrics
 
@@ -328,7 +326,8 @@ class ActorEventsMonitorActorTest
     probe
       .fishForMessage(reasonableTime) {
         case MetricObserved(`metric`, `labels`) => FishingOutcomes.complete()
-        case _                                  => FishingOutcomes.continueAndIgnore()
+        case MetricObserved(m, l) =>
+          FishingOutcomes.continueAndIgnore()
       }
 
   def shouldObserveWithChange(
@@ -344,6 +343,14 @@ class ActorEventsMonitorActorTest
 }
 
 object ActorEventsMonitorActorTest {
+
+  final case class ActorEventSetup(
+    refs: Seq[classic.ActorRef],
+    service: ActorRef[ActorTreeService.Command],
+    sut: ActorRef[ActorEventsMonitorActor.Command]
+  ) {
+    def allRefs: Seq[classic.ActorRef] = refs :+ service.toClassic :+ sut.toClassic
+  }
 
   final class MetricsContext() {
     @volatile var fakeMailboxSize       = 10

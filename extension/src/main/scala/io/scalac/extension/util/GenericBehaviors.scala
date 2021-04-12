@@ -46,8 +46,8 @@ object GenericBehaviors {
                     log.debug("No service found")
                     Behaviors.same
                   } { actorTreeService =>
-                    //                    context.stop(adapter) // hack to stop subscription
                     log.trace("Transition to inner behavior")
+
                     buffer.unstashAll(
                       next(actorTreeService)
                         .transformMessages[Any] { // we must create interceptor that will filter all other messages that don't much inner type parameter

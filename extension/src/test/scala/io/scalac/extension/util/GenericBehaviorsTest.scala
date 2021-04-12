@@ -16,6 +16,7 @@ import io.scalac.core.util.ReceptionistOps
 import io.scalac.core.util.TestBehaviors
 import io.scalac.core.util.TestCase.NoSetupTestCaseFactory
 import io.scalac.core.util.TestCase.ProvidedActorSystemTestCaseFactory
+import io.scalac.core.util.TestConfig
 import io.scalac.extension.util.GenericBehaviorsTest.Command
 import io.scalac.extension.util.probe.BoundTestProbe.CounterCommand
 import io.scalac.extension.util.probe.BoundTestProbe.Dec
@@ -26,7 +27,7 @@ object GenericBehaviorsTest {
 }
 
 class GenericBehaviorsTest
-    extends ScalaTestWithActorTestKit
+    extends ScalaTestWithActorTestKit(TestConfig.localActorProvider)
     with AnyFlatSpecLike
     with Matchers
     with ProvidedActorSystemTestCaseFactory
