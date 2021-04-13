@@ -1,19 +1,16 @@
 package io.scalac.extension.service
 
-import java.lang.invoke.MethodHandles
-
 import akka.{ actor => classic }
-
-import scala.annotation.tailrec
-import scala.collection.immutable
-
 import io.scalac.core.util.ActorRefOps
 
+import java.lang.invoke.MethodHandles
+import scala.annotation.tailrec
+
 trait ActorTreeTraverser {
-  def getChildren(actor: classic.ActorRef): immutable.Iterable[classic.ActorRef]
+  def getChildren(actor: classic.ActorRef): Seq[classic.ActorRef]
   def getRootGuardian(system: classic.ActorSystem): classic.ActorRef
 
-  final def getActorTree(treeRoot: classic.ActorRef): List[classic.ActorRef] = {
+  final def getActorTree(treeRoot: classic.ActorRef): Seq[classic.ActorRef] = {
 
     @tailrec
     def loop(unresolved: List[classic.ActorRef], result: List[classic.ActorRef]): List[classic.ActorRef] =
@@ -24,7 +21,7 @@ trait ActorTreeTraverser {
     loop(List(treeRoot), Nil)
   }
 
-  final def getActorTreeFromRootGuardian(system: classic.ActorSystem): List[classic.ActorRef] = getActorTree(
+  final def getActorTreeFromRootGuardian(system: classic.ActorSystem): Seq[classic.ActorRef] = getActorTree(
     getRootGuardian(system)
   )
 }
@@ -47,11 +44,11 @@ object ReflectiveActorTreeTraverser extends ActorTreeTraverser {
     )
   }
 
-  def getChildren(actor: classic.ActorRef): immutable.Iterable[classic.ActorRef] =
+  def getChildren(actor: classic.ActorRef): Seq[classic.ActorRef] =
     if (ActorRefOps.isLocal(actor)) {
-      ActorRefOps.children(actor)
+      ActorRefOps.children(actor).toSeq
     } else {
-      immutable.Iterable.empty
+      Seq.empty
     }
 
   def getRootGuardian(system: classic.ActorSystem): classic.ActorRef = {

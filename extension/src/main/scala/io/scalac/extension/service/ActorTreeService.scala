@@ -3,7 +3,7 @@ package io.scalac.extension.service
 import akka.actor.typed._
 import akka.actor.typed.receptionist.Receptionist.Register
 import akka.actor.typed.scaladsl.adapter._
-import akka.actor.typed.scaladsl.{ ActorContext, Behaviors }
+import akka.actor.typed.scaladsl.{ AbstractBehavior, ActorContext, Behaviors }
 import akka.{ actor => classic }
 import io.scalac.core
 import io.scalac.core.event.ActorEvent
@@ -28,21 +28,29 @@ object ActorTreeService {
   private final case class ActorCreated(details: ActorRefDetails)      extends AnyVal with Event
   private final case class ActorRetagged(details: ActorRefDetails)     extends AnyVal with Event
 
-  def apply(actorSystemMonitor: ActorSystemMonitor, node: Option[Node]): Behavior[Api] =
+  def apply(
+    actorSystemMonitor: ActorSystemMonitor,
+    node: Option[Node],
+    backoffActorTreeTraverser: ActorTreeTraverser = ReflectiveActorTreeTraverser
+  ): Behavior[Api] =
     Behaviors.setup { ctx =>
       def receptionistBind(actorEventRef: ActorRef[ActorEvent]): Unit =
         ctx.system.receptionist ! Register(core.actorServiceKey, actorEventRef)
 
-      new ActorTreeService(ctx, actorSystemMonitor, receptionistBind, node).service()
+      new ActorTreeService(ctx, actorSystemMonitor, receptionistBind, backoffActorTreeTraverser, node)
     }
 }
 
 final class ActorTreeService(
-  context: ActorContext[Api],
+  ctx: ActorContext[Api],
   monitor: ActorSystemMonitor,
   actorEventBind: ActorRef[ActorEvent] => Unit,
+  backoffActorTreeTraverser: ActorTreeTraverser,
   node: Option[Node] = None
-) {
+) extends AbstractBehavior[Api](ctx) {
+
+  // bind to actor event stream
+  init()
 
   import ActorTreeService._
   import context._
@@ -50,38 +58,52 @@ final class ActorTreeService(
   private[this] val snapshot     = ArrayBuffer.empty[ActorRefDetails]
   private[this] val boundMonitor = monitor.bind(Labels(node))
 
-  def service(): Behavior[Api] = {
-
+  private def init(): Unit = {
     actorEventBind(context.messageAdapter {
       case ActorEvent.ActorCreated(details) => ActorCreated(details)
       case ActorEvent.SetTags(details)      => ActorRetagged(details)
     })
 
-    Behaviors
-      .receiveMessage[Api] {
-        case GetActors(Tag.all, reply) =>
-          reply ! snapshot.toSeq.map(_.ref)
-          Behaviors.same
-        case GetActors(tag, reply) =>
-          reply ! snapshot.filter(_.tags.contains(tag)).toSeq.map(_.ref)
-          Behaviors.same
-        case event: Event =>
-          handleEvent(event)
-          Behaviors.same
+    backoffActorTreeTraverser
+      .getActorTreeFromRootGuardian(system.toClassic)
+      .foreach { ref =>
+        self ! ActorCreated(ActorRefDetails(ref, Set.empty))
       }
-      .receiveSignal { case (_, PreRestart | PostStop) =>
-        boundMonitor.unbind()
-        Behaviors.same
-      }
+  }
+
+  def onMessage(msg: Api): Behavior[Api] = msg match {
+    case GetActors(Tag.all, reply) =>
+      reply ! snapshot.toSeq.map(_.ref)
+      Behaviors.same
+    case GetActors(tag, reply) =>
+      reply ! snapshot.filter(_.tags.contains(tag)).toSeq.map(_.ref)
+      Behaviors.same
+    case event: Event =>
+      handleEvent(event)
+      Behaviors.same
+  }
+
+  override def onSignal: PartialFunction[Signal, Behavior[Api]] = {
+    case PreRestart =>
+      log.error("Restarting actor")
+      boundMonitor.unbind()
+      Behaviors.same
+    case PostStop =>
+      log.info("Actor stopped")
+      boundMonitor.unbind()
+      Behaviors.same
   }
 
   private def handleEvent(event: Event) = event match {
     case ActorCreated(details) =>
       import details._
       log.trace("Actor created {}", ref)
-      context.watchWith(details.ref.toTyped, ActorTerminated(ref))
-      boundMonitor.createdActors.incValue(1L)
-      snapshot += details
+
+      if (!snapshot.exists(_.ref == ref)) { // deduplication
+        context.watchWith(details.ref.toTyped, ActorTerminated(ref))
+        boundMonitor.createdActors.incValue(1L)
+        snapshot += details
+      }
 
     case ActorRetagged(details) =>
       import details._
