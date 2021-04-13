@@ -7,6 +7,7 @@ Mesmer Akka Agent is an [OpenTelemetry](https://opentelemetry.io/) instrumentati
 ## Compatibility
 
 Mesmer has been tested with:
+- Scala: 2.13.x
 - Akka Actors: 2.6.8, 2.6.9, 2.6.10, 2.6.11, 2.6.12
 - Akka HTTP: 10.1.8, 10.2.0, 10.2.1, 10.2.2
 - JVM: 1.8+
