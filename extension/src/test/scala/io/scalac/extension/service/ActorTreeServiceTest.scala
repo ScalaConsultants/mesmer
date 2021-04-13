@@ -1,29 +1,25 @@
 package io.scalac.extension.service
 
-import akka.actor.testkit.typed.scaladsl.ScalaTestWithActorTestKit
-import akka.actor.testkit.typed.scaladsl.TestProbe
-import akka.actor.typed.ActorRef
-import akka.actor.typed.ActorSystem
-import akka.actor.typed.Behavior
+import akka.actor.PoisonPill
+import akka.actor.testkit.typed.scaladsl.{ ScalaTestWithActorTestKit, TestProbe }
 import akka.actor.typed.scaladsl.Behaviors
 import akka.actor.typed.scaladsl.adapter._
+import akka.actor.typed.{ ActorRef, ActorSystem, Behavior }
 import akka.{ actor => classic }
+import io.scalac.core.event.ActorEvent
+import io.scalac.core.event.ActorEvent.{ ActorCreated, SetTags }
+import io.scalac.core.model.{ ActorRefDetails, Tag }
+import io.scalac.core.util.TestCase.{
+  MonitorTestCaseContext,
+  MonitorWithActorRefSetupTestCaseFactory,
+  ProvidedActorSystemTestCaseFactory
+}
+import io.scalac.core.util.TestConfig
+import io.scalac.extension.service.ActorTreeService.GetActors
+import io.scalac.extension.util.probe.ActorSystemMonitorProbe
 import org.scalatest.Inside
 import org.scalatest.flatspec.AnyFlatSpecLike
 import org.scalatest.matchers.should.Matchers
-
-import scala.util.Random
-
-import io.scalac.core.model.ActorRefDetails
-import io.scalac.core.model.Tag
-import io.scalac.core.util.TestBehaviors
-import io.scalac.core.util.TestCase.MonitorTestCaseContext
-import io.scalac.core.util.TestCase.MonitorWithActorRefSetupTestCaseFactory
-import io.scalac.core.util.TestCase.ProvidedActorSystemTestCaseFactory
-import io.scalac.core.util.TestConfig
-import io.scalac.extension.service.ActorTreeService.GetActors
-import io.scalac.extension.service.DeltaActorTree.Connect
-import io.scalac.extension.service.DeltaActorTree.Delta
 
 class ActorTreeServiceTest
     extends ScalaTestWithActorTestKit(TestConfig.localActorProvider)
@@ -33,38 +29,30 @@ class ActorTreeServiceTest
     with MonitorWithActorRefSetupTestCaseFactory
     with Inside {
 
-  type Command = ActorTreeService.Command
-  type Monitor = TestProbe[DeltaActorTree.Command]
+  type Command = ActorTreeService.Api
+  type Monitor = ActorSystemMonitorProbe
   type Context = ActorTreeServiceTestContext
 
-  protected def createContextFromMonitor(monitor: TestProbe[DeltaActorTree.Command])(implicit
+  protected def createContextFromMonitor(monitor: Monitor)(implicit
     system: ActorSystem[_]
-  ): Context = ActorTreeServiceTestContext(monitor)
+  ): Context = ActorTreeServiceTestContext(monitor, createTestProbe())
 
-  protected def createMonitorBehavior(implicit context: Context): Behavior[Command] = {
-    val deltaTreeBehaviorProducer: Boolean => Behavior[DeltaActorTree.Command] =
-      if (context.failing) failThenPass(monitor.ref) else _ => TestBehaviors.Pass.toRef(monitor.ref)
-    ActorTreeService(
-      deltaTreeBehaviorProducer
-    )
+  protected def createMonitorBehavior(implicit context: Context): Behavior[Command] =
+    Behaviors.setup { ctx =>
+      new ActorTreeService(ctx, monitor, ref => context.bindProbe.ref ! ref).service()
+    }
+
+  protected def createMonitor(implicit system: ActorSystem[_]): Monitor =
+    ActorSystemMonitorProbe.apply
+
+  def bindProbe(implicit context: Context): TestProbe[ActorRef[ActorEvent]] = context.bindProbe
+
+  "ActorTreeServiceTest" should "bind to ActorEvent" in testCaseSetupContext { sut => implicit context =>
+    bindProbe.receiveMessage() should sameOrParent(sut)
+    bindProbe.expectNoMessage()
   }
 
-  private def failThenPass(
-    ref: ActorRef[DeltaActorTree.Command]
-  )(restarted: Boolean): Behavior[DeltaActorTree.Command] = if (restarted) {
-    TestBehaviors.Pass.toRef(ref)
-  } else TestBehaviors.Failing()
-
-  override protected def createMonitor(implicit system: ActorSystem[_]): Monitor = createTestProbe()
-
-  "ActorTreeServiceTest" should "connect to DeltaActo`rTree" in testCaseSetupContext { sut => implicit context =>
-    val message = monitor.expectMessageType[Connect]
-    message.ref should sameOrParent(sut)
-  }
-
-  //TODO simplify test data creation
   it should "store local actor tree snapshot" in testCaseSetupContext { sut => implicit context =>
-    val Connect(ref)   = monitor.expectMessageType[Connect]
     val frontTestProbe = createTestProbe[Seq[classic.ActorRef]]()
     val CreatedCount   = 10
     val createdRefs = List
@@ -72,20 +60,14 @@ class ActorTreeServiceTest
       .map(ActorRefDetails(_, Set.empty))
     val (terminatedRefs, expectedResult) = createdRefs.splitAt(CreatedCount / 2)
 
-    val createdDeltas = createdRefs.map(details => Delta(created = Seq(details), terminated = Seq.empty))
+    val ref = bindProbe.receiveMessage()
+    for {
+      create <- createdRefs
+    } ref ! ActorCreated(create)
 
-    val terminatedDeltas = terminatedRefs.map(details => Delta(terminated = Seq(details.ref), created = Seq.empty))
-
-    val deltas = (createdDeltas.take(terminatedDeltas.size) ++ Random
-      .shuffle(
-        (createdDeltas.drop(terminatedDeltas.size) ++ terminatedDeltas)
-      ))
-      .grouped(CreatedCount / 2)
-      .map(_.reduceLeft[Delta] { case (left, next) =>
-        Delta(created = left.created ++ next.created, terminated = left.terminated ++ next.terminated)
-      })
-
-    deltas.foreach(ref.tell)
+    for {
+      terminate <- terminatedRefs
+    } terminate.ref.unsafeUpcast[Any] ! PoisonPill
 
     eventually {
       sut ! GetActors(Tag.all, frontTestProbe.ref)
@@ -94,14 +76,77 @@ class ActorTreeServiceTest
     }
   }
 
-  it should "recreate DeltaActorTree on failure with restart flag set to true" in testCaseWith(
-    _.copy(failing = true)
-  ) { implicit context =>
-    monitor.expectMessageType[Connect]
+  it should "respond with actors with specified tags" in testCaseSetupContext { sut => implicit context =>
+    val frontTestProbe = createTestProbe[Seq[classic.ActorRef]]()
+    val CreatedCount   = 2
+    val emptyTags = List
+      .fill(CreatedCount)(system.systemActorOf(Behaviors.empty, createUniqueId).toClassic)
+      .map(ActorRefDetails(_, Set.empty))
+    val expectedTags = List
+      .fill(CreatedCount)(system.systemActorOf(Behaviors.empty, createUniqueId).toClassic)
+      .map(ActorRefDetails(_, Set(Tag.stream)))
+
+    val ref = bindProbe.receiveMessage()
+    for {
+      create <- emptyTags ++ expectedTags
+    } ref ! ActorCreated(create)
+
+    eventually {
+      sut ! GetActors(Tag.stream, frontTestProbe.ref)
+
+      frontTestProbe.receiveMessage() should contain theSameElementsAs (expectedTags.map(_.ref))
+    }
   }
 
-  final case class ActorTreeServiceTestContext(monitor: TestProbe[DeltaActorTree.Command], failing: Boolean = false)(
-    implicit val system: ActorSystem[_]
+  it should "respond with all actors" in testCaseSetupContext { sut => implicit context =>
+    val frontTestProbe = createTestProbe[Seq[classic.ActorRef]]()
+    val CreatedCount   = 2
+    val emptyTags = List
+      .fill(CreatedCount)(system.systemActorOf(Behaviors.empty, createUniqueId).toClassic)
+      .map(ActorRefDetails(_, Set.empty))
+    val streamTags = List
+      .fill(CreatedCount)(system.systemActorOf(Behaviors.empty, createUniqueId).toClassic)
+      .map(ActorRefDetails(_, Set(Tag.stream)))
+
+    val ref = bindProbe.receiveMessage()
+    for {
+      create <- emptyTags ++ streamTags
+    } ref ! ActorCreated(create)
+
+    eventually {
+      sut ! GetActors(Tag.all, frontTestProbe.ref)
+
+      frontTestProbe.receiveMessage() should contain theSameElementsAs (streamTags.map(_.ref) ++ emptyTags.map(_.ref))
+    }
+  }
+
+  it should "assign new tags to actors" in testCaseSetupContext { sut => implicit context =>
+    val frontTestProbe = createTestProbe[Seq[classic.ActorRef]]()
+    val CreatedCount   = 2
+    val RetaggedCount  = 1
+    val emptyTags = List
+      .fill(CreatedCount)(system.systemActorOf(Behaviors.empty, createUniqueId).toClassic)
+      .map(ActorRefDetails(_, Set.empty))
+    val retagged = emptyTags.take(RetaggedCount).map(details => SetTags(details.copy(tags = Set(Tag.stream))))
+
+    val ref = bindProbe.receiveMessage()
+    for {
+      event <- emptyTags.map(ActorCreated) ++ retagged
+    } ref ! event
+
+    eventually {
+      sut ! GetActors(Tag.stream, frontTestProbe.ref)
+
+      frontTestProbe.receiveMessage() should contain theSameElementsAs (retagged.map(_.details.ref))
+    }
+  }
+
+  final case class ActorTreeServiceTestContext(
+    monitor: Monitor,
+    bindProbe: TestProbe[ActorRef[ActorEvent]],
+    failing: Boolean = false
+  )(implicit
+    val system: ActorSystem[_]
   ) extends MonitorTestCaseContext[Monitor]
 
 }
