@@ -2,14 +2,11 @@ package io.scalac.extension.upstream
 
 import com.typesafe.config.Config
 import io.opentelemetry.api.metrics.Meter
-
 import io.scalac.extension.config.Configuration
-import io.scalac.extension.metric.ActorSystemMonitor
 import io.scalac.extension.metric.ActorSystemMonitor.BoundMonitor
-import io.scalac.extension.metric.RegisterRoot
+import io.scalac.extension.metric.{ ActorSystemMonitor, RegisterRoot }
 import io.scalac.extension.upstream.OpenTelemetryActorSystemMonitor.MetricNames
-import io.scalac.extension.upstream.opentelemetry.SynchronousInstrumentFactory
-import io.scalac.extension.upstream.opentelemetry.WrappedCounter
+import io.scalac.extension.upstream.opentelemetry.{ SynchronousInstrumentFactory, WrappedCounter }
 
 object OpenTelemetryActorSystemMonitor {
 
@@ -19,7 +16,7 @@ object OpenTelemetryActorSystemMonitor {
   )
 
   object MetricNames extends Configuration[MetricNames] {
-    def default: MetricNames = MetricNames("created_actors_total", "terminated_actors_total")
+    def default: MetricNames = MetricNames("akka_system_created_actors_total", "akka_system_terminated_actors_total")
 
     override protected val configurationBase: String = "io.scalac.akka-monitoring.metrics.actor-system-metrics"
 
