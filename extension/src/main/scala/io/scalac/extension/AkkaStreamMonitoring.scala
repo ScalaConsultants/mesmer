@@ -44,7 +44,7 @@ import io.scalac.extension.metric.StreamOperatorMetricsMonitor
 import io.scalac.extension.metric.StreamOperatorMetricsMonitor.Labels
 import io.scalac.extension.service.ActorTreeService
 import io.scalac.extension.service.ActorTreeService.GetActors
-import io.scalac.extension.service.actorTreeService
+import io.scalac.extension.service.actorTreeServiceKey
 import io.scalac.extension.util.GenericBehaviors
 
 object AkkaStreamMonitoring {
@@ -63,7 +63,7 @@ object AkkaStreamMonitoring {
     streamMonitor: StreamMetricMonitor,
     node: Option[Node]
   ): Behavior[Command] =
-    GenericBehaviors.waitForService(actorTreeService) { service =>
+    GenericBehaviors.waitForService(actorTreeServiceKey) { service =>
       Behaviors.setup[Command](ctx =>
         Behaviors.withTimers(scheduler =>
           new AkkaStreamMonitoring(ctx, streamOperatorMonitor, streamMonitor, scheduler, node, service).start()

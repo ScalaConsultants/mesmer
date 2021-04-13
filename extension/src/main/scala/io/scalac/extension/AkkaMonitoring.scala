@@ -34,7 +34,7 @@ import io.scalac.extension.persistence.CleanablePersistingStorage
 import io.scalac.extension.persistence.CleanableRecoveryStorage
 import io.scalac.extension.service.ActorTreeService
 import io.scalac.extension.service.CommonRegexPathService
-import io.scalac.extension.service.actorTreeService
+import io.scalac.extension.service.actorTreeServiceKey
 import io.scalac.extension.upstream._
 
 object AkkaMonitoring extends ExtensionId[AkkaMonitoring] {
@@ -198,7 +198,7 @@ final class AkkaMonitoring(private val system: ActorSystem[_], val config: AkkaM
     )
 
     // publish service
-    system.receptionist ! Register(actorTreeService, serviceRef.narrow[ActorTreeService.Command])
+    system.receptionist ! Register(actorTreeServiceKey, serviceRef.narrow[ActorTreeService.Command])
   }
 
   def startActorMonitor(): Unit = {

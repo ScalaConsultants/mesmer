@@ -6,5 +6,5 @@ import io.scalac.extension.service.ActorTreeService.Command
 
 package object service {
 
-  val actorTreeService: ServiceKey[Command] = ServiceKey[Command]("io.scalac.extension.ActorTreeService")
+  val actorTreeServiceKey: ServiceKey[Command] = ServiceKey[Command]("io.scalac.extension.ActorTreeService")
 }

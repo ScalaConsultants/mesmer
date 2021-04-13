@@ -1,35 +1,25 @@
 package io.scalac.extension
 
-import java.util.concurrent.atomic.AtomicReference
-
 import akka.actor.typed._
 import akka.actor.typed.receptionist.Receptionist.Listing
-import akka.actor.typed.scaladsl.ActorContext
-import akka.actor.typed.scaladsl.Behaviors
-import akka.actor.typed.scaladsl.TimerScheduler
+import akka.actor.typed.scaladsl.{ ActorContext, Behaviors, TimerScheduler }
 import akka.util.Timeout
 import akka.{ actor => classic }
-import org.slf4j.LoggerFactory
-
-import scala.concurrent.duration._
-import scala.util.Failure
-import scala.util.Success
-
-import io.scalac.core.actor.ActorCellDecorator
-import io.scalac.core.actor.ActorMetricStorage
-import io.scalac.core.actor.ActorMetrics
-import io.scalac.core.model.Node
-import io.scalac.core.model.Tag
-import io.scalac.core.util.ActorCellOps
-import io.scalac.core.util.ActorRefOps
+import io.scalac.core.actor.{ ActorCellDecorator, ActorMetricStorage, ActorMetrics }
+import io.scalac.core.model.{ Node, Tag }
+import io.scalac.core.util.{ ActorCellOps, ActorRefOps }
 import io.scalac.extension.ActorEventsMonitorActor._
 import io.scalac.extension.metric.ActorMetricMonitor
 import io.scalac.extension.metric.ActorMetricMonitor.Labels
 import io.scalac.extension.metric.MetricObserver.Result
-import io.scalac.extension.service.ActorTreeService
 import io.scalac.extension.service.ActorTreeService.GetActors
-import io.scalac.extension.service.actorTreeService
+import io.scalac.extension.service.{ actorTreeServiceKey, ActorTreeService }
 import io.scalac.extension.util.GenericBehaviors
+import org.slf4j.LoggerFactory
+
+import java.util.concurrent.atomic.AtomicReference
+import scala.concurrent.duration._
+import scala.util.{ Failure, Success }
 
 object ActorEventsMonitorActor {
 
@@ -46,36 +36,20 @@ object ActorEventsMonitorActor {
     actorMetricsReader: ActorMetricsReader = ReflectiveActorMetricsReader
   ): Behavior[Command] =
     Behaviors.setup[Command] { ctx =>
-      ActorEventsMonitorActor(
-        ctx,
-        actorMonitor,
-        node,
-        pingOffset,
-        storageFactory,
-        actorMetricsReader
-      )
-    }
-
-  private def apply(
-    context: ActorContext[Command],
-    actorMonitor: ActorMetricMonitor,
-    node: Option[Node],
-    pingOffset: FiniteDuration,
-    storageFactory: () => ActorMetricStorage,
-    actorMetricsReader: ActorMetricsReader
-  ): Behavior[Command] = GenericBehaviors
-    .waitForService(actorTreeService) { ref =>
-      Behaviors.withTimers[Command] { scheduler =>
-        new ActorEventsMonitorActor(
-          context,
-          actorMonitor,
-          node,
-          pingOffset,
-          storageFactory,
-          scheduler,
-          actorMetricsReader
-        ).start(ref)
-      }
+      GenericBehaviors
+        .waitForService(actorTreeServiceKey) { ref =>
+          Behaviors.withTimers[Command] { scheduler =>
+            new ActorEventsMonitorActor(
+              ctx,
+              actorMonitor,
+              node,
+              pingOffset,
+              storageFactory,
+              scheduler,
+              actorMetricsReader
+            ).start(ref)
+          }
+        }
     }
 
   trait ActorMetricsReader {
