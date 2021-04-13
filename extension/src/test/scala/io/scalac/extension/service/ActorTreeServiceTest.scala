@@ -1,26 +1,30 @@
 package io.scalac.extension.service
 
 import akka.actor.PoisonPill
-import akka.actor.testkit.typed.scaladsl.{ ScalaTestWithActorTestKit, TestProbe }
+import akka.actor.testkit.typed.scaladsl.ScalaTestWithActorTestKit
+import akka.actor.testkit.typed.scaladsl.TestProbe
+import akka.actor.typed.ActorRef
+import akka.actor.typed.ActorSystem
+import akka.actor.typed.Behavior
 import akka.actor.typed.scaladsl.Behaviors
 import akka.actor.typed.scaladsl.adapter._
-import akka.actor.typed.{ ActorRef, ActorSystem, Behavior }
 import akka.{ actor => classic }
+import org.scalatest.Inside
+import org.scalatest.flatspec.AnyFlatSpecLike
+import org.scalatest.matchers.should.Matchers
+
 import io.scalac.core.event.ActorEvent
-import io.scalac.core.event.ActorEvent.{ ActorCreated, SetTags }
-import io.scalac.core.model.{ ActorRefDetails, Tag }
-import io.scalac.core.util.TestCase.{
-  MonitorTestCaseContext,
-  MonitorWithActorRefSetupTestCaseFactory,
-  ProvidedActorSystemTestCaseFactory
-}
+import io.scalac.core.event.ActorEvent.ActorCreated
+import io.scalac.core.event.ActorEvent.TagsSet
+import io.scalac.core.model.ActorRefDetails
+import io.scalac.core.model.Tag
+import io.scalac.core.util.TestCase.MonitorTestCaseContext
+import io.scalac.core.util.TestCase.MonitorWithActorRefSetupTestCaseFactory
+import io.scalac.core.util.TestCase.ProvidedActorSystemTestCaseFactory
 import io.scalac.core.util.TestConfig
 import io.scalac.extension.service.ActorTreeService.GetActors
 import io.scalac.extension.service.ActorTreeServiceTest.EmptyActorTreeTraverser
 import io.scalac.extension.util.probe.ActorSystemMonitorProbe
-import org.scalatest.Inside
-import org.scalatest.flatspec.AnyFlatSpecLike
-import org.scalatest.matchers.should.Matchers
 
 object ActorTreeServiceTest {
   object EmptyActorTreeTraverser extends ActorTreeTraverser {
@@ -152,7 +156,7 @@ class ActorTreeServiceTest
     val emptyTags = List
       .fill(CreatedCount)(system.systemActorOf(Behaviors.empty, createUniqueId).toClassic)
       .map(ActorRefDetails(_, Set.empty))
-    val retagged = emptyTags.take(RetaggedCount).map(details => SetTags(details.copy(tags = Set(Tag.stream))))
+    val retagged = emptyTags.take(RetaggedCount).map(details => TagsSet(details.copy(tags = Set(Tag.stream))))
 
     val ref = bindProbe.receiveMessage()
     for {

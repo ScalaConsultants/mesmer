@@ -26,8 +26,9 @@ import scala.concurrent.duration._
 import io.scalac.agent.utils.InstallAgent
 import io.scalac.agent.utils.SafeLoadSystem
 import io.scalac.core.akka.model.PushMetrics
+import io.scalac.core.config.AkkaPatienceConfig
 import io.scalac.core.event.ActorEvent
-import io.scalac.core.event.ActorEvent.SetTags
+import io.scalac.core.event.ActorEvent.TagsSet
 import io.scalac.core.event.Service
 import io.scalac.core.event.StreamEvent
 import io.scalac.core.event.StreamEvent.LastStreamStats
@@ -49,7 +50,8 @@ class AkkaStreamAgentTest
     with ScalaFutures
     with Futures
     with Inside
-    with CommonMonitorTestFactory {
+    with CommonMonitorTestFactory
+    with AkkaPatienceConfig {
 
   override type Command = StreamEvent
 
@@ -103,7 +105,7 @@ class AkkaStreamAgentTest
           context.system.receptionist ! Register(
             Service.actorService.serviceKey,
             context.messageAdapter[ActorEvent] {
-              case SetTags(ActorRefDetails(ref, tags)) if tags.contains(stream) =>
+              case TagsSet(ActorRefDetails(ref, tags)) if tags.contains(stream) =>
                 Ref(ref)
               case _ => Filter
             }

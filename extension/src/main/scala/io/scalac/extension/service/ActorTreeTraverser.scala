@@ -1,10 +1,12 @@
 package io.scalac.extension.service
 
-import akka.{ actor => classic }
-import io.scalac.core.util.ActorRefOps
-
 import java.lang.invoke.MethodHandles
+
+import akka.{ actor => classic }
+
 import scala.annotation.tailrec
+
+import io.scalac.core.util.ActorRefOps
 
 private[scalac] trait ActorTreeTraverser {
   def getChildren(actor: classic.ActorRef): Seq[classic.ActorRef]

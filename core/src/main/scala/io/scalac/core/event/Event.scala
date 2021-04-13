@@ -18,7 +18,7 @@ object ActorEvent {
 
   // Actor termination will be extracted with watching facility
   final case class ActorCreated(details: ActorRefDetails) extends AnyVal with ActorEvent
-  final case class SetTags(details: ActorRefDetails)      extends AnyVal with ActorEvent
+  final case class TagsSet(details: ActorRefDetails)      extends AnyVal with ActorEvent
 }
 
 sealed trait PersistenceEvent extends AbstractEvent {

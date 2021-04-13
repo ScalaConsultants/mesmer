@@ -16,5 +16,5 @@ object PhasedFusingActorMeterializerAdvice {
 
   @OnMethodExit
   def getPhases(@Return ref: ActorRef, @This self: AkkaMirrorTypes.ExtendedActorMaterializerMirror): Unit =
-    EventBus(self.system.toTyped).publishEvent(ActorEvent.SetTags(ActorRefDetails(ref, Set(Tag.stream))))
+    EventBus(self.system.toTyped).publishEvent(ActorEvent.TagsSet(ActorRefDetails(ref, Set(Tag.stream))))
 }

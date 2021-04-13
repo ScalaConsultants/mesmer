@@ -2,17 +2,21 @@ package io.scalac.extension.service
 
 import akka.actor.typed._
 import akka.actor.typed.receptionist.Receptionist.Register
+import akka.actor.typed.scaladsl.AbstractBehavior
+import akka.actor.typed.scaladsl.ActorContext
+import akka.actor.typed.scaladsl.Behaviors
 import akka.actor.typed.scaladsl.adapter._
-import akka.actor.typed.scaladsl.{ AbstractBehavior, ActorContext, Behaviors }
 import akka.{ actor => classic }
+
+import scala.collection.mutable.ArrayBuffer
+
 import io.scalac.core
 import io.scalac.core.event.ActorEvent
-import io.scalac.core.model.{ Tag, _ }
+import io.scalac.core.model.Tag
+import io.scalac.core.model._
 import io.scalac.extension.metric.ActorSystemMonitor
 import io.scalac.extension.metric.ActorSystemMonitor.Labels
 import io.scalac.extension.service.ActorTreeService.Api
-
-import scala.collection.mutable.ArrayBuffer
 
 object ActorTreeService {
 
@@ -61,7 +65,7 @@ final class ActorTreeService(
   private def init(): Unit = {
     actorEventBind(context.messageAdapter {
       case ActorEvent.ActorCreated(details) => ActorCreated(details)
-      case ActorEvent.SetTags(details)      => ActorRetagged(details)
+      case ActorEvent.TagsSet(details)      => ActorRetagged(details)
     })
 
     backoffActorTreeTraverser
