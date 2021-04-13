@@ -45,11 +45,11 @@ object GenericBehaviors {
                   .fold[Behavior[Any]] {
                     log.debug("No service found")
                     Behaviors.same
-                  } { actorTreeService =>
+                  } { service =>
                     log.trace("Transition to inner behavior")
 
                     buffer.unstashAll(
-                      next(actorTreeService)
+                      next(service)
                         .transformMessages[Any] { // we must create interceptor that will filter all other messages that don't much inner type parameter
                           case message: I => message
                         }

@@ -2,14 +2,11 @@ package io.scalac.extension.upstream
 
 import com.typesafe.config.Config
 import io.opentelemetry.api.metrics.Meter
-
 import io.scalac.extension.config.Configuration
-import io.scalac.extension.metric.ActorSystemMonitor
 import io.scalac.extension.metric.ActorSystemMonitor.BoundMonitor
-import io.scalac.extension.metric.RegisterRoot
+import io.scalac.extension.metric.{ ActorSystemMonitor, RegisterRoot }
 import io.scalac.extension.upstream.OpenTelemetryActorSystemMonitor.MetricNames
-import io.scalac.extension.upstream.opentelemetry.SynchronousInstrumentFactory
-import io.scalac.extension.upstream.opentelemetry.WrappedCounter
+import io.scalac.extension.upstream.opentelemetry.{ SynchronousInstrumentFactory, WrappedCounter }
 
 object OpenTelemetryActorSystemMonitor {
 
@@ -25,9 +22,9 @@ object OpenTelemetryActorSystemMonitor {
 
     override protected def extractFromConfig(config: Config): MetricNames = {
       lazy val defaultCached = default
-      val createdActors      = config.tryValue("created-actors")(_.getString).getOrElse(default.createdActors)
+      val createdActors      = config.tryValue("created-actors")(_.getString).getOrElse(defaultCached.createdActors)
 
-      val terminatedActors = config.tryValue("created-actors")(_.getString).getOrElse(default.createdActors)
+      val terminatedActors = config.tryValue("terminated-actors")(_.getString).getOrElse(defaultCached.createdActors)
 
       MetricNames(createdActors, terminatedActors)
     }

@@ -142,7 +142,6 @@ class AkkaStreamMonitoringTest
       system.systemActorOf(behavior, s"$name-$index-$index-${randomString(10)}").toClassic
     }
 
-//    sut ! StartStreamCollection
     inside(treeService.receiveMessage()) { case GetActors(Tag.stream, reply) =>
       reply ! refs
     }
@@ -161,7 +160,6 @@ class AkkaStreamMonitoringTest
       }
     }
 
-//    sut ! StartStreamCollection
     inside(treeService.receiveMessage()) { case GetActors(Tag.stream, reply) =>
       reply ! refs
     }

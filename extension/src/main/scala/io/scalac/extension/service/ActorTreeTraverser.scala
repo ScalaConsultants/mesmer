@@ -6,7 +6,7 @@ import io.scalac.core.util.ActorRefOps
 import java.lang.invoke.MethodHandles
 import scala.annotation.tailrec
 
-trait ActorTreeTraverser {
+private[scalac] trait ActorTreeTraverser {
   def getChildren(actor: classic.ActorRef): Seq[classic.ActorRef]
   def getRootGuardian(system: classic.ActorSystem): classic.ActorRef
 
@@ -26,7 +26,7 @@ trait ActorTreeTraverser {
   )
 }
 
-object ReflectiveActorTreeTraverser extends ActorTreeTraverser {
+private[scalac] object ReflectiveActorTreeTraverser extends ActorTreeTraverser {
 
   import java.lang.invoke.MethodType.methodType
 
