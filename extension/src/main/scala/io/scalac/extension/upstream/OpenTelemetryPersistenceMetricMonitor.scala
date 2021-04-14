@@ -22,11 +22,11 @@ object OpenTelemetryPersistenceMetricMonitor {
   object MetricNames {
     def default: MetricNames =
       MetricNames(
-        "recovery_time",
-        "recovery_total",
-        "persistent_event",
-        "persistent_event_total",
-        "snapshot_total"
+        "akka_persistence_recovery_time",
+        "akka_persistence_recovery_total",
+        "akka_persistence_persistent_event",
+        "akka_persistence_persistent_event_total",
+        "akka_persistence_snapshot_total"
       )
 
     def fromConfig(config: Config): MetricNames = {
