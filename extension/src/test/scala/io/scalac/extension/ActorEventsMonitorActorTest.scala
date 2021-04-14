@@ -37,6 +37,7 @@ trait ActorEventMonitorActorTestConfig {
   protected val reasonableTime: FiniteDuration = 3 * pingOffset
   implicit val timeout: Timeout                = pingOffset
 }
+
 import org.scalatest.Inspectors
 import org.scalatest.flatspec.AnyFlatSpecLike
 import org.scalatest.matchers.should.Matchers

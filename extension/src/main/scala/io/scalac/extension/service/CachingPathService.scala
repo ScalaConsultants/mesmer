@@ -1,12 +1,22 @@
 package io.scalac.extension.service
 
+import java.util.LinkedHashMap
+import java.util.Map
+
 import scala.annotation.tailrec
+import scala.jdk.CollectionConverters._
 
-import io.scalac.core.model._
+import io.scalac.core.model.Path
+import io.scalac.extension.config.CachingConfig
 
-object CommonRegexPathService extends PathService {
+class CachingPathService(cachingConfig: CachingConfig) extends PathService {
 
   import PathService._
+
+  private[service] val cache = new LinkedHashMap[String, Unit](cachingConfig.maxEntries, 0.75f, true) {
+    override def removeEldestEntry(eldest: Map.Entry[String, Unit]): Boolean =
+      this.size() > cachingConfig.maxEntries
+  }.asScala
 
   override def template(path: Path): Path = {
 
@@ -20,16 +30,16 @@ object CommonRegexPathService extends PathService {
         replacements
       } else {
         path.substring(offset, nextIndex) match {
-          case numberRegex(_*) =>
+          case subs if cache.contains(subs) =>
+            replaceInPath(nextIndex + 1, replacements)
+
+          case subs if numberRegex.findPrefixOf(subs).isDefined =>
             replaceInPath(nextIndex + 1, replacements :+ (offset, nextIndex, numberTemplate))
-          case subs if subs.length == 36 =>
-            subs match {
-              case uuidRegex(_*) =>
-                //next must be slash, so skip it
-                replaceInPath(nextIndex + 1, replacements :+ (offset, nextIndex, uuidTemplate))
-              case _ => replaceInPath(nextIndex + 1, replacements)
-            }
-          case _ => replaceInPath(nextIndex + 1, replacements)
+          case subs if (subs.length == 36 && uuidRegex.findPrefixOf(subs).isDefined) =>
+            replaceInPath(nextIndex + 1, replacements :+ (offset, nextIndex, uuidTemplate))
+          case subs =>
+            cache.put(subs, ())
+            replaceInPath(nextIndex + 1, replacements)
         }
       }
     }

@@ -1,17 +1,9 @@
 package io.scalac.agent.akka.http
 
-import java.lang.reflect.Method
-import java.util.UUID
-
 import _root_.akka.http.scaladsl.model.HttpRequest
 import _root_.akka.http.scaladsl.model.HttpResponse
-import _root_.akka.http.scaladsl.settings.ServerSettings
 import _root_.akka.stream.BidiShape
-import _root_.akka.stream.Materializer
 import akka.actor.typed.scaladsl.adapter._
-import akka.event.LoggingAdapter
-import akka.http.scaladsl.ConnectionContext
-import akka.http.scaladsl.Http.ServerBinding
 import akka.http.scaladsl.HttpExt
 import akka.stream.scaladsl.BidiFlow
 import akka.stream.scaladsl.Broadcast
@@ -19,9 +11,6 @@ import akka.stream.scaladsl.Flow
 import akka.stream.scaladsl.GraphDSL
 import akka.stream.scaladsl.Source
 import akka.stream.scaladsl.Zip
-import net.bytebuddy.implementation.bind.annotation._
-
-import scala.concurrent.Future
 
 import io.scalac.core.akka.stream.BidiFlowForward
 import io.scalac.core.event.EventBus
@@ -32,17 +21,25 @@ import io.scalac.core.util.Timestamp
 class HttpInstrumentation
 object HttpInstrumentation {
 
-  def bindAndHandle(
+  final class RandomIdGenerator(val prefix: String) {
+    private[this] var id: Long = 0L
+
+    def next(): String = {
+      val value = new StringBuilder(prefix.size + 10)
+        .append(prefix)
+        .append(id)
+        .toString()
+      id += 1L // TODO check for overflow
+      value
+    }
+  }
+
+  def bindAndHandleImpl(
     handler: Flow[HttpRequest, HttpResponse, Any],
     interface: String,
     port: java.lang.Integer,
-    connectionContext: ConnectionContext,
-    settings: ServerSettings,
-    log: LoggingAdapter,
-    mat: Materializer,
-    @SuperMethod method: Method,
-    @This self: Any
-  ): Future[ServerBinding] = {
+    self: HttpExt
+  ): Flow[HttpRequest, HttpResponse, Any] = {
 
     val system = self.asInstanceOf[HttpExt].system.toTyped
 
@@ -55,11 +52,17 @@ object HttpInstrumentation {
       BidiFlow.fromGraph[HttpRequest, HttpRequest, HttpResponse, HttpResponse, Any](GraphDSL.create() {
         implicit builder =>
           import GraphDSL.Implicits._
+
+          val local = new ThreadLocal[RandomIdGenerator] {
+            override def initialValue(): RandomIdGenerator =
+              new RandomIdGenerator(Thread.currentThread().getName + Thread.currentThread().getId)
+          }
+
           val outerRequest  = builder.add(Flow[HttpRequest])
           val outerResponse = builder.add(Flow[HttpResponse])
           val idGenerator = Source
             .repeat(())
-            .map(_ => UUID.randomUUID().toString)
+            .map(_ => local.get.next())
 
           val zipRequest = builder.add(Zip[HttpRequest, String]())
           val zipRespone = builder.add(Zip[HttpResponse, String]())
@@ -90,19 +93,9 @@ object HttpInstrumentation {
           BidiShape(outerRequest.in, outerRequestOut.outlet, zipRespone.in0, outerResponse.out)
       })
 
-    method
-      .invoke(
-        self,
-        connectionsCountFlow
-          .atop(requestIdFlow)
-          .join(handler),
-        interface,
-        port,
-        connectionContext,
-        settings,
-        log,
-        mat
-      )
-      .asInstanceOf[Future[ServerBinding]]
+    connectionsCountFlow
+      .atop(requestIdFlow)
+      .join(handler)
+
   }
 }
