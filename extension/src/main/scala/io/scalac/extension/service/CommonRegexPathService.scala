@@ -5,8 +5,6 @@ import scala.annotation.tailrec
 import io.scalac.core.model._
 
 object CommonRegexPathService extends PathService {
-  private val uuid   = """^[\da-fA-F]{8}-[\da-fA-F]{4}-[\da-fA-F]{4}-[\da-fA-F]{4}-[\da-fA-F]{12}$""".r
-  private val number = """^[+-]?\d+\.?\d*$""".r
 
   import PathService._
 
@@ -22,11 +20,11 @@ object CommonRegexPathService extends PathService {
         replacements
       } else {
         path.substring(offset, nextIndex) match {
-          case number(_*) =>
+          case numberRegex(_*) =>
             replaceInPath(nextIndex + 1, replacements :+ (offset, nextIndex, numberTemplate))
           case subs if subs.length == 36 =>
             subs match {
-              case uuid(_*) =>
+              case uuidRegex(_*) =>
                 //next must be slash, so skip it
                 replaceInPath(nextIndex + 1, replacements :+ (offset, nextIndex, uuidTemplate))
               case _ => replaceInPath(nextIndex + 1, replacements)

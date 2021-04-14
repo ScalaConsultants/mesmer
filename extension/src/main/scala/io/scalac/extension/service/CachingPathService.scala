@@ -11,16 +11,12 @@ import io.scalac.extension.config.CachingConfig
 
 class CachingPathService(cachingConfig: CachingConfig) extends PathService {
 
+  import PathService._
+
   private[service] val cache = new LinkedHashMap[String, Unit](cachingConfig.maxEntries, 0.75f, true) {
     override def removeEldestEntry(eldest: Map.Entry[String, Unit]): Boolean =
       this.size() > cachingConfig.maxEntries
   }.asScala
-
-  private val uuid   = """^[\da-fA-F]{8}-[\da-fA-F]{4}-[\da-fA-F]{4}-[\da-fA-F]{4}-[\da-fA-F]{12}$""".r
-  private val number = """^[+-]?\d+\.?\d*$""".r
-
-  val numberTemplate = "{num}"
-  val uuidTemplate   = "{uuid}"
 
   override def template(path: Path): Path = {
 
@@ -37,9 +33,9 @@ class CachingPathService(cachingConfig: CachingConfig) extends PathService {
           case subs if cache.contains(subs) =>
             replaceInPath(nextIndex + 1, replacements)
 
-          case subs if number.findPrefixOf(subs).isDefined =>
+          case subs if numberRegex.findPrefixOf(subs).isDefined =>
             replaceInPath(nextIndex + 1, replacements :+ (offset, nextIndex, numberTemplate))
-          case subs if (subs.length == 36 && uuid.findPrefixOf(subs).isDefined) =>
+          case subs if (subs.length == 36 && uuidRegex.findPrefixOf(subs).isDefined) =>
             replaceInPath(nextIndex + 1, replacements :+ (offset, nextIndex, uuidTemplate))
           case subs =>
             cache.put(subs, ())
