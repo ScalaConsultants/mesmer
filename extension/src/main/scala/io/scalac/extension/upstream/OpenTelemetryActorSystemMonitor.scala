@@ -2,11 +2,14 @@ package io.scalac.extension.upstream
 
 import com.typesafe.config.Config
 import io.opentelemetry.api.metrics.Meter
+
 import io.scalac.extension.config.Configuration
+import io.scalac.extension.metric.ActorSystemMonitor
 import io.scalac.extension.metric.ActorSystemMonitor.BoundMonitor
-import io.scalac.extension.metric.{ ActorSystemMonitor, RegisterRoot }
+import io.scalac.extension.metric.RegisterRoot
 import io.scalac.extension.upstream.OpenTelemetryActorSystemMonitor.MetricNames
-import io.scalac.extension.upstream.opentelemetry.{ SynchronousInstrumentFactory, WrappedCounter }
+import io.scalac.extension.upstream.opentelemetry.SynchronousInstrumentFactory
+import io.scalac.extension.upstream.opentelemetry.WrappedCounter
 
 object OpenTelemetryActorSystemMonitor {
 

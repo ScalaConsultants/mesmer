@@ -2,12 +2,15 @@ package io.scalac.core.event
 
 import java.util.UUID
 
+import akka.ActorSystemOps._
 import akka.actor.typed._
 import akka.actor.typed.receptionist.Receptionist
 import akka.actor.typed.receptionist.Receptionist.Subscribe
 import akka.actor.typed.receptionist.ServiceKey
 import akka.actor.typed.scaladsl.Behaviors
+import akka.actor.typed.scaladsl.adapter._
 import akka.util.Timeout
+import org.slf4j.LoggerFactory
 
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
@@ -73,6 +76,9 @@ private[scalac] class ReceptionistBasedEventBus(implicit
   val ec: ExecutionContext,
   val timeout: Timeout
 ) extends EventBus {
+
+  private val log = LoggerFactory.getLogger(this.getClass)
+
   import ReceptionistBasedEventBus._
 
   type ServiceMapFunc[K <: AbstractService] = ActorRef[K#ServiceType]
@@ -80,19 +86,33 @@ private[scalac] class ReceptionistBasedEventBus(implicit
   private[this] val serviceBuffers = MutableTypedMap[AbstractService, ServiceMapFunc]
 
   def publishEvent[T <: AbstractEvent](event: T)(implicit service: Service[event.Service]): Unit =
-    ref.fold(system.log.warn("Prevented positive loopback for event {}", event))(_ ! event)
+    ref.fold(log.trace("Prevented publishing event {}", event)) { ref =>
+      ref ! event
+    }
 
   private val positiveFeedbackLoopBarrierClosed = new DynamicVariable[Boolean](false)
 
   @inline private def ref[S](implicit service: Service[S]): Option[ActorRef[S]] =
     if (!positiveFeedbackLoopBarrierClosed.value) {
-      val ref = serviceBuffers.getOrCreate(service) {
-        positiveFeedbackLoopBarrierClosed.withValue(true) {
-          system.log.debug("Initialize event buffer for service {}", service.serviceKey)
-          system.systemActorOf(cachingBehavior(service.serviceKey), UUID.randomUUID().toString)
+      val ref = serviceBuffers
+        .get(service)
+        .orElse {
+          if (system.toClassic.isInitialized)
+            Some(serviceBuffers.getOrCreate(service) {
+              positiveFeedbackLoopBarrierClosed.withValue(true) {
+                system.systemActorOf(cachingBehavior(service.serviceKey), UUID.randomUUID().toString)
+              }
+            })
+          else {
+            // we prevent publishing events before actor system if initialized -
+            // we rely heavily on actor system for message routing and sending a message
+            // before it's ready might yield unexpected results
+            // those events are going to be lost so this must be taken into consideration
+            // when implementing listeners
+            None
+          }
         }
-      }
-      Some(ref)
+      ref
     } else None
 
 }

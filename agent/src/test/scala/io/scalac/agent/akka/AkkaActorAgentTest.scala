@@ -15,8 +15,6 @@ import org.scalatest.OptionValues
 import org.scalatest.concurrent.Eventually
 import org.scalatest.flatspec.AnyFlatSpecLike
 import org.scalatest.matchers.should.Matchers
-import org.scalatest.time.Millis
-import org.scalatest.time.Span
 
 import scala.concurrent._
 import scala.concurrent.duration._
@@ -40,7 +38,7 @@ class AkkaActorAgentTest
 
   import AkkaActorAgentTest._
 
-  override implicit val patienceConfig: PatienceConfig = PatienceConfig().copy(scaled(Span(1000, Millis)))
+//  override implicit val patienceConfig: PatienceConfig = PatienceConfig().copy(scaled(Span(1000, Millis)))
 
   private final val StashMessageCount = 10
 

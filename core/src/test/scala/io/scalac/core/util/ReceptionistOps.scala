@@ -14,7 +14,15 @@ import org.scalatest.concurrent.Eventually
 import org.scalatest.concurrent.ScalaFutures.convertScalaFuture
 import org.scalatest.matchers.should.Matchers
 
-trait ReceptionistOps extends TestOps with Eventually with Inside with LoneElement with Matchers {
+import io.scalac.core.config.AkkaPatienceConfig
+
+trait ReceptionistOps
+    extends TestOps
+    with Eventually
+    with Inside
+    with LoneElement
+    with Matchers
+    with AkkaPatienceConfig {
 
   /**
    * Waits until ref is only service for serviceKey
