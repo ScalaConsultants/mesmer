@@ -32,7 +32,7 @@ import io.scalac.core.util.probe.ObserverCollector
 import io.scalac.core.util.probe.ObserverCollector.ScheduledCollectorImpl
 import io.scalac.core.util.probe.{ Collected => CollectedObserver }
 import io.scalac.extension.service.ActorTreeService
-import io.scalac.extension.service.ActorTreeService.GetActors
+import io.scalac.extension.service.ActorTreeService.Command.GetActors
 import io.scalac.extension.util.probe
 import io.scalac.extension.util.probe.BoundTestProbe.MetricObserved
 import io.scalac.extension.util.probe.BoundTestProbe.MetricRecorded

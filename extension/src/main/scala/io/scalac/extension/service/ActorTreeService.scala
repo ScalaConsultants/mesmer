@@ -26,11 +26,18 @@ object ActorTreeService {
 
   sealed trait Command extends Api
 
-  final case class GetActors(tags: Tag, reply: ActorRef[Seq[classic.ActorRef]]) extends Command
+  object Command {
 
-  private final case class ActorTerminated(actorRef: classic.ActorRef) extends AnyVal with Event
-  private final case class ActorCreated(details: ActorRefDetails)      extends AnyVal with Event
-  private final case class ActorRetagged(details: ActorRefDetails)     extends AnyVal with Event
+    final case class GetActors(tags: Tag, reply: ActorRef[Seq[classic.ActorRef]]) extends Command
+  }
+
+  object Event {
+
+    private[ActorTreeService] final case class ActorTerminated(actorRef: classic.ActorRef) extends AnyVal with Event
+    private[ActorTreeService] final case class ActorCreated(details: ActorRefDetails)      extends AnyVal with Event
+    private[ActorTreeService] final case class ActorRetagged(details: ActorRefDetails)     extends AnyVal with Event
+
+  }
 
   def apply(
     actorSystemMonitor: ActorSystemMonitor,
@@ -49,12 +56,12 @@ final class ActorTreeService(
   ctx: ActorContext[Api],
   monitor: ActorSystemMonitor,
   actorEventBind: ActorRef[ActorEvent] => Unit,
-  backoffActorTreeTraverser: ActorTreeTraverser,
+  actorTreeTraverser: ActorTreeTraverser,
   node: Option[Node] = None
 ) extends AbstractBehavior[Api](ctx) {
-
-  // bind to actor event stream
-  init()
+  import ActorTreeService._
+  import Command._
+  import Event._
 
   import ActorTreeService._
   import context._
@@ -68,10 +75,10 @@ final class ActorTreeService(
       case ActorEvent.TagsSet(details)      => ActorRetagged(details)
     })
 
-    backoffActorTreeTraverser
+    actorTreeTraverser
       .getActorTreeFromRootGuardian(system.toClassic)
       .foreach { ref =>
-        self ! ActorCreated(ActorRefDetails(ref, Set.empty))
+        handleEvent(ActorCreated(ActorRefDetails(ref, Set.empty)))
       }
   }
 
@@ -123,4 +130,7 @@ final class ActorTreeService(
       boundMonitor.terminatedActors.incValue(1L)
       snapshot.filterInPlace(_.ref != ref)
   }
+
+  // bind to actor event stream
+  init()
 }

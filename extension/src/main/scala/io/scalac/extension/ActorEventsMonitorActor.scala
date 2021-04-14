@@ -27,7 +27,7 @@ import io.scalac.extension.metric.ActorMetricMonitor
 import io.scalac.extension.metric.ActorMetricMonitor.Labels
 import io.scalac.extension.metric.MetricObserver.Result
 import io.scalac.extension.service.ActorTreeService
-import io.scalac.extension.service.ActorTreeService.GetActors
+import io.scalac.extension.service.ActorTreeService.Command.GetActors
 import io.scalac.extension.service.actorTreeServiceKey
 import io.scalac.extension.util.GenericBehaviors
 

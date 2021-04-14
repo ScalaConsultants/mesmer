@@ -22,7 +22,7 @@ import io.scalac.core.util.TestCase.MonitorTestCaseContext
 import io.scalac.core.util.TestCase.MonitorWithActorRefSetupTestCaseFactory
 import io.scalac.core.util.TestCase.ProvidedActorSystemTestCaseFactory
 import io.scalac.core.util.TestConfig
-import io.scalac.extension.service.ActorTreeService.GetActors
+import io.scalac.extension.service.ActorTreeService.Command.GetActors
 import io.scalac.extension.service.ActorTreeServiceTest.EmptyActorTreeTraverser
 import io.scalac.extension.util.probe.ActorSystemMonitorProbe
 

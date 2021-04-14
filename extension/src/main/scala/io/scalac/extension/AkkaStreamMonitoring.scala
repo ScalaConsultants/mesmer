@@ -43,7 +43,7 @@ import io.scalac.extension.metric.StreamMetricMonitor.{ Labels => GlobalLabels }
 import io.scalac.extension.metric.StreamOperatorMetricsMonitor
 import io.scalac.extension.metric.StreamOperatorMetricsMonitor.Labels
 import io.scalac.extension.service.ActorTreeService
-import io.scalac.extension.service.ActorTreeService.GetActors
+import io.scalac.extension.service.ActorTreeService.Command.GetActors
 import io.scalac.extension.service.actorTreeServiceKey
 import io.scalac.extension.util.GenericBehaviors
 
@@ -418,7 +418,9 @@ final class AkkaStreamMonitoring(
     stages: Array[StageInfo],
     distinct: Boolean = false
   ): Unit =
-    updateLocalState(stage, connectionStats, stages, distinct, conn => (conn.out, conn.push), localProcessedSnapshot)
+    localProcessedSnapshot.appendAll(
+      computeSnapshotEntries(stage, connectionStats, stages, distinct, conn => (conn.out, conn.push))
+    )
 
   private def updateLocalDemandState(
     stage: StageInfo,
@@ -426,31 +428,36 @@ final class AkkaStreamMonitoring(
     stages: Array[StageInfo],
     distinct: Boolean = false
   ): Unit =
-    updateLocalState(stage, connectionStats, stages, distinct, conn => (conn.in, conn.pull), localDemandSnapshot)
+    localDemandSnapshot.appendAll(
+      computeSnapshotEntries(stage, connectionStats, stages, distinct, conn => (conn.in, conn.pull))
+    )
 
-  private def updateLocalState(
+  private def computeSnapshotEntries(
     stage: StageInfo,
     connectionStats: Set[ConnectionStats],
     stages: Array[StageInfo],
     distinct: Boolean,
-    extractFunction: ConnectionStats => (Int, Long),
-    localState: ListBuffer[SnapshotEntry]
-  ): Unit =
+    extractFunction: ConnectionStats => (Int, Long)
+  ): Seq[SnapshotEntry] =
     if (connectionStats.nonEmpty) {
       if (distinct) {
         // optimization for simpler graphs
-        connectionStats.foreach { conn =>
+        connectionStats.map { conn =>
           val (out, push) = extractFunction(conn)
-          localState.append(createSnapshotEntry(stage, stages(out), push))
-        }
+          createSnapshotEntry(stage, stages(out), push)
+        }.toSeq
       } else {
-        connectionStats.map(extractFunction).groupBy(_._1).map { case (index, connections) =>
-          val value = connections.foldLeft(0L)(_ + _._2)
-          localState.append(createSnapshotEntry(stage, stages(index), value))
-        }
+        connectionStats
+          .map(extractFunction)
+          .groupBy(_._1)
+          .map { case (index, connections) =>
+            val value = connections.foldLeft(0L)(_ + _._2)
+            createSnapshotEntry(stage, stages(index), value)
+          }
+          .toSeq
       }
     } else {
-      localState.append(SnapshotEntry(stage, None))
+      Seq(SnapshotEntry(stage, None))
     }
 
   private def swapState(): Unit = {

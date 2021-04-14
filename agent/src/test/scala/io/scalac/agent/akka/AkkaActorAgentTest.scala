@@ -38,8 +38,6 @@ class AkkaActorAgentTest
 
   import AkkaActorAgentTest._
 
-//  override implicit val patienceConfig: PatienceConfig = PatienceConfig().copy(scaled(Span(1000, Millis)))
-
   private final val StashMessageCount = 10
 
   "AkkaActorAgent" should "record mailbox time properly" in {

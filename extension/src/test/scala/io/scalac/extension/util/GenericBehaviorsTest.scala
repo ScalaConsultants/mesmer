@@ -52,7 +52,7 @@ class GenericBehaviorsTest
   }
 
   "WaitForService" should "transition to next state" in testCase { _ =>
-    val monitorProbe = TestProbe[ActorRef[_]]
+    val monitorProbe = TestProbe[ActorRef[_]]()
     val generic = GenericBehaviors.waitForService(TestServiceKey) { ref =>
       Behaviors.setup[Command] { _ =>
         monitorProbe.ref ! ref
@@ -67,7 +67,7 @@ class GenericBehaviorsTest
   }
 
   it should "publish one of possible services" in testCase { _ =>
-    val monitorProbe = TestProbe[ActorRef[_]]
+    val monitorProbe = TestProbe[ActorRef[_]]()
     val generic = GenericBehaviors.waitForService(TestServiceKey) { ref =>
       Behaviors.setup[Command] { _ =>
         monitorProbe.ref ! ref
@@ -83,7 +83,7 @@ class GenericBehaviorsTest
 
   it should "receive messages inner behavior protocol" in testCase { _ =>
     val CommandsCount = 100
-    val monitorProbe  = TestProbe[CounterCommand]
+    val monitorProbe  = TestProbe[CounterCommand]()
     val generic = GenericBehaviors.waitForService(TestServiceKey) { _ =>
       TestBehaviors.Pass.toRef(monitorProbe.ref)
     }
@@ -103,7 +103,7 @@ class GenericBehaviorsTest
 
   it should "stash messages until services are published" in testCase { _ =>
     val CommandsCount = 100
-    val monitorProbe  = TestProbe[CounterCommand]
+    val monitorProbe  = TestProbe[CounterCommand]()
     val generic = GenericBehaviors.waitForService(TestServiceKey) { _ =>
       TestBehaviors.Pass.toRef(monitorProbe.ref)
     }

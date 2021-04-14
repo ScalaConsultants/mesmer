@@ -37,8 +37,6 @@ class AkkaPersistenceAgentSpec
   override protected val agent = AkkaPersistenceAgent.agent
 
   implicit val askTimeout: Timeout = Timeout(1.minute)
-//  override implicit val patienceConfig: PatienceConfig =
-//    PatienceConfig(scaled(Span(1, Minute)), scaled(Span(1, Second)))
 
   type Fixture = TestProbe[PersistenceEvent]
 

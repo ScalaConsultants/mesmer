@@ -35,7 +35,7 @@ import io.scalac.core.util.probe.ObserverCollector.ScheduledCollectorImpl
 import io.scalac.extension.ActorEventsMonitorActor._
 import io.scalac.extension.metric.ActorMetricMonitor.Labels
 import io.scalac.extension.service.ActorTreeService
-import io.scalac.extension.service.ActorTreeService.GetActors
+import io.scalac.extension.service.ActorTreeService.Command.GetActors
 import io.scalac.extension.util.probe.ActorMonitorTestProbe
 import io.scalac.extension.util.probe.BoundTestProbe.CounterCommand
 import io.scalac.extension.util.probe.BoundTestProbe.Inc
