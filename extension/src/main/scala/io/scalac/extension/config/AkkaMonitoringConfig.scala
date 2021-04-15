@@ -1,10 +1,11 @@
 package io.scalac.extension.config
 
 import com.typesafe.config.Config
-import io.scalac.extension.config
 
 import scala.concurrent.duration._
 import scala.jdk.DurationConverters._
+
+import io.scalac.extension.config
 
 case class AkkaMonitoringConfig(
   autoStart: AutoStartSettings,
