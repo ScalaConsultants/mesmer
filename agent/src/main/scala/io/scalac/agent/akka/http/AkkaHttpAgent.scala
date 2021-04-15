@@ -11,13 +11,9 @@ object AkkaHttpAgent extends InstrumentModuleFactory {
   protected final val supportedModules: SupportedModules =
     SupportedModules(ModulesSupport.akkaHttpModule, ModulesSupport.akkaHttp)
 
-//  private val routeAgent =
-//    instrument("akka.http.scaladsl.server.Route$")
-//      .delegate[RouteInstrumentation]("asyncHandler")
-
   private val httpAgent =
     instrument("akka.http.scaladsl.HttpExt")
-      .delegate[HttpInstrumentation]("bindAndHandle")
+      .visit[HttpExtAdvice]("bindAndHandle")
 
   val agent: Agent = Agent(httpAgent)
 

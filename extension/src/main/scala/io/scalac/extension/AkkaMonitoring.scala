@@ -24,7 +24,10 @@ import io.scalac.extension.http.CleanableRequestStorage
 import io.scalac.extension.metric.CachingMonitor
 import io.scalac.extension.persistence.CleanablePersistingStorage
 import io.scalac.extension.persistence.CleanableRecoveryStorage
-import io.scalac.extension.service.CommonRegexPathService
+import io.scalac.extension.service.CachingPathService
+import io.scalac.extension.upstream.OpenTelemetryClusterMetricsMonitor
+import io.scalac.extension.upstream.OpenTelemetryHttpMetricsMonitor
+import io.scalac.extension.upstream.OpenTelemetryPersistenceMetricMonitor
 import io.scalac.extension.upstream._
 
 object AkkaMonitoring extends ExtensionId[AkkaMonitoring] {
@@ -103,6 +106,7 @@ final class AkkaMonitoring(private val system: ActorSystem[_], val config: AkkaM
   private val meter                              = InstrumentationLibrary.meter
   private val actorSystemConfig                  = system.settings.config
   private val openTelemetryClusterMetricsMonitor = OpenTelemetryClusterMetricsMonitor(meter, actorSystemConfig)
+  import io.scalac.core.AkkaDispatcher._
 
   implicit private val timeout: Timeout = 5 seconds
 
@@ -156,7 +160,8 @@ final class AkkaMonitoring(private val system: ActorSystem[_], val config: AkkaM
             )
         )
         .onFailure(SupervisorStrategy.restart),
-      "actorMonitor"
+      "actorMonitor",
+      dispatcherSelector
     )
   }
 
@@ -178,7 +183,8 @@ final class AkkaMonitoring(private val system: ActorSystem[_], val config: AkkaM
         Behaviors
           .supervise(actor(openTelemetryClusterMetricsMonitor))
           .onFailure[Exception](SupervisorStrategy.restart),
-        name
+        name,
+        dispatcherSelector
       )
     }
   }
@@ -186,10 +192,12 @@ final class AkkaMonitoring(private val system: ActorSystem[_], val config: AkkaM
   def startPersistenceMonitoring(): Unit = {
     log.debug("Starting PersistenceEventsListener")
 
+    val cachingConfig = CachingConfig.fromConfig(actorSystemConfig, ModulesSupport.akkaPersistenceTypedModule)
     val openTelemetryPersistenceMonitor = CachingMonitor(
       OpenTelemetryPersistenceMetricMonitor(meter, actorSystemConfig),
-      CachingConfig.fromConfig(actorSystemConfig, ModulesSupport.akkaPersistenceTypedModule)
+      cachingConfig
     )
+    val pathService = new CachingPathService(cachingConfig)
 
     system.systemActorOf(
       Behaviors
@@ -204,31 +212,30 @@ final class AkkaMonitoring(private val system: ActorSystem[_], val config: AkkaM
                     openTelemetryPersistenceMonitor,
                     rs,
                     ps,
-                    CommonRegexPathService,
+                    pathService,
                     clusterNodeName
                   )
                 }
             )
         )
         .onFailure[Exception](SupervisorStrategy.restart),
-      "persistenceAgentMonitor"
+      "persistenceAgentMonitor",
+      dispatcherSelector
     )
   }
 
   def startHttpEventListener(): Unit = {
     log.info("Starting local http event listener")
 
-    val openTelemetryHttpMonitor = CachingMonitor(
-      OpenTelemetryHttpMetricsMonitor(meter, actorSystemConfig),
-      CachingConfig.fromConfig(actorSystemConfig, ModulesSupport.akkaHttpModule)
-    )
+    val cachingConfig = CachingConfig.fromConfig(actorSystemConfig, ModulesSupport.akkaHttpModule)
 
-    val openTelemetryHttpConnectionMonitor = CachingMonitor(
-      OpenTelemetryHttpConnectionMetricMonitor(meter, actorSystemConfig),
-      CachingConfig.fromConfig(actorSystemConfig, ModulesSupport.akkaHttpModule)
-    )
+    val openTelemetryHttpMonitor =
+      CachingMonitor(OpenTelemetryHttpMetricsMonitor(meter, actorSystemConfig), cachingConfig)
 
-    val pathService = CommonRegexPathService
+    val openTelemetryHttpConnectionMonitor =
+      CachingMonitor(OpenTelemetryHttpConnectionMetricMonitor(meter, actorSystemConfig), cachingConfig)
+
+    val pathService = new CachingPathService(cachingConfig)
 
     system.systemActorOf(
       Behaviors
@@ -241,7 +248,8 @@ final class AkkaMonitoring(private val system: ActorSystem[_], val config: AkkaM
             )
         )
         .onFailure[Exception](SupervisorStrategy.restart),
-      "httpEventMonitor"
+      "httpEventMonitor",
+      dispatcherSelector
     )
   }
 

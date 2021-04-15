@@ -1,7 +1,5 @@
 package io.scalac.core.event
 
-import java.util.UUID
-
 import akka.actor.typed._
 import akka.actor.typed.receptionist.Receptionist
 import akka.actor.typed.receptionist.Receptionist.Subscribe
@@ -9,10 +7,10 @@ import akka.actor.typed.receptionist.ServiceKey
 import akka.actor.typed.scaladsl.Behaviors
 import akka.util.Timeout
 
-import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
 import scala.language.postfixOps
 
+import io.scalac.core.AkkaDispatcher.safeDispatcherSelector
 import io.scalac.core.util.MutableTypedMap
 
 trait EventBus extends Extension {
@@ -69,7 +67,6 @@ object ReceptionistBasedEventBus {
 
 private[scalac] class ReceptionistBasedEventBus(implicit
   val system: ActorSystem[_],
-  val ec: ExecutionContext,
   val timeout: Timeout
 ) extends EventBus {
   import ReceptionistBasedEventBus._
@@ -78,11 +75,17 @@ private[scalac] class ReceptionistBasedEventBus(implicit
 
   private[this] val serviceBuffers = MutableTypedMap[AbstractService, ServiceMapFunc]
 
-  def publishEvent[T <: AbstractEvent](event: T)(implicit service: Service[event.Service]): Unit = ref ! event
+  private[this] val dispatcher = safeDispatcherSelector
+
+  override def publishEvent[T <: AbstractEvent](event: T)(implicit service: Service[event.Service]): Unit = ref ! event
 
   @inline private def ref[S](implicit service: Service[S]): ActorRef[S] =
     serviceBuffers.getOrCreate(service) {
       system.log.debug("Initialize event buffer for service {}", service.serviceKey)
-      system.systemActorOf(cachingBehavior(service.serviceKey), UUID.randomUUID().toString)
+      system.systemActorOf(
+        cachingBehavior(service.serviceKey),
+        s"event-bus-${service.serviceKey.id}",
+        dispatcher
+      )
     }
 }

@@ -34,14 +34,17 @@ object PersistenceEventsActor {
       import Event._
       Receptionist(ctx.system).ref ! Register(persistenceServiceKey, ctx.messageAdapter(PersistentEventWrapper.apply))
 
-      def getMonitor(path: Path, persistenceId: PersistenceId): PersistenceMetricMonitor.BoundMonitor =
-        monitor.bind(
-          Labels(
-            node,
-            pathService.template(path),
-            pathService.template(persistenceId.retag[PathTag]).retag[PersistenceIdTag]
-          )
-        )
+      def getMonitor(path: Path, persistenceId: PersistenceId): PersistenceMetricMonitor.BoundMonitor = {
+        val templatedPath      = pathService.template(path)
+        val pathLastSlashIndex = path.lastIndexOf('/', path.length - 2)
+        if (pathLastSlashIndex > 0 && path.substring(pathLastSlashIndex + 1, path.length) == persistenceId) {
+          val persistentIdTemplate =
+            templatedPath.substring(templatedPath.lastIndexOf('/', templatedPath.length - 2) + 1, templatedPath.length)
+          monitor.bind(Labels(node, templatedPath, persistentIdTemplate))
+        } else {
+          monitor.bind(Labels(node, templatedPath, pathService.template(persistenceId)))
+        }
+      }
 
       def running(
         recoveryStorage: RecoveryStorage,
