@@ -285,10 +285,7 @@ class AkkaActorAgentTest
 
   it should "record the amount of sent messages properly in typed akka" in testWithContextAndActor[String] { ctx =>
     val receiver = ctx.spawn(
-      Behaviors.receiveMessage[String] { msg =>
-        println(msg)
-        Behaviors.same
-      },
+      Behaviors.receiveMessage[String](msg => Behaviors.same),
       createUniqueId
     )
     Behaviors.receiveMessagePartial[String] { case "forward" =>
