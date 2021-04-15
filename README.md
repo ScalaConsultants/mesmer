@@ -40,6 +40,13 @@ Download the latest agent jar from https://github.com/ScalaConsultants/mesmer-ak
 
 where `PATH_TO_JAR` is your **absolute** path to the Mesmer agent jar.
 
+### Exporters:
+
+As mesmer uses OpenTelemetry underneath to export data to metric backend you need to set up an exporter.
+All exporters require OpenTelemetry SDK present, so make sure you have one added to your project - without this all measurement operations will be NoOp. You can check out how to
+configure Prometheus with Akka HTTP [here](https://github.com/ScalaConsultants/mesmer-akka-agent/blob/main/example/src/main/scala/io/scalac/Boot.scala#L64-L74).
+
+
 ## Supported metrics
 
 Mesmer currently supports the following Akka modules:
