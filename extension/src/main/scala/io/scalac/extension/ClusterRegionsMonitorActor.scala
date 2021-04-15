@@ -81,7 +81,7 @@ object ClusterRegionsMonitorActor extends ClusterMonitorActor {
           logger.trace("Recorded amount of regions on node {}", regions)
         }
 
-        Behaviors.receiveSignal { case (ctx, PreRestart | PostStop) =>
+        Behaviors.receiveSignal { case (_, PreRestart | PostStop) =>
           boundMonitor.unbind()
           Behaviors.same
         }

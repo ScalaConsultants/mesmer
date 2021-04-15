@@ -34,7 +34,7 @@ trait TestOps {
       .continually(randomString(length))
       .distinct
       .take(amount)
-      .toSeq
+      .toList
 
   protected def testSameOrParent(ref: ActorRef[_], parent: ActorRef[_]): Boolean =
     parent.path == ref.path || ref.path.parent == parent.path
