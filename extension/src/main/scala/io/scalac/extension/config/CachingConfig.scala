@@ -5,7 +5,7 @@ import com.typesafe.config.Config
 import io.scalac.core.model.Module
 import io.scalac.extension.config.ConfigurationUtils._
 
-case class CachingConfig private (maxEntries: Int)
+case class CachingConfig(maxEntries: Int)
 
 object CachingConfig {
   private val DefaultSize = 10

@@ -1,7 +1,5 @@
 package io.scalac.core.event
 
-import java.util.UUID
-
 import akka.ActorSystemOps._
 import akka.actor.typed._
 import akka.actor.typed.receptionist.Receptionist
@@ -12,11 +10,11 @@ import akka.actor.typed.scaladsl.adapter._
 import akka.util.Timeout
 import org.slf4j.LoggerFactory
 
-import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
 import scala.language.postfixOps
 import scala.util.DynamicVariable
 
+import io.scalac.core.AkkaDispatcher.safeDispatcherSelector
 import io.scalac.core.util.MutableTypedMap
 
 trait EventBus extends Extension {
@@ -73,7 +71,6 @@ object ReceptionistBasedEventBus {
 
 private[scalac] class ReceptionistBasedEventBus(implicit
   val system: ActorSystem[_],
-  val ec: ExecutionContext,
   val timeout: Timeout
 ) extends EventBus {
 
@@ -84,6 +81,8 @@ private[scalac] class ReceptionistBasedEventBus(implicit
   type ServiceMapFunc[K <: AbstractService] = ActorRef[K#ServiceType]
 
   private[this] val serviceBuffers = MutableTypedMap[AbstractService, ServiceMapFunc]
+
+  private[this] val dispatcher = safeDispatcherSelector
 
   def publishEvent[T <: AbstractEvent](event: T)(implicit service: Service[event.Service]): Unit =
     ref.fold(log.trace("Prevented publishing event {}", event)) { ref =>
@@ -100,7 +99,9 @@ private[scalac] class ReceptionistBasedEventBus(implicit
           if (system.toClassic.isInitialized)
             Some(serviceBuffers.getOrCreate(service) {
               positiveFeedbackLoopBarrierClosed.withValue(true) {
-                system.systemActorOf(cachingBehavior(service.serviceKey), UUID.randomUUID().toString)
+                val actorName = s"event-bus-${service.serviceKey.id}"
+                log.debug("Start actor for service {}", service.serviceKey.id)
+                system.systemActorOf(cachingBehavior(service.serviceKey), actorName, dispatcher)
               }
             })
           else {

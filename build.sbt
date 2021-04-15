@@ -2,17 +2,17 @@ import Dependencies._
 import sbt.Package.{ MainClass, ManifestAttributes }
 
 ThisBuild / scalaVersion := "2.13.4"
-ThisBuild / version := "0.1.0-SNAPSHOT"
+ThisBuild / version := "0.1.1-SNAPSHOT"
 ThisBuild / organization := "io.scalac"
 ThisBuild / organizationName := "scalac"
 
 inThisBuild(
   List(
-    
+
     dependencyOverrides ++= openTelemetryDependenciesOverrides,
 
     scalacOptions ++= Seq("-deprecation", "-feature"),
-    
+
     semanticdbEnabled := true,
     semanticdbVersion := scalafixSemanticdb.revision,
     scalacOptions += "-Wunused:imports",
@@ -164,6 +164,15 @@ lazy val assemblyMergeStrategySettings = assembly / assemblyMergeStrategy := {
     MergeStrategy.last
   case _ => MergeStrategy.first
 }
+
+lazy val benchmark = (project in file("benchmark"))
+  .enablePlugins(JmhPlugin)
+  .disablePlugins(sbtassembly.AssemblyPlugin)
+  .settings {
+    name := "akka-monitoring-benchmark"
+  }
+  .dependsOn(extension)
+
 
 def runWithAgent = Command.command("runWithAgent") { state =>
   val extracted = Project extract state
