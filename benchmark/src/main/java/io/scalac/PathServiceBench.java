@@ -1,8 +1,8 @@
 package io.scalac;
 
 
-import io.scalac.extension.config.CachingConfig;
-import io.scalac.extension.service.*;
+import io.scalac.mesmer.extension.config.CachingConfig;
+import io.scalac.mesmer.extension.service.*;
 import org.openjdk.jmh.annotations.*;
 import org.openjdk.jmh.infra.Blackhole;
 
