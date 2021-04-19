@@ -10,7 +10,6 @@ import akka.persistence.typed.PersistenceId
 import akka.persistence.typed.scaladsl.Effect
 import akka.persistence.typed.scaladsl.EventSourcedBehavior
 import akka.persistence.typed.scaladsl.RetentionCriteria
-
 import example.domain.AccountStateActor.Event.MoneyDeposit
 import example.domain.AccountStateActor.Event.MoneyWithdrawn
 import example.domain.AccountStateActor.Reply.CurrentBalance

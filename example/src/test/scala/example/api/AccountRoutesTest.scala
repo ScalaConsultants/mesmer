@@ -15,13 +15,6 @@ import akka.util.Timeout
 import com.typesafe.config.Config
 import com.typesafe.config.ConfigFactory
 import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport
-import org.scalatest.flatspec.AnyFlatSpec
-import org.scalatest.matchers.should.Matchers
-
-import scala.concurrent.duration._
-import scala.language.postfixOps
-import scala.util.Random
-
 import example.domain.AccountStateActor
 import example.domain.AccountStateActor.Command.Deposit
 import example.domain.AccountStateActor.Command.GetBalance
@@ -29,6 +22,12 @@ import example.domain.AccountStateActor.Command.Withdraw
 import example.domain.AccountStateActor.Reply.CurrentBalance
 import example.domain.AccountStateActor.Reply.InsufficientFunds
 import example.domain._
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
+
+import scala.concurrent.duration._
+import scala.language.postfixOps
+import scala.util.Random
 
 class AccountRoutesTest
     extends AnyFlatSpec

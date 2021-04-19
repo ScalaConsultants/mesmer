@@ -9,14 +9,13 @@ import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server._
 import akka.util.Timeout
 import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport
+import example.domain.AccountStateActor
+import example.domain.JsonCodecs
+import example.domain._
 
 import scala.util.Failure
 import scala.util.Success
 import scala.util.Try
-
-import example.domain.AccountStateActor
-import example.domain.JsonCodecs
-import example.domain._
 
 class AccountRoutes(
   shardedRef: ActorRef[ShardingEnvelope[AccountStateActor.Command]]

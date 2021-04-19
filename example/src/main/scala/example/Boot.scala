@@ -16,6 +16,9 @@ import akka.util.Timeout
 import com.typesafe.config.ConfigFactory
 import com.typesafe.config.ConfigValueFactory
 import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport
+import example.api.AccountRoutes
+import example.domain.AccountStateActor
+import example.domain.JsonCodecs
 import fr.davit.akka.http.metrics.core.scaladsl.server.HttpMetricsDirectives.metrics
 import fr.davit.akka.http.metrics.prometheus.PrometheusRegistry
 import fr.davit.akka.http.metrics.prometheus.PrometheusSettings
@@ -35,9 +38,6 @@ import scala.language.postfixOps
 import scala.util.Failure
 import scala.util.Success
 
-import example.api.AccountRoutes
-import example.domain.AccountStateActor
-import example.domain.JsonCodecs
 import io.scalac.mesmer.extension.config.InstrumentationLibrary
 
 object Boot extends App with FailFastCirceSupport with JsonCodecs {
