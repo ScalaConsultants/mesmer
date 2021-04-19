@@ -2,31 +2,36 @@
 
 ## Supported metrics
 
+In mesmer we support 3 types of metrics:
+* gauge - counter that goes up and down
+* counter - monotonic counter
+* recorder - values are recorded with aggregation. Due to OpenTelemetry limitation currently only supported aggregation is MinMaxAvgSumCount aggregator.
+
 ### Akka core
 
-- Running actors
-- Mailbox size
-- Stash size
-- Mailbox time
-- Processed messages
-- Processing time
-- Sent messages
+- Running actors - gauge
+- Mailbox size - gauge
+- Stashed messaged - counter
+- Mailbox time - recorder
+- Processed messages - counter
+- Processing time - recorder
+- Sent messages - counter
 
 ### Akka Cluster
 
-- Shards per region
-- Reachable nodes
-- Unreachable nodes
-- Entities per region
-- Shard regions on node
-- Entities on node
-- Nodes down
+- Shards per region - gauge
+- Reachable nodes - gauge
+- Unreachable nodes - gauge
+- Entities per region - gauge
+- Shard regions on node - gauge
+- Entities on node - gauge
+- Nodes down - counter
 
 ### Akka HTTP
 
-- Connections
-- Requests
-- Responses
+- Connections - gauge
+- Requests - counter
+- Responses - recorder (for all responses status)
 - Responses 2xx
 - Responses 3xx
 - Responses 4xx
@@ -48,17 +53,17 @@
 
 ### Akka Persistence
 
-- Persisted events
-- Event persistence time
-- Recovery total
-- Recovery time
-- Snapshots
+- Persisted events - recorder
+- Event persistence time - recorder
+- Recovery total - counter 
+- Recovery time - recorder
+- Snapshots - counter
 
 ### Akka Streams
 
-- Running streams
-- Running operators per stream
-- Running operators
-- Stream throughput
-- Operator throughput
-- Operator processing time
+- Running streams - gauge
+- Running operators per stream - gauge
+- Running operators - gauge
+- Stream throughput - counter
+- Operator throughput - counter
+- Operator processing time - counter
