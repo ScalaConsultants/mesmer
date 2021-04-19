@@ -11,9 +11,8 @@ import org.scalatest.OptionValues
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.flatspec.AnyFlatSpecLike
 import org.scalatest.matchers.should.Matchers
-import org.scalatest.time.Minute
-import org.scalatest.time.Second
 import org.scalatest.time.Span
+import org.scalatest.time._
 
 import scala.concurrent.duration._
 
@@ -39,9 +38,10 @@ class AkkaPersistenceAgentSpec
 
   override protected val agent = AkkaPersistenceAgent.agent
 
-  implicit val askTimeout: Timeout = Timeout(1.minute)
+  implicit val askTimeout: Timeout = Timeout(5.seconds)
+
   override implicit val patienceConfig: PatienceConfig =
-    PatienceConfig(scaled(Span(1, Minute)), scaled(Span(1, Second)))
+    PatienceConfig(scaled(Span(5, Seconds)), scaled(Span(100, Millis)))
 
   type Fixture = TestProbe[PersistenceEvent]
 

@@ -1,7 +1,7 @@
 <configuration>
 
     <appender name="FILE" class="ch.qos.logback.core.FileAppender">
-        <file>${application.home:-.}/logs/application.log</file>
+        <file>${application.home:-.}/logs/journal.log</file>
         <encoder>
             <charset>UTF-8</charset>
             <pattern>
@@ -32,8 +32,11 @@
     <logger name="slick" level="INFO"/>
     <logger name="io.scalac" level="INFO"/>
 
-    <root level="INFO">
+    <logger name="akka.persistence" level="TRACE" additivity="false">
         <appender-ref ref="ASYNCFILE"/>
+    </logger>
+
+    <root level="INFO">
         <appender-ref ref="ASYNCSTDOUT"/>
     </root>
 

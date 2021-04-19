@@ -75,14 +75,13 @@ object AccountStateActor {
     }
   }
 
-  def apply(uuid: ju.UUID): Behavior[Command] =
-    Behaviors.setup { ctx =>
+  def apply(uuid: ju.UUID, snapshotEvery: Int = 10, keepSnapshots: Int = 2): Behavior[Command] =
+    Behaviors.setup { _ =>
       EventSourcedBehavior[Command, Event, AccountState](
         PersistenceId.ofUniqueId(uuid.toString),
         AccountState(0.0),
         (state, command) => state.commandHandler(command),
         (state, event) => state.eventHandler(event)
-      ).withRetention(RetentionCriteria.snapshotEvery(2, 2))
-
+      ).withRetention(RetentionCriteria.snapshotEvery(snapshotEvery, keepSnapshots))
     }
 }
