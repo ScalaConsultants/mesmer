@@ -9,7 +9,7 @@ object RegexOnlyPathService extends PathService {
   import PathService._
   private val detectionChain = List((number, numberTemplate), (uuid, uuidTemplate))
 
-  override def template(path: Path): Path =
+  def template(path: Path): Path =
     path
       .split('/')
       .map { segment =>

@@ -225,7 +225,7 @@ class OpenTelemetryActorMetricsMonitor(meter: Meter, metricNames: MetricNames) e
       .setDescription("Tracks the sum of sent messages in an Actor")
   )
 
-  override def bind(): OpenTelemetryBoundMonitor =
+  def bind(): OpenTelemetryBoundMonitor =
     new OpenTelemetryBoundMonitor
 
   class OpenTelemetryBoundMonitor

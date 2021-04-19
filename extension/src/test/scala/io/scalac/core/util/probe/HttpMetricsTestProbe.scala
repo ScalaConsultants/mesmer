@@ -25,7 +25,7 @@ class HttpMetricsTestProbe(implicit val system: ActorSystem[_]) extends HttpMetr
   private[this] val monitors: CMap[Labels, BoundHttpProbes] = new ConcurrentHashMap[Labels, BoundHttpProbes]().asScala
   private[this] val _binds: AtomicInteger                   = new AtomicInteger(0)
 
-  override def bind(labels: Labels): BoundHttpProbes = {
+  def bind(labels: Labels): BoundHttpProbes = {
     _binds.addAndGet(1)
     monitors.getOrElseUpdate(labels, createBoundProbes)
   }
@@ -42,12 +42,12 @@ class HttpMetricsTestProbe(implicit val system: ActorSystem[_]) extends HttpMetr
   ) extends BoundMonitor
       with TestProbeSynchronized {
 
-    override val requestTime: MetricRecorder[Long] with SyncTestProbeWrapper =
+    val requestTime: MetricRecorder[Long] with SyncTestProbeWrapper =
       RecorderTestProbeWrapper(requestTimeProbe)
 
-    override val requestCounter: Counter[Long] with SyncTestProbeWrapper =
+    val requestCounter: Counter[Long] with SyncTestProbeWrapper =
       UpDownCounterTestProbeWrapper(requestCounterProbe, Some(globalRequestCounter))
 
-    override def unbind(): Unit = ()
+    def unbind(): Unit = ()
   }
 }

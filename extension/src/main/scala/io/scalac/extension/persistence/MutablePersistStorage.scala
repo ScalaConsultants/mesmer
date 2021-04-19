@@ -12,12 +12,12 @@ class MutablePersistStorage private[persistence] (
 ) extends PersistStorage
     with MutableStorage[PersistEventKey, PersistingEventStarted] {
 
-  override def persistEventStarted(event: PersistingEventStarted): PersistStorage = {
+  def persistEventStarted(event: PersistingEventStarted): PersistStorage = {
     buffer.put(eventToKey(event), event)
     this
   }
 
-  override def persistEventFinished(event: PersistingEventFinished): Option[(PersistStorage, Long)] =
+  def persistEventFinished(event: PersistingEventFinished): Option[(PersistStorage, Long)] =
     buffer.remove(eventToKey(event)).map { started =>
       val latency = calculate(started, event)
       (this, latency)

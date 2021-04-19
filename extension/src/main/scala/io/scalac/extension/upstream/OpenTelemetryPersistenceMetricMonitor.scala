@@ -91,7 +91,7 @@ class OpenTelemetryPersistenceMetricMonitor(meter: Meter, metricNames: MetricNam
     .setDescription("Amount of snapshots created")
     .build()
 
-  override def bind(labels: Labels): BoundMonitor = new OpenTelemetryBoundMonitor(labels)
+  def bind(labels: Labels): BoundMonitor = new OpenTelemetryBoundMonitor(labels)
 
   class OpenTelemetryBoundMonitor(labels: Labels)
       extends BoundMonitor
@@ -99,19 +99,19 @@ class OpenTelemetryPersistenceMetricMonitor(meter: Meter, metricNames: MetricNam
       with SynchronousInstrumentFactory {
     private val openTelemetryLabels = LabelsFactory.of(labels.serialize)
 
-    override lazy val recoveryTime: MetricRecorder[Long] =
+    lazy val recoveryTime: MetricRecorder[Long] =
       metricRecorder(recoveryTimeRecorder, openTelemetryLabels).register(this)
 
-    override lazy val persistentEvent: MetricRecorder[Long] =
+    lazy val persistentEvent: MetricRecorder[Long] =
       metricRecorder(persistentEventRecorder, openTelemetryLabels).register(this)
 
-    override lazy val persistentEventTotal: Counter[Long] =
+    lazy val persistentEventTotal: Counter[Long] =
       counter(persistentEventTotalCounter, openTelemetryLabels).register(this)
 
-    override lazy val snapshot: Counter[Long] =
+    lazy val snapshot: Counter[Long] =
       counter(snapshotCounter, openTelemetryLabels).register(this)
 
-    override lazy val recoveryTotal: Counter[Long] =
+    lazy val recoveryTotal: Counter[Long] =
       counter(recoveryTotalCounter, openTelemetryLabels).register(this)
 
   }

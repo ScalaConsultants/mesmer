@@ -20,32 +20,32 @@ class ClusterMetricsTestProbe private (
 )(implicit system: ActorSystem[_])
     extends ClusterMetricsMonitor {
 
-  override def bind(node: Labels): ClusterMetricsMonitor.BoundMonitor =
+  def bind(node: Labels): ClusterMetricsMonitor.BoundMonitor =
     new ClusterMetricsMonitor.BoundMonitor with TestProbeSynchronized {
 
       private type CustomMetricObserver = MetricObserver[Long, Labels] with AsyncTestProbe[_]
 
-      override val shardPerRegions: CustomMetricObserver = ObserverTestProbeWrapper(shardPerRegionsProbe, collector)
+      val shardPerRegions: CustomMetricObserver = ObserverTestProbeWrapper(shardPerRegionsProbe, collector)
 
-      override val entityPerRegion: CustomMetricObserver = ObserverTestProbeWrapper(entityPerRegionProbe, collector)
+      val entityPerRegion: CustomMetricObserver = ObserverTestProbeWrapper(entityPerRegionProbe, collector)
 
-      override val shardRegionsOnNode: CustomMetricObserver =
+      val shardRegionsOnNode: CustomMetricObserver =
         ObserverTestProbeWrapper(shardRegionsOnNodeProbe, collector)
 
-      override val entitiesOnNode: CustomMetricObserver = ObserverTestProbeWrapper(entitiesOnNodeProbe, collector)
+      val entitiesOnNode: CustomMetricObserver = ObserverTestProbeWrapper(entitiesOnNodeProbe, collector)
 
-      override val reachableNodes: UpDownCounter[Long] with SyncTestProbeWrapper = UpDownCounterTestProbeWrapper(
+      val reachableNodes: UpDownCounter[Long] with SyncTestProbeWrapper = UpDownCounterTestProbeWrapper(
         reachableNodesProbe
       )
 
-      override val unreachableNodes: UpDownCounter[Long] with SyncTestProbeWrapper = UpDownCounterTestProbeWrapper(
+      val unreachableNodes: UpDownCounter[Long] with SyncTestProbeWrapper = UpDownCounterTestProbeWrapper(
         unreachableNodesProbe
       )
 
-      override val nodeDown: Counter[Long] with SyncTestProbeWrapper =
+      val nodeDown: Counter[Long] with SyncTestProbeWrapper =
         UpDownCounterTestProbeWrapper(nodeDownProbe)
 
-      override def unbind(): Unit = {
+      def unbind(): Unit = {
         collector.finish(shardPerRegionsProbe)
         collector.finish(entityPerRegionProbe)
         collector.finish(shardRegionsOnNodeProbe)

@@ -41,7 +41,7 @@ object AkkaMonitoring extends ExtensionId[AkkaMonitoring] {
 
   private val ExportInterval = 5.seconds
 
-  override def createExtension(system: ActorSystem[_]): AkkaMonitoring = {
+  def createExtension(system: ActorSystem[_]): AkkaMonitoring = {
     val config  = AkkaMonitoringConfig.apply(system.settings.config)
     val monitor = new AkkaMonitoring(system, config)
 

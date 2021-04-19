@@ -13,13 +13,13 @@ import io.scalac.extension.config.CachingConfig
 class CachingMonitorTest extends AnyFlatSpec with Matchers with Inspectors {
 
   case class TestLabels(label: String) extends LabelSerializable {
-    override def serialize: RawLabels = Seq("label" -> label)
+    def serialize: RawLabels = Seq("label" -> label)
   }
 
   case class TestBound(labels: TestLabels) extends Bound {
-    private[this] var _unbound  = false
-    override def unbind(): Unit = _unbound = true
-    def unbound: Boolean        = _unbound
+    private[this] var _unbound = false
+    def unbind(): Unit         = _unbound = true
+    def unbound: Boolean       = _unbound
   }
 
   class TestBindable extends Bindable[TestLabels, TestBound]() {

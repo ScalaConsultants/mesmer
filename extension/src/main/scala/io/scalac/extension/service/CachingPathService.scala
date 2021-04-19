@@ -18,7 +18,7 @@ class CachingPathService(cachingConfig: CachingConfig) extends PathService {
       this.size() > cachingConfig.maxEntries
   }.asScala
 
-  override def template(path: Path): Path = {
+  def template(path: Path): Path = {
 
     @tailrec
     def replaceInPath(offset: Int, replacements: Vector[(Int, Int, String)]): Vector[(Int, Int, String)] = {

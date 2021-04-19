@@ -27,7 +27,7 @@ class DownTest
     with ScalaTestMultiNodeSpec
     with Inspectors
     with BeforeAndAfterAll {
-  override def initialParticipants: Int = 3
+  def initialParticipants: Int = 3
 
   implicit val typedSystem: ActorSystem[Nothing] = system.toTyped
 

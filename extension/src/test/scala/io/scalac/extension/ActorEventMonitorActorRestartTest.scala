@@ -43,7 +43,7 @@ class ActorEventMonitorActorRestartTest
 
   val FailingReader: ActorMetricsReader = _ => throw new RuntimeException("Planned failure") with NoStackTrace
 
-  override protected def createMonitor(implicit system: ActorSystem[_]): Monitor =
+  protected def createMonitor(implicit system: ActorSystem[_]): Monitor =
     ActorMonitorTestProbe(new ManualCollectorImpl())
 
   "ActorTest" should "unbind monitors on restart" in testCase { implicit context =>

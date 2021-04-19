@@ -252,13 +252,13 @@ class AkkaActorAgentTest
     var senderContext: Option[classic.ActorContext] = None
     class Sender(receiver: classic.ActorRef) extends classic.Actor {
       senderContext = Some(context)
-      override def receive: Receive = { case "forward" =>
+      def receive: Receive = { case "forward" =>
         receiver ! "forwarded"
       }
     }
 
     class Receiver extends classic.Actor with classic.ActorLogging {
-      override def receive: Receive = { case msg =>
+      def receive: Receive = { case msg =>
         log.info(s"receiver: {}", msg)
       }
     }
@@ -413,7 +413,7 @@ object AkkaActorAgentTest {
   }
 
   class ClassicNoStashActor extends classic.Actor with classic.ActorLogging with Inspectable {
-    override def receive: Receive = {
+    def receive: Receive = {
       case Inspect(ref) => inspectStashSize(ref, context)
       case message =>
         log.debug("Received message {}", message)

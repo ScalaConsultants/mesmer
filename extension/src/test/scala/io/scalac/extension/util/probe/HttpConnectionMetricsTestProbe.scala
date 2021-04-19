@@ -25,7 +25,7 @@ class HttpConnectionMetricsTestProbe(implicit val system: ActorSystem[_]) extend
   private[this] val monitors: CMap[Labels, BoundHttpProbes] = new ConcurrentHashMap[Labels, BoundHttpProbes]().asScala
   private[this] val _binds: AtomicInteger                   = new AtomicInteger(0)
 
-  override def bind(labels: Labels): BoundHttpProbes = {
+  def bind(labels: Labels): BoundHttpProbes = {
     _binds.addAndGet(1)
     monitors.getOrElseUpdate(labels, createBoundProbes)
   }
@@ -41,9 +41,9 @@ class HttpConnectionMetricsTestProbe(implicit val system: ActorSystem[_]) extend
   ) extends BoundMonitor
       with TestProbeSynchronized {
 
-    override val connectionCounter: UpDownCounter[Long] with SyncTestProbeWrapper =
+    val connectionCounter: UpDownCounter[Long] with SyncTestProbeWrapper =
       UpDownCounterTestProbeWrapper(connectionCounterProbe, Some(globalConnectionCounter))
 
-    override def unbind(): Unit = ()
+    def unbind(): Unit = ()
   }
 }

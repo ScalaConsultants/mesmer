@@ -19,7 +19,7 @@ final case class StreamOperatorMonitorTestProbe(
     extends StreamOperatorMetricsMonitor
     with Collected {
 
-  override def bind(): StreamOperatorMetricsMonitor.BoundMonitor = new StreamOperatorMetricsMonitor.BoundMonitor {
+  def bind(): StreamOperatorMetricsMonitor.BoundMonitor = new StreamOperatorMetricsMonitor.BoundMonitor {
     val processedMessages = ObserverTestProbeWrapper(processedTestProbe, collector)
     val operators         = ObserverTestProbeWrapper(runningOperatorsTestProbe, collector)
     val demand            = ObserverTestProbeWrapper(demandTestProbe, collector)
@@ -48,7 +48,7 @@ class StreamMonitorTestProbe(
 )(implicit val system: ActorSystem[_])
     extends StreamMetricMonitor
     with Collected {
-  override def bind(labels: StreamMetricMonitor.EagerLabels): StreamMetricMonitor.BoundMonitor = new BoundMonitor {
+  def bind(labels: StreamMetricMonitor.EagerLabels): StreamMetricMonitor.BoundMonitor = new BoundMonitor {
 
     val runningStreamsTotal = RecorderTestProbeWrapper(runningStreamsProbe)
 

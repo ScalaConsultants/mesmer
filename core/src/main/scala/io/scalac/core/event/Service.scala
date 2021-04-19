@@ -9,7 +9,7 @@ trait AbstractService {
 }
 
 trait Service[T] extends AbstractService {
-  override type ServiceType = T
+  type ServiceType = T
   def serviceKey: ServiceKey[T]
 
   override lazy val hashCode: Int = serviceKey.hashCode()
@@ -23,7 +23,7 @@ trait Service[T] extends AbstractService {
 object Service {
 
   def apply[T](key: ServiceKey[T]): Service[T] = new Service[T] {
-    override val serviceKey: ServiceKey[T] = key
+    val serviceKey: ServiceKey[T] = key
   }
 
   implicit val actorService: Service[ActorEvent] = Service(actorServiceKey)

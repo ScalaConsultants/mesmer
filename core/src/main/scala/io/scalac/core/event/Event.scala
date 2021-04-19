@@ -57,7 +57,7 @@ object HttpEvent {
 }
 
 final case class TagEvent(ref: ActorRef, tag: Tag) extends AbstractEvent {
-  override type Service = TagEvent
+  type Service = TagEvent
 }
 
 sealed trait StreamEvent extends AbstractEvent {

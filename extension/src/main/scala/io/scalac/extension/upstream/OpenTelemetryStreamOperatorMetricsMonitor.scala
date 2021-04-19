@@ -73,13 +73,13 @@ class OpenTelemetryStreamOperatorMetricsMonitor(meter: Meter, metricNames: Metri
       .setDescription("Amount of messages demanded by operator")
   )
 
-  override def bind(): StreamOperatorMetricsMonitor.BoundMonitor = new BoundMonitor with RegisterRoot {
+  def bind(): StreamOperatorMetricsMonitor.BoundMonitor = new BoundMonitor with RegisterRoot {
 
-    override lazy val processedMessages: MetricObserver[Long, Labels] =
+    lazy val processedMessages: MetricObserver[Long, Labels] =
       processedMessageAdapter.createObserver(this)
 
-    override lazy val operators: MetricObserver[Long, Labels] = operatorsAdapter.createObserver(this)
+    lazy val operators: MetricObserver[Long, Labels] = operatorsAdapter.createObserver(this)
 
-    override lazy val demand: MetricObserver[Long, Labels] = demandAdapter.createObserver(this)
+    lazy val demand: MetricObserver[Long, Labels] = demandAdapter.createObserver(this)
   }
 }

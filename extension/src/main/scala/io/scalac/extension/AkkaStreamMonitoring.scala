@@ -272,7 +272,7 @@ class AkkaStreamMonitoring(
     }
   }
 
-  override def onMessage(msg: Command): Behavior[Command] =
+  def onMessage(msg: Command): Behavior[Command] =
     Behaviors.withStash(bufferConfig.size) { buffer =>
       msg match {
         case StartStreamCollection(refs) if refs.nonEmpty =>

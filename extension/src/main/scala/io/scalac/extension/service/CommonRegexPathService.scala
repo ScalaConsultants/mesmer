@@ -8,7 +8,7 @@ object CommonRegexPathService extends PathService {
 
   import PathService._
 
-  override def template(path: Path): Path = {
+  def template(path: Path): Path = {
 
     @tailrec
     def replaceInPath(offset: Int, replacements: Vector[(Int, Int, String)]): Vector[(Int, Int, String)] = {

@@ -9,11 +9,11 @@ import io.scalac.extension.persistence.PersistStorage.PersistEventKey
 import io.scalac.extension.resource.MutableCleanableStorage
 
 class CleanablePersistingStorage private[persistence] (_persist: MMap[PersistEventKey, PersistingEventStarted])(
-  override val cleaningConfig: CleaningSettings
+  val cleaningConfig: CleaningSettings
 ) extends MutablePersistStorage(_persist)
     with MutableCleanableStorage[PersistEventKey, PersistingEventStarted] {
 
-  override protected def extractTimestamp(value: PersistingEventStarted): Timestamp = value.timestamp
+  protected def extractTimestamp(value: PersistingEventStarted): Timestamp = value.timestamp
 }
 
 object CleanablePersistingStorage {

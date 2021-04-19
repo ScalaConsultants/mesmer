@@ -52,8 +52,8 @@ class ActorEventsMonitorActorTest
     with ScaledTimeSpans
     with LoneElement {
 
-  override type Monitor = ActorMonitorTestProbe
-  override type Context = TestContext[Monitor]
+  type Monitor = ActorMonitorTestProbe
+  type Context = TestContext[Monitor]
 
   protected val serviceKey: ServiceKey[_] = actorServiceKey
 

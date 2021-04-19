@@ -7,11 +7,11 @@ import scala.collection.mutable
 import io.scalac.core.model.ActorKey
 import io.scalac.extension.resource.MutableStorage
 
-class MutableActorMetricsStorage private[actor] (override val buffer: mutable.Map[ActorKey, ActorMetrics])
+class MutableActorMetricsStorage private[actor] (val buffer: mutable.Map[ActorKey, ActorMetrics])
     extends MutableStorage[ActorKey, ActorMetrics]
     with ActorMetricStorage {
 
-  override def has(key: ActorKey): Boolean = buffer.contains(key)
+  def has(key: ActorKey): Boolean = buffer.contains(key)
 
   def foreach(f: ((ActorKey, ActorMetrics)) => Unit): Unit = buffer.foreach(f)
 
@@ -30,7 +30,7 @@ class MutableActorMetricsStorage private[actor] (override val buffer: mutable.Ma
     this
   }
 
-  override def snapshot: Seq[(ActorKey, ActorMetrics)] = buffer.toSeq
+  def snapshot: Seq[(ActorKey, ActorMetrics)] = buffer.toSeq
 }
 
 object MutableActorMetricsStorage {

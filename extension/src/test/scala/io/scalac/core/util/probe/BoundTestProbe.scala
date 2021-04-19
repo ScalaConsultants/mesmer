@@ -38,15 +38,15 @@ case class UpDownCounterTestProbeWrapper(
 ) extends SyncTestProbeWrapper
     with UpDownCounter[Long]
     with Counter[Long] {
-  override type Cmd = CounterCommand
+  type Cmd = CounterCommand
   def probe: TestProbe[CounterCommand] = _probe
 
-  override def decValue(value: Long): Unit = {
+  def decValue(value: Long): Unit = {
     _probe.ref ! Dec(value)
     supervisor.foreach(_.ref ! Inc(1L))
   }
 
-  override def incValue(value: Long): Unit = {
+  def incValue(value: Long): Unit = {
     _probe.ref ! Inc(value)
     supervisor.foreach(_.ref ! Inc(1L))
   }
@@ -55,11 +55,11 @@ case class UpDownCounterTestProbeWrapper(
 case class RecorderTestProbeWrapper(private val _probe: TestProbe[MetricRecorderCommand])
     extends SyncTestProbeWrapper
     with MetricRecorder[Long] {
-  override type Cmd = MetricRecorderCommand
+  type Cmd = MetricRecorderCommand
 
-  override def probe: TestProbe[MetricRecorderCommand] = _probe
+  def probe: TestProbe[MetricRecorderCommand] = _probe
 
-  override def setValue(value: Long): Unit = _probe.ref ! MetricRecorded(value)
+  def setValue(value: Long): Unit = _probe.ref ! MetricRecorded(value)
 }
 
 sealed trait AsyncTestProbe[T] extends AbstractTestProbeWrapper {

@@ -6,7 +6,7 @@ import io.scalac.core.model._
 object ActorMetricMonitor {
   final case class Labels(actorPath: ActorPath, node: Option[Node] = None, tags: Set[Tag] = Set.empty)
       extends LabelSerializable {
-    override val serialize: RawLabels = node.serialize ++ actorPath.serialize ++ tags.flatMap(_.serialize)
+    val serialize: RawLabels = node.serialize ++ actorPath.serialize ++ tags.flatMap(_.serialize)
   }
 
   trait BoundMonitor extends Bound {

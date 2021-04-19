@@ -69,7 +69,7 @@ final case class WrappedMetricObserver[T, L <: LabelSerializable] private (onSet
     extends MetricObserver[T, L]
     with WrappedInstrument {
 
-  override type Self = WrappedMetricObserver[T, L]
+  type Self = WrappedMetricObserver[T, L]
 
   @volatile
   private var valueUpdater: Option[MetricObserver.Updater[T, L]] = None

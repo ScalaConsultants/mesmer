@@ -53,14 +53,14 @@ class PersistenceMetricTestProbe(implicit val system: ActorSystem[_])
 
   type B = BoundPersistenceProbes
 
-  override val globalCounter: TestProbe[CounterCommand] = TestProbe()
+  val globalCounter: TestProbe[CounterCommand] = TestProbe()
 
   def bind(labels: Labels): PersistenceMetricMonitor.BoundMonitor =
     counting {
       concurrentBind(labels)
     }
 
-  override protected def createBoundProbes(labels: Labels): BoundPersistenceProbes =
+  protected def createBoundProbes(labels: Labels): BoundPersistenceProbes =
     new BoundPersistenceProbes(TestProbe(), TestProbe(), TestProbe(), TestProbe(), TestProbe())
 
   class BoundPersistenceProbes(
@@ -70,21 +70,21 @@ class PersistenceMetricTestProbe(implicit val system: ActorSystem[_])
     val persistentEventTotalProbe: TestProbe[CounterCommand],
     val snapshotProbe: TestProbe[CounterCommand]
   ) extends PersistenceMetricMonitor.BoundMonitor {
-    override def recoveryTime: SyncTestProbeWrapper with MetricRecorder[Long] =
+    def recoveryTime: SyncTestProbeWrapper with MetricRecorder[Long] =
       RecorderTestProbeWrapper(recoveryTimeProbe)
 
-    override def recoveryTotal: SyncTestProbeWrapper with Counter[Long] =
+    def recoveryTotal: SyncTestProbeWrapper with Counter[Long] =
       UpDownCounterTestProbeWrapper(recoveryTotalProbe, Some(globalCounter))
 
-    override def persistentEvent: SyncTestProbeWrapper with MetricRecorder[Long] =
+    def persistentEvent: SyncTestProbeWrapper with MetricRecorder[Long] =
       RecorderTestProbeWrapper(persistentEventProbe)
 
-    override def persistentEventTotal: SyncTestProbeWrapper with Counter[Long] =
+    def persistentEventTotal: SyncTestProbeWrapper with Counter[Long] =
       UpDownCounterTestProbeWrapper(persistentEventTotalProbe, Some(globalCounter))
 
-    override def snapshot: SyncTestProbeWrapper with Counter[Long] =
+    def snapshot: SyncTestProbeWrapper with Counter[Long] =
       UpDownCounterTestProbeWrapper(snapshotProbe, Some(globalCounter))
 
-    override def unbind(): Unit = ()
+    def unbind(): Unit = ()
   }
 }

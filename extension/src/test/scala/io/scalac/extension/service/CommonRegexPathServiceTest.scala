@@ -65,7 +65,7 @@ trait PathServiceTest extends Matchers {
 
 class CommonRegexPathServiceTest extends AnyFlatSpec with Matchers with PathServiceTest {
 
-  override lazy val pathService      = CommonRegexPathService
-  override lazy val testName: String = "CommonRegexPathService"
+  lazy val pathService      = CommonRegexPathService
+  lazy val testName: String = "CommonRegexPathService"
 
 }

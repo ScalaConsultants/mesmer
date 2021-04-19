@@ -31,6 +31,6 @@ trait EmptyBind[B <: Bound] extends Bindable[EmptyBind.EmptyLabels, B] {
 object EmptyBind {
   // no implementation of this is needed
   sealed trait EmptyLabels extends LabelSerializable {
-    override val serialize: RawLabels = Seq.empty
+    val serialize: RawLabels = Seq.empty
   }
 }

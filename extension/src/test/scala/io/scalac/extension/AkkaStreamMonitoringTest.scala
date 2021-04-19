@@ -61,15 +61,15 @@ class AkkaStreamMonitoringTest
   protected def createMonitorBehavior(implicit context: Context): Behavior[_] =
     AkkaStreamMonitoring(operations, global, None)
 
-  override protected val serviceKey: ServiceKey[_] = streamService.serviceKey
-  private final val OperationsPing                 = 1.seconds
-  private final val ReceiveWait                    = OperationsPing * 3
-  private final val SourceName                     = "sourceSingle"
-  private final val SinkName                       = "sinkIgnore"
-  private final val FlowName                       = "map"
-  private final val StagesNames                    = Seq(SourceName, SinkName, FlowName)
+  protected val serviceKey: ServiceKey[_] = streamService.serviceKey
+  private final val OperationsPing        = 1.seconds
+  private final val ReceiveWait           = OperationsPing * 3
+  private final val SourceName            = "sourceSingle"
+  private final val SinkName              = "sinkIgnore"
+  private final val FlowName              = "map"
+  private final val StagesNames           = Seq(SourceName, SinkName, FlowName)
 
-  override protected def createMonitor(implicit system: ActorSystem[_]): Monitor = {
+  protected def createMonitor(implicit system: ActorSystem[_]): Monitor = {
     val collector = new ScheduledCollectorImpl(OperationsPing)
     (
       StreamOperatorMonitorTestProbe(collector),

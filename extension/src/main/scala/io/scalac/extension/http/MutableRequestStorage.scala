@@ -11,15 +11,15 @@ class MutableRequestStorage private[http] (protected val buffer: mutable.Map[Str
     extends MutableStorage[String, RequestStarted]
     with RequestStorage {
 
-  override def requestStarted(event: RequestStarted): RequestStorage = {
+  def requestStarted(event: RequestStarted): RequestStorage = {
     buffer.put(eventToKey(event), event)
     this
   }
 
-  override def requestCompleted(event: RequestCompleted): Option[(RequestStorage, RequestStarted)] =
+  def requestCompleted(event: RequestCompleted): Option[(RequestStorage, RequestStarted)] =
     buffer.remove(eventToKey(event)).map(started => (this, started))
 
-  override def requestFailed(event: RequestFailed): Option[(RequestStorage, RequestStarted)] =
+  def requestFailed(event: RequestFailed): Option[(RequestStorage, RequestStarted)] =
     buffer.remove(eventToKey(event)).map(started => (this, started))
 }
 

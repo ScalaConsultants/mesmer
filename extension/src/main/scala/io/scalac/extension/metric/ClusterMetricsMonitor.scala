@@ -7,7 +7,7 @@ object ClusterMetricsMonitor {
 
   final case class Labels(node: Node, region: Option[Region] = None) extends LabelSerializable {
 
-    override val serialize: RawLabels = node.serialize ++ region.serialize
+    val serialize: RawLabels = node.serialize ++ region.serialize
 
     def withRegion(region: Region): Labels = copy(region = Some(region))
   }

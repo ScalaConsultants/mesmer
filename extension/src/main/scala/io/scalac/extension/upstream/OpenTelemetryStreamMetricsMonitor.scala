@@ -63,7 +63,7 @@ final class OpenTelemetryStreamMetricsMonitor(meter: Meter, metricNames: MetricN
       .setDescription("Amount of messages processed by whole stream")
   )
 
-  override def bind(labels: EagerLabels): BoundMonitor = new StreamMetricsBoundMonitor(labels)
+  def bind(labels: EagerLabels): BoundMonitor = new StreamMetricsBoundMonitor(labels)
 
   class StreamMetricsBoundMonitor(labels: EagerLabels)
       extends BoundMonitor
@@ -71,13 +71,13 @@ final class OpenTelemetryStreamMetricsMonitor(meter: Meter, metricNames: MetricN
       with SynchronousInstrumentFactory {
     private val openTelemetryLabels = LabelsFactory.of(labels.serialize)
 
-    override val runningStreamsTotal: WrappedLongValueRecorder =
+    val runningStreamsTotal: WrappedLongValueRecorder =
       metricRecorder(runningStreamsTotalRecorder, openTelemetryLabels).register(this)
 
-    override val streamActorsTotal: WrappedLongValueRecorder =
+    val streamActorsTotal: WrappedLongValueRecorder =
       metricRecorder(streamActorsTotalRecorder, openTelemetryLabels).register(this)
 
-    override lazy val streamProcessedMessages: MetricObserver[Long, Labels] =
+    lazy val streamProcessedMessages: MetricObserver[Long, Labels] =
       streamProcessedMessagesBuilder.createObserver(this)
   }
 }

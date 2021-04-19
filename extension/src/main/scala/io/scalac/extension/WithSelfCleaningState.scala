@@ -19,7 +19,7 @@ object WithSelfCleaningState {
     private val resource: R
   )(implicit val _tag: ClassTag[R])
       extends BehaviorInterceptor[Any, C] {
-    override def aroundReceive(
+    def aroundReceive(
       ctx: TypedActorContext[Any],
       msg: Any,
       target: BehaviorInterceptor.ReceiveTarget[C]

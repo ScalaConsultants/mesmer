@@ -33,7 +33,7 @@ trait TerminationRegistryOps extends ScalaTestWithActorTestKit with BeforeAndAft
 
   def unwatchAll(): Unit = _registry.foreach(_ ! TerminationRegistry.UnwatchAll)
 
-  protected override def afterAll(): Unit = {
+  override protected def afterAll(): Unit = {
     unwatchAll()
     super.afterAll()
   }

@@ -19,7 +19,7 @@ trait BindUnbindMonitor {
    * Mixed-in trait for BoundMonitors returned from bind method
    */
   trait UnbindMonitor extends Bound {
-    abstract override def unbind(): Unit = {
+    override abstract def unbind(): Unit = {
       _unbinds.incrementAndGet()
       super.unbind()
     }

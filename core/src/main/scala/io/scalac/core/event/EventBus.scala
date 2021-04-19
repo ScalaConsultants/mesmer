@@ -19,7 +19,7 @@ trait EventBus extends Extension {
 
 object EventBus extends ExtensionId[EventBus] {
 
-  override def createExtension(system: ActorSystem[_]): EventBus = {
+  def createExtension(system: ActorSystem[_]): EventBus = {
     implicit val s                = system
     implicit val timeout: Timeout = 1 second
     implicit val ec               = system.executionContext
@@ -77,7 +77,7 @@ private[scalac] class ReceptionistBasedEventBus(implicit
 
   private[this] val dispatcher = safeDispatcherSelector
 
-  override def publishEvent[T <: AbstractEvent](event: T)(implicit service: Service[event.Service]): Unit = ref ! event
+  def publishEvent[T <: AbstractEvent](event: T)(implicit service: Service[event.Service]): Unit = ref ! event
 
   @inline private def ref[S](implicit service: Service[S]): ActorRef[S] =
     serviceBuffers.getOrCreate(service) {
