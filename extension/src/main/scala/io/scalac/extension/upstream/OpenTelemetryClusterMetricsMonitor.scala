@@ -22,13 +22,13 @@ object OpenTelemetryClusterMetricsMonitor {
   object MetricNames {
     def default: MetricNames =
       MetricNames(
-        "shards_per_region",
-        "entities_per_region",
-        "shard_regions_on_node",
-        "entities_on_node",
-        "reachable_nodes",
-        "unreachable_nodes",
-        "node_down_total"
+        "akka_cluster_shards_per_region",
+        "akka_cluster_entities_per_region",
+        "akka_cluster_shard_regions_on_node",
+        "akka_cluster_entities_on_node",
+        "akka_cluster_reachable_nodes",
+        "akka_cluster_unreachable_nodes",
+        "akka_cluster_node_down_total"
       )
 
     def fromConfig(config: Config): MetricNames = {
