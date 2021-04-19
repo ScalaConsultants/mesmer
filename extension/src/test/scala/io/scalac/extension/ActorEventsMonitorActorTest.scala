@@ -15,8 +15,6 @@ import org.scalatest.concurrent.ScaledTimeSpans
 
 import scala.concurrent.duration._
 
-import io.scalac.core.actor.ActorMetrics
-import io.scalac.core.actor.MutableActorMetricsStorage
 import io.scalac.core.actorServiceKey
 import io.scalac.core.model._
 import io.scalac.core.util.ActorPathOps
@@ -28,6 +26,8 @@ import io.scalac.core.util.probe.BoundTestProbe.MetricObserverCommand
 import io.scalac.core.util.probe.ObserverCollector.ScheduledCollectorImpl
 import io.scalac.extension.ActorEventsMonitorActor._
 import io.scalac.extension.ActorEventsMonitorActorTest._
+import io.scalac.extension.actor.ActorMetrics
+import io.scalac.extension.actor.MutableActorMetricsStorage
 import io.scalac.extension.metric.ActorMetricsMonitor.Labels
 
 trait ActorEventMonitorActorTestConfig {

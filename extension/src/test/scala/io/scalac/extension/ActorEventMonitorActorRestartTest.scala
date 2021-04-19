@@ -13,7 +13,6 @@ import scala.concurrent.duration.FiniteDuration
 import scala.concurrent.duration._
 import scala.util.control.NoStackTrace
 
-import io.scalac.core.actor.MutableActorMetricsStorage
 import io.scalac.core.util.TestCase.MonitorTestCaseContext.BasicContext
 import io.scalac.core.util.TestCase.MonitorWithBasicContextTestCaseFactory
 import io.scalac.core.util.TestCase.ProvidedActorSystemTestCaseFactory
@@ -23,6 +22,7 @@ import io.scalac.core.util.probe.ActorMonitorTestProbe
 import io.scalac.core.util.probe.ObserverCollector.ManualCollectorImpl
 import io.scalac.extension.ActorEventsMonitorActor.ActorMetricsReader
 import io.scalac.extension.ActorEventsMonitorActor.ReflectiveActorTreeTraverser
+import io.scalac.extension.actor.MutableActorMetricsStorage
 
 class ActorEventMonitorActorRestartTest
     extends ScalaTestWithActorTestKit(TestConfig.localActorProvider)

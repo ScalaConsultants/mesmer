@@ -24,14 +24,14 @@ import scala.concurrent.duration._
 
 import io.scalac.agent.utils.InstallAgent
 import io.scalac.agent.utils.SafeLoadSystem
-import io.scalac.core.actor.ActorCellDecorator
-import io.scalac.core.actor.ActorCellMetrics
 import io.scalac.core.event.ActorEvent
 import io.scalac.core.event.ActorEvent.StashMeasurement
 import io.scalac.core.model._
 import io.scalac.core.util.ActorPathOps
 import io.scalac.core.util.MetricsToolKit
 import io.scalac.core.util.ReceptionistOps
+import io.scalac.extension.actor.ActorCellDecorator
+import io.scalac.extension.actor.ActorCellMetrics
 
 class AkkaActorAgentTest
     extends InstallAgent

@@ -4,7 +4,7 @@ import akka.actor.typed.TypedActorContext
 import net.bytebuddy.asm.Advice.Argument
 import net.bytebuddy.asm.Advice.OnMethodExit
 
-import io.scalac.core.actor.ActorCellDecorator
+import io.scalac.extension.actor.ActorCellDecorator
 
 class SupervisorHandleReceiveExceptionInstrumentation
 object SupervisorHandleReceiveExceptionInstrumentation {

@@ -17,13 +17,13 @@ import scala.language.postfixOps
 import scala.reflect.ClassTag
 import scala.util.Try
 
-import io.scalac.core.actor.CleanableActorMetricsStorage
 import io.scalac.core.model.Module
 import io.scalac.core.model.SupportedVersion
 import io.scalac.core.model._
 import io.scalac.core.support.ModulesSupport
 import io.scalac.core.util.ModuleInfo
 import io.scalac.core.util.ModuleInfo.Modules
+import io.scalac.extension.actor.CleanableActorMetricsStorage
 import io.scalac.extension.config.AkkaMonitoringConfig
 import io.scalac.extension.config.CachingConfig
 import io.scalac.extension.config.InstrumentationLibrary

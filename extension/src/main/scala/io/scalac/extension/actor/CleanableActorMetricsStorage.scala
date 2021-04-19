@@ -1,4 +1,4 @@
-package io.scalac.core.actor
+package io.scalac.extension.actor
 
 import scala.collection.mutable
 

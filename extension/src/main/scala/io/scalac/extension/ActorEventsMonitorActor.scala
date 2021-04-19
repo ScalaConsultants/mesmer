@@ -18,9 +18,6 @@ import scala.collection.mutable
 import scala.concurrent.duration._
 
 import io.scalac.core._
-import io.scalac.core.actor.ActorCellDecorator
-import io.scalac.core.actor.ActorMetricStorage
-import io.scalac.core.actor.ActorMetrics
 import io.scalac.core.event.TagEvent
 import io.scalac.core.model.ActorKey
 import io.scalac.core.model.Node
@@ -29,6 +26,9 @@ import io.scalac.core.util.ActorCellOps
 import io.scalac.core.util.ActorRefOps
 import io.scalac.extension.ActorEventsMonitorActor._
 import io.scalac.extension.AkkaStreamMonitoring.StartStreamCollection
+import io.scalac.extension.actor.ActorCellDecorator
+import io.scalac.extension.actor.ActorMetricStorage
+import io.scalac.extension.actor.ActorMetrics
 import io.scalac.extension.metric.ActorMetricsMonitor
 import io.scalac.extension.metric.ActorMetricsMonitor.Labels
 import io.scalac.extension.metric.MetricObserver.Result
