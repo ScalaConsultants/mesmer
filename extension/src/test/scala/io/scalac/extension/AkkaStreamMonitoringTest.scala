@@ -131,7 +131,7 @@ class AkkaStreamMonitoringTest
 
     sut ! StartStreamCollection(refs.toSet)
 
-    global.streamActorsProbe.receiveMessage(ReceiveWait) shouldBe (MetricRecorded(ExpectedCount))
+    global.streamActorsProbe.receiveMessage(ReceiveWait) shouldBe MetricRecorded(ExpectedCount)
   }
 
   it should "publish amount of running streams" in testCaseSetupContext { implicit setup => implicit c =>
@@ -147,8 +147,8 @@ class AkkaStreamMonitoringTest
 
     sut ! StartStreamCollection(refs.toSet)
 
-    global.runningStreamsProbe.receiveMessage(2.seconds) shouldBe (MetricRecorded(ExpectedCount))
-    global.streamActorsProbe.receiveMessage(2.seconds) shouldBe (MetricRecorded(ExpectedCount * ActorPerStream))
+    global.runningStreamsProbe.receiveMessage(2.seconds) shouldBe MetricRecorded(ExpectedCount)
+    global.streamActorsProbe.receiveMessage(2.seconds) shouldBe MetricRecorded(ExpectedCount * ActorPerStream)
   }
 
   it should "collect amount of messages processed, demand and operators" in testCaseSetupContext {

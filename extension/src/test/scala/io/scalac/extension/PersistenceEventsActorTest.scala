@@ -82,7 +82,7 @@ class PersistenceEventsActorTest
     Thread.sleep(1050)
     recoveryFinished(expectedLabels)
     expectMetricsUpdates(monitor, 1)
-    monitor.boundLabels should have size (1)
+    monitor.boundLabels should have size 1
     val probes = monitor.boundLabels.flatMap(monitor.probes).loneElement
     probes.recoveryTotalProbe.receiveMessage() should be(Inc(1L))
     inside(probes.recoveryTimeProbe.receiveMessage()) { case MetricRecorded(value) =>
@@ -97,7 +97,7 @@ class PersistenceEventsActorTest
     Thread.sleep(1050)
     persistEventFinished(seqNo, expectedLabels)
     expectMetricsUpdates(monitor, 1)
-    monitor.boundLabels should have size (1)
+    monitor.boundLabels should have size 1
     val probes = monitor.boundLabels.flatMap(monitor.probes).loneElement
     probes.persistentEventTotalProbe.receiveMessage() should be(Inc(1L))
     inside(probes.persistentEventProbe.receiveMessage()) { case MetricRecorded(value) =>
@@ -114,7 +114,7 @@ class PersistenceEventsActorTest
       } snapshotCreated(seqNo, expectedLabels)
 
       expectMetricsUpdates(monitor, seqNumbers.size)
-      monitor.boundLabels should have size (1)
+      monitor.boundLabels should have size 1
       monitor.binds should be(1)
 
       val probes = monitor.boundLabels.flatMap(monitor.probes).loneElement
@@ -135,11 +135,11 @@ class PersistenceEventsActorTest
     } snapshotCreated(seqNo, labels)
 
     expectMetricsUpdates(monitor, seqNumbers.size * expectedLabels.size)
-    monitor.boundLabels should have size (expectedLabels.size)
+    monitor.boundLabels should have size expectedLabels.size
     monitor.binds should be(expectedLabels.size)
 
     val allProbes = monitor.boundLabels.flatMap(monitor.probes)
-    allProbes should have size (expectedLabels.size)
+    allProbes should have size expectedLabels.size
     forAll(allProbes)(probes => forAll(probes.snapshotProbe.receiveMessages(seqNumbers.size))(_ should be(Inc(1L))))
   }
 
@@ -159,11 +159,11 @@ class PersistenceEventsActorTest
       } persistEventFinished(seqNo, labels)
 
       expectMetricsUpdates(monitor, expectedLabels.size)
-      monitor.boundLabels should have size (expectedLabels.size)
+      monitor.boundLabels should have size expectedLabels.size
       monitor.binds should be(expectedLabels.size)
 
       val allProbes = monitor.boundLabels.flatMap(monitor.probes)
-      allProbes should have size (expectedLabels.size)
+      allProbes should have size expectedLabels.size
       forAll(allProbes) { probes =>
         probes.persistentEventTotalProbe.receiveMessage() should be(Inc(1L))
         inside(probes.persistentEventProbe.receiveMessage()) { case MetricRecorded(value) =>
@@ -199,11 +199,11 @@ class PersistenceEventsActorTest
     }
 
     expectMetricsUpdates(monitor, expectedLabels.size * (1 + seqNbs.size * 2))
-    monitor.boundLabels should have size (expectedLabels.size)
+    monitor.boundLabels should have size expectedLabels.size
     monitor.binds should be(expectedLabels.size)
 
     val allProbes = monitor.boundLabels.flatMap(monitor.probes)
-    allProbes should have size (expectedLabels.size)
+    allProbes should have size expectedLabels.size
     forAll(allProbes) { probes =>
       forAll(probes.persistentEventTotalProbe.receiveMessages(seqNbs.size))(_ should be(Inc(1L)))
       forAll(probes.persistentEventProbe.receiveMessages(seqNbs.size))(mr =>

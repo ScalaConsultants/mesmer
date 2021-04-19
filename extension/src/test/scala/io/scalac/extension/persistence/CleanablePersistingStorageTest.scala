@@ -43,8 +43,8 @@ class CleanablePersistingStorageTest extends AnyFlatSpec with Matchers with Test
 
     sut.clean()
 
-    buffer should have size (freshEvents.size)
-    buffer.values should contain theSameElementsAs (freshEvents)
+    buffer should have size freshEvents.size
+    buffer.values should contain theSameElementsAs freshEvents
   }
 
 }

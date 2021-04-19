@@ -72,7 +72,7 @@ class AccountRoutesTest
     } { case (uuid, routes) =>
       Get(s"/api/v1/account/$uuid/balance") ~> routes ~> check {
         status shouldEqual StatusCodes.OK
-        responseAs[Account] shouldEqual (Account(uuid, currentBalance))
+        responseAs[Account] shouldEqual Account(uuid, currentBalance)
       }
     }
   }
@@ -86,7 +86,7 @@ class AccountRoutesTest
     } { case (uuid, routes) =>
       Put(s"/api/v1/account/$uuid/withdraw/$withdrawAmount") ~> routes ~> check {
         status shouldEqual StatusCodes.Created
-        responseAs[Account] shouldEqual (Account(uuid, resultBalance))
+        responseAs[Account] shouldEqual Account(uuid, resultBalance)
       }
     }
   }
@@ -111,7 +111,7 @@ class AccountRoutesTest
     } { case (uuid, routes) =>
       Put(s"/api/v1/account/$uuid/deposit/$depositAmount") ~> routes ~> check {
         status shouldEqual StatusCodes.Created
-        responseAs[Account] shouldEqual (Account(uuid, depositAmount))
+        responseAs[Account] shouldEqual Account(uuid, depositAmount)
       }
     }
   }

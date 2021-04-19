@@ -57,7 +57,7 @@ class ClusterSelfNodeEventsActorTest extends AsyncFlatSpec with SingleNodeCluste
     system.systemActorOf(ClusterSelfNodeEventsActor(monitor), "sut")
     monitor.reachableNodesProbe.within(5 seconds) {
       val probe = monitor.reachableNodesProbe
-      probe.receiveMessage() shouldEqual (Inc(1L))
+      probe.receiveMessage() shouldEqual Inc(1L)
       probe.expectNoMessage(probe.remaining)
     }
     monitor.unreachableNodesProbe.expectNoMessage()

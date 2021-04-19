@@ -119,9 +119,9 @@ lazy val example = (project in file("example"))
       val properties = System.getProperties
 
       import scala.collection.JavaConverters._
-      (for {
+      for {
         (key, value) <- properties.asScala.toList if value.nonEmpty
-      } yield s"-D$key=$value")
+      } yield s"-D$key=$value"
     },
     commands += runWithAgent,
     Universal / mappings += {

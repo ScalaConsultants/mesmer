@@ -39,7 +39,7 @@ class AgentTest extends AnyFlatSpec with Matchers {
     }
     val expectedResult = LoadingResult("some.class", "other.class")
     val sut            = Agent(AgentInstrumentation("sut", supportedModules)(returning(expectedResult)))
-    sut.installOn(builder, instrumentation, modules) shouldBe (expectedResult)
+    sut.installOn(builder, instrumentation, modules) shouldBe expectedResult
   }
 
   it should "not execute instrumenting when no version match" in test { case (instrumentation, builder) =>

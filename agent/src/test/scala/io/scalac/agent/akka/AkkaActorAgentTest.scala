@@ -317,7 +317,7 @@ class AkkaActorAgentTest
       case StashMeasurement(`size`, `path`) => FishingOutcome.Complete
       case _                                => FishingOutcome.ContinueAndIgnore
     }
-    msg.size should not be (0)
+    msg.size should not be 0
   }
 
   def testWithContextAndActor[T](

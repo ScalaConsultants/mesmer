@@ -33,8 +33,8 @@ class MutablePersistStorageTest extends AnyFlatSpec with Matchers with TestOps {
     }
     events.foreach(sut.persistEventStarted)
 
-    buffer should have size (events.size)
-    buffer.values should contain theSameElementsAs (events)
+    buffer should have size events.size
+    buffer.values should contain theSameElementsAs events
   }
 
   it should "remove started event from internal buffer when corresponding finish event is fired" in test {
@@ -63,7 +63,7 @@ class MutablePersistStorageTest extends AnyFlatSpec with Matchers with TestOps {
       finished.foreach(sut.persistEventFinished)
 
       buffer should have size (events.size - finished.size)
-      buffer.values should contain theSameElementsAs (events.drop(5))
+      buffer.values should contain theSameElementsAs events.drop(5)
   }
 
   it should "return same storage instance with correct latency" in test { case (_, sut) =>
@@ -84,7 +84,7 @@ class MutablePersistStorageTest extends AnyFlatSpec with Matchers with TestOps {
           startTimestamp.plus(expectedLatency.millis)
         )
       )
-    resultStorage should be theSameInstanceAs (sut)
+    resultStorage should be theSameInstanceAs sut
     latency should be(expectedLatency)
   }
 }

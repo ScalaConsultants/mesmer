@@ -46,7 +46,7 @@ class CachingMonitorTest extends AnyFlatSpec with Matchers with Inspectors {
 
     labels.foreach(sut.bind)
 
-    testBindable.binds should contain theSameElementsInOrderAs (labels)
+    testBindable.binds should contain theSameElementsInOrderAs labels
   }
 
   it should "return same instance when keys repeat" in test { testBindable =>
@@ -55,10 +55,10 @@ class CachingMonitorTest extends AnyFlatSpec with Matchers with Inspectors {
     val labels    = List.fill(10)(label)
     val instances = labels.map(sut.bind)
 
-    testBindable.binds should have size (1)
+    testBindable.binds should have size 1
     testBindable.binds shouldBe List(label)
 
-    forAll(instances.tail)(_ should be theSameInstanceAs (instances.head))
+    forAll(instances.tail)(_ should be theSameInstanceAs instances.head)
   }
 
   it should "evict elements when cache limit is hit" in test { testBindable =>
@@ -69,8 +69,8 @@ class CachingMonitorTest extends AnyFlatSpec with Matchers with Inspectors {
     val instances = labels.map(sut.bind)
     instances.head.unbound shouldBe true
     forAll(instances.tail)(_.unbound shouldBe false)
-    sut.cachedMonitors should have size (cacheSize)
-    sut.cachedMonitors.keys should contain theSameElementsAs (labels.tail)
+    sut.cachedMonitors should have size cacheSize
+    sut.cachedMonitors.keys should contain theSameElementsAs labels.tail
   }
 
   it should "evict monitors in LRU manner" in test { testBindable =>
@@ -83,7 +83,7 @@ class CachingMonitorTest extends AnyFlatSpec with Matchers with Inspectors {
     sut.bind(firstLabel)
     //
     forAll(instances)(_.unbound shouldBe false)
-    sut.cachedMonitors.keys should contain theSameElementsAs (labels)
+    sut.cachedMonitors.keys should contain theSameElementsAs labels
     val additionalInstance = sut.bind(additionalLabel)
 
     secondInstance.unbound shouldBe true
