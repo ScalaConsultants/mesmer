@@ -61,6 +61,10 @@ object AkkaActorAgent extends InstrumentModuleFactory {
     instrument(hierarchy("akka.actor.typed.internal.StashBufferImpl"))
       .visit[StashBufferAdvice]("stash")
 
+  private val localActorRefProviderInstrumentation =
+    instrument("akka.actor.LocalActorRefProvider")
+      .visit[LocalActorRefProviderAdvice]("actorOf")
+
   val agent: Agent = Agent(
     mailboxTimeTimestampInstrumentation,
     mailboxTimeSendMessageInstrumentation,
@@ -68,7 +72,8 @@ object AkkaActorAgent extends InstrumentModuleFactory {
     actorCellInstrumentation,
     actorInstrumentation,
     abstractSupervisionInstrumentation,
-    stashBufferImplementation
+    stashBufferImplementation,
+    localActorRefProviderInstrumentation
   ) ++ classicStashInstrumentationAgent
 
 }

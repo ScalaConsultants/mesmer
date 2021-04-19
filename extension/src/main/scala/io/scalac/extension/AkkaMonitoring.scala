@@ -1,6 +1,7 @@
 package io.scalac.extension
 import akka.actor.ExtendedActorSystem
 import akka.actor.typed._
+import akka.actor.typed.receptionist.Receptionist.Register
 import akka.actor.typed.scaladsl.Behaviors
 import akka.cluster.Cluster
 import akka.util.Timeout
@@ -10,7 +11,7 @@ import scala.language.postfixOps
 import scala.reflect.ClassTag
 import scala.util.Try
 
-import io.scalac.core.actor.CleanableActorMetricsStorage
+import io.scalac.core.actor.MutableActorMetricsStorage
 import io.scalac.core.model.Module
 import io.scalac.core.model.SupportedVersion
 import io.scalac.core.model._
@@ -24,7 +25,9 @@ import io.scalac.extension.http.CleanableRequestStorage
 import io.scalac.extension.metric.CachingMonitor
 import io.scalac.extension.persistence.CleanablePersistingStorage
 import io.scalac.extension.persistence.CleanableRecoveryStorage
+import io.scalac.extension.service.ActorTreeService
 import io.scalac.extension.service.CachingPathService
+import io.scalac.extension.service.actorTreeServiceKey
 import io.scalac.extension.upstream.OpenTelemetryClusterMetricsMonitor
 import io.scalac.extension.upstream.OpenTelemetryHttpMetricsMonitor
 import io.scalac.extension.upstream.OpenTelemetryPersistenceMetricMonitor
@@ -76,7 +79,15 @@ object AkkaMonitoring extends ExtensionId[AkkaMonitoring] {
               system.log.info("Supported version of {} detected, but auto-start is set to false", module.name)
         )
 
-    initModule(akkaActorModule, modulesSupport.akkaActor, config.autoStart.akkaActor, _.startActorMonitor())
+    initModule(
+      akkaActorModule,
+      modulesSupport.akkaActor,
+      config.autoStart.akkaActor,
+      am => {
+        am.startActorMonitor()
+        am.startStreamMonitor()
+      }
+    )
     initModule(akkaHttpModule, modulesSupport.akkaHttp, config.autoStart.akkaHttp, _.startHttpEventListener())
     initModule(
       akkaClusterTypedModule,
@@ -129,38 +140,66 @@ final class AkkaMonitoring(private val system: ActorSystem[_], val config: AkkaM
       nodeName => Some(nodeName.toNode)
     )
 
+  def startActorTreeService(): Unit = {
+    val actorSystemMonitor = OpenTelemetryActorSystemMonitor(
+      meter,
+      actorSystemConfig
+    )
+
+    val serviceRef = system.systemActorOf(
+      Behaviors
+        .supervise(
+          ActorTreeService(
+            actorSystemMonitor,
+            clusterNodeName
+          )
+        )
+        .onFailure(SupervisorStrategy.restart),
+      "mesmerActorTreeService"
+    )
+
+    // publish service
+    system.receptionist ! Register(actorTreeServiceKey, serviceRef.narrow[ActorTreeService.Command])
+  }
+
   def startActorMonitor(): Unit = {
     log.debug("Starting actor monitor")
 
-    val streamOperatorMonitor = OpenTelemetryStreamOperatorMetricsMonitor(meter, actorSystemConfig)
-
     val actorMonitor = OpenTelemetryActorMetricsMonitor(meter, actorSystemConfig)
+
+    system.systemActorOf(
+      Behaviors
+        .supervise(
+          ActorEventsMonitorActor(
+            actorMonitor,
+            clusterNodeName,
+            ExportInterval,
+            () => MutableActorMetricsStorage.empty
+          )
+        )
+        .onFailure(SupervisorStrategy.restart),
+      "mesmerActorMonitor",
+      dispatcherSelector
+    )
+  }
+
+  def startStreamMonitor(): Unit = {
+    log.debug("Start stream monitor")
+
+    val streamOperatorMonitor = OpenTelemetryStreamOperatorMetricsMonitor(meter, actorSystemConfig)
 
     val streamMonitor = CachingMonitor(
       OpenTelemetryStreamMetricsMonitor(meter, actorSystemConfig),
       CachingConfig.fromConfig(actorSystemConfig, ModulesSupport.akkaStreamModule)
     )
 
-    val streamMonitorRef = system.systemActorOf(
+    system.systemActorOf(
       Behaviors
         .supervise(
           AkkaStreamMonitoring(streamOperatorMonitor, streamMonitor, clusterNodeName)
         )
         .onFailure(SupervisorStrategy.restart),
-      "streamMonitor"
-    )
-
-    system.systemActorOf(
-      Behaviors
-        .supervise(
-          WithSelfCleaningState
-            .clean(CleanableActorMetricsStorage.withConfig(config.cleaning))
-            .every(config.cleaning.every)(storage =>
-              ActorEventsMonitorActor(actorMonitor, clusterNodeName, ExportInterval, storage, streamMonitorRef)
-            )
-        )
-        .onFailure(SupervisorStrategy.restart),
-      "actorMonitor",
+      "mesmerStreamMonitor",
       dispatcherSelector
     )
   }
