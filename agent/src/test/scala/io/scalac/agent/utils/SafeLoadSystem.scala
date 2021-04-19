@@ -1,5 +1,6 @@
 package io.scalac.agent.utils
 
+import akka.actor.ExtendedActorSystem
 import akka.actor.testkit.typed.scaladsl.TestProbe
 import akka.actor.typed.ActorSystem
 import akka.actor.typed.scaladsl.adapter._
@@ -20,12 +21,15 @@ trait SafeLoadSystem extends BeforeAndAfterAll {
 
   protected def config: Config = ConfigFactory.load("application-test")
 
+  //dsl
+  def createTestProbe[M]: TestProbe[M] = TestProbe[M]()
+
+  def classicSystem: ExtendedActorSystem = system.classicSystem.asInstanceOf[ExtendedActorSystem]
+
   override protected def beforeAll(): Unit = {
     super.beforeAll()
     system = classic.ActorSystem("test-system", config).toTyped // ensure adapter is in use
   }
-
-  def createTestProbe[M]: TestProbe[M] = TestProbe[M]()
 
   override protected def afterAll(): Unit = {
     system.terminate()

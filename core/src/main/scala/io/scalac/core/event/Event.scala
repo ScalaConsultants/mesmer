@@ -6,16 +6,19 @@ import io.scalac.core.model.Tag.SubStreamName
 import io.scalac.core.model._
 import io.scalac.core.util.Timestamp
 
-sealed trait AbstractEvent { self =>
+sealed trait AbstractEvent extends Any { self =>
   type Service >: self.type
 }
 
-sealed trait ActorEvent extends AbstractEvent {
+sealed trait ActorEvent extends Any with AbstractEvent {
   type Service = ActorEvent
 }
 
 object ActorEvent {
-  final case class StashMeasurement(size: Int, path: ActorPath) extends ActorEvent
+
+  // Actor termination will be extracted with watching facility
+  final case class ActorCreated(details: ActorRefDetails) extends AnyVal with ActorEvent
+  final case class TagsSet(details: ActorRefDetails)      extends AnyVal with ActorEvent
 }
 
 sealed trait PersistenceEvent extends AbstractEvent {
@@ -56,10 +59,6 @@ object HttpEvent {
   case class RequestFailed(id: String, timestamp: Timestamp)                              extends RequestEvent
 }
 
-final case class TagEvent(ref: ActorRef, tag: Tag) extends AbstractEvent {
-  override type Service = TagEvent
-}
-
 sealed trait StreamEvent extends AbstractEvent {
   type Service = StreamEvent
 }
@@ -75,5 +74,4 @@ object StreamEvent {
    * @param shellInfo
    */
   final case class LastStreamStats(ref: ActorRef, streamName: SubStreamName, shellInfo: ShellInfo) extends StreamEvent
-
 }

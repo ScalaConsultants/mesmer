@@ -1,12 +1,14 @@
-package io.scalac.core.util.probe
+package io.scalac.extension.util.probe
 
 import akka.actor.testkit.typed.scaladsl.TestProbe
 import akka.actor.typed.ActorSystem
 
-import io.scalac.core.util.probe.BoundTestProbe.MetricObserverCommand
+import io.scalac.core.util.probe.Collected
+import io.scalac.core.util.probe.ObserverCollector
 import io.scalac.extension.metric.ActorMetricMonitor
 import io.scalac.extension.metric.ActorMetricMonitor._
 import io.scalac.extension.metric.MetricObserver
+import io.scalac.extension.util.probe.BoundTestProbe.MetricObserverCommand
 
 final case class ActorMonitorTestProbe(
   mailboxSizeProbe: TestProbe[MetricObserverCommand[Labels]],

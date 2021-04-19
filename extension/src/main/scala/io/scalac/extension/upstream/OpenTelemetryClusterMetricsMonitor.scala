@@ -22,18 +22,18 @@ object OpenTelemetryClusterMetricsMonitor {
   object MetricNames {
     def default: MetricNames =
       MetricNames(
-        "shards_per_region",
-        "entities_per_region",
-        "shard_regions_on_node",
-        "entities_on_node",
-        "reachable_nodes",
-        "unreachable_nodes",
-        "node_down_total"
+        "akka_cluster_shards_per_region",
+        "akka_cluster_entities_per_region",
+        "akka_cluster_shard_regions_on_node",
+        "akka_cluster_entities_on_node",
+        "akka_cluster_reachable_nodes",
+        "akka_cluster_unreachable_nodes",
+        "akka_cluster_node_down_total"
       )
 
     def fromConfig(config: Config): MetricNames = {
       import io.scalac.extension.config.ConfigurationUtils._
-      val defaultCached = default
+      lazy val defaultCached = default
 
       config
         .tryValue("io.scalac.akka-monitoring.metrics.cluster-metrics")(
@@ -86,7 +86,7 @@ object OpenTelemetryClusterMetricsMonitor {
     new OpenTelemetryClusterMetricsMonitor(meter, MetricNames.fromConfig(config))
 }
 
-class OpenTelemetryClusterMetricsMonitor(meter: Meter, metricNames: MetricNames) extends ClusterMetricsMonitor {
+final class OpenTelemetryClusterMetricsMonitor(meter: Meter, metricNames: MetricNames) extends ClusterMetricsMonitor {
 
   private val shardsPerRegionRecorder = new LongMetricObserverBuilderAdapter[ClusterMetricsMonitor.Labels](
     meter

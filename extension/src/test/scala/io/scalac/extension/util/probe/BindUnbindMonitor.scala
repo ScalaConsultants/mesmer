@@ -1,4 +1,4 @@
-package io.scalac.core.util.probe
+package io.scalac.extension.util.probe
 
 import java.util.concurrent.atomic.AtomicInteger
 

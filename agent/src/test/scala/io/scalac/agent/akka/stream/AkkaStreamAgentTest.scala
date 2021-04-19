@@ -26,11 +26,16 @@ import scala.concurrent.duration._
 import io.scalac.agent.utils.InstallAgent
 import io.scalac.agent.utils.SafeLoadSystem
 import io.scalac.core.akka.model.PushMetrics
+import io.scalac.core.config.AkkaPatienceConfig
+import io.scalac.core.event.ActorEvent
+import io.scalac.core.event.ActorEvent.TagsSet
 import io.scalac.core.event.Service
 import io.scalac.core.event.StreamEvent
 import io.scalac.core.event.StreamEvent.LastStreamStats
 import io.scalac.core.event.StreamEvent.StreamInterpreterStats
-import io.scalac.core.event.TagEvent
+import io.scalac.core.model.ActorRefDetails
+import io.scalac.core.model.Tag.stream
+import io.scalac.core.util.TestBehaviors.Pass
 import io.scalac.core.util.TestCase.CommonMonitorTestFactory
 
 class AkkaStreamAgentTest
@@ -45,19 +50,15 @@ class AkkaStreamAgentTest
     with ScalaFutures
     with Futures
     with Inside
-    with CommonMonitorTestFactory {
+    with CommonMonitorTestFactory
+    with AkkaPatienceConfig {
 
-  protected def createMonitorBehavior(implicit context: Context): Behavior[_] = Behaviors.setup[StreamEvent] {
-    actorContext =>
-      actorContext.system.receptionist ! Register(Service.streamService.serviceKey, actorContext.self)
+  override type Command = StreamEvent
 
-      Behaviors.receiveMessage[StreamEvent] { event =>
-        context.monitor.ref ! event
-        Behaviors.same
-      }
-  }
+  protected def createMonitorBehavior(implicit context: Context): Behavior[Command] =
+    Pass.registerService(Service.streamService.serviceKey, monitor.ref)
 
-  protected val serviceKey: ServiceKey[_] = Service.streamService.serviceKey
+  protected val serviceKey: ServiceKey[Command] = Service.streamService.serviceKey
 
   type Monitor = TestProbe[StreamEvent]
   protected def createMonitor(implicit system: ActorSystem[_]): Monitor = TestProbe()
@@ -68,30 +69,56 @@ class AkkaStreamAgentTest
   def clear(implicit refService: ActorStreamRefService): Unit                     = refService.clear()
 
   override def beforeAll(): Unit = {
-    super.beforeAll() // order is important!
+    super.beforeAll() // order is important! actor system must be created
     streamService = new ActorStreamRefService()
+    streamService.start()
   }
 
   after {
     clear
   }
 
-  final class ActorStreamRefService {
-    private val probe = TestProbe[TagEvent]("stream_refs")
+  final class ActorStreamRefService(implicit system: ActorSystem[_]) {
+    private val probe = TestProbe[ActorRef]("stream_refs")
 
     def actors(number: Int): Seq[ActorRef] = probe
       .within(2.seconds) {
         val messages = probe.receiveMessages(number)
         probe.expectNoMessage(probe.remaining)
-        messages.map(_.ref)
+        messages
       }
+
+    sealed trait Command
+
+    private case class Ref(ref: ActorRef) extends Command
+
+    private case object Filter extends Command
 
     /**
      * Make sure no more actors are created
      */
     def clear(): Unit = probe.expectNoMessage(2.seconds)
 
-    system.receptionist ! Register(Service.tagService.serviceKey, probe.ref)
+    def start(): Unit = system
+      .systemActorOf(
+        Behaviors.setup[Command] { context =>
+          context.system.receptionist ! Register(
+            Service.actorService.serviceKey,
+            context.messageAdapter[ActorEvent] {
+              case TagsSet(ActorRefDetails(ref, tags)) if tags.contains(stream) =>
+                Ref(ref)
+              case _ => Filter
+            }
+          )
+          Behaviors.receiveMessage {
+            case Ref(ref) =>
+              probe.ref ! ref
+              Behaviors.same
+            case _ => Behaviors.same
+          }
+        },
+        "akka-stream-filter-actor"
+      )
   }
 
   def offerMany[T](input: SourceQueue[T], elements: List[T])(implicit ec: ExecutionContext): Future[Done] = {
