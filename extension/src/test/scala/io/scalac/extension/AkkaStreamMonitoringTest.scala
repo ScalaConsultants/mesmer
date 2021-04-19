@@ -78,7 +78,7 @@ class AkkaStreamMonitoringTest
   private final val FlowName       = "map"
   private final val StagesNames    = Seq(SourceName, SinkName, FlowName)
 
-  override protected def createMonitor(implicit system: ActorSystem[_]): Monitor = {
+  protected def createMonitor(implicit system: ActorSystem[_]): Monitor = {
     val collector = new ScheduledCollectorImpl(OperationsPing)
     (
       probe.StreamOperatorMonitorTestProbe(collector),
@@ -146,7 +146,7 @@ class AkkaStreamMonitoringTest
       reply ! refs
     }
 
-    global.streamActorsProbe.receiveMessage(ReceiveWait) shouldBe (MetricRecorded(ExpectedCount))
+    global.streamActorsProbe.receiveMessage(ReceiveWait) shouldBe MetricRecorded(ExpectedCount)
   }
 
   it should "publish amount of running streams" in testCaseSetupContext { implicit setup => implicit c =>
@@ -164,8 +164,8 @@ class AkkaStreamMonitoringTest
       reply ! refs
     }
 
-    global.runningStreamsProbe.receiveMessage(2.seconds) shouldBe (MetricRecorded(ExpectedCount))
-    global.streamActorsProbe.receiveMessage(2.seconds) shouldBe (MetricRecorded(ExpectedCount * ActorPerStream))
+    global.runningStreamsProbe.receiveMessage(2.seconds) shouldBe MetricRecorded(ExpectedCount)
+    global.streamActorsProbe.receiveMessage(2.seconds) shouldBe MetricRecorded(ExpectedCount * ActorPerStream)
   }
 
   it should "collect amount of messages processed, demand and operators" in testCaseSetupContext {

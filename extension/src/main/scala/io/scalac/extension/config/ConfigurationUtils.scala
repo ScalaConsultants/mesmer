@@ -17,9 +17,9 @@ object ConfigurationUtils {
       path: String
     )(extractor: Config => String => T): Either[String, T] =
       Try(Function.uncurried(extractor)(value, path)).toEither.left.map {
-        case _: ConfigException.Missing => s"Configuration for ${path}"
+        case _: ConfigException.Missing => s"Configuration for $path"
         case _: ConfigException.WrongType =>
-          s"${path} is not type of ${classTag[T].runtimeClass}"
+          s"$path is not type of ${classTag[T].runtimeClass}"
       }
   }
 

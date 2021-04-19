@@ -20,7 +20,7 @@ object ModuleInfo {
         splitted @ Array(ModulePrefix, module) <- Option(key.split('.')) if splitted.length == 2
         versionRaw                             <- properties.get(key)
         version                                <- Version(versionRaw)
-      } yield (Module(module) -> version)
+      } yield Module(module) -> version
     }.toMap
 
   private def fromSystemProperties(): Modules =

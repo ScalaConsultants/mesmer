@@ -19,8 +19,6 @@ import java.util.stream.Stream;
 @Threads(1)
 public class PathServiceBench {
 
-    public static final int iters = 10;
-
 
     public List<String> urls = null;
 

@@ -9,7 +9,7 @@ import net.bytebuddy.asm.Advice.Argument
 import net.bytebuddy.asm.Advice.OnMethodExit
 import net.bytebuddy.asm.Advice.This
 
-import io.scalac.core.actor.ActorCellDecorator
+import io.scalac.extension.actor.ActorCellDecorator
 
 class StashConstructorAdvice
 object StashConstructorAdvice {

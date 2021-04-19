@@ -26,12 +26,12 @@ import io.scalac.core.util.Timestamp
 import io.scalac.core.util._
 import io.scalac.extension.http.MutableRequestStorage
 import io.scalac.extension.metric.CachingMonitor
-import io.scalac.extension.metric.HttpConnectionMetricMonitor
-import io.scalac.extension.metric.HttpMetricMonitor
+import io.scalac.extension.metric.HttpConnectionMetricsMonitor
+import io.scalac.extension.metric.HttpMetricsMonitor
 import io.scalac.extension.util.IdentityPathService
 import io.scalac.extension.util.probe.BoundTestProbe._
 import io.scalac.extension.util.probe.HttpConnectionMetricsTestProbe
-import io.scalac.extension.util.probe.HttpMetricsTestProbe
+import io.scalac.extension.util.probe.HttpMonitorTestProbe
 
 class HttpEventsActorTest
     extends ScalaTestWithActorTestKit(TestConfig.localActorProvider)
@@ -48,7 +48,7 @@ class HttpEventsActorTest
 
   type Monitor = MonitorImpl
   type Command = HttpEventsActor.Event
-  case class MonitorImpl(request: HttpMetricsTestProbe, connection: HttpConnectionMetricsTestProbe)
+  case class MonitorImpl(request: HttpMonitorTestProbe, connection: HttpConnectionMetricsTestProbe)
 
   protected val serviceKey: ServiceKey[_] = httpServiceKey
 
@@ -63,15 +63,15 @@ class HttpEventsActorTest
   }
 
   protected def createMonitor(implicit s: ActorSystem[_]): Monitor =
-    MonitorImpl(new HttpMetricsTestProbe()(s), new HttpConnectionMetricsTestProbe()(s))
+    MonitorImpl(new HttpMonitorTestProbe()(s), new HttpConnectionMetricsTestProbe()(s))
 
-  def connectionStarted(labels: HttpConnectionMetricMonitor.Labels): Unit =
+  def connectionStarted(labels: HttpConnectionMetricsMonitor.Labels): Unit =
     EventBus(system).publishEvent(ConnectionStarted(labels.interface, labels.port))
 
-  def connectionCompleted(labels: HttpConnectionMetricMonitor.Labels): Unit =
+  def connectionCompleted(labels: HttpConnectionMetricsMonitor.Labels): Unit =
     EventBus(system).publishEvent(ConnectionCompleted(labels.interface, labels.port))
 
-  def requestStarted(id: String, labels: HttpMetricMonitor.Labels): Unit =
+  def requestStarted(id: String, labels: HttpMetricsMonitor.Labels): Unit =
     EventBus(system).publishEvent(RequestStarted(id, Timestamp.create(), labels.path, labels.method))
 
   def requestCompleted(id: String, status: model.Status): Unit =
@@ -79,8 +79,8 @@ class HttpEventsActorTest
 
   "HttpEventsActor" should "collect metrics for single request" in testCase { implicit c =>
     val status: model.Status     = "200"
-    val expectedConnectionLabels = HttpConnectionMetricMonitor.Labels(None, "0.0.0.0", 8080)
-    val expectedRequestLabels    = HttpMetricMonitor.Labels(None, "/api/v1/test", "GET", status)
+    val expectedConnectionLabels = HttpConnectionMetricsMonitor.Labels(None, "0.0.0.0", 8080)
+    val expectedRequestLabels    = HttpMetricsMonitor.Labels(None, "/api/v1/test", "GET", status)
 
     connectionStarted(expectedConnectionLabels)
     eventually(monitor.connection.boundSize shouldBe 1)(patienceConfig, implicitly, implicitly)
@@ -109,13 +109,13 @@ class HttpEventsActorTest
 
   it should "reuse monitors for same labels" in testCaseWith(_.withCaching) { implicit c =>
     val expectedConnectionLabels = List(
-      HttpConnectionMetricMonitor.Labels(None, "0.0.0.0", 8080),
-      HttpConnectionMetricMonitor.Labels(None, "0.0.0.0", 8081)
+      HttpConnectionMetricsMonitor.Labels(None, "0.0.0.0", 8080),
+      HttpConnectionMetricsMonitor.Labels(None, "0.0.0.0", 8081)
     )
 
     val expectedRequestLabels = List(
-      HttpMetricMonitor.Labels(None, "/api/v1/test", "GET", "200"),
-      HttpMetricMonitor.Labels(None, "/api/v2/test", "POST", "201")
+      HttpMetricsMonitor.Labels(None, "/api/v1/test", "GET", "200"),
+      HttpMetricsMonitor.Labels(None, "/api/v2/test", "POST", "201")
     )
     val requestCount = 10
 
@@ -139,10 +139,10 @@ class HttpEventsActorTest
   }
 
   it should "collect metric for several concurrent requests" in testCaseWith(_.withCaching) { implicit c =>
-    val connectionLabels = List.tabulate(10)(i => HttpConnectionMetricMonitor.Labels(None, "0.0.0.0", 8080 + i))
+    val connectionLabels = List.tabulate(10)(i => HttpConnectionMetricsMonitor.Labels(None, "0.0.0.0", 8080 + i))
     connectionLabels.foreach(connectionStarted)
 
-    val requestLabels = List.fill(10)(createUniqueId).map(id => HttpMetricMonitor.Labels(None, id, "GET", "204"))
+    val requestLabels = List.fill(10)(createUniqueId).map(id => HttpMetricsMonitor.Labels(None, id, "GET", "204"))
     val requests      = requestLabels.map(l => createUniqueId -> l).toMap
     requests.foreach(Function.tupled(requestStarted))
     Thread.sleep(1050)

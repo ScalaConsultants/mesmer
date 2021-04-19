@@ -23,7 +23,7 @@ trait EventBus extends Extension {
 
 object EventBus extends ExtensionId[EventBus] {
 
-  override def createExtension(system: ActorSystem[_]): EventBus = {
+  def createExtension(system: ActorSystem[_]): EventBus = {
     implicit val s                = system
     implicit val timeout: Timeout = 1 second
     implicit val ec               = system.executionContext

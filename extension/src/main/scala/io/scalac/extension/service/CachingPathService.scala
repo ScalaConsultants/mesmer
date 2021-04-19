@@ -18,7 +18,7 @@ class CachingPathService(cachingConfig: CachingConfig) extends PathService {
       this.size() > cachingConfig.maxEntries
   }.asScala
 
-  override def template(path: Path): Path = {
+  def template(path: Path): Path = {
 
     @tailrec
     def replaceInPath(offset: Int, replacements: Vector[(Int, Int, String)]): Vector[(Int, Int, String)] = {
@@ -35,7 +35,7 @@ class CachingPathService(cachingConfig: CachingConfig) extends PathService {
 
           case subs if numberRegex.findPrefixOf(subs).isDefined =>
             replaceInPath(nextIndex + 1, replacements :+ (offset, nextIndex, numberTemplate))
-          case subs if (subs.length == 36 && uuidRegex.findPrefixOf(subs).isDefined) =>
+          case subs if subs.length == 36 && uuidRegex.findPrefixOf(subs).isDefined =>
             replaceInPath(nextIndex + 1, replacements :+ (offset, nextIndex, uuidTemplate))
           case subs =>
             cache.put(subs, ())

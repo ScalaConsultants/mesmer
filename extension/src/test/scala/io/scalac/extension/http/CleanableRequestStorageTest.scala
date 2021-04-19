@@ -43,7 +43,7 @@ class CleanableRequestStorageTest extends AnyFlatSpec with Matchers with TestOps
 
     sut.clean()
 
-    buffer should have size (freshEvents.size)
-    buffer.values should contain theSameElementsAs (freshEvents)
+    buffer should have size freshEvents.size
+    buffer.values should contain theSameElementsAs freshEvents
   }
 }

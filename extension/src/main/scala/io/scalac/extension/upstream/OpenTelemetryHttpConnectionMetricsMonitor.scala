@@ -3,14 +3,14 @@ package io.scalac.extension.upstream
 import com.typesafe.config.Config
 import io.opentelemetry.api.metrics.Meter
 
-import io.scalac.extension.metric.HttpConnectionMetricMonitor
+import io.scalac.extension.metric.HttpConnectionMetricsMonitor
 import io.scalac.extension.metric.RegisterRoot
 import io.scalac.extension.metric.UpDownCounter
 import io.scalac.extension.upstream.opentelemetry._
 
-import OpenTelemetryHttpConnectionMetricMonitor.MetricNames
+import OpenTelemetryHttpConnectionMetricsMonitor.MetricNames
 
-object OpenTelemetryHttpConnectionMetricMonitor {
+object OpenTelemetryHttpConnectionMetricsMonitor {
   case class MetricNames(connectionTotal: String)
 
   object MetricNames {
@@ -34,14 +34,14 @@ object OpenTelemetryHttpConnectionMetricMonitor {
         .getOrElse(defaultCached)
     }
   }
-  def apply(meter: Meter, config: Config): OpenTelemetryHttpConnectionMetricMonitor =
-    new OpenTelemetryHttpConnectionMetricMonitor(meter, MetricNames.fromConfig(config))
+  def apply(meter: Meter, config: Config): OpenTelemetryHttpConnectionMetricsMonitor =
+    new OpenTelemetryHttpConnectionMetricsMonitor(meter, MetricNames.fromConfig(config))
 }
 
-class OpenTelemetryHttpConnectionMetricMonitor(meter: Meter, metricNames: MetricNames)
-    extends HttpConnectionMetricMonitor {
+class OpenTelemetryHttpConnectionMetricsMonitor(meter: Meter, metricNames: MetricNames)
+    extends HttpConnectionMetricsMonitor {
 
-  import HttpConnectionMetricMonitor._
+  import HttpConnectionMetricsMonitor._
 
   private val connectionTotalCounter = meter
     .longUpDownCounterBuilder(metricNames.connectionTotal)
@@ -57,7 +57,7 @@ class OpenTelemetryHttpConnectionMetricMonitor(meter: Meter, metricNames: Metric
       with RegisterRoot {
     private val openTelemetryLabels = LabelsFactory.of(labels.serialize)
 
-    override val connectionCounter: UpDownCounter[Long] with Instrument[Long] =
+    val connectionCounter: UpDownCounter[Long] with Instrument[Long] =
       upDownCounter(connectionTotalCounter, openTelemetryLabels).register(this)
 
   }

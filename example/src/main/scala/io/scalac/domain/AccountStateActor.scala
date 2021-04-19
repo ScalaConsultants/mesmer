@@ -24,11 +24,11 @@ object AccountStateActor {
   }
 
   object Command {
-    final case class GetBalance(override val replyTo: ActorRef[Reply]) extends Command
+    final case class GetBalance(val replyTo: ActorRef[Reply]) extends Command
 
-    final case class Deposit(override val replyTo: ActorRef[Reply], value: Double) extends Command
+    final case class Deposit(val replyTo: ActorRef[Reply], value: Double) extends Command
 
-    final case class Withdraw(override val replyTo: ActorRef[Reply], value: Double) extends Command
+    final case class Withdraw(val replyTo: ActorRef[Reply], value: Double) extends Command
   }
 
   sealed trait Reply extends SerializableMessage

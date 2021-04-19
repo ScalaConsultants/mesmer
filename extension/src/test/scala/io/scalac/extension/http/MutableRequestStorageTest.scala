@@ -28,8 +28,8 @@ class MutableRequestStorageTest extends AnyFlatSpec with Matchers with TestOps {
     }
     events.foreach(sut.requestStarted)
 
-    buffer should have size (events.size)
-    buffer.values should contain theSameElementsAs (events)
+    buffer should have size events.size
+    buffer.values should contain theSameElementsAs events
   }
 
   it should "remove started event from internal buffer when corresponding finish event is fired" in test {
@@ -47,7 +47,7 @@ class MutableRequestStorageTest extends AnyFlatSpec with Matchers with TestOps {
       finished.foreach(sut.requestCompleted)
 
       buffer should have size (events.size - finished.size)
-      buffer.values should contain theSameElementsAs (events.drop(5))
+      buffer.values should contain theSameElementsAs events.drop(5)
   }
 
   it should "return same storage instance and corresponding starte event" in test { case (_, sut) =>
@@ -60,7 +60,7 @@ class MutableRequestStorageTest extends AnyFlatSpec with Matchers with TestOps {
     val Some((resultStorage, started)) =
       sut.requestCompleted(RequestCompleted(id, startTimestamp.plus(123.millis), "200"))
 
-    resultStorage should be theSameInstanceAs (sut)
+    resultStorage should be theSameInstanceAs sut
     started.id should be(id)
   }
 
@@ -78,7 +78,7 @@ class MutableRequestStorageTest extends AnyFlatSpec with Matchers with TestOps {
     finished.foreach(sut.requestFailed)
 
     buffer should have size (events.size - finished.size)
-    buffer.values should contain theSameElementsAs (events.drop(5))
+    buffer.values should contain theSameElementsAs events.drop(5)
   }
 
   it should "return None for requestCompleted if no corresponding started event is present" in test {
@@ -90,7 +90,7 @@ class MutableRequestStorageTest extends AnyFlatSpec with Matchers with TestOps {
       }
       events.foreach(sut.requestStarted)
       sut.requestCompleted(RequestCompleted(createUniqueId, startTimestamp.plus(100.millis), "200")) should be(None)
-      buffer.values should contain theSameElementsAs (events)
+      buffer.values should contain theSameElementsAs events
   }
 
   it should "return None for requestFailed if no corresponding started event is present" in test { case (buffer, sut) =>
@@ -101,6 +101,6 @@ class MutableRequestStorageTest extends AnyFlatSpec with Matchers with TestOps {
     }
     events.foreach(sut.requestStarted)
     sut.requestFailed(RequestFailed(createUniqueId, startTimestamp.plus(100.millis))) should be(None)
-    buffer.values should contain theSameElementsAs (events)
+    buffer.values should contain theSameElementsAs events
   }
 }

@@ -10,22 +10,22 @@ import scala.collection.concurrent.{ Map => CMap }
 import scala.jdk.CollectionConverters._
 
 import io.scalac.extension.metric.Counter
-import io.scalac.extension.metric.HttpMetricMonitor
+import io.scalac.extension.metric.HttpMetricsMonitor
 import io.scalac.extension.metric.MetricRecorder
 import io.scalac.extension.util.TestProbeSynchronized
 import io.scalac.extension.util.probe.BoundTestProbe.CounterCommand
 import io.scalac.extension.util.probe.BoundTestProbe.MetricRecorderCommand
 
-class HttpMetricsTestProbe(implicit val system: ActorSystem[_]) extends HttpMetricMonitor {
+class HttpMonitorTestProbe(implicit val system: ActorSystem[_]) extends HttpMetricsMonitor {
 
-  import HttpMetricMonitor._
+  import HttpMetricsMonitor._
 
   val globalRequestCounter: TestProbe[CounterCommand] = TestProbe[CounterCommand]()
 
   private[this] val monitors: CMap[Labels, BoundHttpProbes] = new ConcurrentHashMap[Labels, BoundHttpProbes]().asScala
   private[this] val _binds: AtomicInteger                   = new AtomicInteger(0)
 
-  override def bind(labels: Labels): BoundHttpProbes = {
+  def bind(labels: Labels): BoundHttpProbes = {
     _binds.addAndGet(1)
     monitors.getOrElseUpdate(labels, createBoundProbes)
   }
@@ -42,12 +42,12 @@ class HttpMetricsTestProbe(implicit val system: ActorSystem[_]) extends HttpMetr
   ) extends BoundMonitor
       with TestProbeSynchronized {
 
-    override val requestTime: MetricRecorder[Long] with SyncTestProbeWrapper =
+    val requestTime: MetricRecorder[Long] with SyncTestProbeWrapper =
       RecorderTestProbeWrapper(requestTimeProbe)
 
-    override val requestCounter: Counter[Long] with SyncTestProbeWrapper =
+    val requestCounter: Counter[Long] with SyncTestProbeWrapper =
       UpDownCounterTestProbeWrapper(requestCounterProbe, Some(globalRequestCounter))
 
-    override def unbind(): Unit = ()
+    def unbind(): Unit = ()
   }
 }

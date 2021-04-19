@@ -11,12 +11,12 @@ class ServiceTest extends AnyFlatSpec with Matchers {
   "Service" should "should equal if internal serviceKey equals" in {
     val serviceLeft  = Service(anyServiceKey)
     val serviceRight = Service(anyServiceKey)
-    serviceLeft shouldEqual (serviceRight)
+    serviceLeft shouldEqual serviceRight
   }
 
   it should "equal for the same service" in {
     val service = Service(anyServiceKey)
-    service shouldEqual (service)
+    service shouldEqual service
   }
 
   it should "not equal for different service keys" in {

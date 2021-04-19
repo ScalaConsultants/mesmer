@@ -24,13 +24,13 @@ class CleanablePersistingStorageTest extends AnyFlatSpec with Matchers with Test
     val staleEvents = List.fill(10) {
       val staleness = Random.nextLong(80_000) + maxStalenessMs
       val id        = createUniqueId
-      PersistingEventStarted(s"/some/path/${id}", id, 100L, baseTimestamp.minus(staleness.millis))
+      PersistingEventStarted(s"/some/path/$id", id, 100L, baseTimestamp.minus(staleness.millis))
     }
 
     val freshEvents = List.fill(10) {
       val id        = createUniqueId
       val staleness = Random.nextLong(maxStalenessMs)
-      PersistingEventStarted(s"/some/path/${id}", id, 100L, baseTimestamp.minus(staleness.millis))
+      PersistingEventStarted(s"/some/path/$id", id, 100L, baseTimestamp.minus(staleness.millis))
     }
 
     val sut = new CleanablePersistingStorage(buffer)(config) {
@@ -43,8 +43,8 @@ class CleanablePersistingStorageTest extends AnyFlatSpec with Matchers with Test
 
     sut.clean()
 
-    buffer should have size (freshEvents.size)
-    buffer.values should contain theSameElementsAs (freshEvents)
+    buffer should have size freshEvents.size
+    buffer.values should contain theSameElementsAs freshEvents
   }
 
 }

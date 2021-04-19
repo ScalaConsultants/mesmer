@@ -18,7 +18,7 @@ class SupportedModulesTest extends AnyFlatSpec with Matchers with Inspectors {
       ))
 
     val supportedVersion    = firstSupportedVersions.intersect(secondSupportedVersions)
-    val notSupportedVersion = firstSupportedVersions ++ secondSupportedVersions filterNot (supportedVersion.contains)
+    val notSupportedVersion = firstSupportedVersions ++ secondSupportedVersions filterNot supportedVersion.contains
 
     forAll(supportedVersion.map(supportedModules.supportedVersion(module).supports))(_ shouldBe true)
     forAll(notSupportedVersion.map(supportedModules.supportedVersion(module).supports))(_ shouldBe false)

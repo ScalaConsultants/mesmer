@@ -13,7 +13,7 @@ object StreamOperatorMetricsMonitor {
     node: Option[Node],
     connectedWith: Option[String] // TODO change this to StageName
   ) extends LabelSerializable {
-    override val serialize: RawLabels = {
+    val serialize: RawLabels = {
 
       val connected = connectedWith.fold[RawLabels](Seq.empty) { stageName =>
         Seq("connected_with" -> stageName)

@@ -22,8 +22,6 @@ import scala.concurrent.duration._
 import scala.util.Random
 import scala.util.control.NoStackTrace
 
-import io.scalac.core.actor.ActorMetrics
-import io.scalac.core.actor.MutableActorMetricsStorage
 import io.scalac.core.model._
 import io.scalac.core.util.ActorPathOps
 import io.scalac.core.util.AggMetric.LongValueAggMetric
@@ -33,7 +31,9 @@ import io.scalac.core.util.TestConfig
 import io.scalac.core.util.TestOps
 import io.scalac.core.util.probe.ObserverCollector.ScheduledCollectorImpl
 import io.scalac.extension.ActorEventsMonitorActor._
-import io.scalac.extension.metric.ActorMetricMonitor.Labels
+import io.scalac.extension.actor.ActorMetrics
+import io.scalac.extension.actor.MutableActorMetricsStorage
+import io.scalac.extension.metric.ActorMetricsMonitor.Labels
 import io.scalac.extension.service.ActorTreeService
 import io.scalac.extension.service.ActorTreeService.Command.GetActors
 import io.scalac.extension.util.probe.ActorMonitorTestProbe
@@ -68,6 +68,9 @@ class ActorEventsMonitorActorTest
     with ActorEventMonitorActorTestConfig {
   import ActorEventsMonitorActorTest._
 
+  protected type Setup = ActorEventSetup
+  type Monitor         = ActorMonitorTestProbe
+  type Context         = TestContext
   final val ActorsPerCase = 10
 
   private val FailingReaderFactory: MetricsContext => ActorMetricsReader = _ => {
@@ -121,8 +124,6 @@ class ActorEventsMonitorActorTest
     system: ActorSystem[_]
   ): Context = TestContext(monitor, TestProbe(), FakeReaderFactory, constRefsActorServiceTree)
 
-  protected type Setup = ActorEventSetup
-
   protected def setUp(c: Context): Setup = {
 
     val testActors = Seq
@@ -158,9 +159,6 @@ class ActorEventsMonitorActorTest
 
   protected def tearDown(setup: Setup): Unit =
     setup.allRefs.foreach(_.unsafeUpcast[Any] ! PoisonPill)
-
-  type Monitor = ActorMonitorTestProbe
-  type Context = TestContext
 
   private def TakeLabel(implicit setup: Setup): Labels = {
     val ref = Random.shuffle(refs).head

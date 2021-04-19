@@ -8,7 +8,7 @@ object CommonRegexPathService extends PathService {
 
   import PathService._
 
-  override def template(path: Path): Path = {
+  def template(path: Path): Path = {
 
     @tailrec
     def replaceInPath(offset: Int, replacements: Vector[(Int, Int, String)]): Vector[(Int, Int, String)] = {
@@ -22,6 +22,7 @@ object CommonRegexPathService extends PathService {
         path.substring(offset, nextIndex) match {
           case numberRegex(_*) =>
             replaceInPath(nextIndex + 1, replacements :+ (offset, nextIndex, numberTemplate))
+
           case subs if subs.length == 36 =>
             subs match {
               case uuidRegex(_*) =>
