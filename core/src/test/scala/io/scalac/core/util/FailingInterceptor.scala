@@ -12,7 +12,7 @@ private class FailingInterceptor[A: ClassTag] private (val probe: Option[ActorRe
 
   import FailingInterceptor._
 
-  override def aroundReceive(
+  def aroundReceive(
     ctx: TypedActorContext[A],
     msg: A,
     target: BehaviorInterceptor.ReceiveTarget[A]

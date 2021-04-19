@@ -4,7 +4,7 @@ import net.bytebuddy.asm.Advice._
 
 import scala.concurrent.duration._
 
-import io.scalac.core.actor.ActorCellDecorator
+import io.scalac.extension.actor.ActorCellDecorator
 
 class MailboxDequeueInstrumentation
 object MailboxDequeueInstrumentation {

@@ -10,12 +10,12 @@ class MutableRecoveryStorage private[persistence] (protected val buffer: mutable
     extends RecoveryStorage
     with MutableStorage[String, RecoveryStarted] {
 
-  override def recoveryStarted(event: RecoveryStarted): RecoveryStorage = {
+  def recoveryStarted(event: RecoveryStarted): RecoveryStorage = {
     buffer.put(eventToKey(event), event)
     this
   }
 
-  override def recoveryFinished(event: RecoveryFinished): Option[(RecoveryStorage, Long)] =
+  def recoveryFinished(event: RecoveryFinished): Option[(RecoveryStorage, Long)] =
     buffer.remove(eventToKey(event)).map { started =>
       val latency = calculate(started, event)
       (this, latency)

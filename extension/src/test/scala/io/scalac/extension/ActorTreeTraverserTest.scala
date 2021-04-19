@@ -26,10 +26,10 @@ class ActorTreeTraverserTest
   it should "getChildren properly" in {
     val root     = traverser.getRootGuardian(system.classicSystem)
     val children = traverser.getChildren(root)
-    children.map(ActorPathOps.getPathString) should contain theSameElementsAs (Set(
+    children.map(ActorPathOps.getPathString) should contain theSameElementsAs Set(
       "/system",
       "/user"
-    ))
+    )
   }
 
   it should "getChildren properly from nested actor" in {

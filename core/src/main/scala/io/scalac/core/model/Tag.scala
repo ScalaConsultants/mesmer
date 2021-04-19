@@ -20,7 +20,7 @@ object Tag {
   }
 
   private case object StreamTag extends Tag {
-    override lazy val serialize: Seq[(String, String)] = Seq(("stream", "true"))
+    lazy val serialize: Seq[(String, String)] = Seq(("stream", "true"))
   }
 
   sealed trait StageName extends Any with Tag {
@@ -35,19 +35,19 @@ object Tag {
 
     def apply(name: String, id: Int): StreamUniqueStageName = StreamUniqueStageName(name, id)
 
-    final case class StreamUniqueStageName(override val name: String, id: Int) extends StageName {
+    final case class StreamUniqueStageName(val name: String, id: Int) extends StageName {
 
       private val streamUniqueName = s"$name/$id" // we use slash as this character will not appear in actor name
 
-      override lazy val serialize: Seq[(String, String)] =
+      lazy val serialize: Seq[(String, String)] =
         StageName.serializeName(name) ++ Seq("stream_stage_unique_name" -> streamUniqueName)
 
-      override def nameOnly: StageName = StageName(name)
+      def nameOnly: StageName = StageName(name)
     }
 
     final class StageNameImpl(val name: String) extends AnyVal with StageName {
-      override def serialize: Seq[(String, String)] = StageName.serializeName(name)
-      override def nameOnly: StageName              = this
+      def serialize: Seq[(String, String)] = StageName.serializeName(name)
+      def nameOnly: StageName              = this
     }
   }
 
@@ -60,9 +60,9 @@ object Tag {
     def apply(streamName: String, island: String): SubStreamName = StreamNameWithIsland(streamName, island)
 
     private final case class StreamNameWithIsland(_streamName: String, islandId: String) extends SubStreamName {
-      override val streamName: StreamName = StreamName(_streamName)
-      override val subStreamId: String    = islandId
-      override lazy val serialize: Seq[(String, String)] =
+      val streamName: StreamName = StreamName(_streamName)
+      val subStreamId: String    = islandId
+      lazy val serialize: Seq[(String, String)] =
         Seq(("stream_name_with_island", s"${streamName.name}-$subStreamId")) ++ streamName.serialize
     }
   }
@@ -70,7 +70,7 @@ object Tag {
   sealed trait StreamName extends Any with Tag {
     def name: String
 
-    override def serialize: Seq[(String, String)] = Seq(StreamNameLabel -> name)
+    def serialize: Seq[(String, String)] = Seq(StreamNameLabel -> name)
   }
 
   object StreamName {
@@ -85,7 +85,7 @@ object Tag {
 
     private final case class TerminalOperatorStreamName(materializationName: StreamName, terminalStageName: StageName)
         extends StreamName {
-      override val name: String = terminalStageName.name
+      val name: String = terminalStageName.name
 
       override def serialize: Seq[(String, String)] =
         super.serialize ++ Seq("materialization_name" -> materializationName.name)

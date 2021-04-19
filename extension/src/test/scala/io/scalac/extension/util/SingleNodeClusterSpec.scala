@@ -31,7 +31,7 @@ import scala.reflect.ClassTag
 import io.scalac.core.util.PortGenerator
 import io.scalac.core.util.PortGeneratorImpl
 import io.scalac.core.util.probe.ObserverCollector.ScheduledCollectorImpl
-import io.scalac.extension.util.probe.ClusterMetricsTestProbe
+import io.scalac.extension.util.probe.ClusterMonitorTestProbe
 
 trait SingleNodeClusterSpec extends AsyncTestSuite {
 
@@ -40,12 +40,12 @@ trait SingleNodeClusterSpec extends AsyncTestSuite {
   protected val pingOffset: FiniteDuration   = 1.seconds
 
   type Fixture[C[_], T] =
-    (ActorSystem[Nothing], Member, C[ActorRef[ShardingEnvelope[T]]], ClusterMetricsTestProbe, C[String])
+    (ActorSystem[Nothing], Member, C[ActorRef[ShardingEnvelope[T]]], ClusterMonitorTestProbe, C[String])
   type Id[T] = T
 
   protected def createConfig(port: Int, systemName: String): Config = {
     val hostname = "127.0.0.1"
-    val seedNode = s"akka://${systemName}@${hostname}:${port}"
+    val seedNode = s"akka://$systemName@$hostname:$port"
     ConfigFactory.empty
       .withValue("akka.actor.provider", ConfigValueFactory.fromAnyRef("cluster"))
       .withValue(
@@ -91,7 +91,7 @@ trait SingleNodeClusterSpec extends AsyncTestSuite {
 
       val collector: ScheduledCollectorImpl = new ScheduledCollectorImpl(pingOffset)
 
-      val clusterProbe = ClusterMetricsTestProbe(collector)
+      val clusterProbe = ClusterMonitorTestProbe(collector)
 
       Function.untupled(test)(system, cluster.selfMember, refs, clusterProbe, entityNames)
     }

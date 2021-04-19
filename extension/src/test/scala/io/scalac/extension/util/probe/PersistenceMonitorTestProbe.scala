@@ -11,8 +11,8 @@ import scala.jdk.CollectionConverters._
 
 import io.scalac.extension.metric.Counter
 import io.scalac.extension.metric.MetricRecorder
-import io.scalac.extension.metric.PersistenceMetricMonitor
-import io.scalac.extension.metric.PersistenceMetricMonitor.Labels
+import io.scalac.extension.metric.PersistenceMetricsMonitor
+import io.scalac.extension.metric.PersistenceMetricsMonitor.Labels
 import io.scalac.extension.util.probe.BoundTestProbe.CounterCommand
 import io.scalac.extension.util.probe.BoundTestProbe.MetricRecorderCommand
 
@@ -45,22 +45,22 @@ trait GlobalProbe {
   def globalCounter: TestProbe[CounterCommand]
 }
 
-class PersistenceMetricTestProbe(implicit val system: ActorSystem[_])
-    extends PersistenceMetricMonitor
+class PersistenceMonitorTestProbe(implicit val system: ActorSystem[_])
+    extends PersistenceMetricsMonitor
     with ConcurrentBoundProbes[Labels]
     with BindCounter
     with GlobalProbe {
 
   type B = BoundPersistenceProbes
 
-  override val globalCounter: TestProbe[CounterCommand] = TestProbe()
+  val globalCounter: TestProbe[CounterCommand] = TestProbe()
 
-  def bind(labels: Labels): PersistenceMetricMonitor.BoundMonitor =
+  def bind(labels: Labels): PersistenceMetricsMonitor.BoundMonitor =
     counting {
       concurrentBind(labels)
     }
 
-  override protected def createBoundProbes(labels: Labels): BoundPersistenceProbes =
+  protected def createBoundProbes(labels: Labels): BoundPersistenceProbes =
     new BoundPersistenceProbes(TestProbe(), TestProbe(), TestProbe(), TestProbe(), TestProbe())
 
   class BoundPersistenceProbes(
@@ -69,22 +69,22 @@ class PersistenceMetricTestProbe(implicit val system: ActorSystem[_])
     val persistentEventProbe: TestProbe[MetricRecorderCommand],
     val persistentEventTotalProbe: TestProbe[CounterCommand],
     val snapshotProbe: TestProbe[CounterCommand]
-  ) extends PersistenceMetricMonitor.BoundMonitor {
-    override def recoveryTime: SyncTestProbeWrapper with MetricRecorder[Long] =
+  ) extends PersistenceMetricsMonitor.BoundMonitor {
+    def recoveryTime: SyncTestProbeWrapper with MetricRecorder[Long] =
       RecorderTestProbeWrapper(recoveryTimeProbe)
 
-    override def recoveryTotal: SyncTestProbeWrapper with Counter[Long] =
+    def recoveryTotal: SyncTestProbeWrapper with Counter[Long] =
       UpDownCounterTestProbeWrapper(recoveryTotalProbe, Some(globalCounter))
 
-    override def persistentEvent: SyncTestProbeWrapper with MetricRecorder[Long] =
+    def persistentEvent: SyncTestProbeWrapper with MetricRecorder[Long] =
       RecorderTestProbeWrapper(persistentEventProbe)
 
-    override def persistentEventTotal: SyncTestProbeWrapper with Counter[Long] =
+    def persistentEventTotal: SyncTestProbeWrapper with Counter[Long] =
       UpDownCounterTestProbeWrapper(persistentEventTotalProbe, Some(globalCounter))
 
-    override def snapshot: SyncTestProbeWrapper with Counter[Long] =
+    def snapshot: SyncTestProbeWrapper with Counter[Long] =
       UpDownCounterTestProbeWrapper(snapshotProbe, Some(globalCounter))
 
-    override def unbind(): Unit = ()
+    def unbind(): Unit = ()
   }
 }

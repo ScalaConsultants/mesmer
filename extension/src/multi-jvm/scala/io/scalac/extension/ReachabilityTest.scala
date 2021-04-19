@@ -3,28 +3,28 @@ package io.scalac.extension
 import akka.actor.typed.ActorSystem
 import akka.actor.typed.scaladsl.adapter._
 import akka.cluster.Cluster
-import akka.remote.testkit.{MultiNodeConfig, MultiNodeSpec}
+import akka.remote.testkit.MultiNodeSpec
 import akka.remote.transport.ThrottlerTransportAdapter.Direction
-import com.typesafe.config.ConfigFactory
-import io.scalac.extension.util.probe.BoundTestProbe.{Dec, Inc}
 import io.scalac.core.util.ScalaTestMultiNodeSpec
+import io.scalac.extension.util.probe.ClusterMonitorTestProbe
+import io.scalac.core.util.probe.ObserverCollector.ScheduledCollectorImpl
+import io.scalac.extension.util.probe.BoundTestProbe.{Dec, Inc}
+import io.scalac.extension.util.probe.ClusterMonitorTestProbe
 import org.scalatest.Inspectors
 
 import scala.concurrent.duration._
 import scala.language.postfixOps
-import io.scalac.core.util.probe.ObserverCollector.ScheduledCollectorImpl
-import io.scalac.extension.util.probe.ClusterMetricsTestProbe
 
 class ReachabilityTestMultiJvmNode1 extends ReachabilityTest
 class ReachabilityTestMultiJvmNode2 extends ReachabilityTest
 class ReachabilityTestMultiJvmNode3 extends ReachabilityTest
 
 class ReachabilityTest extends MultiNodeSpec(ThreeNodesConfig) with ScalaTestMultiNodeSpec with Inspectors {
-  override def initialParticipants: Int = 3
+  def initialParticipants: Int = 3
 
   implicit val typedSystem: ActorSystem[Nothing] = system.toTyped
 
-  val monitor = ClusterMetricsTestProbe(new ScheduledCollectorImpl(5.seconds))
+  val monitor = ClusterMonitorTestProbe(new ScheduledCollectorImpl(5.seconds))
 
   import ThreeNodesConfig._
 

@@ -4,16 +4,16 @@ import io.scalac.core.LabelSerializable
 import io.scalac.core.model.Tag.StreamName
 import io.scalac.core.model._
 
-object StreamMetricMonitor {
+object StreamMetricsMonitor {
 
   case class EagerLabels(
     node: Option[Node]
   ) extends LabelSerializable {
-    override lazy val serialize: RawLabels = node.serialize
+    lazy val serialize: RawLabels = node.serialize
   }
 
   case class Labels(node: Option[Node], streamName: StreamName) extends LabelSerializable {
-    override lazy val serialize: RawLabels = node.serialize ++ streamName.serialize
+    lazy val serialize: RawLabels = node.serialize ++ streamName.serialize
   }
 
   trait BoundMonitor extends Bound {

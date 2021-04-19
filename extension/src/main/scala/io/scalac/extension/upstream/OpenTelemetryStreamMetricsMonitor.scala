@@ -5,7 +5,7 @@ import io.opentelemetry.api.metrics.Meter
 
 import io.scalac.extension.metric.MetricObserver
 import io.scalac.extension.metric.RegisterRoot
-import io.scalac.extension.metric.StreamMetricMonitor
+import io.scalac.extension.metric.StreamMetricsMonitor
 import io.scalac.extension.upstream.OpenTelemetryStreamMetricsMonitor.MetricNames
 import io.scalac.extension.upstream.opentelemetry.LongSumObserverBuilderAdapter
 import io.scalac.extension.upstream.opentelemetry.SynchronousInstrumentFactory
@@ -43,9 +43,9 @@ object OpenTelemetryStreamMetricsMonitor {
     new OpenTelemetryStreamMetricsMonitor(meter, MetricNames.fromConfig(config))
 }
 
-final class OpenTelemetryStreamMetricsMonitor(meter: Meter, metricNames: MetricNames) extends StreamMetricMonitor {
+final class OpenTelemetryStreamMetricsMonitor(meter: Meter, metricNames: MetricNames) extends StreamMetricsMonitor {
 
-  import StreamMetricMonitor._
+  import StreamMetricsMonitor._
 
   private val runningStreamsTotalRecorder = meter
     .longValueRecorderBuilder(metricNames.runningStreams)
@@ -63,7 +63,7 @@ final class OpenTelemetryStreamMetricsMonitor(meter: Meter, metricNames: MetricN
       .setDescription("Amount of messages processed by whole stream")
   )
 
-  override def bind(labels: EagerLabels): BoundMonitor = new StreamMetricsBoundMonitor(labels)
+  def bind(labels: EagerLabels): BoundMonitor = new StreamMetricsBoundMonitor(labels)
 
   class StreamMetricsBoundMonitor(labels: EagerLabels)
       extends BoundMonitor
@@ -71,13 +71,13 @@ final class OpenTelemetryStreamMetricsMonitor(meter: Meter, metricNames: MetricN
       with SynchronousInstrumentFactory {
     private val openTelemetryLabels = LabelsFactory.of(labels.serialize)
 
-    override val runningStreamsTotal: WrappedLongValueRecorder =
+    val runningStreamsTotal: WrappedLongValueRecorder =
       metricRecorder(runningStreamsTotalRecorder, openTelemetryLabels).register(this)
 
-    override val streamActorsTotal: WrappedLongValueRecorder =
+    val streamActorsTotal: WrappedLongValueRecorder =
       metricRecorder(streamActorsTotalRecorder, openTelemetryLabels).register(this)
 
-    override lazy val streamProcessedMessages: MetricObserver[Long, Labels] =
+    lazy val streamProcessedMessages: MetricObserver[Long, Labels] =
       streamProcessedMessagesBuilder.createObserver(this)
   }
 }

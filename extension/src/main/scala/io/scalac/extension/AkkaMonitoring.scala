@@ -18,13 +18,13 @@ import scala.language.postfixOps
 import scala.reflect.ClassTag
 import scala.util.Try
 
-import io.scalac.core.actor.MutableActorMetricsStorage
 import io.scalac.core.model.Module
 import io.scalac.core.model.SupportedVersion
 import io.scalac.core.model._
 import io.scalac.core.support.ModulesSupport
 import io.scalac.core.util.ModuleInfo
 import io.scalac.core.util.ModuleInfo.Modules
+import io.scalac.extension.actor.MutableActorMetricsStorage
 import io.scalac.extension.config.AkkaMonitoringConfig
 import io.scalac.extension.config.CachingConfig
 import io.scalac.extension.config.InstrumentationLibrary
@@ -37,14 +37,14 @@ import io.scalac.extension.service.CachingPathService
 import io.scalac.extension.service.actorTreeServiceKey
 import io.scalac.extension.upstream.OpenTelemetryClusterMetricsMonitor
 import io.scalac.extension.upstream.OpenTelemetryHttpMetricsMonitor
-import io.scalac.extension.upstream.OpenTelemetryPersistenceMetricMonitor
+import io.scalac.extension.upstream.OpenTelemetryPersistenceMetricsMonitor
 import io.scalac.extension.upstream._
 
 object AkkaMonitoring extends ExtensionId[AkkaMonitoring] {
 
   private val ExportInterval = 5.seconds
 
-  override def createExtension(system: ActorSystem[_]): AkkaMonitoring = {
+  def createExtension(system: ActorSystem[_]): AkkaMonitoring = {
     val config  = AkkaMonitoringConfig.apply(system.settings.config)
     val monitor = new AkkaMonitoring(system, config)
 
@@ -276,7 +276,7 @@ final class AkkaMonitoring(private val system: ActorSystem[_], val config: AkkaM
 
     val cachingConfig = CachingConfig.fromConfig(actorSystemConfig, ModulesSupport.akkaPersistenceTypedModule)
     val openTelemetryPersistenceMonitor = CachingMonitor(
-      OpenTelemetryPersistenceMetricMonitor(meter, actorSystemConfig),
+      OpenTelemetryPersistenceMetricsMonitor(meter, actorSystemConfig),
       cachingConfig
     )
     val pathService = new CachingPathService(cachingConfig)
@@ -315,7 +315,7 @@ final class AkkaMonitoring(private val system: ActorSystem[_], val config: AkkaM
       CachingMonitor(OpenTelemetryHttpMetricsMonitor(meter, actorSystemConfig), cachingConfig)
 
     val openTelemetryHttpConnectionMonitor =
-      CachingMonitor(OpenTelemetryHttpConnectionMetricMonitor(meter, actorSystemConfig), cachingConfig)
+      CachingMonitor(OpenTelemetryHttpConnectionMetricsMonitor(meter, actorSystemConfig), cachingConfig)
 
     val pathService = new CachingPathService(cachingConfig)
 

@@ -2,7 +2,7 @@ package io.scalac.agent.akka.actor
 
 import net.bytebuddy.asm.Advice._
 
-import io.scalac.core.actor.ActorCellDecorator
+import io.scalac.extension.actor.ActorCellDecorator
 
 class ActorCellReceiveMessageInstrumentation
 object ActorCellReceiveMessageInstrumentation {

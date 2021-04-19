@@ -25,7 +25,7 @@ object HttpInstrumentation {
     private[this] var id: Long = 0L
 
     def next(): String = {
-      val value = new StringBuilder(prefix.size + 10)
+      val value = new StringBuilder(prefix.length + 10)
         .append(prefix)
         .append(id)
         .toString()

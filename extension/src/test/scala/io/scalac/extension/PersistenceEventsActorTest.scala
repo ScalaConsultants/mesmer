@@ -20,13 +20,13 @@ import io.scalac.core.util.TestCase.MonitorTestCaseContext.BasicContext
 import io.scalac.core.util.TestConfig
 import io.scalac.core.util.Timestamp
 import io.scalac.extension.metric.CachingMonitor
-import io.scalac.extension.metric.PersistenceMetricMonitor.Labels
+import io.scalac.extension.metric.PersistenceMetricsMonitor.Labels
 import io.scalac.extension.persistence.ImmutablePersistStorage
 import io.scalac.extension.persistence.ImmutableRecoveryStorage
 import io.scalac.extension.util.IdentityPathService
 import io.scalac.extension.util.probe.BoundTestProbe.Inc
 import io.scalac.extension.util.probe.BoundTestProbe.MetricRecorded
-import io.scalac.extension.util.probe.PersistenceMetricTestProbe
+import io.scalac.extension.util.probe.PersistenceMonitorTestProbe
 
 class PersistenceEventsActorTest
     extends ScalaTestWithActorTestKit(TestConfig.localActorProvider)
@@ -35,12 +35,12 @@ class PersistenceEventsActorTest
     with Inspectors
     with CommonMonitorTestFactory {
 
-  type Monitor = PersistenceMetricTestProbe
+  type Monitor = PersistenceMonitorTestProbe
   type Command = PersistenceEventsActor.Event
 
   protected val serviceKey: ServiceKey[_] = persistenceServiceKey
 
-  protected def createMonitorBehavior(implicit context: BasicContext[PersistenceMetricTestProbe]): Behavior[Command] =
+  protected def createMonitorBehavior(implicit context: BasicContext[PersistenceMonitorTestProbe]): Behavior[Command] =
     PersistenceEventsActor(
       if (context.caching) CachingMonitor(monitor) else monitor,
       ImmutableRecoveryStorage.empty,
@@ -48,29 +48,29 @@ class PersistenceEventsActorTest
       IdentityPathService
     )
 
-  protected def createMonitor(implicit system: ActorSystem[_]): PersistenceMetricTestProbe =
-    new PersistenceMetricTestProbe()
+  protected def createMonitor(implicit system: ActorSystem[_]): PersistenceMonitorTestProbe =
+    new PersistenceMonitorTestProbe()
 
-  def recoveryStarted(labels: Labels)(implicit ctx: BasicContext[PersistenceMetricTestProbe]): Unit =
+  def recoveryStarted(labels: Labels)(implicit ctx: BasicContext[PersistenceMonitorTestProbe]): Unit =
     EventBus(system).publishEvent(RecoveryStarted(labels.path, labels.persistenceId, Timestamp.create()))
 
-  def recoveryFinished(labels: Labels)(implicit ctx: BasicContext[PersistenceMetricTestProbe]): Unit =
+  def recoveryFinished(labels: Labels)(implicit ctx: BasicContext[PersistenceMonitorTestProbe]): Unit =
     EventBus(system).publishEvent(RecoveryFinished(labels.path, labels.persistenceId, Timestamp.create()))
 
-  def persistEventStarted(seqNo: Long, labels: Labels)(implicit ctx: BasicContext[PersistenceMetricTestProbe]): Unit =
+  def persistEventStarted(seqNo: Long, labels: Labels)(implicit ctx: BasicContext[PersistenceMonitorTestProbe]): Unit =
     EventBus(system).publishEvent(
       PersistingEventStarted(labels.path, labels.persistenceId, seqNo, Timestamp.create())
     )
 
-  def persistEventFinished(seqNo: Long, labels: Labels)(implicit ctx: BasicContext[PersistenceMetricTestProbe]): Unit =
+  def persistEventFinished(seqNo: Long, labels: Labels)(implicit ctx: BasicContext[PersistenceMonitorTestProbe]): Unit =
     EventBus(system).publishEvent(
       PersistingEventFinished(labels.path, labels.persistenceId, seqNo, Timestamp.create())
     )
 
-  def snapshotCreated(seqNo: Long, labels: Labels)(implicit ctx: BasicContext[PersistenceMetricTestProbe]): Unit =
+  def snapshotCreated(seqNo: Long, labels: Labels)(implicit ctx: BasicContext[PersistenceMonitorTestProbe]): Unit =
     EventBus(system).publishEvent(SnapshotCreated(labels.path, labels.persistenceId, seqNo, Timestamp.create()))
 
-  def expectMetricsUpdates(monitor: PersistenceMetricTestProbe, amount: Int): Unit =
+  def expectMetricsUpdates(monitor: PersistenceMonitorTestProbe, amount: Int): Unit =
     monitor.globalCounter.within(1 second) {
       import monitor._
       globalCounter.receiveMessages(amount)
@@ -83,7 +83,7 @@ class PersistenceEventsActorTest
     Thread.sleep(1050)
     recoveryFinished(expectedLabels)
     expectMetricsUpdates(monitor, 1)
-    monitor.boundLabels should have size (1)
+    monitor.boundLabels should have size 1
     val probes = monitor.boundLabels.flatMap(monitor.probes).loneElement
     probes.recoveryTotalProbe.receiveMessage() should be(Inc(1L))
     inside(probes.recoveryTimeProbe.receiveMessage()) { case MetricRecorded(value) =>
@@ -98,7 +98,7 @@ class PersistenceEventsActorTest
     Thread.sleep(1050)
     persistEventFinished(seqNo, expectedLabels)
     expectMetricsUpdates(monitor, 1)
-    monitor.boundLabels should have size (1)
+    monitor.boundLabels should have size 1
     val probes = monitor.boundLabels.flatMap(monitor.probes).loneElement
     probes.persistentEventTotalProbe.receiveMessage() should be(Inc(1L))
     inside(probes.persistentEventProbe.receiveMessage()) { case MetricRecorded(value) =>
@@ -115,7 +115,7 @@ class PersistenceEventsActorTest
       } snapshotCreated(seqNo, expectedLabels)
 
       expectMetricsUpdates(monitor, seqNumbers.size)
-      monitor.boundLabels should have size (1)
+      monitor.boundLabels should have size 1
       monitor.binds should be(1)
 
       val probes = monitor.boundLabels.flatMap(monitor.probes).loneElement
@@ -128,7 +128,7 @@ class PersistenceEventsActorTest
     val seqNumbers = (100 to 140 by 5).toList
     val expectedLabels = List.fill(5) {
       val id = createUniqueId
-      Labels(None, s"/some/path/${id}", id)
+      Labels(None, s"/some/path/$id", id)
     }
     for {
       seqNo  <- seqNumbers
@@ -136,11 +136,11 @@ class PersistenceEventsActorTest
     } snapshotCreated(seqNo, labels)
 
     expectMetricsUpdates(monitor, seqNumbers.size * expectedLabels.size)
-    monitor.boundLabels should have size (expectedLabels.size)
+    monitor.boundLabels should have size expectedLabels.size
     monitor.binds should be(expectedLabels.size)
 
     val allProbes = monitor.boundLabels.flatMap(monitor.probes)
-    allProbes should have size (expectedLabels.size)
+    allProbes should have size expectedLabels.size
     forAll(allProbes)(probes => forAll(probes.snapshotProbe.receiveMessages(seqNumbers.size))(_ should be(Inc(1L))))
   }
 
@@ -149,7 +149,7 @@ class PersistenceEventsActorTest
       val seqNo = 150
       val expectedLabels = List.fill(5) {
         val id = createUniqueId
-        Labels(None, s"/some/path/${id}", id)
+        Labels(None, s"/some/path/$id", id)
       }
       for {
         labels <- expectedLabels
@@ -160,11 +160,11 @@ class PersistenceEventsActorTest
       } persistEventFinished(seqNo, labels)
 
       expectMetricsUpdates(monitor, expectedLabels.size)
-      monitor.boundLabels should have size (expectedLabels.size)
+      monitor.boundLabels should have size expectedLabels.size
       monitor.binds should be(expectedLabels.size)
 
       val allProbes = monitor.boundLabels.flatMap(monitor.probes)
-      allProbes should have size (expectedLabels.size)
+      allProbes should have size expectedLabels.size
       forAll(allProbes) { probes =>
         probes.persistentEventTotalProbe.receiveMessage() should be(Inc(1L))
         inside(probes.persistentEventProbe.receiveMessage()) { case MetricRecorded(value) =>
@@ -179,7 +179,7 @@ class PersistenceEventsActorTest
     val expectedPersistEventTime = 500L
     val expectedLabels = List.fill(5) {
       val id = createUniqueId
-      Labels(None, s"/some/path/${id}", id)
+      Labels(None, s"/some/path/$id", id)
     }
     expectedLabels.foreach(recoveryStarted)
     Thread.sleep(expectedRecoveryTime + 50L)
@@ -200,11 +200,11 @@ class PersistenceEventsActorTest
     }
 
     expectMetricsUpdates(monitor, expectedLabels.size * (1 + seqNbs.size * 2))
-    monitor.boundLabels should have size (expectedLabels.size)
+    monitor.boundLabels should have size expectedLabels.size
     monitor.binds should be(expectedLabels.size)
 
     val allProbes = monitor.boundLabels.flatMap(monitor.probes)
-    allProbes should have size (expectedLabels.size)
+    allProbes should have size expectedLabels.size
     forAll(allProbes) { probes =>
       forAll(probes.persistentEventTotalProbe.receiveMessages(seqNbs.size))(_ should be(Inc(1L)))
       forAll(probes.persistentEventProbe.receiveMessages(seqNbs.size))(mr =>

@@ -21,11 +21,11 @@ import scala.concurrent.duration._
 
 import io.scalac.agent.utils.InstallAgent
 import io.scalac.agent.utils.SafeLoadSystem
-import io.scalac.core.actor.ActorCellDecorator
-import io.scalac.core.actor.ActorCellMetrics
 import io.scalac.core.event.ActorEvent
 import io.scalac.core.util.MetricsToolKit
 import io.scalac.core.util.ReceptionistOps
+import io.scalac.extension.actor.ActorCellDecorator
+import io.scalac.extension.actor.ActorCellMetrics
 
 class AkkaActorAgentTest
     extends InstallAgent
@@ -244,13 +244,13 @@ class AkkaActorAgentTest
     var senderContext: Option[classic.ActorContext] = None
     class Sender(receiver: classic.ActorRef) extends classic.Actor {
       senderContext = Some(context)
-      override def receive: Receive = { case "forward" =>
+      def receive: Receive = { case "forward" =>
         receiver ! "forwarded"
       }
     }
 
     class Receiver extends classic.Actor with classic.ActorLogging {
-      override def receive: Receive = { case msg =>
+      def receive: Receive = { case msg =>
         log.info(s"receiver: {}", msg)
       }
     }
@@ -277,10 +277,7 @@ class AkkaActorAgentTest
 
   it should "record the amount of sent messages properly in typed akka" in testWithContextAndActor[String] { ctx =>
     val receiver = ctx.spawn(
-      Behaviors.receiveMessage[String] { msg =>
-        println(msg)
-        Behaviors.same
-      },
+      Behaviors.receiveMessage[String](msg => Behaviors.same),
       createUniqueId
     )
     Behaviors.receiveMessagePartial[String] { case "forward" =>
@@ -397,7 +394,7 @@ object AkkaActorAgentTest {
   }
 
   class ClassicNoStashActor extends classic.Actor with classic.ActorLogging with Inspectable {
-    override def receive: Receive = {
+    def receive: Receive = {
       case Inspect(ref) => inspectStashSize(ref, context)
       case message =>
         log.debug("Received message {}", message)
@@ -425,7 +422,7 @@ object AkkaActorAgentTest {
       Behaviors.receiveMessagePartial {
         case Close =>
           closed()
-        case m @ Message =>
+        case Message =>
           Behaviors.same
         case Inspect(ref) =>
           inspectStashSize(ref, ctx.toClassic)

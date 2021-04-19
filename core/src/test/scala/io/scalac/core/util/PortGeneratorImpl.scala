@@ -7,13 +7,13 @@ private[scalac] object PortGeneratorImpl extends PortGenerator {
 
   private val _takenPorts: ListBuffer[Int] = ListBuffer.empty
 
-  override type Port = PortInternal
+  type Port = PortInternal
   case class PortInternal(port: Int) extends PortLike
 
   private def generateRandomPort(): Int =
     1024 + Random.nextInt(20000)
 
-  override def generatePort(): Port = _takenPorts.synchronized {
+  def generatePort(): Port = _takenPorts.synchronized {
     val first = LazyList
       .continually(
         generateRandomPort()

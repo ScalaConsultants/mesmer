@@ -122,13 +122,13 @@ object TestCase {
     protected def createMonitorBehavior(implicit context: Context): Behavior[Command]
 
     // overrides
-    override protected def setUp(context: Context): Setup = {
+    protected def setUp(context: Context): Setup = {
       val monitorBehavior = createMonitorBehavior(context)
       val monitorActor    = context.system.systemActorOf(monitorBehavior, createUniqueId)
       monitorActor.taggedWith[SetupTag]
     }
 
-    override final protected def tearDown(setup: Setup): Unit =
+    final protected def tearDown(setup: Setup): Unit =
       setup.unsafeUpcast[Any] ! PoisonPill
   }
 
@@ -142,7 +142,7 @@ object TestCase {
     implicit def timeout: Timeout
 
     // overrides
-    override final protected def setUp(context: Context): Setup = {
+    final override protected def setUp(context: Context): Setup = {
       val monitorActor = super[MonitorWithActorRefSetupTestCaseFactory].setUp(context)
       onlyRef(monitorActor, serviceKey)(context.system, timeout)
       monitorActor.taggedWith[SetupTag]

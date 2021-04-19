@@ -5,9 +5,9 @@ import akka.actor.typed.ActorSystem
 
 import io.scalac.core.util.probe.Collected
 import io.scalac.core.util.probe.ObserverCollector
-import io.scalac.extension.metric.StreamMetricMonitor
-import io.scalac.extension.metric.StreamMetricMonitor.BoundMonitor
-import io.scalac.extension.metric.StreamMetricMonitor.Labels
+import io.scalac.extension.metric.StreamMetricsMonitor
+import io.scalac.extension.metric.StreamMetricsMonitor.BoundMonitor
+import io.scalac.extension.metric.StreamMetricsMonitor.Labels
 import io.scalac.extension.metric.StreamOperatorMetricsMonitor
 import io.scalac.extension.util.probe.BoundTestProbe.MetricObserverCommand
 import io.scalac.extension.util.probe.BoundTestProbe.MetricRecorderCommand
@@ -21,7 +21,7 @@ final case class StreamOperatorMonitorTestProbe(
     extends StreamOperatorMetricsMonitor
     with Collected {
 
-  override def bind(): StreamOperatorMetricsMonitor.BoundMonitor = new StreamOperatorMetricsMonitor.BoundMonitor {
+  def bind(): StreamOperatorMetricsMonitor.BoundMonitor = new StreamOperatorMetricsMonitor.BoundMonitor {
     val processedMessages = ObserverTestProbeWrapper(processedTestProbe, collector)
     val operators         = ObserverTestProbeWrapper(runningOperatorsTestProbe, collector)
     val demand            = ObserverTestProbeWrapper(demandTestProbe, collector)
@@ -48,9 +48,9 @@ class StreamMonitorTestProbe(
   val processedMessagesProbe: TestProbe[MetricObserverCommand[Labels]],
   val collector: ObserverCollector
 )(implicit val system: ActorSystem[_])
-    extends StreamMetricMonitor
+    extends StreamMetricsMonitor
     with Collected {
-  override def bind(labels: StreamMetricMonitor.EagerLabels): StreamMetricMonitor.BoundMonitor = new BoundMonitor {
+  def bind(labels: StreamMetricsMonitor.EagerLabels): StreamMetricsMonitor.BoundMonitor = new BoundMonitor {
 
     val runningStreamsTotal = RecorderTestProbeWrapper(runningStreamsProbe)
 
@@ -64,9 +64,9 @@ class StreamMonitorTestProbe(
 
 object StreamMonitorTestProbe {
   def apply(collector: ObserverCollector)(implicit system: ActorSystem[_]): StreamMonitorTestProbe = {
-    val runningStream         = TestProbe[MetricRecorderCommand]()
-    val streamActorsProbe     = TestProbe[MetricRecorderCommand]()
-    val procesedMessagesProbe = TestProbe[MetricObserverCommand[Labels]]()
-    new StreamMonitorTestProbe(runningStream, streamActorsProbe, procesedMessagesProbe, collector)
+    val runningStream          = TestProbe[MetricRecorderCommand]()
+    val streamActorsProbe      = TestProbe[MetricRecorderCommand]()
+    val processedMessagesProbe = TestProbe[MetricObserverCommand[Labels]]()
+    new StreamMonitorTestProbe(runningStream, streamActorsProbe, processedMessagesProbe, collector)
   }
 }

@@ -36,7 +36,7 @@ class ConnectionsIndexCacheTest extends AnyFlatSpec with Matchers with TestOps w
 
     stages.foreach(stage => sut.get(stage)(connections))
 
-    resultMap should have size (StagesSize)
+    resultMap should have size StagesSize
   }
 
   it should "reuse existing entries" in {
@@ -63,7 +63,7 @@ class ConnectionsIndexCacheTest extends AnyFlatSpec with Matchers with TestOps w
     stages.foreach(stage => sut.get(stage)(connections))
 
     forAll(stages.toSeq) { stage =>
-      resultMap should not contain (stage)
+      resultMap should not contain stage
       sut.get(stage)(connections) // to trigger next invalidation
     }
   }

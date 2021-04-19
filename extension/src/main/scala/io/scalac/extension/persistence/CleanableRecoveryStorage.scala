@@ -8,11 +8,11 @@ import io.scalac.extension.config.CleaningSettings
 import io.scalac.extension.resource.MutableCleanableStorage
 
 class CleanableRecoveryStorage private[persistence] (_recoveries: mutable.Map[String, RecoveryStarted])(
-  override val cleaningConfig: CleaningSettings
+  val cleaningConfig: CleaningSettings
 ) extends MutableRecoveryStorage(_recoveries)
     with MutableCleanableStorage[String, RecoveryStarted] {
 
-  override protected def extractTimestamp(value: RecoveryStarted): Timestamp = value.timestamp
+  protected def extractTimestamp(value: RecoveryStarted): Timestamp = value.timestamp
 }
 
 object CleanableRecoveryStorage {

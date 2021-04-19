@@ -37,9 +37,9 @@ import io.scalac.extension.config.BufferConfig
 import io.scalac.extension.config.CachingConfig
 import io.scalac.extension.config.ConfigurationUtils._
 import io.scalac.extension.metric.MetricObserver.Result
-import io.scalac.extension.metric.StreamMetricMonitor
-import io.scalac.extension.metric.StreamMetricMonitor.EagerLabels
-import io.scalac.extension.metric.StreamMetricMonitor.{ Labels => GlobalLabels }
+import io.scalac.extension.metric.StreamMetricsMonitor
+import io.scalac.extension.metric.StreamMetricsMonitor.EagerLabels
+import io.scalac.extension.metric.StreamMetricsMonitor.{ Labels => GlobalLabels }
 import io.scalac.extension.metric.StreamOperatorMetricsMonitor
 import io.scalac.extension.metric.StreamOperatorMetricsMonitor.Labels
 import io.scalac.extension.service.ActorTreeService
@@ -60,7 +60,7 @@ object AkkaStreamMonitoring {
 
   def apply(
     streamOperatorMonitor: StreamOperatorMetricsMonitor,
-    streamMonitor: StreamMetricMonitor,
+    streamMonitor: StreamMetricsMonitor,
     node: Option[Node]
   ): Behavior[Command] =
     GenericBehaviors.waitForService(actorTreeServiceKey) { service =>
@@ -228,7 +228,7 @@ object AkkaStreamMonitoring {
 final class AkkaStreamMonitoring(
   context: ActorContext[Command],
   streamOperatorMonitor: StreamOperatorMetricsMonitor,
-  streamMonitor: StreamMetricMonitor,
+  streamMonitor: StreamMetricsMonitor,
   scheduler: TimerScheduler[Command],
   node: Option[Node],
   actorTreeService: typed.ActorRef[ActorTreeService.Command]

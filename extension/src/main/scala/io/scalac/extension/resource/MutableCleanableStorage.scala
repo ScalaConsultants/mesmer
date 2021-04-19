@@ -8,7 +8,7 @@ trait MutableCleanableStorage[K, V] extends SelfCleaning with MutableStorage[K, 
   protected def extractTimestamp(value: V): Timestamp
   protected def currentTimestamp: Timestamp = Timestamp.create()
 
-  override def clean(): Unit = {
+  def clean(): Unit = {
     val current        = currentTimestamp
     val maxStalenessMs = cleaningConfig.maxStaleness.toMillis
     for {

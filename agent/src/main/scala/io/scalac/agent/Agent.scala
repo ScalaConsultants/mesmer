@@ -52,7 +52,7 @@ object AgentInstrumentation {
     installation: (AgentBuilder, Instrumentation, Modules) => LoadingResult
   ): AgentInstrumentation =
     new AgentInstrumentation(name, modules) {
-      override def apply(builder: AgentBuilder, instrumentation: Instrumentation, modules: Modules): LoadingResult =
+      def apply(builder: AgentBuilder, instrumentation: Instrumentation, modules: Modules): LoadingResult =
         installation(builder, instrumentation, modules)
     }
 }

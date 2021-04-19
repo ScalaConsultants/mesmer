@@ -48,11 +48,11 @@ sealed trait WrappedSynchronousInstrument[L] extends Unbind with WrappedInstrume
 final case class WrappedLongValueRecorder private[opentelemetry] (underlying: LongValueRecorder, labels: Labels)
     extends WrappedSynchronousInstrument[Long]
     with MetricRecorder[Long] {
-  override type Self = WrappedLongValueRecorder
+  type Self = WrappedLongValueRecorder
 
   private[this] lazy val bound = underlying.bind(labels)
 
-  override def setValue(value: Long): Unit = bound.record(value)
+  def setValue(value: Long): Unit = bound.record(value)
 
   def unbind(): Unit = bound.unbind()
 }
@@ -60,13 +60,13 @@ final case class WrappedLongValueRecorder private[opentelemetry] (underlying: Lo
 final case class WrappedUpDownCounter private[opentelemetry] (underlying: LongUpDownCounter, labels: Labels)
     extends WrappedSynchronousInstrument[Long]
     with UpDownCounter[Long] {
-  override type Self = WrappedUpDownCounter
+  type Self = WrappedUpDownCounter
 
   private[this] lazy val bound = underlying.bind(labels)
 
-  override def decValue(value: Long): Unit = bound.add(-value)
+  def decValue(value: Long): Unit = bound.add(-value)
 
-  override def incValue(value: Long): Unit = bound.add(value)
+  def incValue(value: Long): Unit = bound.add(value)
 
   def unbind(): Unit = bound.unbind()
 }
@@ -74,11 +74,11 @@ final case class WrappedUpDownCounter private[opentelemetry] (underlying: LongUp
 final case class WrappedCounter private[opentelemetry] (underlying: LongCounter, labels: Labels)
     extends WrappedSynchronousInstrument[Long]
     with Counter[Long] {
-  override type Self = WrappedCounter
+  type Self = WrappedCounter
 
   private[this] lazy val bound = underlying.bind(labels)
 
-  override def incValue(value: Long): Unit = bound.add(value)
+  def incValue(value: Long): Unit = bound.add(value)
 
   def unbind(): Unit = bound.unbind()
 }

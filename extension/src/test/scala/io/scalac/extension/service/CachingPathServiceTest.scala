@@ -10,9 +10,9 @@ class CachingPathServiceTest extends AnyFlatSpec with Matchers with PathServiceT
 
   private val cacheMax = 10
 
-  override def pathService: CachingPathService = new CachingPathService(CachingConfig(10))
+  def pathService: CachingPathService = new CachingPathService(CachingConfig(10))
 
-  override lazy val testName: String = "CachingPathService"
+  lazy val testName: String = "CachingPathService"
 
   it should "cache static element" in {
     val sut     = pathService

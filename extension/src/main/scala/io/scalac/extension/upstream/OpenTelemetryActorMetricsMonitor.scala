@@ -3,7 +3,7 @@ package io.scalac.extension.upstream
 import com.typesafe.config.Config
 import io.opentelemetry.api.metrics.Meter
 
-import io.scalac.extension.metric.ActorMetricMonitor
+import io.scalac.extension.metric.ActorMetricsMonitor
 import io.scalac.extension.metric.MetricObserver
 import io.scalac.extension.metric.RegisterRoot
 import io.scalac.extension.upstream.OpenTelemetryActorMetricsMonitor.MetricNames
@@ -139,139 +139,139 @@ object OpenTelemetryActorMetricsMonitor {
 
 }
 
-final class OpenTelemetryActorMetricsMonitor(meter: Meter, metricNames: MetricNames) extends ActorMetricMonitor {
+class OpenTelemetryActorMetricsMonitor(meter: Meter, metricNames: MetricNames) extends ActorMetricsMonitor {
 
-  private val mailboxSizeObserver = new LongMetricObserverBuilderAdapter[ActorMetricMonitor.Labels](
+  private val mailboxSizeObserver = new LongMetricObserverBuilderAdapter[ActorMetricsMonitor.Labels](
     meter
       .longValueObserverBuilder(metricNames.mailboxSize)
       .setDescription("Tracks the size of an Actor's mailbox")
   )
 
-  private val mailboxTimeAvgObserver = new LongMetricObserverBuilderAdapter[ActorMetricMonitor.Labels](
+  private val mailboxTimeAvgObserver = new LongMetricObserverBuilderAdapter[ActorMetricsMonitor.Labels](
     meter
       .longValueObserverBuilder(metricNames.mailboxTimeAvg)
       .setDescription("Tracks the average time of an message in an Actor's mailbox")
   )
 
-  private val mailboxTimeMinObserver = new LongMetricObserverBuilderAdapter[ActorMetricMonitor.Labels](
+  private val mailboxTimeMinObserver = new LongMetricObserverBuilderAdapter[ActorMetricsMonitor.Labels](
     meter
       .longValueObserverBuilder(metricNames.mailboxTimeMin)
       .setDescription("Tracks the minimum time of an message in an Actor's mailbox")
   )
 
-  private val mailboxTimeMaxObserver = new LongMetricObserverBuilderAdapter[ActorMetricMonitor.Labels](
+  private val mailboxTimeMaxObserver = new LongMetricObserverBuilderAdapter[ActorMetricsMonitor.Labels](
     meter
       .longValueObserverBuilder(metricNames.mailboxTimeMax)
       .setDescription("Tracks the maximum time of an message in an Actor's mailbox")
   )
 
-  private val mailboxTimeSumObserver = new LongMetricObserverBuilderAdapter[ActorMetricMonitor.Labels](
+  private val mailboxTimeSumObserver = new LongMetricObserverBuilderAdapter[ActorMetricsMonitor.Labels](
     meter
       .longValueObserverBuilder(metricNames.mailboxTimeSum)
       .setDescription("Tracks the sum time of the messages in an Actor's mailbox")
   )
 
-  private val stashSizeCounter = new LongSumObserverBuilderAdapter[ActorMetricMonitor.Labels](
+  private val stashSizeCounter = new LongSumObserverBuilderAdapter[ActorMetricsMonitor.Labels](
     meter
       .longSumObserverBuilder(metricNames.stashedMessages)
       .setDescription("Tracks stash operations on actors")
   )
 
-  private val receivedMessagesSumObserver = new LongSumObserverBuilderAdapter[ActorMetricMonitor.Labels](
+  private val receivedMessagesSumObserver = new LongSumObserverBuilderAdapter[ActorMetricsMonitor.Labels](
     meter
       .longSumObserverBuilder(metricNames.receivedMessages)
       .setDescription("Tracks the sum of received messages in an Actor")
   )
 
-  private val processedMessagesSumObserver = new LongSumObserverBuilderAdapter[ActorMetricMonitor.Labels](
+  private val processedMessagesSumObserver = new LongSumObserverBuilderAdapter[ActorMetricsMonitor.Labels](
     meter
       .longSumObserverBuilder(metricNames.processedMessages)
       .setDescription("Tracks the sum of processed messages in an Actor")
   )
 
-  private val failedMessagesSumObserver = new LongSumObserverBuilderAdapter[ActorMetricMonitor.Labels](
+  private val failedMessagesSumObserver = new LongSumObserverBuilderAdapter[ActorMetricsMonitor.Labels](
     meter
       .longSumObserverBuilder(metricNames.failedMessages)
       .setDescription("Tracks the sum of failed messages in an Actor")
   )
 
-  private val processingTimeAvgObserver = new LongMetricObserverBuilderAdapter[ActorMetricMonitor.Labels](
+  private val processingTimeAvgObserver = new LongMetricObserverBuilderAdapter[ActorMetricsMonitor.Labels](
     meter
       .longValueObserverBuilder(metricNames.processingTimeAvg)
       .setDescription("Tracks the average processing time of an message in an Actor's receive handler")
   )
 
-  private val processingTimeMinObserver = new LongMetricObserverBuilderAdapter[ActorMetricMonitor.Labels](
+  private val processingTimeMinObserver = new LongMetricObserverBuilderAdapter[ActorMetricsMonitor.Labels](
     meter
       .longValueObserverBuilder(metricNames.processingTimeMin)
       .setDescription("Tracks the miminum processing time of an message in an Actor's receive handler")
   )
 
-  private val processingTimeMaxObserver = new LongMetricObserverBuilderAdapter[ActorMetricMonitor.Labels](
+  private val processingTimeMaxObserver = new LongMetricObserverBuilderAdapter[ActorMetricsMonitor.Labels](
     meter
       .longValueObserverBuilder(metricNames.processingTimeMax)
       .setDescription("Tracks the maximum processing time of an message in an Actor's receive handler")
   )
 
-  private val processingTimeSumObserver = new LongMetricObserverBuilderAdapter[ActorMetricMonitor.Labels](
+  private val processingTimeSumObserver = new LongMetricObserverBuilderAdapter[ActorMetricsMonitor.Labels](
     meter
       .longValueObserverBuilder(metricNames.processingTimeSum)
       .setDescription("Tracks the sum processing time of an message in an Actor's receive handler")
   )
 
-  private val sentMessagesObserver = new LongSumObserverBuilderAdapter[ActorMetricMonitor.Labels](
+  private val sentMessagesObserver = new LongSumObserverBuilderAdapter[ActorMetricsMonitor.Labels](
     meter
       .longSumObserverBuilder(metricNames.sentMessages)
       .setDescription("Tracks the sum of sent messages in an Actor")
   )
 
-  override def bind(): OpenTelemetryBoundMonitor =
+  def bind(): OpenTelemetryBoundMonitor =
     new OpenTelemetryBoundMonitor
 
   class OpenTelemetryBoundMonitor
-      extends ActorMetricMonitor.BoundMonitor
+      extends ActorMetricsMonitor.BoundMonitor
       with RegisterRoot
       with SynchronousInstrumentFactory {
 
-    val mailboxSize: MetricObserver[Long, ActorMetricMonitor.Labels] = mailboxSizeObserver.createObserver(this)
+    val mailboxSize: MetricObserver[Long, ActorMetricsMonitor.Labels] = mailboxSizeObserver.createObserver(this)
 
-    val mailboxTimeAvg: MetricObserver[Long, ActorMetricMonitor.Labels] =
+    val mailboxTimeAvg: MetricObserver[Long, ActorMetricsMonitor.Labels] =
       mailboxTimeAvgObserver.createObserver(this)
 
-    val mailboxTimeMin: MetricObserver[Long, ActorMetricMonitor.Labels] =
+    val mailboxTimeMin: MetricObserver[Long, ActorMetricsMonitor.Labels] =
       mailboxTimeMinObserver.createObserver(this)
 
-    val mailboxTimeMax: MetricObserver[Long, ActorMetricMonitor.Labels] =
+    val mailboxTimeMax: MetricObserver[Long, ActorMetricsMonitor.Labels] =
       mailboxTimeMaxObserver.createObserver(this)
 
-    val mailboxTimeSum: MetricObserver[Long, ActorMetricMonitor.Labels] =
+    val mailboxTimeSum: MetricObserver[Long, ActorMetricsMonitor.Labels] =
       mailboxTimeSumObserver.createObserver(this)
 
-    val stashSize: MetricObserver[Long, ActorMetricMonitor.Labels] =
+    val stashSize: MetricObserver[Long, ActorMetricsMonitor.Labels] =
       stashSizeCounter.createObserver(this)
 
-    val receivedMessages: MetricObserver[Long, ActorMetricMonitor.Labels] =
+    val receivedMessages: MetricObserver[Long, ActorMetricsMonitor.Labels] =
       receivedMessagesSumObserver.createObserver(this)
 
-    val processedMessages: MetricObserver[Long, ActorMetricMonitor.Labels] =
+    val processedMessages: MetricObserver[Long, ActorMetricsMonitor.Labels] =
       processedMessagesSumObserver.createObserver(this)
 
-    val failedMessages: MetricObserver[Long, ActorMetricMonitor.Labels] =
+    val failedMessages: MetricObserver[Long, ActorMetricsMonitor.Labels] =
       failedMessagesSumObserver.createObserver(this)
 
-    val processingTimeAvg: MetricObserver[Long, ActorMetricMonitor.Labels] =
+    val processingTimeAvg: MetricObserver[Long, ActorMetricsMonitor.Labels] =
       processingTimeAvgObserver.createObserver(this)
 
-    val processingTimeMin: MetricObserver[Long, ActorMetricMonitor.Labels] =
+    val processingTimeMin: MetricObserver[Long, ActorMetricsMonitor.Labels] =
       processingTimeMinObserver.createObserver(this)
 
-    val processingTimeMax: MetricObserver[Long, ActorMetricMonitor.Labels] =
+    val processingTimeMax: MetricObserver[Long, ActorMetricsMonitor.Labels] =
       processingTimeMaxObserver.createObserver(this)
 
-    val processingTimeSum: MetricObserver[Long, ActorMetricMonitor.Labels] =
+    val processingTimeSum: MetricObserver[Long, ActorMetricsMonitor.Labels] =
       processingTimeSumObserver.createObserver(this)
 
-    val sentMessages: MetricObserver[Long, ActorMetricMonitor.Labels] =
+    val sentMessages: MetricObserver[Long, ActorMetricsMonitor.Labels] =
       sentMessagesObserver.createObserver(this)
   }
 

@@ -20,7 +20,7 @@ class SupportedVersionTest extends AnyFlatSpec with Matchers with Inspectors {
 
     val sut = SupportedVersion.any
 
-    forAll(versions.map(sut.supports))(_ shouldBe (true))
+    forAll(versions.map(sut.supports))(_ shouldBe true)
   }
 
   it should "support any specified version" in {
@@ -43,8 +43,8 @@ class SupportedVersionTest extends AnyFlatSpec with Matchers with Inspectors {
 
     val sut = SupportedVersion.majors(supportedMajor)
 
-    forAll(supportedVersions.map(sut.supports))(_ shouldBe (true))
-    forAll(notSupportedVersions.map(sut.supports))(_ shouldBe (false))
+    forAll(supportedVersions.map(sut.supports))(_ shouldBe true)
+    forAll(notSupportedVersions.map(sut.supports))(_ shouldBe false)
   }
 
   it should "support version with many specified majors" in {
@@ -55,8 +55,8 @@ class SupportedVersionTest extends AnyFlatSpec with Matchers with Inspectors {
 
     val sut = SupportedVersion.majors(supportedMajors)
 
-    forAll(supportedVersions.map(sut.supports))(_ shouldBe (true))
-    forAll(notSupportedVersions.map(sut.supports))(_ shouldBe (false))
+    forAll(supportedVersions.map(sut.supports))(_ shouldBe true)
+    forAll(notSupportedVersions.map(sut.supports))(_ shouldBe false)
   }
 
   it should "support version with specified minor" in {
@@ -67,8 +67,8 @@ class SupportedVersionTest extends AnyFlatSpec with Matchers with Inspectors {
 
     val sut = SupportedVersion.minors(supportedMinor)
 
-    forAll(supportedVersions.map(sut.supports))(_ shouldBe (true))
-    forAll(notSupportedVersions.map(sut.supports))(_ shouldBe (false))
+    forAll(supportedVersions.map(sut.supports))(_ shouldBe true)
+    forAll(notSupportedVersions.map(sut.supports))(_ shouldBe false)
   }
 
   it should "support version with many specified minors" in {
@@ -79,8 +79,8 @@ class SupportedVersionTest extends AnyFlatSpec with Matchers with Inspectors {
 
     val sut = SupportedVersion.minors(supportedMinor)
 
-    forAll(supportedVersions.map(sut.supports))(_ shouldBe (true))
-    forAll(notSupportedVersions.map(sut.supports))(_ shouldBe (false))
+    forAll(supportedVersions.map(sut.supports))(_ shouldBe true)
+    forAll(notSupportedVersions.map(sut.supports))(_ shouldBe false)
   }
 
   it should "support no version" in {
@@ -96,10 +96,10 @@ class SupportedVersionTest extends AnyFlatSpec with Matchers with Inspectors {
 
     val (intersectedSupportedVersion, otherVersions) = List.fill(10)(randomVersion).splitAt(5) match {
       case (supported, notSupported) =>
-        (supported.map(_.copy(major = supportedMajor, minor = supportedMinor)) ->
+        supported.map(_.copy(major = supportedMajor, minor = supportedMinor)) ->
           notSupported.map(
             _.copy(major = Random.shuffle(notSupportedMajors).head, Random.shuffle(notSupportedMinors).head)
-          ))
+          )
     }
 
     val sut = SupportedVersion(intersectedSupportedVersion ++ otherVersions) && SupportedVersion.majors(

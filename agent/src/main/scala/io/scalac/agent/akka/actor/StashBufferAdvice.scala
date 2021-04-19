@@ -3,7 +3,7 @@ import akka.actor.typed.scaladsl.ActorContext
 import akka.actor.typed.scaladsl.adapter._
 import net.bytebuddy.asm.Advice
 
-import io.scalac.core.actor.ActorCellDecorator
+import io.scalac.extension.actor.ActorCellDecorator
 
 class StashBufferAdvice
 object StashBufferAdvice {

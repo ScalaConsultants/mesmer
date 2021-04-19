@@ -13,8 +13,8 @@ trait TestOps {
   def sameOrParent(parent: ActorRef[_]): Matcher[ActorRef[_]] = ref => {
     MatchResult(
       testSameOrParent(ref, parent),
-      s"${parent} is not same or parent of ${ref}",
-      s"${parent} is same as or parent of ${ref}"
+      s"$parent is not same or parent of $ref",
+      s"$parent is same as or parent of $ref"
     )
   }
 
@@ -34,7 +34,7 @@ trait TestOps {
       .continually(randomString(length))
       .distinct
       .take(amount)
-      .toSeq
+      .toList
 
   protected def testSameOrParent(ref: ActorRef[_], parent: ActorRef[_]): Boolean =
     parent.path == ref.path || ref.path.parent == parent.path

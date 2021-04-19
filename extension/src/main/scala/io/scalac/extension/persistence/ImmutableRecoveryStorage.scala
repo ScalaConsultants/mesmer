@@ -6,12 +6,12 @@ import io.scalac.core.event.PersistenceEvent.RecoveryStarted
 class ImmutableRecoveryStorage private[persistence] (private val recoveries: Map[String, RecoveryStarted])
     extends RecoveryStorage {
 
-  override def recoveryStarted(event: RecoveryStarted): RecoveryStorage = {
+  def recoveryStarted(event: RecoveryStarted): RecoveryStorage = {
     val key = eventToKey(event)
     new ImmutableRecoveryStorage(recoveries + (key -> event))
   }
 
-  override def recoveryFinished(event: RecoveryFinished): Option[(RecoveryStorage, Long)] = {
+  def recoveryFinished(event: RecoveryFinished): Option[(RecoveryStorage, Long)] = {
     val key = eventToKey(event)
     recoveries
       .get(key)

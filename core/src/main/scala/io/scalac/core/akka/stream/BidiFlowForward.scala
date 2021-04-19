@@ -17,10 +17,10 @@ object BidiFlowForward {
         private val outIn  = Inlet.create[O]("out.in")
         private val outOut = Outlet.create[O]("out.out")
 
-        override val shape: BidiShape[I, I, O, O] =
+        val shape: BidiShape[I, I, O, O] =
           BidiShape(inIn, inOut, outIn, outOut)
 
-        override def createLogic(inheritedAttributes: Attributes): GraphStageLogic = new GraphStageLogic(shape) {
+        def createLogic(inheritedAttributes: Attributes): GraphStageLogic = new GraphStageLogic(shape) {
           // This following `setHandler`s are just to forward requests and responses.
           // The real value of this flow is `preStart` and postStop` hooks override.
           // The general handlers and its interactions is based on Kamon's akka instrumentation.
@@ -28,7 +28,7 @@ object BidiFlowForward {
           setHandler(
             inIn,
             new InHandler {
-              override def onPush(): Unit           = push(inOut, grab(inIn))
+              def onPush(): Unit                    = push(inOut, grab(inIn))
               override def onUpstreamFinish(): Unit = complete(inOut)
             }
           )
@@ -36,7 +36,7 @@ object BidiFlowForward {
           setHandler(
             inOut,
             new OutHandler {
-              override def onPull(): Unit                             = pull(inIn)
+              def onPull(): Unit                                      = pull(inIn)
               override def onDownstreamFinish(cause: Throwable): Unit = cancel(inIn)
             }
           )
@@ -44,7 +44,7 @@ object BidiFlowForward {
           setHandler(
             outIn,
             new InHandler {
-              override def onPush(): Unit           = push(outOut, grab(outIn))
+              def onPush(): Unit                    = push(outOut, grab(outIn))
               override def onUpstreamFinish(): Unit = completeStage()
             }
           )
@@ -52,7 +52,7 @@ object BidiFlowForward {
           setHandler(
             outOut,
             new OutHandler {
-              override def onPull(): Unit                             = pull(outIn)
+              def onPull(): Unit                                      = pull(outIn)
               override def onDownstreamFinish(cause: Throwable): Unit = cancel(outIn)
             }
           )
