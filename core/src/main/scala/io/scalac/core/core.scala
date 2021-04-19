@@ -15,8 +15,6 @@ package object core {
   val httpServiceKey: ServiceKey[HttpEvent] =
     ServiceKey[HttpEvent](s"io.scalac.metric.http")
 
-  val tagServiceKey: ServiceKey[TagEvent] = ServiceKey[TagEvent]("io.scalac.meta.tag")
-
   val streamServiceKey: ServiceKey[StreamEvent] = ServiceKey[StreamEvent]("io.scalac.metric.stream")
 
 }

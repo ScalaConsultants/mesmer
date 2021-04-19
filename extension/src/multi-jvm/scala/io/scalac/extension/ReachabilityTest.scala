@@ -3,19 +3,17 @@ package io.scalac.extension
 import akka.actor.typed.ActorSystem
 import akka.actor.typed.scaladsl.adapter._
 import akka.cluster.Cluster
-import akka.remote.testkit.{ MultiNodeConfig, MultiNodeSpec }
+import akka.remote.testkit.{MultiNodeConfig, MultiNodeSpec}
 import akka.remote.transport.ThrottlerTransportAdapter.Direction
-
 import com.typesafe.config.ConfigFactory
-
-import io.scalac.core.util.probe.BoundTestProbe.{ Dec, Inc }
+import io.scalac.extension.util.probe.BoundTestProbe.{Dec, Inc}
 import io.scalac.core.util.ScalaTestMultiNodeSpec
-import io.scalac.core.util.probe.ClusterMetricsTestProbe
 import org.scalatest.Inspectors
+
 import scala.concurrent.duration._
 import scala.language.postfixOps
-
 import io.scalac.core.util.probe.ObserverCollector.ScheduledCollectorImpl
+import io.scalac.extension.util.probe.ClusterMetricsTestProbe
 
 class ReachabilityTestMultiJvmNode1 extends ReachabilityTest
 class ReachabilityTestMultiJvmNode2 extends ReachabilityTest

@@ -22,7 +22,7 @@ class TerminationRegistryTest
   "TerminationRegistry" should "watch termination of actor" in {
     val registry  = system.systemActorOf(TerminationRegistry(), createUniqueId)
     val testId    = createUniqueId
-    val testActor = system.systemActorOf(TestBehavior(testId), testId)
+    val testActor = system.systemActorOf(TestBehaviors.SameStop(testId), testId)
 
     registry.ask[Ack](reply => Watch(testActor, Some(reply))).isReadyWithin(1 second)
     testActor.unsafeUpcast[Any] ! PoisonPill
@@ -32,7 +32,7 @@ class TerminationRegistryTest
   it should "fail when watch wait was initiated unwatch all was sent" in {
     val registry  = system.systemActorOf(TerminationRegistry(), createUniqueId)
     val testId    = createUniqueId
-    val testActor = system.systemActorOf(TestBehavior(testId), testId)
+    val testActor = system.systemActorOf(TestBehaviors.SameStop(testId), testId)
 
     registry.ask[Ack](reply => Watch(testActor, Some(reply))).isReadyWithin(1 second)
     val waitForTermination = registry.ask[Ack](reply => WaitForTermination(testActor, reply))

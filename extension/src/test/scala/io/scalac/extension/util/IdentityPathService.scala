@@ -1,4 +1,4 @@
-package io.scalac.core.util
+package io.scalac.extension.util
 
 import io.scalac.core.model.Path
 import io.scalac.extension.service.PathService

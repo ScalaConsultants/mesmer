@@ -15,18 +15,18 @@ import io.scalac.core._
 import io.scalac.core.event.EventBus
 import io.scalac.core.event.PersistenceEvent._
 import io.scalac.core.model._
-import io.scalac.core.util.IdentityPathService
 import io.scalac.core.util.TestCase.CommonMonitorTestFactory
 import io.scalac.core.util.TestCase.MonitorTestCaseContext.BasicContext
 import io.scalac.core.util.TestConfig
 import io.scalac.core.util.Timestamp
-import io.scalac.core.util.probe.BoundTestProbe.Inc
-import io.scalac.core.util.probe.BoundTestProbe.MetricRecorded
-import io.scalac.core.util.probe.PersistenceMetricTestProbe
 import io.scalac.extension.metric.CachingMonitor
 import io.scalac.extension.metric.PersistenceMetricMonitor.Labels
 import io.scalac.extension.persistence.ImmutablePersistStorage
 import io.scalac.extension.persistence.ImmutableRecoveryStorage
+import io.scalac.extension.util.IdentityPathService
+import io.scalac.extension.util.probe.BoundTestProbe.Inc
+import io.scalac.extension.util.probe.BoundTestProbe.MetricRecorded
+import io.scalac.extension.util.probe.PersistenceMetricTestProbe
 
 class PersistenceEventsActorTest
     extends ScalaTestWithActorTestKit(TestConfig.localActorProvider)
@@ -36,10 +36,11 @@ class PersistenceEventsActorTest
     with CommonMonitorTestFactory {
 
   type Monitor = PersistenceMetricTestProbe
+  type Command = PersistenceEventsActor.Event
 
   protected val serviceKey: ServiceKey[_] = persistenceServiceKey
 
-  protected def createMonitorBehavior(implicit context: BasicContext[PersistenceMetricTestProbe]): Behavior[_] =
+  protected def createMonitorBehavior(implicit context: BasicContext[PersistenceMetricTestProbe]): Behavior[Command] =
     PersistenceEventsActor(
       if (context.caching) CachingMonitor(monitor) else monitor,
       ImmutableRecoveryStorage.empty,

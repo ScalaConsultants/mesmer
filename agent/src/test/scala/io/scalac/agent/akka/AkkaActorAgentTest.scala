@@ -2,7 +2,6 @@ package io.scalac.agent.akka
 
 import akka.actor.PoisonPill
 import akka.actor.Props
-import akka.actor.testkit.typed.FishingOutcome
 import akka.actor.testkit.typed.scaladsl.TestProbe
 import akka.actor.typed.ActorRef
 import akka.actor.typed.Behavior
@@ -16,8 +15,6 @@ import org.scalatest.OptionValues
 import org.scalatest.concurrent.Eventually
 import org.scalatest.flatspec.AnyFlatSpecLike
 import org.scalatest.matchers.should.Matchers
-import org.scalatest.time.Millis
-import org.scalatest.time.Span
 
 import scala.concurrent._
 import scala.concurrent.duration._
@@ -27,9 +24,6 @@ import io.scalac.agent.utils.SafeLoadSystem
 import io.scalac.core.actor.ActorCellDecorator
 import io.scalac.core.actor.ActorCellMetrics
 import io.scalac.core.event.ActorEvent
-import io.scalac.core.event.ActorEvent.StashMeasurement
-import io.scalac.core.model._
-import io.scalac.core.util.ActorPathOps
 import io.scalac.core.util.MetricsToolKit
 import io.scalac.core.util.ReceptionistOps
 
@@ -43,8 +37,6 @@ class AkkaActorAgentTest
     with SafeLoadSystem {
 
   import AkkaActorAgentTest._
-
-  override implicit val patienceConfig: PatienceConfig = PatienceConfig().copy(scaled(Span(1000, Millis)))
 
   private final val StashMessageCount = 10
 
@@ -310,17 +302,6 @@ class AkkaActorAgentTest
     sent(0)
 
     sender.unsafeUpcast[Any] ! PoisonPill
-  }
-
-  def createExpectStashSize(monitor: Fixture, ref: ActorRef[_]): Int => Unit =
-    createExpectStashSize(monitor, ActorPathOps.getPathString(ref))
-
-  def createExpectStashSize(monitor: Fixture, path: ActorPath): Int => Unit = { size =>
-    val msg = monitor.fishForMessage(2.seconds) {
-      case StashMeasurement(`size`, `path`) => FishingOutcome.Complete
-      case _                                => FishingOutcome.ContinueAndIgnore
-    }
-    msg.size should not be (0)
   }
 
   def testWithContextAndActor[T](
