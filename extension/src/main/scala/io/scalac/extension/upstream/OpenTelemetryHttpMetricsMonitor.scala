@@ -18,8 +18,8 @@ object OpenTelemetryHttpMetricsMonitor {
   object MetricNames {
     def default: MetricNames =
       MetricNames(
-        "request_duration",
-        "request_total"
+        "akka_http_request_duration",
+        "akka_http_request_total"
       )
 
     def fromConfig(config: Config): MetricNames = {

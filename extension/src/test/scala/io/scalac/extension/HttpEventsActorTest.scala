@@ -19,19 +19,19 @@ import io.scalac.core.event.HttpEvent.RequestCompleted
 import io.scalac.core.event.HttpEvent.RequestStarted
 import io.scalac.core.model
 import io.scalac.core.model._
-import io.scalac.core.util.IdentityPathService
 import io.scalac.core.util.TestCase.CommonMonitorTestFactory
 import io.scalac.core.util.TestCase.MonitorTestCaseContext.BasicContext
 import io.scalac.core.util.TestOps
 import io.scalac.core.util.Timestamp
 import io.scalac.core.util._
-import io.scalac.core.util.probe.BoundTestProbe._
-import io.scalac.core.util.probe.HttpMonitorTestProbe
 import io.scalac.extension.http.MutableRequestStorage
 import io.scalac.extension.metric.CachingMonitor
 import io.scalac.extension.metric.HttpConnectionMetricsMonitor
 import io.scalac.extension.metric.HttpMetricsMonitor
+import io.scalac.extension.util.IdentityPathService
+import io.scalac.extension.util.probe.BoundTestProbe._
 import io.scalac.extension.util.probe.HttpConnectionMetricsTestProbe
+import io.scalac.extension.util.probe.HttpMonitorTestProbe
 
 class HttpEventsActorTest
     extends ScalaTestWithActorTestKit(TestConfig.localActorProvider)
@@ -47,11 +47,12 @@ class HttpEventsActorTest
     with CommonMonitorTestFactory {
 
   type Monitor = MonitorImpl
+  type Command = HttpEventsActor.Event
   case class MonitorImpl(request: HttpMonitorTestProbe, connection: HttpConnectionMetricsTestProbe)
 
   protected val serviceKey: ServiceKey[_] = httpServiceKey
 
-  protected def createMonitorBehavior(implicit context: BasicContext[Monitor]): Behavior[_] = {
+  protected def createMonitorBehavior(implicit context: BasicContext[Monitor]): Behavior[Command] = {
     val MonitorImpl(requestMonitor, connectionMonitor) = monitor
     HttpEventsActor(
       if (context.caching) CachingMonitor(requestMonitor) else requestMonitor,

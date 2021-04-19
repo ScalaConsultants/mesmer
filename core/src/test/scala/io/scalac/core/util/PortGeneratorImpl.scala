@@ -3,7 +3,7 @@ package io.scalac.core.util
 import scala.collection.mutable.ListBuffer
 import scala.util.Random
 
-private[util] object PortGeneratorImpl extends PortGenerator {
+private[scalac] object PortGeneratorImpl extends PortGenerator {
 
   private val _takenPorts: ListBuffer[Int] = ListBuffer.empty
 

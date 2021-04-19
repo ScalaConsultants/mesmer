@@ -29,7 +29,7 @@ trait TestOps {
    * @param length
    * @return
    */
-  def generateUniqueString(amount: Int, length: Int): Seq[String] =
+  def generateUniqueStringSeq(amount: Int, length: Int): Seq[String] =
     LazyList
       .continually(randomString(length))
       .distinct

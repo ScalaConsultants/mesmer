@@ -1,4 +1,4 @@
-package io.scalac.core.util.probe
+package io.scalac.extension.util.probe
 
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicInteger
@@ -9,12 +9,12 @@ import akka.actor.typed.ActorSystem
 import scala.collection.concurrent.{ Map => CMap }
 import scala.jdk.CollectionConverters._
 
-import io.scalac.core.util.TestProbeSynchronized
-import io.scalac.core.util.probe.BoundTestProbe.CounterCommand
-import io.scalac.core.util.probe.BoundTestProbe.MetricRecorderCommand
 import io.scalac.extension.metric.Counter
 import io.scalac.extension.metric.HttpMetricsMonitor
 import io.scalac.extension.metric.MetricRecorder
+import io.scalac.extension.util.TestProbeSynchronized
+import io.scalac.extension.util.probe.BoundTestProbe.CounterCommand
+import io.scalac.extension.util.probe.BoundTestProbe.MetricRecorderCommand
 
 class HttpMonitorTestProbe(implicit val system: ActorSystem[_]) extends HttpMetricsMonitor {
 

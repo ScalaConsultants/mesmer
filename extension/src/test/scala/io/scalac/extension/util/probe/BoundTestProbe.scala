@@ -1,11 +1,15 @@
-package io.scalac.core.util.probe
+package io.scalac.extension.util.probe
 
 import akka.actor.testkit.typed.scaladsl.TestProbe
 
 import io.scalac.core.LabelSerializable
-import io.scalac.core.util.probe.BoundTestProbe._
+import io.scalac.core.util.probe.ObserverCollector
+import io.scalac.extension.metric.Counter
+import io.scalac.extension.metric.MetricObserver
 import io.scalac.extension.metric.MetricObserver.Updater
-import io.scalac.extension.metric._
+import io.scalac.extension.metric.MetricRecorder
+import io.scalac.extension.metric.UpDownCounter
+import io.scalac.extension.util.probe.BoundTestProbe._
 
 object BoundTestProbe {
 

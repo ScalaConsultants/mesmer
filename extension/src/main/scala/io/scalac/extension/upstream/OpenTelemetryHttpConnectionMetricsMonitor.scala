@@ -15,7 +15,7 @@ object OpenTelemetryHttpConnectionMetricsMonitor {
 
   object MetricNames {
     def default: MetricNames =
-      MetricNames("connection_total")
+      MetricNames("akka_http_connections")
 
     def fromConfig(config: Config): MetricNames = {
       import io.scalac.extension.config.ConfigurationUtils._
@@ -27,7 +27,7 @@ object OpenTelemetryHttpConnectionMetricsMonitor {
         )
         .map { clusterMetricsConfig =>
           val connectionTotal = clusterMetricsConfig
-            .tryValue("connection-total")(_.getString)
+            .tryValue("connections")(_.getString)
             .getOrElse(defaultCached.connectionTotal)
           MetricNames(connectionTotal)
         }

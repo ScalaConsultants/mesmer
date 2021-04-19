@@ -1,14 +1,18 @@
 package io.scalac.core.event
 
+import akka.ActorSystemOps._
 import akka.actor.typed._
 import akka.actor.typed.receptionist.Receptionist
 import akka.actor.typed.receptionist.Receptionist.Subscribe
 import akka.actor.typed.receptionist.ServiceKey
 import akka.actor.typed.scaladsl.Behaviors
+import akka.actor.typed.scaladsl.adapter._
 import akka.util.Timeout
+import org.slf4j.LoggerFactory
 
 import scala.concurrent.duration._
 import scala.language.postfixOps
+import scala.util.DynamicVariable
 
 import io.scalac.core.AkkaDispatcher.safeDispatcherSelector
 import io.scalac.core.util.MutableTypedMap
@@ -69,6 +73,9 @@ private[scalac] class ReceptionistBasedEventBus(implicit
   val system: ActorSystem[_],
   val timeout: Timeout
 ) extends EventBus {
+
+  private val log = LoggerFactory.getLogger(this.getClass)
+
   import ReceptionistBasedEventBus._
 
   type ServiceMapFunc[K <: AbstractService] = ActorRef[K#ServiceType]
@@ -77,15 +84,36 @@ private[scalac] class ReceptionistBasedEventBus(implicit
 
   private[this] val dispatcher = safeDispatcherSelector
 
-  def publishEvent[T <: AbstractEvent](event: T)(implicit service: Service[event.Service]): Unit = ref ! event
-
-  @inline private def ref[S](implicit service: Service[S]): ActorRef[S] =
-    serviceBuffers.getOrCreate(service) {
-      system.log.debug("Initialize event buffer for service {}", service.serviceKey)
-      system.systemActorOf(
-        cachingBehavior(service.serviceKey),
-        s"event-bus-${service.serviceKey.id}",
-        dispatcher
-      )
+  def publishEvent[T <: AbstractEvent](event: T)(implicit service: Service[event.Service]): Unit =
+    ref.fold(log.trace("Prevented publishing event {}", event)) { ref =>
+      ref ! event
     }
+
+  private val positiveFeedbackLoopBarrierClosed = new DynamicVariable[Boolean](false)
+
+  @inline private def ref[S](implicit service: Service[S]): Option[ActorRef[S]] =
+    if (!positiveFeedbackLoopBarrierClosed.value) {
+      val ref = serviceBuffers
+        .get(service)
+        .orElse {
+          if (system.toClassic.isInitialized)
+            Some(serviceBuffers.getOrCreate(service) {
+              positiveFeedbackLoopBarrierClosed.withValue(true) {
+                val actorName = s"event-bus-${service.serviceKey.id}"
+                log.debug("Start actor for service {}", service.serviceKey.id)
+                system.systemActorOf(cachingBehavior(service.serviceKey), actorName, dispatcher)
+              }
+            })
+          else {
+            // we prevent publishing events before actor system if initialized -
+            // we rely heavily on actor system for message routing and sending a message
+            // before it's ready might yield unexpected results
+            // those events are going to be lost so this must be taken into consideration
+            // when implementing listeners
+            None
+          }
+        }
+      ref
+    } else None
+
 }

@@ -16,5 +16,6 @@ package object metric {
   type StreamMetricsMonitor      = Bindable[StreamMetricsMonitor.EagerLabels, StreamMetricsMonitor.BoundMonitor]
   type StreamOperatorMetricsMonitor =
     EmptyBind[StreamOperatorMetricsMonitor.BoundMonitor]
+  type ActorSystemMonitor = Bindable[ActorSystemMonitor.Labels, ActorSystemMonitor.BoundMonitor]
 
 }

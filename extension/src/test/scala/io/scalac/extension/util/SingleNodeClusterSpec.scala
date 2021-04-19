@@ -1,4 +1,4 @@
-package io.scalac.core.util
+package io.scalac.extension.util
 
 import java.util.UUID
 
@@ -28,8 +28,10 @@ import scala.concurrent.duration._
 import scala.jdk.CollectionConverters._
 import scala.reflect.ClassTag
 
-import io.scalac.core.util.probe.ClusterMonitorTestProbe
+import io.scalac.core.util.PortGenerator
+import io.scalac.core.util.PortGeneratorImpl
 import io.scalac.core.util.probe.ObserverCollector.ScheduledCollectorImpl
+import io.scalac.extension.util.probe.ClusterMonitorTestProbe
 
 trait SingleNodeClusterSpec extends AsyncTestSuite {
 

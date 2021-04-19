@@ -17,7 +17,7 @@ object OpenTelemetryActorMetricsMonitor {
     mailboxTimeMin: String,
     mailboxTimeMax: String,
     mailboxTimeSum: String,
-    stashSize: String,
+    stashedMessages: String,
     receivedMessages: String,
     processedMessages: String,
     failedMessages: String,
@@ -31,20 +31,20 @@ object OpenTelemetryActorMetricsMonitor {
 
     def default: MetricNames =
       MetricNames(
-        "mailbox_size",
-        "mailbox_time_avg",
-        "mailbox_time_min",
-        "mailbox_time_max",
-        "mailbox_time_sum",
-        "stash_size",
-        "received_messages",
-        "processed_messages",
-        "failed_messages",
-        "processing_time_avg",
-        "processing_time_min",
-        "processing_time_max",
-        "processing_time_sum",
-        "sent_messages"
+        "akka_actor_mailbox_size",
+        "akka_actor_mailbox_time_avg",
+        "akka_actor_mailbox_time_min",
+        "akka_actor_mailbox_time_max",
+        "akka_actor_mailbox_time_sum",
+        "akka_actor_stashed_total",
+        "akka_actor_received_messages_total",
+        "akka_actor_processed_messages_total",
+        "akka_actor_failed_messages",
+        "akka_actor_processing_time_avg",
+        "akka_actor_processing_time_min",
+        "akka_actor_processing_time_max",
+        "akka_actor_processing_time_sum",
+        "akka_actor_sent_messages_totals"
       )
 
     def fromConfig(config: Config): MetricNames = {
@@ -78,7 +78,7 @@ object OpenTelemetryActorMetricsMonitor {
 
           val stashSize = clusterMetricsConfig
             .tryValue("stash-size")(_.getString)
-            .getOrElse(defaultCached.stashSize)
+            .getOrElse(defaultCached.stashedMessages)
 
           val receivedMessages = clusterMetricsConfig
             .tryValue("received-messages")(_.getString)
@@ -173,7 +173,7 @@ class OpenTelemetryActorMetricsMonitor(meter: Meter, metricNames: MetricNames) e
 
   private val stashSizeCounter = new LongSumObserverBuilderAdapter[ActorMetricsMonitor.Labels](
     meter
-      .longSumObserverBuilder(metricNames.stashSize)
+      .longSumObserverBuilder(metricNames.stashedMessages)
       .setDescription("Tracks stash operations on actors")
   )
 

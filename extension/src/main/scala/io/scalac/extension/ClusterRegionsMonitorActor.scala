@@ -20,7 +20,7 @@ import scala.jdk.DurationConverters.JavaDurationOps
 
 import io.scalac.core.model._
 import io.scalac.core.util.CachedQueryResult
-import io.scalac.extension.config.ConfigurationUtils.ConfigOps
+import io.scalac.extension.config.ConfigurationUtils._
 import io.scalac.extension.metric.ClusterMetricsMonitor
 import io.scalac.extension.metric.ClusterMetricsMonitor.Labels
 

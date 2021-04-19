@@ -1,12 +1,13 @@
-package io.scalac.core.util.probe
+package io.scalac.extension.util.probe
 
 import akka.actor.testkit.typed.scaladsl.TestProbe
 import akka.actor.typed.ActorSystem
 
-import io.scalac.core.util.TestProbeSynchronized
-import io.scalac.core.util.probe.BoundTestProbe._
+import io.scalac.core.util.probe.ObserverCollector
 import io.scalac.extension.metric.ClusterMetricsMonitor.Labels
 import io.scalac.extension.metric._
+import io.scalac.extension.util.TestProbeSynchronized
+import io.scalac.extension.util.probe.BoundTestProbe._
 
 class ClusterMonitorTestProbe private (
   val shardPerRegionsProbe: TestProbe[MetricObserverCommand[Labels]],
