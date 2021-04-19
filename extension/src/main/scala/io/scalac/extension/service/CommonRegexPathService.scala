@@ -22,6 +22,7 @@ object CommonRegexPathService extends PathService {
         path.substring(offset, nextIndex) match {
           case numberRegex(_*) =>
             replaceInPath(nextIndex + 1, replacements :+ (offset, nextIndex, numberTemplate))
+
           case subs if subs.length == 36 =>
             subs match {
               case uuidRegex(_*) =>

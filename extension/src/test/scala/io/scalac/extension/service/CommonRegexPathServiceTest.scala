@@ -22,13 +22,13 @@ trait PathServiceTest extends Matchers {
 
   it should "mark all number in uri as numberTemplates" in {
     val testUri     = "/api/v1/2/balance/10"
-    val expectedUri = s"/api/v1/${numberTemplate}/balance/${numberTemplate}"
+    val expectedUri = s"/api/v1/$numberTemplate/balance/$numberTemplate"
     pathService.template(testUri) shouldEqual (expectedUri)
   }
 
   it should "mark all uuids in uri as numberTemplates" in {
     val testUri     = s"/api/v1/${UUID.randomUUID()}/balance/${UUID.randomUUID()}"
-    val expectedUri = s"/api/v1/${uuidTemplate}/balance/${uuidTemplate}"
+    val expectedUri = s"/api/v1/$uuidTemplate/balance/$uuidTemplate"
     pathService.template(testUri) shouldEqual (expectedUri)
   }
 
@@ -39,19 +39,19 @@ trait PathServiceTest extends Matchers {
 
   it should "replace all occurrences of numbers and uuids" in {
     val testUri     = s"/api/v1/${UUID.randomUUID()}/balance/10"
-    val expectedUri = s"/api/v1/${uuidTemplate}/balance/${numberTemplate}"
+    val expectedUri = s"/api/v1/$uuidTemplate/balance/$numberTemplate"
     pathService.template(testUri) shouldEqual (expectedUri)
   }
 
   it should "keep correct number of slashes" in {
     val testUri     = s"/api/v1/balance/10/"
-    val expectedUri = s"/api/v1/balance/${numberTemplate}/"
+    val expectedUri = s"/api/v1/balance/$numberTemplate/"
     pathService.template(testUri) shouldEqual (expectedUri)
   }
 
   it should "handle correctly double slashes in uri" in {
     val testUri     = s"/api//v1/balance//10"
-    val expectedUri = s"/api//v1/balance//${numberTemplate}"
+    val expectedUri = s"/api//v1/balance//$numberTemplate"
     pathService.template(testUri) shouldEqual (expectedUri)
   }
 

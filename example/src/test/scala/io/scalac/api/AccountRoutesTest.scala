@@ -70,7 +70,7 @@ class AccountRoutesTest
     test { case GetBalance(_) =>
       CurrentBalance(currentBalance)
     } { case (uuid, routes) =>
-      Get(s"/api/v1/account/${uuid}/balance") ~> routes ~> check {
+      Get(s"/api/v1/account/$uuid/balance") ~> routes ~> check {
         status shouldEqual StatusCodes.OK
         responseAs[Account] shouldEqual (Account(uuid, currentBalance))
       }
@@ -84,7 +84,7 @@ class AccountRoutesTest
       value shouldBe withdrawAmount
       CurrentBalance(resultBalance)
     } { case (uuid, routes) =>
-      Put(s"/api/v1/account/${uuid}/withdraw/${withdrawAmount}") ~> routes ~> check {
+      Put(s"/api/v1/account/$uuid/withdraw/$withdrawAmount") ~> routes ~> check {
         status shouldEqual StatusCodes.Created
         responseAs[Account] shouldEqual (Account(uuid, resultBalance))
       }
@@ -97,7 +97,7 @@ class AccountRoutesTest
       value shouldBe withdrawAmount
       InsufficientFunds
     } { case (uuid, routes) =>
-      Put(s"/api/v1/account/${uuid}/withdraw/${withdrawAmount}") ~> routes ~> check {
+      Put(s"/api/v1/account/$uuid/withdraw/$withdrawAmount") ~> routes ~> check {
         status shouldEqual StatusCodes.Conflict
       }
     }
@@ -109,7 +109,7 @@ class AccountRoutesTest
       value shouldBe depositAmount
       CurrentBalance(depositAmount)
     } { case (uuid, routes) =>
-      Put(s"/api/v1/account/${uuid}/deposit/${depositAmount}") ~> routes ~> check {
+      Put(s"/api/v1/account/$uuid/deposit/$depositAmount") ~> routes ~> check {
         status shouldEqual StatusCodes.Created
         responseAs[Account] shouldEqual (Account(uuid, depositAmount))
       }
@@ -117,7 +117,7 @@ class AccountRoutesTest
   }
 
   it should "return 500 when upstream actor doesn't respond" in test() { case (uuid, routes) =>
-    Get(s"/api/v1/account/${uuid}/balance") ~> routes ~> check {
+    Get(s"/api/v1/account/$uuid/balance") ~> routes ~> check {
       status shouldEqual StatusCodes.InternalServerError
     }
   }

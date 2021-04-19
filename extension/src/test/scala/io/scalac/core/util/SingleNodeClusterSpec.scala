@@ -43,7 +43,7 @@ trait SingleNodeClusterSpec extends AsyncTestSuite {
 
   protected def createConfig(port: Int, systemName: String): Config = {
     val hostname = "127.0.0.1"
-    val seedNode = s"akka://${systemName}@${hostname}:${port}"
+    val seedNode = s"akka://$systemName@$hostname:$port"
     ConfigFactory.empty
       .withValue("akka.actor.provider", ConfigValueFactory.fromAnyRef("cluster"))
       .withValue(

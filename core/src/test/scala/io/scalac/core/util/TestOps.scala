@@ -13,8 +13,8 @@ trait TestOps {
   def sameOrParent(parent: ActorRef[_]): Matcher[ActorRef[_]] = ref => {
     MatchResult(
       testSameOrParent(ref, parent),
-      s"${parent} is not same or parent of ${ref}",
-      s"${parent} is same as or parent of ${ref}"
+      s"$parent is not same or parent of $ref",
+      s"$parent is same as or parent of $ref"
     )
   }
 

@@ -25,7 +25,7 @@ class MutablePersistStorageTest extends AnyFlatSpec with Matchers with TestOps {
     val events = List.fill(10) {
       val id = createUniqueId
       PersistingEventStarted(
-        s"/some/path/${id}",
+        s"/some/path/$id",
         id,
         0,
         Timestamp.create()
@@ -42,7 +42,7 @@ class MutablePersistStorageTest extends AnyFlatSpec with Matchers with TestOps {
       val events = List.fill(10) {
         val id = createUniqueId
         PersistingEventStarted(
-          s"/some/path/${id}",
+          s"/some/path/$id",
           id,
           0,
           Timestamp.create()
@@ -69,7 +69,7 @@ class MutablePersistStorageTest extends AnyFlatSpec with Matchers with TestOps {
   it should "return same storage instance with correct latency" in test { case (_, sut) =>
     val id              = createUniqueId
     val startTimestamp  = Timestamp.create()
-    val path            = s"/some/path/${id}"
+    val path            = s"/some/path/$id"
     val seqNo           = 199
     val expectedLatency = 1234L
     sut.persistEventStarted(

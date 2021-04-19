@@ -9,7 +9,7 @@ class VersionTest extends AnyFlatSpec with Matchers {
     val major      = "2"
     val minor      = "10"
     val patch      = "12"
-    val versionRaw = s"${major}.${minor}.${patch}"
+    val versionRaw = s"$major.$minor.$patch"
 
     Version(versionRaw) shouldEqual Some(Version(major, minor, patch))
   }

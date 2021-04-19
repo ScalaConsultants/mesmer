@@ -127,7 +127,7 @@ class PersistenceEventsActorTest
     val seqNumbers = (100 to 140 by 5).toList
     val expectedLabels = List.fill(5) {
       val id = createUniqueId
-      Labels(None, s"/some/path/${id}", id)
+      Labels(None, s"/some/path/$id", id)
     }
     for {
       seqNo  <- seqNumbers
@@ -148,7 +148,7 @@ class PersistenceEventsActorTest
       val seqNo = 150
       val expectedLabels = List.fill(5) {
         val id = createUniqueId
-        Labels(None, s"/some/path/${id}", id)
+        Labels(None, s"/some/path/$id", id)
       }
       for {
         labels <- expectedLabels
@@ -178,7 +178,7 @@ class PersistenceEventsActorTest
     val expectedPersistEventTime = 500L
     val expectedLabels = List.fill(5) {
       val id = createUniqueId
-      Labels(None, s"/some/path/${id}", id)
+      Labels(None, s"/some/path/$id", id)
     }
     expectedLabels.foreach(recoveryStarted)
     Thread.sleep(expectedRecoveryTime + 50L)
