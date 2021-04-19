@@ -3,7 +3,7 @@ package io.scalac.extension.metric
 import io.scalac.core.LabelSerializable
 import io.scalac.core.model._
 
-object HttpMetricMonitor {
+object HttpMetricsMonitor {
 
   final case class Labels(node: Option[Node], path: Path, method: Method, status: Status) extends LabelSerializable {
     val serialize: RawLabels = node.serialize ++ path.serialize ++ method.serialize ++ status.serialize

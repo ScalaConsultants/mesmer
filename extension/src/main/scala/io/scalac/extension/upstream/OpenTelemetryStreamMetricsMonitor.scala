@@ -5,7 +5,7 @@ import io.opentelemetry.api.metrics.Meter
 
 import io.scalac.extension.metric.MetricObserver
 import io.scalac.extension.metric.RegisterRoot
-import io.scalac.extension.metric.StreamMetricMonitor
+import io.scalac.extension.metric.StreamMetricsMonitor
 import io.scalac.extension.upstream.OpenTelemetryStreamMetricsMonitor.MetricNames
 import io.scalac.extension.upstream.opentelemetry.LongSumObserverBuilderAdapter
 import io.scalac.extension.upstream.opentelemetry.SynchronousInstrumentFactory
@@ -43,9 +43,9 @@ object OpenTelemetryStreamMetricsMonitor {
     new OpenTelemetryStreamMetricsMonitor(meter, MetricNames.fromConfig(config))
 }
 
-final class OpenTelemetryStreamMetricsMonitor(meter: Meter, metricNames: MetricNames) extends StreamMetricMonitor {
+final class OpenTelemetryStreamMetricsMonitor(meter: Meter, metricNames: MetricNames) extends StreamMetricsMonitor {
 
-  import StreamMetricMonitor._
+  import StreamMetricsMonitor._
 
   private val runningStreamsTotalRecorder = meter
     .longValueRecorderBuilder(metricNames.runningStreams)

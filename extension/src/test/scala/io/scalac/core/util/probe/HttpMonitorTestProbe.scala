@@ -13,12 +13,12 @@ import io.scalac.core.util.TestProbeSynchronized
 import io.scalac.core.util.probe.BoundTestProbe.CounterCommand
 import io.scalac.core.util.probe.BoundTestProbe.MetricRecorderCommand
 import io.scalac.extension.metric.Counter
-import io.scalac.extension.metric.HttpMetricMonitor
+import io.scalac.extension.metric.HttpMetricsMonitor
 import io.scalac.extension.metric.MetricRecorder
 
-class HttpMetricsTestProbe(implicit val system: ActorSystem[_]) extends HttpMetricMonitor {
+class HttpMonitorTestProbe(implicit val system: ActorSystem[_]) extends HttpMetricsMonitor {
 
-  import HttpMetricMonitor._
+  import HttpMetricsMonitor._
 
   val globalRequestCounter: TestProbe[CounterCommand] = TestProbe[CounterCommand]()
 

@@ -28,7 +28,7 @@ import scala.concurrent.duration._
 import scala.jdk.CollectionConverters._
 import scala.reflect.ClassTag
 
-import io.scalac.core.util.probe.ClusterMetricsTestProbe
+import io.scalac.core.util.probe.ClusterMonitorTestProbe
 import io.scalac.core.util.probe.ObserverCollector.ScheduledCollectorImpl
 
 trait SingleNodeClusterSpec extends AsyncTestSuite {
@@ -38,7 +38,7 @@ trait SingleNodeClusterSpec extends AsyncTestSuite {
   protected val pingOffset: FiniteDuration   = 1.seconds
 
   type Fixture[C[_], T] =
-    (ActorSystem[Nothing], Member, C[ActorRef[ShardingEnvelope[T]]], ClusterMetricsTestProbe, C[String])
+    (ActorSystem[Nothing], Member, C[ActorRef[ShardingEnvelope[T]]], ClusterMonitorTestProbe, C[String])
   type Id[T] = T
 
   protected def createConfig(port: Int, systemName: String): Config = {
@@ -89,7 +89,7 @@ trait SingleNodeClusterSpec extends AsyncTestSuite {
 
       val collector: ScheduledCollectorImpl = new ScheduledCollectorImpl(pingOffset)
 
-      val clusterProbe = ClusterMetricsTestProbe(collector)
+      val clusterProbe = ClusterMonitorTestProbe(collector)
 
       Function.untupled(test)(system, cluster.selfMember, refs, clusterProbe, entityNames)
     }

@@ -13,8 +13,8 @@ import io.scalac.core.util.probe.BoundTestProbe.CounterCommand
 import io.scalac.core.util.probe.BoundTestProbe.MetricRecorderCommand
 import io.scalac.extension.metric.Counter
 import io.scalac.extension.metric.MetricRecorder
-import io.scalac.extension.metric.PersistenceMetricMonitor
-import io.scalac.extension.metric.PersistenceMetricMonitor.Labels
+import io.scalac.extension.metric.PersistenceMetricsMonitor
+import io.scalac.extension.metric.PersistenceMetricsMonitor.Labels
 
 trait BindCounter {
   private[this] val _binds: AtomicInteger = new AtomicInteger(0)
@@ -45,8 +45,8 @@ trait GlobalProbe {
   def globalCounter: TestProbe[CounterCommand]
 }
 
-class PersistenceMetricTestProbe(implicit val system: ActorSystem[_])
-    extends PersistenceMetricMonitor
+class PersistenceMonitorTestProbe(implicit val system: ActorSystem[_])
+    extends PersistenceMetricsMonitor
     with ConcurrentBoundProbes[Labels]
     with BindCounter
     with GlobalProbe {
@@ -55,7 +55,7 @@ class PersistenceMetricTestProbe(implicit val system: ActorSystem[_])
 
   val globalCounter: TestProbe[CounterCommand] = TestProbe()
 
-  def bind(labels: Labels): PersistenceMetricMonitor.BoundMonitor =
+  def bind(labels: Labels): PersistenceMetricsMonitor.BoundMonitor =
     counting {
       concurrentBind(labels)
     }
@@ -69,7 +69,7 @@ class PersistenceMetricTestProbe(implicit val system: ActorSystem[_])
     val persistentEventProbe: TestProbe[MetricRecorderCommand],
     val persistentEventTotalProbe: TestProbe[CounterCommand],
     val snapshotProbe: TestProbe[CounterCommand]
-  ) extends PersistenceMetricMonitor.BoundMonitor {
+  ) extends PersistenceMetricsMonitor.BoundMonitor {
     def recoveryTime: SyncTestProbeWrapper with MetricRecorder[Long] =
       RecorderTestProbeWrapper(recoveryTimeProbe)
 

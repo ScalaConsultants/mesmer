@@ -13,12 +13,12 @@ import io.scalac.core.util.TestProbeSynchronized
 import io.scalac.core.util.probe.BoundTestProbe.CounterCommand
 import io.scalac.core.util.probe.SyncTestProbeWrapper
 import io.scalac.core.util.probe.UpDownCounterTestProbeWrapper
-import io.scalac.extension.metric.HttpConnectionMetricMonitor
+import io.scalac.extension.metric.HttpConnectionMetricsMonitor
 import io.scalac.extension.metric.UpDownCounter
 
-class HttpConnectionMetricsTestProbe(implicit val system: ActorSystem[_]) extends HttpConnectionMetricMonitor {
+class HttpConnectionMetricsTestProbe(implicit val system: ActorSystem[_]) extends HttpConnectionMetricsMonitor {
 
-  import HttpConnectionMetricMonitor._
+  import HttpConnectionMetricsMonitor._
 
   val globalConnectionCounter: TestProbe[CounterCommand] = TestProbe[CounterCommand]()
 

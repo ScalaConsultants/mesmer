@@ -34,7 +34,7 @@ import io.scalac.extension.persistence.CleanableRecoveryStorage
 import io.scalac.extension.service.CachingPathService
 import io.scalac.extension.upstream.OpenTelemetryClusterMetricsMonitor
 import io.scalac.extension.upstream.OpenTelemetryHttpMetricsMonitor
-import io.scalac.extension.upstream.OpenTelemetryPersistenceMetricMonitor
+import io.scalac.extension.upstream.OpenTelemetryPersistenceMetricsMonitor
 import io.scalac.extension.upstream._
 
 object AkkaMonitoring extends ExtensionId[AkkaMonitoring] {
@@ -237,7 +237,7 @@ final class AkkaMonitoring(private val system: ActorSystem[_], val config: AkkaM
 
     val cachingConfig = CachingConfig.fromConfig(actorSystemConfig, ModulesSupport.akkaPersistenceTypedModule)
     val openTelemetryPersistenceMonitor = CachingMonitor(
-      OpenTelemetryPersistenceMetricMonitor(meter, actorSystemConfig),
+      OpenTelemetryPersistenceMetricsMonitor(meter, actorSystemConfig),
       cachingConfig
     )
     val pathService = new CachingPathService(cachingConfig)
@@ -276,7 +276,7 @@ final class AkkaMonitoring(private val system: ActorSystem[_], val config: AkkaM
       CachingMonitor(OpenTelemetryHttpMetricsMonitor(meter, actorSystemConfig), cachingConfig)
 
     val openTelemetryHttpConnectionMonitor =
-      CachingMonitor(OpenTelemetryHttpConnectionMetricMonitor(meter, actorSystemConfig), cachingConfig)
+      CachingMonitor(OpenTelemetryHttpConnectionMetricsMonitor(meter, actorSystemConfig), cachingConfig)
 
     val pathService = new CachingPathService(cachingConfig)
 

@@ -3,7 +3,7 @@ package io.scalac.extension.metric
 import io.scalac.core.LabelSerializable
 import io.scalac.core.model._
 
-object ActorMetricMonitor {
+object ActorMetricsMonitor {
   final case class Labels(actorPath: ActorPath, node: Option[Node] = None, tags: Set[Tag] = Set.empty)
       extends LabelSerializable {
     val serialize: RawLabels = node.serialize ++ actorPath.serialize ++ tags.flatMap(_.serialize)

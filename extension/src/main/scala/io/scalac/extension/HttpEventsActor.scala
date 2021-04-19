@@ -15,8 +15,8 @@ import io.scalac.core.model.Method
 import io.scalac.core.model.Path
 import io.scalac.core.model._
 import io.scalac.extension.http.RequestStorage
-import io.scalac.extension.metric.HttpConnectionMetricMonitor
-import io.scalac.extension.metric.HttpMetricMonitor
+import io.scalac.extension.metric.HttpConnectionMetricsMonitor
+import io.scalac.extension.metric.HttpMetricsMonitor
 import io.scalac.extension.service.PathService
 
 class HttpEventsActor
@@ -30,8 +30,8 @@ object HttpEventsActor {
   }
 
   def apply(
-    httpMetricMonitor: HttpMetricMonitor,
-    httpConnectionMetricMonitor: HttpConnectionMetricMonitor,
+    httpMetricMonitor: HttpMetricsMonitor,
+    httpConnectionMetricMonitor: HttpConnectionMetricsMonitor,
     initRequestStorage: RequestStorage,
     pathService: PathService,
     node: Option[Node] = None
@@ -42,11 +42,11 @@ object HttpEventsActor {
 
     Receptionist(ctx.system).ref ! Register(httpServiceKey, ctx.messageAdapter(HttpEventWrapper.apply))
 
-    def createConnectionLabels(connectionEvent: ConnectionEvent): HttpConnectionMetricMonitor.Labels =
-      HttpConnectionMetricMonitor.Labels(node, connectionEvent.interface, connectionEvent.port)
+    def createConnectionLabels(connectionEvent: ConnectionEvent): HttpConnectionMetricsMonitor.Labels =
+      HttpConnectionMetricsMonitor.Labels(node, connectionEvent.interface, connectionEvent.port)
 
-    def createRequestLabels(path: Path, method: Method, status: Status): HttpMetricMonitor.Labels =
-      HttpMetricMonitor.Labels(node, pathService.template(path), method, status)
+    def createRequestLabels(path: Path, method: Method, status: Status): HttpMetricsMonitor.Labels =
+      HttpMetricsMonitor.Labels(node, pathService.template(path), method, status)
 
     def monitorHttp(
       requestStorage: RequestStorage

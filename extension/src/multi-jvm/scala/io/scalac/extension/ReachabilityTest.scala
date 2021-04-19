@@ -7,7 +7,7 @@ import akka.remote.testkit.MultiNodeSpec
 import akka.remote.transport.ThrottlerTransportAdapter.Direction
 import io.scalac.core.util.ScalaTestMultiNodeSpec
 import io.scalac.core.util.probe.BoundTestProbe.{Dec, Inc}
-import io.scalac.core.util.probe.ClusterMetricsTestProbe
+import io.scalac.core.util.probe.ClusterMonitorTestProbe
 import io.scalac.core.util.probe.ObserverCollector.ScheduledCollectorImpl
 import org.scalatest.Inspectors
 
@@ -23,7 +23,7 @@ class ReachabilityTest extends MultiNodeSpec(ThreeNodesConfig) with ScalaTestMul
 
   implicit val typedSystem: ActorSystem[Nothing] = system.toTyped
 
-  val monitor = ClusterMetricsTestProbe(new ScheduledCollectorImpl(5.seconds))
+  val monitor = ClusterMonitorTestProbe(new ScheduledCollectorImpl(5.seconds))
 
   import ThreeNodesConfig._
 

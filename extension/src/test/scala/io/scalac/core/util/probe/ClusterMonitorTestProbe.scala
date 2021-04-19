@@ -8,7 +8,7 @@ import io.scalac.core.util.probe.BoundTestProbe._
 import io.scalac.extension.metric.ClusterMetricsMonitor.Labels
 import io.scalac.extension.metric._
 
-class ClusterMetricsTestProbe private (
+class ClusterMonitorTestProbe private (
   val shardPerRegionsProbe: TestProbe[MetricObserverCommand[Labels]],
   val entityPerRegionProbe: TestProbe[MetricObserverCommand[Labels]],
   val shardRegionsOnNodeProbe: TestProbe[MetricObserverCommand[Labels]],
@@ -54,8 +54,8 @@ class ClusterMetricsTestProbe private (
     }
 }
 
-object ClusterMetricsTestProbe {
-  def apply(collector: ObserverCollector)(implicit system: ActorSystem[_]): ClusterMetricsTestProbe = {
+object ClusterMonitorTestProbe {
+  def apply(collector: ObserverCollector)(implicit system: ActorSystem[_]): ClusterMonitorTestProbe = {
     val shardPerRegionsProbe    = TestProbe[MetricObserverCommand[Labels]]("shardPerRegionsProbe")
     val entityPerRegionProbe    = TestProbe[MetricObserverCommand[Labels]]("entityPerRegionProbe")
     val shardRegionsOnNodeProbe = TestProbe[MetricObserverCommand[Labels]]("shardRegionsOnNodeProbe")
@@ -63,7 +63,7 @@ object ClusterMetricsTestProbe {
     val reachableNodesProbe     = TestProbe[CounterCommand]("reachableNodesProbe")
     val unreachableNodesProbe   = TestProbe[CounterCommand]("unreachableNodesProbe")
     val nodeDownProbe           = TestProbe[CounterCommand]("nodeDownProbe")
-    new ClusterMetricsTestProbe(
+    new ClusterMonitorTestProbe(
       shardPerRegionsProbe,
       entityPerRegionProbe,
       shardRegionsOnNodeProbe,

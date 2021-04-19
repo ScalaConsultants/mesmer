@@ -11,7 +11,7 @@ import akka.remote.transport.ThrottlerTransportAdapter.Direction
 import io.scalac.extension.ThreeNodesConfig._
 import io.scalac.core.util.probe.BoundTestProbe.{ Dec, Inc }
 import io.scalac.core.util.ScalaTestMultiNodeSpec
-import io.scalac.core.util.probe.ClusterMetricsTestProbe
+import io.scalac.core.util.probe.ClusterMonitorTestProbe
 import org.scalatest.{ BeforeAndAfterAll, Inspectors }
 import scala.concurrent.duration._
 import scala.language.postfixOps
@@ -31,7 +31,7 @@ class DownTest
 
   implicit val typedSystem: ActorSystem[Nothing] = system.toTyped
 
-  val monitor = ClusterMetricsTestProbe(new ScheduledCollectorImpl(5.seconds))
+  val monitor = ClusterMonitorTestProbe(new ScheduledCollectorImpl(5.seconds))
 
   "Node down" should {
     "Wait for all nodes to join the cluster" in {

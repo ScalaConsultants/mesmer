@@ -5,12 +5,12 @@ import io.opentelemetry.api.metrics.Meter
 
 import io.scalac.extension.metric.Counter
 import io.scalac.extension.metric.MetricRecorder
-import io.scalac.extension.metric.PersistenceMetricMonitor
+import io.scalac.extension.metric.PersistenceMetricsMonitor
 import io.scalac.extension.metric.RegisterRoot
-import io.scalac.extension.upstream.OpenTelemetryPersistenceMetricMonitor._
+import io.scalac.extension.upstream.OpenTelemetryPersistenceMetricsMonitor._
 import io.scalac.extension.upstream.opentelemetry._
 
-object OpenTelemetryPersistenceMetricMonitor {
+object OpenTelemetryPersistenceMetricsMonitor {
   case class MetricNames(
     recoveryTime: String,
     recoveryTotal: String,
@@ -59,12 +59,12 @@ object OpenTelemetryPersistenceMetricMonitor {
         .getOrElse(defaultCached)
     }
   }
-  def apply(meter: Meter, config: Config): OpenTelemetryPersistenceMetricMonitor =
-    new OpenTelemetryPersistenceMetricMonitor(meter, MetricNames.fromConfig(config))
+  def apply(meter: Meter, config: Config): OpenTelemetryPersistenceMetricsMonitor =
+    new OpenTelemetryPersistenceMetricsMonitor(meter, MetricNames.fromConfig(config))
 }
 
-class OpenTelemetryPersistenceMetricMonitor(meter: Meter, metricNames: MetricNames) extends PersistenceMetricMonitor {
-  import PersistenceMetricMonitor._
+class OpenTelemetryPersistenceMetricsMonitor(meter: Meter, metricNames: MetricNames) extends PersistenceMetricsMonitor {
+  import PersistenceMetricsMonitor._
 
   private val recoveryTimeRecorder = meter
     .longValueRecorderBuilder(metricNames.recoveryTime)

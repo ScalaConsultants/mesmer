@@ -28,7 +28,7 @@ import io.scalac.core.util.probe.BoundTestProbe.MetricObserverCommand
 import io.scalac.core.util.probe.ObserverCollector.ScheduledCollectorImpl
 import io.scalac.extension.ActorEventsMonitorActor._
 import io.scalac.extension.ActorEventsMonitorActorTest._
-import io.scalac.extension.metric.ActorMetricMonitor.Labels
+import io.scalac.extension.metric.ActorMetricsMonitor.Labels
 
 trait ActorEventMonitorActorTestConfig {
   this: TestSuite with ScaledTimeSpans =>

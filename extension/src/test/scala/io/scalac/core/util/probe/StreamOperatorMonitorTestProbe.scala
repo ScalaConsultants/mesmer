@@ -5,9 +5,9 @@ import akka.actor.typed.ActorSystem
 
 import io.scalac.core.util.probe.BoundTestProbe.MetricObserverCommand
 import io.scalac.core.util.probe.BoundTestProbe.MetricRecorderCommand
-import io.scalac.extension.metric.StreamMetricMonitor
-import io.scalac.extension.metric.StreamMetricMonitor.BoundMonitor
-import io.scalac.extension.metric.StreamMetricMonitor.Labels
+import io.scalac.extension.metric.StreamMetricsMonitor
+import io.scalac.extension.metric.StreamMetricsMonitor.BoundMonitor
+import io.scalac.extension.metric.StreamMetricsMonitor.Labels
 import io.scalac.extension.metric.StreamOperatorMetricsMonitor
 
 final case class StreamOperatorMonitorTestProbe(
@@ -46,9 +46,9 @@ class StreamMonitorTestProbe(
   val processedMessagesProbe: TestProbe[MetricObserverCommand[Labels]],
   val collector: ObserverCollector
 )(implicit val system: ActorSystem[_])
-    extends StreamMetricMonitor
+    extends StreamMetricsMonitor
     with Collected {
-  def bind(labels: StreamMetricMonitor.EagerLabels): StreamMetricMonitor.BoundMonitor = new BoundMonitor {
+  def bind(labels: StreamMetricsMonitor.EagerLabels): StreamMetricsMonitor.BoundMonitor = new BoundMonitor {
 
     val runningStreamsTotal = RecorderTestProbeWrapper(runningStreamsProbe)
 

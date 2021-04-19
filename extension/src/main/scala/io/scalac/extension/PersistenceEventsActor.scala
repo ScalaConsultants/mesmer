@@ -9,8 +9,8 @@ import io.scalac.core._
 import io.scalac.core.event.PersistenceEvent
 import io.scalac.core.event.PersistenceEvent._
 import io.scalac.core.model._
-import io.scalac.extension.metric.PersistenceMetricMonitor
-import io.scalac.extension.metric.PersistenceMetricMonitor.Labels
+import io.scalac.extension.metric.PersistenceMetricsMonitor
+import io.scalac.extension.metric.PersistenceMetricsMonitor.Labels
 import io.scalac.extension.persistence.PersistStorage
 import io.scalac.extension.persistence.RecoveryStorage
 import io.scalac.extension.service.PathService
@@ -24,7 +24,7 @@ object PersistenceEventsActor {
   }
 
   def apply(
-    monitor: PersistenceMetricMonitor,
+    monitor: PersistenceMetricsMonitor,
     initRecoveryStorage: RecoveryStorage,
     initPersistStorage: PersistStorage,
     pathService: PathService,
@@ -34,7 +34,7 @@ object PersistenceEventsActor {
       import Event._
       Receptionist(ctx.system).ref ! Register(persistenceServiceKey, ctx.messageAdapter(PersistentEventWrapper.apply))
 
-      def getMonitor(path: Path, persistenceId: PersistenceId): PersistenceMetricMonitor.BoundMonitor = {
+      def getMonitor(path: Path, persistenceId: PersistenceId): PersistenceMetricsMonitor.BoundMonitor = {
         val templatedPath      = pathService.template(path)
         val pathLastSlashIndex = path.lastIndexOf('/', path.length - 2)
         if (pathLastSlashIndex > 0 && path.substring(pathLastSlashIndex + 1, path.length) == persistenceId) {

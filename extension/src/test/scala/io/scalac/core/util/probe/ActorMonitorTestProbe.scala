@@ -4,8 +4,8 @@ import akka.actor.testkit.typed.scaladsl.TestProbe
 import akka.actor.typed.ActorSystem
 
 import io.scalac.core.util.probe.BoundTestProbe.MetricObserverCommand
-import io.scalac.extension.metric.ActorMetricMonitor
-import io.scalac.extension.metric.ActorMetricMonitor._
+import io.scalac.extension.metric.ActorMetricsMonitor
+import io.scalac.extension.metric.ActorMetricsMonitor._
 import io.scalac.extension.metric.MetricObserver
 
 final case class ActorMonitorTestProbe(
@@ -25,7 +25,7 @@ final case class ActorMonitorTestProbe(
   sentMessagesProbe: TestProbe[MetricObserverCommand[Labels]],
   collector: ObserverCollector
 )(implicit val actorSystem: ActorSystem[_])
-    extends ActorMetricMonitor
+    extends ActorMetricsMonitor
     with BindUnbindMonitor
     with Collected {
 

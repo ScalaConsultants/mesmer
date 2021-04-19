@@ -4,7 +4,7 @@ import io.scalac.core.LabelSerializable
 import io.scalac.core.model.Tag.StreamName
 import io.scalac.core.model._
 
-object StreamMetricMonitor {
+object StreamMetricsMonitor {
 
   case class EagerLabels(
     node: Option[Node]

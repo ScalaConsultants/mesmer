@@ -29,8 +29,8 @@ import io.scalac.core.util.ActorCellOps
 import io.scalac.core.util.ActorRefOps
 import io.scalac.extension.ActorEventsMonitorActor._
 import io.scalac.extension.AkkaStreamMonitoring.StartStreamCollection
-import io.scalac.extension.metric.ActorMetricMonitor
-import io.scalac.extension.metric.ActorMetricMonitor.Labels
+import io.scalac.extension.metric.ActorMetricsMonitor
+import io.scalac.extension.metric.ActorMetricsMonitor.Labels
 import io.scalac.extension.metric.MetricObserver.Result
 
 object ActorEventsMonitorActor {
@@ -40,7 +40,7 @@ object ActorEventsMonitorActor {
   private[ActorEventsMonitorActor] final case class AddTag(actorRef: classic.ActorRef, tag: Tag) extends Command
 
   def apply(
-    actorMonitor: ActorMetricMonitor,
+    actorMonitor: ActorMetricsMonitor,
     node: Option[Node],
     pingOffset: FiniteDuration,
     storage: ActorMetricStorage,
@@ -63,7 +63,7 @@ object ActorEventsMonitorActor {
 
   private def apply(
     context: ActorContext[Command],
-    actorMonitor: ActorMetricMonitor,
+    actorMonitor: ActorMetricsMonitor,
     node: Option[Node],
     pingOffset: FiniteDuration,
     storage: ActorMetricStorage,
@@ -166,7 +166,7 @@ object ActorEventsMonitorActor {
 
 private class ActorEventsMonitorActor private (
   ctx: ActorContext[Command],
-  monitor: ActorMetricMonitor,
+  monitor: ActorMetricsMonitor,
   node: Option[Node],
   pingOffset: FiniteDuration,
   private var storage: ActorMetricStorage,

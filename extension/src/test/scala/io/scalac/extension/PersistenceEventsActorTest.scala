@@ -22,9 +22,9 @@ import io.scalac.core.util.TestConfig
 import io.scalac.core.util.Timestamp
 import io.scalac.core.util.probe.BoundTestProbe.Inc
 import io.scalac.core.util.probe.BoundTestProbe.MetricRecorded
-import io.scalac.core.util.probe.PersistenceMetricTestProbe
+import io.scalac.core.util.probe.PersistenceMonitorTestProbe
 import io.scalac.extension.metric.CachingMonitor
-import io.scalac.extension.metric.PersistenceMetricMonitor.Labels
+import io.scalac.extension.metric.PersistenceMetricsMonitor.Labels
 import io.scalac.extension.persistence.ImmutablePersistStorage
 import io.scalac.extension.persistence.ImmutableRecoveryStorage
 
@@ -35,11 +35,11 @@ class PersistenceEventsActorTest
     with Inspectors
     with CommonMonitorTestFactory {
 
-  type Monitor = PersistenceMetricTestProbe
+  type Monitor = PersistenceMonitorTestProbe
 
   protected val serviceKey: ServiceKey[_] = persistenceServiceKey
 
-  protected def createMonitorBehavior(implicit context: BasicContext[PersistenceMetricTestProbe]): Behavior[_] =
+  protected def createMonitorBehavior(implicit context: BasicContext[PersistenceMonitorTestProbe]): Behavior[_] =
     PersistenceEventsActor(
       if (context.caching) CachingMonitor(monitor) else monitor,
       ImmutableRecoveryStorage.empty,
@@ -47,29 +47,29 @@ class PersistenceEventsActorTest
       IdentityPathService
     )
 
-  protected def createMonitor(implicit system: ActorSystem[_]): PersistenceMetricTestProbe =
-    new PersistenceMetricTestProbe()
+  protected def createMonitor(implicit system: ActorSystem[_]): PersistenceMonitorTestProbe =
+    new PersistenceMonitorTestProbe()
 
-  def recoveryStarted(labels: Labels)(implicit ctx: BasicContext[PersistenceMetricTestProbe]): Unit =
+  def recoveryStarted(labels: Labels)(implicit ctx: BasicContext[PersistenceMonitorTestProbe]): Unit =
     EventBus(system).publishEvent(RecoveryStarted(labels.path, labels.persistenceId, Timestamp.create()))
 
-  def recoveryFinished(labels: Labels)(implicit ctx: BasicContext[PersistenceMetricTestProbe]): Unit =
+  def recoveryFinished(labels: Labels)(implicit ctx: BasicContext[PersistenceMonitorTestProbe]): Unit =
     EventBus(system).publishEvent(RecoveryFinished(labels.path, labels.persistenceId, Timestamp.create()))
 
-  def persistEventStarted(seqNo: Long, labels: Labels)(implicit ctx: BasicContext[PersistenceMetricTestProbe]): Unit =
+  def persistEventStarted(seqNo: Long, labels: Labels)(implicit ctx: BasicContext[PersistenceMonitorTestProbe]): Unit =
     EventBus(system).publishEvent(
       PersistingEventStarted(labels.path, labels.persistenceId, seqNo, Timestamp.create())
     )
 
-  def persistEventFinished(seqNo: Long, labels: Labels)(implicit ctx: BasicContext[PersistenceMetricTestProbe]): Unit =
+  def persistEventFinished(seqNo: Long, labels: Labels)(implicit ctx: BasicContext[PersistenceMonitorTestProbe]): Unit =
     EventBus(system).publishEvent(
       PersistingEventFinished(labels.path, labels.persistenceId, seqNo, Timestamp.create())
     )
 
-  def snapshotCreated(seqNo: Long, labels: Labels)(implicit ctx: BasicContext[PersistenceMetricTestProbe]): Unit =
+  def snapshotCreated(seqNo: Long, labels: Labels)(implicit ctx: BasicContext[PersistenceMonitorTestProbe]): Unit =
     EventBus(system).publishEvent(SnapshotCreated(labels.path, labels.persistenceId, seqNo, Timestamp.create()))
 
-  def expectMetricsUpdates(monitor: PersistenceMetricTestProbe, amount: Int): Unit =
+  def expectMetricsUpdates(monitor: PersistenceMonitorTestProbe, amount: Int): Unit =
     monitor.globalCounter.within(1 second) {
       import monitor._
       globalCounter.receiveMessages(amount)
