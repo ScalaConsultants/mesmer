@@ -441,7 +441,7 @@ object AkkaActorAgentTest {
       Behaviors.receiveMessagePartial {
         case Close =>
           closed()
-        case m @ Message =>
+        case Message =>
           Behaviors.same
         case Inspect(ref) =>
           inspectStashSize(ref, ctx.toClassic)
