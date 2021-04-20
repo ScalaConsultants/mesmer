@@ -14,7 +14,7 @@
     <appender name="ASYNCSTDOUT" class="ch.qos.logback.classic.AsyncAppender">
         <appender-ref ref="STDOUT"/>
     </appender>
-    <logger name="io.scalac.extension" level="TRACE"/>
+    <logger name="io.scalac.mesmer.extension" level="TRACE"/>
 
     <root level="INFO">
         <appender-ref ref="STDOUT"/>

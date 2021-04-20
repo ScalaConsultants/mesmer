@@ -72,7 +72,7 @@ lazy val agent = (project in file("agent"))
       slf4jApi ++
       reflection(scalaVersion.value)
     },
-    Compile / mainClass := Some("io.scalac.agent.Boot"),
+    Compile / mainClass := Some("io.scalac.mesmer.agent.Boot"),
     Compile / packageBin / packageOptions := {
       (Compile / packageBin / packageOptions).value.map {
         case MainClass(mainClassName) =>

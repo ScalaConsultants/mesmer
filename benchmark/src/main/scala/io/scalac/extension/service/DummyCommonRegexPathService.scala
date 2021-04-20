@@ -1,6 +1,6 @@
-package io.scalac.extension.service
+package io.scalac.mesmer.extension.service
 
-import io.scalac.core.model.Path
+import io.scalac.mesmer.core.model.Path
 
 object DummyCommonRegexPathService extends PathService {
 
