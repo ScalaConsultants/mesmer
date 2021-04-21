@@ -52,8 +52,6 @@ lazy val extension = (project in file("extension"))
       akkaTestkit ++
       scalatest ++
       akkaMultiNodeTestKit ++
-      newRelicSdk ++
-      openTelemetrySdk ++
       logback.map(_ % Test)
     }
   )

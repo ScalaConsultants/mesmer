@@ -1,17 +1,10 @@
 package io.scalac.mesmer.extension
-import java.net.URI
-import java.util.Collections
-
 import akka.actor.ExtendedActorSystem
 import akka.actor.typed._
 import akka.actor.typed.receptionist.Receptionist.Register
 import akka.actor.typed.scaladsl.Behaviors
 import akka.cluster.Cluster
 import akka.util.Timeout
-import com.newrelic.telemetry.Attributes
-import com.newrelic.telemetry.opentelemetry.`export`.NewRelicMetricExporter
-import io.opentelemetry.sdk.metrics.SdkMeterProvider
-import io.opentelemetry.sdk.metrics.`export`.IntervalMetricReader
 
 import scala.concurrent.duration._
 import scala.language.postfixOps
@@ -113,44 +106,8 @@ object AkkaMonitoring extends ExtensionId[AkkaMonitoring] {
       cm => cm.startPersistenceMonitoring()
     )
 
-    if (config.boot.metricsBackend) {
-      config.backend.fold {
-        system.log.error("Boot backend is set to true, but no configuration for backend found")
-      } { backendConfig =>
-        if (backendConfig.name.toLowerCase() == "newrelic") {
-          system.log.info("Starting NewRelic backend with config {}", backendConfig)
-          startNewRelicBackend(backendConfig.region, backendConfig.apiKey, backendConfig.serviceName)
-        } else
-          system.log.error("Backend {} not supported", backendConfig.name)
-      }
-    }
   }
 
-  private def startNewRelicBackend(region: String, apiKey: String, serviceName: String): Unit = {
-    val newRelicExporterBuilder = NewRelicMetricExporter
-      .newBuilder()
-      .apiKey(apiKey)
-      .commonAttributes(new Attributes().put("service.name", serviceName))
-
-    val newRelicExporter =
-      if (region == "eu") {
-        newRelicExporterBuilder
-          .uriOverride(URI.create("https://metric-api.eu.newrelic.com/metric/v1"))
-          .build()
-      } else {
-        newRelicExporterBuilder.build()
-      }
-
-    // TODO OpenTelemetrySDK could not be available. All references the references to `io.opentelemetry.sdk` are here.
-    IntervalMetricReader
-      .builder()
-      .setMetricProducers(
-        Collections.singleton(InstrumentationLibrary.meterProvider.asInstanceOf[SdkMeterProvider].getMetricProducer)
-      )
-      .setExportIntervalMillis(ExportInterval.toMillis)
-      .setMetricExporter(newRelicExporter)
-      .build()
-  }
 }
 
 final class AkkaMonitoring(private val system: ActorSystem[_], val config: AkkaMonitoringConfig) extends Extension {
