@@ -70,7 +70,7 @@ lazy val agent = (project in file("agent"))
       slf4jApi ++
       reflection(scalaVersion.value)
     },
-    Compile / mainClass := Some("io.scalac.agent.Boot"),
+    Compile / mainClass := Some("io.scalac.mesmer.agent.Boot"),
     Compile / packageBin / packageOptions := {
       (Compile / packageBin / packageOptions).value.map {
         case MainClass(mainClassName) =>
@@ -117,9 +117,9 @@ lazy val example = (project in file("example"))
       val properties = System.getProperties
 
       import scala.collection.JavaConverters._
-      (for {
+      for {
         (key, value) <- properties.asScala.toList if value.nonEmpty
-      } yield s"-D$key=$value")
+      } yield s"-D$key=$value"
     },
     commands += runWithAgent,
     Universal / mappings += {
@@ -146,7 +146,7 @@ lazy val example = (project in file("example"))
 
 lazy val assemblyMergeStrategySettings = assembly / assemblyMergeStrategy := {
   case PathList("META-INF", "services", _ @_*)           => MergeStrategy.concat
-  case PathList("META-INF", xs @ _*)                     => MergeStrategy.discard
+  case PathList("META-INF", _ @ _*)                     => MergeStrategy.discard
   case PathList("reference.conf")                        => MergeStrategy.concat
   case PathList("jackson-annotations-2.10.3.jar", _ @_*) => MergeStrategy.last
   case PathList("jackson-core-2.10.3.jar", _ @_*)        => MergeStrategy.last

@@ -1,6 +1,6 @@
-package io.scalac.extension.service
+package io.scalac.mesmer.extension.service
 
-import io.scalac.core.model.Path
+import io.scalac.mesmer.core.model.Path
 
 object RegexOnlyPathService extends PathService {
   private val uuid   = """^[\da-fA-F]{8}-[\da-fA-F]{4}-[\da-fA-F]{4}-[\da-fA-F]{4}-[\da-fA-F]{12}$""".r
@@ -9,7 +9,7 @@ object RegexOnlyPathService extends PathService {
   import PathService._
   private val detectionChain = List((number, numberTemplate), (uuid, uuidTemplate))
 
-  override def template(path: Path): Path =
+  def template(path: Path): Path =
     path
       .split('/')
       .map { segment =>
