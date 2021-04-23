@@ -8,11 +8,8 @@ ThisBuild / organizationName := "scalac"
 
 inThisBuild(
   List(
-
     dependencyOverrides ++= openTelemetryDependenciesOverrides,
-
     scalacOptions ++= Seq("-deprecation", "-feature"),
-
     semanticdbEnabled := true,
     semanticdbVersion := scalafixSemanticdb.revision,
     scalacOptions += "-Wunused:imports",
@@ -48,6 +45,7 @@ lazy val extension = (project in file("extension"))
     name := "mesmer-akka-extension",
     libraryDependencies ++= {
       akka ++
+      akkaManagement ++
       openTelemetryApi ++
       akkaTestkit ++
       scalatest ++
@@ -106,6 +104,7 @@ lazy val example = (project in file("example"))
       akkaPersistance ++
       logback ++
       newRelicSdk ++
+      akkaManagement ++
       exampleDependencies
     },
     assemblyMergeStrategySettings,
@@ -146,7 +145,7 @@ lazy val example = (project in file("example"))
 
 lazy val assemblyMergeStrategySettings = assembly / assemblyMergeStrategy := {
   case PathList("META-INF", "services", _ @_*)           => MergeStrategy.concat
-  case PathList("META-INF", _ @ _*)                     => MergeStrategy.discard
+  case PathList("META-INF", _ @_*)                       => MergeStrategy.discard
   case PathList("reference.conf")                        => MergeStrategy.concat
   case PathList("jackson-annotations-2.10.3.jar", _ @_*) => MergeStrategy.last
   case PathList("jackson-core-2.10.3.jar", _ @_*)        => MergeStrategy.last
@@ -170,7 +169,6 @@ lazy val benchmark = (project in file("benchmark"))
     name := "akka-monitoring-benchmark"
   }
   .dependsOn(extension)
-
 
 def runWithAgent = Command.command("runWithAgent") { state =>
   val extracted = Project extract state
