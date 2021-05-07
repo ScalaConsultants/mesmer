@@ -68,18 +68,18 @@ class NonEmptyTreeTest extends AnyFlatSpec with Matchers {
   }
 
   it should "accumulate values from each children" in {
-    val expectedResult = "(a->(b->,c->,d->))"
+    val expectedResult = "a->(b->(),c->(),d->())"
     val tree           = NonEmptyTree.withChildren("a")(NonEmptyTree("b"), NonEmptyTree("c"), NonEmptyTree("d"))
 
     val result = tree.foldLeft[String] { case (agg, cur) =>
-      s"$cur->$agg"
-    }(_.mkString("(", ",", ")"))("")
+      s"$cur->${agg.mkString("(", ",", ")")}"
+    }("")
 
     result should be(expectedResult)
   }
 
   it should "accumulate values from each children 2 " in {
-    val expectedResult = "(a->(b->(e->(f->,g->(h->,i->)),j->),c->(k->,l->(m->,n->(o->))),d->))"
+    val expectedResult = "a->(b->(e->(f->(),g->(h->(),i->())),j->()),c->(k->(),l->(m->(),n->(o->()))),d->())"
     val tree = NonEmptyTree.withChildren("a")(
       NonEmptyTree.withChildren("b")(
         NonEmptyTree
@@ -97,8 +97,8 @@ class NonEmptyTreeTest extends AnyFlatSpec with Matchers {
     )
 
     val result = tree.foldLeft[String] { case (agg, cur) =>
-      s"$cur->$agg"
-    }(_.mkString("(", ",", ")"))("")
+      s"$cur->${agg.mkString("(", ",", ")")}"
+    }("")
 
     result should be(expectedResult)
   }

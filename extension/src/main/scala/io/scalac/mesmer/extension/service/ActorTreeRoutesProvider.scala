@@ -16,6 +16,7 @@ import io.scalac.mesmer.extension.service.ActorTreeService.Command
 import io.scalac.mesmer.extension.service.ActorTreeService.Command.GetActors
 import io.scalac.mesmer.extension.util.GenericBehaviors
 import org.slf4j.LoggerFactory
+import zio.Chunk
 import zio.json._
 import zio.json.ast.Json
 
@@ -40,35 +41,33 @@ final case class NonEmptyTree[+T] private (value: T, children: Seq[NonEmptyTree[
     }
 
   //stack-safe fold
-  def foldLeft[B](merge: (B, T) => B)(mergeChildren: Seq[B] => B)(init: B): B = {
+  def foldLeft[B](merge: (Seq[B], T) => B)(init: B): B = {
     @tailrec
-    def loop(stack: List[Seq[NonEmptyTree[T]]], terminal: List[Int], results: List[B], mergeDown: Boolean = false): B =
+    def loop(stack: List[Seq[NonEmptyTree[T]]], terminal: List[Int], results: List[B]): B =
       stack match {
-        case Nil => results.head // value left on stack is the solution
+        case _ :: Nil if results.nonEmpty => results.head // value left on stack is the solution
         case head :: tail =>
           val index = terminal.head
+
           if (index != head.size) { // not finished calculating layer
             val current = head(index)
 
-            if (mergeDown) {
-              loop(
-                stack,
-                index + 1 :: terminal.tail,
-                merge(results.head, current.value) :: results.tail
-              )
-            } else if (current.children.isEmpty) { // can transform this value
-              loop(stack, index + 1 :: terminal.tail, merge(init, current.value) :: results)
+            if (current.children.isEmpty) { // can transform this value eg Leaf case
+              loop(stack, index + 1 :: terminal.tail, merge(Seq(init), current.value) :: results)
             } else {
+              // unpack children on the stack
               loop(current.children :: stack, 0 :: terminal, results)
             }
-          } else { // finished layer
-            val (currentLayerResult, otherResults) = results.splitAt(index)
-            val mergedValue                        = mergeChildren(currentLayerResult.reverse)
+          } else { // finished all children
+            val (currentLayerResults, leftResults) = results.splitAt(index)
+            val ancestorsTerminals                 = terminal.tail
+            val parent                             = tail.head(ancestorsTerminals.head)
+            val mergedValue                        = merge(currentLayerResults.reverse, parent.value)
+
             loop(
               tail,
-              terminal.tail,
-              mergedValue :: otherResults,
-              mergeDown = true
+              ancestorsTerminals.head + 1 :: ancestorsTerminals.tail,
+              mergedValue :: leftResults
             )
           }
       }
@@ -168,14 +167,11 @@ object ActorTreeServiceSetup {
 
 final class ActorTreeRoutesProvider(system: ExtendedActorSystem) extends ManagementRouteProvider {
 
-//  implicit val actorTreeEncoder: JsonEncoder[NonEmptyTree[classic.ActorRef]] = JsonEncoder[Json].contramap {
-//    case NonEmptyTree(_, children) =>
-//      Json.Obj(children.map(ch => ch.value.path.toStringWithoutAddress -> Json.Str(ch.toJson)): _*)
-//  }
   implicit val actorTreeEncoder: JsonEncoder[NonEmptyTree[classic.ActorRef]] = JsonEncoder[Json].contramap {
-    _.foldLeft[Json.Obj]((acc, cur) => Json.Obj(cur.path.toStringWithoutAddress -> acc))(_.foldLeft(Json.Obj()) {
-      case (acc, next) => Json.Obj(acc.fields ++ next.fields)
-    })(Json.Obj())
+    _.foldLeft[Json.Obj] { case (children, current) =>
+      val childrenFields = children.foldLeft[Chunk[(String, Json)]](Chunk.empty)(_ ++ _.fields)
+      Json.Obj(current.path.toStringWithoutAddress -> Json.Obj(childrenFields))
+    }(Json.Obj())
   }
 
   private val logger = LoggerFactory.getLogger(this.getClass)
