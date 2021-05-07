@@ -5,7 +5,7 @@ inThisBuild(
   List(
     scalaVersion := "2.13.4",
     organization := "io.scalac",
-    organizationName := "scalac",
+    homepage := Some(url("https://github.com/ScalaConsultants/mesmer-akka-agent")),
     licenses := List("Apache-2.0" -> url("http://www.apache.org/licenses/LICENSE-2.0")),
     developers := List(
       Developer("jczuchnowski", "Jakub Czuchnowski", "jakub.czuchnowski@gmail.com", url("https://github.com/jczuchnowski"))
