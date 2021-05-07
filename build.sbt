@@ -50,7 +50,7 @@ lazy val extension = (project in file("extension"))
       akkaTestkit ++
       scalatest ++
       akkaMultiNodeTestKit ++
-      logback.map(_ % Test)
+      logback.map(_ % Test) ++ zioJson
     }
   )
   .dependsOn(core % "compile->compile;test->test")

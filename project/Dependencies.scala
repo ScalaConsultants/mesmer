@@ -94,4 +94,6 @@ object Dependencies {
     "io.opentelemetry"               % "opentelemetry-exporter-prometheus" % "0.13.1",
     "fr.davit"                      %% "akka-http-metrics-prometheus"      % "1.1.1"
   )
+
+  val zioJson = Seq("dev.zio" %% "zio-json" % "0.1.4")
 }

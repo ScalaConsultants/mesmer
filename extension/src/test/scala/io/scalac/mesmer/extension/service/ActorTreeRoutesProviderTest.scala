@@ -8,7 +8,7 @@ class ActorTreeRoutesProviderTest extends AnyFlatSpec with Matchers with Scalate
 
   "ActorTreeRoutesProvider" should "publish actor tree when service is available" in {
 
-    val sut = new ActorTreeRoutesProvider()
+//    val sut = new ActorTreeRoutesProvider()
 
   }
 

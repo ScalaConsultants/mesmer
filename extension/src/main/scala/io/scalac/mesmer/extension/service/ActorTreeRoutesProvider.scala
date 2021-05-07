@@ -10,53 +10,103 @@ import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
 import akka.management.scaladsl.{ ManagementRouteProvider, ManagementRouteProviderSettings }
 import akka.util.Timeout
-import akka.{ actor, actor => classic }
+import akka.{ actor => classic }
 import io.scalac.mesmer.core.model.Tag
+import io.scalac.mesmer.extension.service.ActorTreeService.Command
 import io.scalac.mesmer.extension.service.ActorTreeService.Command.GetActors
 import io.scalac.mesmer.extension.util.GenericBehaviors
 import org.slf4j.LoggerFactory
+import zio.json._
+import zio.json.ast.Json
 
+import scala.annotation.tailrec
 import scala.concurrent.duration.FiniteDuration
 import scala.concurrent.{ ExecutionContext, Future, Promise }
 import scala.math.PartialOrdering
 import scala.util._
 import scala.util.control.NoStackTrace
 
-sealed trait Tree[+T] {
-  def insert[B >: T](element: B)(implicit ordering: PartialOrdering[B]): Tree[B]
-}
-
-case object Leaf extends Tree[Nothing] {
-  def insert[B >: Nothing](element: B)(implicit ordering: PartialOrdering[B]): Tree[B] = Tree.empty(element)
-}
-
-final case class Node[T] private (value: T, children: Seq[Tree[T]]) extends Tree[T] {
-  final def insert[B >: T](element: B)(implicit ordering: PartialOrdering[B]): Tree[B] =
+final case class NonEmptyTree[+T] private (value: T, children: Seq[NonEmptyTree[T]]) {
+  final def insert[B >: T](element: B)(implicit ordering: PartialOrdering[B]): NonEmptyTree[B] =
     ordering.tryCompare(element, value) match {
-      case Some(x) if x < 0 => Tree.withChildren(element)(this)
-      case Some(x) if x > 0 => this.copy(children = children.map(_.insert(element)))
-      case _                => this // we are not connected by any edge
+      case Some(x) if x < 0 => NonEmptyTree.withChildren(element)(this)
+      case Some(x) if x > 0 =>
+        val updateIndex = children.indexWhere(subtree => ordering.tryCompare(element, subtree.value).exists(_ > 0))
+        if (updateIndex > -1) {
+          this.copy(children = children.updated(updateIndex, children(updateIndex).insert(element)))
+        } else this.copy(children = children :+ NonEmptyTree(element))
+
+      case _ => this // we are not connected by any edge
     }
+
+  //stack-safe fold
+  def foldLeft[B](merge: (B, T) => B)(mergeChildren: Seq[B] => B)(init: B): B = {
+    @tailrec
+    def loop(stack: List[Seq[NonEmptyTree[T]]], terminal: List[Int], results: List[B], mergeDown: Boolean = false): B =
+      stack match {
+        case Nil => results.head // value left on stack is the solution
+        case head :: tail =>
+          val index = terminal.head
+          if (index != head.size) { // not finished calculating layer
+            val current = head(index)
+
+            if (mergeDown) {
+              loop(
+                stack,
+                index + 1 :: terminal.tail,
+                merge(results.head, current.value) :: results.tail
+              )
+            } else if (current.children.isEmpty) { // can transform this value
+              loop(stack, index + 1 :: terminal.tail, merge(init, current.value) :: results)
+            } else {
+              loop(current.children :: stack, 0 :: terminal, results)
+            }
+          } else { // finished layer
+            val (currentLayerResult, otherResults) = results.splitAt(index)
+            val mergedValue                        = mergeChildren(currentLayerResult.reverse)
+            loop(
+              tail,
+              terminal.tail,
+              mergedValue :: otherResults,
+              mergeDown = true
+            )
+          }
+      }
+
+    loop(List(Seq(this)), List(0), Nil)
+  }
 }
 
-object Tree {
-  def empty[T](value: T): Tree[T]                            = Node(value, Seq(Leaf)) // there must be always one leaf present
-  def withChildren[T](value: T)(children: Tree[T]*): Tree[T] = Node(value, children)
-  def leaf[T]: Tree[T]                                       = Leaf
+object NonEmptyTree {
+  def apply[T](value: T): NonEmptyTree[T]                                    = NonEmptyTree(value, Seq.empty)
+  def withChildren[T](value: T)(children: NonEmptyTree[T]*): NonEmptyTree[T] = NonEmptyTree(value, children.toSeq)
+
+  def fromSeq[T](elements: Seq[T])(implicit ordering: PartialOrdering[T]): Option[NonEmptyTree[T]] =
+    elements
+      .sortWith(ordering.lteq) match {
+      case Seq(head, tail @ _*) => Some(tail.foldLeft(NonEmptyTree(head))(_.insert(_)))
+      case _                    => None
+    }
+
 }
 
 private[service] object ActorTreeRoutesImpl {
 
   def routes(
     service: ActorRef[ActorTreeService.Command]
-  )(implicit timeout: Timeout, scheduler: Scheduler, ec: ExecutionContext): Future[Tree[classic.ActorRef]] = {
+  )(implicit
+    timeout: Timeout,
+    scheduler: Scheduler,
+    ec: ExecutionContext
+  ): Future[Option[NonEmptyTree[classic.ActorRef]]] = {
     val flatTree = service ? ((ref: ActorRef[Seq[classic.ActorRef]]) => GetActors(Tag.all, ref))
 
-    flatTree.map(createTree)
+    flatTree.map(NonEmptyTree.fromSeq[classic.ActorRef])
   }
 
-  implicit val actorRefPartialOrdering: PartialOrdering[classic.ActorRef] = new PartialOrdering[actor.ActorRef] {
-    def tryCompare(x: actor.ActorRef, y: actor.ActorRef): Option[Int] =
+  implicit val actorRefOrdering: PartialOrdering[classic.ActorRef] = new PartialOrdering[classic.ActorRef] {
+
+    def tryCompare(x: classic.ActorRef, y: classic.ActorRef): Option[Int] =
       (x.path.toStringWithoutAddress, y.path.toStringWithoutAddress) match {
         case (xPath, yPath) if xPath == yPath          => Some(0)
         case (xPath, yPath) if xPath.startsWith(yPath) => Some(-1)
@@ -64,15 +114,10 @@ private[service] object ActorTreeRoutesImpl {
         case _                                         => None
       }
 
-    def lteq(x: actor.ActorRef, y: actor.ActorRef): Boolean = actorLevel(x) <= actorLevel(y)
+    def lteq(x: classic.ActorRef, y: classic.ActorRef): Boolean = actorLevel(x) <= actorLevel(y)
   }
 
   private def actorLevel(ref: classic.ActorRef): Int = ref.path.toStringWithoutAddress.count(_ == '/')
-
-  private def createTree(seq: Seq[classic.ActorRef]): Tree[classic.ActorRef] =
-    seq
-      .sortBy(actorLevel)
-      .foldLeft(Tree.leaf[classic.ActorRef])(_.insert(_))
 }
 
 final case class ActorTreeRoutesProviderConfig(timeout: FiniteDuration)
@@ -94,11 +139,11 @@ object ActorTreeServiceSetup {
       system.toTyped.systemActorOf(
         GenericBehaviors.waitForServiceWithTimeout(actorTreeServiceKey, timeout)(
           ref =>
-            Behaviors.setup[Nothing] { _ =>
+            Behaviors.setup[Command] { _ =>
               promise.success(ref)
               Behaviors.stopped
             },
-          Behaviors.setup[Nothing] { _ =>
+          Behaviors.setup[Command] { _ =>
             promise.failure(ServiceDiscoveryTimeout)
             Behaviors.stopped
           }
@@ -123,6 +168,16 @@ object ActorTreeServiceSetup {
 
 final class ActorTreeRoutesProvider(system: ExtendedActorSystem) extends ManagementRouteProvider {
 
+//  implicit val actorTreeEncoder: JsonEncoder[NonEmptyTree[classic.ActorRef]] = JsonEncoder[Json].contramap {
+//    case NonEmptyTree(_, children) =>
+//      Json.Obj(children.map(ch => ch.value.path.toStringWithoutAddress -> Json.Str(ch.toJson)): _*)
+//  }
+  implicit val actorTreeEncoder: JsonEncoder[NonEmptyTree[classic.ActorRef]] = JsonEncoder[Json].contramap {
+    _.foldLeft[Json.Obj]((acc, cur) => Json.Obj(cur.path.toStringWithoutAddress -> acc))(_.foldLeft(Json.Obj()) {
+      case (acc, next) => Json.Obj(acc.fields ++ next.fields)
+    })(Json.Obj())
+  }
+
   private val logger = LoggerFactory.getLogger(this.getClass)
 
   import ActorTreeServiceSetup._
@@ -135,10 +190,10 @@ final class ActorTreeRoutesProvider(system: ExtendedActorSystem) extends Managem
     system.settings.setup.get[ActorTreeServiceSetup].getOrElse(receptionist).actorService(settings.timeout)(system)
 
   def routes(settings: ManagementRouteProviderSettings): Route = get {
-    implicit val scheduler = system.toTyped.schedulers
+    implicit val scheduler: Scheduler = system.toTyped.scheduler
 
     onComplete(stream.flatMap(ActorTreeRoutesImpl.routes)) {
-      case Success(value) => complete(value) // TODO add serialzation
+      case Success(value) => complete(StatusCodes.OK, value.toJson)
       case Failure(ServiceDiscoveryTimeout) =>
         logger.error("Actor service unavailable")
         complete(StatusCodes.ServiceUnavailable)
