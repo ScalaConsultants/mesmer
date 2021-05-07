@@ -71,9 +71,9 @@ class NonEmptyTreeTest extends AnyFlatSpec with Matchers {
     val expectedResult = "a->(b->(),c->(),d->())"
     val tree           = NonEmptyTree.withChildren("a")(NonEmptyTree("b"), NonEmptyTree("c"), NonEmptyTree("d"))
 
-    val result = tree.foldLeft[String] { case (agg, cur) =>
+    val result = tree.foldRight[String]("") { case (cur, agg) =>
       s"$cur->${agg.mkString("(", ",", ")")}"
-    }("")
+    }
 
     result should be(expectedResult)
   }
@@ -96,9 +96,9 @@ class NonEmptyTreeTest extends AnyFlatSpec with Matchers {
       NonEmptyTree("d")
     )
 
-    val result = tree.foldLeft[String] { case (agg, cur) =>
+    val result = tree.foldRight[String]("") { case (cur, agg) =>
       s"$cur->${agg.mkString("(", ",", ")")}"
-    }("")
+    }
 
     result should be(expectedResult)
   }
