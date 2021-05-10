@@ -137,8 +137,7 @@ final class ActorTreeRoutesProvider(classicSystem: ExtendedActorSystem) extends 
   import ActorInfoService._
   import system.executionContext
 
-  def routes(settings: ManagementRouteProviderSettings): Route = {
-    logger.error("Initialized routes for mesmer actor tree")
+  def routes(settings: ManagementRouteProviderSettings): Route =
     (get & path("mesmer" / "actor-tree")) {
 
       onComplete(actorInfoService.flatMap(_.actorTree)) {
@@ -151,5 +150,4 @@ final class ActorTreeRoutesProvider(classicSystem: ExtendedActorSystem) extends 
           complete(StatusCodes.InternalServerError)
       }
     }
-  }
 }
