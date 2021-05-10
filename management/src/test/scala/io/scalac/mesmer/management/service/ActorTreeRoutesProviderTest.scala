@@ -1,40 +1,34 @@
-package io.scalac.mesmer.extension.service
+package io.scalac.mesmer.management.service
 
-import akka.actor.BootstrapSetup
-import akka.actor.ExtendedActorSystem
 import akka.actor.setup.ActorSystemSetup
 import akka.actor.testkit.typed.scaladsl.TestProbe
-import akka.actor.typed.ActorRef
-import akka.actor.typed.ActorSystem
-import akka.actor.typed.Props
-import akka.actor.typed.SpawnProtocol
 import akka.actor.typed.receptionist.Receptionist
 import akka.actor.typed.scaladsl.Behaviors
 import akka.actor.typed.scaladsl.adapter._
-import akka.http.scaladsl.model.StatusCodes
-import akka.http.scaladsl.model.Uri
+import akka.actor.typed.{ ActorRef, ActorSystem, Props, SpawnProtocol }
+import akka.actor.{ BootstrapSetup, ExtendedActorSystem }
+import akka.http.scaladsl.model.{ StatusCodes, Uri }
 import akka.http.scaladsl.server.Route
-import akka.http.scaladsl.testkit.RouteTestTimeout
-import akka.http.scaladsl.testkit.ScalatestRouteTest
+import akka.http.scaladsl.testkit.{ RouteTestTimeout, ScalatestRouteTest }
 import akka.management.scaladsl.ManagementRouteProviderSettings
-import akka.util.ByteString
-import akka.util.Timeout
+import akka.util.{ ByteString, Timeout }
 import akka.{ actor => classic }
-import com.typesafe.config.Config
-import com.typesafe.config.ConfigFactory
+import com.typesafe.config.{ Config, ConfigFactory }
+import io.scalac.mesmer.core.util.ReceptionistOps
+import io.scalac.mesmer.core.util.TestCase.{
+  NoContextTestCaseFactory,
+  NoSetupTestCaseFactory,
+  ProvidedClassicActorSystemTestCaseFactory
+}
+import ActorInfoService.ActorInfo
+import io.scalac.mesmer.extension.service.ActorTreeService.Command.GetActors
+import io.scalac.mesmer.extension.service._
 import org.scalatest.LoneElement
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
 import scala.concurrent.Future
 import scala.concurrent.duration._
-
-import io.scalac.mesmer.core.util.ReceptionistOps
-import io.scalac.mesmer.core.util.TestCase.NoContextTestCaseFactory
-import io.scalac.mesmer.core.util.TestCase.NoSetupTestCaseFactory
-import io.scalac.mesmer.core.util.TestCase.ProvidedClassicActorSystemTestCaseFactory
-import io.scalac.mesmer.extension.service.ActorInfoService.ActorInfo
-import io.scalac.mesmer.extension.service.ActorTreeService.Command.GetActors
 
 trait ActorTreeRoutesProviderTestSettings {
   val ManagementSettings: ManagementRouteProviderSettings = ManagementRouteProviderSettings(Uri.Empty, false)

@@ -58,7 +58,7 @@ object NonEmptyTree {
 
   def fromSeq[T](elements: Seq[T])(implicit ordering: PartialOrdering[T]): Option[NonEmptyTree[T]] =
     elements
-      .sortWith(ordering.lteq) match {
+      .sortWith(ordering.lt) match {
       case Seq(head, tail @ _*) => Some(tail.foldLeft(NonEmptyTree(head))(_.insert(_)))
       case _                    => None
     }

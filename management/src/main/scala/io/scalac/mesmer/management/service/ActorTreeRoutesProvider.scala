@@ -1,38 +1,34 @@
-package io.scalac.mesmer.extension.service
+package io.scalac.mesmer.management.service
+
 import akka.actor.ExtendedActorSystem
 import akka.actor.setup.Setup
-import akka.actor.typed.ActorRef
-import akka.actor.typed.ActorSystem
 import akka.actor.typed.scaladsl.AskPattern._
 import akka.actor.typed.scaladsl.Behaviors
 import akka.actor.typed.scaladsl.adapter._
+import akka.actor.typed.{ ActorRef, ActorSystem }
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
-import akka.management.scaladsl.ManagementRouteProvider
-import akka.management.scaladsl.ManagementRouteProviderSettings
+import akka.management.scaladsl.{ ManagementRouteProvider, ManagementRouteProviderSettings }
 import akka.util.Timeout
 import akka.{ actor => classic }
 import com.typesafe.config.Config
+import io.scalac.mesmer.core.model.Tag
+import io.scalac.mesmer.extension.config.Configuration
+import io.scalac.mesmer.extension.service.ActorTreeService.Command.GetActors
+import io.scalac.mesmer.extension.service.{ actorTreeServiceKey, ActorTreeService, NonEmptyTree }
+import io.scalac.mesmer.extension.util.GenericBehaviors
+import io.scalac.mesmer.management.service.ActorInfoService.{ actorInfo, ActorInfo }
 import org.slf4j.LoggerFactory
 import zio.Chunk
 import zio.json._
 import zio.json.ast.Json
 
-import scala.concurrent.Future
-import scala.concurrent.Promise
-import scala.concurrent.duration.FiniteDuration
-import scala.concurrent.duration._
+import scala.concurrent.duration.{ FiniteDuration, _ }
+import scala.concurrent.{ Future, Promise }
 import scala.jdk.DurationConverters._
 import scala.util._
 import scala.util.control.NoStackTrace
-
-import io.scalac.mesmer.core.model.Tag
-import io.scalac.mesmer.extension.config.Configuration
-import io.scalac.mesmer.extension.service.ActorInfoService.ActorInfo
-import io.scalac.mesmer.extension.service.ActorInfoService.actorInfo
-import io.scalac.mesmer.extension.service.ActorTreeService.Command.GetActors
-import io.scalac.mesmer.extension.util.GenericBehaviors
 
 final case class ActorTreeRoutesProviderConfig(timeout: FiniteDuration)
 
@@ -141,16 +137,19 @@ final class ActorTreeRoutesProvider(classicSystem: ExtendedActorSystem) extends 
   import ActorInfoService._
   import system.executionContext
 
-  def routes(settings: ManagementRouteProviderSettings): Route = (get & path("mesmer" / "actor-tree")) {
+  def routes(settings: ManagementRouteProviderSettings): Route = {
+    logger.error("Initialized routes for mesmer actor tree")
+    (get & path("mesmer" / "actor-tree")) {
 
-    onComplete(actorInfoService.flatMap(_.actorTree)) {
-      case Success(value) => complete(StatusCodes.OK, value.toJson)
-      case Failure(ServiceDiscoveryTimeout) =>
-        logger.error("Actor service unavailable")
-        complete(StatusCodes.ServiceUnavailable)
-      case Failure(ex) =>
-        logger.error("Unexpected error occurred", ex)
-        complete(StatusCodes.InternalServerError)
+      onComplete(actorInfoService.flatMap(_.actorTree)) {
+        case Success(value) => complete(StatusCodes.OK, value.toJson)
+        case Failure(ServiceDiscoveryTimeout) =>
+          logger.error("Actor service unavailable")
+          complete(StatusCodes.ServiceUnavailable)
+        case Failure(ex) =>
+          logger.error("Unexpected error occurred", ex)
+          complete(StatusCodes.InternalServerError)
+      }
     }
   }
 }

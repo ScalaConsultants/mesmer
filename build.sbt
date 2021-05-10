@@ -55,6 +55,14 @@ lazy val extension = (project in file("extension"))
   )
   .dependsOn(core % "compile->compile;test->test")
 
+lazy val management = (project in file("management"))
+  .disablePlugins(sbtassembly.AssemblyPlugin)
+  .settings(
+    name := "mesmer-akka-management",
+    libraryDependencies ++= zioJson
+  )
+  .dependsOn(extension % "compile->compile;test->test")
+
 lazy val agent = (project in file("agent"))
   .settings(
     name := "mesmer-akka-agent",
@@ -141,7 +149,7 @@ lazy val example = (project in file("example"))
     },
     dockerUpdateLatest := true
   )
-  .dependsOn(extension)
+  .dependsOn(extension, management)
 
 lazy val assemblyMergeStrategySettings = assembly / assemblyMergeStrategy := {
   case PathList("META-INF", "services", _ @_*)           => MergeStrategy.concat
