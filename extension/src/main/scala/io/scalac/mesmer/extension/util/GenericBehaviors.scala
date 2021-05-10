@@ -1,9 +1,11 @@
 package io.scalac.mesmer.extension.util
 
+import akka.actor.typed.ActorRef
+import akka.actor.typed.Behavior
+import akka.actor.typed.receptionist.Receptionist
 import akka.actor.typed.receptionist.Receptionist.Listing
-import akka.actor.typed.receptionist.{Receptionist, ServiceKey}
+import akka.actor.typed.receptionist.ServiceKey
 import akka.actor.typed.scaladsl.Behaviors
-import akka.actor.typed.{ActorRef, Behavior}
 
 import scala.concurrent.duration.FiniteDuration
 import scala.reflect.ClassTag

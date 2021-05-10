@@ -8,6 +8,7 @@ import akka.actor.typed.receptionist.ServiceKey
 import akka.actor.typed.scaladsl.Behaviors
 import akka.testkit.TestKit
 import akka.util.Timeout
+import akka.{ actor => classic }
 
 import io.scalac.mesmer.core.tagging._
 import io.scalac.mesmer.core.util.TestCase.MonitorWithServiceTestCaseFactory.SetupTag
@@ -170,6 +171,21 @@ object TestCase {
     type Setup = Unit
     protected def tearDown(setup: Setup): Unit  = ()
     protected def setUp(context: Context): Unit = ()
+  }
+
+  trait NoContextTestCaseFactory extends TestCaseFactory {
+    type Context = Unit
+
+    protected def createContext(env: Env): Unit = ()
+  }
+
+  trait ProvidedClassicActorSystemTestCaseFactory extends TestCaseFactory {
+    type Env = classic.ActorSystem
+
+    implicit protected def system: classic.ActorSystem
+
+    protected final def startEnv(): Env = system
+    protected final def stopEnv(env: Env): Unit = {}
   }
 
   // common types as aliases...

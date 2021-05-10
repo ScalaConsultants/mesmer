@@ -10,6 +10,7 @@ import akka.actor.typed.scaladsl.Behaviors
 import org.scalatest.flatspec.AnyFlatSpecLike
 import org.scalatest.matchers.should.Matchers
 
+import scala.concurrent.duration._
 import scala.util.Random
 
 import io.scalac.mesmer.core.util.ReceptionistOps
@@ -38,7 +39,8 @@ class GenericBehaviorsTest
 
   type Context = Unit
 
-  val TestServiceKey: ServiceKey[Command] = ServiceKey[Command]("test_service")
+  val TestServiceKey: ServiceKey[Command]  = ServiceKey[Command]("test_service")
+  val DummyServiceKey: ServiceKey[Command] = ServiceKey[Command]("dummy_service_key")
 
   override def setUp(context: Context): Unit = {
     killServices(TestServiceKey)
@@ -121,5 +123,23 @@ class GenericBehaviorsTest
     publishServices(10)
 
     monitorProbe.receiveMessages(CommandsCount) should contain theSameElementsAs (commands)
+  }
+
+  it should "timeout after 2 seconds" in testCase { _ =>
+    val monitorProbe = TestProbe[CounterCommand]()
+    val failedProbe  = TestProbe[CounterCommand]()
+    val timeout      = 1.second
+
+    val generic = GenericBehaviors.waitForServiceWithTimeout(DummyServiceKey, timeout)(
+      _ => TestBehaviors.Pass.toRef(monitorProbe.ref),
+      TestBehaviors.Pass.toRef(failedProbe.ref)
+    )
+
+    val sut = system.systemActorOf(generic, createUniqueId)
+
+    sut ! Inc(19L)
+
+    failedProbe.receiveMessage(timeout * 2) should be(Inc(19L))
+    monitorProbe.expectNoMessage(timeout * 2)
   }
 }
