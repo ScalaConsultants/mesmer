@@ -1,13 +1,20 @@
 import Dependencies._
 import sbt.Package.{ MainClass, ManifestAttributes }
 
-ThisBuild / scalaVersion := "2.13.4"
-ThisBuild / version := "0.1.1-SNAPSHOT"
-ThisBuild / organization := "io.scalac"
-ThisBuild / organizationName := "scalac"
-
 inThisBuild(
   List(
+    scalaVersion := "2.13.4",
+    organization := "io.scalac",
+    homepage := Some(url("https://github.com/ScalaConsultants/mesmer-akka-agent")),
+    licenses := List("Apache-2.0" -> url("http://www.apache.org/licenses/LICENSE-2.0")),
+    developers := List(
+      Developer(
+        "jczuchnowski",
+        "Jakub Czuchnowski",
+        "jakub.czuchnowski@gmail.com",
+        url("https://github.com/jczuchnowski")
+      )
+    ),
     dependencyOverrides ++= openTelemetryDependenciesOverrides,
     scalacOptions ++= Seq("-deprecation", "-feature"),
     semanticdbEnabled := true,
@@ -20,7 +27,10 @@ inThisBuild(
 
 lazy val all = (project in file("."))
   .disablePlugins(sbtassembly.AssemblyPlugin)
-  .settings(name := "mesmer-all", publish / skip := true)
+  .settings(
+    name := "mesmer-all",
+    publish / skip := true
+  )
   .aggregate(extension, agent, example, core)
 
 lazy val core = (project in file("core"))
@@ -45,12 +55,11 @@ lazy val extension = (project in file("extension"))
     name := "mesmer-akka-extension",
     libraryDependencies ++= {
       akka ++
-      akkaManagement ++
       openTelemetryApi ++
       akkaTestkit ++
       scalatest ++
       akkaMultiNodeTestKit ++
-      logback.map(_ % Test) ++ zioJson
+      logback.map(_ % Test)
     }
   )
   .dependsOn(core % "compile->compile;test->test")
@@ -59,14 +68,13 @@ lazy val management = (project in file("management"))
   .disablePlugins(sbtassembly.AssemblyPlugin)
   .settings(
     name := "mesmer-akka-management",
-    libraryDependencies ++= zioJson
+    libraryDependencies ++= zioJson ++ akkaManagement
   )
   .dependsOn(extension % "compile->compile;test->test")
 
 lazy val agent = (project in file("agent"))
   .settings(
     name := "mesmer-akka-agent",
-    publish / skip := true,
     libraryDependencies ++= {
       akka.map(_    % "provided") ++
       logback.map(_ % Test) ++

@@ -1,5 +1,6 @@
 package io.scalac.mesmer.extension.util
 
+import akka.actor.Cancellable
 import akka.actor.typed.ActorRef
 import akka.actor.typed.Behavior
 import akka.actor.typed.receptionist.Receptionist
@@ -9,6 +10,7 @@ import akka.actor.typed.scaladsl.Behaviors
 
 import scala.concurrent.duration.FiniteDuration
 import scala.reflect.ClassTag
+import scala.reflect.classTag
 
 object GenericBehaviors {
 
@@ -55,57 +57,45 @@ object GenericBehaviors {
   ): Behavior[I] =
     Behaviors
       .setup[Any] { context => // use any to mimic union types
+        import context._
 
-        Behaviors.withTimers { scheduler =>
-          import context._
+        setLoggerName(classTag[I].runtimeClass)
 
-          def start(): Behavior[Any] = {
+        /*
+            We use child actors instead of message adapters to avoid issues with clustered receptionist
+         */
+        val subscriptionChild = context.spawnAnonymous(Behaviors.receiveMessage[Listing] { listing =>
+          listing.allServiceInstances(serviceKey).headOption.fold[Behavior[Listing]](Behaviors.same) { ref =>
+            context.self ! ref
+            Behaviors.stopped
+          }
+        })
 
-            val adapter = context.messageAdapter[Listing](identity)
+        system.receptionist ! Receptionist.Subscribe(serviceKey, subscriptionChild)
 
-            system.receptionist ! Receptionist.Subscribe(serviceKey, adapter)
-
-            timeout.foreach(after => scheduler.startSingleTimer(Timeout, Timeout, after))
-            waitingForService()
+        def waitingForService(cancelTimeout: Option[Cancellable]): Behavior[Any] =
+          Behaviors.withStash(bufferSize) { buffer =>
+            Behaviors.receiveMessagePartial {
+              case ref: ActorRef[T] @unchecked =>
+                cancelTimeout.foreach(_.cancel())
+                buffer.unstashAll(next(ref).asInstanceOf[Behavior[Any]])
+              case message: I =>
+                buffer.stash(message)
+                Behaviors.same
+              case Timeout =>
+                context.stop(subscriptionChild)
+                buffer.unstashAll(
+                  onTimeout
+                    .transformMessages[Any] { // we must create interceptor that will filter all other messages that don't much inner type parameter
+                      case message: I => message
+                    }
+                )
+              case _ => Behaviors.unhandled
+            }
           }
 
-          def waitingForService(): Behavior[Any] =
-            Behaviors.withStash(bufferSize) { buffer =>
-              Behaviors.receiveMessagePartial {
-                case listing: Listing =>
-                  listing
-                    .serviceInstances(serviceKey)
-                    .headOption
-                    .fold[Behavior[Any]] {
-                      log.debug("No service found")
-                      Behaviors.same
-                    } { service =>
-                      log.trace("Transition to inner behavior")
-                      timeout.foreach(_ => scheduler.cancel(Timeout))
-                      buffer.unstashAll(
-                        next(service)
-                          .transformMessages[Any] { // we must create interceptor that will filter all other messages that don't much inner type parameter
-                            case message: I => message
-                          }
-                      )
-
-                    }
-                case Timeout =>
-                  buffer.unstashAll(
-                    onTimeout
-                      .transformMessages[Any] { // we must create interceptor that will filter all other messages that don't much inner type parameter
-                        case message: I => message
-                      }
-                  )
-                case message: I =>
-                  buffer.stash(message)
-                  Behaviors.same
-                case _ => Behaviors.unhandled
-              }
-            }
-
-          start()
-        }
+        val cancel = timeout.map(after => context.scheduleOnce(after, context.self, Timeout))
+        waitingForService(cancel)
       }
       .narrow[I]
 }

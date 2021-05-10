@@ -1,8 +1,13 @@
 name: Scala CI
 
 on:
+  push:
+    branches: [ main ]
   pull_request:
     branches: [ main ]
+  release:
+    types:
+      - published
 
 jobs:
   lint:
@@ -32,3 +37,21 @@ jobs:
       - name: Run tests
         run: sbt test
 
+  publish:
+    
+    runs-on: ubuntu-latest
+    
+    needs: [build]
+    if: github.event_name != 'pull_request'
+    
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+      - uses: olafurpg/setup-scala@v10
+      - run: sbt ci-release
+        env:
+          PGP_PASSPHRASE: ${{ secrets.PGP_PASSPHRASE }}
+          PGP_SECRET: ${{ secrets.PGP_SECRET }}
+          SONATYPE_PASSWORD: ${{ secrets.SONATYPE_PASSWORD }}
+          SONATYPE_USERNAME: ${{ secrets.SONATYPE_USERNAME }}
