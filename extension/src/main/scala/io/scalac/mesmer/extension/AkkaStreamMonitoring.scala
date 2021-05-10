@@ -65,9 +65,9 @@ object AkkaStreamMonitoring {
   ): Behavior[Command] =
     GenericBehaviors.waitForService(actorTreeServiceKey) { service =>
       Behaviors.setup[Command](ctx =>
-        Behaviors.withTimers(scheduler =>
+        Behaviors.withTimers { scheduler =>
           new AkkaStreamMonitoring(ctx, streamOperatorMonitor, streamMonitor, scheduler, node, service).start()
-        )
+        }
       )
     }
 
@@ -290,6 +290,8 @@ final class AkkaStreamMonitoring(
 
   private def waitForStart(): Behavior[Command] = {
     setTimeout()
+    log.debug("Waiting for start")
+
     Behaviors.withStash(bufferConfig.size) { buffer =>
       Behaviors
         .receiveMessagePartial[Command] {

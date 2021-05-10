@@ -84,6 +84,7 @@ object AkkaMonitoring extends ExtensionId[AkkaMonitoring] {
       modulesSupport.akkaActor,
       config.autoStart.akkaActor,
       am => {
+        am.startActorTreeService()
         am.startActorMonitor()
         am.startStreamMonitor()
       }

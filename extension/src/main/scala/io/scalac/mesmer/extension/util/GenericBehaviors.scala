@@ -8,6 +8,7 @@ import akka.actor.typed.receptionist.ServiceKey
 import akka.actor.typed.scaladsl.Behaviors
 
 import scala.reflect.ClassTag
+import scala.reflect.classTag
 
 object GenericBehaviors {
 
@@ -25,37 +26,32 @@ object GenericBehaviors {
   ): Behavior[I] =
     Behaviors
       .setup[Any] { context => // use any to mimic union types
+
         import context._
+
+        setLoggerName(classTag[I].runtimeClass)
 
         def start(): Behavior[Any] = {
 
-          val adapter = context.messageAdapter[Listing](identity)
+          /*
+            We use child actors instead of message adapters to avoid issues with clustered receptionist
+           */
+          val subscriptionChild = context.spawnAnonymous(Behaviors.receiveMessage[Listing] { listing =>
+            listing.allServiceInstances(serviceKey).headOption.fold[Behavior[Listing]](Behaviors.same) { ref =>
+              context.self ! ref
+              Behaviors.stopped
+            }
+          })
 
-          system.receptionist ! Receptionist.Subscribe(serviceKey, adapter)
+          system.receptionist ! Receptionist.Subscribe(serviceKey, subscriptionChild)
           waitingForService()
         }
 
         def waitingForService(): Behavior[Any] =
           Behaviors.withStash(bufferSize) { buffer =>
             Behaviors.receiveMessagePartial {
-              case listing: Listing =>
-                listing
-                  .serviceInstances(serviceKey)
-                  .headOption
-                  .fold[Behavior[Any]] {
-                    log.debug("No service found")
-                    Behaviors.same
-                  } { service =>
-                    log.trace("Transition to inner behavior")
-
-                    buffer.unstashAll(
-                      next(service)
-                        .transformMessages[Any] { // we must create interceptor that will filter all other messages that don't much inner type parameter
-                          case message: I => message
-                        }
-                    )
-
-                  }
+              case ref: ActorRef[T] @unchecked =>
+                buffer.unstashAll(next(ref).asInstanceOf[Behavior[Any]])
               case message: I =>
                 buffer.stash(message)
                 Behaviors.same
