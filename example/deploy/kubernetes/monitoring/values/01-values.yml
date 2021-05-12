@@ -106,9 +106,11 @@ grafana:
     annotations:
       nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
       nginx.ingress.kubernetes.io/ssl-redirect: "true"
-  extraConfigMaps:
-    - mountPath: "/var/lib/grafana"
-      name: efs-grafana
+  persistence:
+    type: pvc
+    enabled: true
+    size: 10Gi
+
 kubeControllerManager:
   enabled: false
 kubeScheduler:
