@@ -69,96 +69,100 @@ public final class BoundedQueueProxy<E> implements BlockingQueue<E> {
 
     @Override
     public boolean contains(Object o) {
-        return false;
+        return underlying.contains(o);
     }
 
     @Override
     public int drainTo(Collection<? super E> c) {
-        return 0;
+        return underlying.drainTo(c);
     }
 
     @Override
     public int drainTo(Collection<? super E> c, int maxElements) {
-        return 0;
+        return underlying.drainTo(c, maxElements);
     }
 
     @Override
     public E remove() {
-        return null;
+        return underlying.remove();
     }
 
     @Override
     public E poll() {
-        return null;
+        return underlying.poll();
     }
 
     @Override
     public E element() {
-        return null;
+        return underlying.element();
     }
 
     @Override
     public E peek() {
-        return null;
+        return underlying.element();
     }
 
     @Override
     public int size() {
-        return 0;
+        return underlying.size();
     }
 
     @Override
     public boolean isEmpty() {
-        return false;
+        return underlying.isEmpty();
     }
 
     @Override
     public Iterator<E> iterator() {
-        return null;
+        return underlying.iterator();
     }
 
     @Override
     public Object[] toArray() {
-        return new Object[0];
+        return underlying.toArray();
     }
 
     @Override
     public <T> T[] toArray(T[] a) {
-        return null;
+        return underlying.toArray(a);
     }
 
     @Override
     public boolean containsAll(Collection<?> c) {
-        return false;
+        return underlying.containsAll(c);
     }
 
     @Override
     public boolean addAll(Collection<? extends E> c) {
-        return false;
+        return underlying.addAll(c);
     }
 
     @Override
     public boolean removeAll(Collection<?> c) {
-        return false;
+        return underlying.removeAll(c);
     }
 
     @Override
     public boolean retainAll(Collection<?> c) {
-        return false;
+        return underlying.retainAll(c);
     }
 
     @Override
     public void clear() {
-
+        underlying.clear();
     }
 
     @Override
     public boolean equals(Object o) {
+        if (o instanceof BoundedQueueProxy) {
+            BoundedQueueProxy<E> bqp = (BoundedQueueProxy<E>) o;
+            return bqp.lastEnqueueResult == this.lastEnqueueResult && underlying.equals(o);
+        }
         return false;
     }
 
     @Override
     public int hashCode() {
-        return 0;
+        return underlying.hashCode();
     }
 }
