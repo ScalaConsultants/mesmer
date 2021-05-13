@@ -50,11 +50,12 @@ object Boot extends App with FailFastCirceSupport with JsonCodecs {
 
     val meterProvider: SdkMeterProvider = SdkMeterProvider.builder().buildAndRegisterGlobal()
     val intervalMetricReader: IntervalMetricReader =
-        IntervalMetricReader.builder()
-            .setMetricExporter(metricExporter)
-            .setMetricProducers(Collections.singleton(meterProvider))
-            .setExportIntervalMillis(1000)
-            .buildAndStart()
+      IntervalMetricReader
+        .builder()
+        .setMetricExporter(metricExporter)
+        .setMetricProducers(Collections.singleton(meterProvider))
+        .setExportIntervalMillis(1000)
+        .buildAndStart()
 
     return intervalMetricReader
   }
@@ -107,7 +108,7 @@ object Boot extends App with FailFastCirceSupport with JsonCodecs {
       .bind(accountRoutes.routes)
 
     StdIn.readLine()
-    
+
     sys.addShutdownHook(metricReader.shutdown())
 
     sys.addShutdownHook {
