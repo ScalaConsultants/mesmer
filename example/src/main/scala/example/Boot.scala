@@ -31,8 +31,6 @@ import scala.language.postfixOps
 import scala.util.Failure
 import scala.util.Success
 
-import io.scalac.mesmer.extension.config.InstrumentationLibrary
-
 object Boot extends App with FailFastCirceSupport with JsonCodecs {
   val logger: Logger = LoggerFactory.getLogger(Boot.getClass)
 
