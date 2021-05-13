@@ -33,7 +33,11 @@ package object i13n {
   def `type`(name: String, desc: TypeDesc): Type = new Type(name, desc)
 
   def hierarchy(name: String): Type =
-    `type`(name, EM.hasSuperType[TypeDescription](EM.named[TypeDescription](name)))
+    `type`(
+      name,
+      EM.hasSuperType[TypeDescription](EM.named[TypeDescription](name))
+        .and(EM.not[TypeDescription](EM.isAbstract[TypeDescription]))
+    )
 
   def superTypes(name: String, desc: TypeDescription): Type = `type`(name, EM.isSuperTypeOf(desc))
 
@@ -51,6 +55,9 @@ package object i13n {
 
     def intercept[T](method: MethodDesc)(implicit ct: ClassTag[T]): TypeInstrumentation =
       chain(_.method(method).intercept(Advice.to(ct.runtimeClass)))
+
+    def intercept(method: MethodDesc, implementation: Implementation): TypeInstrumentation =
+      chain(_.method(method).intercept(implementation))
 
     def delegate[T](method: MethodDesc)(implicit ct: ClassTag[T]): TypeInstrumentation =
       chain(_.method(method).intercept(MethodDelegation.to(ct.runtimeClass)))

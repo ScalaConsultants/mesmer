@@ -1,7 +1,8 @@
 package io.scalac.mesmer.agent.akka.actor
 
 import akka.AkkaMirror.ActorRefWithCell
-import akka.dispatch.{ AbstractBoundedNodeQueue, BoundedNodeMessageQueue }
+import akka.dispatch._
+import akka.util.BoundedBlockingQueue
 import akka.{ actor => classic }
 import io.scalac.mesmer.agent.Agent
 import io.scalac.mesmer.agent.util.i13n.{ InstrumentModuleFactory, _ }
@@ -9,29 +10,48 @@ import io.scalac.mesmer.core.model.SupportedModules
 import io.scalac.mesmer.core.support.ModulesSupport
 import io.scalac.mesmer.core.util.ReflectionFieldUtils
 import io.scalac.mesmer.extension.actor.ActorCellDecorator
-import net.bytebuddy.asm.Advice._
+import net.bytebuddy.asm.Advice
+import net.bytebuddy.description.`type`.TypeDescription
+import net.bytebuddy.implementation.bind.annotation.{ Super, SuperCall, This }
+import net.bytebuddy.implementation.{ FieldAccessor, MethodDelegation }
 import net.bytebuddy.matcher.ElementMatchers
 import net.bytebuddy.pool.TypePool
 
+import java.util.concurrent.{ BlockingQueue, Callable, LinkedBlockingQueue }
 import scala.reflect.{ classTag, ClassTag }
 
 class BoundedNodeMessageQueueAdvice
 object BoundedNodeMessageQueueAdvice {
 
-  @OnMethodExit
-  def checkSuccess(@Argument(0) ref: classic.ActorRef, @This queue: Object): Unit = {
+  @Advice.OnMethodExit
+  def checkSuccess(@Advice.Argument(0) ref: classic.ActorRef, @Advice.This self: Object): Unit = {
     val withCell = ref.asInstanceOf[ActorRefWithCell]
-    queue match {
+    self match {
       case _: BoundedNodeMessageQueue =>
-        if (!AbstractBoundedQueueDecorator.getResult(queue) && (withCell.underlying ne null)) {
+        if (!AbstractBoundedQueueDecorator.getResult(self) && (withCell.underlying ne null)) {
           for {
             actorMetrics <- ActorCellDecorator.get(withCell.underlying)
             dropped      <- actorMetrics.droppedMessages
           } dropped.inc()
         }
 
+      case bm: BoundedQueueBasedMessageQueue =>
+        val result = bm.queue.asInstanceOf[BoundedQueueProxy[_]].getResult()
+        if (result && (withCell.underlying ne null)) {
+          for {
+            actorMetrics <- ActorCellDecorator.get(withCell.underlying)
+            dropped      <- actorMetrics.droppedMessages
+          } dropped.inc()
+        }
     }
   }
+}
+
+object QueueBasedMailboxConstructor {
+
+  @Advice.OnMethodEnter
+  def constructor(@Super elo: Object): Unit = {}
+
 }
 
 object LastEnqueueResult {
@@ -50,29 +70,18 @@ abstract class LastEnqueueResult[T: ClassTag] {
 }
 
 object AbstractBoundedQueueDecorator extends LastEnqueueResult[AbstractBoundedNodeQueue[_]]
-//{
-//
-//  val lastResultFieldName = "_lastEnqueueResult"
-//
-//  private lazy val (lastResultGetter, lastResultSetter) = {
-//    //    val clazz = classTag[T].runtimeClass
-//    val clazz = classOf[AbstractBoundedNodeQueue[_]]
-//    println(s"handler for class ${clazz}")
-//
-//    ReflectionFieldUtils.getHandlers(clazz, lastResultFieldName)
-//  }
-//
-//  def setResult(queue: Object, result: Boolean): Unit = lastResultSetter.invoke(queue, result)
-//
-//  def getResult(queue: Object): Boolean = lastResultGetter.invoke(queue)
-//}
+object LinkedBlockingQueueDecorator  extends LastEnqueueResult[LinkedBlockingQueue[_]]
+object BoundedBlockingQueueDecorator extends LastEnqueueResult[BoundedBlockingQueue[_]]
 
-class AbstractBoundedNodeQueueAdvice
-object AbstractBoundedNodeQueueAdvice {
+class AbstractBoundedNodeQueueAdvice(lastEnqueueResult: => LastEnqueueResult[_]) {
 
-  @OnMethodExit
-  def add(@Return result: Boolean, @This self: Object): Unit =
-    AbstractBoundedQueueDecorator.setResult(self, result)
+  private lazy val ler = lastEnqueueResult
+
+  def add(@This self: Object, @SuperCall impl: Callable[Boolean]): Boolean = {
+    val result = impl.call()
+    ler.setResult(self, result)
+    result
+  }
 
 }
 
@@ -95,13 +104,35 @@ object AkkaMailboxAgent extends InstrumentModuleFactory {
       )
     )
       .defineField[Boolean](LastEnqueueResult.lastResultFieldName)
-      .visit[AbstractBoundedNodeQueueAdvice]("add")
+      .intercept(
+        "add",
+        MethodDelegation.to(new AbstractBoundedNodeQueueAdvice(AbstractBoundedQueueDecorator))
+      )
   }
+  private val boundedMailbox: TypeInstrumentation = instrument(
+    `type`(
+      "akka.dispatch.BoundedQueueBasedMessageQueue",
+      ElementMatchers
+        .hasSuperType[TypeDescription](
+          ElementMatchers.named[TypeDescription]("akka.dispatch.BoundedQueueBasedMessageQueue")
+        )
+        .and(
+          ElementMatchers
+            .hasSuperType[TypeDescription](
+              ElementMatchers.named[TypeDescription]("java.util.concurrent.BlockingQueue")
+            )
+        )
+        .and(ElementMatchers.not[TypeDescription](ElementMatchers.isAbstract[TypeDescription]))
+    )
+  )
+    .defineField[BlockingQueue[_]](ProxiedQueue.queueFieldName)
+    .visit[ProxiedQueue](constructor)
+    .intercept(ElementMatchers.named("queue"), FieldAccessor.ofField(ProxiedQueue.queueFieldName))
 
   val boundedMessageQueueSemantics = instrument(hierarchy("akka.dispatch.BoundedMessageQueueSemantics"))
     .visit[BoundedNodeMessageQueueAdvice]("enqueue")
 
-  
-  def agent(typePool: TypePool) = Agent(boundedQueueBasesMailbox(typePool), boundedMessageQueueSemantics)
+  def agent(typePool: TypePool) =
+    Agent(boundedQueueBasesMailbox(typePool), boundedMailbox, boundedMessageQueueSemantics)
 
 }

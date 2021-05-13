@@ -38,6 +38,18 @@ class ActorMailboxTest
                                                     |  mailbox-type = "akka.dispatch.NonBlockingBoundedMailbox"
                                                     |  mailbox-capacity = 5
                                                     |}
+                                                    |
+                                                    |bounded-queue {
+                                                    |  mailbox-type = "akka.dispatch.BoundedMailbox"
+                                                    |   mailbox-push-timeout-time=0
+                                                    |  mailbox-capacity = 5
+                                                    |}
+                                                    |
+                                                    |bounded-priority-queue {
+                                                    |  mailbox-type = "akka.dispatch.BoundedPriorityMailbox"
+                                                    |  mailbox-push-timeout-time=1
+                                                    |  mailbox-capacity = 5
+                                                    |}
                                                     |""".stripMargin)
     mailboxConfig.withFallback(super.config)
   }
@@ -47,14 +59,72 @@ class ActorMailboxTest
     Behaviors.ignore
   }
 
-  "ActorMailboxTest" should "publish to dropped messes for bounded node queue" in {
+  "ActorMailboxTest" should "increase dropped messages for bounded node queue" in {
     val probe = createTestProbe[ActorContext[_]]
 
     val props = MailboxSelector
       .fromConfig("bounded-node-queue ")
       .withDispatcherFromConfig("single-thread-dispatcher")
 
-    val sut = system.systemActorOf(publishActorContext(probe.ref), "sut", props)
+    val sut = system.systemActorOf(publishActorContext(probe.ref), createUniqueId, props)
+
+    val context = probe.receiveMessage()
+
+    system.systemActorOf(
+      Behaviors.setup[Any] { _ =>
+        for {
+          _ <- 0 until 10
+        } sut ! ()
+
+        Behaviors.stopped[Any]
+      },
+      createUniqueId,
+      props
+    )
+
+    eventually {
+      val metrics = ActorCellDecorator.get(context.toClassic).get
+      metrics.droppedMessages.map(_.get()) should be(Some(5L))
+    }
+  }
+
+  it should "increase dropped messages for bounded queue" in {
+    val probe = createTestProbe[ActorContext[_]]
+
+    val props = MailboxSelector
+      .fromConfig("bounded-queue ")
+      .withDispatcherFromConfig("single-thread-dispatcher")
+
+    val sut = system.systemActorOf(publishActorContext(probe.ref), createUniqueId, props)
+
+    val context = probe.receiveMessage()
+
+    system.systemActorOf(
+      Behaviors.setup[Any] { _ =>
+        for {
+          _ <- 0 until 10
+        } sut ! ()
+
+        Behaviors.stopped[Any]
+      },
+      createUniqueId,
+      props
+    )
+
+    eventually {
+      val metrics = ActorCellDecorator.get(context.toClassic).get
+      metrics.droppedMessages.map(_.get()) should be(Some(5L))
+    }
+  }
+
+  it should "increase dropped messages for priority bounded queue" in {
+    val probe = createTestProbe[ActorContext[_]]
+
+    val props = MailboxSelector
+      .fromConfig("bounded-priority-queue")
+      .withDispatcherFromConfig("single-thread-dispatcher")
+
+    val sut = system.systemActorOf(publishActorContext(probe.ref), createUniqueId, props)
 
     val context = probe.receiveMessage()
 

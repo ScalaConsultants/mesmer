@@ -7,6 +7,7 @@ import io.scalac.mesmer.agent.akka.stream.AkkaStreamAgent
 import io.scalac.mesmer.core.util.ModuleInfo
 import net.bytebuddy.ByteBuddy
 import net.bytebuddy.agent.builder.AgentBuilder
+import net.bytebuddy.agent.builder.AgentBuilder.InjectionStrategy
 import net.bytebuddy.dynamic.scaffold.TypeValidation
 
 import java.lang.instrument.Instrumentation
@@ -15,7 +16,6 @@ object Boot {
 
   def premain(args: String, instrumentation: Instrumentation): Unit = {
 
-//    AgentBuilder.RedefinitionStrategy
 
     val agentBuilder = new AgentBuilder.Default()
       .`with`(new ByteBuddy().`with`(TypeValidation.DISABLED))
@@ -25,6 +25,8 @@ object Boot {
       )
       .`with`(AgentBuilder.InstallationListener.StreamWriting.toSystemOut)
 
+
+
     val allInstrumentations =
       AkkaPersistenceAgent.agent ++ AkkaHttpAgent.agent ++ AkkaStreamAgent.agent ++ AkkaActorAgent.agent
     val moduleInfo = ModuleInfo.extractModulesInformation(Thread.currentThread().getContextClassLoader)
@@ -32,8 +34,6 @@ object Boot {
     allInstrumentations
       .installOn(agentBuilder, instrumentation, moduleInfo)
       .eagerLoad()
-
-//    TypeDescription.ForLoadedType
 
 //Advice.withCustomMapping()
 
