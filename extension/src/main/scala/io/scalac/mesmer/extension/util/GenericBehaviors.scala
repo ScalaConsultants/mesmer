@@ -34,7 +34,7 @@ object GenericBehaviors {
         def start(): Behavior[Any] = {
 
           /*
-            We use child actors instead of message adapters to avoid issues with clustered receptionist
+            We can't use messageAdapter as there is no other option to unsubscribe from receptionist than stopping an actor
            */
           val subscriptionChild = context.spawnAnonymous(Behaviors.receiveMessage[Listing] { listing =>
             listing.allServiceInstances(serviceKey).headOption.fold[Behavior[Listing]](Behaviors.same) { ref =>

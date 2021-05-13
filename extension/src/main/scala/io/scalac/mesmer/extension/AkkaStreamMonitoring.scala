@@ -290,7 +290,7 @@ final class AkkaStreamMonitoring(
 
   private def waitForStart(): Behavior[Command] = {
     setTimeout()
-    log.debug("Waiting for start")
+    log.debug("Waiting for stream metrics collection start message")
 
     Behaviors.withStash(bufferConfig.size) { buffer =>
       Behaviors
