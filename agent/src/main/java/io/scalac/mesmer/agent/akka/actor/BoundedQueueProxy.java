@@ -10,7 +10,6 @@ public final class BoundedQueueProxy<E> implements BlockingQueue<E> {
     private final BlockingQueue<E> underlying;
 
     public boolean getResult() {
-        System.out.println("Getting result");
         return lastEnqueueResult;
     }
 
