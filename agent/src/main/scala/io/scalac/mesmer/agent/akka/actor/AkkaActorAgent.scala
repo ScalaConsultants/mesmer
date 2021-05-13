@@ -5,8 +5,7 @@ import io.scalac.mesmer.agent.util.i13n._
 import io.scalac.mesmer.core.model._
 import io.scalac.mesmer.core.support.ModulesSupport
 import io.scalac.mesmer.core.util.Timestamp
-import io.scalac.mesmer.extension.actor.ActorCellDecorator
-import io.scalac.mesmer.extension.actor.ActorCellMetrics
+import io.scalac.mesmer.extension.actor.{ ActorCellDecorator, ActorCellMetrics }
 
 object AkkaActorAgent extends InstrumentModuleFactory {
 
@@ -30,6 +29,7 @@ object AkkaActorAgent extends InstrumentModuleFactory {
   private val mailboxTimeTimestampInstrumentation =
     instrument("akka.dispatch.Envelope")
       .defineField[Timestamp](EnvelopeDecorator.TimestampVarName)
+      .defineField[Boolean](EnvelopeDecorator.TimestampVarName)
 
   private val mailboxTimeSendMessageInstrumentation =
     instrument("akka.actor.dungeon.Dispatch")
@@ -44,7 +44,7 @@ object AkkaActorAgent extends InstrumentModuleFactory {
   private val actorCellInstrumentation =
     instrument("akka.actor.ActorCell")
       .defineField[ActorCellMetrics](ActorCellDecorator.fieldName)
-      .visit[ActorCellConstructorInstrumentation](constructor)
+      .visit[ActorCellConstructorInstrumentation]("init")
       .visit[ActorCellReceiveMessageInstrumentation]("receiveMessage")
 
   private val actorInstrumentation =
@@ -55,7 +55,7 @@ object AkkaActorAgent extends InstrumentModuleFactory {
     instrument(
       hierarchy("akka.actor.typed.internal.AbstractSupervisor")
         .overrides("handleReceiveException")
-    ).intercept[SupervisorHandleReceiveExceptionInstrumentation]("handleReceiveException")
+    ).visit[SupervisorHandleReceiveExceptionInstrumentation]("handleReceiveException")
 
   private val stashBufferImplementation =
     instrument(hierarchy("akka.actor.typed.internal.StashBufferImpl"))
@@ -75,5 +75,6 @@ object AkkaActorAgent extends InstrumentModuleFactory {
     stashBufferImplementation,
     localActorRefProviderInstrumentation
   ) ++ classicStashInstrumentationAgent
+
 
 }

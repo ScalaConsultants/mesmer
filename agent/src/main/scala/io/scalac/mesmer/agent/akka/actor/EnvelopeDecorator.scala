@@ -1,9 +1,7 @@
 package io.scalac.mesmer.agent.akka.actor
 
 import akka.dispatch.Envelope
-
-import io.scalac.mesmer.core.util.ReflectionFieldUtils
-import io.scalac.mesmer.core.util.Timestamp
+import io.scalac.mesmer.core.util.{ ReflectionFieldUtils, Timestamp }
 
 object EnvelopeDecorator {
 

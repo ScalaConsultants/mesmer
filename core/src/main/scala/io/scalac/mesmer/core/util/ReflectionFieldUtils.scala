@@ -1,12 +1,11 @@
 package io.scalac.mesmer.core.util
 
+import io.scalac.mesmer.core.invoke.Lookup
+
 import java.lang.invoke.MethodHandle
-import java.lang.invoke.MethodHandles
 import java.lang.reflect.Field
 
-object ReflectionFieldUtils {
-
-  private val lookup = MethodHandles.publicLookup()
+object ReflectionFieldUtils extends Lookup {
 
   @inline final def getHandlers(className: String, fieldName: String): (MethodHandle, MethodHandle) =
     getHandlers(Class.forName(className), fieldName)

@@ -3,14 +3,10 @@ package io.scalac.mesmer.agent.akka.stream
 import akka.ActorGraphInterpreterAdvice
 import akka.actor.Props
 import akka.stream.GraphStageIslandAdvice
-import akka.stream.impl.fusing.ActorGraphInterpreterProcessEventAdvice
-import akka.stream.impl.fusing.ActorGraphInterpreterTryInitAdvice
-
+import akka.stream.impl.fusing.{ ActorGraphInterpreterProcessEventAdvice, ActorGraphInterpreterTryInitAdvice }
 import io.scalac.mesmer.agent.Agent
 import io.scalac.mesmer.agent.util.i13n._
-import io.scalac.mesmer.core.model.Module
-import io.scalac.mesmer.core.model.SupportedModules
-import io.scalac.mesmer.core.model.SupportedVersion
+import io.scalac.mesmer.core.model.{ Module, SupportedModules, SupportedVersion }
 
 object AkkaStreamAgent extends InstrumentModuleFactory {
 
