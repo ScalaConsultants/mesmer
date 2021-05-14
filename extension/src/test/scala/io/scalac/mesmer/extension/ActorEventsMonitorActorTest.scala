@@ -2,45 +2,35 @@ package io.scalac.mesmer.extension
 
 import akka.actor.PoisonPill
 import akka.actor.testkit.typed.javadsl.FishingOutcomes
-import akka.actor.testkit.typed.scaladsl.ScalaTestWithActorTestKit
-import akka.actor.testkit.typed.scaladsl.TestProbe
-import akka.actor.typed.ActorRef
-import akka.actor.typed.ActorSystem
-import akka.actor.typed.Behavior
-import akka.actor.typed.SupervisorStrategy
-import akka.actor.typed.scaladsl.Behaviors
-import akka.actor.typed.scaladsl.StashBuffer
+import akka.actor.testkit.typed.scaladsl.{ ScalaTestWithActorTestKit, TestProbe }
 import akka.actor.typed.scaladsl.adapter._
+import akka.actor.typed.scaladsl.{ Behaviors, StashBuffer }
+import akka.actor.typed.{ ActorRef, ActorSystem, Behavior, SupervisorStrategy }
 import akka.util.Timeout
 import akka.{ actor => classic }
-import org.scalatest.LoneElement
-import org.scalatest.TestSuite
-import org.scalatest.concurrent.PatienceConfiguration
-import org.scalatest.concurrent.ScaledTimeSpans
-
-import scala.concurrent.duration._
-import scala.util.Random
-import scala.util.control.NoStackTrace
-
 import io.scalac.mesmer.core.model._
-import io.scalac.mesmer.core.util.ActorPathOps
 import io.scalac.mesmer.core.util.AggMetric.LongValueAggMetric
-import io.scalac.mesmer.core.util.ReceptionistOps
 import io.scalac.mesmer.core.util.TestCase._
-import io.scalac.mesmer.core.util.TestConfig
-import io.scalac.mesmer.core.util.TestOps
 import io.scalac.mesmer.core.util.probe.ObserverCollector.ScheduledCollectorImpl
+import io.scalac.mesmer.core.util.{ ActorPathOps, ReceptionistOps, TestConfig, TestOps }
 import io.scalac.mesmer.extension.ActorEventsMonitorActor._
-import io.scalac.mesmer.extension.actor.ActorMetrics
-import io.scalac.mesmer.extension.actor.MutableActorMetricsStorage
+import io.scalac.mesmer.extension.actor.{ ActorMetrics, MutableActorMetricsStorage }
 import io.scalac.mesmer.extension.metric.ActorMetricsMonitor.Labels
 import io.scalac.mesmer.extension.service.ActorTreeService
 import io.scalac.mesmer.extension.service.ActorTreeService.Command.GetActors
 import io.scalac.mesmer.extension.util.probe.ActorMonitorTestProbe
-import io.scalac.mesmer.extension.util.probe.BoundTestProbe.CounterCommand
-import io.scalac.mesmer.extension.util.probe.BoundTestProbe.Inc
-import io.scalac.mesmer.extension.util.probe.BoundTestProbe.MetricObserved
-import io.scalac.mesmer.extension.util.probe.BoundTestProbe.MetricObserverCommand
+import io.scalac.mesmer.extension.util.probe.BoundTestProbe.{
+  CounterCommand,
+  Inc,
+  MetricObserved,
+  MetricObserverCommand
+}
+import org.scalatest.concurrent.{ PatienceConfiguration, ScaledTimeSpans }
+import org.scalatest.{ LoneElement, TestSuite }
+
+import scala.concurrent.duration._
+import scala.util.Random
+import scala.util.control.NoStackTrace
 
 trait ActorEventMonitorActorTestConfig {
   this: TestSuite with ScaledTimeSpans with ReceptionistOps with PatienceConfiguration =>
@@ -89,7 +79,8 @@ class ActorEventsMonitorActorTest
           failedMessages = Some(fakeFailedMessages),
           processingTime = Some(fakeProcessingTimes),
           sentMessages = Some(fakeSentMessages),
-          stashSize = Some(fakeStashedMessages)
+          stashSize = Some(fakeStashedMessages),
+          droppedMessages = Some(fakeDroppedMessages)
         )
       )
     }
@@ -282,6 +273,10 @@ class ActorEventsMonitorActorTest
     shouldObserveWithChange(monitor.sentMessagesProbe, TakeLabel, _.fakeSentMessages, _.fakeSentMessages += 1)
   }
 
+  it should "record the dropped messages" in testCaseSetupContext { implicit setup => implicit context =>
+    shouldObserveWithChange(monitor.droppedMessagesProbe, TakeLabel, _.fakeDroppedMessages, _.fakeDroppedMessages += 1)
+  }
+
   it should "unbind monitors on restart" in testCaseWith(_.copy(metricReaderFactory = FailingReaderFactory)) {
     implicit context =>
       eventually {
@@ -357,6 +352,7 @@ object ActorEventsMonitorActorTest {
     @volatile var fakeFailedMessages    = 2
     @volatile var fakeSentMessages      = 10
     @volatile var fakeStashedMessages   = 19
+    @volatile var fakeDroppedMessages   = 0
 
     @volatile var fakeMailboxTime: LongValueAggMetric     = LongValueAggMetric(1, 2, 1, 4, 3)
     @volatile var fakeProcessingTimes: LongValueAggMetric = LongValueAggMetric(1, 2, 1, 4, 3)

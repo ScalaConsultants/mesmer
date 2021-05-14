@@ -2,12 +2,9 @@ package io.scalac.mesmer.extension.util.probe
 
 import akka.actor.testkit.typed.scaladsl.TestProbe
 import akka.actor.typed.ActorSystem
-
-import io.scalac.mesmer.core.util.probe.Collected
-import io.scalac.mesmer.core.util.probe.ObserverCollector
-import io.scalac.mesmer.extension.metric.ActorMetricsMonitor
+import io.scalac.mesmer.core.util.probe.{ Collected, ObserverCollector }
 import io.scalac.mesmer.extension.metric.ActorMetricsMonitor._
-import io.scalac.mesmer.extension.metric.MetricObserver
+import io.scalac.mesmer.extension.metric.{ ActorMetricsMonitor, MetricObserver }
 import io.scalac.mesmer.extension.util.probe.BoundTestProbe.MetricObserverCommand
 
 final case class ActorMonitorTestProbe(
@@ -25,6 +22,7 @@ final case class ActorMonitorTestProbe(
   processingTimeMaxProbe: TestProbe[MetricObserverCommand[Labels]],
   processingTimeSumProbe: TestProbe[MetricObserverCommand[Labels]],
   sentMessagesProbe: TestProbe[MetricObserverCommand[Labels]],
+  droppedMessagesProbe: TestProbe[MetricObserverCommand[Labels]],
   collector: ObserverCollector
 )(implicit val actorSystem: ActorSystem[_])
     extends ActorMetricsMonitor
@@ -66,6 +64,9 @@ final case class ActorMonitorTestProbe(
     val sentMessages: MetricObserver[Long, Labels] =
       ObserverTestProbeWrapper(sentMessagesProbe, collector)
 
+    val droppedMessages: MetricObserver[Long, Labels] =
+      ObserverTestProbeWrapper(droppedMessagesProbe, collector)
+
     def unbind(): Unit = {
       collector.finish(mailboxSizeProbe)
       collector.finish(mailboxTimeAvgProbe)
@@ -80,6 +81,7 @@ final case class ActorMonitorTestProbe(
       collector.finish(processingTimeMaxProbe)
       collector.finish(processingTimeSumProbe)
       collector.finish(sentMessagesProbe)
+      collector.finish(droppedMessagesProbe)
     }
   }
 }
@@ -102,6 +104,7 @@ object ActorMonitorTestProbe {
       TestProbe("processing-time-max-probe"),
       TestProbe("processing-time-sum-probe"),
       TestProbe("sent-messages-probe"),
+      TestProbe("dropped-messages-probe"),
       collector
     )
 

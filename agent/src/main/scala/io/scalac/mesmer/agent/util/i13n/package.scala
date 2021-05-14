@@ -7,7 +7,7 @@ import net.bytebuddy.dynamic.DynamicType
 import net.bytebuddy.implementation.Implementation
 import net.bytebuddy.implementation.MethodDelegation
 import net.bytebuddy.matcher.ElementMatcher
-import net.bytebuddy.matcher.{ElementMatchers => EM}
+import net.bytebuddy.matcher.{ ElementMatchers => EM }
 
 import scala.language.implicitConversions
 import scala.reflect.ClassTag
