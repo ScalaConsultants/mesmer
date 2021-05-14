@@ -5,7 +5,7 @@ object Dependencies {
   val AkkaHttpVersion       = "10.2.0"
   val AkkaVersion           = "2.6.8"
   val LogbackVersion        = "1.2.3"
-  val ScalatestVersion      = "3.1.2"
+  val ScalatestVersion      = "3.1.4"
   val CirceVersion          = "0.12.3"
   val SlickVersion          = "3.3.3"
   val PostgresVersion       = "9.4-1201-jdbc41"
