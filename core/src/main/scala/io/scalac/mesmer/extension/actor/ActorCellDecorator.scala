@@ -1,6 +1,6 @@
 package io.scalac.mesmer.extension.actor
 
-import akka.dispatch.{ MailboxType, UnboundedMailbox }
+import akka.dispatch.{ MailboxType, SingleConsumerOnlyUnboundedMailbox, UnboundedMailbox }
 import io.scalac.mesmer.core.util.ReflectionFieldUtils
 
 object ActorCellDecorator {
@@ -16,8 +16,9 @@ object ActorCellDecorator {
    */
   def initialize(actorCell: Object, mailboxType: MailboxType): Unit =
     mailboxType match {
-      case _: UnboundedMailbox => setter.invoke(actorCell, new ActorCellMetrics())
-      case _                   => setter.invoke(actorCell, new ActorCellMetrics() with DroppedMessagesCellMetrics)
+      case _: UnboundedMailbox | _: SingleConsumerOnlyUnboundedMailbox =>
+        setter.invoke(actorCell, new ActorCellMetrics())
+      case _ => setter.invoke(actorCell, new ActorCellMetrics() with DroppedMessagesCellMetrics)
     }
 
   //TODO this shouldn't fail when agent is not present - None should be returned
