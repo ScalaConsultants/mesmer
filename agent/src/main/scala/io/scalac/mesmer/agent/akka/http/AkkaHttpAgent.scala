@@ -4,7 +4,6 @@ import io.scalac.mesmer.agent.Agent
 import io.scalac.mesmer.agent.util.i13n._
 import io.scalac.mesmer.core.model.SupportedModules
 import io.scalac.mesmer.core.support.ModulesSupport
-import net.bytebuddy.pool.TypePool
 
 object AkkaHttpAgent extends InstrumentModuleFactory {
 

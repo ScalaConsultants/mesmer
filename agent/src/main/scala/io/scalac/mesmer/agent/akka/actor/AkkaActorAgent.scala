@@ -5,7 +5,8 @@ import io.scalac.mesmer.agent.util.i13n._
 import io.scalac.mesmer.core.model._
 import io.scalac.mesmer.core.support.ModulesSupport
 import io.scalac.mesmer.core.util.Timestamp
-import io.scalac.mesmer.extension.actor.{ ActorCellDecorator, ActorCellMetrics }
+import io.scalac.mesmer.extension.actor.ActorCellDecorator
+import io.scalac.mesmer.extension.actor.ActorCellMetrics
 
 object AkkaActorAgent extends InstrumentModuleFactory {
 
@@ -75,6 +76,5 @@ object AkkaActorAgent extends InstrumentModuleFactory {
     stashBufferImplementation,
     localActorRefProviderInstrumentation
   ) ++ classicStashInstrumentationAgent
-
 
 }

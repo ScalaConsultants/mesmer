@@ -1,23 +1,29 @@
 package io.scalac.mesmer.agent.util
 
-import io.scalac.mesmer.agent.AgentInstrumentation
-import io.scalac.mesmer.core.model.SupportedModules
 import net.bytebuddy.asm.Advice
 import net.bytebuddy.description.`type`.TypeDescription
 import net.bytebuddy.description.method.MethodDescription
 import net.bytebuddy.dynamic.DynamicType
-import net.bytebuddy.implementation.{ Implementation, MethodDelegation }
-import net.bytebuddy.matcher.{ ElementMatcher, ElementMatchers => EM }
+import net.bytebuddy.implementation.Implementation
+import net.bytebuddy.implementation.MethodDelegation
+import net.bytebuddy.matcher.ElementMatcher
+import net.bytebuddy.matcher.{ElementMatchers => EM}
 
 import scala.language.implicitConversions
-import scala.reflect.{ classTag, ClassTag }
+import scala.reflect.ClassTag
+import scala.reflect.classTag
+
+import io.scalac.mesmer.agent.AgentInstrumentation
+import io.scalac.mesmer.core.model.SupportedModules
 
 package object i13n {
 
   final private[i13n] type TypeDesc   = ElementMatcher.Junction[TypeDescription]
   final private[i13n] type MethodDesc = ElementMatcher.Junction[MethodDescription]
 
-  final class Type private[i13n] (private[i13n] val name: String, private[i13n] val desc: TypeDesc)
+  final class Type private[i13n] (private[i13n] val name: String, private[i13n] val desc: TypeDesc) {
+    def and(addDesc: TypeDesc): Type = new Type(name, desc.and(addDesc))
+  }
 
   // DSL
 
@@ -36,10 +42,7 @@ package object i13n {
     `type`(
       name,
       EM.hasSuperType[TypeDescription](EM.named[TypeDescription](name))
-        .and(EM.not[TypeDescription](EM.isAbstract[TypeDescription]))
     )
-
-  def superTypes(name: String, desc: TypeDescription): Type = `type`(name, EM.isSuperTypeOf(desc))
 
   // wrappers
 

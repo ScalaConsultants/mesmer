@@ -1,57 +1,61 @@
 package io.scalac.mesmer.agent.akka.actor
 
+import java.util.concurrent.BlockingQueue
+import java.util.concurrent.Callable
+import java.util.concurrent.LinkedBlockingQueue
+
 import akka.AkkaMirror.ActorRefWithCell
+import akka.AkkaMirror.Cell
 import akka.dispatch._
 import akka.util.BoundedBlockingQueue
 import akka.{ actor => classic }
+import net.bytebuddy.asm.Advice
+import net.bytebuddy.description.`type`.TypeDescription
+import net.bytebuddy.implementation.FieldAccessor
+import net.bytebuddy.implementation.MethodDelegation
+import net.bytebuddy.implementation.bind.annotation.SuperCall
+import net.bytebuddy.implementation.bind.annotation.This
+import net.bytebuddy.matcher.ElementMatchers
+
+import scala.reflect.ClassTag
+import scala.reflect.classTag
+
 import io.scalac.mesmer.agent.Agent
-import io.scalac.mesmer.agent.util.i13n.{ InstrumentModuleFactory, _ }
+import io.scalac.mesmer.agent.util.i13n.InstrumentModuleFactory
+import io.scalac.mesmer.agent.util.i13n._
 import io.scalac.mesmer.core.model.SupportedModules
 import io.scalac.mesmer.core.support.ModulesSupport
 import io.scalac.mesmer.core.util.ReflectionFieldUtils
 import io.scalac.mesmer.extension.actor.ActorCellDecorator
-import net.bytebuddy.asm.Advice
-import net.bytebuddy.description.`type`.TypeDescription
-import net.bytebuddy.implementation.bind.annotation.{ Super, SuperCall, This }
-import net.bytebuddy.implementation.{ FieldAccessor, MethodDelegation }
-import net.bytebuddy.matcher.ElementMatchers
-import net.bytebuddy.pool.TypePool
-
-import java.util.concurrent.{ BlockingQueue, Callable, LinkedBlockingQueue }
-import scala.reflect.{ classTag, ClassTag }
 
 class BoundedNodeMessageQueueAdvice
 object BoundedNodeMessageQueueAdvice {
 
   @Advice.OnMethodExit
-  def checkSuccess(@Advice.Argument(0) ref: classic.ActorRef, @Advice.This self: Object): Unit = {
+  def handleDroppedMessages(
+    @Advice.Argument(0) ref: classic.ActorRef,
+    @Advice.This self: BoundedMessageQueueSemantics
+  ): Unit = {
     val withCell = ref.asInstanceOf[ActorRefWithCell]
     self match {
       case _: BoundedNodeMessageQueue =>
-        if (!AbstractBoundedQueueDecorator.getResult(self) && (withCell.underlying ne null)) {
-          for {
-            actorMetrics <- ActorCellDecorator.get(withCell.underlying)
-            dropped      <- actorMetrics.droppedMessages
-          } dropped.inc()
-        }
+        incDropped(AbstractBoundedQueueDecorator.getResult(self), withCell.underlying)
 
       case bm: BoundedQueueBasedMessageQueue =>
-        val result = bm.queue.asInstanceOf[BoundedQueueProxy[_]].getResult()
-        if (result && (withCell.underlying ne null)) {
-          for {
-            actorMetrics <- ActorCellDecorator.get(withCell.underlying)
-            dropped      <- actorMetrics.droppedMessages
-          } dropped.inc()
-        }
+        val result = bm.queue.asInstanceOf[BoundedQueueProxy[_]].getResult
+        incDropped(result, withCell.underlying)
+      case _ =>
     }
   }
-}
 
-object QueueBasedMailboxConstructor {
-
-  @Advice.OnMethodEnter
-  def constructor(@Super elo: Object): Unit = {}
-
+  @inline
+  private def incDropped(result: Boolean, cell: Cell): Unit =
+    if (result && (cell ne null)) {
+      for {
+        actorMetrics <- ActorCellDecorator.get(cell)
+        dropped      <- actorMetrics.droppedMessages
+      } dropped.inc()
+    }
 }
 
 object LastEnqueueResult {
@@ -86,30 +90,19 @@ class AbstractBoundedNodeQueueAdvice(lastEnqueueResult: => LastEnqueueResult[_])
 }
 
 object AkkaMailboxAgent extends InstrumentModuleFactory {
-  protected def supportedModules: SupportedModules =
+  protected val supportedModules: SupportedModules =
     SupportedModules(ModulesSupport.akkaActorModule, ModulesSupport.akkaActor)
 
-  private def boundedQueueBasesMailbox(typePool: TypePool): TypeInstrumentation = {
-    val abstractBoundedNodeQueueType = typePool
-      .describe("akka.dispatch.AbstractBoundedNodeQueue")
-      .resolve()
-    val boundedNodeMessageQueue = typePool
-      .describe("akka.dispatch.BoundedNodeMessageQueue")
-      .resolve()
-
+  private val boundedQueueBasesMailbox: TypeInstrumentation =
     instrument(
-      `type`(
-        "akka.dispatch.BoundedNodeMessageQueue",
-        ElementMatchers.is(abstractBoundedNodeQueueType).and(ElementMatchers.isSuperTypeOf(boundedNodeMessageQueue))
-      )
+      "akka.dispatch.AbstractBoundedNodeQueue"
     )
       .defineField[Boolean](LastEnqueueResult.lastResultFieldName)
       .intercept(
         "add",
         MethodDelegation.to(new AbstractBoundedNodeQueueAdvice(AbstractBoundedQueueDecorator))
       )
-  }
-  private val boundedMailbox: TypeInstrumentation = instrument(
+  private val boundedQueueBasedMailboxes: TypeInstrumentation = instrument(
     `type`(
       "akka.dispatch.BoundedQueueBasedMessageQueue",
       ElementMatchers
@@ -129,10 +122,13 @@ object AkkaMailboxAgent extends InstrumentModuleFactory {
     .visit[ProxiedQueue](constructor)
     .intercept(ElementMatchers.named("queue"), FieldAccessor.ofField(ProxiedQueue.queueFieldName))
 
-  val boundedMessageQueueSemantics = instrument(hierarchy("akka.dispatch.BoundedMessageQueueSemantics"))
+  val boundedMessageQueueSemantics: TypeInstrumentation = instrument(
+    hierarchy("akka.dispatch.BoundedMessageQueueSemantics")
+      .and(ElementMatchers.not[TypeDescription](ElementMatchers.isAbstract[TypeDescription]))
+  )
     .visit[BoundedNodeMessageQueueAdvice]("enqueue")
 
-  def agent(typePool: TypePool) =
-    Agent(boundedQueueBasesMailbox(typePool), boundedMailbox, boundedMessageQueueSemantics)
+  def agent: Agent =
+    Agent(boundedQueueBasesMailbox, boundedQueueBasedMailboxes, boundedMessageQueueSemantics)
 
 }
