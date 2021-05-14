@@ -8,7 +8,7 @@ object Dependencies {
   val ScalatestVersion      = "3.1.2"
   val CirceVersion          = "0.12.3"
   val SlickVersion          = "3.3.3"
-  val PostgresVersion       = "9.4-1201-jdbc41"
+  val PostgresVersion       = "9.4.1212"
   val AkkaManagementVersion = "1.0.9"
   
   val akka = Seq(
