@@ -30,8 +30,8 @@ object Dependencies {
   )
 
   val byteBuddy = Seq(
-    "net.bytebuddy" % "byte-buddy"       % "1.10.18",
-    "net.bytebuddy" % "byte-buddy-agent" % "1.10.18"
+    "net.bytebuddy" % "byte-buddy"       % "1.10.22",
+    "net.bytebuddy" % "byte-buddy-agent" % "1.10.22"
   )
 
 
