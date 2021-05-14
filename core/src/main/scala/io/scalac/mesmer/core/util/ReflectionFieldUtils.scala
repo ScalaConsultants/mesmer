@@ -1,9 +1,9 @@
 package io.scalac.mesmer.core.util
 
-import io.scalac.mesmer.core.invoke.Lookup
-
 import java.lang.invoke.MethodHandle
 import java.lang.reflect.Field
+
+import io.scalac.mesmer.core.invoke.Lookup
 
 object ReflectionFieldUtils extends Lookup {
 

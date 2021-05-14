@@ -2,9 +2,12 @@ package io.scalac.mesmer.extension.util.probe
 
 import akka.actor.testkit.typed.scaladsl.TestProbe
 import akka.actor.typed.ActorSystem
-import io.scalac.mesmer.core.util.probe.{ Collected, ObserverCollector }
+
+import io.scalac.mesmer.core.util.probe.Collected
+import io.scalac.mesmer.core.util.probe.ObserverCollector
+import io.scalac.mesmer.extension.metric.ActorMetricsMonitor
 import io.scalac.mesmer.extension.metric.ActorMetricsMonitor._
-import io.scalac.mesmer.extension.metric.{ ActorMetricsMonitor, MetricObserver }
+import io.scalac.mesmer.extension.metric.MetricObserver
 import io.scalac.mesmer.extension.util.probe.BoundTestProbe.MetricObserverCommand
 
 final case class ActorMonitorTestProbe(
