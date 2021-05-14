@@ -75,7 +75,7 @@ object Dependencies {
 
   val prometheus = Seq(
     "io.opentelemetry" % "opentelemetry-exporter-prometheus" % "0.13.1",
-    "fr.davit"         %% "akka-http-metrics-prometheus"     % "1.1.1"
+    "fr.davit"         %% "akka-http-metrics-prometheus"     % "1.6.0"
   )
 
   val exampleDependencies = Seq(
@@ -92,6 +92,6 @@ object Dependencies {
     "com.lightbend.akka.management" %% "akka-management-cluster-bootstrap" % AkkaManagementVersion,
     "com.lightbend.akka.discovery"  %% "akka-discovery-kubernetes-api"     % AkkaManagementVersion,
     "io.opentelemetry"              %  "opentelemetry-exporter-prometheus" % "0.13.1",
-    "fr.davit"                      %% "akka-http-metrics-prometheus"      % "1.1.1"
+    "fr.davit"                      %% "akka-http-metrics-prometheus"      % "1.6.0"
   )
 }
