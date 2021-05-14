@@ -38,7 +38,7 @@ object Dependencies {
   val logback = Seq("ch.qos.logback" % "logback-classic" % LogbackVersion)
 
   val openTelemetryApi = Seq(
-    "io.opentelemetry" % "opentelemetry-api" % "0.13.0"
+    "io.opentelemetry" % "opentelemetry-api" % "0.13.1"
   )
 
   val openTelemetrySdk = Seq(
