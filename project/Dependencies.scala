@@ -44,7 +44,7 @@ object Dependencies {
 
   val openTelemetryMetrics = Seq(
     "io.opentelemetry" % "opentelemetry-api-metrics" % OpentelemetryMetricsVersion,
-    "io.opentelemetry" % "opentelemetry-sdk-metrics" % OpentelemetryMetricsVersion,
+    "io.opentelemetry" % "opentelemetry-sdk-metrics" % OpentelemetryMetricsVersion
   )
 
   val akkaTestkit = Seq(
@@ -76,7 +76,6 @@ object Dependencies {
     "com.lightbend.akka.management" %% "akka-management-cluster-bootstrap"  % AkkaManagementVersion,
     "com.lightbend.akka.discovery"  %% "akka-discovery-kubernetes-api"      % AkkaManagementVersion,
     "io.opentelemetry"              % "opentelemetry-exporter-otlp-metrics" % OpentelemetryMetricsVersion,
-    "io.grpc"                       % "grpc-netty-shaded"                   % "1.37.0",
-    "org.wvlet"                     % "wvlet-log_2.12"                      % "1.2.3"
+    "io.grpc"                       % "grpc-netty-shaded"                   % "1.37.0"
   )
 }

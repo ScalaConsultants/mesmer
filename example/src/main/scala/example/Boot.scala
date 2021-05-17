@@ -43,19 +43,17 @@ object Boot extends App with FailFastCirceSupport with JsonCodecs {
     )
     .resolve
 
-  def initOpenTelemetryMetrics(): IntervalMetricReader = {
+  def initOpenTelemetryMetrics(exportInterval: Long): IntervalMetricReader = {
     val metricExporter: OtlpGrpcMetricExporter = OtlpGrpcMetricExporter.getDefault()
 
     val meterProvider: SdkMeterProvider = SdkMeterProvider.builder().buildAndRegisterGlobal()
-    val intervalMetricReader: IntervalMetricReader =
-      IntervalMetricReader
-        .builder()
-        .setMetricExporter(metricExporter)
-        .setMetricProducers(Collections.singleton(meterProvider))
-        .setExportIntervalMillis(1000)
-        .buildAndStart()
-
-    return intervalMetricReader
+    
+    IntervalMetricReader
+      .builder()
+      .setMetricExporter(metricExporter)
+      .setMetricProducers(Collections.singleton(meterProvider))
+      .setExportIntervalMillis(exportInterval)
+      .buildAndStart()
   }
 
   def startUp(local: Boolean): Unit = {
@@ -68,20 +66,24 @@ object Boot extends App with FailFastCirceSupport with JsonCodecs {
         .withFallback(fallbackConfig)
         .resolve
 
-    val metricReader = initOpenTelemetryMetrics()
+    val systemName = config.getString("app.systemName")
+    val host = config.getString("app.host")
+    val port = config.getInt("app.port")
+    val exportInterval = config.getLong("app.interval")
 
     implicit val system: ActorSystem[Nothing] =
-      ActorSystem[Nothing](Behaviors.empty, config.getString("app.systemName"), config)
+      ActorSystem[Nothing](Behaviors.empty, systemName, config)
 
     implicit val executionContext: ExecutionContext = system.executionContext
     implicit val timeout: Timeout                   = 10 seconds
 
     AkkaManagement(system).start().onComplete {
-      case Success(value)     => logger.info("Started akka management on uri: {}", value)
-      case Failure(exception) => logger.error("Couldn't start akka management", exception)
+      case Success(value)     => logger.info("Started Akka Management on uri: {}", value)
+      case Failure(exception) => logger.error("Couldn't start Akka Management", exception)
     }
 
     if (!local) {
+      logger.info("Starting Akka Cluster")
       ClusterBootstrap(system).start()
     }
 
@@ -96,11 +98,10 @@ object Boot extends App with FailFastCirceSupport with JsonCodecs {
 
     val accountRoutes = new AccountRoutes(accountsShards)
 
-    val host = config.getString("app.host")
-
-    val port = config.getInt("app.port")
+    logger.info("Starting metric exporter")
+    val metricReader = initOpenTelemetryMetrics(exportInterval)
+    
     logger.info(s"Starting http server at $host:$port")
-
     val binding = Http()
       .newServerAt(host, port)
       .bind(accountRoutes.routes)
@@ -114,7 +115,6 @@ object Boot extends App with FailFastCirceSupport with JsonCodecs {
         .flatMap(_.unbind())
         .onComplete(_ => system.terminate())
     }
-
   }
 
   val local: Boolean = sys.props.get("env").exists(_.toLowerCase() == "local")
