@@ -3,9 +3,9 @@ import sbt._
 object Dependencies {  
 
   val AkkaHttpVersion             = "10.2.0"
-  val AkkaManagementVersion       = "1.0.9"
+  val AkkaManagementVersion       = "1.0.10"
   val AkkaVersion                 = "2.6.8"
-  val CirceVersion                = "0.12.3"
+  val CirceVersion                = "0.13.0"
   val LogbackVersion              = "1.2.3"
   val OpentelemetryVersion        = "1.2.0"
   val OpentelemetryMetricsVersion = "1.2.0-alpha"
@@ -32,8 +32,8 @@ object Dependencies {
   )
 
   val byteBuddy = Seq(
-    "net.bytebuddy" % "byte-buddy"       % "1.10.18",
-    "net.bytebuddy" % "byte-buddy-agent" % "1.10.18"
+    "net.bytebuddy" % "byte-buddy"       % "1.10.22",
+    "net.bytebuddy" % "byte-buddy-agent" % "1.10.22"
   )
 
   val logback = Seq("ch.qos.logback" % "logback-classic" % LogbackVersion)
@@ -66,7 +66,7 @@ object Dependencies {
     "io.circe"                      %% "circe-core"                         % CirceVersion,
     "io.circe"                      %% "circe-generic"                      % CirceVersion,
     "io.circe"                      %% "circe-parser"                       % CirceVersion,
-    "de.heikoseeberger"             %% "akka-http-circe"                    % "1.30.0",
+    "de.heikoseeberger"             %% "akka-http-circe"                    % "1.36.0",
     "org.postgresql"                %  "postgresql"                         % PostgresVersion,
     "com.typesafe.slick"            %% "slick"                              % SlickVersion,
     "com.typesafe.slick"            %% "slick-hikaricp"                     % SlickVersion,
@@ -76,6 +76,6 @@ object Dependencies {
     "com.lightbend.akka.management" %% "akka-management-cluster-bootstrap"  % AkkaManagementVersion,
     "com.lightbend.akka.discovery"  %% "akka-discovery-kubernetes-api"      % AkkaManagementVersion,
     "io.opentelemetry"              % "opentelemetry-exporter-otlp-metrics" % OpentelemetryMetricsVersion,
-    "io.grpc"                       % "grpc-netty-shaded"                   % "1.37.0"
+    "io.grpc"                       % "grpc-netty-shaded"                   % "1.37.1"
   )
 }
