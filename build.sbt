@@ -10,7 +10,6 @@ inThisBuild(
     developers := List(
       Developer("jczuchnowski", "Jakub Czuchnowski", "jakub.czuchnowski@gmail.com", url("https://github.com/jczuchnowski"))
     ),
-    dependencyOverrides ++= openTelemetryDependenciesOverrides,
 
     scalacOptions ++= Seq("-deprecation", "-feature"),
 
@@ -38,6 +37,7 @@ lazy val core = (project in file("core"))
     libraryDependencies ++= {
       akka ++
       openTelemetryApi ++
+      openTelemetryMetrics ++
       scalatest ++
       akkaTestkit
     }
@@ -48,11 +48,12 @@ lazy val extension = (project in file("extension"))
   .disablePlugins(sbtassembly.AssemblyPlugin)
   .configs(MultiJvm)
   .settings(
-    parallelExecution in Test := true,
+    Test / parallelExecution := true,
     name := "mesmer-akka-extension",
     libraryDependencies ++= {
       akka ++
       openTelemetryApi ++
+      openTelemetryMetrics ++
       akkaTestkit ++
       scalatest ++
       akkaMultiNodeTestKit ++
@@ -108,7 +109,6 @@ lazy val example = (project in file("example"))
       akkaTestkit ++
       akkaPersistance ++
       logback ++
-      newRelicSdk ++
       exampleDependencies
     },
     assemblyMergeStrategySettings,
