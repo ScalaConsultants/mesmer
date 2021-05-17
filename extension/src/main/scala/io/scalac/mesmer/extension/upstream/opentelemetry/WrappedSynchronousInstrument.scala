@@ -1,10 +1,10 @@
 package io.scalac.mesmer.extension.upstream.opentelemetry
 
-import io.opentelemetry.api.common.Labels
 import io.opentelemetry.api.metrics.LongCounter
 import io.opentelemetry.api.metrics.LongUpDownCounter
 import io.opentelemetry.api.metrics.LongValueRecorder
 import io.opentelemetry.api.metrics.SynchronousInstrument
+import io.opentelemetry.api.metrics.common.Labels
 
 import io.scalac.mesmer.extension.metric._
 

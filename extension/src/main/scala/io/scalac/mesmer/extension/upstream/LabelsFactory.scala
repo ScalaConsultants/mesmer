@@ -1,6 +1,6 @@
 package io.scalac.mesmer.extension.upstream
 
-import io.opentelemetry.api.common.Labels
+import io.opentelemetry.api.metrics.common.Labels
 
 import scala.annotation.switch
 import scala.collection.mutable.ArrayBuffer
