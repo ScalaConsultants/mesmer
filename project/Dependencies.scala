@@ -9,7 +9,7 @@ object Dependencies {
   val LogbackVersion              = "1.2.3"
   val OpentelemetryVersion        = "1.2.0"
   val OpentelemetryMetricsVersion = "1.2.0-alpha"
-  val PostgresVersion             = "9.4-1201-jdbc41"
+  val PostgresVersion             = "42.2.20"
   val ScalatestVersion            = "3.1.2"
   val SlickVersion                = "3.3.3"
   
