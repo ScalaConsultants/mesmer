@@ -1,17 +1,37 @@
+# Mesmer Example Application
 
-## Database setup
+Example application using Akka HTTP and Akka Persistence with Mesmer instrumentation.
 
-The application requires a PostgreSQL instance. The database has to contain the schema for Actor Persistence journal. You can find the relevant sql statements in docker/schema.sql.
+## Setup
 
-If you want to run everything with default value you can just run `docker-compose up` in the `docker` directory.
+Run `docker-compose up` in the `docker` directory.
 
-## Application setup
+This will set up everything needed by the application:
+- PostgreSQL database with Akka Persistence Journal
+- OpenTelemetry Collector - that will receive metrics from the application
+- Prometheus - that will receive the metrics from the collector
 
-If you're running the database with the default value you can just do `sbt run`.
+## Run the application
 
-Otherwise you might need to override the expected values in the application by setting some or all of the following environment variables:
-- `DB_HOST` (default: `localhost`)
-- `DB_PORT` (default: `5432`)
-- `DB_NAME` (default: `akka`)
-- `DB_USER` (default: `postgres`)
-- `DB_PASS` (default: `12345`)
+To run the application with default settings:
+```
+sbt "project example" runWithAgent
+```
+
+## Call the endpoints
+
+You can now interact with the application to generate some traffic and metrics:
+1. Get account balance:
+```
+curl -X GET http://localhost:8080/api/v1/account/{UUID}/balance
+```
+2. Deposit funds:
+```
+curl -X POST http://localhost:8080/api/v1/account/{UUID}/deposit/100
+```
+3. Withdraw funds:
+```
+curl -X POST http://localhost:8080/api/v1/account/{UUID}/withdraw/100
+```
+
+If the account with the given UUID doesn't exist, it will be automatically created.

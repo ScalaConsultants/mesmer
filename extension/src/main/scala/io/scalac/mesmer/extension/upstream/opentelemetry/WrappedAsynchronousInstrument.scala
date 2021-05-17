@@ -3,10 +3,10 @@ package io.scalac.mesmer.extension.upstream.opentelemetry
 import java.util.concurrent.CopyOnWriteArrayList
 import java.util.concurrent.atomic.AtomicBoolean
 
-import io.opentelemetry.api.common.Labels
 import io.opentelemetry.api.metrics.AsynchronousInstrument
 import io.opentelemetry.api.metrics.AsynchronousInstrument.LongResult
 import io.opentelemetry.api.metrics._
+import io.opentelemetry.api.metrics.common.Labels
 
 import scala.jdk.CollectionConverters._
 
@@ -22,17 +22,17 @@ private object Defs {
 
 import io.scalac.mesmer.extension.upstream.opentelemetry.Defs._
 
-final class LongMetricObserverBuilderAdapter[L <: LabelSerializable](builder: LongValueObserver.Builder)
+final class LongMetricObserverBuilderAdapter[L <: LabelSerializable](builder: LongValueObserverBuilder)
     extends MetricObserverBuilderAdapter[LongResult, Long, L](builder, longResultWrapper)
 
-final class LongUpDownSumObserverBuilderAdapter[L <: LabelSerializable](builder: LongUpDownSumObserver.Builder)
+final class LongUpDownSumObserverBuilderAdapter[L <: LabelSerializable](builder: LongUpDownSumObserverBuilder)
     extends MetricObserverBuilderAdapter[LongResult, Long, L](builder, longResultWrapper)
 
-final class LongSumObserverBuilderAdapter[L <: LabelSerializable](builder: LongSumObserver.Builder)
+final class LongSumObserverBuilderAdapter[L <: LabelSerializable](builder: LongSumObserverBuilder)
     extends MetricObserverBuilderAdapter[LongResult, Long, L](builder, longResultWrapper)
 
-sealed abstract class MetricObserverBuilderAdapter[R <: AsynchronousInstrument.Result, T, L <: LabelSerializable](
-  builder: AsynchronousInstrument.Builder[R],
+sealed abstract class MetricObserverBuilderAdapter[R <: AsynchronousInstrument.LongResult, T, L <: LabelSerializable](
+  builder: AsynchronousInstrumentBuilder[R],
   wrapper: ResultWrapper[R, T]
 ) {
 
