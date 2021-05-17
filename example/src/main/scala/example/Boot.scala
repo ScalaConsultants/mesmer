@@ -47,7 +47,7 @@ object Boot extends App with FailFastCirceSupport with JsonCodecs {
     val metricExporter: OtlpGrpcMetricExporter = OtlpGrpcMetricExporter.getDefault()
 
     val meterProvider: SdkMeterProvider = SdkMeterProvider.builder().buildAndRegisterGlobal()
-    
+
     IntervalMetricReader
       .builder()
       .setMetricExporter(metricExporter)
@@ -66,9 +66,9 @@ object Boot extends App with FailFastCirceSupport with JsonCodecs {
         .withFallback(fallbackConfig)
         .resolve
 
-    val systemName = config.getString("app.systemName")
-    val host = config.getString("app.host")
-    val port = config.getInt("app.port")
+    val systemName     = config.getString("app.systemName")
+    val host           = config.getString("app.host")
+    val port           = config.getInt("app.port")
     val exportInterval = config.getLong("app.interval")
 
     implicit val system: ActorSystem[Nothing] =
@@ -100,7 +100,7 @@ object Boot extends App with FailFastCirceSupport with JsonCodecs {
 
     logger.info("Starting metric exporter")
     val metricReader = initOpenTelemetryMetrics(exportInterval)
-    
+
     logger.info(s"Starting http server at $host:$port")
     val binding = Http()
       .newServerAt(host, port)
