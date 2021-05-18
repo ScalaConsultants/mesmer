@@ -1,4 +1,6 @@
-![Scala CI](https://github.com/ScalaConsultants/mesmer-akka-agent/workflows/Scala%20CI/badge.svg)
+| CI | Release | Snapshot |
+| --- | --- | --- |
+| ![Scala CI][Badge-CI] | [![Release Artifacts][badge-releases]][link-releases] | [![Snapshot Artifacts][badge-snapshots]][link-snapshots] |
 
 # Mesmer Akka Agent
 
@@ -67,3 +69,9 @@ See [overview](https://github.com/ScalaConsultants/mesmer-akka-agent/blob/main/e
 # Local testing
 
 `example` subproject contains a test application that uses Akka Cluster sharding with Mesmer Akka Agent extension. Go [here](example/README.md) for more information.
+
+[Badge-CI]: https://github.com/ScalaConsultants/mesmer-akka-agent/workflows/Scala%20CI/badge.svg
+[badge-releases]: https://img.shields.io/nexus/r/https/oss.sonatype.org/io.scalac/mesmer-akka-extension_2.13 "Sonatype Releases"
+[badge-snapshots]: https://img.shields.io/nexus/s/https/oss.sonatype.org/io.scalac/mesmer-akka-extension_2.13 "Sonatype Snapshots"
+[link-releases]: https://oss.sonatype.org/content/repositories/releases/io/scalac/mesmer-akka-extension_2.13/ "Sonatype Releases"
+[link-snapshots]: https://oss.sonatype.org/content/repositories/snapshots/io/scalac/mesmer-akka-extension_2.13/ "Sonatype Snapshots"
