@@ -21,13 +21,13 @@ object ModulesSupport extends ModulesSupport {
   val akkaStreamModule: Module           = Module("akka-stream")
 
   private val commonAkkaSupportedVersion: SupportedVersion =
-    majors("2").and(minors("6")).and(patches("8", "9", "10", "11", "12"))
+    majors("2").and(minors("6")).and(patches("8", "9", "10", "11", "12", "13", "14"))
 
   val akkaActor: SupportedVersion = commonAkkaSupportedVersion
 
   val akkaHttp: SupportedVersion =
     majors("10")
-      .and(minors("1").and(patches("8")).or(minors("2").and(patches("0", "1", "2", "3"))))
+      .and(minors("1").and(patches("8")).or(minors("2").and(patches("0", "1", "2", "3", "4"))))
 
   val akkaPersistenceTyped: SupportedVersion =
     commonAkkaSupportedVersion
