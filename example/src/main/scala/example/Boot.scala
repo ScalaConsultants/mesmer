@@ -71,6 +71,11 @@ object Boot extends App with FailFastCirceSupport with JsonCodecs {
     val port           = config.getInt("app.port")
     val exportInterval = config.getLong("app.interval")
 
+    // this is important to initialize metric exporting before actor system when starting mesmer from configuration
+    // mesmer on initialization gets hook to OTel metricProvider and if it's not initialized before it defaults to noop
+    logger.info("Starting metric exporter")
+    val metricReader = initOpenTelemetryMetrics(exportInterval)
+
     implicit val system: ActorSystem[Nothing] =
       ActorSystem[Nothing](Behaviors.empty, systemName, config)
 
@@ -97,9 +102,6 @@ object Boot extends App with FailFastCirceSupport with JsonCodecs {
       })
 
     val accountRoutes = new AccountRoutes(accountsShards)
-
-    logger.info("Starting metric exporter")
-    val metricReader = initOpenTelemetryMetrics(exportInterval)
 
     logger.info(s"Starting http server at $host:$port")
     val binding = Http()
