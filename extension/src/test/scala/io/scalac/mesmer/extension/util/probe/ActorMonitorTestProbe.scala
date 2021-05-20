@@ -25,6 +25,7 @@ final case class ActorMonitorTestProbe(
   processingTimeMaxProbe: TestProbe[MetricObserverCommand[Labels]],
   processingTimeSumProbe: TestProbe[MetricObserverCommand[Labels]],
   sentMessagesProbe: TestProbe[MetricObserverCommand[Labels]],
+  droppedMessagesProbe: TestProbe[MetricObserverCommand[Labels]],
   collector: ObserverCollector
 )(implicit val actorSystem: ActorSystem[_])
     extends ActorMetricsMonitor
@@ -66,6 +67,9 @@ final case class ActorMonitorTestProbe(
     val sentMessages: MetricObserver[Long, Labels] =
       ObserverTestProbeWrapper(sentMessagesProbe, collector)
 
+    val droppedMessages: MetricObserver[Long, Labels] =
+      ObserverTestProbeWrapper(droppedMessagesProbe, collector)
+
     def unbind(): Unit = {
       collector.finish(mailboxSizeProbe)
       collector.finish(mailboxTimeAvgProbe)
@@ -80,6 +84,7 @@ final case class ActorMonitorTestProbe(
       collector.finish(processingTimeMaxProbe)
       collector.finish(processingTimeSumProbe)
       collector.finish(sentMessagesProbe)
+      collector.finish(droppedMessagesProbe)
     }
   }
 }
@@ -102,6 +107,7 @@ object ActorMonitorTestProbe {
       TestProbe("processing-time-max-probe"),
       TestProbe("processing-time-sum-probe"),
       TestProbe("sent-messages-probe"),
+      TestProbe("dropped-messages-probe"),
       collector
     )
 

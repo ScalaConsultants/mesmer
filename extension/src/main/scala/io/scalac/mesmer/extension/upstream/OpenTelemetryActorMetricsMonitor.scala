@@ -25,7 +25,8 @@ object OpenTelemetryActorMetricsMonitor {
     processingTimeMin: String,
     processingTimeMax: String,
     processingTimeSum: String,
-    sentMessages: String
+    sentMessages: String,
+    droppedMessages: String
   )
   object MetricNames {
 
@@ -44,7 +45,8 @@ object OpenTelemetryActorMetricsMonitor {
         "akka_actor_processing_time_min",
         "akka_actor_processing_time_max",
         "akka_actor_processing_time_sum",
-        "akka_actor_sent_messages_totals"
+        "akka_actor_sent_messages_total",
+        "akka_actor_dropped_messages_total"
       )
 
     def fromConfig(config: Config): MetricNames = {
@@ -112,6 +114,10 @@ object OpenTelemetryActorMetricsMonitor {
             .tryValue("sent-messages")(_.getString)
             .getOrElse(defaultCached.sentMessages)
 
+          val droppedMessages = clusterMetricsConfig
+            .tryValue("dropped-messages")(_.getString)
+            .getOrElse(defaultCached.droppedMessages)
+
           MetricNames(
             mailboxSize,
             mailboxTimeAvg,
@@ -126,7 +132,8 @@ object OpenTelemetryActorMetricsMonitor {
             processingTimeMin,
             processingTimeMax,
             processingTimeSum,
-            sentMessages
+            sentMessages,
+            droppedMessages
           )
         }
         .getOrElse(defaultCached)
@@ -225,6 +232,12 @@ class OpenTelemetryActorMetricsMonitor(meter: Meter, metricNames: MetricNames) e
       .setDescription("Tracks the sum of sent messages in an Actor")
   )
 
+  private val droppedMessagesObserver = new LongSumObserverBuilderAdapter[ActorMetricsMonitor.Labels](
+    meter
+      .longSumObserverBuilder(metricNames.droppedMessages)
+      .setDescription("Tracks the sum of dropped messages in an Actor")
+  )
+
   def bind(): OpenTelemetryBoundMonitor =
     new OpenTelemetryBoundMonitor
 
@@ -273,6 +286,9 @@ class OpenTelemetryActorMetricsMonitor(meter: Meter, metricNames: MetricNames) e
 
     val sentMessages: MetricObserver[Long, ActorMetricsMonitor.Labels] =
       sentMessagesObserver.createObserver(this)
+
+    val droppedMessages: MetricObserver[Long, ActorMetricsMonitor.Labels] = droppedMessagesObserver
+      .createObserver(this)
   }
 
 }

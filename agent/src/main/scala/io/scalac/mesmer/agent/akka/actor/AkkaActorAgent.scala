@@ -30,6 +30,7 @@ object AkkaActorAgent extends InstrumentModuleFactory {
   private val mailboxTimeTimestampInstrumentation =
     instrument("akka.dispatch.Envelope")
       .defineField[Timestamp](EnvelopeDecorator.TimestampVarName)
+      .defineField[Boolean](EnvelopeDecorator.TimestampVarName)
 
   private val mailboxTimeSendMessageInstrumentation =
     instrument("akka.actor.dungeon.Dispatch")
@@ -44,7 +45,7 @@ object AkkaActorAgent extends InstrumentModuleFactory {
   private val actorCellInstrumentation =
     instrument("akka.actor.ActorCell")
       .defineField[ActorCellMetrics](ActorCellDecorator.fieldName)
-      .visit[ActorCellConstructorInstrumentation](constructor)
+      .visit[ActorCellConstructorInstrumentation]("init")
       .visit[ActorCellReceiveMessageInstrumentation]("receiveMessage")
 
   private val actorInstrumentation =
@@ -55,7 +56,7 @@ object AkkaActorAgent extends InstrumentModuleFactory {
     instrument(
       hierarchy("akka.actor.typed.internal.AbstractSupervisor")
         .overrides("handleReceiveException")
-    ).intercept[SupervisorHandleReceiveExceptionInstrumentation]("handleReceiveException")
+    ).visit[SupervisorHandleReceiveExceptionInstrumentation]("handleReceiveException")
 
   private val stashBufferImplementation =
     instrument(hierarchy("akka.actor.typed.internal.StashBufferImpl"))

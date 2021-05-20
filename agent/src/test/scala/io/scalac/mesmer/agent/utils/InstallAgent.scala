@@ -9,6 +9,7 @@ import org.scalatest.TestSuite
 
 import io.scalac.mesmer.agent.Agent
 import io.scalac.mesmer.agent.akka.actor.AkkaActorAgent
+import io.scalac.mesmer.agent.akka.actor.AkkaMailboxAgent
 import io.scalac.mesmer.agent.akka.http.AkkaHttpAgent
 import io.scalac.mesmer.agent.akka.persistence.AkkaPersistenceAgent
 import io.scalac.mesmer.agent.akka.stream.AkkaStreamAgent
@@ -16,8 +17,8 @@ import io.scalac.mesmer.core.util.ModuleInfo.Modules
 import io.scalac.mesmer.core.util.ModuleInfo.extractModulesInformation
 
 object InstallAgent {
-  val allInstrumentations: Agent =
-    AkkaActorAgent.agent ++ AkkaHttpAgent.agent ++ AkkaPersistenceAgent.agent ++ AkkaStreamAgent.agent
+  def allInstrumentations: Agent =
+    AkkaActorAgent.agent ++ AkkaHttpAgent.agent ++ AkkaPersistenceAgent.agent ++ AkkaStreamAgent.agent ++ AkkaMailboxAgent.agent
 }
 
 abstract class InstallAgent extends TestSuite with BeforeAndAfterAll {
@@ -28,8 +29,11 @@ abstract class InstallAgent extends TestSuite with BeforeAndAfterAll {
 
   protected def agent: Agent = allInstrumentations
 
-  private val builder = new AgentBuilder.Default()
-    .`with`(new ByteBuddy().`with`(TypeValidation.DISABLED))
+  private val builder = new AgentBuilder.Default(
+    new ByteBuddy()
+      .`with`(TypeValidation.DISABLED)
+  )
+    .`with`(AgentBuilder.RedefinitionStrategy.RETRANSFORMATION)
     .`with`(new AgentBuilder.InitializationStrategy.SelfInjection.Eager())
     .`with`(
       AgentBuilder.Listener.StreamWriting.toSystemOut.withTransformationsOnly()
