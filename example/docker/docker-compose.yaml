@@ -40,6 +40,8 @@ services:
     image: grafana/grafana:latest
     volumes:
       - ./prometheus-datasource.yaml:/etc/grafana/provisioning/datasources/prometheus-datasource.yaml
+      - ./dashboards.yaml:/etc/grafana/provisioning/dashboards/prometheus-datasource.yaml
+      - ./dashboards:/etc/dashboards
     ports:
       - "3000:3000"
 
