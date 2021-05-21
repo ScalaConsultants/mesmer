@@ -1,4 +1,5 @@
 version: '3.3'
+
 services:
   postgres:
     container_name: mesmer_example_postgres
@@ -15,7 +16,7 @@ services:
   otel-collector:
     container_name: mesmer_example_otel_collector
     image: otel/opentelemetry-collector-dev:latest
-    command: ["--config=/etc/otel-collector-config.yaml", ""]
+    command: [ "--config=/etc/otel-collector-config.yaml", "" ]
     volumes:
       - ./otel-collector-config.yaml:/etc/otel-collector-config.yaml
     ports:
@@ -33,4 +34,13 @@ services:
       - ./prometheus.yaml:/etc/prometheus/prometheus.yml
     ports:
       - "9090:9090"
+
+  grafana:
+    container_name: mesmer_example_grafana
+    image: grafana/grafana:latest
+    volumes:
+      - ./prometheus-datasource.yaml:/etc/grafana/provisioning/datasources/prometheus-datasource.yaml
+    ports:
+      - "3000:3000"
+
 
