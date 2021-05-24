@@ -27,7 +27,7 @@ object Dependencies {
 
   val akkaPersistance = Seq(
     "com.typesafe.akka"  %% "akka-persistence-typed" % AkkaVersion,
-    "com.lightbend.akka" %% "akka-persistence-jdbc"  % "5.0.0",
+    "com.lightbend.akka" %% "akka-persistence-jdbc"  % "5.0.1",
     "com.typesafe.akka"  %% "akka-persistence-query" % AkkaVersion
   )
 
