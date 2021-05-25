@@ -8,11 +8,14 @@ inThisBuild(
     homepage := Some(url("https://github.com/ScalaConsultants/mesmer-akka-agent")),
     licenses := List("Apache-2.0" -> url("http://www.apache.org/licenses/LICENSE-2.0")),
     developers := List(
-      Developer("jczuchnowski", "Jakub Czuchnowski", "jakub.czuchnowski@gmail.com", url("https://github.com/jczuchnowski"))
+      Developer(
+        "jczuchnowski",
+        "Jakub Czuchnowski",
+        "jakub.czuchnowski@gmail.com",
+        url("https://github.com/jczuchnowski")
+      )
     ),
-
     scalacOptions ++= Seq("-deprecation", "-feature"),
-
     semanticdbEnabled := true,
     semanticdbVersion := scalafixSemanticdb.revision,
     scalacOptions += "-Wunused:imports",
@@ -24,7 +27,7 @@ inThisBuild(
 lazy val all = (project in file("."))
   .disablePlugins(sbtassembly.AssemblyPlugin)
   .settings(
-    name := "mesmer-all", 
+    name := "mesmer-all",
     publish / skip := true
   )
   .aggregate(extension, agent, example, core)
@@ -87,7 +90,6 @@ lazy val agent = (project in file("agent"))
     assembly / assemblyOption ~= { _.copy(includeScala = false) },
     assemblyMergeStrategySettings,
     Test / fork := true,
-    Test / javaOptions += "-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=9999",
     Test / testGrouping := ((Test / testGrouping).value flatMap { group =>
       group.tests.map { test =>
         Tests.Group(name = test.name, tests = Seq(test), runPolicy = group.runPolicy)
@@ -149,7 +151,7 @@ lazy val example = (project in file("example"))
 
 lazy val assemblyMergeStrategySettings = assembly / assemblyMergeStrategy := {
   case PathList("META-INF", "services", _ @_*)           => MergeStrategy.concat
-  case PathList("META-INF", _ @ _*)                     => MergeStrategy.discard
+  case PathList("META-INF", _ @_*)                       => MergeStrategy.discard
   case PathList("reference.conf")                        => MergeStrategy.concat
   case PathList("jackson-annotations-2.10.3.jar", _ @_*) => MergeStrategy.last
   case PathList("jackson-core-2.10.3.jar", _ @_*)        => MergeStrategy.last
@@ -174,7 +176,6 @@ lazy val benchmark = (project in file("benchmark"))
   }
   .dependsOn(extension)
 
-
 def runWithAgent = Command.command("runWithAgent") { state =>
   val extracted = Project extract state
   val newState =
@@ -183,8 +184,7 @@ def runWithAgent = Command.command("runWithAgent") { state =>
         run / javaOptions ++= Seq(
           "-Denv=local",
           "-Dconfig.resource=local/application.conf",
-          s"-javaagent:${(agent / assembly).value.absolutePath}",
-          "-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=9999"
+          s"-javaagent:${(agent / assembly).value.absolutePath}"
         )
       ),
       state

@@ -54,7 +54,7 @@ object OpenTelemetryClusterMetricsMonitor {
 
           val entitiesOnNode = clusterMetricsConfig
             .tryValue("entities-on-node")(_.getString)
-            .getOrElse(defaultCached.shardRegionsOnNode)
+            .getOrElse(defaultCached.entitiesOnNode)
 
           val reachableNodes = clusterMetricsConfig
             .tryValue("reachable-nodes")(_.getString)
