@@ -17,6 +17,7 @@ import io.scalac.mesmer.core.model._
 import io.scalac.mesmer.extension.metric.ActorSystemMonitor
 import io.scalac.mesmer.extension.metric.ActorSystemMonitor.Labels
 import io.scalac.mesmer.extension.service.ActorTreeService.Api
+import io.scalac.mesmer.extension.util.Tree.Tree
 
 object ActorTreeService {
 
@@ -29,6 +30,8 @@ object ActorTreeService {
   object Command {
 
     final case class GetActors(tags: Tag, reply: ActorRef[Seq[classic.ActorRef]]) extends Command
+
+    final case class GetActorTree(tags: Tag, reply: ActorRef[Tree[classic.ActorRef]])
   }
 
   object Event {
