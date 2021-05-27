@@ -28,12 +28,12 @@ object Tree {
   def tree[T](value: T, children: Tree[T]*): Tree[T] =
     Fix[({ type L[A] = TreeF[T, A] })#L](TreeF(value, children.toVector))
 
-  def builder[T](implicit ordering: PartialOrdering[T]): Builder[T] = new Root[T](None, ArrayBuffer.empty)
+  def builder[K, V](implicit ordering: PartialOrdering[K]): Builder[K, V] = new Root[K, V](None, ArrayBuffer.empty)
 
-  sealed trait Builder[T] {
-    def insert(elem: T): Builder[T]
-    def remove(value: T): Builder[T]
-    def build[V](filter: T => Option[V]): Option[Tree[V]]
+  sealed trait Builder[K, V] {
+    def insert(key: K, value: V): Builder[K, V]
+    def remove(key: K): Builder[K, V]
+    def build[O](filter: (K, V) => Option[O]): Option[Tree[O]]
   }
 
   trait TreeOrdering[T] {
@@ -43,46 +43,46 @@ object Tree {
     def isChildOrSame(x: T, y: T): Boolean = partialOrdering.tryCompare(x, y).exists(_ >= 0)
   }
 
-  final class Root[T] private[util] (
-    private[util] var root: Option[T],
-    private[util] var children: ArrayBuffer[NonRoot[T]]
+  final class Root[K, V] private[util] (
+    private[util] var root: Option[(K, V)],
+    private[util] var children: ArrayBuffer[NonRoot[K, V]]
   )(implicit
-    val partialOrdering: PartialOrdering[T]
-  ) extends Builder[T]
+    val partialOrdering: PartialOrdering[K]
+  ) extends Builder[K, V]
       with Equals
-      with TreeOrdering[T] {
+      with TreeOrdering[K] {
 
-    def insert(element: T): this.type = {
+    def insert(key: K, value: V): this.type = {
       root
         .fold[Unit] {
-          if (children.isEmpty || parentOfAllChildren(element)) {
-            root = Some(element)
+          if (children.isEmpty || parentOfAllChildren(key)) {
+            root = Some(key, value)
           } else {
             children
-              .find(nr => isChildOrSame(element, nr.element))
-              .fold[Unit](children.append(NonRoot.leaf(element)))(_.insert(element))
+              .find(nr => isChildOrSame(key, nr.key))
+              .fold[Unit](children.append(NonRoot.leaf(key, value)))(_.insert(key, value))
           }
-        } { rootElement =>
+        } { case (rootKey, rootValue) =>
           partialOrdering
-            .tryCompare(element, rootElement)
+            .tryCompare(key, rootKey)
             .fold[Unit] {
-              proxyChildren(rootElement)
-              children.append(NonRoot.leaf(element))
+              proxyChildren(rootKey, rootValue)
+              children.append(NonRoot.leaf(key, value))
               root = None
             } { cmp =>
               if (cmp < 0) {
-                proxyChildren(rootElement)
-                root = Some(element)
+                proxyChildren(rootKey, rootValue)
+                root = Some(key, value)
               } else if (cmp > 0) {
                 children
-                  .find(nr => isChildOrSame(element, nr.element))
+                  .find(nr => isChildOrSame(key, nr.key))
                   .fold {
-                    if (parentOfAllChildren(element)) {
-                      proxyChildren(element)
+                    if (parentOfAllChildren(key)) {
+                      proxyChildren(key, value)
                     } else {
-                      children.append(NonRoot.leaf(element))
+                      children.append(NonRoot.leaf(key, value))
                     }
-                  }(_.insert(element))
+                  }(_.insert(key, value))
               }
             }
 
@@ -90,14 +90,16 @@ object Tree {
       this
     }
 
-    def remove(value: T): this.type = {
+    def insert(key: K)(implicit ev: K =:= V): this.type = insert(key, key)
+
+    def remove(key: K): this.type = {
 
       root
-        .filter(_ == value)
+        .filter(_._1 == key)
         .fold[Unit] {
           val index = children
-            .indexWhere(nr => isChildOrSame(value, nr.element))
-          if (index >= 0 && !children(index).remove(value)) {
+            .indexWhere(nr => isChildOrSame(key, nr.key))
+          if (index >= 0 && !children(index).remove(key)) {
             children.remove(index)
             normalize()
           }
@@ -105,17 +107,17 @@ object Tree {
       this
     }
 
-    def build[V](transform: T => Option[V]): Option[Tree[V]] =
-      root.flatMap(transform).map { rootElement =>
+    def build[O](transform: (K, V) => Option[O]): Option[Tree[O]] =
+      root.flatMap(Function.tupled(transform)).map { transformedRoot =>
         val inner = children.flatMap(_.build(transform)).toVector
 
-        tree(rootElement, inner: _*)
+        tree(transformedRoot, inner: _*)
       }
 
-    def canEqual(that: Any): Boolean = that.isInstanceOf[Root[_]]
+    def canEqual(that: Any): Boolean = that.isInstanceOf[Root[_, _]]
 
     override def equals(other: Any): Boolean = other match {
-      case that: Root[_] =>
+      case that: Root[_, _] =>
         that.canEqual(this) &&
           this.root == that.root &&
           this.children.size == that.children.size &&
@@ -125,82 +127,96 @@ object Tree {
 
     override def toString: String = s"Root(element: $root, children: ${children.mkString("[", ",", "]")})"
 
-    private def proxyChildren(rt: T): Unit = {
-      val nr = new NonRoot[T](rt, children)
+    private def proxyChildren(key: K, value: V): Unit = {
+      val nr = new NonRoot[K, V](key, value, children)
       children = ArrayBuffer.empty
       children.append(nr)
     }
 
-    private def parentOfAllChildren(element: T): Boolean = children.forall(nr => isParent(element, nr.element))
+    private def parentOfAllChildren(key: K): Boolean = children.forall(nr => isParent(key, nr.key))
 
     private def normalize(): Unit =
       if (root.isEmpty && children.size == 1) {
         val onlyChild = children.head
-        root = Some(onlyChild.element)
+        root = Some(onlyChild.key, onlyChild.value)
         children = onlyChild.children
       }
   }
 
-  private[util] final class NonRoot[T](var element: T, var children: ArrayBuffer[NonRoot[T]])(implicit
-    val partialOrdering: PartialOrdering[T]
+  private[util] final class NonRoot[K, V](val key: K, val value: V, var children: ArrayBuffer[NonRoot[K, V]])(implicit
+    val partialOrdering: PartialOrdering[K]
   ) extends Equals
-      with TreeOrdering[T] {
+      with TreeOrdering[K] {
 
-    def insert(value: T): NonRoot[T] = {
+    def insert(key: K, value: V): NonRoot[K, V] = {
       children
-        .find(nr => isChildOrSame(value, nr.element))
+        .find(nr => isChildOrSame(key, nr.key))
         .fold[Unit] {
-          if (element != value)
-            children.append(NonRoot.leaf(value))
-        }(_.insert(value))
+          if (value != this.value)
+            children.append(NonRoot.leaf(key, value))
+        }(_.insert(key, value))
       this
     }
 
-    def remove(value: T): Boolean =
-      if (element == value) {
+    /**
+     * @param key
+     * @return true if it were able to remove the element. Note that true is returned even though element is not present in a tree
+     *         false mean that element exists but we're not able to remove it from perspective from the current node and parent
+     *         node must do it
+     */
+    def remove(key: K): Boolean =
+      if (key == this.key) {
         false // we signal that whole object must be removed
       } else {
         val index = children
-          .indexWhere(nr => isChildOrSame(value, nr.element))
-        if (index >= 0 && !children(index).remove(value)) {
+          .indexWhere(nr => isChildOrSame(key, nr.key))
+
+        if (index >= 0 && !children(index).remove(key)) {
           children.remove(index)
         }
         true
       }
 
-    def build[V](transform: T => Option[V]): Vector[Tree[V]] = {
+    def build[O](transform: (K, V) => Option[O]): Vector[Tree[O]] = {
       val nestedTree = children.flatMap(_.build(transform)).toVector
 
-      transform(element).fold(nestedTree) { value =>
+      transform(key, value).fold(nestedTree) { value =>
         Vector(tree(value, nestedTree: _*))
       }
     }
 
-    def canEqual(that: Any): Boolean = that.isInstanceOf[NonRoot[_]]
+    def canEqual(that: Any): Boolean = that.isInstanceOf[NonRoot[_, _]]
 
     override def equals(other: Any): Boolean = other match {
-      case that: NonRoot[_] =>
+      case that: NonRoot[_, _] =>
         that.canEqual(this) &&
-          this.element == that.element &&
+          this.value == that.value &&
           this.children.size == that.children.size &&
           this.children.forall(that.children.contains)
       case _ => false
     }
 
-    override def toString: String = s"NonRoot(element: $element, children: ${children.mkString("[", ",", "]")}"
+    override def toString: String = s"NonRoot(key: $key, value: $value, children: ${children.mkString("[", ",", "]")}"
   }
 
   object NonRoot {
 
-    private[util] def leaf[T](element: T)(implicit ordering: PartialOrdering[T]): NonRoot[T] =
-      new NonRoot[T](element, ArrayBuffer.empty)
+    private[util] def leaf[K, V](key: K, value: V)(implicit ordering: PartialOrdering[K]): NonRoot[K, V] =
+      new NonRoot[K, V](key, value, ArrayBuffer.empty)
 
-    private[util] def withChildren[T](element: T)(children: NonRoot[T]*)(implicit
-      ordering: PartialOrdering[T]
-    ): NonRoot[T] =
-      new NonRoot[T](element, ArrayBuffer.from(children))
+    private[util] def leaf[K](key: K)(implicit ordering: PartialOrdering[K]): NonRoot[K, K] =
+      new NonRoot[K, K](key, key, ArrayBuffer.empty)
 
-    implicit def convertToLeaf[T](value: T)(implicit ordering: PartialOrdering[T]): NonRoot[T] = leaf(value)
+    private[util] def withChildren[K, V](key: K, value: V)(children: NonRoot[K, V]*)(implicit
+      ordering: PartialOrdering[K]
+    ): NonRoot[K, V] =
+      new NonRoot[K, V](key, value, ArrayBuffer.from(children))
+
+    private[util] def withChildren[K](key: K)(children: NonRoot[K, K]*)(implicit
+      ordering: PartialOrdering[K]
+    ): NonRoot[K, K] = withChildren[K, K](key, key)(children: _*)
+
+    implicit def convertToLeaf[K](value: K)(implicit ordering: PartialOrdering[K]): NonRoot[K, K] = leaf(value, value)
   }
 
 }

@@ -18,14 +18,14 @@ class TreeBuilderTest extends AnyFlatSpec with Matchers {
     def lteq(x: String, y: String): Boolean = tryCompare(x, y).fold(false)(_ < 0)
   }
 
-  private def builder: Root[String] = Tree.builder[String].asInstanceOf[Root[String]]
+  private def builder: Root[String, String] = Tree.builder[String, String].asInstanceOf[Root[String, String]]
 
   "TreeBuilder" should "set element as root node for empty tree builder" in {
     val sut = builder
 
     sut.insert("ala")
 
-    sut.root should be(Some("ala"))
+    sut.root should be(Some("ala", "ala"))
   }
 
   it should "have no root element and no children when empty" in {
@@ -44,7 +44,7 @@ class TreeBuilderTest extends AnyFlatSpec with Matchers {
       .insert(second)
       .insert(first)
 
-    sut.root should be(Some(first))
+    sut.root should be(Some(first, first))
     sut.children should contain theSameElementsAs (Seq(NonRoot.leaf(second)))
   }
 
@@ -67,7 +67,7 @@ class TreeBuilderTest extends AnyFlatSpec with Matchers {
       .insert("aab")
       .insert("aa")
 
-    sut.root should be(Some("aa"))
+    sut.root should be(Some("aa", "aa"))
     sut.children should contain theSameElementsAs (Seq(NonRoot.leaf("aaa"), NonRoot.leaf("aab")))
   }
 
@@ -102,7 +102,7 @@ class TreeBuilderTest extends AnyFlatSpec with Matchers {
 
     sut.insert("aa")
 
-    sut.root should be(Some("a"))
+    sut.root should be(Some("a", "a"))
     sut.children should contain theSameElementsAs (Seq(NonRoot.withChildren("aa")("aab", "aac")))
   }
 
@@ -114,7 +114,7 @@ class TreeBuilderTest extends AnyFlatSpec with Matchers {
 
     sut.insert("a")
 
-    sut.root should be(Some("a"))
+    sut.root should be(Some("a", "a"))
     sut.children should contain theSameElementsAs (Seq(NonRoot.withChildren("aa")("aab", "aac")))
   }
 
@@ -135,7 +135,7 @@ class TreeBuilderTest extends AnyFlatSpec with Matchers {
 
     sut.insert("aada")
 
-    sut.root should be(Some("a"))
+    sut.root should be(Some("a", "a"))
     sut.children should contain theSameElementsAs (expectedChildren)
 
   }
@@ -145,7 +145,7 @@ class TreeBuilderTest extends AnyFlatSpec with Matchers {
       .insert("aa")
       .insert("aa")
 
-    sut.root should be(Some("aa"))
+    sut.root should be(Some("aa", "aa"))
     sut.children should be(empty)
   }
 
@@ -166,7 +166,7 @@ class TreeBuilderTest extends AnyFlatSpec with Matchers {
       .insert("aaaa")
       .insert("aaaa")
 
-    sut.root should be(Some("aa"))
+    sut.root should be(Some("aa", "aa"))
     sut.children should contain theSameElementsAs (Seq(withChildren("aaa")("aaaa")))
   }
 
@@ -178,7 +178,7 @@ class TreeBuilderTest extends AnyFlatSpec with Matchers {
 
     sut.remove("aa")
 
-    sut.root should be(Some("a"))
+    sut.root should be(Some("a", "a"))
     sut.children should be(Seq(leaf("ab")))
   }
 
@@ -191,7 +191,7 @@ class TreeBuilderTest extends AnyFlatSpec with Matchers {
 
     sut.remove("aaa")
 
-    sut.root should be(Some("a"))
+    sut.root should be(Some("a", "a"))
     sut.children should contain theSameElementsAs (Seq(leaf("ab"), leaf("aa")))
   }
 
@@ -202,7 +202,7 @@ class TreeBuilderTest extends AnyFlatSpec with Matchers {
 
     sut.remove("aa")
 
-    sut.root should be(Some("bb"))
+    sut.root should be(Some("bb", "bb"))
     sut.children should be(empty)
   }
 
@@ -224,7 +224,7 @@ class TreeBuilderTest extends AnyFlatSpec with Matchers {
 
     sut.remove("aada")
 
-    sut.root should be(Some("a"))
+    sut.root should be(Some("a", "a"))
     sut.children should contain theSameElementsAs (expectedChildren)
   }
 
@@ -234,7 +234,7 @@ class TreeBuilderTest extends AnyFlatSpec with Matchers {
       .insert("aa")
       .insert("ab")
 
-    val result = sut.build(x => Some(x))
+    val result = sut.build((_, x) => Some(x))
 
     val expected = Tree.tree("a", Tree.leaf("aa"), Tree.leaf("ab"))
 
@@ -247,7 +247,7 @@ class TreeBuilderTest extends AnyFlatSpec with Matchers {
       .insert("aa")
       .insert("ab")
 
-    val result = sut.build(x => if (x == "aa") None else Some(x))
+    val result = sut.build((_, x) => if (x == "aa") None else Some(x))
 
     val expected = Tree.tree("a", Tree.leaf("ab"))
 
@@ -260,7 +260,7 @@ class TreeBuilderTest extends AnyFlatSpec with Matchers {
       .insert("bb")
       .insert("cc")
 
-    val result = sut.build(x => Some(x))
+    val result = sut.build((_, x) => Some(x))
 
     result should be(None)
   }
@@ -271,7 +271,7 @@ class TreeBuilderTest extends AnyFlatSpec with Matchers {
       .insert("ac")
       .insert("a")
 
-    val result = sut.build(x => if (x == "a") None else Some(x))
+    val result = sut.build((_, x) => if (x == "a") None else Some(x))
 
     result should be(None)
   }
@@ -285,7 +285,7 @@ class TreeBuilderTest extends AnyFlatSpec with Matchers {
       .insert("13pl")
       .insert("1aa")
 
-    val result = sut.build(_.toIntOption)
+    val result = sut.build((_, x) => x.toIntOption)
 
     val expected = Tree.tree(1, Tree.leaf(12), Tree.leaf(13))
 
@@ -327,7 +327,7 @@ class TreeBuilderTest extends AnyFlatSpec with Matchers {
       tree("ad")
     )
 
-    sut.build(x => Some(x)) should be(Some(expected))
+    sut.build((_, x) => Some(x)) should be(Some(expected))
 
   }
 
@@ -357,13 +357,13 @@ class TreeBuilderTest extends AnyFlatSpec with Matchers {
       "a",
       tree(
         "aa",
-        tree("aaa", tree("aaaa", leaf("aaaaa"))),
+        tree("aaa", tree("aaaa", leaf("aaaaa")))
       ),
       leaf("aba"),
       leaf("aca")
     )
 
-    val transform: String => Option[String] = x => if(x.endsWith("a")) Some(x) else None
+    val transform: (String, String) => Option[String] = (_, x) => if (x.endsWith("a")) Some(x) else None
 
     sut.build(transform) should be(Some(expected))
 

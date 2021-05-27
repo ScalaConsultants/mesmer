@@ -2,22 +2,17 @@ package io.scalac.mesmer.extension.service
 
 import akka.actor.typed._
 import akka.actor.typed.receptionist.Receptionist.Register
-import akka.actor.typed.scaladsl.AbstractBehavior
-import akka.actor.typed.scaladsl.ActorContext
-import akka.actor.typed.scaladsl.Behaviors
 import akka.actor.typed.scaladsl.adapter._
+import akka.actor.typed.scaladsl.{ AbstractBehavior, ActorContext, Behaviors }
 import akka.{ actor => classic }
-
-import scala.collection.mutable.ArrayBuffer
-
 import io.scalac.mesmer.core
 import io.scalac.mesmer.core.event.ActorEvent
-import io.scalac.mesmer.core.model.Tag
-import io.scalac.mesmer.core.model._
+import io.scalac.mesmer.core.model.{ Tag, _ }
 import io.scalac.mesmer.extension.metric.ActorSystemMonitor
 import io.scalac.mesmer.extension.metric.ActorSystemMonitor.Labels
 import io.scalac.mesmer.extension.service.ActorTreeService.Api
 import io.scalac.mesmer.extension.util.Tree.Tree
+import io.scalac.mesmer.extension.util._
 
 object ActorTreeService {
 
@@ -51,8 +46,11 @@ object ActorTreeService {
       def receptionistBind(actorEventRef: ActorRef[ActorEvent]): Unit =
         ctx.system.receptionist ! Register(core.actorServiceKey, actorEventRef)
 
-      new ActorTreeService(ctx, actorSystemMonitor, receptionistBind, backoffActorTreeTraverser, node)
+      new ActorTreeService(ctx, actorSystemMonitor, receptionistBind, backoffActorTreeTraverser, node)(partialOrdering)
     }
+
+  lazy val partialOrdering: PartialOrdering[classic.ActorRef] = null
+
 }
 
 final class ActorTreeService(
@@ -61,15 +59,16 @@ final class ActorTreeService(
   actorEventBind: ActorRef[ActorEvent] => Unit,
   actorTreeTraverser: ActorTreeTraverser,
   node: Option[Node] = None
-) extends AbstractBehavior[Api](ctx) {
+)(implicit actorRefPartialOrdering: PartialOrdering[classic.ActorRef])
+    extends AbstractBehavior[Api](ctx) {
   import ActorTreeService._
   import Command._
   import Event._
-
   import ActorTreeService._
   import context._
 
-  private[this] val snapshot     = ArrayBuffer.empty[ActorRefDetails]
+//  private[this] val snapshot     = ArrayBuffer.empty[ActorRefDetails]
+  private[this] val snapshot     = Tree.builder[classic.ActorRef, ActorRefDetails]
   private[this] val boundMonitor = monitor.bind(Labels(node))
 
   private def init(): Unit = {
@@ -87,10 +86,10 @@ final class ActorTreeService(
 
   def onMessage(msg: Api): Behavior[Api] = msg match {
     case GetActors(Tag.all, reply) =>
-      reply ! snapshot.toSeq.map(_.ref)
+//      reply ! snapshot.toSeq.map(_.ref)
       Behaviors.same
     case GetActors(tag, reply) =>
-      reply ! snapshot.filter(_.tags.contains(tag)).toSeq.map(_.ref)
+//      reply ! snapshot.filter(_.tags.contains(tag)).toSeq.map(_.ref)
       Behaviors.same
     case event: Event =>
       handleEvent(event)
@@ -113,25 +112,29 @@ final class ActorTreeService(
       import details._
       log.trace("Actor created {}", ref)
 
-      if (!snapshot.exists(_.ref == ref)) { // deduplication
-        context.watchWith(details.ref.toTyped, ActorTerminated(ref))
-        boundMonitor.createdActors.incValue(1L)
-        snapshot += details
-      }
+      context.watchWith(details.ref.toTyped, ActorTerminated(ref))
+      boundMonitor.createdActors.incValue(1L)
+//      snapshot.insert(details)
+
+//      if (!snapshot.exists(_.ref == ref)) { // deduplication
+//        context.watchWith(details.ref.toTyped, ActorTerminated(ref))
+//        boundMonitor.createdActors.incValue(1L)
+//        snapshot += details
+//      }
 
     case ActorRetagged(details) =>
       import details._
       log.trace("Actor retagged {}", ref)
 
-      val index = snapshot.indexWhere(_.ref == details.ref)
-      if (index >= 0) {
-        snapshot.patchInPlace(index, Seq(details), 1)
-      }
+//      val index = snapshot.indexWhere(_.ref == details.ref)
+//      if (index >= 0) {
+//        snapshot.patchInPlace(index, Seq(details), 1)
+//      }
 
     case ActorTerminated(ref) =>
       log.trace("Actor terminated {}", ref)
       boundMonitor.terminatedActors.incValue(1L)
-      snapshot.filterInPlace(_.ref != ref)
+//      snapshot.filterInPlace(_.ref != ref)
   }
 
   // bind to actor event stream
