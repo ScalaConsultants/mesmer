@@ -1,17 +1,15 @@
 package io.scalac.mesmer.core
 
-import _root_.akka.actor.{ ActorPath => AkkaActorPath }
+import _root_.akka.actor.{ActorPath => AkkaActorPath}
 import _root_.akka.cluster.UniqueAddress
 import _root_.akka.http.scaladsl.model.HttpMethod
-import _root_.akka.http.scaladsl.model.Uri.{ Path => AkkaPath }
-import _root_.akka.{ actor => classic }
-
-import scala.language.implicitConversions
-
+import _root_.akka.http.scaladsl.model.Uri.{Path => AkkaPath}
+import _root_.akka.{actor => classic}
 import io.scalac.mesmer.core.model.Tag.StageName.StreamUniqueStageName
 import io.scalac.mesmer.core.model.Tag._
-import io.scalac.mesmer.core.tagging.@@
-import io.scalac.mesmer.core.tagging._
+import io.scalac.mesmer.core.tagging.{@@, _}
+
+import scala.language.implicitConversions
 
 package object model {
 
@@ -59,12 +57,42 @@ package object model {
   type ActorKey      = ActorPath
   type RawLabels     = Seq[(String, String)]
 
+  object ActorConfiguration {
+
+    sealed trait Reporting {
+
+      final def aggregate: Boolean = this match {
+        case Group => true
+        case _     => false
+      }
+
+      final def visible: Boolean = this match {
+        case Disabled => false
+        case _        => true
+      }
+    }
+
+    private case object Group    extends Reporting
+    private case object Instance extends Reporting
+    private case object Disabled extends Reporting
+
+    val group: ActorConfiguration    = ActorConfiguration(Group)
+    val instance: ActorConfiguration = ActorConfiguration(Instance)
+    val disabled: ActorConfiguration = ActorConfiguration(Disabled)
+  }
+
+  final case class ActorConfiguration(reporting: ActorConfiguration.Reporting)
+
   /**
    * case class aggregating information about actorRef used to unify models across several domains
    * @param ref classic actor ref
    * @param tags tags for respective actor ref
    */
-  private[scalac] final case class ActorRefDetails(ref: classic.ActorRef, tags: Set[Tag])
+  private[scalac] final case class ActorRefDetails(
+    ref: classic.ActorRef,
+    tags: Set[Tag],
+    configuration: ActorConfiguration = ActorConfiguration.instance
+  )
 
   implicit val nodeLabelSerializer: LabelSerializer[Node]           = node => Seq("node" -> node.unwrap)
   implicit val interfaceLabelSerializer: LabelSerializer[Interface] = interface => Seq("interface" -> interface.unwrap)

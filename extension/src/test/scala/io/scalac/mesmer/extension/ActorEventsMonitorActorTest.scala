@@ -2,45 +2,36 @@ package io.scalac.mesmer.extension
 
 import akka.actor.PoisonPill
 import akka.actor.testkit.typed.javadsl.FishingOutcomes
-import akka.actor.testkit.typed.scaladsl.ScalaTestWithActorTestKit
-import akka.actor.testkit.typed.scaladsl.TestProbe
-import akka.actor.typed.ActorRef
-import akka.actor.typed.ActorSystem
-import akka.actor.typed.Behavior
-import akka.actor.typed.SupervisorStrategy
-import akka.actor.typed.scaladsl.Behaviors
-import akka.actor.typed.scaladsl.StashBuffer
+import akka.actor.testkit.typed.scaladsl.{ ScalaTestWithActorTestKit, TestProbe }
+import akka.actor.typed._
 import akka.actor.typed.scaladsl.adapter._
+import akka.actor.typed.scaladsl.{ Behaviors, StashBuffer }
 import akka.util.Timeout
 import akka.{ actor => classic }
-import org.scalatest.LoneElement
-import org.scalatest.TestSuite
-import org.scalatest.concurrent.PatienceConfiguration
-import org.scalatest.concurrent.ScaledTimeSpans
+import io.scalac.mesmer.core.model._
+import io.scalac.mesmer.core.util.AggMetric.LongValueAggMetric
+import io.scalac.mesmer.core.util.TestCase._
+import io.scalac.mesmer.core.util.probe.ObserverCollector.ScheduledCollectorImpl
+import io.scalac.mesmer.core.util.{ ActorPathOps, ReceptionistOps, TestConfig, TestOps }
+import io.scalac.mesmer.extension.ActorEventsMonitorActor._
+import io.scalac.mesmer.extension.actor.{ ActorMetrics, MutableActorMetricStorageFactory }
+import io.scalac.mesmer.extension.metric.ActorMetricsMonitor.Labels
+import io.scalac.mesmer.extension.service.ActorTreeService
+import io.scalac.mesmer.extension.service.ActorTreeService.Command.{ GetActorTree, GetActors }
+import io.scalac.mesmer.extension.util.Tree._
+import io.scalac.mesmer.extension.util.probe.ActorMonitorTestProbe
+import io.scalac.mesmer.extension.util.probe.BoundTestProbe.{
+  CounterCommand,
+  Inc,
+  MetricObserved,
+  MetricObserverCommand
+}
+import org.scalatest.concurrent.{ PatienceConfiguration, ScaledTimeSpans }
+import org.scalatest.{ LoneElement, TestSuite }
 
 import scala.concurrent.duration._
 import scala.util.Random
 import scala.util.control.NoStackTrace
-
-import io.scalac.mesmer.core.model._
-import io.scalac.mesmer.core.util.ActorPathOps
-import io.scalac.mesmer.core.util.AggMetric.LongValueAggMetric
-import io.scalac.mesmer.core.util.ReceptionistOps
-import io.scalac.mesmer.core.util.TestCase._
-import io.scalac.mesmer.core.util.TestConfig
-import io.scalac.mesmer.core.util.TestOps
-import io.scalac.mesmer.core.util.probe.ObserverCollector.ScheduledCollectorImpl
-import io.scalac.mesmer.extension.ActorEventsMonitorActor._
-import io.scalac.mesmer.extension.actor.ActorMetrics
-import io.scalac.mesmer.extension.actor.MutableActorMetricsStorage
-import io.scalac.mesmer.extension.metric.ActorMetricsMonitor.Labels
-import io.scalac.mesmer.extension.service.ActorTreeService
-import io.scalac.mesmer.extension.service.ActorTreeService.Command.GetActors
-import io.scalac.mesmer.extension.util.probe.ActorMonitorTestProbe
-import io.scalac.mesmer.extension.util.probe.BoundTestProbe.CounterCommand
-import io.scalac.mesmer.extension.util.probe.BoundTestProbe.Inc
-import io.scalac.mesmer.extension.util.probe.BoundTestProbe.MetricObserved
-import io.scalac.mesmer.extension.util.probe.BoundTestProbe.MetricObserverCommand
 
 trait ActorEventMonitorActorTestConfig {
   this: TestSuite with ScaledTimeSpans with ReceptionistOps with PatienceConfiguration =>
@@ -54,6 +45,7 @@ import org.scalatest.Inspectors
 import org.scalatest.flatspec.AnyFlatSpecLike
 import org.scalatest.matchers.should.Matchers
 
+//TODO simplify
 class ActorEventsMonitorActorTest
     extends ScalaTestWithActorTestKit(TestConfig.localActorProvider)
     with AnyFlatSpecLike
@@ -97,11 +89,17 @@ class ActorEventsMonitorActorTest
   }
 
   private val constRefsActorServiceTree
-    : (ActorRef[CounterCommand], Seq[classic.ActorRef]) => Behavior[ActorTreeService.Command] = (monitor, refs) =>
-    Behaviors.receiveMessagePartial {
-      case GetActors(Tag.all, reply) =>
+    : (ActorRef[CounterCommand], Tree[classic.ActorRef]) => Behavior[ActorTreeService.Command] = (monitor, refs) =>
+    Behaviors.receiveMessage {
+      case GetActorTree(reply) =>
         monitor ! Inc(1L)
-        reply ! refs
+
+        reply ! refs.unfix.mapValues(ref => ActorRefDetails(ref, Set(Tag.all), ActorConfiguration.instance))
+        Behaviors.same
+
+      case GetActors(Tag.all, reply) =>
+//        monitor ! Inc(1L)
+        reply ! refs.unfix.toVector
         Behaviors.same
       case GetActors(_, reply) =>
         reply ! Seq.empty
@@ -109,10 +107,9 @@ class ActorEventsMonitorActorTest
     }
 
   private val noReplyActorServiceTree
-    : (ActorRef[CounterCommand], Seq[classic.ActorRef]) => Behavior[ActorTreeService.Command] = (monitor, refs) =>
-    Behaviors.receiveMessagePartial { case GetActors(Tag.all, reply) =>
+    : (ActorRef[CounterCommand], Tree[classic.ActorRef]) => Behavior[ActorTreeService.Command] = (monitor, refs) =>
+    Behaviors.receiveMessagePartial { case GetActorTree(reply) =>
       monitor ! Inc(1L)
-      reply ! refs
       Behaviors.same
     }
 
@@ -125,10 +122,25 @@ class ActorEventsMonitorActorTest
     system: ActorSystem[_]
   ): Context = TestContext(monitor, TestProbe(), FakeReaderFactory, constRefsActorServiceTree)
 
+  private def spawnTree(count: Int): Tree[classic.ActorRef] = {
+
+    val spawnRoot  = system.systemActorOf(SpawnProtocol(), createUniqueId)
+    val spawnProbe = createTestProbe[ActorRef[_]]()
+
+    for {
+      _ <- 0 until count
+    } spawnRoot ! SpawnProtocol.Spawn(Behaviors.empty, createUniqueId, Props.empty, spawnProbe.ref)
+
+    val children = spawnProbe.receiveMessages(count)
+
+    spawnProbe.stop()
+
+    tree(spawnRoot.toClassic, children.map(ch => leaf(ch.toClassic)): _*)
+  }
+
   protected def setUp(c: Context): Setup = {
 
-    val testActors = Seq
-      .fill(ActorsPerCase)(system.systemActorOf(Behaviors.ignore, createUniqueId).toClassic)
+    val testActors = spawnTree(5)
 
     val treeServiceBehavior = c.actorTreeServiceBehaviorFactory(c.actorTreeServiceProbe.ref, testActors)
 
@@ -144,7 +156,7 @@ class ActorEventsMonitorActorTest
                 monitor(c),
                 None,
                 pingOffset,
-                () => MutableActorMetricsStorage.empty,
+                new MutableActorMetricStorageFactory,
                 scheduler,
                 c.TestActorMetricsReader
               ).start(treeService)
@@ -155,7 +167,7 @@ class ActorEventsMonitorActorTest
       createUniqueId
     )
 
-    ActorEventSetup(testActors, treeService, sut)
+    ActorEventSetup(testActors.unfix.toVector, treeService, sut)
   }
 
   protected def tearDown(setup: Setup): Unit =
@@ -376,7 +388,7 @@ object ActorEventsMonitorActorTest {
     metricReaderFactory: MetricsContext => ActorMetricsReader,
     actorTreeServiceBehaviorFactory: (
       ActorRef[CounterCommand],
-      Seq[classic.ActorRef]
+      Tree[classic.ActorRef]
     ) => Behavior[ActorTreeService.Command]
   )(implicit
     val system: ActorSystem[_]

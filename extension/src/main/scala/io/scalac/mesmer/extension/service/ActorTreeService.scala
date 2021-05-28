@@ -26,7 +26,8 @@ object ActorTreeService {
 
     final case class GetActors(tags: Tag, reply: ActorRef[Seq[classic.ActorRef]]) extends Command
 
-    final case class GetActorTree(tags: Tag, reply: ActorRef[Tree[classic.ActorRef]])
+    final case class GetActorTree(reply: ActorRef[Tree[ActorRefDetails]]) extends Command
+
   }
 
   object Event {
@@ -49,7 +50,19 @@ object ActorTreeService {
       new ActorTreeService(ctx, actorSystemMonitor, receptionistBind, backoffActorTreeTraverser, node)(partialOrdering)
     }
 
-  lazy val partialOrdering: PartialOrdering[classic.ActorRef] = null
+  lazy val partialOrdering: PartialOrdering[classic.ActorRef] = new PartialOrdering[classic.ActorRef] {
+    private def actorLevel(ref: classic.ActorRef): Int = ref.path.toStringWithoutAddress.count(_ == '/')
+
+    def tryCompare(x: classic.ActorRef, y: classic.ActorRef): Option[Int] =
+      (x.path.toStringWithoutAddress, y.path.toStringWithoutAddress) match {
+        case (xPath, yPath) if xPath == yPath          => Some(0)
+        case (xPath, yPath) if xPath.startsWith(yPath) => Some(1)
+        case (xPath, yPath) if yPath.startsWith(xPath) => Some(-1)
+        case _                                         => None
+      }
+
+    def lteq(x: classic.ActorRef, y: classic.ActorRef): Boolean = actorLevel(x) <= actorLevel(y)
+  }
 
 }
 
@@ -80,16 +93,21 @@ final class ActorTreeService(
     actorTreeTraverser
       .getActorTreeFromRootGuardian(system.toClassic)
       .foreach { ref =>
-        handleEvent(ActorCreated(ActorRefDetails(ref, Set.empty)))
+        //TODO hardcoded configuration
+        handleEvent(ActorCreated(ActorRefDetails(ref, Set.empty, ActorConfiguration.instance)))
       }
   }
 
   def onMessage(msg: Api): Behavior[Api] = msg match {
     case GetActors(Tag.all, reply) =>
-//      reply ! snapshot.toSeq.map(_.ref)
+      reply ! snapshot.buildSeq((ref, _) => Some(ref))
       Behaviors.same
     case GetActors(tag, reply) =>
-//      reply ! snapshot.filter(_.tags.contains(tag)).toSeq.map(_.ref)
+      reply ! snapshot.buildSeq((ref, details) => if (details.tags.contains(tag)) Some(ref) else None)
+      Behaviors.same
+    case GetActorTree(reply) =>
+      //TODO change this to be more secure
+      snapshot.buildTree((_, details) => Some(details)).foreach(reply ! _)
       Behaviors.same
     case event: Event =>
       handleEvent(event)
@@ -114,27 +132,17 @@ final class ActorTreeService(
 
       context.watchWith(details.ref.toTyped, ActorTerminated(ref))
       boundMonitor.createdActors.incValue(1L)
-//      snapshot.insert(details)
-
-//      if (!snapshot.exists(_.ref == ref)) { // deduplication
-//        context.watchWith(details.ref.toTyped, ActorTerminated(ref))
-//        boundMonitor.createdActors.incValue(1L)
-//        snapshot += details
-//      }
+      snapshot.insert(ref, details)
 
     case ActorRetagged(details) =>
       import details._
       log.trace("Actor retagged {}", ref)
-
-//      val index = snapshot.indexWhere(_.ref == details.ref)
-//      if (index >= 0) {
-//        snapshot.patchInPlace(index, Seq(details), 1)
-//      }
+      snapshot.modify(ref, _ => details)
 
     case ActorTerminated(ref) =>
       log.trace("Actor terminated {}", ref)
       boundMonitor.terminatedActors.incValue(1L)
-//      snapshot.filterInPlace(_.ref != ref)
+      snapshot.remove(ref)
   }
 
   // bind to actor event stream

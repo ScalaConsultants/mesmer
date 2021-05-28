@@ -21,6 +21,18 @@ object Tree {
       alg(fix.unfix.map(innerFoldRight(alg)))
 
     def foldRight[A](alg: NRTree[A] => A): A = alg(value.map(innerFoldRight(alg)))
+
+    def mapValues[E](func: T => E): Tree[E] =
+      foldRight[Tree[E]] {
+        case TreeF(value, Vector()) =>
+          leaf(func(value))
+        case TreeF(value, children) =>
+          tree(func(value), children: _*)
+      }
+
+    def toVector: Vector[T] = foldRight[Vector[T]] { case TreeF(value, children) =>
+      children.fold(Vector(value))(_ ++ _)
+    }
   }
 
   def leaf[T](value: T): Tree[T] = tree(value)
@@ -33,14 +45,16 @@ object Tree {
   sealed trait Builder[K, V] {
     def insert(key: K, value: V): Builder[K, V]
     def remove(key: K): Builder[K, V]
-    def build[O](filter: (K, V) => Option[O]): Option[Tree[O]]
+    def modify(key: K, func: V => V): Builder[K, V]
+    def buildTree[O](filter: (K, V) => Option[O]): Option[Tree[O]]
+    def buildSeq[O](filter: (K, V) => Option[O]): Seq[O]
   }
 
   trait TreeOrdering[T] {
     val partialOrdering: PartialOrdering[T]
-    def isParent(x: T, y: T): Boolean      = partialOrdering.tryCompare(x, y).exists(_ < 0)
-    def isChild(x: T, y: T): Boolean       = partialOrdering.tryCompare(x, y).exists(_ > 0)
-    def isChildOrSame(x: T, y: T): Boolean = partialOrdering.tryCompare(x, y).exists(_ >= 0)
+    protected def isParent(x: T, y: T): Boolean      = partialOrdering.tryCompare(x, y).exists(_ < 0)
+    protected def isChild(x: T, y: T): Boolean       = partialOrdering.tryCompare(x, y).exists(_ > 0)
+    protected def isChildOrSame(x: T, y: T): Boolean = partialOrdering.tryCompare(x, y).exists(_ >= 0)
   }
 
   final class Root[K, V] private[util] (
@@ -107,12 +121,31 @@ object Tree {
       this
     }
 
-    def build[O](transform: (K, V) => Option[O]): Option[Tree[O]] =
+    def modify(key: K, func: V => V): this.type = {
+      root
+        .filter(_._1 == key)
+        .fold[Unit] {
+          val index = children
+            .indexWhere(nr => isChildOrSame(key, nr.key))
+          if (index >= 0 && !children(index).modify(key, func)) {
+            val child = children(index)
+            children.update(index, new NonRoot[K, V](child.key, func(child.value), child.children))
+          }
+        } { case (key, value) =>
+          root = Some(key, func(value))
+        }
+      this
+    }
+
+    def buildTree[O](transform: (K, V) => Option[O]): Option[Tree[O]] =
       root.flatMap(Function.tupled(transform)).map { transformedRoot =>
-        val inner = children.flatMap(_.build(transform)).toVector
+        val inner = children.flatMap(_.buildTree(transform)).toVector
 
         tree(transformedRoot, inner: _*)
       }
+
+    def buildSeq[O](transform: (K, V) => Option[O]): Seq[O] =
+      root.flatMap(Function.tupled(transform)).toSeq ++ children.flatMap(_.buildSeq(transform)).toSeq
 
     def canEqual(that: Any): Boolean = that.isInstanceOf[Root[_, _]]
 
@@ -177,8 +210,26 @@ object Tree {
         true
       }
 
-    def build[O](transform: (K, V) => Option[O]): Vector[Tree[O]] = {
-      val nestedTree = children.flatMap(_.build(transform)).toVector
+    def modify(key: K, func: V => V): Boolean =
+      if (key == this.key) {
+        false // we signal that whole object must be removed
+      } else {
+        val index = children
+          .indexWhere(nr => isChildOrSame(key, nr.key))
+        if (index >= 0) {
+          val child = children(index)
+          if (!children(index).modify(key, func)) {
+            children(index) = new NonRoot[K, V](child.key, func(child.value), child.children)
+          }
+        }
+        true
+      }
+
+    def buildSeq[O](transform: (K, V) => Option[O]): Seq[O] =
+      transform(key, value).toSeq ++ children.flatMap(_.buildSeq(transform)).toSeq
+
+    def buildTree[O](transform: (K, V) => Option[O]): Vector[Tree[O]] = {
+      val nestedTree = children.flatMap(_.buildTree(transform)).toVector
 
       transform(key, value).fold(nestedTree) { value =>
         Vector(tree(value, nestedTree: _*))

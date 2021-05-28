@@ -1,6 +1,6 @@
 package io.scalac.mesmer.core.util
 
-import io.scalac.mesmer.core.util.TimeSeries.LongTimeSeries
+import io.scalac.mesmer.core.util.AggMetric.LongValueAggMetric.fromTimeSeries
 
 sealed trait AggMetric[@specialized(Long) T, @specialized(Long) Avg] {
   def min: T
@@ -14,13 +14,16 @@ object AggMetric {
 
   final case class LongValueAggMetric(min: Long, max: Long, avg: Long, sum: Long, count: Int)
       extends AggMetric[Long, Long] {
-    def combine(timeSeries: LongTimeSeries): LongValueAggMetric = {
-      val count = this.count + timeSeries.count
-      val sum   = this.sum + timeSeries.sum
+    def combine(timeSeries: TimeSeries[Long, Long]): LongValueAggMetric =
+      combine(fromTimeSeries(timeSeries))
+
+    def combine(other: LongValueAggMetric): LongValueAggMetric = {
+      val count = this.count + other.count
+      val sum   = this.sum + other.sum
       val avg   = if (count == 0) 0L else Math.floorDiv(sum, count)
       LongValueAggMetric(
-        min = if (this.min < timeSeries.min) this.min else timeSeries.min,
-        max = if (this.max > timeSeries.min) this.max else timeSeries.max,
+        min = if (this.min < other.min) this.min else other.min,
+        max = if (this.max > other.min) this.max else other.max,
         avg = avg,
         sum = sum,
         count = count
@@ -29,7 +32,7 @@ object AggMetric {
   }
 
   final object LongValueAggMetric {
-    def fromTimeSeries(ts: LongTimeSeries): LongValueAggMetric =
+    def fromTimeSeries(ts: TimeSeries[Long, Long]): LongValueAggMetric =
       LongValueAggMetric(ts.min, ts.max, ts.avg, ts.sum, ts.count)
   }
 

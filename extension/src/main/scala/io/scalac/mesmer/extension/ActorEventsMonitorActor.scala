@@ -1,48 +1,39 @@
 package io.scalac.mesmer.extension
 
-import java.util.concurrent.atomic.AtomicReference
-
 import akka.actor.typed._
 import akka.actor.typed.receptionist.Receptionist.Listing
-import akka.actor.typed.scaladsl.ActorContext
-import akka.actor.typed.scaladsl.Behaviors
-import akka.actor.typed.scaladsl.TimerScheduler
+import akka.actor.typed.scaladsl.{ActorContext, Behaviors, TimerScheduler}
 import akka.util.Timeout
-import akka.{ actor => classic }
-import org.slf4j.LoggerFactory
-
-import scala.concurrent.duration._
-import scala.util.Failure
-import scala.util.Success
-
-import io.scalac.mesmer.core.model.Node
-import io.scalac.mesmer.core.model.Tag
-import io.scalac.mesmer.core.util.ActorCellOps
-import io.scalac.mesmer.core.util.ActorRefOps
+import akka.{actor => classic}
+import io.scalac.mesmer.core.model.{ActorKey, ActorRefDetails, Node}
+import io.scalac.mesmer.core.util.{ActorCellOps, ActorPathOps, ActorRefOps}
 import io.scalac.mesmer.extension.ActorEventsMonitorActor._
-import io.scalac.mesmer.extension.actor.ActorCellDecorator
-import io.scalac.mesmer.extension.actor.ActorMetricStorage
-import io.scalac.mesmer.extension.actor.ActorMetrics
+import io.scalac.mesmer.extension.actor.{ActorCellDecorator, ActorMetrics, MetricStorageFactory}
 import io.scalac.mesmer.extension.metric.ActorMetricsMonitor
 import io.scalac.mesmer.extension.metric.ActorMetricsMonitor.Labels
 import io.scalac.mesmer.extension.metric.MetricObserver.Result
-import io.scalac.mesmer.extension.service.ActorTreeService
-import io.scalac.mesmer.extension.service.ActorTreeService.Command.GetActors
-import io.scalac.mesmer.extension.service.actorTreeServiceKey
-import io.scalac.mesmer.extension.util.GenericBehaviors
+import io.scalac.mesmer.extension.service.ActorTreeService.Command.GetActorTree
+import io.scalac.mesmer.extension.service.{ActorTreeService, actorTreeServiceKey}
+import io.scalac.mesmer.extension.util.Tree.{Tree, _}
+import io.scalac.mesmer.extension.util.{GenericBehaviors, TreeF}
+import org.slf4j.LoggerFactory
+
+import java.util.concurrent.atomic.AtomicReference
+import scala.concurrent.duration._
+import scala.util.{Failure, Success}
 
 object ActorEventsMonitorActor {
 
   sealed trait Command
   private[ActorEventsMonitorActor] final case object StartActorsMeasurement                       extends Command
-  private[ActorEventsMonitorActor] final case class MeasureActorTree(refs: Seq[classic.ActorRef]) extends Command
+  private[ActorEventsMonitorActor] final case class MeasureActorTree(refs: Tree[ActorRefDetails]) extends Command
   private[ActorEventsMonitorActor] final case class ServiceListing(listing: Listing)              extends Command
 
   def apply(
     actorMonitor: ActorMetricsMonitor,
     node: Option[Node],
     pingOffset: FiniteDuration,
-    storageFactory: () => ActorMetricStorage,
+    storageFactory: MetricStorageFactory[ActorKey],
     actorMetricsReader: ActorMetricsReader = ReflectiveActorMetricsReader
   ): Behavior[Command] =
     Behaviors.setup[Command] { ctx =>
@@ -103,7 +94,7 @@ private[extension] class ActorEventsMonitorActor private[extension] (
   monitor: ActorMetricsMonitor,
   node: Option[Node],
   pingOffset: FiniteDuration,
-  storageFactory: () => ActorMetricStorage,
+  storageFactory: MetricStorageFactory[ActorKey],
   scheduler: TimerScheduler[Command],
   actorMetricsReader: ActorMetricsReader = ReflectiveActorMetricsReader
 ) {
@@ -112,7 +103,7 @@ private[extension] class ActorEventsMonitorActor private[extension] (
 
   private[this] val boundMonitor = monitor.bind()
 
-  private[this] val treeSnapshot = new AtomicReference[Option[Seq[(Labels, ActorMetrics)]]](None)
+  private[this] val treeSnapshot = new AtomicReference[Option[Vector[(Labels, ActorMetrics)]]](None)
 
   private def updateMetric(extractor: ActorMetrics => Option[Long])(result: Result[Long, Labels]): Unit = {
     val state = treeSnapshot.get()
@@ -155,12 +146,13 @@ private[extension] class ActorEventsMonitorActor private[extension] (
     Behaviors.receiveMessagePartial[Command] {
       case StartActorsMeasurement =>
         context
-          .ask[ActorTreeService.Command, Seq[classic.ActorRef]](actorService, adapter => GetActors(Tag.all, adapter)) {
+          .ask[ActorTreeService.Command, Tree[ActorRefDetails]](actorService, adapter => GetActorTree(adapter)) {
             case Success(value) => MeasureActorTree(value)
             case Failure(_)     => StartActorsMeasurement // keep asking
           }
         Behaviors.same
       case MeasureActorTree(refs) =>
+        log.info("Received refs {}", refs)
         update(refs)
         setTimeout() // loop
         Behaviors.same
@@ -172,19 +164,42 @@ private[extension] class ActorEventsMonitorActor private[extension] (
 
   private def setTimeout(): Unit = scheduler.startSingleTimer(StartActorsMeasurement, pingOffset)
 
-  private def update(refs: Seq[classic.ActorRef]): Unit = {
-    val storage = refs.foldLeft(storageFactory()) { case (acc, ref) =>
-      actorMetricsReader.read(ref).fold(acc)(acc.save(ref, _))
+  private def update(refs: Tree[ActorRefDetails]): Unit = {
+
+    val storage = refs.unfix.foldRight[storageFactory.Storage] {
+      case TreeF(details, Vector()) =>
+        import details._
+
+        val storage = storageFactory.createStorage
+        actorMetricsReader
+          .read(ref)
+          .fold(storage)(metric =>
+            storage.save(ActorPathOps.getPathString(ref), metric, configuration.reporting.visible)
+          )
+      case TreeF(details, childrenMetrics) =>
+        import details._
+
+        val storage = childrenMetrics.reduce(storageFactory.mergeStorage)
+
+        actorMetricsReader.read(ref).fold(storage) { currentMetrics =>
+          import configuration.reporting._
+          val actorKey = ActorPathOps.getPathString(ref)
+          storage.save(actorKey, currentMetrics, visible)
+          if (aggregate) {
+            storage.compute(actorKey)
+          } else storage
+        }
     }
 
     captureState(storage)
   }
 
-  private def captureState(storage: ActorMetricStorage): Unit = {
-    log.debug("Capturing current actor tree state")
-    treeSnapshot.set(Some(storage.snapshot.map { case (key, metrics) =>
+  private def captureState(storage: storageFactory.Storage): Unit = {
+    log.info("Capturing current actor tree state")
+    treeSnapshot.set(Some(storage.iterable.map { case (key, metrics) =>
       (Labels(key, node), metrics)
-    }))
+    }.toVector))
+    log.info("Current state {}", treeSnapshot.get)
   }
 
 }

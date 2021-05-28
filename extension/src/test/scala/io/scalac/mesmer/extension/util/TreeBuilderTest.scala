@@ -234,7 +234,7 @@ class TreeBuilderTest extends AnyFlatSpec with Matchers {
       .insert("aa")
       .insert("ab")
 
-    val result = sut.build((_, x) => Some(x))
+    val result = sut.buildTree((_, x) => Some(x))
 
     val expected = Tree.tree("a", Tree.leaf("aa"), Tree.leaf("ab"))
 
@@ -247,7 +247,7 @@ class TreeBuilderTest extends AnyFlatSpec with Matchers {
       .insert("aa")
       .insert("ab")
 
-    val result = sut.build((_, x) => if (x == "aa") None else Some(x))
+    val result = sut.buildTree((_, x) => if (x == "aa") None else Some(x))
 
     val expected = Tree.tree("a", Tree.leaf("ab"))
 
@@ -260,7 +260,7 @@ class TreeBuilderTest extends AnyFlatSpec with Matchers {
       .insert("bb")
       .insert("cc")
 
-    val result = sut.build((_, x) => Some(x))
+    val result = sut.buildTree((_, x) => Some(x))
 
     result should be(None)
   }
@@ -271,7 +271,7 @@ class TreeBuilderTest extends AnyFlatSpec with Matchers {
       .insert("ac")
       .insert("a")
 
-    val result = sut.build((_, x) => if (x == "a") None else Some(x))
+    val result = sut.buildTree((_, x) => if (x == "a") None else Some(x))
 
     result should be(None)
   }
@@ -285,7 +285,7 @@ class TreeBuilderTest extends AnyFlatSpec with Matchers {
       .insert("13pl")
       .insert("1aa")
 
-    val result = sut.build((_, x) => x.toIntOption)
+    val result = sut.buildTree((_, x) => x.toIntOption)
 
     val expected = Tree.tree(1, Tree.leaf(12), Tree.leaf(13))
 
@@ -327,7 +327,7 @@ class TreeBuilderTest extends AnyFlatSpec with Matchers {
       tree("ad")
     )
 
-    sut.build((_, x) => Some(x)) should be(Some(expected))
+    sut.buildTree((_, x) => Some(x)) should be(Some(expected))
 
   }
 
@@ -365,8 +365,55 @@ class TreeBuilderTest extends AnyFlatSpec with Matchers {
 
     val transform: (String, String) => Option[String] = (_, x) => if (x.endsWith("a")) Some(x) else None
 
-    sut.build(transform) should be(Some(expected))
+    sut.buildTree(transform) should be(Some(expected))
 
+  }
+
+  it should "modify value at root node" in {
+    val sut = builder
+      .insert("a")
+
+    sut.modify("a", _.toUpperCase)
+
+    sut.root should be(Some("a", "A"))
+  }
+
+  it should "modify value child value" in {
+    val sut = builder
+      .insert("a")
+      .insert("aa")
+      .insert("ab")
+
+    sut.modify("aa", _.toUpperCase)
+
+    sut.root should be(Some("a", "a"))
+
+    sut.children should contain theSameElementsAs (Seq(leaf("aa", "AA"), leaf("ab", "ab")))
+  }
+  it should "modify deep nested value" in {
+    val sut = builder
+      .insert("aa")
+      .insert("ab")
+      .insert("ac")
+      .insert("aab")
+      .insert("aac")
+      .insert("aad")
+      .insert("aba")
+      .insert("abb")
+      .insert("a")
+      .insert("aada")
+
+    val expectedChildren =
+      Seq(
+        withChildren("aa")("aab", "aac", withChildren("aad")(leaf("aada", "AADA"))),
+        withChildren("ab")("aba", "abb"),
+        leaf("ac")
+      )
+
+    sut.modify("aada", _.toUpperCase)
+
+    sut.root should be(Some("a", "a"))
+    sut.children should contain theSameElementsAs (expectedChildren)
   }
 
 }

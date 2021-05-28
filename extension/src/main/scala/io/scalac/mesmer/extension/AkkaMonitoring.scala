@@ -10,14 +10,13 @@ import scala.concurrent.duration._
 import scala.language.postfixOps
 import scala.reflect.ClassTag
 import scala.util.Try
-
 import io.scalac.mesmer.core.model.Module
 import io.scalac.mesmer.core.model.SupportedVersion
 import io.scalac.mesmer.core.model._
 import io.scalac.mesmer.core.support.ModulesSupport
 import io.scalac.mesmer.core.util.ModuleInfo
 import io.scalac.mesmer.core.util.ModuleInfo.Modules
-import io.scalac.mesmer.extension.actor.MutableActorMetricsStorage
+import io.scalac.mesmer.extension.actor.MutableActorMetricStorageFactory
 import io.scalac.mesmer.extension.config.AkkaMonitoringConfig
 import io.scalac.mesmer.extension.config.CachingConfig
 import io.scalac.mesmer.extension.config.InstrumentationLibrary
@@ -175,7 +174,7 @@ final class AkkaMonitoring(private val system: ActorSystem[_], val config: AkkaM
             actorMonitor,
             clusterNodeName,
             ExportInterval,
-            () => MutableActorMetricsStorage.empty
+            new MutableActorMetricStorageFactory
           )
         )
         .onFailure(SupervisorStrategy.restart),
