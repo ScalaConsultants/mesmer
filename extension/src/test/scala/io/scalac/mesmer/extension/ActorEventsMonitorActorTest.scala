@@ -94,7 +94,7 @@ class ActorEventsMonitorActorTest
       case GetActorTree(reply) =>
         monitor ! Inc(1L)
 
-        reply ! refs.unfix.mapValues(ref => ActorRefDetails(ref, Set(Tag.all), ActorConfiguration.instance))
+        reply ! refs.unfix.mapValues(ref => ActorRefDetails(ref, Set(Tag.all), ActorConfiguration.instanceConfig))
         Behaviors.same
 
       case GetActors(Tag.all, reply) =>

@@ -94,7 +94,7 @@ final class ActorTreeService(
       .getActorTreeFromRootGuardian(system.toClassic)
       .foreach { ref =>
         //TODO hardcoded configuration
-        handleEvent(ActorCreated(ActorRefDetails(ref, Set.empty, ActorConfiguration.instance)))
+        handleEvent(ActorCreated(ActorRefDetails(ref, Set.empty, ActorConfiguration.instanceConfig)))
       }
   }
 

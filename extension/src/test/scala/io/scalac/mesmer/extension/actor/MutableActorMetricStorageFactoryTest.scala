@@ -301,6 +301,5 @@ class MutableActorMetricStorageFactoryTest extends AnyFlatSpec with Matchers {
 
     persistentBuffer should contain theSameElementsAs (Seq("a" -> secondValue))
     buffer should contain theSameElementsAs (Seq("a" -> secondValue))
-
   }
 }

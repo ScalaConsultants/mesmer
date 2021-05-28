@@ -60,6 +60,7 @@ package object model {
   object ActorConfiguration {
 
     sealed trait Reporting {
+      import Reporting._
 
       final def aggregate: Boolean = this match {
         case Group => true
@@ -72,13 +73,26 @@ package object model {
       }
     }
 
-    private case object Group    extends Reporting
-    private case object Instance extends Reporting
-    private case object Disabled extends Reporting
+    object Reporting {
+      private case object Group    extends Reporting
+      private case object Instance extends Reporting
+      private case object Disabled extends Reporting
 
-    val group: ActorConfiguration    = ActorConfiguration(Group)
-    val instance: ActorConfiguration = ActorConfiguration(Instance)
-    val disabled: ActorConfiguration = ActorConfiguration(Disabled)
+      def parse(value: String): Option[Reporting] = value.toLowerCase match {
+        case "group"    => Some(Group)
+        case "instance" => Some(Instance)
+        case "disabled" => Some(Disabled)
+        case _          => None
+      }
+
+      val group: Reporting    = Group
+      val instance: Reporting = Instance
+      val disabled: Reporting = Disabled
+    }
+
+    val groupingConfig: ActorConfiguration = ActorConfiguration(Reporting.group)
+    val instanceConfig: ActorConfiguration = ActorConfiguration(Reporting.instance)
+    val disabledConfig: ActorConfiguration = ActorConfiguration(Reporting.disabled)
   }
 
   final case class ActorConfiguration(reporting: ActorConfiguration.Reporting)
@@ -91,7 +105,7 @@ package object model {
   private[scalac] final case class ActorRefDetails(
     ref: classic.ActorRef,
     tags: Set[Tag],
-    configuration: ActorConfiguration = ActorConfiguration.instance
+    configuration: ActorConfiguration = ActorConfiguration.instanceConfig
   )
 
   implicit val nodeLabelSerializer: LabelSerializer[Node]           = node => Seq("node" -> node.unwrap)

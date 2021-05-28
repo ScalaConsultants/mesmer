@@ -13,26 +13,10 @@ final class MutableActorMetricStorageFactory[K] extends MetricStorageFactory[K] 
   ) extends MutableStorage[K, ActorMetrics]
       with MetricStorage {
 
-//    def has(key: ActorKey): Boolean = buffer.contains(key)
-
-//    def foreach(f: ((ActorKey, ActorMetrics)) => Unit): Unit = buffer.foreach(f)
-
-//    def remove(key: ActorKey): this.type = {
-//      buffer.remove(key)
-//      this
-//    }
-//
-//    def clear(): this.type = {
-//      buffer.clear()
-//      this
-//    }
-//
-//    def snapshot: Seq[(ActorKey, ActorMetrics)] = buffer.toSeq
-
     /**
      * @param actorRef
      * @param metrics
-     * @param persistent if metrics should be returned from iterable even after compute
+     * @param persistent if metrics should be returned from iterable
      * @return
      */
     def save(key: K, metrics: ActorMetrics, persistent: Boolean): this.type = {
