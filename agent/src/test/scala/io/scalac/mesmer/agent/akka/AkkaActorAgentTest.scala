@@ -1,31 +1,23 @@
 package io.scalac.mesmer.agent.akka
 
-import akka.actor.PoisonPill
-import akka.actor.Props
 import akka.actor.testkit.typed.scaladsl.TestProbe
-import akka.actor.typed.ActorRef
-import akka.actor.typed.Behavior
-import akka.actor.typed.SupervisorStrategy
-import akka.actor.typed.scaladsl.ActorContext
-import akka.actor.typed.scaladsl.Behaviors
-import akka.actor.typed.scaladsl.StashBuffer
 import akka.actor.typed.scaladsl.adapter._
+import akka.actor.typed.scaladsl.{ ActorContext, Behaviors, StashBuffer }
+import akka.actor.typed.{ ActorRef, Behavior, SupervisorStrategy }
+import akka.actor.{ PoisonPill, Props }
 import akka.{ actor => classic }
+import io.scalac.mesmer.agent.utils.{ InstallAgent, SafeLoadSystem }
+import io.scalac.mesmer.core.event.ActorEvent
+import io.scalac.mesmer.core.util.MetricsToolKit.Counter
+import io.scalac.mesmer.core.util.ReceptionistOps
+import io.scalac.mesmer.extension.actor.{ ActorCellDecorator, ActorCellMetrics }
 import org.scalatest.OptionValues
 import org.scalatest.concurrent.Eventually
 import org.scalatest.flatspec.AnyFlatSpecLike
 import org.scalatest.matchers.should.Matchers
 
-import scala.concurrent._
 import scala.concurrent.duration._
-
-import io.scalac.mesmer.agent.utils.InstallAgent
-import io.scalac.mesmer.agent.utils.SafeLoadSystem
-import io.scalac.mesmer.core.event.ActorEvent
-import io.scalac.mesmer.core.util.MetricsToolKit
-import io.scalac.mesmer.core.util.ReceptionistOps
-import io.scalac.mesmer.extension.actor.ActorCellDecorator
-import io.scalac.mesmer.extension.actor.ActorCellMetrics
+import scala.util.control.NoStackTrace
 
 class AkkaActorAgentTest
     extends InstallAgent
@@ -39,32 +31,119 @@ class AkkaActorAgentTest
   import AkkaActorAgentTest._
 
   private final val StashMessageCount = 10
+  private final val ToleranceNanos    = 20_000_000
+
+  private def publishActorContext[T](
+    contextRef: ActorRef[classic.ActorContext]
+  )(inner: Behavior[T]): Behavior[T] = Behaviors.setup[T] { ctx =>
+    contextRef ! ctx.toClassic
+    inner
+  }
+
+  private def testEffectWithSupervision[T](effect: T => Unit, strategy: SupervisorStrategy, probes: Boolean)(
+    messages: T*
+  )(checks: (Int, classic.ActorContext => Any)*): Any =
+    testWithChecks[T](
+      ref => Behaviors.supervise(effectBehavior(ref, effect)).onFailure(strategy),
+      probes
+    )(messages: _*)(checks: _*)
+
+  private def testWithChecks[T](inner: ActorRef[Unit] => Behavior[T], probes: Boolean)(
+    messages: T*
+  )(checks: (Int, classic.ActorContext => Any)*): Any = {
+
+    val contextProbe = createTestProbe[classic.ActorContext]
+    val effectProbe  = createTestProbe[Unit]
+
+    val sut =
+      system.systemActorOf(
+        publishActorContext[T](contextProbe.ref)(inner(effectProbe.ref)),
+        createUniqueId
+      )
+
+    val ctx = contextProbe.receiveMessage()
+    checks.scanLeft(0) { case (skip, (n, check)) =>
+      messages.slice(skip, skip + n).foreach(sut.tell)
+      if (probes) {
+        effectProbe.receiveMessages(n)
+        check(ctx)
+      } else {
+        eventually {
+          check(ctx)
+        }
+      }
+      skip + n
+    }
+  }
+
+  private def effectBehavior[T](ackRef: ActorRef[Unit], effect: T => Unit): Behavior[T] = Behaviors.receiveMessage[T] {
+    msg =>
+      effect(msg)
+      ackRef ! ()
+      Behaviors.same
+  }
+
+  private def testBehavior[T](behavior: T => Behavior[T])(messages: T*)(
+    checks: (Int, classic.ActorContext => Any)*
+  ): Any =
+    testWithChecks(_ => Behaviors.receiveMessage[T](behavior), false)(messages: _*)(checks: _*)
+
+  private def testEffect[T](effect: T => Unit, probes: Boolean = true)(messages: T*)(
+    checks: (Int, classic.ActorContext => Any)*
+  ): Any =
+    testWithChecks[T](
+      ref => effectBehavior(ref, effect),
+      probes
+    )(messages: _*)(checks: _*)
+
+  private def testWithoutEffect[T](messages: T*)(checks: (Int, classic.ActorContext => Any)*): Any =
+    testEffect[T](_ => ())(messages: _*)(checks: _*)
+
+  private def check[T](extr: ActorCellMetrics => T)(checkFunc: T => Any): classic.ActorContext => Any = ctx => {
+    checkFunc(ActorCellDecorator.get(ctx).map(extr).value)
+  }
 
   "AkkaActorAgent" should "record mailbox time properly" in {
-    val idle      = 100.milliseconds
-    val tolerance = 100
-    testWithContextAndActor[String](_ =>
-      Behaviors.receiveMessage {
-        case "idle" =>
-          Thread.sleep(idle.toMillis)
-          Behaviors.same
-        case _ =>
-          Behaviors.same
-      }
-    ) { (ctx, actor) =>
-      val n       = 3
-      val waiting = n - 1
-      actor ! "idle"
-      for (_ <- 0 until waiting) actor ! "42"
-      eventually {
-        val metrics = ActorCellDecorator.get(ctx).flatMap(_.mailboxTimeAgg.metrics).value
-        metrics.count should be(n)
-        metrics.avg should be(((waiting * idle.toMillis) / n) +- tolerance)
-        metrics.sum should be((waiting * idle.toMillis) +- tolerance)
-        metrics.min should be(0L +- tolerance)
-        metrics.max should be(idle.toMillis +- tolerance)
-      }
+    val idle            = 100.milliseconds
+    val messages        = 3
+    val waitingMessages = messages - 1
+
+    val check: classic.ActorContext => Any = ctx => {
+      val metrics = ActorCellDecorator.get(ctx).flatMap(_.mailboxTimeAgg.metrics).value
+      metrics.count should be(messages)
+      metrics.avg should be(((waitingMessages * idle.toNanos) / messages) +- ToleranceNanos)
+      metrics.sum should be((waitingMessages * idle.toNanos) +- ToleranceNanos)
+      metrics.min should be(0L +- ToleranceNanos)
+      metrics.max should be(idle.toNanos +- ToleranceNanos)
     }
+
+    testEffect[String] {
+      case "idle" =>
+        Thread.sleep(idle.toMillis)
+      case _ =>
+    }("idle", "", "")(3 -> check)
+
+  }
+
+  it should "record processing time properly" in {
+    val processing      = 100.milliseconds
+    val messages        = 3
+    val workingMessages = messages - 1
+
+    val check: classic.ActorContext => Any = ctx => {
+      val metrics = ActorCellDecorator.get(ctx).flatMap(_.processingTimeAgg.metrics).value
+      metrics.count should be(messages)
+      metrics.avg should be(((workingMessages * processing.toNanos) / messages) +- ToleranceNanos)
+      metrics.sum should be((workingMessages * processing.toNanos) +- ToleranceNanos)
+      metrics.min should be(0L +- ToleranceNanos)
+      metrics.max should be(processing.toNanos +- ToleranceNanos)
+    }
+
+    testEffect[String] {
+      case "work" =>
+        Thread.sleep(processing.toMillis)
+      case _ =>
+    }("", "work", "work")(3 -> check)
   }
 
   it should "record stash operation from actors beginning" in {
@@ -127,116 +206,71 @@ class AkkaActorAgentTest
     expectStashSize(StashMessageCount * 3)
   }
 
-  it should "record the amount of received messages" in testWithContextAndActor[String](_ => Behaviors.ignore) {
-    (ctx, actor) =>
-      val received = createCounterChecker(ctx, _.receivedMessages)
-
-      received(0)
-      actor ! "42"
-      received(1)
-      received(0)
-      actor ! "42"
-      actor ! "42"
-      received(2)
+//  it should "record the amount of received messages" in testWithContextAndActor[String](_ => Behaviors.ignore) {
+  it should "record the amount of received messages" in {
+    testWithoutEffect[Unit]((), (), ())(
+      (0, check(_.receivedMessages)(_.get() should be(0))),
+      (1, check(_.receivedMessages)(_.get() should be(1))),
+      (0, check(_.receivedMessages)(_.get() should be(1))),
+      (2, check(_.receivedMessages)(_.get() should be(3)))
+    )
   }
 
-  it should "record the amount of failed messages without supervision" in testWithContextAndActor[String](_ =>
-    Behaviors.receiveMessage {
-      case "fail" =>
-        throw new RuntimeException("I failed :(")
-      case _ =>
-        Behaviors.same
-    }
-  ) { (ctx, actor) =>
-    val failed = createCounterChecker(ctx, _.failedMessages)
+//  it should "record the amount of failed messages without supervision" in testWithContextAndActor[String](_ =>
+  it should "record the amount of failed messages without supervision" in {
 
-    failed(0)
-    actor ! "fail"
-    failed(1)
-    failed(0)
-    actor ! ":)"
-    failed(0)
-    actor ! "fail"
-    failed(0) // why zero? because akka suspend any further message processing after an unsupervisioned failure
+    testEffect[String](
+      {
+        case "fail" => throw new RuntimeException("I failed :(") with NoStackTrace
+        case _      =>
+      },
+      false
+    )("fail", "", "fail")(
+      (0, check(_.failedMessages)(_.get() should be(0))),
+      (1, check(_.failedMessages)(_.get() should be(1))),
+      (0, check(_.failedMessages)(_.get() should be(1))),
+      (1, check(_.failedMessages)(_.get() should be(1))),
+      // why zero? because akka suspend any further message processing after an unsupervisioned failure
+      (1, check(_.failedMessages)(_.get() should be(1)))
+    )
   }
 
   it should "record the amount of failed messages with supervision" in {
 
-    def testForStrategy(strategy: SupervisorStrategy): Unit = testWithContextAndActor[String](_ =>
-      Behaviors
-        .supervise[String](
-          Behaviors.receiveMessage {
-            case "fail" =>
-              throw new RuntimeException(s"[strategy = $strategy]I failed :(")
-            case _ =>
-              Behaviors.same
-          }
-        )
-        .onFailure[RuntimeException](strategy)
-    ) { (ctx, actor) =>
-      val failed = createCounterChecker(ctx, _.failedMessages)
-
-      failed(0)
-      actor ! "fail"
-      failed(1)
-      failed(0)
-      actor ! ":)"
-      failed(0)
-      actor ! "fail"
-      actor ! "fail"
-      if (strategy != SupervisorStrategy.stop) failed(2)
-      failed(0)
-    }
+    def testForStrategy(strategy: SupervisorStrategy): Any =
+      testEffectWithSupervision[String](
+        {
+          case "fail" => throw new RuntimeException("I failed :(") with NoStackTrace
+          case _      =>
+        },
+        strategy,
+        probes = false
+      )("fail", "", "fail", "fail")(
+        (0, check(_.failedMessages)(_.get() should be(0))),
+        (1, check(_.failedMessages)(_.get() should be(1))),
+        (0, check(_.failedMessages)(_.get() should be(1))),
+        (1, check(_.failedMessages)(_.get() should be(1))),
+        (2, check(_.failedMessages)(_.get() should be(if (strategy != SupervisorStrategy.stop) 3 else 1)))
+      )
 
     testForStrategy(SupervisorStrategy.restart)
     testForStrategy(SupervisorStrategy.resume)
     testForStrategy(SupervisorStrategy.stop)
   }
 
-  it should "record the amount of unhandled messages" in testWithContextAndActor[String](_ =>
-    Behaviors.receiveMessage {
-      case "receive" => Behaviors.same
-      case _         => Behaviors.unhandled
-    }
-  ) { (ctx, actor) =>
-    val unhandled = createCounterChecker(ctx, _.unhandledMessages)
+  it should "record the amount of unhandled messages" in {
 
-    unhandled(0)
-    actor ! "42"
-    unhandled(1)
-    unhandled(0)
-    actor ! "42"
-    actor ! "42"
-    unhandled(2)
-    actor ! "receive"
-    unhandled(0)
-  }
+    testBehavior[String] {
+      case "unhandled" => Behaviors.unhandled
+      case _           => Behaviors.same
+    }("unhandled", "unhandled", "unhandled", "other")(
+      (0, check(_.unhandledMessages)(_.get() should be(0))),
+      (1, check(_.unhandledMessages)(_.get() should be(1))),
+      (0, check(_.unhandledMessages)(_.get() should be(1))),
+      (2, check(_.unhandledMessages)(_.get() should be(3))),
+      (1, check(_.unhandledMessages)(_.get() should be(3)))
+    )
 
-  it should "record processing time properly" in {
-    val processing = 100.milliseconds
-    val tolerance  = 50
-    testWithContextAndActor[String](_ =>
-      Behaviors.receiveMessage {
-        case "work" =>
-          Thread.sleep(processing.toMillis)
-          Behaviors.same
-        case _ =>
-          Behaviors.same
-      }
-    ) { (ctx, actor) =>
-      val n       = 3
-      val working = n - 1
-      actor ! "42"
-      for (_ <- 0 until working) actor ! "work"
-      eventually {
-        val metrics = ActorCellDecorator.get(ctx).flatMap(_.processingTimeAgg.metrics).value
-        metrics.count should be(n)
-        metrics.avg should be(((working * processing.toMillis) / n) +- tolerance)
-        metrics.sum should be((working * processing.toMillis) +- tolerance)
-        metrics.min should be(0L +- tolerance)
-        metrics.max should be(processing.toMillis +- tolerance)
-      }
-    }
   }
 
   it should "record the amount of sent messages properly in classic akka" in {
@@ -275,61 +309,34 @@ class AkkaActorAgentTest
     receiver ! PoisonPill
   }
 
-  it should "record the amount of sent messages properly in typed akka" in testWithContextAndActor[String] { ctx =>
-    val receiver = ctx.spawn(
-      Behaviors.receiveMessage[String](msg => Behaviors.same),
-      createUniqueId
-    )
-    Behaviors.receiveMessagePartial[String] { case "forward" =>
-      receiver ! "forwarded"
-      Behaviors.same
-    }
-  } { (ctx, sender) =>
-    val sent = createCounterChecker(ctx, _.sentMessages)
-    // Disclaimer: always 0 because isn't possible to fetch the sender of a message
-    // Ref: https://doc.akka.io/docs/akka/current/typed/from-classic.html#sender
-    sender ! "forward"
-    sent(0)
-    sent(0)
-    sender ! "something else"
-    sent(0)
-    sender ! "forward"
-    sender ! "forward"
-    sent(0)
-    sent(0)
+//  it should "record the amount of sent messages properly in typed akka" in testWithContextAndActor[String] { ctx =>
+  it should "record the amount of sent messages properly in typed akka" in {
 
-    sender.unsafeUpcast[Any] ! PoisonPill
-  }
+    testWithChecks(
+      _ =>
+        Behaviors.setup[String] { ctx =>
+          val child = ctx.spawnAnonymous[Unit](Behaviors.ignore)
 
-  def testWithContextAndActor[T](
-    behavior: ActorContext[T] => Behavior[T]
-  )(
-    block: (classic.ActorContext, ActorRef[T]) => Unit
-  ): Unit = {
-    var ctxRef: Option[classic.ActorContext] = None
-    val testActor = system.systemActorOf(
-      Behaviors.setup[T] { ctx =>
-        ctxRef = Some(ctx.toClassic)
-        behavior(ctx)
-      },
-      createUniqueId
+          Behaviors.receiveMessage {
+            case "forward" =>
+              child ! ()
+              Behaviors.same
+            case _ => Behaviors.same
+          }
+        },
+      false
+    )("forward", "", "forward", "forward")(
+      (0, check(_.sentMessages)(_.get() should be(0))),
+      (1, check(_.sentMessages)(_.get() should be(0))),
+      (0, check(_.sentMessages)(_.get() should be(0))),
+      (2, check(_.sentMessages)(_.get() should be(0)))
     )
-    Await.ready(
-      Future {
-        blocking {
-          while (ctxRef.isEmpty)
-            Thread.sleep(100)
-        }
-      }(ExecutionContext.global),
-      2.seconds
-    )
-    block(ctxRef.get, testActor)
-    testActor.unsafeUpcast[Any] ! PoisonPill
+
   }
 
   private def createCounterChecker[T](
     ctx: => classic.ActorContext,
-    metricProvider: ActorCellMetrics => MetricsToolKit.Counter
+    metricProvider: ActorCellMetrics => Counter
   ): Long => Unit = {
     val metric = eventually {
       metricProvider(ActorCellDecorator.get(ctx).value)

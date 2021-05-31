@@ -14,7 +14,7 @@ trait MutableCleanableStorage[K, V] extends SelfCleaning with MutableStorage[K, 
     for {
       key <- buffer.keysIterator
     } buffer.updateWith(key) {
-      case Some(v) if extractTimestamp(v).interval(current) > maxStalenessMs => None
+      case Some(v) if extractTimestamp(v).interval(current).toMillis > maxStalenessMs => None
       case v                                                                 => v
     }
   }

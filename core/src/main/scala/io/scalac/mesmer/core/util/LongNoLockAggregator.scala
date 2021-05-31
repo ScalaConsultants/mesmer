@@ -24,8 +24,8 @@ final class LongNoLockAggregator(val maxSize: Int = 100, val compactionRemaining
    * Push amount of nonoseconds
    * @param value
    */
-  def push(value: Long): Unit = {
-    queue.offer(value)
+  def push(value: Interval): Unit = {
+    queue.offer(value.toNano)
 
     if (queue.remainingCapacity() < compactionRemainingSize && !compacting) {
       failFastCompact()

@@ -1,6 +1,5 @@
 package io.scalac.mesmer.core.util
 
-import org.scalatest.Assertion
 import org.scalatest.flatspec.AsyncFlatSpec
 import org.scalatest.matchers.should.Matchers
 
@@ -14,7 +13,7 @@ class LongNoLockAggregatorTest extends AsyncFlatSpec with Matchers {
     val factor = 1000
     val agg    = new LongNoLockAggregator()
     val ops = for (i <- 1 to ps) yield Future {
-      for (_ <- 1 to ns) agg.push(i * factor)
+      for (_ <- 1 to ns) agg.push(new Interval(i * factor))
     }
 
     Future
@@ -37,10 +36,13 @@ class LongNoLockAggregatorTest extends AsyncFlatSpec with Matchers {
     }
   }
 
-  it should "produce no result when there is not data pushed" in  {
+  it should "clean up after fetch" in {
     val agg = new LongNoLockAggregator()
 
+    agg.push(new Interval(1000))
+
     Future.successful {
+      agg.fetch() should be(a[Some[_]])
       agg.fetch() should be(None)
     }
   }

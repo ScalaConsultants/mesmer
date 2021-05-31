@@ -1,5 +1,6 @@
 package io.scalac.mesmer.core.util
 
+
 sealed abstract class TimeSeries[@specialized(Long) T, @specialized(Long) Avg](data: Seq[T])(implicit n: Numeric[T]) {
 
   def min: T     = data.min

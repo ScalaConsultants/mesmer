@@ -3,7 +3,6 @@ package io.scalac.mesmer.core.util
 import io.scalac.mesmer.core.util.AggMetric.LongValueAggMetric
 
 import java.util.concurrent.atomic.{ AtomicBoolean, AtomicLong, AtomicReference }
-import scala.concurrent.duration._
 
 object MetricsToolKit {
 
@@ -22,15 +21,15 @@ object MetricsToolKit {
   }
 
   final class TimeAggregation {
-    private[core] val aggregator                  = new LongNoLockAggregator()
-    def add(time: FiniteDuration): Unit     = aggregator.push(time.toNanos)
+    private[core] val aggregator            = new LongNoLockAggregator()
+    def add(time: Interval): Unit           = aggregator.push(time)
     def metrics: Option[LongValueAggMetric] = aggregator.fetch()
   }
 
   final class Timer {
-    private val timestamp          = new AtomicReference[Timestamp]()
-    def start(): Unit              = timestamp.set(Timestamp.create())
-    def interval(): FiniteDuration = timestamp.get().interval().milliseconds
+    private val timestamp    = new AtomicReference[Timestamp]()
+    def start(): Unit        = timestamp.set(Timestamp.create())
+    def interval(): Interval = timestamp.get().interval()
   }
 
   final class UninitializedCounter {

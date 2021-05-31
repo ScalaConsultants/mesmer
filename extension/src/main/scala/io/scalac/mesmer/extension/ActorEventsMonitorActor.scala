@@ -61,29 +61,21 @@ object ActorEventsMonitorActor {
 
     private val logger = LoggerFactory.getLogger(getClass)
 
-    def read(actor: classic.ActorRef): Option[ActorMetrics] = {
-
+    def read(actor: classic.ActorRef): Option[ActorMetrics] =
       for {
         cell    <- ActorRefOps.Local.cell(actor)
         metrics <- ActorCellDecorator.get(cell)
-      } yield {
-        if(actor.path.toStringWithoutAddress.startsWith("/user")) {
-          metrics.processingTimeAgg.metrics
-        }
-
-        ActorMetrics(
-          mailboxSize = safeRead(ActorCellOps.numberOfMessages(cell)),
-          mailboxTime = metrics.mailboxTimeAgg.metrics,
-          processingTime = metrics.processingTimeAgg.metrics,
-          receivedMessages = Some(metrics.receivedMessages.take()),
-          unhandledMessages = Some(metrics.unhandledMessages.take()),
-          failedMessages = Some(metrics.failedMessages.take()),
-          sentMessages = Some(metrics.sentMessages.take()),
-          stashSize = metrics.stashSize.get(),
-          droppedMessages = metrics.droppedMessages.map(_.get())
-        )
-      }
-    }
+      } yield ActorMetrics(
+        mailboxSize = safeRead(ActorCellOps.numberOfMessages(cell)),
+        mailboxTime = metrics.mailboxTimeAgg.metrics,
+        processingTime = metrics.processingTimeAgg.metrics,
+        receivedMessages = Some(metrics.receivedMessages.take()),
+        unhandledMessages = Some(metrics.unhandledMessages.take()),
+        failedMessages = Some(metrics.failedMessages.take()),
+        sentMessages = Some(metrics.sentMessages.take()),
+        stashSize = metrics.stashSize.get(),
+        droppedMessages = metrics.droppedMessages.map(_.get())
+      )
 
     private def safeRead[T](value: => T): Option[T] =
       try Some(value)
@@ -176,17 +168,11 @@ private[extension] class ActorEventsMonitorActor private[extension] (
     val storage = refs.unfix.foldRight[storageFactory.Storage] {
       case TreeF(details, Vector()) =>
         import details._
-        if (configuration.reporting.visible) {
-          log.info("Capturing leaf metrics of {} by {}", ref, configuration.reporting)
-        }
 
         val storage = storageFactory.createStorage
         actorMetricsReader
           .read(ref)
           .fold(storage) { metric =>
-            if (ref.path.toStringWithoutAddress.startsWith("/user")) {
-              log.info("{} in progress data: {}", ref.path.toStringWithoutAddress, metric)
-            }
             storage.save(ActorPathOps.getPathString(ref), metric, configuration.reporting.visible)
           }
       case TreeF(details, childrenMetrics) =>
@@ -194,14 +180,9 @@ private[extension] class ActorEventsMonitorActor private[extension] (
 
         val storage = childrenMetrics.reduce(storageFactory.mergeStorage)
 
-        if (configuration.reporting.visible) {
-          log.info("Capturing metrics of {} by {}", ref, configuration.reporting)
-        }
-
         actorMetricsReader.read(ref).fold(storage) { currentMetrics =>
           import configuration.reporting._
           val actorKey = ActorPathOps.getPathString(ref)
-//          log.info("metrics of {}: {}", ref, currentMetrics)
 
           storage.save(actorKey, currentMetrics, visible)
           if (aggregate) {
@@ -215,6 +196,7 @@ private[extension] class ActorEventsMonitorActor private[extension] (
 
   private def captureState(storage: storageFactory.Storage): Unit = {
     log.debug("Capturing current actor tree state")
+
     val currentSnapshot = treeSnapshot.get().getOrElse(Vector.empty)
     val metrics = storage.iterable.map { case (key, metrics) =>
       currentSnapshot.find { case (labels, _) =>
@@ -222,11 +204,10 @@ private[extension] class ActorEventsMonitorActor private[extension] (
       }.fold((Labels(key, node), metrics)) { case (labels, existingMetrics) =>
         (labels, existingMetrics.sum(metrics))
       }
-
     }.toVector
 
     treeSnapshot.set(Some(metrics))
-    log.info("Current state {}", metrics)
+    log.trace("Current actor metrics state {}", metrics)
   }
 
 }

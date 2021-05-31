@@ -1,9 +1,9 @@
 package io.scalac.mesmer.agent.akka.actor
 
+import io.scalac.mesmer.core.util.Interval
 import net.bytebuddy.asm.Advice._
 
 import scala.concurrent.duration._
-
 import io.scalac.mesmer.extension.actor.ActorCellDecorator
 
 class MailboxDequeueInstrumentation
@@ -15,10 +15,10 @@ object MailboxDequeueInstrumentation {
       add(mailbox, computeTime(envelope))
     }
 
-  @inline final def computeTime(envelope: Object): FiniteDuration =
-    EnvelopeDecorator.getTimestamp(envelope).interval().milliseconds
+  @inline final def computeTime(envelope: Object): Interval =
+    EnvelopeDecorator.getTimestamp(envelope).interval()
 
-  @inline final def add(mailbox: Object, time: FiniteDuration): Unit =
+  @inline final def add(mailbox: Object, time: Interval): Unit =
     ActorCellDecorator.get(MailboxOps.getActor(mailbox)).foreach(_.mailboxTimeAgg.add(time))
 
 }

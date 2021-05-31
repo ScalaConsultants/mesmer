@@ -12,9 +12,16 @@ sealed trait AggMetric[@specialized(Long) T, @specialized(Long) Avg] {
 
 object AggMetric {
 
+  /**
+   * Case class with all aggregating values in milliseconds
+   * @param min
+   * @param max
+   * @param avg
+   * @param sum
+   * @param count
+   */
   final case class LongValueAggMetric(min: Long, max: Long, avg: Long, sum: Long, count: Int)
       extends AggMetric[Long, Long] {
-
 
     def combine(timeSeries: TimeSeries[Long, Long]): LongValueAggMetric =
       combine(fromTimeSeries(timeSeries))
@@ -32,9 +39,8 @@ object AggMetric {
       )
     }
 
-    def sum(next: LongValueAggMetric): LongValueAggMetric = {
+    def sum(next: LongValueAggMetric): LongValueAggMetric =
       next.copy(sum = next.sum + this.sum, count = next.count + this.count)
-    }
   }
 
   final object LongValueAggMetric {
