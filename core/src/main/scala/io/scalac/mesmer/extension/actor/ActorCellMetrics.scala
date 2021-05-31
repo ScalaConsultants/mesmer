@@ -5,6 +5,8 @@ import io.scalac.mesmer.core.util.MetricsToolKit._
 class ActorCellMetrics {
   val mailboxTimeAgg: TimeAggregation    = new TimeAggregation()
   val processingTimeAgg: TimeAggregation = new TimeAggregation()
+
+  //TODO remove this
   val processingTimer: Timer             = new Timer
   val receivedMessages: Counter          = new Counter
   val processedMessages: Counter         = new Counter

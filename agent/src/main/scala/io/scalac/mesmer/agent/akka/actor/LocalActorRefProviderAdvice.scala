@@ -6,7 +6,7 @@ import net.bytebuddy.asm.Advice._
 
 import io.scalac.mesmer.core.event.ActorEvent.ActorCreated
 import io.scalac.mesmer.core.event.EventBus
-import io.scalac.mesmer.core.model.ActorRefDetails
+import io.scalac.mesmer.core.model.ActorRefTags
 
 class LocalActorRefProviderAdvice
 object LocalActorRefProviderAdvice {
@@ -14,5 +14,5 @@ object LocalActorRefProviderAdvice {
   @OnMethodExit
   def actorOf(@Return ref: ActorRef, @Argument(0) system: ActorSystem): Unit =
     EventBus(system.toTyped)
-      .publishEvent(ActorCreated(ActorRefDetails(ref, Set.empty)))
+      .publishEvent(ActorCreated(ActorRefTags(ref, Set.empty)))
 }

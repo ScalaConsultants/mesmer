@@ -20,7 +20,7 @@ import io.scalac.mesmer.agent.utils.SafeLoadSystem
 import io.scalac.mesmer.core.event.ActorEvent
 import io.scalac.mesmer.core.event.ActorEvent.ActorCreated
 import io.scalac.mesmer.core.event.Service.actorService
-import io.scalac.mesmer.core.model.ActorRefDetails
+import io.scalac.mesmer.core.model.ActorRefTags
 import io.scalac.mesmer.core.util.TestBehaviors
 import io.scalac.mesmer.core.util.TestBehaviors.Pass
 import io.scalac.mesmer.core.util.TestCase.CommonMonitorTestFactory
@@ -48,7 +48,7 @@ class ActorEventTest
     val expectedRef = ref.toClassic
 
     monitor.fishForMessage(Timeout) {
-      case ActorCreated(ActorRefDetails(`expectedRef`, _)) => FishingOutcomes.complete
+      case ActorCreated(ActorRefTags(`expectedRef`, _)) => FishingOutcomes.complete
       case _                                               => FishingOutcomes.continueAndIgnore
     }
 
@@ -69,7 +69,7 @@ class ActorEventTest
     val expectedRef = ref.toClassic
 
     monitor.fishForMessage(Timeout) {
-      case ActorCreated(ActorRefDetails(`expectedRef`, _)) => FishingOutcomes.complete
+      case ActorCreated(ActorRefTags(`expectedRef`, _)) => FishingOutcomes.complete
       case _                                               => FishingOutcomes.continueAndIgnore
     }
 
@@ -86,7 +86,7 @@ class ActorEventTest
     val ref = classicSystem.systemActorOf(TestBehaviors.Failing.classic, id)
 
     monitor.fishForMessage(Timeout) {
-      case ActorCreated(ActorRefDetails(`ref`, _)) => FishingOutcomes.complete
+      case ActorCreated(ActorRefTags(`ref`, _)) => FishingOutcomes.complete
       case _                                       => FishingOutcomes.continueAndIgnore
     }
 

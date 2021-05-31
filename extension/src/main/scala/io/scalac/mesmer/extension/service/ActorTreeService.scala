@@ -3,11 +3,11 @@ package io.scalac.mesmer.extension.service
 import akka.actor.typed._
 import akka.actor.typed.receptionist.Receptionist.Register
 import akka.actor.typed.scaladsl.adapter._
-import akka.actor.typed.scaladsl.{ AbstractBehavior, ActorContext, Behaviors }
-import akka.{ actor => classic }
+import akka.actor.typed.scaladsl.{AbstractBehavior, ActorContext, Behaviors}
+import akka.{actor => classic}
 import io.scalac.mesmer.core
 import io.scalac.mesmer.core.event.ActorEvent
-import io.scalac.mesmer.core.model.{ Tag, _ }
+import io.scalac.mesmer.core.model.{Tag, _}
 import io.scalac.mesmer.extension.metric.ActorSystemMonitor
 import io.scalac.mesmer.extension.metric.ActorSystemMonitor.Labels
 import io.scalac.mesmer.extension.service.ActorTreeService.Api
@@ -41,13 +41,21 @@ object ActorTreeService {
   def apply(
     actorSystemMonitor: ActorSystemMonitor,
     node: Option[Node],
-    backoffActorTreeTraverser: ActorTreeTraverser = ReflectiveActorTreeTraverser
+    backoffActorTreeTraverser: ActorTreeTraverser,
+    actorConfigurationService: ActorConfigurationService
   ): Behavior[Api] =
     Behaviors.setup { ctx =>
       def receptionistBind(actorEventRef: ActorRef[ActorEvent]): Unit =
         ctx.system.receptionist ! Register(core.actorServiceKey, actorEventRef)
 
-      new ActorTreeService(ctx, actorSystemMonitor, receptionistBind, backoffActorTreeTraverser, node)(partialOrdering)
+      new ActorTreeService(
+        ctx,
+        actorSystemMonitor,
+        receptionistBind,
+        backoffActorTreeTraverser,
+        actorConfigurationService,
+        node
+      )(partialOrdering)
     }
 
   lazy val partialOrdering: PartialOrdering[classic.ActorRef] = new PartialOrdering[classic.ActorRef] {
@@ -71,6 +79,7 @@ final class ActorTreeService(
   monitor: ActorSystemMonitor,
   actorEventBind: ActorRef[ActorEvent] => Unit,
   actorTreeTraverser: ActorTreeTraverser,
+  actorConfigurationService: ActorConfigurationService,
   node: Option[Node] = None
 )(implicit actorRefPartialOrdering: PartialOrdering[classic.ActorRef])
     extends AbstractBehavior[Api](ctx) {
@@ -80,21 +89,25 @@ final class ActorTreeService(
   import ActorTreeService._
   import context._
 
-//  private[this] val snapshot     = ArrayBuffer.empty[ActorRefDetails]
   private[this] val snapshot     = Tree.builder[classic.ActorRef, ActorRefDetails]
   private[this] val boundMonitor = monitor.bind(Labels(node))
 
+  private def toActorRefDetails(refWithTags: ActorRefTags): ActorRefDetails = {
+    import refWithTags._
+    ActorRefDetails(ref, tags, actorConfigurationService.forActorPath(ref.path))
+
+  }
+
   private def init(): Unit = {
     actorEventBind(context.messageAdapter {
-      case ActorEvent.ActorCreated(details) => ActorCreated(details)
-      case ActorEvent.TagsSet(details)      => ActorRetagged(details)
+      case ActorEvent.ActorCreated(refWithTags) => ActorCreated(toActorRefDetails(refWithTags))
+      case ActorEvent.TagsSet(refWithTags)      => ActorRetagged(toActorRefDetails(refWithTags))
     })
 
     actorTreeTraverser
       .getActorTreeFromRootGuardian(system.toClassic)
       .foreach { ref =>
-        //TODO hardcoded configuration
-        handleEvent(ActorCreated(ActorRefDetails(ref, Set.empty, ActorConfiguration.instanceConfig)))
+        handleEvent(ActorCreated(ActorRefDetails(ref, Set.empty, actorConfigurationService.forActorPath(ref.path))))
       }
   }
 

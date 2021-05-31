@@ -152,7 +152,6 @@ private[extension] class ActorEventsMonitorActor private[extension] (
           }
         Behaviors.same
       case MeasureActorTree(refs) =>
-        log.info("Received refs {}", refs)
         update(refs)
         setTimeout() // loop
         Behaviors.same
@@ -169,21 +168,30 @@ private[extension] class ActorEventsMonitorActor private[extension] (
     val storage = refs.unfix.foldRight[storageFactory.Storage] {
       case TreeF(details, Vector()) =>
         import details._
-
+        if (configuration.reporting.visible) {
+          log.info("Capturing metrics of {} by {}", ref, configuration.reporting)
+        }
         val storage = storageFactory.createStorage
         actorMetricsReader
           .read(ref)
-          .fold(storage)(metric =>
+          .fold(storage) { metric =>
+            log.info("metrics of {}: {}", ref, metric)
             storage.save(ActorPathOps.getPathString(ref), metric, configuration.reporting.visible)
-          )
+          }
       case TreeF(details, childrenMetrics) =>
         import details._
 
         val storage = childrenMetrics.reduce(storageFactory.mergeStorage)
 
+        if (configuration.reporting.visible) {
+          log.info("Capturing metrics of {} by {}", ref, configuration.reporting)
+        }
+
         actorMetricsReader.read(ref).fold(storage) { currentMetrics =>
           import configuration.reporting._
           val actorKey = ActorPathOps.getPathString(ref)
+          log.info("metrics of {}: {}", ref, currentMetrics)
+
           storage.save(actorKey, currentMetrics, visible)
           if (aggregate) {
             storage.compute(actorKey)
@@ -195,11 +203,11 @@ private[extension] class ActorEventsMonitorActor private[extension] (
   }
 
   private def captureState(storage: storageFactory.Storage): Unit = {
-    log.info("Capturing current actor tree state")
+    log.debug("Capturing current actor tree state")
     treeSnapshot.set(Some(storage.iterable.map { case (key, metrics) =>
       (Labels(key, node), metrics)
     }.toVector))
-    log.info("Current state {}", treeSnapshot.get)
+    log.info("Current state {}", treeSnapshot.get())
   }
 
 }

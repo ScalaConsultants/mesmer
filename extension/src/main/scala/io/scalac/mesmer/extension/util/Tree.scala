@@ -48,6 +48,16 @@ object Tree {
     def modify(key: K, func: V => V): Builder[K, V]
     def buildTree[O](filter: (K, V) => Option[O]): Option[Tree[O]]
     def buildSeq[O](filter: (K, V) => Option[O]): Seq[O]
+    //is it really?
+    /**
+     * This Function allows to pass additional value from parent node to children nodes to influence
+     * child node filter function by
+     * @param seed
+     * @param filter
+     * @tparam S
+     * @tparam O
+     */
+//    def foldLeft[S, O](seed: S)(filter: (K, V, S) => (S, Option[O])): Option[Tree[O]]
   }
 
   trait TreeOrdering[T] {

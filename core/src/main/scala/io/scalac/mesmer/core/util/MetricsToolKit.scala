@@ -1,21 +1,19 @@
 package io.scalac.mesmer.core.util
 
-import java.util.concurrent.atomic.AtomicBoolean
-import java.util.concurrent.atomic.AtomicLong
-import java.util.concurrent.atomic.AtomicReference
-
-import scala.concurrent.duration._
-
 import io.scalac.mesmer.core.util.AggMetric.LongValueAggMetric
+
+import java.util.concurrent.atomic.{ AtomicBoolean, AtomicLong, AtomicReference }
+import scala.concurrent.duration._
 
 object MetricsToolKit {
 
   final class Counter {
     private val counter = new AtomicLong(0)
     def inc(): Unit     = counter.getAndIncrement()
-    def take(): Long    = counter.getAndSet(0)
-    def get(): Long     = counter.get()
-    def reset(): Unit   = counter.set(0)
+    //TODO change this API
+    def take(): Long  = counter.get()
+    def get(): Long   = counter.get()
+    def reset(): Unit = counter.set(0)
   }
 
   final class Marker {

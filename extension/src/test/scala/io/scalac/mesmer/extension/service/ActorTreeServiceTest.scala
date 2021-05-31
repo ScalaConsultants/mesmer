@@ -8,11 +8,11 @@ import akka.actor.typed.{ActorRef, ActorSystem, Behavior}
 import akka.{actor => classic}
 import io.scalac.mesmer.core.event.ActorEvent
 import io.scalac.mesmer.core.event.ActorEvent.{ActorCreated, TagsSet}
-import io.scalac.mesmer.core.model.{ActorRefDetails, Tag}
+import io.scalac.mesmer.core.model.ActorConfiguration._
+import io.scalac.mesmer.core.model.{ActorRefTags, Tag}
 import io.scalac.mesmer.core.util.TestCase.{MonitorTestCaseContext, MonitorWithActorRefSetupTestCaseFactory, ProvidedActorSystemTestCaseFactory}
 import io.scalac.mesmer.core.util.TestConfig
 import io.scalac.mesmer.extension.service.ActorTreeService.Command.GetActors
-import io.scalac.mesmer.extension.service.ActorTreeServiceTest.EmptyActorTreeTraverser
 import io.scalac.mesmer.extension.util.probe.ActorSystemMonitorProbe
 import org.scalatest.Inside
 import org.scalatest.flatspec.AnyFlatSpecLike
@@ -25,6 +25,8 @@ object ActorTreeServiceTest {
     def getRootGuardian(system: classic.ActorSystem): classic.ActorRef =
       ReflectiveActorTreeTraverser.getRootGuardian(system)
   }
+
+  val instanceActorConfig: ActorConfigurationService = _ => instanceConfig
 }
 
 class ActorTreeServiceTest
@@ -34,6 +36,7 @@ class ActorTreeServiceTest
     with ProvidedActorSystemTestCaseFactory
     with MonitorWithActorRefSetupTestCaseFactory
     with Inside {
+  import ActorTreeServiceTest._
 
   type Command = ActorTreeService.Api
   type Monitor = ActorSystemMonitorProbe
@@ -45,7 +48,7 @@ class ActorTreeServiceTest
 
   protected def createMonitorBehavior(implicit context: Context): Behavior[Command] =
     Behaviors.setup { ctx =>
-      new ActorTreeService(ctx, monitor, ref => context.bindProbe.ref ! ref, context.traverser)(
+      new ActorTreeService(ctx, monitor, ref => context.bindProbe.ref ! ref, context.traverser, instanceActorConfig)(
         ActorTreeService.partialOrdering
       )
     }
@@ -79,7 +82,7 @@ class ActorTreeServiceTest
     val CreatedCount   = 10
     val createdRefs = List
       .fill(CreatedCount)(system.systemActorOf(Behaviors.empty, createUniqueId).toClassic)
-      .map(ActorRefDetails(_, Set.empty))
+      .map(ActorRefTags(_, Set.empty))
     val (terminatedRefs, remainingDetails) = createdRefs.splitAt(CreatedCount / 2)
     val expectedResult                     = remainingDetails.map(_.ref) ++ backoffRefs
 
@@ -104,10 +107,10 @@ class ActorTreeServiceTest
     val CreatedCount   = 2
     val emptyTags = List
       .fill(CreatedCount)(system.systemActorOf(Behaviors.empty, createUniqueId).toClassic)
-      .map(ActorRefDetails(_, Set.empty))
+      .map(ActorRefTags(_, Set.empty))
     val expectedTags = List
       .fill(CreatedCount)(system.systemActorOf(Behaviors.empty, createUniqueId).toClassic)
-      .map(ActorRefDetails(_, Set(Tag.stream)))
+      .map(ActorRefTags(_, Set(Tag.stream)))
 
     val ref = bindProbe.receiveMessage()
     for {
@@ -125,10 +128,10 @@ class ActorTreeServiceTest
     val CreatedCount   = 2
     val emptyTags = List
       .fill(CreatedCount)(system.systemActorOf(Behaviors.empty, createUniqueId).toClassic)
-      .map(ActorRefDetails(_, Set.empty))
+      .map(ActorRefTags(_, Set.empty))
     val streamTags = List
       .fill(CreatedCount)(system.systemActorOf(Behaviors.empty, createUniqueId).toClassic)
-      .map(ActorRefDetails(_, Set(Tag.stream)))
+      .map(ActorRefTags(_, Set(Tag.stream)))
     val expectedRefs = backoffRefs ++ streamTags.map(_.ref) ++ emptyTags.map(_.ref)
 
     val ref = bindProbe.receiveMessage()
@@ -149,8 +152,8 @@ class ActorTreeServiceTest
     val RetaggedCount  = 2
     val emptyTags = List
       .fill(CreatedCount)(system.systemActorOf(Behaviors.empty, createUniqueId).toClassic)
-      .map(ActorRefDetails(_, Set.empty))
-    val retagged = emptyTags.take(RetaggedCount).map(details => TagsSet(details.copy(tags = Set(Tag.stream))))
+      .map(ActorRefTags(_, Set.empty))
+    val retagged = emptyTags.take(RetaggedCount).map(details => TagsSet(ActorRefTags(details.ref, Set(Tag.stream))))
 
     val ref = bindProbe.receiveMessage()
     for {
@@ -163,6 +166,8 @@ class ActorTreeServiceTest
       frontTestProbe.receiveMessage() should contain theSameElementsAs (retagged.map(_.details.ref))
     }
   }
+
+  it should "create "
 
   final case class ActorTreeServiceTestContext(
     monitor: Monitor,
