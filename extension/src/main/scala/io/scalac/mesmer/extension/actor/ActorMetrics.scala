@@ -1,7 +1,6 @@
 package io.scalac.mesmer.extension.actor
 
 import io.scalac.mesmer.core.util.AggMetric.LongValueAggMetric
-import io.scalac.mesmer.core.util.Timestamp
 
 final case class ActorMetrics(
   mailboxSize: Option[Long],
@@ -33,6 +32,18 @@ final case class ActorMetrics(
     droppedMessages = combineLong(droppedMessages, other.droppedMessages)
   )
 
+  def sum(other: ActorMetrics): ActorMetrics = ActorMetrics(
+    mailboxSize = combineLong(mailboxSize, other.mailboxSize),
+    mailboxTime = sumAggregation(mailboxTime, other.mailboxTime),
+    receivedMessages = combineLong(receivedMessages, other.receivedMessages),
+    unhandledMessages = combineLong(unhandledMessages, other.unhandledMessages),
+    failedMessages = combineLong(failedMessages, other.failedMessages),
+    processingTime = sumAggregation(processingTime, other.processingTime),
+    sentMessages = combineLong(sentMessages, other.sentMessages),
+    stashSize = combineLong(stashSize, other.stashSize),
+    droppedMessages = combineLong(droppedMessages, other.droppedMessages)
+  )
+
   private def combineLong(first: Option[Long], second: Option[Long]): Option[Long] =
     combineOption(first, second)(_ + _)
 
@@ -40,6 +51,11 @@ final case class ActorMetrics(
     first: Option[LongValueAggMetric],
     second: Option[LongValueAggMetric]
   ): Option[LongValueAggMetric] = combineOption(first, second)(_.combine(_))
+
+  private def sumAggregation(
+    first: Option[LongValueAggMetric],
+    second: Option[LongValueAggMetric]
+  ): Option[LongValueAggMetric] = combineOption(first, second)(_.sum(_))
 
   private def combineOption[T](first: Option[T], second: Option[T])(combine: (T, T) => T): Option[T] =
     (first, second) match {

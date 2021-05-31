@@ -2,25 +2,25 @@ package io.scalac.mesmer.extension
 
 import akka.actor.typed._
 import akka.actor.typed.receptionist.Receptionist.Listing
-import akka.actor.typed.scaladsl.{ActorContext, Behaviors, TimerScheduler}
+import akka.actor.typed.scaladsl.{ ActorContext, Behaviors, TimerScheduler }
 import akka.util.Timeout
-import akka.{actor => classic}
-import io.scalac.mesmer.core.model.{ActorKey, ActorRefDetails, Node}
-import io.scalac.mesmer.core.util.{ActorCellOps, ActorPathOps, ActorRefOps}
+import akka.{ actor => classic }
+import io.scalac.mesmer.core.model.{ ActorKey, ActorRefDetails, Node }
+import io.scalac.mesmer.core.util.{ ActorCellOps, ActorPathOps, ActorRefOps }
 import io.scalac.mesmer.extension.ActorEventsMonitorActor._
-import io.scalac.mesmer.extension.actor.{ActorCellDecorator, ActorMetrics, MetricStorageFactory}
+import io.scalac.mesmer.extension.actor.{ ActorCellDecorator, ActorMetrics, MetricStorageFactory }
 import io.scalac.mesmer.extension.metric.ActorMetricsMonitor
 import io.scalac.mesmer.extension.metric.ActorMetricsMonitor.Labels
 import io.scalac.mesmer.extension.metric.MetricObserver.Result
 import io.scalac.mesmer.extension.service.ActorTreeService.Command.GetActorTree
-import io.scalac.mesmer.extension.service.{ActorTreeService, actorTreeServiceKey}
-import io.scalac.mesmer.extension.util.Tree.{Tree, _}
-import io.scalac.mesmer.extension.util.{GenericBehaviors, TreeF}
+import io.scalac.mesmer.extension.service.{ actorTreeServiceKey, ActorTreeService }
+import io.scalac.mesmer.extension.util.Tree.{ Tree, _ }
+import io.scalac.mesmer.extension.util.{ GenericBehaviors, TreeF }
 import org.slf4j.LoggerFactory
 
 import java.util.concurrent.atomic.AtomicReference
 import scala.concurrent.duration._
-import scala.util.{Failure, Success}
+import scala.util.{ Failure, Success }
 
 object ActorEventsMonitorActor {
 
@@ -61,21 +61,29 @@ object ActorEventsMonitorActor {
 
     private val logger = LoggerFactory.getLogger(getClass)
 
-    def read(actor: classic.ActorRef): Option[ActorMetrics] =
+    def read(actor: classic.ActorRef): Option[ActorMetrics] = {
+
       for {
         cell    <- ActorRefOps.Local.cell(actor)
         metrics <- ActorCellDecorator.get(cell)
-      } yield ActorMetrics(
-        mailboxSize = safeRead(ActorCellOps.numberOfMessages(cell)),
-        mailboxTime = metrics.mailboxTimeAgg.metrics,
-        processingTime = metrics.processingTimeAgg.metrics,
-        receivedMessages = Some(metrics.receivedMessages.take()),
-        unhandledMessages = Some(metrics.unhandledMessages.take()),
-        failedMessages = Some(metrics.failedMessages.take()),
-        sentMessages = Some(metrics.sentMessages.take()),
-        stashSize = metrics.stashSize.get(),
-        droppedMessages = metrics.droppedMessages.map(_.get())
-      )
+      } yield {
+        if(actor.path.toStringWithoutAddress.startsWith("/user")) {
+          metrics.processingTimeAgg.metrics
+        }
+
+        ActorMetrics(
+          mailboxSize = safeRead(ActorCellOps.numberOfMessages(cell)),
+          mailboxTime = metrics.mailboxTimeAgg.metrics,
+          processingTime = metrics.processingTimeAgg.metrics,
+          receivedMessages = Some(metrics.receivedMessages.take()),
+          unhandledMessages = Some(metrics.unhandledMessages.take()),
+          failedMessages = Some(metrics.failedMessages.take()),
+          sentMessages = Some(metrics.sentMessages.take()),
+          stashSize = metrics.stashSize.get(),
+          droppedMessages = metrics.droppedMessages.map(_.get())
+        )
+      }
+    }
 
     private def safeRead[T](value: => T): Option[T] =
       try Some(value)
@@ -169,13 +177,16 @@ private[extension] class ActorEventsMonitorActor private[extension] (
       case TreeF(details, Vector()) =>
         import details._
         if (configuration.reporting.visible) {
-          log.info("Capturing metrics of {} by {}", ref, configuration.reporting)
+          log.info("Capturing leaf metrics of {} by {}", ref, configuration.reporting)
         }
+
         val storage = storageFactory.createStorage
         actorMetricsReader
           .read(ref)
           .fold(storage) { metric =>
-            log.info("metrics of {}: {}", ref, metric)
+            if (ref.path.toStringWithoutAddress.startsWith("/user")) {
+              log.info("{} in progress data: {}", ref.path.toStringWithoutAddress, metric)
+            }
             storage.save(ActorPathOps.getPathString(ref), metric, configuration.reporting.visible)
           }
       case TreeF(details, childrenMetrics) =>
@@ -190,7 +201,7 @@ private[extension] class ActorEventsMonitorActor private[extension] (
         actorMetricsReader.read(ref).fold(storage) { currentMetrics =>
           import configuration.reporting._
           val actorKey = ActorPathOps.getPathString(ref)
-          log.info("metrics of {}: {}", ref, currentMetrics)
+//          log.info("metrics of {}: {}", ref, currentMetrics)
 
           storage.save(actorKey, currentMetrics, visible)
           if (aggregate) {
@@ -204,10 +215,18 @@ private[extension] class ActorEventsMonitorActor private[extension] (
 
   private def captureState(storage: storageFactory.Storage): Unit = {
     log.debug("Capturing current actor tree state")
-    treeSnapshot.set(Some(storage.iterable.map { case (key, metrics) =>
-      (Labels(key, node), metrics)
-    }.toVector))
-    log.info("Current state {}", treeSnapshot.get())
+    val currentSnapshot = treeSnapshot.get().getOrElse(Vector.empty)
+    val metrics = storage.iterable.map { case (key, metrics) =>
+      currentSnapshot.find { case (labels, _) =>
+        labels.actorPath == key
+      }.fold((Labels(key, node), metrics)) { case (labels, existingMetrics) =>
+        (labels, existingMetrics.sum(metrics))
+      }
+
+    }.toVector
+
+    treeSnapshot.set(Some(metrics))
+    log.info("Current state {}", metrics)
   }
 
 }

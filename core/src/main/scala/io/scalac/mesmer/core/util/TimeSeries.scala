@@ -2,11 +2,11 @@ package io.scalac.mesmer.core.util
 
 sealed abstract class TimeSeries[@specialized(Long) T, @specialized(Long) Avg](data: Seq[T])(implicit n: Numeric[T]) {
 
-  val min: T     = data.min
-  val max: T     = data.max
-  val sum: T     = data.sum
-  val count: Int = data.size
-  val avg: Avg   = div(sum, count)
+  def min: T     = data.min
+  def max: T     = data.max
+  def sum: T     = data.sum
+  def count: Int = data.size
+  def avg: Avg   = div(sum, count)
 
   protected def div(v: T, n: Int): Avg
 

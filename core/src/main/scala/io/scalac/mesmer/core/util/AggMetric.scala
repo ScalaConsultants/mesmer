@@ -14,6 +14,8 @@ object AggMetric {
 
   final case class LongValueAggMetric(min: Long, max: Long, avg: Long, sum: Long, count: Int)
       extends AggMetric[Long, Long] {
+
+
     def combine(timeSeries: TimeSeries[Long, Long]): LongValueAggMetric =
       combine(fromTimeSeries(timeSeries))
 
@@ -28,6 +30,10 @@ object AggMetric {
         sum = sum,
         count = count
       )
+    }
+
+    def sum(next: LongValueAggMetric): LongValueAggMetric = {
+      next.copy(sum = next.sum + this.sum, count = next.count + this.count)
     }
   }
 

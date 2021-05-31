@@ -10,10 +10,9 @@ object MetricsToolKit {
   final class Counter {
     private val counter = new AtomicLong(0)
     def inc(): Unit     = counter.getAndIncrement()
-    //TODO change this API
-    def take(): Long  = counter.get()
-    def get(): Long   = counter.get()
-    def reset(): Unit = counter.set(0)
+    def take(): Long    = counter.getAndSet(0)
+    def get(): Long     = counter.get()
+    def reset(): Unit   = counter.set(0)
   }
 
   final class Marker {
@@ -23,8 +22,8 @@ object MetricsToolKit {
   }
 
   final class TimeAggregation {
-    private val aggregator                  = new LongNoLockAggregator()
-    def add(time: FiniteDuration): Unit     = aggregator.push(time.toMillis)
+    private[core] val aggregator                  = new LongNoLockAggregator()
+    def add(time: FiniteDuration): Unit     = aggregator.push(time.toNanos)
     def metrics: Option[LongValueAggMetric] = aggregator.fetch()
   }
 

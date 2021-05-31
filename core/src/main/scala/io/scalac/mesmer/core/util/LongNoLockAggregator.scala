@@ -1,14 +1,13 @@
 package io.scalac.mesmer.core.util
 
+import io.scalac.mesmer.core.util.AggMetric.LongValueAggMetric
+import io.scalac.mesmer.core.util.TimeSeries.LongTimeSeries
+
 import java.util.concurrent.ArrayBlockingQueue
 import java.util.concurrent.atomic.AtomicReference
 import java.util.concurrent.locks.ReentrantLock
-
 import scala.collection.mutable.ListBuffer
 import scala.jdk.CollectionConverters._
-
-import io.scalac.mesmer.core.util.AggMetric.LongValueAggMetric
-import io.scalac.mesmer.core.util.TimeSeries.LongTimeSeries
 
 // TODO Can we generalize it?
 final class LongNoLockAggregator(val maxSize: Int = 100, val compactionRemainingSize: Int = 25) {
@@ -21,6 +20,10 @@ final class LongNoLockAggregator(val maxSize: Int = 100, val compactionRemaining
 
   private[this] val queue = new ArrayBlockingQueue[Long](maxSize)
 
+  /**
+   * Push amount of nonoseconds
+   * @param value
+   */
   def push(value: Long): Unit = {
     queue.offer(value)
 
@@ -35,7 +38,9 @@ final class LongNoLockAggregator(val maxSize: Int = 100, val compactionRemaining
       snapshot
     } else {
       if (failFastCompact()) {
-        aggRef.get()
+        val freshData = aggRef.get()
+        aggRef.set(None)
+        freshData
       } else snapshot
     }
   }
