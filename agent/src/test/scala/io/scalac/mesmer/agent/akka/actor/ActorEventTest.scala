@@ -49,7 +49,7 @@ class ActorEventTest
 
     monitor.fishForMessage(Timeout) {
       case ActorCreated(ActorRefTags(`expectedRef`, _)) => FishingOutcomes.complete
-      case _                                               => FishingOutcomes.continueAndIgnore
+      case _                                            => FishingOutcomes.continueAndIgnore
     }
 
     //cleanup
@@ -70,7 +70,7 @@ class ActorEventTest
 
     monitor.fishForMessage(Timeout) {
       case ActorCreated(ActorRefTags(`expectedRef`, _)) => FishingOutcomes.complete
-      case _                                               => FishingOutcomes.continueAndIgnore
+      case _                                            => FishingOutcomes.continueAndIgnore
     }
 
     ref ! () // this will trigger restart
@@ -87,7 +87,7 @@ class ActorEventTest
 
     monitor.fishForMessage(Timeout) {
       case ActorCreated(ActorRefTags(`ref`, _)) => FishingOutcomes.complete
-      case _                                       => FishingOutcomes.continueAndIgnore
+      case _                                    => FishingOutcomes.continueAndIgnore
     }
 
     ref ! () // this will init restart

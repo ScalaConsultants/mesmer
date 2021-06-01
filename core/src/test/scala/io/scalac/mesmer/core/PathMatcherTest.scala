@@ -1,9 +1,12 @@
 package io.scalac.mesmer.core
 
-import io.scalac.mesmer.core.PathMatcher.{ Exact, Prefix }
+import org.scalatest.LoneElement
+import org.scalatest.OptionValues
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
-import org.scalatest.{ LoneElement, OptionValues }
+
+import io.scalac.mesmer.core.PathMatcher.Exact
+import io.scalac.mesmer.core.PathMatcher.Prefix
 
 class PathMatcherTest extends AnyFlatSpec with Matchers with LoneElement with OptionValues {
 

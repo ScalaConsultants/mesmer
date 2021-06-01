@@ -2,36 +2,44 @@ package io.scalac.mesmer.extension
 
 import akka.actor.PoisonPill
 import akka.actor.testkit.typed.javadsl.FishingOutcomes
-import akka.actor.testkit.typed.scaladsl.{ ScalaTestWithActorTestKit, TestProbe }
+import akka.actor.testkit.typed.scaladsl.ScalaTestWithActorTestKit
+import akka.actor.testkit.typed.scaladsl.TestProbe
 import akka.actor.typed._
+import akka.actor.typed.scaladsl.Behaviors
+import akka.actor.typed.scaladsl.StashBuffer
 import akka.actor.typed.scaladsl.adapter._
-import akka.actor.typed.scaladsl.{ Behaviors, StashBuffer }
 import akka.util.Timeout
 import akka.{ actor => classic }
-import io.scalac.mesmer.core.model._
-import io.scalac.mesmer.core.util.AggMetric.LongValueAggMetric
-import io.scalac.mesmer.core.util.TestCase._
-import io.scalac.mesmer.core.util.probe.ObserverCollector.ScheduledCollectorImpl
-import io.scalac.mesmer.core.util.{ ActorPathOps, ReceptionistOps, TestConfig, TestOps }
-import io.scalac.mesmer.extension.ActorEventsMonitorActor._
-import io.scalac.mesmer.extension.actor.{ ActorMetrics, MutableActorMetricStorageFactory }
-import io.scalac.mesmer.extension.metric.ActorMetricsMonitor.Labels
-import io.scalac.mesmer.extension.service.ActorTreeService
-import io.scalac.mesmer.extension.service.ActorTreeService.Command.{ GetActorTree, GetActors }
-import io.scalac.mesmer.extension.util.Tree._
-import io.scalac.mesmer.extension.util.probe.ActorMonitorTestProbe
-import io.scalac.mesmer.extension.util.probe.BoundTestProbe.{
-  CounterCommand,
-  Inc,
-  MetricObserved,
-  MetricObserverCommand
-}
-import org.scalatest.concurrent.{ PatienceConfiguration, ScaledTimeSpans }
-import org.scalatest.{ LoneElement, TestSuite }
+import org.scalatest.LoneElement
+import org.scalatest.TestSuite
+import org.scalatest.concurrent.PatienceConfiguration
+import org.scalatest.concurrent.ScaledTimeSpans
 
 import scala.concurrent.duration._
 import scala.util.Random
 import scala.util.control.NoStackTrace
+
+import io.scalac.mesmer.core.model._
+import io.scalac.mesmer.core.util.ActorPathOps
+import io.scalac.mesmer.core.util.AggMetric.LongValueAggMetric
+import io.scalac.mesmer.core.util.ReceptionistOps
+import io.scalac.mesmer.core.util.TestCase._
+import io.scalac.mesmer.core.util.TestConfig
+import io.scalac.mesmer.core.util.TestOps
+import io.scalac.mesmer.core.util.probe.ObserverCollector.ScheduledCollectorImpl
+import io.scalac.mesmer.extension.ActorEventsMonitorActor._
+import io.scalac.mesmer.extension.actor.ActorMetrics
+import io.scalac.mesmer.extension.actor.MutableActorMetricStorageFactory
+import io.scalac.mesmer.extension.metric.ActorMetricsMonitor.Labels
+import io.scalac.mesmer.extension.service.ActorTreeService
+import io.scalac.mesmer.extension.service.ActorTreeService.Command.GetActorTree
+import io.scalac.mesmer.extension.service.ActorTreeService.Command.GetActors
+import io.scalac.mesmer.extension.util.Tree._
+import io.scalac.mesmer.extension.util.probe.ActorMonitorTestProbe
+import io.scalac.mesmer.extension.util.probe.BoundTestProbe.CounterCommand
+import io.scalac.mesmer.extension.util.probe.BoundTestProbe.Inc
+import io.scalac.mesmer.extension.util.probe.BoundTestProbe.MetricObserved
+import io.scalac.mesmer.extension.util.probe.BoundTestProbe.MetricObserverCommand
 
 trait ActorEventMonitorActorTestConfig {
   this: TestSuite with ScaledTimeSpans with ReceptionistOps with PatienceConfiguration =>
@@ -98,7 +106,6 @@ class ActorEventsMonitorActorTest
         Behaviors.same
 
       case GetActors(Tag.all, reply) =>
-//        monitor ! Inc(1L)
         reply ! refs.unfix.toVector
         Behaviors.same
       case GetActors(_, reply) =>
@@ -185,15 +192,15 @@ class ActorEventsMonitorActorTest
   def metrics(implicit context: Context): MetricsContext = context.metrics
 
   "ActorEventsMonitor" should "record mailbox size" in testCaseSetupContext { implicit setup => implicit context =>
-    shouldObserveWithChange(monitor.mailboxSizeProbe, TakeLabel, _.fakeMailboxSize, _.fakeMailboxSize += 1)
+    shouldObserveSumWithChange(monitor.mailboxSizeProbe, TakeLabel, _.fakeMailboxSize, _.fakeMailboxSize += 1)
   }
 
   it should "record stash size" in testCaseSetupContext { implicit setup => implicit context =>
-    shouldObserveWithChange(monitor.stashSizeProbe, TakeLabel, _.fakeStashedMessages, _.fakeStashedMessages += 10)
+    shouldObserveSumWithChange(monitor.stashSizeProbe, TakeLabel, _.fakeStashedMessages, _.fakeStashedMessages += 10)
   }
 
   it should "record avg mailbox time" in testCaseSetupContext { implicit setup => implicit context =>
-    shouldObserveWithChange(
+    shouldObserveLastWithChange(
       monitor.mailboxTimeAvgProbe,
       TakeLabel,
       _.fakeMailboxTime.avg,
@@ -202,7 +209,7 @@ class ActorEventsMonitorActorTest
   }
 
   it should "record min mailbox time" in testCaseSetupContext { implicit setup => implicit context =>
-    shouldObserveWithChange(
+    shouldObserveLastWithChange(
       monitor.mailboxTimeMinProbe,
       TakeLabel,
       _.fakeMailboxTime.min,
@@ -211,7 +218,7 @@ class ActorEventsMonitorActorTest
   }
 
   it should "record max mailbox time" in testCaseSetupContext { implicit setup => implicit context =>
-    shouldObserveWithChange(
+    shouldObserveLastWithChange(
       monitor.mailboxTimeMaxProbe,
       TakeLabel,
       _.fakeMailboxTime.max,
@@ -220,7 +227,7 @@ class ActorEventsMonitorActorTest
   }
 
   it should "record sum mailbox time" in testCaseSetupContext { implicit setup => implicit context =>
-    shouldObserveWithChange(
+    shouldObserveSumWithChange(
       monitor.mailboxTimeSumProbe,
       TakeLabel,
       _.fakeMailboxTime.sum,
@@ -229,7 +236,7 @@ class ActorEventsMonitorActorTest
   }
 
   it should "record received messages" in testCaseSetupContext { implicit setup => implicit context =>
-    shouldObserveWithChange(
+    shouldObserveSumWithChange(
       monitor.receivedMessagesProbe,
       TakeLabel,
       _.fakeReceivedMessages,
@@ -238,7 +245,7 @@ class ActorEventsMonitorActorTest
   }
 
   it should "record processed messages" in testCaseSetupContext { implicit setup => implicit context =>
-    shouldObserveWithChange(
+    shouldObserveSumWithChange(
       monitor.processedMessagesProbe,
       TakeLabel,
       _.fakeProcessedMessages,
@@ -247,7 +254,7 @@ class ActorEventsMonitorActorTest
   }
 
   it should "record failed messages" in testCaseSetupContext { implicit setup => implicit context =>
-    shouldObserveWithChange(
+    shouldObserveSumWithChange(
       monitor.failedMessagesProbe,
       TakeLabel,
       _.fakeFailedMessages,
@@ -256,7 +263,7 @@ class ActorEventsMonitorActorTest
   }
 
   it should "record avg processing time" in testCaseSetupContext { implicit setup => implicit context =>
-    shouldObserveWithChange(
+    shouldObserveLastWithChange(
       monitor.processingTimeAvgProbe,
       TakeLabel,
       _.fakeProcessingTimes.avg,
@@ -265,7 +272,7 @@ class ActorEventsMonitorActorTest
   }
 
   it should "record min processing time" in testCaseSetupContext { implicit setup => implicit context =>
-    shouldObserveWithChange(
+    shouldObserveLastWithChange(
       monitor.processingTimeMinProbe,
       TakeLabel,
       _.fakeProcessingTimes.min,
@@ -274,7 +281,7 @@ class ActorEventsMonitorActorTest
   }
 
   it should "record max processing time" in testCaseSetupContext { implicit setup => implicit context =>
-    shouldObserveWithChange(
+    shouldObserveLastWithChange(
       monitor.processingTimeMaxProbe,
       TakeLabel,
       _.fakeProcessingTimes.max,
@@ -283,7 +290,7 @@ class ActorEventsMonitorActorTest
   }
 
   it should "record sum processing time" in testCaseSetupContext { implicit setup => implicit context =>
-    shouldObserveWithChange(
+    shouldObserveSumWithChange(
       monitor.processingTimeSumProbe,
       TakeLabel,
       _.fakeProcessingTimes.sum,
@@ -292,11 +299,16 @@ class ActorEventsMonitorActorTest
   }
 
   it should "record the sent messages" in testCaseSetupContext { implicit setup => implicit context =>
-    shouldObserveWithChange(monitor.sentMessagesProbe, TakeLabel, _.fakeSentMessages, _.fakeSentMessages += 1)
+    shouldObserveSumWithChange(monitor.sentMessagesProbe, TakeLabel, _.fakeSentMessages, _.fakeSentMessages += 1)
   }
 
   it should "record the dropped messages" in testCaseSetupContext { implicit setup => implicit context =>
-    shouldObserveWithChange(monitor.droppedMessagesProbe, TakeLabel, _.fakeDroppedMessages, _.fakeDroppedMessages += 1)
+    shouldObserveSumWithChange(
+      monitor.droppedMessagesProbe,
+      TakeLabel,
+      _.fakeDroppedMessages,
+      _.fakeDroppedMessages += 1
+    )
   }
 
   it should "unbind monitors on restart" in testCaseWith(_.copy(metricReaderFactory = FailingReaderFactory)) {
@@ -341,11 +353,11 @@ class ActorEventsMonitorActorTest
     probe
       .fishForMessage(reasonableTime) {
         case MetricObserved(`metric`, `labels`) => FishingOutcomes.complete()
-        case MetricObserved(m, l) =>
+        case MetricObserved(_, _) =>
           FishingOutcomes.continueAndIgnore()
       }
 
-  def shouldObserveWithChange(
+  def shouldObserveLastWithChange(
     probe: TestProbe[MetricObserverCommand[Labels]],
     labels: Labels,
     metric: MetricsContext => Long,
@@ -354,6 +366,18 @@ class ActorEventsMonitorActorTest
     shouldObserve(probe, labels, metric(metrics))
     change(metrics)
     shouldObserve(probe, labels, metric(metrics))
+  }
+
+  def shouldObserveSumWithChange(
+    probe: TestProbe[MetricObserverCommand[Labels]],
+    labels: Labels,
+    metric: MetricsContext => Long,
+    change: MetricsContext => Unit
+  )(implicit c: Context): Unit = {
+    val first = metric(metrics)
+    shouldObserve(probe, labels, first)
+    change(metrics)
+    shouldObserve(probe, labels, first + metric(metrics))
   }
 }
 

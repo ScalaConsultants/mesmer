@@ -1,8 +1,8 @@
 package io.scalac.mesmer.core.util
 
-import io.scalac.mesmer.core.util.Timestamp.moveTimestamp
-
 import scala.concurrent.duration.FiniteDuration
+
+import io.scalac.mesmer.core.util.Timestamp.moveTimestamp
 
 final class Interval(private val nanos: Long) extends AnyVal {
   def toMillis: Long = math.floorDiv(nanos, 1_000_000)

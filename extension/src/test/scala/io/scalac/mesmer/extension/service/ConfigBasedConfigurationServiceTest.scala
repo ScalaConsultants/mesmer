@@ -2,12 +2,13 @@ package io.scalac.mesmer.extension.service
 
 import akka.actor.ActorPath
 import com.typesafe.config.ConfigFactory
-import io.scalac.mesmer.core.model.ActorConfiguration._
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
+import io.scalac.mesmer.core.model.ActorConfiguration._
+
 class ConfigBasedConfigurationServiceTest extends AnyFlatSpec with Matchers {
-  val TestConfig =
+  val TestConfig: String =
     """|
        |.rules {
        |  /user/actor/1

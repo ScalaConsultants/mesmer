@@ -1,7 +1,8 @@
 package io.scalac.mesmer.agent.akka.actor
 
-import io.scalac.mesmer.extension.actor.ActorCellDecorator
 import net.bytebuddy.asm.Advice._
+
+import io.scalac.mesmer.extension.actor.ActorCellDecorator
 
 class ActorCellReceiveMessageInstrumentation
 object ActorCellReceiveMessageInstrumentation {

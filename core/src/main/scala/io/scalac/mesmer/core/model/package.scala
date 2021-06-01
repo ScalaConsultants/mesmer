@@ -5,11 +5,13 @@ import _root_.akka.cluster.UniqueAddress
 import _root_.akka.http.scaladsl.model.HttpMethod
 import _root_.akka.http.scaladsl.model.Uri.{ Path => AkkaPath }
 import _root_.akka.{ actor => classic }
-import io.scalac.mesmer.core.model.Tag.StageName.StreamUniqueStageName
-import io.scalac.mesmer.core.model.Tag._
-import io.scalac.mesmer.core.tagging.{ @@, _ }
 
 import scala.language.implicitConversions
+
+import io.scalac.mesmer.core.model.Tag.StageName.StreamUniqueStageName
+import io.scalac.mesmer.core.model.Tag._
+import io.scalac.mesmer.core.tagging.@@
+import io.scalac.mesmer.core.tagging._
 
 package object model {
 

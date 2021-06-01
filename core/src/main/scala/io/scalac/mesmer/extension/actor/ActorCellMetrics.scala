@@ -7,15 +7,15 @@ class ActorCellMetrics {
   val processingTimeAgg: TimeAggregation = new TimeAggregation()
 
   //TODO remove this
-  val processingTimer: Timer             = new Timer
-  val receivedMessages: Counter          = new Counter
-  val processedMessages: Counter         = new Counter
-  val unhandledMessages: Counter         = new Counter
-  val sentMessages: Counter              = new Counter
-  val failedMessages: Counter            = new Counter
-  val exceptionHandledMarker: Marker     = new Marker
-  val stashSize: UninitializedCounter    = new UninitializedCounter
-  def droppedMessages: Option[Counter]   = None
+  val processingTimer: Timer           = new Timer
+  val receivedMessages: Counter        = new Counter
+  val processedMessages: Counter       = new Counter
+  val unhandledMessages: Counter       = new Counter
+  val sentMessages: Counter            = new Counter
+  val failedMessages: Counter          = new Counter
+  val exceptionHandledMarker: Marker   = new Marker
+  val stashSize: UninitializedCounter  = new UninitializedCounter
+  def droppedMessages: Option[Counter] = None
 }
 
 /**

@@ -28,7 +28,7 @@ class LongNoLockAggregatorTest extends AsyncFlatSpec with Matchers {
       }
   }
 
-  it should "produce no result when there is not data pushed" in  {
+  it should "produce no result when there is not data pushed" in {
     val agg = new LongNoLockAggregator()
 
     Future.successful {

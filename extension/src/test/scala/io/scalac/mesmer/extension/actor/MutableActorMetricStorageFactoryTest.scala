@@ -1,9 +1,10 @@
 package io.scalac.mesmer.extension.actor
 
-import io.scalac.mesmer.core.util.AggMetric.LongValueAggMetric
-import io.scalac.mesmer.core.util.TimeSeries
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
+
+import io.scalac.mesmer.core.util.AggMetric.LongValueAggMetric
+import io.scalac.mesmer.core.util.TimeSeries
 
 class MutableActorMetricStorageFactoryTest extends AnyFlatSpec with Matchers {
 

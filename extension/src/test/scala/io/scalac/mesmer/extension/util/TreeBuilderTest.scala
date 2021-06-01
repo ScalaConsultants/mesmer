@@ -1,9 +1,11 @@
 package io.scalac.mesmer.extension.util
 
-import io.scalac.mesmer.extension.util.Tree.NonRoot._
-import io.scalac.mesmer.extension.util.Tree.{ NonRoot, Root }
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
+
+import io.scalac.mesmer.extension.util.Tree.NonRoot
+import io.scalac.mesmer.extension.util.Tree.NonRoot._
+import io.scalac.mesmer.extension.util.Tree.Root
 
 class TreeBuilderTest extends AnyFlatSpec with Matchers {
 

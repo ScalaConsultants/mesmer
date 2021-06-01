@@ -1,8 +1,8 @@
 package io.scalac.mesmer.extension.actor
 
-import io.scalac.mesmer.extension.resource.MutableStorage
-
 import scala.collection.mutable
+
+import io.scalac.mesmer.extension.resource.MutableStorage
 
 final class MutableActorMetricStorageFactory[K] extends MetricStorageFactory[K] {
   type Storage = MutableActorMetricsStorage

@@ -1,22 +1,30 @@
 package io.scalac.mesmer.extension.service
 
 import akka.actor.PoisonPill
-import akka.actor.testkit.typed.scaladsl.{ScalaTestWithActorTestKit, TestProbe}
+import akka.actor.testkit.typed.scaladsl.ScalaTestWithActorTestKit
+import akka.actor.testkit.typed.scaladsl.TestProbe
+import akka.actor.typed.ActorRef
+import akka.actor.typed.ActorSystem
+import akka.actor.typed.Behavior
 import akka.actor.typed.scaladsl.Behaviors
 import akka.actor.typed.scaladsl.adapter._
-import akka.actor.typed.{ActorRef, ActorSystem, Behavior}
-import akka.{actor => classic}
-import io.scalac.mesmer.core.event.ActorEvent
-import io.scalac.mesmer.core.event.ActorEvent.{ActorCreated, TagsSet}
-import io.scalac.mesmer.core.model.ActorConfiguration._
-import io.scalac.mesmer.core.model.{ActorRefTags, Tag}
-import io.scalac.mesmer.core.util.TestCase.{MonitorTestCaseContext, MonitorWithActorRefSetupTestCaseFactory, ProvidedActorSystemTestCaseFactory}
-import io.scalac.mesmer.core.util.TestConfig
-import io.scalac.mesmer.extension.service.ActorTreeService.Command.GetActors
-import io.scalac.mesmer.extension.util.probe.ActorSystemMonitorProbe
+import akka.{ actor => classic }
 import org.scalatest.Inside
 import org.scalatest.flatspec.AnyFlatSpecLike
 import org.scalatest.matchers.should.Matchers
+
+import io.scalac.mesmer.core.event.ActorEvent
+import io.scalac.mesmer.core.event.ActorEvent.ActorCreated
+import io.scalac.mesmer.core.event.ActorEvent.TagsSet
+import io.scalac.mesmer.core.model.ActorConfiguration._
+import io.scalac.mesmer.core.model.ActorRefTags
+import io.scalac.mesmer.core.model.Tag
+import io.scalac.mesmer.core.util.TestCase.MonitorTestCaseContext
+import io.scalac.mesmer.core.util.TestCase.MonitorWithActorRefSetupTestCaseFactory
+import io.scalac.mesmer.core.util.TestCase.ProvidedActorSystemTestCaseFactory
+import io.scalac.mesmer.core.util.TestConfig
+import io.scalac.mesmer.extension.service.ActorTreeService.Command.GetActors
+import io.scalac.mesmer.extension.util.probe.ActorSystemMonitorProbe
 
 object ActorTreeServiceTest {
   object EmptyActorTreeTraverser extends ActorTreeTraverser {

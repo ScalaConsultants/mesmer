@@ -1,9 +1,8 @@
 package io.scalac.mesmer.agent.akka.actor
 
-import io.scalac.mesmer.core.util.Interval
 import net.bytebuddy.asm.Advice._
 
-import scala.concurrent.duration._
+import io.scalac.mesmer.core.util.Interval
 import io.scalac.mesmer.extension.actor.ActorCellDecorator
 
 class MailboxDequeueInstrumentation

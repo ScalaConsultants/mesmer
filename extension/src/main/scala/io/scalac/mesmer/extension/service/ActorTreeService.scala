@@ -2,12 +2,16 @@ package io.scalac.mesmer.extension.service
 
 import akka.actor.typed._
 import akka.actor.typed.receptionist.Receptionist.Register
+import akka.actor.typed.scaladsl.AbstractBehavior
+import akka.actor.typed.scaladsl.ActorContext
+import akka.actor.typed.scaladsl.Behaviors
 import akka.actor.typed.scaladsl.adapter._
-import akka.actor.typed.scaladsl.{AbstractBehavior, ActorContext, Behaviors}
-import akka.{actor => classic}
+import akka.{ actor => classic }
+
 import io.scalac.mesmer.core
 import io.scalac.mesmer.core.event.ActorEvent
-import io.scalac.mesmer.core.model.{Tag, _}
+import io.scalac.mesmer.core.model.Tag
+import io.scalac.mesmer.core.model._
 import io.scalac.mesmer.extension.metric.ActorSystemMonitor
 import io.scalac.mesmer.extension.metric.ActorSystemMonitor.Labels
 import io.scalac.mesmer.extension.service.ActorTreeService.Api
