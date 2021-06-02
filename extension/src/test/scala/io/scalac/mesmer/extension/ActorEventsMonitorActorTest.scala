@@ -331,7 +331,7 @@ class ActorEventsMonitorActorTest
     monitor.processingTimeSumProbe.receiveMessage()
     monitor.sentMessagesProbe.receiveMessage()
     monitor.droppedMessagesProbe.receiveMessage()
-    timestampFactory.count() should be(2L)
+    timestampFactory.count() should be >= (2) // this could happen more than once
   }
 
   private val incAverage: LongValueAggMetric => LongValueAggMetric = agg => agg.copy(avg = agg.avg + 1)
