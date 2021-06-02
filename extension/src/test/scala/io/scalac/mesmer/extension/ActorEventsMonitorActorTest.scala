@@ -2,45 +2,36 @@ package io.scalac.mesmer.extension
 
 import akka.actor.PoisonPill
 import akka.actor.testkit.typed.javadsl.FishingOutcomes
-import akka.actor.testkit.typed.scaladsl.ScalaTestWithActorTestKit
-import akka.actor.testkit.typed.scaladsl.TestProbe
-import akka.actor.typed.ActorRef
-import akka.actor.typed.ActorSystem
-import akka.actor.typed.Behavior
-import akka.actor.typed.SupervisorStrategy
-import akka.actor.typed.scaladsl.Behaviors
-import akka.actor.typed.scaladsl.StashBuffer
+import akka.actor.testkit.typed.scaladsl.{ ScalaTestWithActorTestKit, TestProbe }
 import akka.actor.typed.scaladsl.adapter._
+import akka.actor.typed.scaladsl.{ Behaviors, StashBuffer }
+import akka.actor.typed.{ ActorRef, ActorSystem, Behavior, SupervisorStrategy }
 import akka.util.Timeout
 import akka.{ actor => classic }
-import org.scalatest.LoneElement
-import org.scalatest.TestSuite
-import org.scalatest.concurrent.PatienceConfiguration
-import org.scalatest.concurrent.ScaledTimeSpans
-
-import scala.concurrent.duration._
-import scala.util.Random
-import scala.util.control.NoStackTrace
-
 import io.scalac.mesmer.core.model._
-import io.scalac.mesmer.core.util.ActorPathOps
 import io.scalac.mesmer.core.util.AggMetric.LongValueAggMetric
-import io.scalac.mesmer.core.util.ReceptionistOps
 import io.scalac.mesmer.core.util.TestCase._
-import io.scalac.mesmer.core.util.TestConfig
-import io.scalac.mesmer.core.util.TestOps
+import io.scalac.mesmer.core.util._
 import io.scalac.mesmer.core.util.probe.ObserverCollector.ScheduledCollectorImpl
 import io.scalac.mesmer.extension.ActorEventsMonitorActor._
-import io.scalac.mesmer.extension.actor.ActorMetrics
-import io.scalac.mesmer.extension.actor.MutableActorMetricsStorage
+import io.scalac.mesmer.extension.actor.{ ActorMetrics, MutableActorMetricsStorage }
 import io.scalac.mesmer.extension.metric.ActorMetricsMonitor.Labels
 import io.scalac.mesmer.extension.service.ActorTreeService
 import io.scalac.mesmer.extension.service.ActorTreeService.Command.GetActors
 import io.scalac.mesmer.extension.util.probe.ActorMonitorTestProbe
-import io.scalac.mesmer.extension.util.probe.BoundTestProbe.CounterCommand
-import io.scalac.mesmer.extension.util.probe.BoundTestProbe.Inc
-import io.scalac.mesmer.extension.util.probe.BoundTestProbe.MetricObserved
-import io.scalac.mesmer.extension.util.probe.BoundTestProbe.MetricObserverCommand
+import io.scalac.mesmer.extension.util.probe.BoundTestProbe.{
+  CounterCommand,
+  Inc,
+  MetricObserved,
+  MetricObserverCommand
+}
+import org.scalatest.concurrent.{ PatienceConfiguration, ScaledTimeSpans }
+import org.scalatest.{ LoneElement, TestSuite }
+
+import java.util.concurrent.atomic.AtomicInteger
+import scala.concurrent.duration._
+import scala.util.Random
+import scala.util.control.NoStackTrace
 
 trait ActorEventMonitorActorTestConfig {
   this: TestSuite with ScaledTimeSpans with ReceptionistOps with PatienceConfiguration =>
@@ -123,7 +114,8 @@ class ActorEventsMonitorActorTest
   )
   protected def createContextFromMonitor(monitor: ActorMonitorTestProbe)(implicit
     system: ActorSystem[_]
-  ): Context = TestContext(monitor, TestProbe(), FakeReaderFactory, constRefsActorServiceTree)
+  ): Context =
+    TestContext(monitor, TestProbe(), FakeReaderFactory, constRefsActorServiceTree, new CountingTimestampFactory)
 
   protected def setUp(c: Context): Setup = {
 
@@ -146,7 +138,8 @@ class ActorEventsMonitorActorTest
                 pingOffset,
                 () => MutableActorMetricsStorage.empty,
                 scheduler,
-                c.TestActorMetricsReader
+                c.TestActorMetricsReader,
+                c.timestampFactory
               ).start(treeService)
             }
           }
@@ -170,7 +163,8 @@ class ActorEventsMonitorActorTest
 
   def sut(implicit setup: Setup): ActorRef[ActorEventsMonitorActor.Command] = setup.sut
 
-  def metrics(implicit context: Context): MetricsContext = context.metrics
+  def metrics(implicit context: Context): MetricsContext                    = context.metrics
+  def timestampFactory(implicit context: Context): CountingTimestampFactory = context.timestampFactory
 
   "ActorEventsMonitor" should "record mailbox size" in testCaseSetupContext { implicit setup => implicit context =>
     shouldObserveWithChange(monitor.mailboxSizeProbe, TakeLabel, _.fakeMailboxSize, _.fakeMailboxSize += 1)
@@ -310,6 +304,28 @@ class ActorEventsMonitorActorTest
     context.actorTreeServiceProbe.expectMessage(Inc(1L))
   }
 
+  it should "update timestamp after all probes run" in testCase { implicit context =>
+    eventually {
+      timestampFactory.count() should be(1L)
+    }
+    monitor.mailboxSizeProbe.receiveMessage()
+    monitor.mailboxTimeAvgProbe.receiveMessage()
+    monitor.mailboxTimeMinProbe.receiveMessage()
+    monitor.mailboxTimeMaxProbe.receiveMessage()
+    monitor.mailboxTimeSumProbe.receiveMessage()
+    monitor.stashSizeProbe.receiveMessage()
+    monitor.receivedMessagesProbe.receiveMessage()
+    monitor.processedMessagesProbe.receiveMessage()
+    monitor.failedMessagesProbe.receiveMessage()
+    monitor.processingTimeAvgProbe.receiveMessage()
+    monitor.processingTimeMinProbe.receiveMessage()
+    monitor.processingTimeMaxProbe.receiveMessage()
+    monitor.processingTimeSumProbe.receiveMessage()
+    monitor.sentMessagesProbe.receiveMessage()
+    monitor.droppedMessagesProbe.receiveMessage()
+    timestampFactory.count() should be(2L)
+  }
+
   private val incAverage: LongValueAggMetric => LongValueAggMetric = agg => agg.copy(avg = agg.avg + 1)
   private val incMax: LongValueAggMetric => LongValueAggMetric     = agg => agg.copy(max = agg.max + 1)
   private val incSum: LongValueAggMetric => LongValueAggMetric     = agg => agg.copy(sum = agg.sum + 1)
@@ -370,6 +386,17 @@ object ActorEventsMonitorActorTest {
     def fakeUnhandledMessages: Long = fakeReceivedMessages - fakeProcessedMessages
   }
 
+  final class CountingTimestampFactory() extends (() => Timestamp) {
+
+    private val _count = new AtomicInteger(0)
+    override def apply(): Timestamp = {
+      _count.incrementAndGet()
+      Timestamp.create()
+    }
+
+    def count(): Int = _count.get()
+  }
+
   final case class TestContext(
     monitor: ActorMonitorTestProbe,
     actorTreeServiceProbe: TestProbe[CounterCommand],
@@ -377,7 +404,8 @@ object ActorEventsMonitorActorTest {
     actorTreeServiceBehaviorFactory: (
       ActorRef[CounterCommand],
       Seq[classic.ActorRef]
-    ) => Behavior[ActorTreeService.Command]
+    ) => Behavior[ActorTreeService.Command],
+    timestampFactory: CountingTimestampFactory
   )(implicit
     val system: ActorSystem[_]
   ) extends MonitorTestCaseContext[ActorMonitorTestProbe] {

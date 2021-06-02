@@ -77,7 +77,7 @@ sealed trait AsyncTestProbe[T] extends AbstractTestProbeWrapper {
     collector.update(probe, () => handleCallback(callback))
 }
 
-case class ObserverTestProbeWrapper[L <: LabelSerializable](
+final case class ObserverTestProbeWrapper[L](
   probe: TestProbe[MetricObserverCommand[L]],
   collector: ObserverCollector
 ) extends AsyncTestProbe[MetricObserver.Updater[Long, L]]

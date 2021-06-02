@@ -1,35 +1,25 @@
 package io.scalac.mesmer.extension
 
-import java.util.concurrent.atomic.AtomicReference
-
 import akka.actor.typed._
 import akka.actor.typed.receptionist.Receptionist.Listing
-import akka.actor.typed.scaladsl.ActorContext
-import akka.actor.typed.scaladsl.Behaviors
-import akka.actor.typed.scaladsl.TimerScheduler
+import akka.actor.typed.scaladsl.{ ActorContext, Behaviors, TimerScheduler }
 import akka.util.Timeout
 import akka.{ actor => classic }
-import org.slf4j.LoggerFactory
-
-import scala.concurrent.duration._
-import scala.util.Failure
-import scala.util.Success
-
-import io.scalac.mesmer.core.model.Node
-import io.scalac.mesmer.core.model.Tag
-import io.scalac.mesmer.core.util.ActorCellOps
-import io.scalac.mesmer.core.util.ActorRefOps
+import io.scalac.mesmer.core.model.{ Node, Tag }
+import io.scalac.mesmer.core.util.{ ActorCellOps, ActorRefOps, Timestamp }
 import io.scalac.mesmer.extension.ActorEventsMonitorActor._
-import io.scalac.mesmer.extension.actor.ActorCellDecorator
-import io.scalac.mesmer.extension.actor.ActorMetricStorage
-import io.scalac.mesmer.extension.actor.ActorMetrics
-import io.scalac.mesmer.extension.metric.ActorMetricsMonitor
+import io.scalac.mesmer.extension.actor.{ ActorCellDecorator, ActorMetricStorage, ActorMetrics }
 import io.scalac.mesmer.extension.metric.ActorMetricsMonitor.Labels
 import io.scalac.mesmer.extension.metric.MetricObserver.Result
-import io.scalac.mesmer.extension.service.ActorTreeService
+import io.scalac.mesmer.extension.metric.{ ActorMetricsMonitor, SyncWith }
 import io.scalac.mesmer.extension.service.ActorTreeService.Command.GetActors
-import io.scalac.mesmer.extension.service.actorTreeServiceKey
+import io.scalac.mesmer.extension.service.{ actorTreeServiceKey, ActorTreeService }
 import io.scalac.mesmer.extension.util.GenericBehaviors
+import org.slf4j.LoggerFactory
+
+import java.util.concurrent.atomic.AtomicReference
+import scala.concurrent.duration._
+import scala.util.{ Failure, Success }
 
 object ActorEventsMonitorActor {
 
@@ -43,7 +33,8 @@ object ActorEventsMonitorActor {
     node: Option[Node],
     pingOffset: FiniteDuration,
     storageFactory: () => ActorMetricStorage,
-    actorMetricsReader: ActorMetricsReader = ReflectiveActorMetricsReader
+    actorMetricsReader: ActorMetricsReader,
+    timestampFactory: () => Timestamp
   ): Behavior[Command] =
     Behaviors.setup[Command] { ctx =>
       GenericBehaviors
@@ -56,7 +47,8 @@ object ActorEventsMonitorActor {
               pingOffset,
               storageFactory,
               scheduler,
-              actorMetricsReader
+              actorMetricsReader,
+              timestampFactory
             ).start(ref)
           }
         }
@@ -105,7 +97,8 @@ private[extension] class ActorEventsMonitorActor private[extension] (
   pingOffset: FiniteDuration,
   storageFactory: () => ActorMetricStorage,
   scheduler: TimerScheduler[Command],
-  actorMetricsReader: ActorMetricsReader = ReflectiveActorMetricsReader
+  actorMetricsReader: ActorMetricsReader = ReflectiveActorMetricsReader,
+  timestampFactory: () => Timestamp
 ) {
 
   import context._
@@ -113,6 +106,9 @@ private[extension] class ActorEventsMonitorActor private[extension] (
   private[this] val boundMonitor = monitor.bind()
 
   private[this] val treeSnapshot = new AtomicReference[Option[Seq[(Labels, ActorMetrics)]]](None)
+
+  @volatile
+  private var lastCollectionTimestamp: Timestamp = timestampFactory()
 
   private def updateMetric(extractor: ActorMetrics => Option[Long])(result: Result[Long, Labels]): Unit = {
     val state = treeSnapshot.get()
@@ -124,21 +120,28 @@ private[extension] class ActorEventsMonitorActor private[extension] (
 
   // this is not idempotent!
   private def registerUpdaters(): Unit = {
-    boundMonitor.mailboxSize.setUpdater(updateMetric(_.mailboxSize))
-    boundMonitor.failedMessages.setUpdater(updateMetric(_.failedMessages))
-    boundMonitor.processedMessages.setUpdater(updateMetric(_.processedMessages))
-    boundMonitor.receivedMessages.setUpdater(updateMetric(_.receivedMessages))
-    boundMonitor.mailboxTimeAvg.setUpdater(updateMetric(_.mailboxTime.map(_.avg)))
-    boundMonitor.mailboxTimeMax.setUpdater(updateMetric(_.mailboxTime.map(_.max)))
-    boundMonitor.mailboxTimeMin.setUpdater(updateMetric(_.mailboxTime.map(_.min)))
-    boundMonitor.mailboxTimeSum.setUpdater(updateMetric(_.mailboxTime.map(_.sum)))
-    boundMonitor.processingTimeAvg.setUpdater(updateMetric(_.processingTime.map(_.avg)))
-    boundMonitor.processingTimeMin.setUpdater(updateMetric(_.processingTime.map(_.min)))
-    boundMonitor.processingTimeMax.setUpdater(updateMetric(_.processingTime.map(_.max)))
-    boundMonitor.processingTimeSum.setUpdater(updateMetric(_.processingTime.map(_.sum)))
-    boundMonitor.sentMessages.setUpdater(updateMetric(_.sentMessages))
-    boundMonitor.stashSize.setUpdater(updateMetric(_.stashSize))
-    boundMonitor.droppedMessages.setUpdater(updateMetric(_.droppedMessages))
+
+    import boundMonitor._
+    SyncWith()
+      .`with`(mailboxSize)(updateMetric(_.mailboxSize))
+      .`with`(failedMessages)(updateMetric(_.failedMessages))
+      .`with`(processedMessages)(updateMetric(_.processedMessages))
+      .`with`(receivedMessages)(updateMetric(_.receivedMessages))
+      .`with`(mailboxTimeAvg)(updateMetric(_.mailboxTime.map(_.avg)))
+      .`with`(mailboxTimeMax)(updateMetric(_.mailboxTime.map(_.max)))
+      .`with`(mailboxTimeMin)(updateMetric(_.mailboxTime.map(_.min)))
+      .`with`(mailboxTimeSum)(updateMetric(_.mailboxTime.map(_.sum)))
+      .`with`(processingTimeAvg)(updateMetric(_.processingTime.map(_.avg)))
+      .`with`(processingTimeMin)(updateMetric(_.processingTime.map(_.min)))
+      .`with`(processingTimeMax)(updateMetric(_.processingTime.map(_.max)))
+      .`with`(processingTimeSum)(updateMetric(_.processingTime.map(_.sum)))
+      .`with`(sentMessages)(updateMetric(_.sentMessages))
+      .`with`(stashSize)(updateMetric(_.stashSize))
+      .`with`(droppedMessages)(updateMetric(_.droppedMessages))
+      .afterAll {
+        lastCollectionTimestamp = timestampFactory()
+      }
+
   }
 
   // this is not idempotent
