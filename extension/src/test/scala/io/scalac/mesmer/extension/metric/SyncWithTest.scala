@@ -1,13 +1,15 @@
 package io.scalac.mesmer.extension.metric
 
 import akka.actor.testkit.typed.scaladsl.ScalaTestWithActorTestKit
-import io.scalac.mesmer.core.util.TestConfig
-import io.scalac.mesmer.core.util.probe.ObserverCollector.ManualCollectorImpl
-import io.scalac.mesmer.extension.util.probe.BoundTestProbe.{ MetricObserved, MetricObserverCommand }
-import io.scalac.mesmer.extension.util.probe.ObserverTestProbeWrapper
 import org.scalatest.Inspectors
 import org.scalatest.flatspec.AnyFlatSpecLike
 import org.scalatest.matchers.should.Matchers
+
+import io.scalac.mesmer.core.util.TestConfig
+import io.scalac.mesmer.core.util.probe.ObserverCollector.ManualCollectorImpl
+import io.scalac.mesmer.extension.util.probe.BoundTestProbe.MetricObserved
+import io.scalac.mesmer.extension.util.probe.BoundTestProbe.MetricObserverCommand
+import io.scalac.mesmer.extension.util.probe.ObserverTestProbeWrapper
 
 class SyncWithTest
     extends ScalaTestWithActorTestKit(TestConfig.localActorProvider)

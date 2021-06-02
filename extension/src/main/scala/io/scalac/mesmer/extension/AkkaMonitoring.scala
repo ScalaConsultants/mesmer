@@ -5,28 +5,35 @@ import akka.actor.typed.receptionist.Receptionist.Register
 import akka.actor.typed.scaladsl.Behaviors
 import akka.cluster.Cluster
 import akka.util.Timeout
-import io.scalac.mesmer.core.model.{ Module, SupportedVersion, _ }
-import io.scalac.mesmer.core.support.ModulesSupport
-import io.scalac.mesmer.core.util.ModuleInfo.Modules
-import io.scalac.mesmer.core.util.{ ModuleInfo, Timestamp }
-import io.scalac.mesmer.extension.ActorEventsMonitorActor.ReflectiveActorMetricsReader
-import io.scalac.mesmer.extension.actor.MutableActorMetricsStorage
-import io.scalac.mesmer.extension.config.{ AkkaMonitoringConfig, CachingConfig, InstrumentationLibrary }
-import io.scalac.mesmer.extension.http.CleanableRequestStorage
-import io.scalac.mesmer.extension.metric.CachingMonitor
-import io.scalac.mesmer.extension.persistence.{ CleanablePersistingStorage, CleanableRecoveryStorage }
-import io.scalac.mesmer.extension.service.{ actorTreeServiceKey, ActorTreeService, CachingPathService }
-import io.scalac.mesmer.extension.upstream.{
-  OpenTelemetryClusterMetricsMonitor,
-  OpenTelemetryHttpMetricsMonitor,
-  OpenTelemetryPersistenceMetricsMonitor,
-  _
-}
 
 import scala.concurrent.duration._
 import scala.language.postfixOps
 import scala.reflect.ClassTag
 import scala.util.Try
+
+import io.scalac.mesmer.core.model.Module
+import io.scalac.mesmer.core.model.SupportedVersion
+import io.scalac.mesmer.core.model._
+import io.scalac.mesmer.core.support.ModulesSupport
+import io.scalac.mesmer.core.util.ModuleInfo
+import io.scalac.mesmer.core.util.ModuleInfo.Modules
+import io.scalac.mesmer.core.util.Timestamp
+import io.scalac.mesmer.extension.ActorEventsMonitorActor.ReflectiveActorMetricsReader
+import io.scalac.mesmer.extension.actor.MutableActorMetricsStorage
+import io.scalac.mesmer.extension.config.AkkaMonitoringConfig
+import io.scalac.mesmer.extension.config.CachingConfig
+import io.scalac.mesmer.extension.config.InstrumentationLibrary
+import io.scalac.mesmer.extension.http.CleanableRequestStorage
+import io.scalac.mesmer.extension.metric.CachingMonitor
+import io.scalac.mesmer.extension.persistence.CleanablePersistingStorage
+import io.scalac.mesmer.extension.persistence.CleanableRecoveryStorage
+import io.scalac.mesmer.extension.service.ActorTreeService
+import io.scalac.mesmer.extension.service.CachingPathService
+import io.scalac.mesmer.extension.service.actorTreeServiceKey
+import io.scalac.mesmer.extension.upstream.OpenTelemetryClusterMetricsMonitor
+import io.scalac.mesmer.extension.upstream.OpenTelemetryHttpMetricsMonitor
+import io.scalac.mesmer.extension.upstream.OpenTelemetryPersistenceMetricsMonitor
+import io.scalac.mesmer.extension.upstream._
 
 object AkkaMonitoring extends ExtensionId[AkkaMonitoring] {
 
