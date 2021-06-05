@@ -5,6 +5,5 @@ trait InstrumentModuleFactory {
 
   protected def supportedModules: SupportedModules
 
-  def instrument(tpe: Type): TypeInstrumentation = TypeInstrumentation(TypeTarget(tpe, supportedModules))
-
+  protected def instrument(tpe: Type): TypeInstrumentation = TypeInstrumentation(TypeTarget(tpe, supportedModules))
 }

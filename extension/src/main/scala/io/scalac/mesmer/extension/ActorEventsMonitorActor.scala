@@ -82,7 +82,8 @@ object ActorEventsMonitorActor {
         unhandledMessages = Some(metrics.unhandledMessages.take()),
         failedMessages = Some(metrics.failedMessages.take()),
         sentMessages = Some(metrics.sentMessages.take()),
-        stashSize = metrics.stashSize.get()
+        stashSize = metrics.stashSize.get(),
+        droppedMessages = metrics.droppedMessages.map(_.get())
       )
 
     private def safeRead[T](value: => T): Option[T] =
@@ -137,6 +138,7 @@ private[extension] class ActorEventsMonitorActor private[extension] (
     boundMonitor.processingTimeSum.setUpdater(updateMetric(_.processingTime.map(_.sum)))
     boundMonitor.sentMessages.setUpdater(updateMetric(_.sentMessages))
     boundMonitor.stashSize.setUpdater(updateMetric(_.stashSize))
+    boundMonitor.droppedMessages.setUpdater(updateMetric(_.droppedMessages))
   }
 
   // this is not idempotent

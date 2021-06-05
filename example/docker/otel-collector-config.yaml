@@ -10,7 +10,7 @@ exporters:
     const_labels:
       label1: value1
   logging:
-    loglevel: debug
+    loglevel: info
 
 processors:
   batch:
@@ -28,5 +28,5 @@ service:
     metrics:
       receivers: [otlp]
       processors: [batch]
-      exporters: [logging, prometheus]
+      exporters: [prometheus]
       

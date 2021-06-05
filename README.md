@@ -1,4 +1,6 @@
-![Scala CI](https://github.com/ScalaConsultants/mesmer-akka-agent/workflows/Scala%20CI/badge.svg)
+| CI | Release | Snapshot |
+| --- | --- | --- |
+| ![Scala CI][Badge-CI] | [![Release Artifacts][badge-releases]][link-releases] | [![Snapshot Artifacts][badge-snapshots]][link-snapshots] |
 
 # Mesmer Akka Agent
 
@@ -8,8 +10,8 @@ Mesmer Akka Agent is an [OpenTelemetry](https://opentelemetry.io/) instrumentati
 
 Mesmer has been tested with:
 - Scala: 2.13.x
-- Akka Actors: 2.6.8, 2.6.9, 2.6.10, 2.6.11, 2.6.12
-- Akka HTTP: 10.1.8, 10.2.0, 10.2.1, 10.2.2
+- Akka Actors: 2.6.8, 2.6.9, 2.6.10, 2.6.11, 2.6.12, 2.6.13, 2.6.14
+- Akka HTTP: 10.1.8, 10.2.0, 10.2.1, 10.2.2, 10.2.3, 10.2.4
 - JVM: 1.8+
 
 ## Getting started
@@ -67,3 +69,9 @@ See [overview](https://github.com/ScalaConsultants/mesmer-akka-agent/blob/main/e
 # Local testing
 
 `example` subproject contains a test application that uses Akka Cluster sharding with Mesmer Akka Agent extension. Go [here](example/README.md) for more information.
+
+[Badge-CI]: https://github.com/ScalaConsultants/mesmer-akka-agent/workflows/Scala%20CI/badge.svg
+[badge-releases]: https://img.shields.io/nexus/r/https/oss.sonatype.org/io.scalac/mesmer-akka-extension_2.13 "Sonatype Releases"
+[badge-snapshots]: https://img.shields.io/nexus/s/https/oss.sonatype.org/io.scalac/mesmer-akka-extension_2.13 "Sonatype Snapshots"
+[link-releases]: https://oss.sonatype.org/content/repositories/releases/io/scalac/mesmer-akka-extension_2.13/ "Sonatype Releases"
+[link-snapshots]: https://oss.sonatype.org/content/repositories/snapshots/io/scalac/mesmer-akka-extension_2.13/ "Sonatype Snapshots"

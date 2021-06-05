@@ -8,7 +8,7 @@ object InstrumentationLibrary {
 
   private final val name = "mesmer-akka"
 
-  val meterProvider: MeterProvider = GlobalMeterProvider.get()
-  val meter: Meter                 = meterProvider.get(name)
+  def meterProvider: MeterProvider = GlobalMeterProvider.get()
+  def mesmerMeter: Meter           = meterProvider.get(name)
 
 }

@@ -89,7 +89,8 @@ class ActorEventsMonitorActorTest
           failedMessages = Some(fakeFailedMessages),
           processingTime = Some(fakeProcessingTimes),
           sentMessages = Some(fakeSentMessages),
-          stashSize = Some(fakeStashedMessages)
+          stashSize = Some(fakeStashedMessages),
+          droppedMessages = Some(fakeDroppedMessages)
         )
       )
     }
@@ -282,6 +283,10 @@ class ActorEventsMonitorActorTest
     shouldObserveWithChange(monitor.sentMessagesProbe, TakeLabel, _.fakeSentMessages, _.fakeSentMessages += 1)
   }
 
+  it should "record the dropped messages" in testCaseSetupContext { implicit setup => implicit context =>
+    shouldObserveWithChange(monitor.droppedMessagesProbe, TakeLabel, _.fakeDroppedMessages, _.fakeDroppedMessages += 1)
+  }
+
   it should "unbind monitors on restart" in testCaseWith(_.copy(metricReaderFactory = FailingReaderFactory)) {
     implicit context =>
       eventually {
@@ -357,6 +362,7 @@ object ActorEventsMonitorActorTest {
     @volatile var fakeFailedMessages    = 2
     @volatile var fakeSentMessages      = 10
     @volatile var fakeStashedMessages   = 19
+    @volatile var fakeDroppedMessages   = 0
 
     @volatile var fakeMailboxTime: LongValueAggMetric     = LongValueAggMetric(1, 2, 1, 4, 3)
     @volatile var fakeProcessingTimes: LongValueAggMetric = LongValueAggMetric(1, 2, 1, 4, 3)

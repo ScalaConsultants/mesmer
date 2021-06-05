@@ -11,9 +11,9 @@ object SupervisorHandleReceiveExceptionInstrumentation {
 
   @OnMethodExit(onThrowable = classOf[Throwable])
   def onExit(@Argument(0) context: TypedActorContext[_]): Unit =
-    ActorCellDecorator.get(ClassicActorContextProviderOps.classicActorContext(context)).foreach { spy =>
-      spy.failedMessages.inc()
-      spy.exceptionHandledMarker.mark()
+    ActorCellDecorator.get(ClassicActorContextProviderOps.classicActorContext(context)).foreach { actorMetrics =>
+      actorMetrics.failedMessages.inc()
+      actorMetrics.exceptionHandledMarker.mark()
     }
 
 }

@@ -25,6 +25,7 @@ object ActorMetricsMonitor {
     def processingTimeMax: MetricObserver[Long, Labels]
     def processingTimeSum: MetricObserver[Long, Labels]
     def sentMessages: MetricObserver[Long, Labels]
+    def droppedMessages: MetricObserver[Long, Labels]
 
   }
 }

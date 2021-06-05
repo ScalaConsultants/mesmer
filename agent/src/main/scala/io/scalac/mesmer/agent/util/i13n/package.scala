@@ -4,12 +4,14 @@ import net.bytebuddy.asm.Advice
 import net.bytebuddy.description.`type`.TypeDescription
 import net.bytebuddy.description.method.MethodDescription
 import net.bytebuddy.dynamic.DynamicType
+import net.bytebuddy.implementation.Implementation
 import net.bytebuddy.implementation.MethodDelegation
 import net.bytebuddy.matcher.ElementMatcher
 import net.bytebuddy.matcher.{ ElementMatchers => EM }
 
 import scala.language.implicitConversions
 import scala.reflect.ClassTag
+import scala.reflect.classTag
 
 import io.scalac.mesmer.agent.AgentInstrumentation
 import io.scalac.mesmer.core.model.SupportedModules
@@ -18,7 +20,10 @@ package object i13n {
 
   final private[i13n] type TypeDesc   = ElementMatcher.Junction[TypeDescription]
   final private[i13n] type MethodDesc = ElementMatcher.Junction[MethodDescription]
-  final class Type private[i13n] (private[i13n] val name: String, private[i13n] val desc: TypeDesc)
+
+  final class Type private[i13n] (private[i13n] val name: String, private[i13n] val desc: TypeDesc) {
+    def and(addDesc: TypeDesc): Type = new Type(name, desc.and(addDesc))
+  }
 
   // DSL
 
@@ -26,13 +31,18 @@ package object i13n {
 
   def methods(first: MethodDesc, rest: MethodDesc*): MethodDesc = rest.fold(first)(_.or(_))
 
-  def constructor: MethodDesc = EM.isConstructor
+  val constructor: MethodDesc = EM.isConstructor
 
   def `type`(name: String): Type =
-    new Type(name, EM.named[TypeDescription](name))
+    `type`(name, EM.named[TypeDescription](name))
+
+  def `type`(name: String, desc: TypeDesc): Type = new Type(name, desc)
 
   def hierarchy(name: String): Type =
-    new Type(name, EM.hasSuperType[TypeDescription](EM.named[TypeDescription](name)))
+    `type`(
+      name,
+      EM.hasSuperType[TypeDescription](EM.named[TypeDescription](name))
+    )
 
   // wrappers
 
@@ -49,11 +59,20 @@ package object i13n {
     def intercept[T](method: MethodDesc)(implicit ct: ClassTag[T]): TypeInstrumentation =
       chain(_.method(method).intercept(Advice.to(ct.runtimeClass)))
 
+    def intercept(method: MethodDesc, implementation: Implementation): TypeInstrumentation =
+      chain(_.method(method).intercept(implementation))
+
     def delegate[T](method: MethodDesc)(implicit ct: ClassTag[T]): TypeInstrumentation =
       chain(_.method(method).intercept(MethodDelegation.to(ct.runtimeClass)))
 
     def defineField[T](name: String)(implicit ct: ClassTag[T]): TypeInstrumentation =
       chain(_.defineField(name, ct.runtimeClass))
+
+    def implement[C: ClassTag](impl: Option[Implementation]): TypeInstrumentation =
+      chain { builder =>
+        val implemented = builder.implement(classTag[C].runtimeClass)
+        impl.fold[Builder](implemented)(implemented.intercept)
+      }
 
     private def chain(that: Builder => Builder): TypeInstrumentation =
       new TypeInstrumentation(target, transformBuilder.andThen(that))

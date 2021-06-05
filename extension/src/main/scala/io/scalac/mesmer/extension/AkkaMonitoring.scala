@@ -115,7 +115,7 @@ final class AkkaMonitoring(private val system: ActorSystem[_], val config: AkkaM
   import AkkaMonitoring.ExportInterval
   import system.log
 
-  private val meter                              = InstrumentationLibrary.meter
+  private val meter                              = InstrumentationLibrary.mesmerMeter
   private val actorSystemConfig                  = system.settings.config
   private val openTelemetryClusterMetricsMonitor = OpenTelemetryClusterMetricsMonitor(meter, actorSystemConfig)
   import io.scalac.mesmer.core.AkkaDispatcher._

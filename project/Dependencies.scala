@@ -5,7 +5,7 @@ object Dependencies {
   val AkkaHttpVersion             = "10.2.4"
   val AkkaManagementVersion       = "1.1.0"
   val AkkaVersion                 = "2.6.14"
-  val CirceVersion                = "0.13.0"
+  val CirceVersion                = "0.14.1"
   val LogbackVersion              = "1.2.3"
   val OpentelemetryVersion        = "1.2.0"
   val OpentelemetryMetricsVersion = "1.2.0-alpha"
@@ -27,13 +27,13 @@ object Dependencies {
 
   val akkaPersistance = Seq(
     "com.typesafe.akka"  %% "akka-persistence-typed" % AkkaVersion,
-    "com.lightbend.akka" %% "akka-persistence-jdbc"  % "5.0.0",
+    "com.lightbend.akka" %% "akka-persistence-jdbc"  % "5.0.1",
     "com.typesafe.akka"  %% "akka-persistence-query" % AkkaVersion
   )
 
   val byteBuddy = Seq(
-    "net.bytebuddy" % "byte-buddy"       % "1.11.0",
-    "net.bytebuddy" % "byte-buddy-agent" % "1.11.0"
+    "net.bytebuddy" % "byte-buddy"       % "1.11.1",
+    "net.bytebuddy" % "byte-buddy-agent" % "1.11.1"
   )
 
   val logback = Seq("ch.qos.logback" % "logback-classic" % LogbackVersion)
@@ -76,6 +76,6 @@ object Dependencies {
     "com.lightbend.akka.management" %% "akka-management-cluster-bootstrap"  % AkkaManagementVersion,
     "com.lightbend.akka.discovery"  %% "akka-discovery-kubernetes-api"      % AkkaManagementVersion,
     "io.opentelemetry"              % "opentelemetry-exporter-otlp-metrics" % OpentelemetryMetricsVersion,
-    "io.grpc"                       % "grpc-netty-shaded"                   % "1.37.1"
+    "io.grpc"                       % "grpc-netty-shaded"                   % "1.38.0"
   )
 }
