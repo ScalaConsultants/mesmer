@@ -1,15 +1,13 @@
 package io.scalac.mesmer.extension.util
 
+import io.scalac.mesmer.extension.util.Tree.NonRoot._
+import io.scalac.mesmer.extension.util.Tree.{ NonRoot, Root, TreeOrdering }
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
-import io.scalac.mesmer.extension.util.Tree.NonRoot
-import io.scalac.mesmer.extension.util.Tree.NonRoot._
-import io.scalac.mesmer.extension.util.Tree.Root
-
 class TreeBuilderTest extends AnyFlatSpec with Matchers {
 
-  implicit val stringPartialOrdering: PartialOrdering[String] = new PartialOrdering[String] {
+  val stringPartialOrdering: PartialOrdering[String] = new PartialOrdering[String] {
     def tryCompare(x: String, y: String): Option[Int] = (x, y) match {
       case _ if x.equals(y)     => Some(0)
       case _ if x.startsWith(y) => Some(1)
@@ -19,6 +17,8 @@ class TreeBuilderTest extends AnyFlatSpec with Matchers {
 
     def lteq(x: String, y: String): Boolean = tryCompare(x, y).fold(false)(_ < 0)
   }
+
+  implicit val treeOrdering = TreeOrdering.fromPartialOrdering(stringPartialOrdering)
 
   private def builder: Root[String, String] = Tree.builder[String, String].asInstanceOf[Root[String, String]]
 
@@ -118,6 +118,53 @@ class TreeBuilderTest extends AnyFlatSpec with Matchers {
 
     sut.root should be(Some("a", "a"))
     sut.children should contain theSameElementsAs (Seq(NonRoot.withChildren("aa")("aab", "aac")))
+  }
+
+  it should "proxy some children" in {
+    val sut = builder
+      .insert("a")
+      .insert("aab")
+      .insert("aac")
+      .insert("ab")
+
+    val expectedChildren = Seq(withChildren("aa")(leaf("aab"), leaf("aac")), leaf("ab"))
+
+    sut.insert("aa")
+
+    sut.root should be(Some("a", "a"))
+    sut.children should contain theSameElementsAs (expectedChildren)
+  }
+
+  it should "proxy some children after root element" in {
+    val sut = builder
+      .insert("a")
+      .insert("aa")
+      .insert("aaab")
+      .insert("aaac")
+      .insert("aab")
+
+    val expectedChildren = Seq(withChildren("aa")(leaf("aab"), withChildren("aaa")(leaf("aaab"), leaf("aaac"))))
+
+    sut.insert("aaa")
+
+    sut.root should be(Some("a", "a"))
+    sut.children should contain theSameElementsAs (expectedChildren)
+  }
+
+  it should "proxy all children after root element" in {
+    val sut = builder
+      .insert("a")
+      .insert("aa")
+      .insert("aaab")
+      .insert("aaac")
+      .insert("aaad")
+
+    val expectedChildren = Seq(withChildren("aa")(withChildren("aaa")(leaf("aaab"), leaf("aaad"), leaf("aaac"))))
+
+    sut.insert("aaa")
+
+    sut.root should be(Some("a", "a"))
+    sut.children should contain theSameElementsAs (expectedChildren)
   }
 
   it should "insert element to only one child" in {
@@ -227,6 +274,63 @@ class TreeBuilderTest extends AnyFlatSpec with Matchers {
     sut.remove("aada")
 
     sut.root should be(Some("a", "a"))
+    sut.children should contain theSameElementsAs (expectedChildren)
+  }
+
+  it should "remove element without it's children" in {
+    val sut = builder
+      .insert("aa")
+      .insert("ab")
+      .insert("ac")
+      .insert("aab")
+      .insert("aac")
+      .insert("aad")
+      .insert("aba")
+      .insert("abb")
+      .insert("a")
+      .insert("aada")
+
+    val expectedChildren =
+      Seq(leaf("aab"), leaf("aac"), withChildren("aad")("aada"), withChildren("ab")("aba", "abb"), leaf("ac"))
+
+    sut.remove("aa")
+
+    sut.root should be(Some("a", "a"))
+    sut.children should contain theSameElementsAs (expectedChildren)
+  }
+
+  it should "contain no root" in {
+    val sut = builder
+      .insert("a")
+      .insert("ab")
+      .insert("ac")
+      .insert("ad")
+
+    val expectedChildren = Seq(leaf("ab"), leaf("ac"), leaf("ad"))
+
+    val (result, _) = sut.remove("a")
+
+    result should be(Some("a"))
+
+    sut.root should be(None)
+    sut.children should contain theSameElementsAs (expectedChildren)
+  }
+
+  it should "promote single child to root" in {
+
+    val sut = builder
+      .insert("a")
+      .insert("aa")
+      .insert("aab")
+      .insert("aac")
+
+    val expectedChildren = Seq(leaf("aab"), leaf("aac"))
+
+    val (result, _) = sut.remove("a")
+
+    result should be(Some("a"))
+
+    sut.root should be(Some("aa", "aa"))
     sut.children should contain theSameElementsAs (expectedChildren)
   }
 
@@ -414,6 +518,146 @@ class TreeBuilderTest extends AnyFlatSpec with Matchers {
 
     sut.modify("aada", _.toUpperCase)
 
+    sut.root should be(Some("a", "a"))
+    sut.children should contain theSameElementsAs (expectedChildren)
+  }
+
+  it should "remove all elements with root element" in {
+    val sut = builder
+      .insert("a")
+      .insert("ab")
+      .insert("ac")
+      .insert("ad")
+      .insert("aba")
+      .insert("aca")
+
+    val expectedResult = Vector("a", "ab", "ac", "ad", "aba", "aca")
+
+    val (result, _) = sut.removeAfter("a")
+
+    result should contain theSameElementsAs (expectedResult)
+
+    sut.root should be(None)
+    sut.children should be(empty)
+
+  }
+
+  it should "remove all elements with parent of root element" in {
+    val sut = builder
+      .insert("aa")
+      .insert("aab")
+      .insert("aac")
+      .insert("aad")
+      .insert("aaba")
+      .insert("aaca")
+
+    val expectedResult = Vector("aa", "aab", "aac", "aad", "aaba", "aaca")
+
+    val (result, _) = sut.removeAfter("a")
+
+    result should contain theSameElementsAs (expectedResult)
+
+    sut.root should be(None)
+    sut.children should be(empty)
+  }
+
+  it should "remove some elements of root node" in {
+    val sut = builder
+      .insert("aa")
+      .insert("aaab")
+      .insert("aaac")
+      .insert("aad")
+      .insert("aac")
+
+    val expectedResult   = Vector("aaab", "aaac")
+    val expectedChildren = Seq(leaf("aad"), leaf("aac"))
+
+    val (result, _) = sut.removeAfter("aaa")
+
+    result should contain theSameElementsAs (expectedResult)
+    sut.root should be(Some("aa", "aa"))
+    sut.children should contain theSameElementsAs (expectedChildren)
+  }
+
+  it should "remove whole non-root element" in {
+    val sut = builder
+      .insert("aa")
+      .insert("aaa")
+      .insert("aaab")
+      .insert("aaac")
+      .insert("aad")
+      .insert("aac")
+
+    val expectedResult   = Vector("aaab", "aaac", "aaa")
+    val expectedChildren = Seq(leaf("aad"), leaf("aac"))
+
+    val (result, _) = sut.removeAfter("aaa")
+
+    result should contain theSameElementsAs (expectedResult)
+    sut.root should be(Some("aa", "aa"))
+    sut.children should contain theSameElementsAs (expectedChildren)
+  }
+
+  it should "remove all non-root element children" in {
+    val sut = builder
+      .insert("aa")
+      .insert("aaa")
+      .insert("aaaab")
+      .insert("aaaac")
+      .insert("aad")
+      .insert("aac")
+
+    val expectedResult   = Vector("aaaab", "aaaac")
+    val expectedChildren = Seq(leaf("aad"), leaf("aac"), leaf("aaa"))
+
+    val (result, _) = sut.removeAfter("aaaa")
+
+    result should contain theSameElementsAs (expectedResult)
+    sut.root should be(Some("aa", "aa"))
+    sut.children should contain theSameElementsAs (expectedChildren)
+  }
+
+  it should "remove some non-root element children" in {
+    val sut = builder
+      .insert("aa")
+      .insert("aaa")
+      .insert("aaaab")
+      .insert("aaadc")
+      .insert("aad")
+      .insert("aac")
+
+    val expectedResult   = Vector("aaaab")
+    val expectedChildren = Seq(leaf("aad"), leaf("aac"), withChildren("aaa")(leaf("aaadc")))
+
+    val (result, _) = sut.removeAfter("aaaa")
+
+    result should contain theSameElementsAs (expectedResult)
+    sut.root should be(Some("aa", "aa"))
+    sut.children should contain theSameElementsAs (expectedChildren)
+  }
+
+  it should "remove all elements in deep nested tree" in {
+    val sut = builder
+      .insert("a")
+      .insert("aa")
+      .insert("ab")
+      .insert("ac")
+      .insert("aab")
+      .insert("aac")
+      .insert("aabaa")
+      .insert("aabaab")
+      .insert("aabca")
+
+    val expectedResult = Vector("aabaa", "aabaab")
+    val expectedChildren = Seq(
+      leaf("ab"),
+      leaf("ac"),
+      withChildren("aa")(withChildren("aab")(leaf("aabca")), leaf("aac"))
+    )
+
+    val (result, _) = sut.removeAfter("aaba")
+
+    result should contain theSameElementsAs (expectedResult)
     sut.root should be(Some("a", "a"))
     sut.children should contain theSameElementsAs (expectedChildren)
   }

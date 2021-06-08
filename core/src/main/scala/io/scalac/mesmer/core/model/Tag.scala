@@ -12,8 +12,9 @@ sealed trait Tag extends Any {
 }
 
 object Tag {
-  val stream: Tag = StreamTag
-  val all: Tag    = All
+  val stream: Tag     = StreamTag
+  val terminated: Tag = TerminatedTag
+  val all: Tag        = All
 
   private case object All extends Tag {
     override def serialize: Seq[(String, String)] = Seq.empty
@@ -21,6 +22,10 @@ object Tag {
 
   private case object StreamTag extends Tag {
     lazy val serialize: Seq[(String, String)] = Seq(("stream", "true"))
+  }
+
+  private case object TerminatedTag extends Tag {
+    lazy val serialize: Seq[(String, String)] = Seq.empty
   }
 
   sealed trait StageName extends Any with Tag {
