@@ -4,37 +4,17 @@ import _root_.akka.actor.{ ActorPath => AkkaActorPath }
 import _root_.akka.cluster.UniqueAddress
 import _root_.akka.http.scaladsl.model.HttpMethod
 import _root_.akka.http.scaladsl.model.Uri.{ Path => AkkaPath }
-import _root_.akka.{ actor => classic }
 
 import scala.language.implicitConversions
 
-import io.scalac.mesmer.core.model.Tag.StageName.StreamUniqueStageName
-import io.scalac.mesmer.core.model.Tag._
+import io.scalac.mesmer.core.model.stream.ConnectionStats
+import io.scalac.mesmer.core.model.stream.StageInfo
 import io.scalac.mesmer.core.tagging.@@
 import io.scalac.mesmer.core.tagging._
 
 package object model {
 
   type ShellInfo = (Array[StageInfo], Array[ConnectionStats])
-
-  /**
-   * All information inside [[_root_.akka.stream.impl.fusing.GraphInterpreter]] should be local to that interpreter
-   * meaning that all connections in array [[_root_.akka.stream.impl.fusing.GraphInterpreter#connections]]
-   * are between logics owned by same GraphInterpreter
-   * MODIFY IF THIS IS NOT TRUE!
-   * @param in index of inHandler owner
-   * @param out index of outHandler owner
-   * @param pull demand to upstream
-   * @param push elements pushed to downstream
-   */
-  case class ConnectionStats(in: Int, out: Int, pull: Long, push: Long)
-
-  case class StageInfo(
-    id: Int,
-    stageName: StreamUniqueStageName,
-    subStreamName: SubStreamName,
-    terminal: Boolean = false
-  )
 
   sealed trait ModelTag
   sealed trait NodeTag          extends ModelTag
@@ -58,78 +38,6 @@ package object model {
   type ActorPath     = String @@ ActorPathTag
   type ActorKey      = ActorPath
   type RawLabels     = Seq[(String, String)]
-
-  object ActorConfiguration {
-
-    sealed trait Reporting {
-      import Reporting._
-
-      final def aggregate: Boolean = this match {
-        case Group => true
-        case _     => false
-      }
-
-      final def visible: Boolean = this match {
-        case Disabled => false
-        case _        => true
-      }
-    }
-
-    object Reporting {
-      private case object Group    extends Reporting
-      private case object Instance extends Reporting
-      private case object Disabled extends Reporting
-
-      def parse(value: String): Option[Reporting] = value.toLowerCase match {
-        case "group"    => Some(Group)
-        case "instance" => Some(Instance)
-        case "disabled" => Some(Disabled)
-        case _          => None
-      }
-
-      val group: Reporting    = Group
-      val instance: Reporting = Instance
-      val disabled: Reporting = Disabled
-    }
-
-    val groupingConfig: ActorConfiguration = ActorConfiguration(Reporting.group)
-    val instanceConfig: ActorConfiguration = ActorConfiguration(Reporting.instance)
-    val disabledConfig: ActorConfiguration = ActorConfiguration(Reporting.disabled)
-  }
-
-  final case class ActorConfiguration(reporting: ActorConfiguration.Reporting)
-
-  /**
-   * case class aggregating information about actorRef used to unify models across several domains
-   * @param ref classic actor ref
-   * @param tags tags for respective actor ref
-   * @param configuration mesmer configuration for specific actor ref
-   */
-  private[scalac] final case class ActorRefDetails(
-    ref: classic.ActorRef,
-    tags: Set[Tag],
-    configuration: ActorConfiguration
-  )
-
-  sealed trait ActorRefTags extends Any {
-    def ref: classic.ActorRef
-    def tags: Set[Tag]
-  }
-
-  object ActorRefTags {
-    def apply(ref: classic.ActorRef): ActorRefTags                = ActorRefEmptyTags(ref)
-    def apply(ref: classic.ActorRef, set: Set[Tag]): ActorRefTags = ActorRefNonEmptyTags(ref, set)
-
-    private final case class ActorRefNonEmptyTags(ref: classic.ActorRef, tags: Set[Tag]) extends ActorRefTags
-    private final case class ActorRefEmptyTags(ref: classic.ActorRef) extends ActorRefTags {
-      def tags: Set[Tag] = Set.empty
-    }
-
-    def unapply(obj: ActorRefTags): Some[(classic.ActorRef, Set[Tag])] = Some(obj.ref, obj.tags)
-
-  }
-
-//  private[scalac] final case class
 
   implicit val nodeLabelSerializer: LabelSerializer[Node]           = node => Seq("node" -> node.unwrap)
   implicit val interfaceLabelSerializer: LabelSerializer[Interface] = interface => Seq("interface" -> interface.unwrap)

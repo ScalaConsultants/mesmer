@@ -23,6 +23,8 @@ import io.scalac.mesmer.core.model.Tag
 import io.scalac.mesmer.core.model.Tag.StageName
 import io.scalac.mesmer.core.model.Tag.SubStreamName
 import io.scalac.mesmer.core.model._
+import io.scalac.mesmer.core.model.stream.ConnectionStats
+import io.scalac.mesmer.core.model.stream.StageInfo
 import io.scalac.mesmer.core.util.TestCase.MonitorTestCaseContext
 import io.scalac.mesmer.core.util.TestCase.MonitorWithServiceTestCaseFactory
 import io.scalac.mesmer.core.util.TestCase.ProvidedActorSystemTestCaseFactory

@@ -54,8 +54,8 @@ final class ConfigBasedConfigurationService(config: Config) extends ActorConfigu
       }
       .getOrElse(Nil)
 
-  implicit private val matcherReversed: Ordering[PathMatcher[ActorConfiguration.Reporting]] =
-    Ordering[PathMatcher[ActorConfiguration.Reporting]].reverse
+  implicit private lazy val matcherReversed: Ordering[PathMatcher[ActorConfiguration.Reporting]] =
+    Ordering.ordered[PathMatcher[ActorConfiguration.Reporting]].reverse
 
   def forActorPath(ref: classic.ActorPath): ActorConfiguration = {
     val reporting = matchers
