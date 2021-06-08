@@ -145,6 +145,7 @@ lazy val example = (project in file("example"))
       val old = (Docker / packageName).value
       sys.env.getOrElse("DOCKER_PACKAGE_NAME", old)
     },
+    Docker / version := version.value.takeWhile(_ != '+'), //drop the snapshot part (eg. 0.1.1+553-b4ee8e44-SNAPSHOT)
     dockerUpdateLatest := true
   )
   .dependsOn(extension)
