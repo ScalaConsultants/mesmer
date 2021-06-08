@@ -5,7 +5,8 @@ import org.scalatest.matchers.should.Matchers
 
 import io.scalac.mesmer.core.model.Tag.StageName.StreamUniqueStageName
 import io.scalac.mesmer.core.model.Tag.SubStreamName
-import io.scalac.mesmer.core.model._
+import io.scalac.mesmer.core.model.stream.ConnectionStats
+import io.scalac.mesmer.core.model.stream.StageInfo
 import io.scalac.mesmer.core.util.TestOps
 import io.scalac.mesmer.extension.AkkaStreamMonitoring.ConnectionsIndexCache
 

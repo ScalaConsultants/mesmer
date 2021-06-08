@@ -31,6 +31,8 @@ import io.scalac.mesmer.core.event.StreamEvent.StreamInterpreterStats
 import io.scalac.mesmer.core.model.Tag.StageName
 import io.scalac.mesmer.core.model.Tag.StreamName
 import io.scalac.mesmer.core.model._
+import io.scalac.mesmer.core.model.stream.ConnectionStats
+import io.scalac.mesmer.core.model.stream.StageInfo
 import io.scalac.mesmer.core.support.ModulesSupport
 import io.scalac.mesmer.extension.AkkaStreamMonitoring._
 import io.scalac.mesmer.extension.config.BufferConfig
