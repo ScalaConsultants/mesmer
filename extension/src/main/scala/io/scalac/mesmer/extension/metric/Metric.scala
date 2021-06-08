@@ -23,7 +23,7 @@ trait UpDownCounter[T] extends Counter[T] {
 final class SyncWith private (
   private val amount: Int,
   private val updaters: List[
-    UpdaterPair[T, L] forSome { type T; type L }
+    UpdaterPair[_, _]
   ] // this guarantees type safety without additional classes
 ) {
 
