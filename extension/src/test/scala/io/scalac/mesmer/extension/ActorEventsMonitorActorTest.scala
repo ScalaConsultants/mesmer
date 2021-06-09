@@ -1,5 +1,7 @@
 package io.scalac.mesmer.extension
 
+import java.util.concurrent.atomic.AtomicInteger
+
 import akka.actor.PoisonPill
 import akka.actor.testkit.typed.javadsl.FishingOutcomes
 import akka.actor.testkit.typed.scaladsl.ScalaTestWithActorTestKit
@@ -20,12 +22,9 @@ import scala.util.Random
 import scala.util.control.NoStackTrace
 
 import io.scalac.mesmer.core.model._
-import io.scalac.mesmer.core.util.ActorPathOps
 import io.scalac.mesmer.core.util.AggMetric.LongValueAggMetric
-import io.scalac.mesmer.core.util.ReceptionistOps
 import io.scalac.mesmer.core.util.TestCase._
-import io.scalac.mesmer.core.util.TestConfig
-import io.scalac.mesmer.core.util.TestOps
+import io.scalac.mesmer.core.util._
 import io.scalac.mesmer.core.util.probe.ObserverCollector.ScheduledCollectorImpl
 import io.scalac.mesmer.extension.ActorEventsMonitorActor._
 import io.scalac.mesmer.extension.actor.ActorMetrics
@@ -127,7 +126,8 @@ class ActorEventsMonitorActorTest
   )
   protected def createContextFromMonitor(monitor: ActorMonitorTestProbe)(implicit
     system: ActorSystem[_]
-  ): Context = TestContext(monitor, TestProbe(), FakeReaderFactory, constRefsActorServiceTree)
+  ): Context =
+    TestContext(monitor, TestProbe(), FakeReaderFactory, constRefsActorServiceTree, new CountingTimestampFactory)
 
   private def spawnTree(count: Int): Tree[classic.ActorRef] = {
 
@@ -165,7 +165,8 @@ class ActorEventsMonitorActorTest
                 pingOffset,
                 new MutableActorMetricStorageFactory,
                 scheduler,
-                c.TestActorMetricsReader
+                c.TestActorMetricsReader,
+                c.timestampFactory
               ).start(treeService)
             }
           }
@@ -189,7 +190,8 @@ class ActorEventsMonitorActorTest
 
   def sut(implicit setup: Setup): ActorRef[ActorEventsMonitorActor.Command] = setup.sut
 
-  def metrics(implicit context: Context): MetricsContext = context.metrics
+  def metrics(implicit context: Context): MetricsContext                    = context.metrics
+  def timestampFactory(implicit context: Context): CountingTimestampFactory = context.timestampFactory
 
   "ActorEventsMonitor" should "record mailbox size" in testCaseSetupContext { implicit setup => implicit context =>
     shouldObserveSumWithChange(monitor.mailboxSizeProbe, TakeLabel, _.fakeMailboxSize, _.fakeMailboxSize += 1)
@@ -334,6 +336,28 @@ class ActorEventsMonitorActorTest
     context.actorTreeServiceProbe.expectMessage(Inc(1L))
   }
 
+  it should "update timestamp after all probes run" in testCase { implicit context =>
+    eventually {
+      timestampFactory.count() should be(1L)
+    }
+    monitor.mailboxSizeProbe.receiveMessage()
+    monitor.mailboxTimeAvgProbe.receiveMessage()
+    monitor.mailboxTimeMinProbe.receiveMessage()
+    monitor.mailboxTimeMaxProbe.receiveMessage()
+    monitor.mailboxTimeSumProbe.receiveMessage()
+    monitor.stashSizeProbe.receiveMessage()
+    monitor.receivedMessagesProbe.receiveMessage()
+    monitor.processedMessagesProbe.receiveMessage()
+    monitor.failedMessagesProbe.receiveMessage()
+    monitor.processingTimeAvgProbe.receiveMessage()
+    monitor.processingTimeMinProbe.receiveMessage()
+    monitor.processingTimeMaxProbe.receiveMessage()
+    monitor.processingTimeSumProbe.receiveMessage()
+    monitor.sentMessagesProbe.receiveMessage()
+    monitor.droppedMessagesProbe.receiveMessage()
+    timestampFactory.count() should be >= (2) // this could happen more than once
+  }
+
   private val incAverage: LongValueAggMetric => LongValueAggMetric = agg => agg.copy(avg = agg.avg + 1)
   private val incMax: LongValueAggMetric => LongValueAggMetric     = agg => agg.copy(max = agg.max + 1)
   private val incSum: LongValueAggMetric => LongValueAggMetric     = agg => agg.copy(sum = agg.sum + 1)
@@ -406,6 +430,17 @@ object ActorEventsMonitorActorTest {
     def fakeUnhandledMessages: Long = fakeReceivedMessages - fakeProcessedMessages
   }
 
+  final class CountingTimestampFactory() extends (() => Timestamp) {
+
+    private val _count = new AtomicInteger(0)
+    override def apply(): Timestamp = {
+      _count.incrementAndGet()
+      Timestamp.create()
+    }
+
+    def count(): Int = _count.get()
+  }
+
   final case class TestContext(
     monitor: ActorMonitorTestProbe,
     actorTreeServiceProbe: TestProbe[CounterCommand],
@@ -413,7 +448,8 @@ object ActorEventsMonitorActorTest {
     actorTreeServiceBehaviorFactory: (
       ActorRef[CounterCommand],
       Tree[classic.ActorRef]
-    ) => Behavior[ActorTreeService.Command]
+    ) => Behavior[ActorTreeService.Command],
+    timestampFactory: CountingTimestampFactory
   )(implicit
     val system: ActorSystem[_]
   ) extends MonitorTestCaseContext[ActorMonitorTestProbe] {
