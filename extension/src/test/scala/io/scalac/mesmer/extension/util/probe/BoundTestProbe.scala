@@ -2,7 +2,6 @@ package io.scalac.mesmer.extension.util.probe
 
 import akka.actor.testkit.typed.scaladsl.TestProbe
 
-import io.scalac.mesmer.core.LabelSerializable
 import io.scalac.mesmer.core.util.probe.ObserverCollector
 import io.scalac.mesmer.extension.metric.Counter
 import io.scalac.mesmer.extension.metric.MetricObserver
@@ -77,7 +76,7 @@ sealed trait AsyncTestProbe[T] extends AbstractTestProbeWrapper {
     collector.update(probe, () => handleCallback(callback))
 }
 
-case class ObserverTestProbeWrapper[L <: LabelSerializable](
+final case class ObserverTestProbeWrapper[L](
   probe: TestProbe[MetricObserverCommand[L]],
   collector: ObserverCollector
 ) extends AsyncTestProbe[MetricObserver.Updater[Long, L]]
