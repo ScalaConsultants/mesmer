@@ -4,6 +4,12 @@ import scala.concurrent.duration.FiniteDuration
 
 import io.scalac.mesmer.core.util.Timestamp.moveTimestamp
 
+final class Interval(private val nanos: Long) extends AnyVal {
+  def toMillis: Long = math.floorDiv(nanos, 1_000_000)
+  def toMicro: Long  = math.floorDiv(nanos, 1_000)
+  def toNano: Long   = nanos
+}
+
 /**
  * For performance and testing reasons [[Timestamp]] is implemented as value class but should be treated as abstract type with its
  * only public member being interval method. No direct access of [[value]] is recommended.
@@ -12,8 +18,8 @@ import io.scalac.mesmer.core.util.Timestamp.moveTimestamp
  *              as implementation detail
  */
 class Timestamp(private[Timestamp] val value: Long) extends AnyVal {
-  def interval(): Long                    = interval(Timestamp.create())
-  def interval(finished: Timestamp): Long = Timestamp.interval(this, finished)
+  def interval(): Interval                    = interval(Timestamp.create())
+  def interval(finished: Timestamp): Interval = Timestamp.interval(this, finished)
 
   /**
    * This is created only for testing
@@ -50,8 +56,8 @@ object Timestamp {
    *  @param finished Timestamp created when event finished
    *  @return a latency between events in milliseconds
    */
-  def interval(start: Timestamp, finished: Timestamp): Long =
-    math.floorDiv(math.abs(finished.value - start.value), 1_000_000)
+  def interval(start: Timestamp, finished: Timestamp): Interval =
+    new Interval(math.abs(finished.value - start.value))
 
   private def moveTimestamp(timestamp: Timestamp, nanos: Long): Timestamp = new Timestamp(timestamp.value + nanos)
 

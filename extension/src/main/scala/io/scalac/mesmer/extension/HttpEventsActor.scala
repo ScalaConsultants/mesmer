@@ -76,7 +76,7 @@ object HttpEventsActor {
                 val monitorBoundary = createRequestLabels(started.path, started.method, status)
                 val monitor         = httpMetricMonitor.bind(monitorBoundary)
 
-                monitor.requestTime.setValue(requestDuration)
+                monitor.requestTime.setValue(requestDuration.toMillis)
                 monitor.requestCounter.incValue(1L)
 
                 ctx.log.debug("request {} finished in {} millis", id, requestDuration)
@@ -90,7 +90,7 @@ object HttpEventsActor {
                 ctx.log.error("Got request failed event but no corresponding request started event")
                 Behaviors.same[Event]
               } { case (storage, started) =>
-                val requestDuration = started.timestamp.interval(timestamp)
+                val requestDuration = started.timestamp.interval(timestamp).toMillis
                 ctx.log.error("request {} failed after {} millis", id, requestDuration)
                 monitorHttp(storage)
               }

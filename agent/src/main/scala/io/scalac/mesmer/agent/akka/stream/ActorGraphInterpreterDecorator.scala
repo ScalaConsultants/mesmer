@@ -13,6 +13,8 @@ import io.scalac.mesmer.core.event.StreamEvent.StreamInterpreterStats
 import io.scalac.mesmer.core.invoke.Lookup
 import io.scalac.mesmer.core.model.Tag.SubStreamName
 import io.scalac.mesmer.core.model._
+import io.scalac.mesmer.core.model.stream.ConnectionStats
+import io.scalac.mesmer.core.model.stream.StageInfo
 import io.scalac.mesmer.core.util.stream.subStreamNameFromActorRef
 object ActorGraphInterpreterDecorator extends Lookup {
 

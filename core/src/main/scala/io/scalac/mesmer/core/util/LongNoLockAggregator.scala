@@ -21,8 +21,12 @@ final class LongNoLockAggregator(val maxSize: Int = 100, val compactionRemaining
 
   private[this] val queue = new ArrayBlockingQueue[Long](maxSize)
 
-  def push(value: Long): Unit = {
-    queue.offer(value)
+  /**
+   * Push amount of nonoseconds
+   * @param value
+   */
+  def push(value: Interval): Unit = {
+    queue.offer(value.toNano)
 
     if (queue.remainingCapacity() < compactionRemainingSize && !compacting) {
       failFastCompact()
@@ -35,7 +39,9 @@ final class LongNoLockAggregator(val maxSize: Int = 100, val compactionRemaining
       snapshot
     } else {
       if (failFastCompact()) {
-        aggRef.get()
+        val freshData = aggRef.get()
+        aggRef.set(None)
+        freshData
       } else snapshot
     }
   }

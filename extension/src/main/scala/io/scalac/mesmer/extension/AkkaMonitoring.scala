@@ -19,7 +19,7 @@ import io.scalac.mesmer.core.util.ModuleInfo
 import io.scalac.mesmer.core.util.ModuleInfo.Modules
 import io.scalac.mesmer.core.util.Timestamp
 import io.scalac.mesmer.extension.ActorEventsMonitorActor.ReflectiveActorMetricsReader
-import io.scalac.mesmer.extension.actor.MutableActorMetricsStorage
+import io.scalac.mesmer.extension.actor.MutableActorMetricStorageFactory
 import io.scalac.mesmer.extension.config.AkkaMonitoringConfig
 import io.scalac.mesmer.extension.config.CachingConfig
 import io.scalac.mesmer.extension.config.InstrumentationLibrary
@@ -27,9 +27,7 @@ import io.scalac.mesmer.extension.http.CleanableRequestStorage
 import io.scalac.mesmer.extension.metric.CachingMonitor
 import io.scalac.mesmer.extension.persistence.CleanablePersistingStorage
 import io.scalac.mesmer.extension.persistence.CleanableRecoveryStorage
-import io.scalac.mesmer.extension.service.ActorTreeService
-import io.scalac.mesmer.extension.service.CachingPathService
-import io.scalac.mesmer.extension.service.actorTreeServiceKey
+import io.scalac.mesmer.extension.service._
 import io.scalac.mesmer.extension.upstream.OpenTelemetryClusterMetricsMonitor
 import io.scalac.mesmer.extension.upstream.OpenTelemetryHttpMetricsMonitor
 import io.scalac.mesmer.extension.upstream.OpenTelemetryPersistenceMetricsMonitor
@@ -149,12 +147,16 @@ final class AkkaMonitoring(private val system: ActorSystem[_], val config: AkkaM
       actorSystemConfig
     )
 
+    val actorConfigurationService = new ConfigBasedConfigurationService(system.settings.config)
+
     val serviceRef = system.systemActorOf(
       Behaviors
         .supervise(
           ActorTreeService(
             actorSystemMonitor,
-            clusterNodeName
+            clusterNodeName,
+            ReflectiveActorTreeTraverser,
+            actorConfigurationService
           )
         )
         .onFailure(SupervisorStrategy.restart),
@@ -177,7 +179,7 @@ final class AkkaMonitoring(private val system: ActorSystem[_], val config: AkkaM
             actorMonitor,
             clusterNodeName,
             ExportInterval,
-            () => MutableActorMetricsStorage.empty,
+            new MutableActorMetricStorageFactory,
             ReflectiveActorMetricsReader,
             () => Timestamp.create()
           )

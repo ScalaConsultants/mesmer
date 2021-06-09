@@ -6,10 +6,7 @@ import akka.actor.PoisonPill
 import akka.actor.testkit.typed.javadsl.FishingOutcomes
 import akka.actor.testkit.typed.scaladsl.ScalaTestWithActorTestKit
 import akka.actor.testkit.typed.scaladsl.TestProbe
-import akka.actor.typed.ActorRef
-import akka.actor.typed.ActorSystem
-import akka.actor.typed.Behavior
-import akka.actor.typed.SupervisorStrategy
+import akka.actor.typed._
 import akka.actor.typed.scaladsl.Behaviors
 import akka.actor.typed.scaladsl.StashBuffer
 import akka.actor.typed.scaladsl.adapter._
@@ -31,10 +28,12 @@ import io.scalac.mesmer.core.util._
 import io.scalac.mesmer.core.util.probe.ObserverCollector.ScheduledCollectorImpl
 import io.scalac.mesmer.extension.ActorEventsMonitorActor._
 import io.scalac.mesmer.extension.actor.ActorMetrics
-import io.scalac.mesmer.extension.actor.MutableActorMetricsStorage
+import io.scalac.mesmer.extension.actor.MutableActorMetricStorageFactory
 import io.scalac.mesmer.extension.metric.ActorMetricsMonitor.Labels
 import io.scalac.mesmer.extension.service.ActorTreeService
+import io.scalac.mesmer.extension.service.ActorTreeService.Command.GetActorTree
 import io.scalac.mesmer.extension.service.ActorTreeService.Command.GetActors
+import io.scalac.mesmer.extension.util.Tree._
 import io.scalac.mesmer.extension.util.probe.ActorMonitorTestProbe
 import io.scalac.mesmer.extension.util.probe.BoundTestProbe.CounterCommand
 import io.scalac.mesmer.extension.util.probe.BoundTestProbe.Inc
@@ -53,6 +52,7 @@ import org.scalatest.Inspectors
 import org.scalatest.flatspec.AnyFlatSpecLike
 import org.scalatest.matchers.should.Matchers
 
+//TODO simplify
 class ActorEventsMonitorActorTest
     extends ScalaTestWithActorTestKit(TestConfig.localActorProvider)
     with AnyFlatSpecLike
@@ -96,11 +96,16 @@ class ActorEventsMonitorActorTest
   }
 
   private val constRefsActorServiceTree
-    : (ActorRef[CounterCommand], Seq[classic.ActorRef]) => Behavior[ActorTreeService.Command] = (monitor, refs) =>
-    Behaviors.receiveMessagePartial {
-      case GetActors(Tag.all, reply) =>
+    : (ActorRef[CounterCommand], Tree[classic.ActorRef]) => Behavior[ActorTreeService.Command] = (monitor, refs) =>
+    Behaviors.receiveMessage {
+      case GetActorTree(reply) =>
         monitor ! Inc(1L)
-        reply ! refs
+
+        reply ! refs.unfix.mapValues(ref => ActorRefDetails(ref, Set(Tag.all), ActorConfiguration.instanceConfig))
+        Behaviors.same
+
+      case GetActors(Tag.all, reply) =>
+        reply ! refs.unfix.toVector
         Behaviors.same
       case GetActors(_, reply) =>
         reply ! Seq.empty
@@ -108,10 +113,9 @@ class ActorEventsMonitorActorTest
     }
 
   private val noReplyActorServiceTree
-    : (ActorRef[CounterCommand], Seq[classic.ActorRef]) => Behavior[ActorTreeService.Command] = (monitor, refs) =>
-    Behaviors.receiveMessagePartial { case GetActors(Tag.all, reply) =>
+    : (ActorRef[CounterCommand], Tree[classic.ActorRef]) => Behavior[ActorTreeService.Command] = (monitor, refs) =>
+    Behaviors.receiveMessagePartial { case GetActorTree(reply) =>
       monitor ! Inc(1L)
-      reply ! refs
       Behaviors.same
     }
 
@@ -125,10 +129,25 @@ class ActorEventsMonitorActorTest
   ): Context =
     TestContext(monitor, TestProbe(), FakeReaderFactory, constRefsActorServiceTree, new CountingTimestampFactory)
 
+  private def spawnTree(count: Int): Tree[classic.ActorRef] = {
+
+    val spawnRoot  = system.systemActorOf(SpawnProtocol(), createUniqueId)
+    val spawnProbe = createTestProbe[ActorRef[_]]()
+
+    for {
+      _ <- 0 until count
+    } spawnRoot ! SpawnProtocol.Spawn(Behaviors.empty, createUniqueId, Props.empty, spawnProbe.ref)
+
+    val children = spawnProbe.receiveMessages(count)
+
+    spawnProbe.stop()
+
+    tree(spawnRoot.toClassic, children.map(ch => leaf(ch.toClassic)): _*)
+  }
+
   protected def setUp(c: Context): Setup = {
 
-    val testActors = Seq
-      .fill(ActorsPerCase)(system.systemActorOf(Behaviors.ignore, createUniqueId).toClassic)
+    val testActors = spawnTree(5)
 
     val treeServiceBehavior = c.actorTreeServiceBehaviorFactory(c.actorTreeServiceProbe.ref, testActors)
 
@@ -144,7 +163,7 @@ class ActorEventsMonitorActorTest
                 monitor(c),
                 None,
                 pingOffset,
-                () => MutableActorMetricsStorage.empty,
+                new MutableActorMetricStorageFactory,
                 scheduler,
                 c.TestActorMetricsReader,
                 c.timestampFactory
@@ -156,7 +175,7 @@ class ActorEventsMonitorActorTest
       createUniqueId
     )
 
-    ActorEventSetup(testActors, treeService, sut)
+    ActorEventSetup(testActors.unfix.toVector, treeService, sut)
   }
 
   protected def tearDown(setup: Setup): Unit =
@@ -175,15 +194,15 @@ class ActorEventsMonitorActorTest
   def timestampFactory(implicit context: Context): CountingTimestampFactory = context.timestampFactory
 
   "ActorEventsMonitor" should "record mailbox size" in testCaseSetupContext { implicit setup => implicit context =>
-    shouldObserveWithChange(monitor.mailboxSizeProbe, TakeLabel, _.fakeMailboxSize, _.fakeMailboxSize += 1)
+    shouldObserveSumWithChange(monitor.mailboxSizeProbe, TakeLabel, _.fakeMailboxSize, _.fakeMailboxSize += 1)
   }
 
   it should "record stash size" in testCaseSetupContext { implicit setup => implicit context =>
-    shouldObserveWithChange(monitor.stashSizeProbe, TakeLabel, _.fakeStashedMessages, _.fakeStashedMessages += 10)
+    shouldObserveSumWithChange(monitor.stashSizeProbe, TakeLabel, _.fakeStashedMessages, _.fakeStashedMessages += 10)
   }
 
   it should "record avg mailbox time" in testCaseSetupContext { implicit setup => implicit context =>
-    shouldObserveWithChange(
+    shouldObserveLastWithChange(
       monitor.mailboxTimeAvgProbe,
       TakeLabel,
       _.fakeMailboxTime.avg,
@@ -192,7 +211,7 @@ class ActorEventsMonitorActorTest
   }
 
   it should "record min mailbox time" in testCaseSetupContext { implicit setup => implicit context =>
-    shouldObserveWithChange(
+    shouldObserveLastWithChange(
       monitor.mailboxTimeMinProbe,
       TakeLabel,
       _.fakeMailboxTime.min,
@@ -201,7 +220,7 @@ class ActorEventsMonitorActorTest
   }
 
   it should "record max mailbox time" in testCaseSetupContext { implicit setup => implicit context =>
-    shouldObserveWithChange(
+    shouldObserveLastWithChange(
       monitor.mailboxTimeMaxProbe,
       TakeLabel,
       _.fakeMailboxTime.max,
@@ -210,7 +229,7 @@ class ActorEventsMonitorActorTest
   }
 
   it should "record sum mailbox time" in testCaseSetupContext { implicit setup => implicit context =>
-    shouldObserveWithChange(
+    shouldObserveSumWithChange(
       monitor.mailboxTimeSumProbe,
       TakeLabel,
       _.fakeMailboxTime.sum,
@@ -219,7 +238,7 @@ class ActorEventsMonitorActorTest
   }
 
   it should "record received messages" in testCaseSetupContext { implicit setup => implicit context =>
-    shouldObserveWithChange(
+    shouldObserveSumWithChange(
       monitor.receivedMessagesProbe,
       TakeLabel,
       _.fakeReceivedMessages,
@@ -228,7 +247,7 @@ class ActorEventsMonitorActorTest
   }
 
   it should "record processed messages" in testCaseSetupContext { implicit setup => implicit context =>
-    shouldObserveWithChange(
+    shouldObserveSumWithChange(
       monitor.processedMessagesProbe,
       TakeLabel,
       _.fakeProcessedMessages,
@@ -237,7 +256,7 @@ class ActorEventsMonitorActorTest
   }
 
   it should "record failed messages" in testCaseSetupContext { implicit setup => implicit context =>
-    shouldObserveWithChange(
+    shouldObserveSumWithChange(
       monitor.failedMessagesProbe,
       TakeLabel,
       _.fakeFailedMessages,
@@ -246,7 +265,7 @@ class ActorEventsMonitorActorTest
   }
 
   it should "record avg processing time" in testCaseSetupContext { implicit setup => implicit context =>
-    shouldObserveWithChange(
+    shouldObserveLastWithChange(
       monitor.processingTimeAvgProbe,
       TakeLabel,
       _.fakeProcessingTimes.avg,
@@ -255,7 +274,7 @@ class ActorEventsMonitorActorTest
   }
 
   it should "record min processing time" in testCaseSetupContext { implicit setup => implicit context =>
-    shouldObserveWithChange(
+    shouldObserveLastWithChange(
       monitor.processingTimeMinProbe,
       TakeLabel,
       _.fakeProcessingTimes.min,
@@ -264,7 +283,7 @@ class ActorEventsMonitorActorTest
   }
 
   it should "record max processing time" in testCaseSetupContext { implicit setup => implicit context =>
-    shouldObserveWithChange(
+    shouldObserveLastWithChange(
       monitor.processingTimeMaxProbe,
       TakeLabel,
       _.fakeProcessingTimes.max,
@@ -273,7 +292,7 @@ class ActorEventsMonitorActorTest
   }
 
   it should "record sum processing time" in testCaseSetupContext { implicit setup => implicit context =>
-    shouldObserveWithChange(
+    shouldObserveSumWithChange(
       monitor.processingTimeSumProbe,
       TakeLabel,
       _.fakeProcessingTimes.sum,
@@ -282,11 +301,16 @@ class ActorEventsMonitorActorTest
   }
 
   it should "record the sent messages" in testCaseSetupContext { implicit setup => implicit context =>
-    shouldObserveWithChange(monitor.sentMessagesProbe, TakeLabel, _.fakeSentMessages, _.fakeSentMessages += 1)
+    shouldObserveSumWithChange(monitor.sentMessagesProbe, TakeLabel, _.fakeSentMessages, _.fakeSentMessages += 1)
   }
 
   it should "record the dropped messages" in testCaseSetupContext { implicit setup => implicit context =>
-    shouldObserveWithChange(monitor.droppedMessagesProbe, TakeLabel, _.fakeDroppedMessages, _.fakeDroppedMessages += 1)
+    shouldObserveSumWithChange(
+      monitor.droppedMessagesProbe,
+      TakeLabel,
+      _.fakeDroppedMessages,
+      _.fakeDroppedMessages += 1
+    )
   }
 
   it should "unbind monitors on restart" in testCaseWith(_.copy(metricReaderFactory = FailingReaderFactory)) {
@@ -353,11 +377,11 @@ class ActorEventsMonitorActorTest
     probe
       .fishForMessage(reasonableTime) {
         case MetricObserved(`metric`, `labels`) => FishingOutcomes.complete()
-        case MetricObserved(m, l) =>
+        case MetricObserved(_, _) =>
           FishingOutcomes.continueAndIgnore()
       }
 
-  def shouldObserveWithChange(
+  def shouldObserveLastWithChange(
     probe: TestProbe[MetricObserverCommand[Labels]],
     labels: Labels,
     metric: MetricsContext => Long,
@@ -366,6 +390,18 @@ class ActorEventsMonitorActorTest
     shouldObserve(probe, labels, metric(metrics))
     change(metrics)
     shouldObserve(probe, labels, metric(metrics))
+  }
+
+  def shouldObserveSumWithChange(
+    probe: TestProbe[MetricObserverCommand[Labels]],
+    labels: Labels,
+    metric: MetricsContext => Long,
+    change: MetricsContext => Unit
+  )(implicit c: Context): Unit = {
+    val first = metric(metrics)
+    shouldObserve(probe, labels, first)
+    change(metrics)
+    shouldObserve(probe, labels, first + metric(metrics))
   }
 }
 
@@ -411,7 +447,7 @@ object ActorEventsMonitorActorTest {
     metricReaderFactory: MetricsContext => ActorMetricsReader,
     actorTreeServiceBehaviorFactory: (
       ActorRef[CounterCommand],
-      Seq[classic.ActorRef]
+      Tree[classic.ActorRef]
     ) => Behavior[ActorTreeService.Command],
     timestampFactory: CountingTimestampFactory
   )(implicit

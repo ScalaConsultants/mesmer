@@ -18,4 +18,6 @@ object TimeSeries {
     protected def div(v: Long, n: Int): Long = if (n == 0) 0 else v / n
   }
 
+  def apply(values: Long*): TimeSeries[Long, Long] = new LongTimeSeries(values)
+
 }

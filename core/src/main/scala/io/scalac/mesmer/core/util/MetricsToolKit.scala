@@ -4,8 +4,6 @@ import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicLong
 import java.util.concurrent.atomic.AtomicReference
 
-import scala.concurrent.duration._
-
 import io.scalac.mesmer.core.util.AggMetric.LongValueAggMetric
 
 object MetricsToolKit {
@@ -25,15 +23,15 @@ object MetricsToolKit {
   }
 
   final class TimeAggregation {
-    private val aggregator                  = new LongNoLockAggregator()
-    def add(time: FiniteDuration): Unit     = aggregator.push(time.toMillis)
+    private[core] val aggregator            = new LongNoLockAggregator()
+    def add(time: Interval): Unit           = aggregator.push(time)
     def metrics: Option[LongValueAggMetric] = aggregator.fetch()
   }
 
   final class Timer {
-    private val timestamp          = new AtomicReference[Timestamp]()
-    def start(): Unit              = timestamp.set(Timestamp.create())
-    def interval(): FiniteDuration = timestamp.get().interval().milliseconds
+    private val timestamp    = new AtomicReference[Timestamp]()
+    def start(): Unit        = timestamp.set(Timestamp.create())
+    def interval(): Interval = timestamp.get().interval()
   }
 
   final class UninitializedCounter {
