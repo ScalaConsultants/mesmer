@@ -30,8 +30,8 @@ inThisBuild(
   )
 )
 
-addCommandAlias("fmtAll", "scalafmtAll; scalafixAll")
-addCommandAlias("checkAll", "scalafixAll --check; scalafmtCheckAll")
+addCommandAlias("fmt", "scalafmtAll; scalafixAll")
+addCommandAlias("check", "scalafixAll --check; scalafmtCheckAll")
 
 lazy val all = (project in file("."))
   .disablePlugins(sbtassembly.AssemblyPlugin)
