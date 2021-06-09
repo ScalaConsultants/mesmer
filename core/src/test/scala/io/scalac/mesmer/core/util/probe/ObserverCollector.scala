@@ -50,11 +50,11 @@ object ObserverCollector {
     start()
   }
 
-  class ScheduledCollectorImpl(pingOffset: FiniteDuration)(implicit val system: ActorSystem[_])
+  final class ScheduledCollectorImpl(pingOffset: FiniteDuration)(implicit val system: ActorSystem[_])
       extends ScheduledCollector(pingOffset)
       with MapBasedObserverCollector
       with AutoStartCollector
 
-  class ManualCollectorImpl extends ObserverCollector with MapBasedObserverCollector
+  final class ManualCollectorImpl extends ObserverCollector with MapBasedObserverCollector
 
 }
