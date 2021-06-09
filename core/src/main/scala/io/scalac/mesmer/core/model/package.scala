@@ -4,37 +4,17 @@ import _root_.akka.actor.{ ActorPath => AkkaActorPath }
 import _root_.akka.cluster.UniqueAddress
 import _root_.akka.http.scaladsl.model.HttpMethod
 import _root_.akka.http.scaladsl.model.Uri.{ Path => AkkaPath }
-import _root_.akka.{ actor => classic }
 
 import scala.language.implicitConversions
 
-import io.scalac.mesmer.core.model.Tag.StageName.StreamUniqueStageName
-import io.scalac.mesmer.core.model.Tag._
+import io.scalac.mesmer.core.model.stream.ConnectionStats
+import io.scalac.mesmer.core.model.stream.StageInfo
 import io.scalac.mesmer.core.tagging.@@
 import io.scalac.mesmer.core.tagging._
 
 package object model {
 
   type ShellInfo = (Array[StageInfo], Array[ConnectionStats])
-
-  /**
-   * All information inside [[_root_.akka.stream.impl.fusing.GraphInterpreter]] should be local to that interpreter
-   * meaning that all connections in array [[_root_.akka.stream.impl.fusing.GraphInterpreter#connections]]
-   * are between logics owned by same GraphInterpreter
-   * MODIFY IF THIS IS NOT TRUE!
-   * @param in index of inHandler owner
-   * @param out index of outHandler owner
-   * @param pull demand to upstream
-   * @param push elements pushed to downstream
-   */
-  case class ConnectionStats(in: Int, out: Int, pull: Long, push: Long)
-
-  case class StageInfo(
-    id: Int,
-    stageName: StreamUniqueStageName,
-    subStreamName: SubStreamName,
-    terminal: Boolean = false
-  )
 
   sealed trait ModelTag
   sealed trait NodeTag          extends ModelTag
@@ -58,13 +38,6 @@ package object model {
   type ActorPath     = String @@ ActorPathTag
   type ActorKey      = ActorPath
   type RawLabels     = Seq[(String, String)]
-
-  /**
-   * case class aggregating information about actorRef used to unify models across several domains
-   * @param ref classic actor ref
-   * @param tags tags for respective actor ref
-   */
-  private[scalac] final case class ActorRefDetails(ref: classic.ActorRef, tags: Set[Tag])
 
   implicit val nodeLabelSerializer: LabelSerializer[Node]           = node => Seq("node" -> node.unwrap)
   implicit val interfaceLabelSerializer: LabelSerializer[Interface] = interface => Seq("interface" -> interface.unwrap)

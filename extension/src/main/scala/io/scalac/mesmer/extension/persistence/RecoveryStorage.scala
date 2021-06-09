@@ -16,5 +16,5 @@ trait RecoveryStorage {
   }
 
   protected def calculate(start: RecoveryStarted, finish: RecoveryFinished): Long =
-    start.timestamp.interval(finish.timestamp)
+    start.timestamp.interval(finish.timestamp).toMillis
 }

@@ -13,7 +13,7 @@ trait PersistStorage {
   }
 
   protected def calculate(start: PersistingEventStarted, finish: PersistingEventFinished): Long =
-    start.timestamp.interval(finish.timestamp)
+    start.timestamp.interval(finish.timestamp).toMillis
 }
 
 object PersistStorage {
