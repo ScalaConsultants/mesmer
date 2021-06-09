@@ -13,6 +13,12 @@ inThisBuild(
         "Jakub Czuchnowski",
         "jakub.czuchnowski@gmail.com",
         url("https://github.com/jczuchnowski")
+      ),
+      Developer(
+        "worekleszczy",
+        "Piotr Jósiak",
+        "piotr.josiak@gmail.com",
+        url("https://github.com/worekleszczy")
       )
     ),
     scalacOptions ++= Seq("-deprecation", "-feature"),
@@ -23,6 +29,9 @@ inThisBuild(
     scalafixScalaBinaryVersion := "2.13"
   )
 )
+
+addCommandAlias("fmt", "scalafmtAll; scalafixAll")
+addCommandAlias("check", "scalafixAll --check; scalafmtCheckAll")
 
 lazy val all = (project in file("."))
   .disablePlugins(sbtassembly.AssemblyPlugin)
