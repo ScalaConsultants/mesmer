@@ -33,7 +33,7 @@ import io.scalac.mesmer.core.event.Service
 import io.scalac.mesmer.core.event.StreamEvent
 import io.scalac.mesmer.core.event.StreamEvent.LastStreamStats
 import io.scalac.mesmer.core.event.StreamEvent.StreamInterpreterStats
-import io.scalac.mesmer.core.model.ActorRefDetails
+import io.scalac.mesmer.core.model.ActorRefTags
 import io.scalac.mesmer.core.model.Tag.stream
 import io.scalac.mesmer.core.util.TestBehaviors.Pass
 import io.scalac.mesmer.core.util.TestCase.CommonMonitorTestFactory
@@ -105,7 +105,7 @@ class AkkaStreamAgentTest
           context.system.receptionist ! Register(
             Service.actorService.serviceKey,
             context.messageAdapter[ActorEvent] {
-              case TagsSet(ActorRefDetails(ref, tags)) if tags.contains(stream) =>
+              case TagsSet(ActorRefTags(ref, tags)) if tags.contains(stream) =>
                 Ref(ref)
               case _ => Filter
             }
