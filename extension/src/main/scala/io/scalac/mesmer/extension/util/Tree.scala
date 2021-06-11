@@ -43,6 +43,12 @@ object Tree {
 
   def builder[K, V](implicit ordering: TreeOrdering[K]): Builder[K, V] = new Root[K, V](None, ArrayBuffer.empty)
 
+  /**
+   * Builder is a mutable structure
+   * @param keyOrdering
+   * @tparam K
+   * @tparam V
+   */
   sealed abstract class Builder[K, V](implicit val keyOrdering: TreeOrdering[K]) {
 
     /**
@@ -98,6 +104,9 @@ object Tree {
      * @return new flat structure
      */
     def buildSeq[O](filter: (K, V) => Option[O]): Seq[O]
+
+
+
   }
 
   trait TreeOrdering[T] {
@@ -109,7 +118,7 @@ object Tree {
   }
 
   object TreeOrdering {
-    implicit def fromPartialOrdering[T](partialOrdering: PartialOrdering[T]): TreeOrdering[T] = new TreeOrdering[T] {
+    implicit def fromPartialOrdering[T](implicit partialOrdering: PartialOrdering[T]): TreeOrdering[T] = new TreeOrdering[T] {
       def isParent(x: T, y: T): Boolean                     = partialOrdering.tryCompare(x, y).exists(_ < 0)
       def isChild(x: T, y: T): Boolean                      = partialOrdering.tryCompare(x, y).exists(_ > 0)
       def isChildOrSame(x: T, y: T): Boolean                = partialOrdering.tryCompare(x, y).exists(_ >= 0)

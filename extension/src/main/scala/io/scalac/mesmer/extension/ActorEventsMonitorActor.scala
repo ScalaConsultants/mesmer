@@ -5,17 +5,19 @@ import akka.actor.typed.receptionist.Receptionist.Listing
 import akka.actor.typed.scaladsl.{ ActorContext, Behaviors, TimerScheduler }
 import akka.util.Timeout
 import akka.{ actor => classic }
-import io.scalac.mesmer.core.model.{ ActorKey, ActorRefDetails, Node }
+import io.scalac.mesmer.core.akka.actorPathPartialOrdering
+import io.scalac.mesmer.core.model.{ ActorKey, ActorRefDetails, Node, Tag }
 import io.scalac.mesmer.core.util.{ ActorCellOps, ActorPathOps, ActorRefOps }
 import io.scalac.mesmer.extension.ActorEventsMonitorActor._
 import io.scalac.mesmer.extension.actor.{ ActorCellDecorator, ActorMetrics, MetricStorageFactory }
 import io.scalac.mesmer.extension.metric.ActorMetricsMonitor
 import io.scalac.mesmer.extension.metric.ActorMetricsMonitor.Labels
 import io.scalac.mesmer.extension.metric.MetricObserver.Result
-import io.scalac.mesmer.extension.service.ActorTreeService.Command.GetActorTree
+import io.scalac.mesmer.extension.service.ActorTreeService.Command.{ GetActorTree, TagSubscribe }
 import io.scalac.mesmer.extension.service.{ actorTreeServiceKey, ActorTreeService }
+import io.scalac.mesmer.extension.util.Tree.TreeOrdering._
 import io.scalac.mesmer.extension.util.Tree.{ Tree, _ }
-import io.scalac.mesmer.extension.util.{ GenericBehaviors, TreeF }
+import io.scalac.mesmer.extension.util.{ GenericBehaviors, Tree, TreeF }
 import org.slf4j.LoggerFactory
 
 import java.util.concurrent.atomic.AtomicReference
@@ -27,6 +29,7 @@ object ActorEventsMonitorActor {
   sealed trait Command
   private[ActorEventsMonitorActor] final case object StartActorsMeasurement                       extends Command
   private[ActorEventsMonitorActor] final case class MeasureActorTree(refs: Tree[ActorRefDetails]) extends Command
+  private[ActorEventsMonitorActor] final case class ActorTerminateEvent(ref: ActorRefDetails)     extends Command
   private[ActorEventsMonitorActor] final case class ServiceListing(listing: Listing)              extends Command
 
   def apply(
@@ -106,6 +109,12 @@ private[extension] class ActorEventsMonitorActor private[extension] (
 
   import context._
 
+  private[this] var terminatedActorsMetrics =
+    Tree.builder[
+      ActorKey,
+      (ActorKey, ActorMetrics)
+    ] // we aggregate only ActorMetrics to not prevent actor cell to be GC'd
+
   private[this] val boundMonitor = monitor.bind()
 
   private[this] val treeSnapshot = new AtomicReference[Option[Vector[(Labels, ActorMetrics)]]](None)
@@ -137,9 +146,13 @@ private[extension] class ActorEventsMonitorActor private[extension] (
     boundMonitor.droppedMessages.setUpdater(updateMetric(_.droppedMessages))
   }
 
+  private def subscribeToActorTermination(treeService: ActorRef[ActorTreeService.Command]): Unit =
+    treeService ! TagSubscribe(Tag.terminated, context.messageAdapter[ActorRefDetails](ActorTerminateEvent.apply))
+
   // this is not idempotent
   def start(treeService: ActorRef[ActorTreeService.Command]): Behavior[Command] = {
 
+    subscribeToActorTermination(treeService)
     setTimeout()
     registerUpdaters()
     loop(treeService)
@@ -160,6 +173,14 @@ private[extension] class ActorEventsMonitorActor private[extension] (
         update(refs)
         setTimeout() // loop
         Behaviors.same
+      case ActorTerminateEvent(details) =>
+        val path = ActorPathOps.getPathString(details.ref)
+
+        actorMetricsReader.read(details.ref).foreach { metrics =>
+          terminatedActorsMetrics.insert(path, path -> metrics)
+        }
+
+        Behaviors.same
     }
   }.receiveSignal { case (_, PreRestart | PostStop) =>
     boundMonitor.unbind()
@@ -170,30 +191,28 @@ private[extension] class ActorEventsMonitorActor private[extension] (
 
   private def update(refs: Tree[ActorRefDetails]): Unit = {
 
-    val storage = refs.unfix.foldRight[storageFactory.Storage] {
-      case TreeF(details, Vector()) =>
-        import details._
+    val storage = refs.unfix.foldRight[storageFactory.Storage] { case TreeF(details, childrenMetrics) =>
+      import details._
 
-        val storage = storageFactory.createStorage
-        actorMetricsReader
-          .read(ref)
-          .fold(storage) { metric =>
-            storage.save(ActorPathOps.getPathString(ref), metric, configuration.reporting.visible)
+      // is fold better?
+      val storage =
+        if (childrenMetrics.isEmpty) storageFactory.createStorage
+        else childrenMetrics.reduce(storageFactory.mergeStorage)
+
+      actorMetricsReader.read(ref).fold(storage) { currentMetrics =>
+        import configuration.reporting._
+        val actorKey = ActorPathOps.getPathString(ref)
+
+        storage.save(actorKey, currentMetrics, visible)
+        if (aggregate) {
+          val (metrics, builder) = terminatedActorsMetrics.removeAfter(actorKey) // get all terminated information
+          terminatedActorsMetrics = builder //
+          metrics.foreach { case (key, metric) =>
+            storage.save(key, metric, persistent = false)
           }
-      case TreeF(details, childrenMetrics) =>
-        import details._
-
-        val storage = childrenMetrics.reduce(storageFactory.mergeStorage)
-
-        actorMetricsReader.read(ref).fold(storage) { currentMetrics =>
-          import configuration.reporting._
-          val actorKey = ActorPathOps.getPathString(ref)
-
-          storage.save(actorKey, currentMetrics, visible)
-          if (aggregate) {
-            storage.compute(actorKey)
-          } else storage
-        }
+          storage.compute(actorKey)
+        } else storage
+      }
     }
 
     captureState(storage)

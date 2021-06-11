@@ -3,19 +3,20 @@ package io.scalac.mesmer.extension.service
 import akka.actor.typed._
 import akka.actor.typed.receptionist.Receptionist.Register
 import akka.actor.typed.scaladsl.adapter._
-import akka.actor.typed.scaladsl.{AbstractBehavior, ActorContext, Behaviors}
-import akka.{actor => classic}
+import akka.actor.typed.scaladsl.{ AbstractBehavior, ActorContext, Behaviors }
+import akka.{ actor, actor => classic }
 import io.scalac.mesmer.core
 import io.scalac.mesmer.core.event.ActorEvent
-import io.scalac.mesmer.core.model.{Tag, _}
+import io.scalac.mesmer.core.model.{ Tag, _ }
 import io.scalac.mesmer.extension.metric.ActorSystemMonitor
 import io.scalac.mesmer.extension.metric.ActorSystemMonitor.Labels
 import io.scalac.mesmer.extension.service.ActorTreeService.Api
-import io.scalac.mesmer.extension.service.SubscriptionService.{AddSubscriber, Broadcast}
-import io.scalac.mesmer.extension.util.Tree.{Tree, TreeOrdering}
+import io.scalac.mesmer.extension.service.SubscriptionService.{ AddSubscriber, Broadcast }
+import io.scalac.mesmer.extension.util.Tree.{ Tree, TreeOrdering }
 import io.scalac.mesmer.extension.util._
 
 import scala.collection.mutable
+import scala.math.PartialOrdering
 
 object SubscriptionService {
   sealed trait Command[T]
@@ -87,10 +88,12 @@ object ActorTreeService {
         backoffActorTreeTraverser,
         actorConfigurationService,
         node
-      )(partialOrdering)
+      )
     }
 
-  lazy val partialOrdering: PartialOrdering[classic.ActorRef] = new PartialOrdering[classic.ActorRef] {
+  implicit def actorRefpartialOrdering(implicit
+    pathOrdering: PartialOrdering[ActorPath]
+  ): PartialOrdering[classic.ActorRef] = new PartialOrdering[classic.ActorRef] {
     private def actorLevel(ref: classic.ActorRef): Int = ref.path.toStringWithoutAddress.count(_ == '/')
 
     def tryCompare(x: classic.ActorRef, y: classic.ActorRef): Option[Int] =
@@ -113,13 +116,21 @@ final class ActorTreeService(
   actorTreeTraverser: ActorTreeTraverser,
   actorConfigurationService: ActorConfigurationService,
   node: Option[Node] = None
-)(implicit actorRefTreeOrdering: TreeOrdering[classic.ActorRef])
-    extends AbstractBehavior[Api](ctx) {
+) extends AbstractBehavior[Api](ctx) {
   import ActorTreeService._
   import Command._
   import Event._
   import ActorTreeService._
   import context._
+
+  private[this] implicit val refPartialOrdering =
+    TreeOrdering.fromPartialOrdering(new PartialOrdering[classic.ActorRef] {
+      def tryCompare(x: actor.ActorRef, y: actor.ActorRef): Option[Int] = core.akka.actorPathPartialOrdering
+        .tryCompare(x.path.toStringWithoutAddress, y.path.toStringWithoutAddress)
+
+      def lteq(x: actor.ActorRef, y: actor.ActorRef): Boolean = core.akka.actorPathPartialOrdering
+        .lteq(x.path.toStringWithoutAddress, y.path.toStringWithoutAddress)
+    })
 
   private[this] val snapshot     = Tree.builder[classic.ActorRef, ActorRefDetails]
   private[this] val boundMonitor = monitor.bind(Labels(node))
