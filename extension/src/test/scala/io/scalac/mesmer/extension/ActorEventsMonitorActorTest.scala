@@ -1,49 +1,35 @@
 package io.scalac.mesmer.extension
 
-import akka.Done
 import akka.actor.PoisonPill
 import akka.actor.testkit.typed.javadsl.FishingOutcomes
-import akka.actor.testkit.typed.scaladsl.ScalaTestWithActorTestKit
-import akka.actor.testkit.typed.scaladsl.TestProbe
+import akka.actor.testkit.typed.scaladsl.{ ScalaTestWithActorTestKit, TestProbe }
 import akka.actor.typed._
 import akka.actor.typed.scaladsl.AskPattern._
-import akka.actor.typed.scaladsl.Behaviors
-import akka.actor.typed.scaladsl.StashBuffer
 import akka.actor.typed.scaladsl.adapter._
+import akka.actor.typed.scaladsl.{ Behaviors, StashBuffer }
 import akka.util.Timeout
-import akka.{actor => classic}
-import org.scalatest.LoneElement
-import org.scalatest.OptionValues
-import org.scalatest.TestSuite
-import org.scalatest.concurrent.PatienceConfiguration
-import org.scalatest.concurrent.ScaledTimeSpans
+import akka.{ Done, actor => classic }
+import io.scalac.mesmer.core.model._
+import io.scalac.mesmer.core.util.AggMetric.LongValueAggMetric
+import io.scalac.mesmer.core.util.TestCase._
+import io.scalac.mesmer.core.util.probe.ObserverCollector.ManualCollectorImpl
+import io.scalac.mesmer.core.util.{ ActorPathOps, ReceptionistOps, TestConfig, TestOps }
+import io.scalac.mesmer.extension.ActorEventsMonitorActor._
+import io.scalac.mesmer.extension.actor.{ ActorMetrics, MutableActorMetricStorageFactory }
+import io.scalac.mesmer.extension.metric.ActorMetricsMonitor.Labels
+import io.scalac.mesmer.extension.service.ActorTreeService
+import io.scalac.mesmer.extension.service.ActorTreeService.Command.{ GetActorTree, GetActors }
+import io.scalac.mesmer.extension.util.Tree._
+import io.scalac.mesmer.extension.util.TreeF
+import io.scalac.mesmer.extension.util.probe.ActorMonitorTestProbe
+import io.scalac.mesmer.extension.util.probe.BoundTestProbe.{ CounterCommand, MetricObserved, MetricObserverCommand }
+import org.scalatest.concurrent.{ PatienceConfiguration, ScaledTimeSpans }
+import org.scalatest.{ LoneElement, OptionValues, TestSuite }
 
 import scala.concurrent.Await
 import scala.concurrent.duration._
 import scala.util.Random
-
-import io.scalac.mesmer.core.model._
-import io.scalac.mesmer.core.util.ActorPathOps
-import io.scalac.mesmer.core.util.AggMetric.LongValueAggMetric
-import io.scalac.mesmer.core.util.ReceptionistOps
-import io.scalac.mesmer.core.util.TestCase._
-import io.scalac.mesmer.core.util.TestConfig
-import io.scalac.mesmer.core.util.TestOps
-import io.scalac.mesmer.core.util.probe.ObserverCollector.ManualCollectorImpl
-import io.scalac.mesmer.extension.ActorEventsMonitorActor._
-import io.scalac.mesmer.extension.actor.ActorMetrics
-import io.scalac.mesmer.extension.actor.MutableActorMetricStorageFactory
-import io.scalac.mesmer.extension.metric.ActorMetricsMonitor.Labels
-import io.scalac.mesmer.extension.service.ActorTreeService
-import io.scalac.mesmer.extension.service.ActorTreeService.Command.GetActorTree
-import io.scalac.mesmer.extension.service.ActorTreeService.Command.GetActors
-import io.scalac.mesmer.extension.util.Tree._
-import io.scalac.mesmer.extension.util.TreeF
-import io.scalac.mesmer.extension.util.probe.ActorMonitorTestProbe
-import io.scalac.mesmer.extension.util.probe.BoundTestProbe.CounterCommand
-import io.scalac.mesmer.extension.util.probe.BoundTestProbe.Inc
-import io.scalac.mesmer.extension.util.probe.BoundTestProbe.MetricObserved
-import io.scalac.mesmer.extension.util.probe.BoundTestProbe.MetricObserverCommand
+import scala.util.control.NoStackTrace
 
 trait ActorEventMonitorActorTestConfig {
   this: TestSuite with ScaledTimeSpans with ReceptionistOps with PatienceConfiguration =>
@@ -57,7 +43,6 @@ import org.scalatest.Inspectors
 import org.scalatest.flatspec.AnyFlatSpecLike
 import org.scalatest.matchers.should.Matchers
 
-//TODO simplify
 final class ActorEventsMonitorActorTest
     extends ScalaTestWithActorTestKit(TestConfig.localActorProvider)
     with AnyFlatSpecLike
@@ -128,10 +113,18 @@ final class ActorEventsMonitorActorTest
         Behaviors.same
     }
 
-  private val noReplyActorServiceTree
-    : (ActorRef[CounterCommand], Tree[classic.ActorRef]) => Behavior[ActorTreeService.Command] = (monitor, refs) =>
+  private def countingRefsActorServiceTree(
+    monitor: ActorRef[Done]
+  ): Tree[ActorRefDetails] => Behavior[ActorTreeService.Command] = refs =>
     Behaviors.receiveMessagePartial { case GetActorTree(reply) =>
-      monitor ! Inc(1L)
+      reply ! refs
+      monitor ! Done
+      Behaviors.same
+    }
+
+  private def noReplyActorServiceTree(monitor: ActorRef[Done]): Behavior[ActorTreeService.Command] =
+    Behaviors.receiveMessagePartial { case _ =>
+      monitor ! Done
       Behaviors.same
     }
 
@@ -235,11 +228,6 @@ final class ActorEventsMonitorActorTest
   protected def tearDown(setup: Setup): Unit =
     setup.allRefs.foreach(_.unsafeUpcast[Any] ! PoisonPill)
 
-  //  private def TakeLabel(implicit setup: Setup): Labels = {
-  //    val ref = Random.shuffle(refs).head
-  //    Labels(ActorPathOps.getPathString(ref))
-  //  }
-
   def refs(implicit setup: Setup): Seq[classic.ActorRef] = Seq.empty
 
   def collectData(probe: TestProbe[Done])(implicit setup: Setup): Unit = {
@@ -247,49 +235,10 @@ final class ActorEventsMonitorActorTest
     probe.receiveMessage()
   }
 
-  //  def metrics(implicit context: Context): MetricsContext = context.metrics
+  def collectData()(implicit setup: Setup): Unit =
+    setup.sut ! StartActorsMeasurement(None)
 
   def collectAll()(implicit context: Context): Unit = context.monitor.collector.collectAll()
-
-  //  def extractMetric[M <: MetricsContext](check: M => Long)(implicit context: TestContext[M]): Long = check(
-  //    context.metrics
-  //  )
-
-  private def waitForObservation(
-    probe: ActorMonitorTestProbe => TestProbe[MetricObserverCommand[Labels]],
-    labels: Labels
-  )(implicit
-    context: Context
-  ) =
-    eventually {
-      collectAll()
-      probe(monitor)
-        .fishForMessage(CheckInterval) {
-          case MetricObserved(_, `labels`) => FishingOutcomes.complete()
-          case _                           => FishingOutcomes.continueAndIgnore()
-        }
-        .loneElement
-    }
-
-  /**
-   * Waits for n messages and ensure that no more messages were to delivered
-   *
-   * @param n     amount of messages to wait for
-   * @param probe on which probe operation should be executed
-   * @param context
-   * @return
-   */
-  private def waitForN(n: Int, probe: ActorMonitorTestProbe => TestProbe[MetricObserverCommand[Labels]])(implicit
-    context: Context
-  ) =
-    eventually {
-      collectAll()
-      val chosenProbe = probe(monitor)
-      val messages = chosenProbe
-        .receiveMessages(n, CheckInterval)
-      chosenProbe.expectNoMessage()
-      messages
-    }
 
   private def rootLabels(tree: Tree[ActorRefDetails]): Labels =
     Labels(ActorPathOps.getPathString(tree.unfix.value.ref))
@@ -606,30 +555,52 @@ final class ActorEventsMonitorActorTest
     "processing time"
   )
 
-//  it should "unbind monitors on restart" in testCaseWith(_.copy(metricReaderFactory = FailingReaderFactory)) {
-//    implicit context =>
-//      eventually {
-//        monitor.unbinds should be(1)
-//        monitor.binds should be(2)
-//      }
-//  }
-//
-//  it should "not product any metrics until actroTreeService is availabe" in testCaseWith(
-////    _.copy(actorTreeServiceBehaviorFactory = noReplyActorServiceTree)
-//    identity
-//  ) { implicit context =>
-//    context.actorTreeServiceProbe.expectMessage(Inc(1L))
-//    monitor.sentMessagesProbe.expectNoMessage()
-//  }
-//
-//  it should "retry to get actor refs" in testCaseWith(
-//    //    _.copy(actorTreeServiceBehaviorFactory = noReplyActorServiceTree)
-//    identity
-//  ) { implicit context =>
-//    context.actorTreeServiceProbe.expectMessage(Inc(1L))
-//    context.actorTreeServiceProbe.expectMessage(Inc(1L))
-//    context.actorTreeServiceProbe.expectMessage(Inc(1L))
-//  }
+  it should "unbind monitors on restart" in {
+    val failingReader: ActorMetricsReader = _ => throw new RuntimeException("Expected failure") with NoStackTrace
+    val refs                              = actorConfiguration(spawnTree(3), ActorConfiguration.instanceConfig)
+    val actorService                      = system.systemActorOf(constRefsActorServiceTree(refs), createUniqueId)
+
+    testCaseWithSetupAndContext(_.copy(actorMetricReader = failingReader, actorTreeService = actorService)) {
+      implicit setup => implicit context =>
+//        val ackProbe = TestProbe[Done]
+        collectData()
+
+        eventually {
+          monitor.unbinds should be(1)
+          monitor.binds should be(2)
+      }
+    }
+  }
+
+  it should "not product any metrics until actroTreeService is availabe" in {
+    val refs         = actorConfiguration(spawnTree(3), ActorConfiguration.instanceConfig)
+    val ackProbe     = TestProbe[Done]
+    val actorService = system.systemActorOf(countingRefsActorServiceTree(ackProbe.ref)(refs), createUniqueId)
+
+    testCaseWithSetupAndContext(
+      _.copy(actorMetricReader = _ => Some(ConstActorMetrics), actorTreeService = actorService)
+    ) { implicit setup => implicit context =>
+      collectData()
+      ackProbe.receiveMessage()
+      collectAll()
+      monitor.sentMessagesProbe.expectNoMessage()
+    }
+  }
+
+  it should "retry to get actor refs" in {
+    val ackProbe     = TestProbe[Done]
+    val actorService = system.systemActorOf(noReplyActorServiceTree(ackProbe.ref), createUniqueId)
+
+    testCaseWithSetupAndContext(
+      _.copy(actorMetricReader = _ => Some(ConstActorMetrics), actorTreeService = actorService)
+    ) { implicit setup => implicit context =>
+      collectData()
+      ackProbe.receiveMessage()
+      ackProbe.receiveMessage()
+      ackProbe.receiveMessage()
+    }
+  }
+
 }
 
 object ActorEventsMonitorActorTest {

@@ -1,46 +1,28 @@
 package io.scalac.mesmer.extension
 
-import java.util.concurrent.atomic.AtomicReference
-
-import akka.Done
 import akka.actor.typed._
 import akka.actor.typed.receptionist.Receptionist.Listing
-import akka.actor.typed.scaladsl.ActorContext
-import akka.actor.typed.scaladsl.Behaviors
-import akka.actor.typed.scaladsl.TimerScheduler
+import akka.actor.typed.scaladsl.{ ActorContext, Behaviors, TimerScheduler }
 import akka.util.Timeout
-import akka.{actor => classic}
-import org.slf4j.LoggerFactory
-
-import scala.concurrent.duration._
-import scala.util.Failure
-import scala.util.Success
-
+import akka.{ Done, actor => classic }
 import io.scalac.mesmer.core.akka.actorPathPartialOrdering
-import io.scalac.mesmer.core.model.ActorKey
-import io.scalac.mesmer.core.model.ActorRefDetails
-import io.scalac.mesmer.core.model.Node
-import io.scalac.mesmer.core.model.Tag
-import io.scalac.mesmer.core.util.ActorCellOps
-import io.scalac.mesmer.core.util.ActorPathOps
-import io.scalac.mesmer.core.util.ActorRefOps
+import io.scalac.mesmer.core.model.{ ActorKey, ActorRefDetails, Node, Tag }
+import io.scalac.mesmer.core.util.{ ActorCellOps, ActorPathOps, ActorRefOps }
 import io.scalac.mesmer.extension.ActorEventsMonitorActor._
-import io.scalac.mesmer.extension.actor.ActorCellDecorator
-import io.scalac.mesmer.extension.actor.ActorMetrics
-import io.scalac.mesmer.extension.actor.MetricStorageFactory
+import io.scalac.mesmer.extension.actor.{ ActorCellDecorator, ActorMetrics, MetricStorageFactory }
 import io.scalac.mesmer.extension.metric.ActorMetricsMonitor
 import io.scalac.mesmer.extension.metric.ActorMetricsMonitor.Labels
 import io.scalac.mesmer.extension.metric.MetricObserver.Result
-import io.scalac.mesmer.extension.service.ActorTreeService
-import io.scalac.mesmer.extension.service.ActorTreeService.Command.GetActorTree
-import io.scalac.mesmer.extension.service.ActorTreeService.Command.TagSubscribe
-import io.scalac.mesmer.extension.service.actorTreeServiceKey
-import io.scalac.mesmer.extension.util.GenericBehaviors
-import io.scalac.mesmer.extension.util.Tree
-import io.scalac.mesmer.extension.util.Tree.Tree
+import io.scalac.mesmer.extension.service.ActorTreeService.Command.{ GetActorTree, TagSubscribe }
+import io.scalac.mesmer.extension.service.{ actorTreeServiceKey, ActorTreeService }
 import io.scalac.mesmer.extension.util.Tree.TreeOrdering._
-import io.scalac.mesmer.extension.util.Tree._
-import io.scalac.mesmer.extension.util.TreeF
+import io.scalac.mesmer.extension.util.Tree.{ Tree, _ }
+import io.scalac.mesmer.extension.util.{ GenericBehaviors, Tree, TreeF }
+import org.slf4j.LoggerFactory
+
+import java.util.concurrent.atomic.AtomicReference
+import scala.concurrent.duration._
+import scala.util.{ Failure, Success }
 
 object ActorEventsMonitorActor {
 
@@ -61,7 +43,7 @@ object ActorEventsMonitorActor {
     pingOffset: FiniteDuration,
     storageFactory: MetricStorageFactory[ActorKey],
     actorMetricsReader: ActorMetricsReader = ReflectiveActorMetricsReader
-  ): Behavior[Command] =
+  )(implicit askTimeout: Timeout): Behavior[Command] =
     Behaviors.setup[Command] { ctx =>
       GenericBehaviors
         .waitForService(actorTreeServiceKey) { ref =>
@@ -128,7 +110,7 @@ private[extension] class ActorEventsMonitorActor private[extension] (
   storageFactory: MetricStorageFactory[ActorKey],
   scheduler: TimerScheduler[Command],
   actorMetricsReader: ActorMetricsReader = ReflectiveActorMetricsReader
-) {
+)(implicit val askTimeout: Timeout) {
 
   import context._
 
@@ -185,43 +167,38 @@ private[extension] class ActorEventsMonitorActor private[extension] (
     subscribeToActorTermination(treeService)
     if (loop) setTimeout()
     registerUpdaters()
-    receive(treeService, loop, waitingForRefs = false)
+    receive(treeService, loop)
   }
 
-  private def receive(
-    actorService: ActorRef[ActorTreeService.Command],
-    loop: Boolean,
-    waitingForRefs: Boolean
-  ): Behavior[Command] = {
-    implicit val timeout: Timeout = 2.seconds
+  private def receive(actorService: ActorRef[ActorTreeService.Command], loop: Boolean): Behavior[Command] =
+    Behaviors
+      .receiveMessagePartial[Command] {
+        case start @ StartActorsMeasurement(replyTo) =>
+          context
+            .ask[ActorTreeService.Command, Tree[ActorRefDetails]](actorService, adapter => GetActorTree(adapter)) {
+              case Success(value) => MeasureActorTree(value, replyTo)
+              case Failure(_)     => start // keep asking
+            }
 
-    Behaviors.receiveMessagePartial[Command] {
-      case start @ StartActorsMeasurement(replyTo) if !waitingForRefs =>
-        context
-          .ask[ActorTreeService.Command, Tree[ActorRefDetails]](actorService, adapter => GetActorTree(adapter)) {
-            case Success(value) => MeasureActorTree(value, replyTo)
-            case Failure(_)     => start // keep asking
+          receive(actorService, loop)
+        case MeasureActorTree(refs, replyTo) =>
+          update(refs)
+          if (loop) setTimeout() // loop
+          replyTo.foreach(_.tell(Done))
+          receive(actorService, loop)
+        case ActorTerminateEvent(details) =>
+          val path = ActorPathOps.getPathString(details.ref)
+
+          actorMetricsReader.read(details.ref).foreach { metrics =>
+            terminatedActorsMetrics.insert(path, path -> metrics)
           }
 
-        receive(actorService, loop, waitingForRefs = true)
-      case MeasureActorTree(refs, replyTo) =>
-        update(refs)
-        if (loop) setTimeout() // loop
-        replyTo.foreach(_.tell(Done))
-        receive(actorService, loop, waitingForRefs = false)
-      case ActorTerminateEvent(details) =>
-        val path = ActorPathOps.getPathString(details.ref)
-
-        actorMetricsReader.read(details.ref).foreach { metrics =>
-          terminatedActorsMetrics.insert(path, path -> metrics)
-        }
-
+          Behaviors.same
+      }
+      .receiveSignal { case (_, PreRestart | PostStop) =>
+        boundMonitor.unbind()
         Behaviors.same
-    }
-  }.receiveSignal { case (_, PreRestart | PostStop) =>
-    boundMonitor.unbind()
-    Behaviors.same
-  }
+      }
 
   private def setTimeout(): Unit = scheduler.startSingleTimer(noAckStartMeasurement, pingOffset)
 
