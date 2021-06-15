@@ -1,8 +1,8 @@
 package io.scalac.mesmer.core
 
-import io.scalac.mesmer.core.model.ActorPath
-
 import scala.math.PartialOrdering
+
+import io.scalac.mesmer.core.model.ActorPath
 
 package object akka {
 

@@ -1,7 +1,9 @@
 package io.scalac.mesmer.extension.util
 
 import scala.annotation.tailrec
-import scala.collection.mutable.{ ArrayBuffer, ListBuffer }
+import scala.collection.mutable.ArrayBuffer
+import scala.collection.mutable.ListBuffer
+import scala.language.implicitConversions
 
 final case class TreeF[+T, F](value: T, inner: Vector[F]) {
   def map[B](func: F => B): TreeF[T, B] = TreeF(value, inner.map(func))
@@ -33,6 +35,14 @@ object Tree {
 
     def toVector: Vector[T] = foldRight[Vector[T]] { case TreeF(value, children) =>
       children.fold(Vector(value))(_ ++ _)
+    }
+
+    def size: Int = foldRight[Int] { case TreeF(_, children) =>
+      children.size + 1
+    }
+
+    def find(predicate: T => Boolean): Option[T] = foldRight[Option[T]] { case TreeF(value, children) =>
+      children.flatten.headOption.orElse(Some(value).filter(predicate))
     }
   }
 
@@ -105,8 +115,6 @@ object Tree {
      */
     def buildSeq[O](filter: (K, V) => Option[O]): Seq[O]
 
-
-
   }
 
   trait TreeOrdering[T] {
@@ -118,13 +126,14 @@ object Tree {
   }
 
   object TreeOrdering {
-    implicit def fromPartialOrdering[T](implicit partialOrdering: PartialOrdering[T]): TreeOrdering[T] = new TreeOrdering[T] {
-      def isParent(x: T, y: T): Boolean                     = partialOrdering.tryCompare(x, y).exists(_ < 0)
-      def isChild(x: T, y: T): Boolean                      = partialOrdering.tryCompare(x, y).exists(_ > 0)
-      def isChildOrSame(x: T, y: T): Boolean                = partialOrdering.tryCompare(x, y).exists(_ >= 0)
-      def isParentIfSameBranch(x: T, y: T): Option[Boolean] = partialOrdering.tryCompare(x, y).map(_ < 0)
-      def isParentOrSame(x: T, y: T): Boolean               = partialOrdering.tryCompare(x, y).exists(_ <= 0)
-    }
+    implicit def fromPartialOrdering[T](implicit partialOrdering: PartialOrdering[T]): TreeOrdering[T] =
+      new TreeOrdering[T] {
+        def isParent(x: T, y: T): Boolean                     = partialOrdering.tryCompare(x, y).exists(_ < 0)
+        def isChild(x: T, y: T): Boolean                      = partialOrdering.tryCompare(x, y).exists(_ > 0)
+        def isChildOrSame(x: T, y: T): Boolean                = partialOrdering.tryCompare(x, y).exists(_ >= 0)
+        def isParentIfSameBranch(x: T, y: T): Option[Boolean] = partialOrdering.tryCompare(x, y).map(_ < 0)
+        def isParentOrSame(x: T, y: T): Boolean               = partialOrdering.tryCompare(x, y).exists(_ <= 0)
+      }
   }
 
   final class Root[K, V] private[util] (

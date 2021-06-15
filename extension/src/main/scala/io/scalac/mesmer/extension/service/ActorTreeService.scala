@@ -2,21 +2,27 @@ package io.scalac.mesmer.extension.service
 
 import akka.actor.typed._
 import akka.actor.typed.receptionist.Receptionist.Register
+import akka.actor.typed.scaladsl.AbstractBehavior
+import akka.actor.typed.scaladsl.ActorContext
+import akka.actor.typed.scaladsl.Behaviors
 import akka.actor.typed.scaladsl.adapter._
-import akka.actor.typed.scaladsl.{ AbstractBehavior, ActorContext, Behaviors }
-import akka.{ actor, actor => classic }
-import io.scalac.mesmer.core
-import io.scalac.mesmer.core.event.ActorEvent
-import io.scalac.mesmer.core.model.{ Tag, _ }
-import io.scalac.mesmer.extension.metric.ActorSystemMonitor
-import io.scalac.mesmer.extension.metric.ActorSystemMonitor.Labels
-import io.scalac.mesmer.extension.service.ActorTreeService.Api
-import io.scalac.mesmer.extension.service.SubscriptionService.{ AddSubscriber, Broadcast }
-import io.scalac.mesmer.extension.util.Tree.{ Tree, TreeOrdering }
-import io.scalac.mesmer.extension.util._
+import akka.{ actor => classic }
 
 import scala.collection.mutable
 import scala.math.PartialOrdering
+
+import io.scalac.mesmer.core
+import io.scalac.mesmer.core.event.ActorEvent
+import io.scalac.mesmer.core.model.Tag
+import io.scalac.mesmer.core.model._
+import io.scalac.mesmer.extension.metric.ActorSystemMonitor
+import io.scalac.mesmer.extension.metric.ActorSystemMonitor.Labels
+import io.scalac.mesmer.extension.service.ActorTreeService.Api
+import io.scalac.mesmer.extension.service.SubscriptionService.AddSubscriber
+import io.scalac.mesmer.extension.service.SubscriptionService.Broadcast
+import io.scalac.mesmer.extension.util.Tree.Tree
+import io.scalac.mesmer.extension.util.Tree.TreeOrdering
+import io.scalac.mesmer.extension.util._
 
 object SubscriptionService {
   sealed trait Command[T]
@@ -123,12 +129,12 @@ final class ActorTreeService(
   import ActorTreeService._
   import context._
 
-  private[this] implicit val refPartialOrdering =
+  private[this] implicit val refPartialOrdering: TreeOrdering[classic.ActorRef] =
     TreeOrdering.fromPartialOrdering(new PartialOrdering[classic.ActorRef] {
-      def tryCompare(x: actor.ActorRef, y: actor.ActorRef): Option[Int] = core.akka.actorPathPartialOrdering
+      def tryCompare(x: classic.ActorRef, y: classic.ActorRef): Option[Int] = core.akka.actorPathPartialOrdering
         .tryCompare(x.path.toStringWithoutAddress, y.path.toStringWithoutAddress)
 
-      def lteq(x: actor.ActorRef, y: actor.ActorRef): Boolean = core.akka.actorPathPartialOrdering
+      def lteq(x: classic.ActorRef, y: classic.ActorRef): Boolean = core.akka.actorPathPartialOrdering
         .lteq(x.path.toStringWithoutAddress, y.path.toStringWithoutAddress)
     })
 

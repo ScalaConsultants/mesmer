@@ -1,9 +1,12 @@
 package io.scalac.mesmer.extension.util
 
-import io.scalac.mesmer.extension.util.Tree.NonRoot._
-import io.scalac.mesmer.extension.util.Tree.{ NonRoot, Root, TreeOrdering }
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
+
+import io.scalac.mesmer.extension.util.Tree.NonRoot
+import io.scalac.mesmer.extension.util.Tree.NonRoot._
+import io.scalac.mesmer.extension.util.Tree.Root
+import io.scalac.mesmer.extension.util.Tree.TreeOrdering
 
 class TreeBuilderTest extends AnyFlatSpec with Matchers {
 
@@ -18,7 +21,7 @@ class TreeBuilderTest extends AnyFlatSpec with Matchers {
     def lteq(x: String, y: String): Boolean = tryCompare(x, y).fold(false)(_ < 0)
   }
 
-  implicit val treeOrdering = TreeOrdering.fromPartialOrdering(stringPartialOrdering)
+  implicit val treeOrdering: TreeOrdering[String] = TreeOrdering.fromPartialOrdering(stringPartialOrdering)
 
   private def builder: Root[String, String] = Tree.builder[String, String].asInstanceOf[Root[String, String]]
 
