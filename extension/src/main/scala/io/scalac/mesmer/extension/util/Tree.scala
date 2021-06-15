@@ -44,6 +44,10 @@ object Tree {
     def find(predicate: T => Boolean): Option[T] = foldRight[Option[T]] { case TreeF(value, children) =>
       children.flatten.headOption.orElse(Some(value).filter(predicate))
     }
+
+    def foreach(action: T => Unit): Unit = foldRight[Unit] { case TreeF(value, _) =>
+      action(value)
+    }
   }
 
   def leaf[T](value: T): Tree[T] = tree(value)

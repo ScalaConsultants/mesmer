@@ -1,35 +1,49 @@
 package io.scalac.mesmer.extension
 
+import akka.Done
 import akka.actor.PoisonPill
 import akka.actor.testkit.typed.javadsl.FishingOutcomes
-import akka.actor.testkit.typed.scaladsl.{ ScalaTestWithActorTestKit, TestProbe }
+import akka.actor.testkit.typed.scaladsl.ScalaTestWithActorTestKit
+import akka.actor.testkit.typed.scaladsl.TestProbe
 import akka.actor.typed._
 import akka.actor.typed.scaladsl.AskPattern._
+import akka.actor.typed.scaladsl.Behaviors
+import akka.actor.typed.scaladsl.StashBuffer
 import akka.actor.typed.scaladsl.adapter._
-import akka.actor.typed.scaladsl.{ Behaviors, StashBuffer }
 import akka.util.Timeout
-import akka.{ Done, actor => classic }
-import io.scalac.mesmer.core.model._
-import io.scalac.mesmer.core.util.AggMetric.LongValueAggMetric
-import io.scalac.mesmer.core.util.TestCase._
-import io.scalac.mesmer.core.util.probe.ObserverCollector.ManualCollectorImpl
-import io.scalac.mesmer.core.util.{ ActorPathOps, ReceptionistOps, TestConfig, TestOps }
-import io.scalac.mesmer.extension.ActorEventsMonitorActor._
-import io.scalac.mesmer.extension.actor.{ ActorMetrics, MutableActorMetricStorageFactory }
-import io.scalac.mesmer.extension.metric.ActorMetricsMonitor.Labels
-import io.scalac.mesmer.extension.service.ActorTreeService
-import io.scalac.mesmer.extension.service.ActorTreeService.Command.{ GetActorTree, GetActors }
-import io.scalac.mesmer.extension.util.Tree._
-import io.scalac.mesmer.extension.util.TreeF
-import io.scalac.mesmer.extension.util.probe.ActorMonitorTestProbe
-import io.scalac.mesmer.extension.util.probe.BoundTestProbe.{ CounterCommand, MetricObserved, MetricObserverCommand }
-import org.scalatest.concurrent.{ PatienceConfiguration, ScaledTimeSpans }
-import org.scalatest.{ LoneElement, OptionValues, TestSuite }
+import akka.{ actor => classic }
+import org.scalatest.LoneElement
+import org.scalatest.OptionValues
+import org.scalatest.TestSuite
+import org.scalatest.concurrent.PatienceConfiguration
+import org.scalatest.concurrent.ScaledTimeSpans
 
 import scala.concurrent.Await
 import scala.concurrent.duration._
 import scala.util.Random
 import scala.util.control.NoStackTrace
+
+import io.scalac.mesmer.core.model._
+import io.scalac.mesmer.core.util.ActorPathOps
+import io.scalac.mesmer.core.util.AggMetric.LongValueAggMetric
+import io.scalac.mesmer.core.util.ReceptionistOps
+import io.scalac.mesmer.core.util.TestCase._
+import io.scalac.mesmer.core.util.TestConfig
+import io.scalac.mesmer.core.util.TestOps
+import io.scalac.mesmer.core.util.probe.ObserverCollector.ManualCollectorImpl
+import io.scalac.mesmer.extension.ActorEventsMonitorActor._
+import io.scalac.mesmer.extension.actor.ActorMetrics
+import io.scalac.mesmer.extension.actor.MutableActorMetricStorageFactory
+import io.scalac.mesmer.extension.metric.ActorMetricsMonitor.Labels
+import io.scalac.mesmer.extension.service.ActorTreeService
+import io.scalac.mesmer.extension.service.ActorTreeService.Command.GetActorTree
+import io.scalac.mesmer.extension.service.ActorTreeService.Command.TagSubscribe
+import io.scalac.mesmer.extension.util.Tree._
+import io.scalac.mesmer.extension.util.TreeF
+import io.scalac.mesmer.extension.util.probe.ActorMonitorTestProbe
+import io.scalac.mesmer.extension.util.probe.BoundTestProbe.CounterCommand
+import io.scalac.mesmer.extension.util.probe.BoundTestProbe.MetricObserved
+import io.scalac.mesmer.extension.util.probe.BoundTestProbe.MetricObserverCommand
 
 trait ActorEventMonitorActorTestConfig {
   this: TestSuite with ScaledTimeSpans with ReceptionistOps with PatienceConfiguration =>
@@ -104,12 +118,22 @@ final class ActorEventsMonitorActorTest
       case GetActorTree(reply) =>
         reply ! refs
         Behaviors.same
-
-      case GetActors(Tag.all, reply) =>
-        reply ! refs.unfix.toVector.map(_.ref)
+      case TagSubscribe(_, _) =>
         Behaviors.same
-      case GetActors(_, reply) =>
-        reply ! Seq.empty
+    }
+
+  /**
+   * Create Actor that given
+   */
+  private def subscribeAllConstRefsActorServiceTree(
+    terminated: Vector[ActorRefDetails]
+  ): Tree[ActorRefDetails] => Behavior[ActorTreeService.Command] = refs =>
+    Behaviors.receiveMessagePartial {
+      case GetActorTree(reply) =>
+        reply ! refs
+        Behaviors.same
+      case TagSubscribe(_, reply) =>
+        terminated.foreach(reply.tell)
         Behaviors.same
     }
 
@@ -161,26 +185,30 @@ final class ActorEventsMonitorActorTest
     TestProbe()
   )
 
+  private def spawnWithChildren(children: Int): (classic.ActorRef, Seq[classic.ActorRef]) = {
+    val spawnRoot  = system.systemActorOf(SpawnProtocol(), createUniqueId)
+    val spawnProbe = createTestProbe[ActorRef[_]]()
+
+    for {
+      _ <- 0 until children
+    } spawnRoot ! SpawnProtocol.Spawn(Behaviors.empty, createUniqueId, Props.empty, spawnProbe.ref)
+
+    val childrenRefs = spawnProbe.receiveMessages(children)
+
+    spawnProbe.stop()
+    (spawnRoot.toClassic, childrenRefs.map(_.toClassic))
+  }
+
   /**
    * Spawns 1 level deep tree
    *
    * @param nodes
    * @return
    */
-  private def spawnTree(nodes: Int): Tree[classic.ActorRef] = {
+  private def spawnTree(children: Int): Tree[classic.ActorRef] = {
+    val (root, childrenRefs) = spawnWithChildren(children)
 
-    val spawnRoot  = system.systemActorOf(SpawnProtocol(), createUniqueId)
-    val spawnProbe = createTestProbe[ActorRef[_]]()
-
-    for {
-      _ <- 0 until nodes
-    } spawnRoot ! SpawnProtocol.Spawn(Behaviors.empty, createUniqueId, Props.empty, spawnProbe.ref)
-
-    val children = spawnProbe.receiveMessages(nodes)
-
-    spawnProbe.stop()
-
-    tree(spawnRoot.toClassic, children.map(ch => leaf(ch.toClassic)): _*)
+    tree(root, childrenRefs.map(leaf): _*)
   }
 
   private def rootGrouping(
@@ -230,15 +258,15 @@ final class ActorEventsMonitorActorTest
 
   def refs(implicit setup: Setup): Seq[classic.ActorRef] = Seq.empty
 
-  def collectData(probe: TestProbe[Done])(implicit setup: Setup): Unit = {
+  def collectActorMetrics(probe: TestProbe[Done])(implicit setup: Setup): Unit = {
     setup.sut ! StartActorsMeasurement(Some(probe.ref))
     probe.receiveMessage()
   }
 
-  def collectData()(implicit setup: Setup): Unit =
+  def collectActorMetrics()(implicit setup: Setup): Unit =
     setup.sut ! StartActorsMeasurement(None)
 
-  def collectAll()(implicit context: Context): Unit = context.monitor.collector.collectAll()
+  def runUpdaters()(implicit context: Context): Unit = context.monitor.collector.collectAll()
 
   private def rootLabels(tree: Tree[ActorRefDetails]): Labels =
     Labels(ActorPathOps.getPathString(tree.unfix.value.ref))
@@ -293,14 +321,14 @@ final class ActorEventsMonitorActorTest
       } { implicit setup => implicit context =>
         val ackProbe = TestProbe[Done]
 
-        collectData(ackProbe)
+        collectActorMetrics(ackProbe)
 
         metricsTransitions.foreach { nextMetrics =>
           metricsService ! ForAll(nextMetrics, ackProbe.ref)
           ackProbe.receiveMessage()
-          collectData(ackProbe)
+          collectActorMetrics(ackProbe)
         }
-        collectAll()
+        runUpdaters()
 
         expect(selectProbe, labels, expectedValue)
       }
@@ -329,9 +357,9 @@ final class ActorEventsMonitorActorTest
       } { implicit setup => implicit context =>
         val ackProbe = TestProbe[Done]
 
-        collectData(ackProbe)
-        collectData(ackProbe)
-        collectAll()
+        collectActorMetrics(ackProbe)
+        collectActorMetrics(ackProbe)
+        runUpdaters()
 
         val extracted     = extract(ConstActorMetrics)
         val expectedValue = extractLong(combine(extracted, extracted))
@@ -355,8 +383,8 @@ final class ActorEventsMonitorActorTest
       } { implicit setup => implicit context =>
         val ackProbe = TestProbe[Done]
 
-        collectData(ackProbe)
-        collectAll()
+        collectActorMetrics(ackProbe)
+        runUpdaters()
 
         expect(selectProbe, labels, extractLong(extract(ConstActorMetrics)))
 
@@ -389,8 +417,8 @@ final class ActorEventsMonitorActorTest
       } { implicit setup => implicit context =>
         val ackProbe = TestProbe[Done]
 
-        collectData(ackProbe)
-        collectAll()
+        collectActorMetrics(ackProbe)
+        runUpdaters()
 
         expect(selectProbe, labels, expectedValue)
       }
@@ -411,8 +439,8 @@ final class ActorEventsMonitorActorTest
       } { implicit setup => implicit context =>
         val ackProbe = TestProbe[Done]
 
-        collectData(ackProbe)
-        collectAll()
+        collectActorMetrics(ackProbe)
+        runUpdaters()
 
         expect(selectProbe, labels, expectedValue)
 
@@ -435,8 +463,8 @@ final class ActorEventsMonitorActorTest
       } { implicit setup => implicit context =>
         val ackProbe = TestProbe[Done]
 
-        collectData(ackProbe)
-        collectAll()
+        collectActorMetrics(ackProbe)
+        runUpdaters()
 
         expect(selectProbe, labels, expectedValue)
       }
@@ -454,8 +482,8 @@ final class ActorEventsMonitorActorTest
       } { implicit setup => implicit context =>
         val ackProbe = TestProbe[Done]
 
-        collectData(ackProbe)
-        collectAll()
+        collectActorMetrics(ackProbe)
+        runUpdaters()
 
         val probe = selectProbe(context.monitor)
 
@@ -465,6 +493,82 @@ final class ActorEventsMonitorActorTest
         probe.expectNoMessage()
       }
     }
+
+    it should s"add ${name} terminated actors to grouping parent" in {
+
+      val allRefs = rootGrouping(spawnTree(3), ActorConfiguration.disabledConfig)
+
+      val terminatingRefs = allRefs.unfix.inner.flatMap(_.unfix.toVector)
+      val rootRef         = leaf(allRefs.unfix.value)
+
+      val actorService =
+        system.systemActorOf(subscribeAllConstRefsActorServiceTree(terminatingRefs)(rootRef), createUniqueId)
+
+      val labels = rootLabels(allRefs)
+
+      val refsWithMetrics = addMetrics(allRefs)
+
+      val expectedValue = extractLong(refsWithMetrics.unfix.foldRight[T] { case TreeF((_, metrics), children) =>
+        children.fold(extract(metrics))(combine)
+      })
+
+      testCaseWithSetupAndContext { ctx =>
+        ctx.copy(actorTreeService = actorService, actorMetricReader = treeDataReader(refsWithMetrics))
+      } { implicit setup => implicit context =>
+        val ackProbe = TestProbe[Done]
+
+        collectActorMetrics(ackProbe)
+        runUpdaters()
+
+        expect(selectProbe, labels, expectedValue)
+      }
+    }
+
+    it should s"add ${name} terminated actors to grouping parent only once" in {
+
+      val allRefs = rootGrouping(spawnTree(3), ActorConfiguration.disabledConfig)
+
+      val terminatingRefs = allRefs.unfix.inner.flatMap(_.unfix.toVector)
+      val rootRef         = leaf(allRefs.unfix.value)
+
+      val actorService =
+        system.systemActorOf(subscribeAllConstRefsActorServiceTree(terminatingRefs)(rootRef), createUniqueId)
+
+      val labels = rootLabels(allRefs)
+
+      val refsWithMetrics = addMetrics(allRefs)
+
+      val (_, rootMetrics) = refsWithMetrics.unfix.value
+
+      /**
+       * We expect root value to be taken into account twice
+       */
+      val expectedValue = extractLong(
+        combine(
+          refsWithMetrics.unfix.foldRight[T] { case TreeF((_, metrics), children) =>
+            children.fold(extract(metrics))(combine)
+          },
+          extract(rootMetrics)
+        )
+      )
+
+      testCaseWithSetupAndContext { ctx =>
+        ctx.copy(actorTreeService = actorService, actorMetricReader = treeDataReader(refsWithMetrics))
+      } { implicit setup => implicit context =>
+        val ackProbe = TestProbe[Done]
+
+        collectActorMetrics(ackProbe)
+        runUpdaters()
+
+        selectProbe(context.monitor).receiveMessage()
+
+        collectActorMetrics(ackProbe)
+        runUpdaters()
+
+        expect(selectProbe, labels, expectedValue)
+      }
+    }
+
   }
 
   def allBehaviorsLong(
@@ -563,7 +667,7 @@ final class ActorEventsMonitorActorTest
     testCaseWithSetupAndContext(_.copy(actorMetricReader = failingReader, actorTreeService = actorService)) {
       implicit setup => implicit context =>
 //        val ackProbe = TestProbe[Done]
-        collectData()
+        collectActorMetrics()
 
         eventually {
           monitor.unbinds should be(1)
@@ -580,9 +684,9 @@ final class ActorEventsMonitorActorTest
     testCaseWithSetupAndContext(
       _.copy(actorMetricReader = _ => Some(ConstActorMetrics), actorTreeService = actorService)
     ) { implicit setup => implicit context =>
-      collectData()
+      collectActorMetrics()
       ackProbe.receiveMessage()
-      collectAll()
+      runUpdaters()
       monitor.sentMessagesProbe.expectNoMessage()
     }
   }
@@ -594,7 +698,7 @@ final class ActorEventsMonitorActorTest
     testCaseWithSetupAndContext(
       _.copy(actorMetricReader = _ => Some(ConstActorMetrics), actorTreeService = actorService)
     ) { implicit setup => implicit context =>
-      collectData()
+      collectActorMetrics()
       ackProbe.receiveMessage()
       ackProbe.receiveMessage()
       ackProbe.receiveMessage()
