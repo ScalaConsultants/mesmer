@@ -1,5 +1,7 @@
 package io.scalac.mesmer.extension
 
+import java.util.concurrent.atomic.AtomicInteger
+
 import akka.Done
 import akka.actor.PoisonPill
 import akka.actor.testkit.typed.javadsl.FishingOutcomes
@@ -24,12 +26,11 @@ import scala.util.Random
 import scala.util.control.NoStackTrace
 
 import io.scalac.mesmer.core.model._
-import io.scalac.mesmer.core.util.ActorPathOps
 import io.scalac.mesmer.core.util.AggMetric.LongValueAggMetric
-import io.scalac.mesmer.core.util.ReceptionistOps
 import io.scalac.mesmer.core.util.TestCase._
 import io.scalac.mesmer.core.util.TestConfig
 import io.scalac.mesmer.core.util.TestOps
+import io.scalac.mesmer.core.util._
 import io.scalac.mesmer.core.util.probe.ObserverCollector.ManualCollectorImpl
 import io.scalac.mesmer.extension.ActorEventsMonitorActor._
 import io.scalac.mesmer.extension.actor.ActorMetrics
@@ -72,13 +73,6 @@ final class ActorEventsMonitorActorTest
     with ActorEventMonitorActorTestConfig {
 
   import ActorEventsMonitorActorTest._
-
-  /**
-   * process needed here:
-   * - prepare actor refs -
-   * - set up actor from context and monitor
-   * --
-   */
 
   protected type Setup = ActorEventSetup
   type Monitor         = ActorMonitorTestProbe
@@ -241,7 +235,8 @@ final class ActorEventsMonitorActorTest
                 pingOffset,
                 new MutableActorMetricStorageFactory,
                 scheduler,
-                c.actorMetricReader
+                c.actorMetricReader,
+                c.timestampFactory
               ).start(c.actorTreeService, loop = false) // false is important here!
             }
           }
@@ -705,6 +700,61 @@ final class ActorEventsMonitorActorTest
     }
   }
 
+  it should "update timestamp after all probes run" in {
+    val refs         = actorConfiguration(spawnTree(3), ActorConfiguration.instanceConfig)
+    val actorService = system.systemActorOf(constRefsActorServiceTree(refs), createUniqueId)
+
+    testCaseWithSetupAndContext(
+      _.copy(actorMetricReader = _ => Some(ConstActorMetrics), actorTreeService = actorService)
+    ) { implicit setup => implicit context =>
+      eventually {
+        context.timestampFactory.count() should be(1L)
+      }
+      val ackProbe = TestProbe[Done]
+      collectActorMetrics(ackProbe)
+      runUpdaters()
+      monitor.mailboxSizeProbe.receiveMessage()
+      monitor.mailboxTimeAvgProbe.receiveMessage()
+      monitor.mailboxTimeMinProbe.receiveMessage()
+      monitor.mailboxTimeMaxProbe.receiveMessage()
+      monitor.mailboxTimeSumProbe.receiveMessage()
+      monitor.stashSizeProbe.receiveMessage()
+      monitor.receivedMessagesProbe.receiveMessage()
+      monitor.processedMessagesProbe.receiveMessage()
+      monitor.failedMessagesProbe.receiveMessage()
+      monitor.processingTimeAvgProbe.receiveMessage()
+      monitor.processingTimeMinProbe.receiveMessage()
+      monitor.processingTimeMaxProbe.receiveMessage()
+      monitor.processingTimeSumProbe.receiveMessage()
+      monitor.sentMessagesProbe.receiveMessage()
+      monitor.droppedMessagesProbe.receiveMessage()
+      context.timestampFactory.count() should be(2L)
+
+    }
+  }
+
+//  testCase { implicit context =>
+//    eventually {
+//      timestampFactory.count() should be(1L)
+//    }
+//    monitor.mailboxSizeProbe.receiveMessage()
+//    monitor.mailboxTimeAvgProbe.receiveMessage()
+//    monitor.mailboxTimeMinProbe.receiveMessage()
+//    monitor.mailboxTimeMaxProbe.receiveMessage()
+//    monitor.mailboxTimeSumProbe.receiveMessage()
+//    monitor.stashSizeProbe.receiveMessage()
+//    monitor.receivedMessagesProbe.receiveMessage()
+//    monitor.processedMessagesProbe.receiveMessage()
+//    monitor.failedMessagesProbe.receiveMessage()
+//    monitor.processingTimeAvgProbe.receiveMessage()
+//    monitor.processingTimeMinProbe.receiveMessage()
+//    monitor.processingTimeMaxProbe.receiveMessage()
+//    monitor.processingTimeSumProbe.receiveMessage()
+//    monitor.sentMessagesProbe.receiveMessage()
+//    monitor.droppedMessagesProbe.receiveMessage()
+//    timestampFactory.count() should be >= (2) // this could happen more than once
+//  }
+
 }
 
 object ActorEventsMonitorActorTest {
@@ -718,11 +768,23 @@ object ActorEventsMonitorActorTest {
 
   private val NoMetricsReader: ActorMetricsReader = _ => None
 
+  final class CountingTimestampFactory() extends (() => Timestamp) {
+
+    private val _count = new AtomicInteger(0)
+    override def apply(): Timestamp = {
+      _count.incrementAndGet()
+      Timestamp.create()
+    }
+
+    def count(): Int = _count.get()
+  }
+
   final case class TestContext(
     monitor: ActorMonitorTestProbe,
     actorTreeServiceProbe: TestProbe[CounterCommand],
     actorMetricReader: ActorMetricsReader = NoMetricsReader,
-    actorTreeService: ActorRef[ActorTreeService.Command] = classic.ActorRef.noSender.toTyped[ActorTreeService.Command]
+    actorTreeService: ActorRef[ActorTreeService.Command] = classic.ActorRef.noSender.toTyped[ActorTreeService.Command],
+    timestampFactory: CountingTimestampFactory = new CountingTimestampFactory()
   )(implicit
     val system: ActorSystem[_]
   ) extends MonitorTestCaseContext[ActorMonitorTestProbe] {

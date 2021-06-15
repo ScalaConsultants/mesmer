@@ -21,10 +21,8 @@ jobs:
         uses: actions/setup-java@v1
         with:
           java-version: 1.8
-      - name: Lint code
-        run: sbt scalafmtCheckAll
-      - name: Fix Scala code
-        run: sbt "scalafixAll --check"
+      - name: Check code linting
+        run: sbt check
 
   build:
     runs-on: ubuntu-latest
