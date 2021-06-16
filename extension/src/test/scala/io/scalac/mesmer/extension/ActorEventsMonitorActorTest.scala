@@ -135,7 +135,6 @@ final class ActorEventsMonitorActorTest
     monitor: ActorRef[Done]
   ): Tree[ActorRefDetails] => Behavior[ActorTreeService.Command] = refs =>
     Behaviors.receiveMessagePartial { case GetActorTree(reply) =>
-      reply ! refs
       monitor ! Done
       Behaviors.same
     }
@@ -671,7 +670,7 @@ final class ActorEventsMonitorActorTest
     }
   }
 
-  it should "not product any metrics until actroTreeService is availabe" in {
+  it should "not produce any metrics until actorTreeService is available" in {
     val refs         = actorConfiguration(spawnTree(3), ActorConfiguration.instanceConfig)
     val ackProbe     = TestProbe[Done]
     val actorService = system.systemActorOf(countingRefsActorServiceTree(ackProbe.ref)(refs), createUniqueId)
@@ -679,7 +678,7 @@ final class ActorEventsMonitorActorTest
     testCaseWithSetupAndContext(
       _.copy(actorMetricReader = _ => Some(ConstActorMetrics), actorTreeService = actorService)
     ) { implicit setup => implicit context =>
-      collectActorMetrics()
+      collectActorMetrics(ackProbe)
       ackProbe.receiveMessage()
       runUpdaters()
       monitor.sentMessagesProbe.expectNoMessage()
@@ -732,29 +731,6 @@ final class ActorEventsMonitorActorTest
 
     }
   }
-
-//  testCase { implicit context =>
-//    eventually {
-//      timestampFactory.count() should be(1L)
-//    }
-//    monitor.mailboxSizeProbe.receiveMessage()
-//    monitor.mailboxTimeAvgProbe.receiveMessage()
-//    monitor.mailboxTimeMinProbe.receiveMessage()
-//    monitor.mailboxTimeMaxProbe.receiveMessage()
-//    monitor.mailboxTimeSumProbe.receiveMessage()
-//    monitor.stashSizeProbe.receiveMessage()
-//    monitor.receivedMessagesProbe.receiveMessage()
-//    monitor.processedMessagesProbe.receiveMessage()
-//    monitor.failedMessagesProbe.receiveMessage()
-//    monitor.processingTimeAvgProbe.receiveMessage()
-//    monitor.processingTimeMinProbe.receiveMessage()
-//    monitor.processingTimeMaxProbe.receiveMessage()
-//    monitor.processingTimeSumProbe.receiveMessage()
-//    monitor.sentMessagesProbe.receiveMessage()
-//    monitor.droppedMessagesProbe.receiveMessage()
-//    timestampFactory.count() should be >= (2) // this could happen more than once
-//  }
-
 }
 
 object ActorEventsMonitorActorTest {
