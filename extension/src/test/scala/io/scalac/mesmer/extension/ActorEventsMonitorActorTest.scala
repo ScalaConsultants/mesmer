@@ -315,39 +315,10 @@ final class ActorEventsMonitorActorTest
 
   private def collect[T](
     selectProbe: ActorMonitorTestProbe => TestProbe[MetricObserverCommand[Labels]],
-    extract: ActorMetrics => T,
-    name: String,
-    combine: (T, T) => T,
-    extractLong: T => Long
-  ): Unit = {
-
-    it should s"add up ${name} for consecutive collections" in {
-
-      val refs         = actorConfiguration(spawnTree(3), ActorConfiguration.instanceConfig)
-      val actorService = system.systemActorOf(constRefsActorServiceTree(refs), createUniqueId)
-      val labels       = Labels(ActorPathOps.getPathString(refs.unfix.value.ref))
-
-      val refsWithMetrics = refs.unfix.mapValues { details =>
-        details.ref -> ConstActorMetrics
-      }
-
-      testCaseWithSetupAndContext { ctx =>
-        ctx.copy(actorTreeService = actorService, actorMetricReader = treeDataReader(refsWithMetrics))
-      } { implicit setup => implicit context =>
-        val ackProbe = TestProbe[Done]
-
-        collectActorMetrics(ackProbe)
-        collectActorMetrics(ackProbe)
-        runUpdaters()
-
-        val extracted     = extract(ConstActorMetrics)
-        val expectedValue = extractLong(combine(extracted, extracted))
-
-        expect(selectProbe, labels, expectedValue)
-      }
-    }
-
-    it should s"record ${name}" in {
+    extract: ActorMetrics => Long,
+    name: String
+  ): Unit =
+    it should s"record ${name} value" in {
 
       val refs         = actorConfiguration(spawnTree(3), ActorConfiguration.instanceConfig)
       val actorService = system.systemActorOf(constRefsActorServiceTree(refs), createUniqueId)
@@ -365,11 +336,10 @@ final class ActorEventsMonitorActorTest
         collectActorMetrics(ackProbe)
         runUpdaters()
 
-        expect(selectProbe, labels, extractLong(extract(ConstActorMetrics)))
+        expect(selectProbe, labels, extract(ConstActorMetrics))
 
       }
     }
-  }
 
   private def reportingAggregation[T](
     selectProbe: ActorMonitorTestProbe => TestProbe[MetricObserverCommand[Labels]],
@@ -556,7 +526,7 @@ final class ActorEventsMonitorActorTest
     extract: ActorMetrics => Option[Long],
     name: String
   ): Unit = {
-    collect[Option[Long]](selectProbe, extract, name, sumLong, _.get)
+    collect[Option[Long]](selectProbe, extract andThen (_.get), name)
     collectMany[Option[Long]](selectProbe, extract, name, sumLong, _.get)(Seq.fill(10)(randomActorMetrics()))
     (reportingAggregation[Option[Long]](
       selectProbe,
@@ -583,7 +553,7 @@ final class ActorEventsMonitorActorTest
     for {
       (suffix, mapping, probe) <- args
     } {
-      collect[Option[LongValueAggMetric]](probe, extract, s"$name $suffix", sumAgg, _.map(mapping).get)
+      collect[Option[LongValueAggMetric]](probe, extract.andThen(_.map(mapping).get), s"$name $suffix")
       reportingAggregation[Option[LongValueAggMetric]](
         probe,
         extract,
@@ -595,7 +565,6 @@ final class ActorEventsMonitorActorTest
       collectMany[Option[LongValueAggMetric]](probe, extract, s"$name $suffix", addToAgg, _.map(mapping).get)(
         Seq.fill(10)(randomActorMetrics())
       )
-
     }
 
   }
