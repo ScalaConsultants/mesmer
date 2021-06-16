@@ -109,7 +109,7 @@ class MutableActorMetricStorageFactoryTest extends AnyFlatSpec with Matchers {
       ("d", TestMetrics(4))
     )
 
-    val expectedBuffer = Seq("e" -> initialBuffer.toMap.values.reduce(_.combine(_)))
+    val expectedBuffer = Seq("e" -> initialBuffer.toMap.values.reduce(_.addTo(_)))
 
     initialBuffer.foreach { case (key, value) =>
       sut.save(key, value, false)
@@ -137,7 +137,7 @@ class MutableActorMetricStorageFactoryTest extends AnyFlatSpec with Matchers {
       ("f", TestMetrics(10))
     )
 
-    val computedBuffer = Seq("g" -> (initialBuffer ++ initialPersistentBuffer).toMap.values.reduce(_.combine(_)))
+    val computedBuffer = Seq("g" -> (initialBuffer ++ initialPersistentBuffer).toMap.values.reduce(_.addTo(_)))
     val expectedBuffer = computedBuffer ++ initialPersistentBuffer
 
     initialBuffer.foreach { case (key, value) =>
@@ -171,7 +171,7 @@ class MutableActorMetricStorageFactoryTest extends AnyFlatSpec with Matchers {
     val (buffer, persistentBuffer) = sut.buffers
 
     val expected =
-      Seq("e" -> firstBatch.toMap.values.reduce(_.combine(_)), "f" -> secondBatch.toMap.values.reduce(_.combine(_)))
+      Seq("e" -> firstBatch.toMap.values.reduce(_.addTo(_)), "f" -> secondBatch.toMap.values.reduce(_.addTo(_)))
 
     firstBatch.foreach { case (key, value) =>
       sut.save(key, value, false)
@@ -243,7 +243,7 @@ class MutableActorMetricStorageFactoryTest extends AnyFlatSpec with Matchers {
       ("d", TestMetrics(4))
     )
 
-    val after = ("a", (initial +: common).toMap.values.reduce(_.combine(_)))
+    val after = ("a", (initial +: common).toMap.values.reduce(_.addTo(_)))
 
     (initial +: common).foreach { case (key, value) =>
       sut.save(key, value, true)

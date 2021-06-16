@@ -1,50 +1,36 @@
 package io.scalac.mesmer.extension
 
-import java.util.concurrent.atomic.AtomicInteger
-
-import akka.Done
 import akka.actor.PoisonPill
 import akka.actor.testkit.typed.javadsl.FishingOutcomes
-import akka.actor.testkit.typed.scaladsl.ScalaTestWithActorTestKit
-import akka.actor.testkit.typed.scaladsl.TestProbe
+import akka.actor.testkit.typed.scaladsl.{ ScalaTestWithActorTestKit, TestProbe }
 import akka.actor.typed._
 import akka.actor.typed.scaladsl.AskPattern._
-import akka.actor.typed.scaladsl.Behaviors
-import akka.actor.typed.scaladsl.StashBuffer
 import akka.actor.typed.scaladsl.adapter._
+import akka.actor.typed.scaladsl.{ Behaviors, StashBuffer }
 import akka.util.Timeout
-import akka.{ actor => classic }
-import org.scalatest.LoneElement
-import org.scalatest.OptionValues
-import org.scalatest.TestSuite
-import org.scalatest.concurrent.PatienceConfiguration
-import org.scalatest.concurrent.ScaledTimeSpans
+import akka.{ Done, actor => classic }
+import io.scalac.mesmer.core.model._
+import io.scalac.mesmer.core.util.AggMetric.LongValueAggMetric
+import io.scalac.mesmer.core.util.TestCase._
+import io.scalac.mesmer.core.util.probe.ObserverCollector.ManualCollectorImpl
+import io.scalac.mesmer.core.util.{ TestConfig, TestOps, _ }
+import io.scalac.mesmer.extension.ActorEventsMonitorActor._
+import io.scalac.mesmer.extension.actor.{ ActorMetrics, MutableActorMetricStorageFactory }
+import io.scalac.mesmer.extension.metric.ActorMetricsMonitor.Labels
+import io.scalac.mesmer.extension.service.ActorTreeService
+import io.scalac.mesmer.extension.service.ActorTreeService.Command.{ GetActorTree, TagSubscribe }
+import io.scalac.mesmer.extension.util.Tree._
+import io.scalac.mesmer.extension.util.TreeF
+import io.scalac.mesmer.extension.util.probe.ActorMonitorTestProbe
+import io.scalac.mesmer.extension.util.probe.BoundTestProbe.{ CounterCommand, MetricObserved, MetricObserverCommand }
+import org.scalatest.concurrent.{ PatienceConfiguration, ScaledTimeSpans }
+import org.scalatest.{ LoneElement, OptionValues, TestSuite }
 
+import java.util.concurrent.atomic.AtomicInteger
 import scala.concurrent.Await
 import scala.concurrent.duration._
 import scala.util.Random
 import scala.util.control.NoStackTrace
-
-import io.scalac.mesmer.core.model._
-import io.scalac.mesmer.core.util.AggMetric.LongValueAggMetric
-import io.scalac.mesmer.core.util.TestCase._
-import io.scalac.mesmer.core.util.TestConfig
-import io.scalac.mesmer.core.util.TestOps
-import io.scalac.mesmer.core.util._
-import io.scalac.mesmer.core.util.probe.ObserverCollector.ManualCollectorImpl
-import io.scalac.mesmer.extension.ActorEventsMonitorActor._
-import io.scalac.mesmer.extension.actor.ActorMetrics
-import io.scalac.mesmer.extension.actor.MutableActorMetricStorageFactory
-import io.scalac.mesmer.extension.metric.ActorMetricsMonitor.Labels
-import io.scalac.mesmer.extension.service.ActorTreeService
-import io.scalac.mesmer.extension.service.ActorTreeService.Command.GetActorTree
-import io.scalac.mesmer.extension.service.ActorTreeService.Command.TagSubscribe
-import io.scalac.mesmer.extension.util.Tree._
-import io.scalac.mesmer.extension.util.TreeF
-import io.scalac.mesmer.extension.util.probe.ActorMonitorTestProbe
-import io.scalac.mesmer.extension.util.probe.BoundTestProbe.CounterCommand
-import io.scalac.mesmer.extension.util.probe.BoundTestProbe.MetricObserved
-import io.scalac.mesmer.extension.util.probe.BoundTestProbe.MetricObserverCommand
 
 trait ActorEventMonitorActorTestConfig {
   this: TestSuite with ScaledTimeSpans with ReceptionistOps with PatienceConfiguration =>
@@ -234,8 +220,7 @@ final class ActorEventsMonitorActorTest
                 pingOffset,
                 new MutableActorMetricStorageFactory,
                 scheduler,
-                c.actorMetricReader,
-                c.timestampFactory
+                c.actorMetricReader
               ).start(c.actorTreeService, loop = false) // false is important here!
             }
           }
@@ -293,7 +278,7 @@ final class ActorEventsMonitorActorTest
     selectProbe: ActorMonitorTestProbe => TestProbe[MetricObserverCommand[Labels]],
     extract: ActorMetrics => T,
     name: String,
-    combine: (T, T) => T,
+    addTo: (T, T) => T,
     extractLong: T => Long
   )(metrics: Seq[ActorMetrics]) =
     it should s"record ${name} after many transitions" in {
@@ -308,7 +293,7 @@ final class ActorEventsMonitorActorTest
       }
       val metricsService = system.systemActorOf(readerBehavior(refsWithMetrics), createUniqueId)
 
-      val expectedValue = extractLong(metrics.map(extract).reduce(combine))
+      val expectedValue = extractLong(metrics.map(extract).reduce(addTo))
 
       testCaseWithSetupAndContext { ctx =>
         ctx.copy(actorTreeService = actorService, actorMetricReader = actorDataReader(metricsService))
@@ -390,7 +375,8 @@ final class ActorEventsMonitorActorTest
     selectProbe: ActorMonitorTestProbe => TestProbe[MetricObserverCommand[Labels]],
     extract: ActorMetrics => T,
     name: String,
-    combine: (T, T) => T,
+    sum: (T, T) => T,
+    combineWithExisting: (T, T) => T,
     extractLong: T => Long
   )(addMetrics: Tree[ActorRefDetails] => Tree[(classic.ActorRef, ActorMetrics)]): Unit = {
 
@@ -403,7 +389,7 @@ final class ActorEventsMonitorActorTest
       val refsWithMetrics = addMetrics(refs)
 
       val expectedValue = extractLong(refsWithMetrics.unfix.foldRight[T] { case TreeF((_, metrics), children) =>
-        children.fold(extract(metrics))(combine)
+        children.fold(extract(metrics))(sum)
       })
 
       testCaseWithSetupAndContext { ctx =>
@@ -425,7 +411,7 @@ final class ActorEventsMonitorActorTest
 
       val refsWithMetrics = addMetrics(refs)
       val expectedValue = extractLong(refsWithMetrics.unfix.foldRight[T] { case TreeF((_, metrics), children) =>
-        children.fold(extract(metrics))(combine)
+        children.fold(extract(metrics))(sum)
       })
 
       testCaseWithSetupAndContext { ctx =>
@@ -503,7 +489,7 @@ final class ActorEventsMonitorActorTest
       val refsWithMetrics = addMetrics(allRefs)
 
       val expectedValue = extractLong(refsWithMetrics.unfix.foldRight[T] { case TreeF((_, metrics), children) =>
-        children.fold(extract(metrics))(combine)
+        children.fold(extract(metrics))(sum)
       })
 
       testCaseWithSetupAndContext { ctx =>
@@ -538,9 +524,9 @@ final class ActorEventsMonitorActorTest
        * We expect root value to be taken into account twice
        */
       val expectedValue = extractLong(
-        combine(
+        combineWithExisting(
           refsWithMetrics.unfix.foldRight[T] { case TreeF((_, metrics), children) =>
-            children.fold(extract(metrics))(combine)
+            children.fold(extract(metrics))(sum)
           },
           extract(rootMetrics)
         )
@@ -570,13 +556,14 @@ final class ActorEventsMonitorActorTest
     extract: ActorMetrics => Option[Long],
     name: String
   ): Unit = {
-    collect[Option[Long]](selectProbe, extract, name, combine, _.get)
-    collectMany[Option[Long]](selectProbe, extract, name, combine, _.get)(Seq.fill(10)(randomActorMetrics()))
+    collect[Option[Long]](selectProbe, extract, name, sumLong, _.get)
+    collectMany[Option[Long]](selectProbe, extract, name, sumLong, _.get)(Seq.fill(10)(randomActorMetrics()))
     (reportingAggregation[Option[Long]](
       selectProbe,
       extract,
       name,
-      combine,
+      sumLong,
+      sumLong,
       _.get
     )(addRandomMetrics))
 
@@ -596,15 +583,16 @@ final class ActorEventsMonitorActorTest
     for {
       (suffix, mapping, probe) <- args
     } {
-      collect[Option[LongValueAggMetric]](probe, extract, s"$name $suffix", combineAgg, _.map(mapping).get)
+      collect[Option[LongValueAggMetric]](probe, extract, s"$name $suffix", sumAgg, _.map(mapping).get)
       reportingAggregation[Option[LongValueAggMetric]](
         probe,
         extract,
         s"$name $suffix",
-        combineAgg,
+        sumAgg,
+        addToAgg,
         _.map(mapping).get
       )((addRandomMetrics))
-      collectMany[Option[LongValueAggMetric]](probe, extract, s"$name $suffix", combineAgg, _.map(mapping).get)(
+      collectMany[Option[LongValueAggMetric]](probe, extract, s"$name $suffix", addToAgg, _.map(mapping).get)(
         Seq.fill(10)(randomActorMetrics())
       )
 
@@ -612,19 +600,27 @@ final class ActorEventsMonitorActorTest
 
   }
 
-  private val combine: (Option[Long], Option[Long]) => Option[Long] = (optX, optY) => {
+  private val sumLong: (Option[Long], Option[Long]) => Option[Long] = (optX, optY) => {
     (for {
       x <- optX
       y <- optY
     } yield (x + y))
   }
 
-  private val combineAgg: (Option[LongValueAggMetric], Option[LongValueAggMetric]) => Option[LongValueAggMetric] =
+  private val sumAgg: (Option[LongValueAggMetric], Option[LongValueAggMetric]) => Option[LongValueAggMetric] =
     (optX, optY) => {
       (for {
         x <- optX
         y <- optY
-      } yield x.combine(y))
+      } yield x.sum(y))
+    }
+
+  private val addToAgg: (Option[LongValueAggMetric], Option[LongValueAggMetric]) => Option[LongValueAggMetric] =
+    (optX, optY) => {
+      (for {
+        x <- optX
+        y <- optY
+      } yield x.addTo(y))
     }
 
   it should behave like allBehaviorsLong(_.mailboxSizeProbe, _.mailboxSize, "mailbox size")
@@ -660,13 +656,12 @@ final class ActorEventsMonitorActorTest
 
     testCaseWithSetupAndContext(_.copy(actorMetricReader = failingReader, actorTreeService = actorService)) {
       implicit setup => implicit context =>
-//        val ackProbe = TestProbe[Done]
         collectActorMetrics()
 
         eventually {
           monitor.unbinds should be(1)
           monitor.binds should be(2)
-      }
+        }
     }
   }
 
@@ -696,39 +691,6 @@ final class ActorEventsMonitorActorTest
       ackProbe.receiveMessage()
       ackProbe.receiveMessage()
       ackProbe.receiveMessage()
-    }
-  }
-
-  it should "update timestamp after all probes run" in {
-    val refs         = actorConfiguration(spawnTree(3), ActorConfiguration.instanceConfig)
-    val actorService = system.systemActorOf(constRefsActorServiceTree(refs), createUniqueId)
-
-    testCaseWithSetupAndContext(
-      _.copy(actorMetricReader = _ => Some(ConstActorMetrics), actorTreeService = actorService)
-    ) { implicit setup => implicit context =>
-      eventually {
-        context.timestampFactory.count() should be(1L)
-      }
-      val ackProbe = TestProbe[Done]
-      collectActorMetrics(ackProbe)
-      runUpdaters()
-      monitor.mailboxSizeProbe.receiveMessage()
-      monitor.mailboxTimeAvgProbe.receiveMessage()
-      monitor.mailboxTimeMinProbe.receiveMessage()
-      monitor.mailboxTimeMaxProbe.receiveMessage()
-      monitor.mailboxTimeSumProbe.receiveMessage()
-      monitor.stashSizeProbe.receiveMessage()
-      monitor.receivedMessagesProbe.receiveMessage()
-      monitor.processedMessagesProbe.receiveMessage()
-      monitor.failedMessagesProbe.receiveMessage()
-      monitor.processingTimeAvgProbe.receiveMessage()
-      monitor.processingTimeMinProbe.receiveMessage()
-      monitor.processingTimeMaxProbe.receiveMessage()
-      monitor.processingTimeSumProbe.receiveMessage()
-      monitor.sentMessagesProbe.receiveMessage()
-      monitor.droppedMessagesProbe.receiveMessage()
-      context.timestampFactory.count() should be(2L)
-
     }
   }
 }
