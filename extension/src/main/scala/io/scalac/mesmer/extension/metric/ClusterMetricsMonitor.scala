@@ -12,8 +12,6 @@ object ClusterMetricsMonitor {
     def withRegion(region: Region): Labels = copy(region = Some(region))
   }
 
-  /**
-   */
   trait BoundMonitor extends Synchronized with Bound {
     def shardPerRegions: MetricObserver[Long, Labels]
     def entityPerRegion: MetricObserver[Long, Labels]

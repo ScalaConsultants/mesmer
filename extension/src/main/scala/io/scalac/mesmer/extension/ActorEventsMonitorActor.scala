@@ -158,25 +158,22 @@ private[extension] class ActorEventsMonitorActor private[extension] (
   private def registerUpdaters(): Unit = {
 
     import boundMonitor._
-    SyncWith()
-      .`with`(mailboxSize)(updateMetric(_.mailboxSize))
-      .`with`(failedMessages)(updateMetric(_.failedMessages))
-      .`with`(processedMessages)(updateMetric(_.processedMessages))
-      .`with`(receivedMessages)(updateMetric(_.receivedMessages))
-      .`with`(mailboxTimeCount)(updateMetric(_.mailboxTime.map(_.count)))
-      .`with`(mailboxTimeMax)(updateMetric(_.mailboxTime.map(_.max)))
-      .`with`(mailboxTimeMin)(updateMetric(_.mailboxTime.map(_.min)))
-      .`with`(mailboxTimeSum)(updateMetric(_.mailboxTime.map(_.sum)))
-      .`with`(processingTimeCount)(updateMetric(_.processingTime.map(_.count)))
-      .`with`(processingTimeMin)(updateMetric(_.processingTime.map(_.min)))
-      .`with`(processingTimeMax)(updateMetric(_.processingTime.map(_.max)))
-      .`with`(processingTimeSum)(updateMetric(_.processingTime.map(_.sum)))
-      .`with`(sentMessages)(updateMetric(_.sentMessages))
-      .`with`(stashSize)(updateMetric(_.stashSize))
-      .`with`(droppedMessages)(updateMetric(_.droppedMessages))
-      .afterAll {
-        exported.set(true)
-      }
+
+    mailboxSize.setUpdater(updateMetric(_.mailboxSize))
+    failedMessages.setUpdater(updateMetric(_.failedMessages))
+    processedMessages.setUpdater(updateMetric(_.processedMessages))
+    receivedMessages.setUpdater(updateMetric(_.receivedMessages))
+    mailboxTimeCount.setUpdater(updateMetric(_.mailboxTime.map(_.count)))
+    mailboxTimeMax.setUpdater(updateMetric(_.mailboxTime.map(_.max)))
+    mailboxTimeMin.setUpdater(updateMetric(_.mailboxTime.map(_.min)))
+    mailboxTimeSum.setUpdater(updateMetric(_.mailboxTime.map(_.sum)))
+    processingTimeCount.setUpdater(updateMetric(_.processingTime.map(_.count)))
+    processingTimeMin.setUpdater(updateMetric(_.processingTime.map(_.min)))
+    processingTimeMax.setUpdater(updateMetric(_.processingTime.map(_.max)))
+    processingTimeSum.setUpdater(updateMetric(_.processingTime.map(_.sum)))
+    sentMessages.setUpdater(updateMetric(_.sentMessages))
+    stashSize.setUpdater(updateMetric(_.stashSize))
+    droppedMessages.setUpdater(updateMetric(_.droppedMessages))
 
   }
 
