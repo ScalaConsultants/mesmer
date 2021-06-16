@@ -1,36 +1,50 @@
 package io.scalac.mesmer.extension
 
+import java.util.concurrent.atomic.AtomicInteger
+
+import akka.Done
 import akka.actor.PoisonPill
 import akka.actor.testkit.typed.javadsl.FishingOutcomes
-import akka.actor.testkit.typed.scaladsl.{ ScalaTestWithActorTestKit, TestProbe }
+import akka.actor.testkit.typed.scaladsl.ScalaTestWithActorTestKit
+import akka.actor.testkit.typed.scaladsl.TestProbe
 import akka.actor.typed._
 import akka.actor.typed.scaladsl.AskPattern._
+import akka.actor.typed.scaladsl.Behaviors
+import akka.actor.typed.scaladsl.StashBuffer
 import akka.actor.typed.scaladsl.adapter._
-import akka.actor.typed.scaladsl.{ Behaviors, StashBuffer }
 import akka.util.Timeout
-import akka.{ Done, actor => classic }
-import io.scalac.mesmer.core.model._
-import io.scalac.mesmer.core.util.AggMetric.LongValueAggMetric
-import io.scalac.mesmer.core.util.TestCase._
-import io.scalac.mesmer.core.util.probe.ObserverCollector.ManualCollectorImpl
-import io.scalac.mesmer.core.util.{ TestConfig, TestOps, _ }
-import io.scalac.mesmer.extension.ActorEventsMonitorActor._
-import io.scalac.mesmer.extension.actor.{ ActorMetrics, MutableActorMetricStorageFactory }
-import io.scalac.mesmer.extension.metric.ActorMetricsMonitor.Labels
-import io.scalac.mesmer.extension.service.ActorTreeService
-import io.scalac.mesmer.extension.service.ActorTreeService.Command.{ GetActorTree, TagSubscribe }
-import io.scalac.mesmer.extension.util.Tree._
-import io.scalac.mesmer.extension.util.TreeF
-import io.scalac.mesmer.extension.util.probe.ActorMonitorTestProbe
-import io.scalac.mesmer.extension.util.probe.BoundTestProbe.{ CounterCommand, MetricObserved, MetricObserverCommand }
-import org.scalatest.concurrent.{ PatienceConfiguration, ScaledTimeSpans }
-import org.scalatest.{ LoneElement, OptionValues, TestSuite }
+import akka.{ actor => classic }
+import org.scalatest.LoneElement
+import org.scalatest.OptionValues
+import org.scalatest.TestSuite
+import org.scalatest.concurrent.PatienceConfiguration
+import org.scalatest.concurrent.ScaledTimeSpans
 
-import java.util.concurrent.atomic.AtomicInteger
 import scala.concurrent.Await
 import scala.concurrent.duration._
 import scala.util.Random
 import scala.util.control.NoStackTrace
+
+import io.scalac.mesmer.core.model._
+import io.scalac.mesmer.core.util.AggMetric.LongValueAggMetric
+import io.scalac.mesmer.core.util.TestCase._
+import io.scalac.mesmer.core.util.TestConfig
+import io.scalac.mesmer.core.util.TestOps
+import io.scalac.mesmer.core.util._
+import io.scalac.mesmer.core.util.probe.ObserverCollector.ManualCollectorImpl
+import io.scalac.mesmer.extension.ActorEventsMonitorActor._
+import io.scalac.mesmer.extension.actor.ActorMetrics
+import io.scalac.mesmer.extension.actor.MutableActorMetricStorageFactory
+import io.scalac.mesmer.extension.metric.ActorMetricsMonitor.Labels
+import io.scalac.mesmer.extension.service.ActorTreeService
+import io.scalac.mesmer.extension.service.ActorTreeService.Command.GetActorTree
+import io.scalac.mesmer.extension.service.ActorTreeService.Command.TagSubscribe
+import io.scalac.mesmer.extension.util.Tree._
+import io.scalac.mesmer.extension.util.TreeF
+import io.scalac.mesmer.extension.util.probe.ActorMonitorTestProbe
+import io.scalac.mesmer.extension.util.probe.BoundTestProbe.CounterCommand
+import io.scalac.mesmer.extension.util.probe.BoundTestProbe.MetricObserved
+import io.scalac.mesmer.extension.util.probe.BoundTestProbe.MetricObserverCommand
 
 trait ActorEventMonitorActorTestConfig {
   this: TestSuite with ScaledTimeSpans with ReceptionistOps with PatienceConfiguration =>
@@ -133,11 +147,11 @@ final class ActorEventsMonitorActorTest
 
   private val ConstActorMetrics: ActorMetrics = ActorMetrics(
     Some(1),
-    Some(LongValueAggMetric(1, 10, 2, 20, 10)),
+    Some(LongValueAggMetric(1, 10, 20, 10)),
     Some(2),
     Some(3),
     Some(4),
-    Some(LongValueAggMetric(10, 100, 20, 200, 10)),
+    Some(LongValueAggMetric(10, 100, 200, 10)),
     Some(5),
     Some(6),
     Some(7)
@@ -148,7 +162,7 @@ final class ActorEventsMonitorActorTest
     val y     = Random.nextLong(1000)
     val sum   = Random.nextLong(1000)
     val count = Random.nextInt(100) + 1
-    if (x > y) LongValueAggMetric(y, x, sum / count, sum, count) else LongValueAggMetric(x, y, sum / count, sum, count)
+    if (x > y) LongValueAggMetric(y, x, sum, count) else LongValueAggMetric(x, y, sum, count)
   }
 
   override implicit val timeout: Timeout = pingOffset
@@ -540,16 +554,16 @@ final class ActorEventsMonitorActorTest
   }
 
   def allBehaviorsAgg(
-    probeAvg: ActorMonitorTestProbe => TestProbe[MetricObserverCommand[Labels]],
     probeMin: ActorMonitorTestProbe => TestProbe[MetricObserverCommand[Labels]],
     probeMax: ActorMonitorTestProbe => TestProbe[MetricObserverCommand[Labels]],
     probeSum: ActorMonitorTestProbe => TestProbe[MetricObserverCommand[Labels]],
+    probeCount: ActorMonitorTestProbe => TestProbe[MetricObserverCommand[Labels]],
     extract: ActorMetrics => Option[LongValueAggMetric],
     name: String
   ): Unit = {
     val args
       : List[(String, LongValueAggMetric => Long, ActorMonitorTestProbe => TestProbe[MetricObserverCommand[Labels]])] =
-      List(("avg", _.avg, probeAvg), ("min", _.min, probeMin), ("max", _.max, probeMax), ("sum", _.sum, probeSum))
+      List(("min", _.min, probeMin), ("max", _.max, probeMax), ("sum", _.sum, probeSum), ("count", _.count, probeCount))
     for {
       (suffix, mapping, probe) <- args
     } {
@@ -601,19 +615,19 @@ final class ActorEventsMonitorActorTest
   it should behave like allBehaviorsLong(_.processedMessagesProbe, _.processedMessages, "processed messages")
 
   it should behave like allBehaviorsAgg(
-    _.mailboxTimeAvgProbe,
     _.mailboxTimeMinProbe,
     _.mailboxTimeMaxProbe,
     _.mailboxTimeSumProbe,
+    _.mailboxTimeCountProbe,
     _.mailboxTime,
     "mailbox time"
   )
 
   it should behave like allBehaviorsAgg(
-    _.processingTimeAvgProbe,
     _.processingTimeMinProbe,
     _.processingTimeMaxProbe,
     _.processingTimeSumProbe,
+    _.processingTimeCountProbe,
     _.processingTime,
     "processing time"
   )

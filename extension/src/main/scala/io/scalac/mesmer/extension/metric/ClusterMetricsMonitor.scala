@@ -13,7 +13,6 @@ object ClusterMetricsMonitor {
   }
 
   /**
-   *
    */
   trait BoundMonitor extends Synchronized with Bound {
     def shardPerRegions: MetricObserver[Long, Labels]

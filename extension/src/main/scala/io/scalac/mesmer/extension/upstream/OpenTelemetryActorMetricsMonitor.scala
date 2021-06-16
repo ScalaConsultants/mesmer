@@ -13,18 +13,18 @@ object OpenTelemetryActorMetricsMonitor {
 
   case class MetricNames(
     mailboxSize: String,
-    mailboxTimeAvg: String,
     mailboxTimeMin: String,
     mailboxTimeMax: String,
     mailboxTimeSum: String,
+    mailboxTimeCount: String,
     stashedMessages: String,
     receivedMessages: String,
     processedMessages: String,
     failedMessages: String,
-    processingTimeAvg: String,
     processingTimeMin: String,
     processingTimeMax: String,
     processingTimeSum: String,
+    processingTimeCount: String,
     sentMessages: String,
     droppedMessages: String
   )
@@ -33,18 +33,18 @@ object OpenTelemetryActorMetricsMonitor {
     def default: MetricNames =
       MetricNames(
         "akka_actor_mailbox_size",
-        "akka_actor_mailbox_time_avg",
         "akka_actor_mailbox_time_min",
         "akka_actor_mailbox_time_max",
         "akka_actor_mailbox_time_sum",
+        "akka_actor_mailbox_time_count",
         "akka_actor_stashed_total",
         "akka_actor_received_messages_total",
         "akka_actor_processed_messages_total",
         "akka_actor_failed_messages",
-        "akka_actor_processing_time_avg",
         "akka_actor_processing_time_min",
         "akka_actor_processing_time_max",
         "akka_actor_processing_time_sum",
+        "akka_actor_processing_time_count",
         "akka_actor_sent_messages_total",
         "akka_actor_dropped_messages_total"
       )
@@ -62,9 +62,9 @@ object OpenTelemetryActorMetricsMonitor {
             .tryValue("mailbox-size")(_.getString)
             .getOrElse(defaultCached.mailboxSize)
 
-          val mailboxTimeAvg = clusterMetricsConfig
-            .tryValue("mailbox-time-avg")(_.getString)
-            .getOrElse(defaultCached.mailboxTimeAvg)
+          val mailboxTimeCount = clusterMetricsConfig
+            .tryValue("mailbox-time-count")(_.getString)
+            .getOrElse(defaultCached.mailboxTimeCount)
 
           val mailboxTimeMin = clusterMetricsConfig
             .tryValue("mailbox-time-min")(_.getString)
@@ -94,9 +94,9 @@ object OpenTelemetryActorMetricsMonitor {
             .tryValue("failed-messages")(_.getString)
             .getOrElse(defaultCached.failedMessages)
 
-          val processingTimeAvg = clusterMetricsConfig
-            .tryValue("processing-time-avg")(_.getString)
-            .getOrElse(defaultCached.processingTimeAvg)
+          val processingTimeCount = clusterMetricsConfig
+            .tryValue("processing-time-count")(_.getString)
+            .getOrElse(defaultCached.processingTimeCount)
 
           val processingTimeMin = clusterMetricsConfig
             .tryValue("processing-time-min")(_.getString)
@@ -120,18 +120,18 @@ object OpenTelemetryActorMetricsMonitor {
 
           MetricNames(
             mailboxSize,
-            mailboxTimeAvg,
             mailboxTimeMin,
             mailboxTimeMax,
             mailboxTimeSum,
+            mailboxTimeCount,
             stashSize,
             receivedMessages,
             processedMessages,
             failedMessages,
-            processingTimeAvg,
             processingTimeMin,
             processingTimeMax,
             processingTimeSum,
+            processingTimeCount,
             sentMessages,
             droppedMessages
           )
@@ -154,10 +154,10 @@ class OpenTelemetryActorMetricsMonitor(meter: Meter, metricNames: MetricNames) e
       .setDescription("Tracks the size of an Actor's mailbox")
   )
 
-  private val mailboxTimeAvgObserver = new LongMetricObserverBuilderAdapter[ActorMetricsMonitor.Labels](
+  private val mailboxTimeCountObserver = new LongMetricObserverBuilderAdapter[ActorMetricsMonitor.Labels](
     meter
-      .longValueObserverBuilder(metricNames.mailboxTimeAvg)
-      .setDescription("Tracks the average time of an message in an Actor's mailbox")
+      .longValueObserverBuilder(metricNames.mailboxTimeCount)
+      .setDescription("Tracks the count of messages added to mailbox over time")
   )
 
   private val mailboxTimeMinObserver = new LongMetricObserverBuilderAdapter[ActorMetricsMonitor.Labels](
@@ -202,10 +202,10 @@ class OpenTelemetryActorMetricsMonitor(meter: Meter, metricNames: MetricNames) e
       .setDescription("Tracks the sum of failed messages in an Actor")
   )
 
-  private val processingTimeAvgObserver = new LongMetricObserverBuilderAdapter[ActorMetricsMonitor.Labels](
+  private val processingTimeCountObserver = new LongMetricObserverBuilderAdapter[ActorMetricsMonitor.Labels](
     meter
-      .longValueObserverBuilder(metricNames.processingTimeAvg)
-      .setDescription("Tracks the average processing time of an message in an Actor's receive handler")
+      .longValueObserverBuilder(metricNames.processingTimeCount)
+      .setDescription("Tracks the count of processed messages by an Actor")
   )
 
   private val processingTimeMinObserver = new LongMetricObserverBuilderAdapter[ActorMetricsMonitor.Labels](
@@ -248,8 +248,8 @@ class OpenTelemetryActorMetricsMonitor(meter: Meter, metricNames: MetricNames) e
 
     val mailboxSize: MetricObserver[Long, ActorMetricsMonitor.Labels] = mailboxSizeObserver.createObserver(this)
 
-    val mailboxTimeAvg: MetricObserver[Long, ActorMetricsMonitor.Labels] =
-      mailboxTimeAvgObserver.createObserver(this)
+    val mailboxTimeCount: MetricObserver[Long, ActorMetricsMonitor.Labels] =
+      mailboxTimeCountObserver.createObserver(this)
 
     val mailboxTimeMin: MetricObserver[Long, ActorMetricsMonitor.Labels] =
       mailboxTimeMinObserver.createObserver(this)
@@ -272,8 +272,8 @@ class OpenTelemetryActorMetricsMonitor(meter: Meter, metricNames: MetricNames) e
     val failedMessages: MetricObserver[Long, ActorMetricsMonitor.Labels] =
       failedMessagesSumObserver.createObserver(this)
 
-    val processingTimeAvg: MetricObserver[Long, ActorMetricsMonitor.Labels] =
-      processingTimeAvgObserver.createObserver(this)
+    val processingTimeCount: MetricObserver[Long, ActorMetricsMonitor.Labels] =
+      processingTimeCountObserver.createObserver(this)
 
     val processingTimeMin: MetricObserver[Long, ActorMetricsMonitor.Labels] =
       processingTimeMinObserver.createObserver(this)

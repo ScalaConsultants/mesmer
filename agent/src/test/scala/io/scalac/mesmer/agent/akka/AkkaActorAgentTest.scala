@@ -119,7 +119,6 @@ class AkkaActorAgentTest
     val check: classic.ActorContext => Any = ctx => {
       val metrics = ActorCellDecorator.get(ctx).flatMap(_.mailboxTimeAgg.metrics).value
       metrics.count should be(messages)
-      metrics.avg should be(((waitingMessages * idle.toNanos) / messages) +- ToleranceNanos)
       metrics.sum should be((waitingMessages * idle.toNanos) +- ToleranceNanos)
       metrics.min should be(0L +- ToleranceNanos)
       metrics.max should be(idle.toNanos +- ToleranceNanos)
@@ -141,7 +140,6 @@ class AkkaActorAgentTest
     val check: classic.ActorContext => Any = ctx => {
       val metrics = ActorCellDecorator.get(ctx).flatMap(_.processingTimeAgg.metrics).value
       metrics.count should be(messages)
-      metrics.avg should be(((workingMessages * processing.toNanos) / messages) +- ToleranceNanos)
       metrics.sum should be((workingMessages * processing.toNanos) +- ToleranceNanos)
       metrics.min should be(0L +- ToleranceNanos)
       metrics.max should be(processing.toNanos +- ToleranceNanos)
@@ -214,7 +212,6 @@ class AkkaActorAgentTest
     expectStashSize(StashMessageCount * 3)
   }
 
-//  it should "record the amount of received messages" in testWithContextAndActor[String](_ => Behaviors.ignore) {
   it should "record the amount of received messages" in {
     testWithoutEffect[Unit]((), (), ())(
       (0, check(_.receivedMessages)(_.get() should be(0))),
@@ -224,7 +221,6 @@ class AkkaActorAgentTest
     )
   }
 
-//  it should "record the amount of failed messages without supervision" in testWithContextAndActor[String](_ =>
   it should "record the amount of failed messages without supervision" in {
 
     testEffect[String](
@@ -317,7 +313,6 @@ class AkkaActorAgentTest
     receiver ! PoisonPill
   }
 
-//  it should "record the amount of sent messages properly in typed akka" in testWithContextAndActor[String] { ctx =>
   it should "record the amount of sent messages properly in typed akka" in {
 
     testWithChecks(
