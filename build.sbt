@@ -3,7 +3,7 @@ import sbt.Package.{ MainClass, ManifestAttributes }
 
 inThisBuild(
   List(
-    scalaVersion := "2.13.4",
+    scalaVersion := "2.13.6",
     organization := "io.scalac",
     homepage := Some(url("https://github.com/ScalaConsultants/mesmer-akka-agent")),
     licenses := List("Apache-2.0" -> url("http://www.apache.org/licenses/LICENSE-2.0")),
@@ -23,7 +23,6 @@ inThisBuild(
     ),
     scalacOptions ++= Seq("-deprecation", "-feature"),
     semanticdbEnabled := true,
-    semanticdbVersion := scalafixSemanticdb.revision,
     scalacOptions += "-Wunused:imports",
     scalafixDependencies += "com.github.liancheng" %% "organize-imports" % "0.5.0",
     scalafixScalaBinaryVersion := "2.13"
