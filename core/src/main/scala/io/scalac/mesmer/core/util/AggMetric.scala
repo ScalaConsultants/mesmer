@@ -30,9 +30,10 @@ object AggMetric {
       val count = this.count + other.count
       val sum   = this.sum + other.sum
       val avg   = if (count == 0) 0L else Math.floorDiv(sum, count)
+
       LongValueAggMetric(
         min = if (this.min < other.min) this.min else other.min,
-        max = if (this.max > other.min) this.max else other.max,
+        max = if (this.max > other.max) this.max else other.max,
         avg = avg,
         sum = sum,
         count = count
