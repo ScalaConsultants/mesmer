@@ -2,6 +2,7 @@ package io.scalac.mesmer.extension
 
 import java.util.concurrent.atomic.AtomicReference
 
+import akka.Done
 import akka.actor.typed._
 import akka.actor.typed.receptionist.Receptionist.Listing
 import akka.actor.typed.scaladsl.ActorContext
@@ -15,9 +16,11 @@ import scala.concurrent.duration._
 import scala.util.Failure
 import scala.util.Success
 
+import io.scalac.mesmer.core.akka.actorPathPartialOrdering
 import io.scalac.mesmer.core.model.ActorKey
 import io.scalac.mesmer.core.model.ActorRefDetails
 import io.scalac.mesmer.core.model.Node
+import io.scalac.mesmer.core.model.Tag
 import io.scalac.mesmer.core.util.ActorCellOps
 import io.scalac.mesmer.core.util.ActorPathOps
 import io.scalac.mesmer.core.util.ActorRefOps
@@ -32,18 +35,27 @@ import io.scalac.mesmer.extension.metric.MetricObserver.Result
 import io.scalac.mesmer.extension.metric.SyncWith
 import io.scalac.mesmer.extension.service.ActorTreeService
 import io.scalac.mesmer.extension.service.ActorTreeService.Command.GetActorTree
+import io.scalac.mesmer.extension.service.ActorTreeService.Command.TagSubscribe
 import io.scalac.mesmer.extension.service.actorTreeServiceKey
 import io.scalac.mesmer.extension.util.GenericBehaviors
+import io.scalac.mesmer.extension.util.Tree
 import io.scalac.mesmer.extension.util.Tree.Tree
+import io.scalac.mesmer.extension.util.Tree.TreeOrdering._
 import io.scalac.mesmer.extension.util.Tree._
 import io.scalac.mesmer.extension.util.TreeF
 
 object ActorEventsMonitorActor {
 
   sealed trait Command
-  private[ActorEventsMonitorActor] final case object StartActorsMeasurement                       extends Command
-  private[ActorEventsMonitorActor] final case class MeasureActorTree(refs: Tree[ActorRefDetails]) extends Command
-  private[ActorEventsMonitorActor] final case class ServiceListing(listing: Listing)              extends Command
+  private[extension] final case class StartActorsMeasurement(replyTo: Option[ActorRef[Done]]) extends Command
+  private[ActorEventsMonitorActor] final case class MeasureActorTree(
+    refs: Tree[ActorRefDetails],
+    replyTo: Option[ActorRef[Done]]
+  )                                                                                           extends Command
+  private[ActorEventsMonitorActor] final case class ActorTerminateEvent(ref: ActorRefDetails) extends Command
+  private[ActorEventsMonitorActor] final case class ServiceListing(listing: Listing)          extends Command
+
+  private val noAckStartMeasurement: StartActorsMeasurement = StartActorsMeasurement(None)
 
   def apply(
     actorMonitor: ActorMetricsMonitor,
@@ -52,7 +64,7 @@ object ActorEventsMonitorActor {
     storageFactory: MetricStorageFactory[ActorKey],
     actorMetricsReader: ActorMetricsReader = ReflectiveActorMetricsReader,
     timestampFactory: () => Timestamp
-  ): Behavior[Command] =
+  )(implicit askTimeout: Timeout): Behavior[Command] =
     Behaviors.setup[Command] { ctx =>
       GenericBehaviors
         .waitForService(actorTreeServiceKey) { ref =>
@@ -66,7 +78,7 @@ object ActorEventsMonitorActor {
               scheduler,
               actorMetricsReader,
               timestampFactory
-            ).start(ref)
+            ).start(ref, loop = true)
           }
         }
     }
@@ -96,7 +108,7 @@ object ActorEventsMonitorActor {
         unhandledMessages = Some(metrics.unhandledMessages.take()),
         failedMessages = Some(metrics.failedMessages.take()),
         sentMessages = Some(metrics.sentMessages.take()),
-        stashSize = metrics.stashSize.get(),
+        stashSize = metrics.stashSize.take(),
         droppedMessages = metrics.droppedMessages.map(_.take())
       )
 
@@ -121,9 +133,15 @@ private[extension] class ActorEventsMonitorActor private[extension] (
   scheduler: TimerScheduler[Command],
   actorMetricsReader: ActorMetricsReader = ReflectiveActorMetricsReader,
   timestampFactory: () => Timestamp
-) {
+)(implicit val askTimeout: Timeout) {
 
   import context._
+
+  private[this] var terminatedActorsMetrics =
+    Tree.builder[
+      ActorKey,
+      (ActorKey, ActorMetrics)
+    ] // we aggregate only ActorMetrics to not prevent actor cell to be GC'd
 
   private[this] val boundMonitor = monitor.bind()
 
@@ -166,63 +184,81 @@ private[extension] class ActorEventsMonitorActor private[extension] (
 
   }
 
-  // this is not idempotent
-  def start(treeService: ActorRef[ActorTreeService.Command]): Behavior[Command] = {
+  private def subscribeToActorTermination(treeService: ActorRef[ActorTreeService.Command]): Unit =
+    treeService ! TagSubscribe(Tag.terminated, context.messageAdapter[ActorRefDetails](ActorTerminateEvent.apply))
 
-    setTimeout()
+  /**
+   * Creates behavior that ask treeService for current actor tree state and then aggregate metrics measurement for later export.
+   * It has to be created once as it registerUpdaters - doint this twice will create resource leak
+   *
+   * @param treeService service to obtain actor refs from
+   * @param loop parameter to control if actor should periodically measure actors
+   * @return
+   */
+  def start(treeService: ActorRef[ActorTreeService.Command], loop: Boolean): Behavior[Command] = {
+
+    subscribeToActorTermination(treeService)
+    if (loop) setTimeout()
     registerUpdaters()
-    loop(treeService)
+    receive(treeService, loop)
   }
 
-  private def loop(actorService: ActorRef[ActorTreeService.Command]): Behavior[Command] = {
-    implicit val timeout: Timeout = 2.seconds
+  private def receive(actorService: ActorRef[ActorTreeService.Command], loop: Boolean): Behavior[Command] =
+    Behaviors
+      .receiveMessagePartial[Command] {
+        case start @ StartActorsMeasurement(replyTo) =>
+          context
+            .ask[ActorTreeService.Command, Tree[ActorRefDetails]](actorService, adapter => GetActorTree(adapter)) {
+              case Success(value) => MeasureActorTree(value, replyTo)
+              case Failure(_)     => start // keep asking
+            }
 
-    Behaviors.receiveMessagePartial[Command] {
-      case StartActorsMeasurement =>
-        context
-          .ask[ActorTreeService.Command, Tree[ActorRefDetails]](actorService, adapter => GetActorTree(adapter)) {
-            case Success(value) => MeasureActorTree(value)
-            case Failure(_)     => StartActorsMeasurement // keep asking
+          receive(actorService, loop)
+        case MeasureActorTree(refs, replyTo) =>
+          update(refs)
+          if (loop) setTimeout() // loop
+          replyTo.foreach(_.tell(Done))
+          receive(actorService, loop)
+        case ActorTerminateEvent(details) =>
+          val path = ActorPathOps.getPathString(details.ref)
+
+          actorMetricsReader.read(details.ref).foreach { metrics =>
+            terminatedActorsMetrics.insert(path, path -> metrics)
           }
-        Behaviors.same
-      case MeasureActorTree(refs) =>
-        update(refs)
-        setTimeout() // loop
-        Behaviors.same
-    }
-  }.receiveSignal { case (_, PreRestart | PostStop) =>
-    boundMonitor.unbind()
-    Behaviors.same
-  }
 
-  private def setTimeout(): Unit = scheduler.startSingleTimer(StartActorsMeasurement, pingOffset)
+          Behaviors.same
+      }
+      .receiveSignal { case (_, PreRestart | PostStop) =>
+        boundMonitor.unbind()
+        Behaviors.same
+      }
+
+  private def setTimeout(): Unit = scheduler.startSingleTimer(noAckStartMeasurement, pingOffset)
 
   private def update(refs: Tree[ActorRefDetails]): Unit = {
 
-    val storage = refs.unfix.foldRight[storageFactory.Storage] {
-      case TreeF(details, Vector()) =>
-        import details._
+    val storage = refs.unfix.foldRight[storageFactory.Storage] { case TreeF(details, childrenMetrics) =>
+      import details._
 
-        val storage = storageFactory.createStorage
-        actorMetricsReader
-          .read(ref)
-          .fold(storage) { metric =>
-            storage.save(ActorPathOps.getPathString(ref), metric, configuration.reporting.visible)
+      // is fold better?
+      val storage =
+        if (childrenMetrics.isEmpty) storageFactory.createStorage
+        else childrenMetrics.reduce(storageFactory.mergeStorage)
+
+      actorMetricsReader.read(ref).fold(storage) { currentMetrics =>
+        import configuration.reporting._
+        val actorKey = ActorPathOps.getPathString(ref)
+
+        storage.save(actorKey, currentMetrics, visible)
+        if (aggregate) {
+          val (metrics, builder) = terminatedActorsMetrics.removeAfter(actorKey) // get all terminated information
+          terminatedActorsMetrics = builder //
+          metrics.foreach { case (key, metric) =>
+            storage.save(key, metric, persistent = false)
           }
-      case TreeF(details, childrenMetrics) =>
-        import details._
-
-        val storage = childrenMetrics.reduce(storageFactory.mergeStorage)
-
-        actorMetricsReader.read(ref).fold(storage) { currentMetrics =>
-          import configuration.reporting._
-          val actorKey = ActorPathOps.getPathString(ref)
-
-          storage.save(actorKey, currentMetrics, visible)
-          if (aggregate) {
-            storage.compute(actorKey)
-          } else storage
-        }
+          storage.compute(actorKey)
+        } else storage
+      }
     }
 
     captureState(storage)
@@ -236,7 +272,7 @@ private[extension] class ActorEventsMonitorActor private[extension] (
       currentSnapshot.find { case (labels, _) =>
         labels.actorPath == key
       }.fold((Labels(key, node), metrics)) { case (labels, existingMetrics) =>
-        (labels, existingMetrics.sum(metrics))
+        (labels, existingMetrics.combine(metrics))
       }
     }.toVector
 

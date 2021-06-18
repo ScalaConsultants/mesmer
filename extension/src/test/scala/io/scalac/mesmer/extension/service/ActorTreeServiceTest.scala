@@ -56,9 +56,7 @@ class ActorTreeServiceTest
 
   protected def createMonitorBehavior(implicit context: Context): Behavior[Command] =
     Behaviors.setup { ctx =>
-      new ActorTreeService(ctx, monitor, ref => context.bindProbe.ref ! ref, context.traverser, instanceActorConfig)(
-        ActorTreeService.partialOrdering
-      )
+      new ActorTreeService(ctx, monitor, ref => context.bindProbe.ref ! ref, context.traverser, instanceActorConfig)
     }
 
   protected def createMonitor(implicit system: ActorSystem[_]): Monitor =
