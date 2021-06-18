@@ -8,6 +8,9 @@ import akka.actor.typed.scaladsl.Behaviors
 import akka.actor.typed.scaladsl.adapter._
 import akka.{ actor => classic }
 
+import scala.collection.mutable
+import scala.math.PartialOrdering
+
 import io.scalac.mesmer.core
 import io.scalac.mesmer.core.event.ActorEvent
 import io.scalac.mesmer.core.model.Tag
@@ -15,8 +18,38 @@ import io.scalac.mesmer.core.model._
 import io.scalac.mesmer.extension.metric.ActorSystemMonitor
 import io.scalac.mesmer.extension.metric.ActorSystemMonitor.Labels
 import io.scalac.mesmer.extension.service.ActorTreeService.Api
+import io.scalac.mesmer.extension.service.SubscriptionService.AddSubscriber
+import io.scalac.mesmer.extension.service.SubscriptionService.Broadcast
 import io.scalac.mesmer.extension.util.Tree.Tree
+import io.scalac.mesmer.extension.util.Tree.TreeOrdering
 import io.scalac.mesmer.extension.util._
+
+object SubscriptionService {
+  sealed trait Command[T]
+
+  final case class AddSubscriber[T](ref: ActorRef[T]) extends Command[T]
+
+  final case class Broadcast[T](value: T) extends Command[T]
+
+  def apply[T](): Behavior[Command[T]] = Behaviors.setup { ctx =>
+    def start(subscribers: Set[ActorRef[T]]): Behavior[Command[T]] = Behaviors
+      .receiveMessage[Command[T]] {
+        case AddSubscriber(ref) =>
+          if (!subscribers.contains(ref)) {
+            ctx.watch(ref)
+            start(subscribers + ref)
+          } else Behaviors.same
+        case Broadcast(value) =>
+          subscribers.foreach(_.tell(value))
+          Behaviors.same
+      }
+      .receiveSignal { case (_, Terminated(ref)) =>
+        start(subscribers - ref.unsafeUpcast[T])
+      }
+
+    start(Set.empty)
+  }
+}
 
 object ActorTreeService {
 
@@ -31,6 +64,8 @@ object ActorTreeService {
     final case class GetActors(tags: Tag, reply: ActorRef[Seq[classic.ActorRef]]) extends Command
 
     final case class GetActorTree(reply: ActorRef[Tree[ActorRefDetails]]) extends Command
+
+    final case class TagSubscribe(tag: Tag, reply: ActorRef[ActorRefDetails]) extends Command
 
   }
 
@@ -59,10 +94,12 @@ object ActorTreeService {
         backoffActorTreeTraverser,
         actorConfigurationService,
         node
-      )(partialOrdering)
+      )
     }
 
-  lazy val partialOrdering: PartialOrdering[classic.ActorRef] = new PartialOrdering[classic.ActorRef] {
+  implicit def actorRefpartialOrdering(implicit
+    pathOrdering: PartialOrdering[ActorPath]
+  ): PartialOrdering[classic.ActorRef] = new PartialOrdering[classic.ActorRef] {
     private def actorLevel(ref: classic.ActorRef): Int = ref.path.toStringWithoutAddress.count(_ == '/')
 
     def tryCompare(x: classic.ActorRef, y: classic.ActorRef): Option[Int] =
@@ -85,21 +122,32 @@ final class ActorTreeService(
   actorTreeTraverser: ActorTreeTraverser,
   actorConfigurationService: ActorConfigurationService,
   node: Option[Node] = None
-)(implicit actorRefPartialOrdering: PartialOrdering[classic.ActorRef])
-    extends AbstractBehavior[Api](ctx) {
+) extends AbstractBehavior[Api](ctx) {
   import ActorTreeService._
   import Command._
   import Event._
   import ActorTreeService._
   import context._
 
+  private[this] implicit val refPartialOrdering: TreeOrdering[classic.ActorRef] =
+    TreeOrdering.fromPartialOrdering(new PartialOrdering[classic.ActorRef] {
+      def tryCompare(x: classic.ActorRef, y: classic.ActorRef): Option[Int] = core.akka.actorPathPartialOrdering
+        .tryCompare(x.path.toStringWithoutAddress, y.path.toStringWithoutAddress)
+
+      def lteq(x: classic.ActorRef, y: classic.ActorRef): Boolean = core.akka.actorPathPartialOrdering
+        .lteq(x.path.toStringWithoutAddress, y.path.toStringWithoutAddress)
+    })
+
   private[this] val snapshot     = Tree.builder[classic.ActorRef, ActorRefDetails]
   private[this] val boundMonitor = monitor.bind(Labels(node))
+
+  private[this] lazy val subscriptions = mutable.Map
+    .empty[Tag, ActorRef[SubscriptionService.Command[ActorRefDetails]]]
+    .withDefault(_ => ctx.spawnAnonymous(SubscriptionService.apply[ActorRefDetails]()))
 
   private def toActorRefDetails(refWithTags: ActorRefTags): ActorRefDetails = {
     import refWithTags._
     ActorRefDetails(ref, tags, actorConfigurationService.forActorPath(ref.path))
-
   }
 
   private def init(): Unit = {
@@ -115,6 +163,11 @@ final class ActorTreeService(
       }
   }
 
+  private def notifySubscribers(details: ActorRefDetails): Unit =
+    details.tags.foreach { tag =>
+      subscriptions.get(tag).foreach(_ ! Broadcast(details))
+    }
+
   def onMessage(msg: Api): Behavior[Api] = msg match {
     case GetActors(Tag.all, reply) =>
       reply ! snapshot.buildSeq((ref, _) => Some(ref))
@@ -125,6 +178,9 @@ final class ActorTreeService(
     case GetActorTree(reply) =>
       //TODO change this to be more secure
       snapshot.buildTree((_, details) => Some(details)).foreach(reply ! _)
+      Behaviors.same
+    case TagSubscribe(tag, ref) =>
+      subscriptions(tag) ! AddSubscriber(ref)
       Behaviors.same
     case event: Event =>
       handleEvent(event)
@@ -150,16 +206,19 @@ final class ActorTreeService(
       context.watchWith(details.ref.toTyped, ActorTerminated(ref))
       boundMonitor.createdActors.incValue(1L)
       snapshot.insert(ref, details)
+      notifySubscribers(details)
 
     case ActorRetagged(details) =>
       import details._
       log.trace("Actor retagged {}", ref)
       snapshot.modify(ref, _ => details)
+      notifySubscribers(details)
 
     case ActorTerminated(ref) =>
       log.trace("Actor terminated {}", ref)
       boundMonitor.terminatedActors.incValue(1L)
-      snapshot.remove(ref)
+      val (removed, _) = snapshot.remove(ref)
+      removed.foreach(details => notifySubscribers(details.withTag(Tag.terminated)))
   }
 
   // bind to actor event stream
