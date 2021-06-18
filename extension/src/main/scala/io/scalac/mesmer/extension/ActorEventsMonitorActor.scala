@@ -32,7 +32,6 @@ import io.scalac.mesmer.extension.actor.MetricStorageFactory
 import io.scalac.mesmer.extension.metric.ActorMetricsMonitor
 import io.scalac.mesmer.extension.metric.ActorMetricsMonitor.Labels
 import io.scalac.mesmer.extension.metric.MetricObserver.Result
-import io.scalac.mesmer.extension.metric.SyncWith
 import io.scalac.mesmer.extension.service.ActorTreeService
 import io.scalac.mesmer.extension.service.ActorTreeService.Command.GetActorTree
 import io.scalac.mesmer.extension.service.ActorTreeService.Command.TagSubscribe
