@@ -1,12 +1,12 @@
 package io.scalac.mesmer.agent.utils
 
+import com.typesafe.config.ConfigFactory
 import net.bytebuddy.ByteBuddy
 import net.bytebuddy.agent.ByteBuddyAgent
 import net.bytebuddy.agent.builder.AgentBuilder
 import net.bytebuddy.dynamic.scaffold.TypeValidation
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.TestSuite
-
 import io.scalac.mesmer.agent.Agent
 import io.scalac.mesmer.agent.akka.actor.AkkaActorAgent
 import io.scalac.mesmer.agent.akka.actor.AkkaMailboxAgent
@@ -18,7 +18,7 @@ import io.scalac.mesmer.core.util.ModuleInfo.extractModulesInformation
 
 object InstallAgent {
   def allInstrumentations: Agent =
-    AkkaActorAgent.agent ++ AkkaHttpAgent.agent ++ AkkaPersistenceAgent.agent ++ AkkaStreamAgent.agent ++ AkkaMailboxAgent.agent
+    AkkaActorAgent.agent ++ AkkaHttpAgent.agent(ConfigFactory.empty) ++ AkkaPersistenceAgent.agent ++ AkkaStreamAgent.agent ++ AkkaMailboxAgent.agent
 }
 
 abstract class InstallAgent extends TestSuite with BeforeAndAfterAll {

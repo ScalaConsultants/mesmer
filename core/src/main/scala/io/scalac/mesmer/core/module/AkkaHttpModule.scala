@@ -16,15 +16,25 @@ sealed trait AkkaHttpMetricsModule extends MetricModule {
   }
 }
 
-object AkkaHttpModule extends Module with AkkaHttpMetricsModule {
+object AkkaHttpModule extends MesmerModule with AkkaHttpMetricsModule {
+
+  final case class AkkaHttpModuleConfig(requestTime: Boolean, requestCounter: Boolean) extends All[Boolean]
+
   val name: String = "akka-http"
 
   override type All[T] = Metrics[T]
 
-  def enabled(config: Config): All[Boolean] =
-    new AkkaHttpMetricsDef[Boolean] {
+  val defaultConfig = AkkaHttpModuleConfig(true, true)
 
-      val requestTime: Boolean    = true
-      val requestCounter: Boolean = true
-    }
+  protected def extractFromConfig(config: Config): AkkaHttpModule.AkkaHttpMetricsDef[Boolean] = {
+    val requestTime = config
+      .tryValue("request-time")(_.getBoolean)
+      .getOrElse(defaultConfig.requestTime)
+
+    val requestCounter = config
+      .tryValue("request-counter")(_.getBoolean)
+      .getOrElse(defaultConfig.requestCounter)
+
+    AkkaHttpModuleConfig(requestTime = requestTime, requestCounter = requestCounter)
+  }
 }

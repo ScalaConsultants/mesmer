@@ -2,16 +2,13 @@ package io.scalac.mesmer.extension.upstream
 
 import com.typesafe.config.Config
 import io.opentelemetry.api.metrics.Meter
-
-import io.scalac.mesmer.extension.metric.Counter
-import io.scalac.mesmer.extension.metric.MetricRecorder
-import io.scalac.mesmer.extension.metric.PersistenceMetricsMonitor
-import io.scalac.mesmer.extension.metric.RegisterRoot
+import io.scalac.mesmer.core.config.MesmerConfiguration
+import io.scalac.mesmer.extension.metric.{ Counter, MetricRecorder, PersistenceMetricsMonitor, RegisterRoot }
 import io.scalac.mesmer.extension.upstream.OpenTelemetryPersistenceMetricsMonitor._
 import io.scalac.mesmer.extension.upstream.opentelemetry._
 
 object OpenTelemetryPersistenceMetricsMonitor {
-  case class MetricNames(
+  final case class MetricNames(
     recoveryTime: String,
     recoveryTotal: String,
     persistentEvent: String,
@@ -19,8 +16,8 @@ object OpenTelemetryPersistenceMetricsMonitor {
     snapshotTotal: String
   )
 
-  object MetricNames {
-    def default: MetricNames =
+  object MetricNames extends MesmerConfiguration[MetricNames] {
+    protected val defaultConfig: MetricNames =
       MetricNames(
         "akka_persistence_recovery_time",
         "akka_persistence_recovery_total",
@@ -29,35 +26,29 @@ object OpenTelemetryPersistenceMetricsMonitor {
         "akka_persistence_snapshot_total"
       )
 
-    def fromConfig(config: Config): MetricNames = {
-      import io.scalac.mesmer.extension.config.ConfigurationUtils._
-      val defaultCached = default
+    protected val mesmerConfig: String = "metrics.persistence-metrics"
 
-      config
-        .tryValue("io.scalac.akka-monitoring.metrics.cluster-metrics")(
-          _.getConfig
-        )
-        .map { clusterMetricsConfig =>
-          val recoveryTime = clusterMetricsConfig
-            .tryValue("recovery-time")(_.getString)
-            .getOrElse(defaultCached.recoveryTime)
-          val recoveryTotal = clusterMetricsConfig
-            .tryValue("recovery-total")(_.getString)
-            .getOrElse(defaultCached.recoveryTotal)
-          val persistentEvent = clusterMetricsConfig
-            .tryValue("persistent-event")(_.getString)
-            .getOrElse(defaultCached.persistentEvent)
-          val persistentEventTotal = clusterMetricsConfig
-            .tryValue("persistent-event-total")(_.getString)
-            .getOrElse(defaultCached.persistentEventTotal)
-          val snapshotTotal = clusterMetricsConfig
-            .tryValue("snapshot")(_.getString)
-            .getOrElse(defaultCached.snapshotTotal)
+    protected def extractFromConfig(config: Config): MetricNames = {
+      val recoveryTime = config
+        .tryValue("recovery-time")(_.getString)
+        .getOrElse(defaultConfig.recoveryTime)
+      val recoveryTotal = config
+        .tryValue("recovery-total")(_.getString)
+        .getOrElse(defaultConfig.recoveryTotal)
+      val persistentEvent = config
+        .tryValue("persistent-event")(_.getString)
+        .getOrElse(defaultConfig.persistentEvent)
+      val persistentEventTotal = config
+        .tryValue("persistent-event-total")(_.getString)
+        .getOrElse(defaultConfig.persistentEventTotal)
+      val snapshotTotal = config
+        .tryValue("snapshot")(_.getString)
+        .getOrElse(defaultConfig.snapshotTotal)
 
-          MetricNames(recoveryTime, recoveryTotal, persistentEvent, persistentEventTotal, snapshotTotal)
-        }
-        .getOrElse(defaultCached)
+      MetricNames(recoveryTime, recoveryTotal, persistentEvent, persistentEventTotal, snapshotTotal)
+
     }
+
   }
   def apply(meter: Meter, config: Config): OpenTelemetryPersistenceMetricsMonitor =
     new OpenTelemetryPersistenceMetricsMonitor(meter, MetricNames.fromConfig(config))

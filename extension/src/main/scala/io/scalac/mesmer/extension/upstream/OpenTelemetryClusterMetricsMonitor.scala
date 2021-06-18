@@ -2,14 +2,13 @@ package io.scalac.mesmer.extension.upstream
 
 import com.typesafe.config.Config
 import io.opentelemetry.api.metrics.Meter
-
-import io.scalac.mesmer.extension.metric.ClusterMetricsMonitor
-import io.scalac.mesmer.extension.metric._
+import io.scalac.mesmer.core.config.MesmerConfiguration
+import io.scalac.mesmer.extension.metric.{ ClusterMetricsMonitor, _ }
 import io.scalac.mesmer.extension.upstream.OpenTelemetryClusterMetricsMonitor.MetricNames
 import io.scalac.mesmer.extension.upstream.opentelemetry._
 
 object OpenTelemetryClusterMetricsMonitor {
-  case class MetricNames(
+  final case class MetricNames(
     shardPerEntity: String,
     entityPerRegion: String,
     shardRegionsOnNode: String,
@@ -19,8 +18,8 @@ object OpenTelemetryClusterMetricsMonitor {
     nodeDown: String
   )
 
-  object MetricNames {
-    def default: MetricNames =
+  object MetricNames extends MesmerConfiguration[MetricNames] {
+    protected val defaultConfig: MetricNames =
       MetricNames(
         "akka_cluster_shards_per_region",
         "akka_cluster_entities_per_region",
@@ -31,54 +30,46 @@ object OpenTelemetryClusterMetricsMonitor {
         "akka_cluster_node_down_total"
       )
 
-    def fromConfig(config: Config): MetricNames = {
-      import io.scalac.mesmer.extension.config.ConfigurationUtils._
-      lazy val defaultCached = default
+    protected val mesmerConfig: String = "metrics.cluster-metrics"
 
-      config
-        .tryValue("io.scalac.akka-monitoring.metrics.cluster-metrics")(
-          _.getConfig
-        )
-        .map { clusterMetricsConfig =>
-          val shardsPerRegion = clusterMetricsConfig
-            .tryValue("shards-per-region")(_.getString)
-            .getOrElse(defaultCached.shardPerEntity)
+    protected def extractFromConfig(config: Config): MetricNames = {
+      val shardsPerRegion = config
+        .tryValue("shards-per-region")(_.getString)
+        .getOrElse(defaultConfig.shardPerEntity)
 
-          val entitiesPerRegion = clusterMetricsConfig
-            .tryValue("entities-per-region")(_.getString)
-            .getOrElse(defaultCached.entityPerRegion)
+      val entitiesPerRegion = config
+        .tryValue("entities-per-region")(_.getString)
+        .getOrElse(defaultConfig.entityPerRegion)
 
-          val shardRegionsOnNode = clusterMetricsConfig
-            .tryValue("shard-regions-on-node")(_.getString)
-            .getOrElse(defaultCached.shardRegionsOnNode)
+      val shardRegionsOnNode = config
+        .tryValue("shard-regions-on-node")(_.getString)
+        .getOrElse(defaultConfig.shardRegionsOnNode)
 
-          val entitiesOnNode = clusterMetricsConfig
-            .tryValue("entities-on-node")(_.getString)
-            .getOrElse(defaultCached.entitiesOnNode)
+      val entitiesOnNode = config
+        .tryValue("entities-on-node")(_.getString)
+        .getOrElse(defaultConfig.entitiesOnNode)
 
-          val reachableNodes = clusterMetricsConfig
-            .tryValue("reachable-nodes")(_.getString)
-            .getOrElse(defaultCached.reachableNodes)
+      val reachableNodes = config
+        .tryValue("reachable-nodes")(_.getString)
+        .getOrElse(defaultConfig.reachableNodes)
 
-          val unreachableNodes = clusterMetricsConfig
-            .tryValue("unreachable-nodes")(_.getString)
-            .getOrElse(defaultCached.unreachableNodes)
+      val unreachableNodes = config
+        .tryValue("unreachable-nodes")(_.getString)
+        .getOrElse(defaultConfig.unreachableNodes)
 
-          val nodesDown = clusterMetricsConfig
-            .tryValue("node-down")(_.getString)
-            .getOrElse(defaultCached.nodeDown)
+      val nodesDown = config
+        .tryValue("node-down")(_.getString)
+        .getOrElse(defaultConfig.nodeDown)
 
-          MetricNames(
-            shardsPerRegion,
-            entitiesPerRegion,
-            shardRegionsOnNode,
-            entitiesOnNode,
-            reachableNodes,
-            unreachableNodes,
-            nodesDown
-          )
-        }
-        .getOrElse(defaultCached)
+      MetricNames(
+        shardsPerRegion,
+        entitiesPerRegion,
+        shardRegionsOnNode,
+        entitiesOnNode,
+        reachableNodes,
+        unreachableNodes,
+        nodesDown
+      )
     }
   }
 

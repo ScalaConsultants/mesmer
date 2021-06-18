@@ -2,38 +2,35 @@ package io.scalac.mesmer.extension.upstream
 
 import com.typesafe.config.Config
 import io.opentelemetry.api.metrics.Meter
-
 import io.scalac.mesmer.extension.metric.HttpConnectionMetricsMonitor
 import io.scalac.mesmer.extension.metric.RegisterRoot
 import io.scalac.mesmer.extension.metric.UpDownCounter
 import io.scalac.mesmer.extension.upstream.opentelemetry._
-
 import OpenTelemetryHttpConnectionMetricsMonitor.MetricNames
+import io.scalac.mesmer.core.config.MesmerConfiguration
 
 object OpenTelemetryHttpConnectionMetricsMonitor {
-  case class MetricNames(connectionTotal: String)
+  final case class MetricNames(connectionTotal: String)
 
-  object MetricNames {
-    def default: MetricNames =
+  object MetricNames extends MesmerConfiguration[MetricNames] {
+    protected val defaultConfig: MetricNames =
       MetricNames("akka_http_connections")
 
-    def fromConfig(config: Config): MetricNames = {
-      import io.scalac.mesmer.extension.config.ConfigurationUtils._
-      val defaultCached = default
+     protected val mesmerConfig: String = "metrics.http-metrics"
 
-      config
-        .tryValue("io.scalac.akka-monitoring.metrics.http-metrics")(
-          _.getConfig
-        )
-        .map { clusterMetricsConfig =>
-          val connectionTotal = clusterMetricsConfig
-            .tryValue("connections")(_.getString)
-            .getOrElse(defaultCached.connectionTotal)
-          MetricNames(connectionTotal)
-        }
-        .getOrElse(defaultCached)
-    }
+
+     protected def extractFromConfig(config: Config): MetricNames = {
+
+       val connectionTotal = config
+         .tryValue("connections")(_.getString)
+         .getOrElse(defaultConfig.connectionTotal)
+
+       MetricNames(connectionTotal)
+     }
+
+
   }
+
   def apply(meter: Meter, config: Config): OpenTelemetryHttpConnectionMetricsMonitor =
     new OpenTelemetryHttpConnectionMetricsMonitor(meter, MetricNames.fromConfig(config))
 }

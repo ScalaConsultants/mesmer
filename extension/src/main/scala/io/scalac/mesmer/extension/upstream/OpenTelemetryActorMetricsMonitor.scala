@@ -2,16 +2,14 @@ package io.scalac.mesmer.extension.upstream
 
 import com.typesafe.config.Config
 import io.opentelemetry.api.metrics.Meter
-
-import io.scalac.mesmer.extension.metric.ActorMetricsMonitor
-import io.scalac.mesmer.extension.metric.MetricObserver
-import io.scalac.mesmer.extension.metric.RegisterRoot
+import io.scalac.mesmer.core.config.MesmerConfiguration
+import io.scalac.mesmer.extension.metric.{ ActorMetricsMonitor, MetricObserver, RegisterRoot }
 import io.scalac.mesmer.extension.upstream.OpenTelemetryActorMetricsMonitor.MetricNames
 import io.scalac.mesmer.extension.upstream.opentelemetry._
 
 object OpenTelemetryActorMetricsMonitor {
 
-  case class MetricNames(
+  final case class MetricNames(
     mailboxSize: String,
     mailboxTimeAvg: String,
     mailboxTimeMin: String,
@@ -28,9 +26,91 @@ object OpenTelemetryActorMetricsMonitor {
     sentMessages: String,
     droppedMessages: String
   )
-  object MetricNames {
+  object MetricNames extends MesmerConfiguration[MetricNames] {
 
-    def default: MetricNames =
+    protected val mesmerConfig: String = "mesmer.metrics.actor-metrics"
+
+    protected def extractFromConfig(config: Config): MetricNames = {
+      val mailboxSize = config
+        .tryValue("mailbox-size")(_.getString)
+        .getOrElse(defaultConfig.mailboxSize)
+
+      val mailboxTimeAvg = config
+        .tryValue("mailbox-time-avg")(_.getString)
+        .getOrElse(defaultConfig.mailboxTimeAvg)
+
+      val mailboxTimeMin = config
+        .tryValue("mailbox-time-min")(_.getString)
+        .getOrElse(defaultConfig.mailboxTimeMin)
+
+      val mailboxTimeMax = config
+        .tryValue("mailbox-time-max")(_.getString)
+        .getOrElse(defaultConfig.mailboxTimeMax)
+
+      val mailboxTimeSum = config
+        .tryValue("mailbox-time-sum")(_.getString)
+        .getOrElse(defaultConfig.mailboxTimeSum)
+
+      val stashSize = config
+        .tryValue("stash-size")(_.getString)
+        .getOrElse(defaultConfig.stashedMessages)
+
+      val receivedMessages = config
+        .tryValue("received-messages")(_.getString)
+        .getOrElse(defaultConfig.receivedMessages)
+
+      val processedMessages = config
+        .tryValue("processed-messages")(_.getString)
+        .getOrElse(defaultConfig.processedMessages)
+
+      val failedMessages = config
+        .tryValue("failed-messages")(_.getString)
+        .getOrElse(defaultConfig.failedMessages)
+
+      val processingTimeAvg = config
+        .tryValue("processing-time-avg")(_.getString)
+        .getOrElse(defaultConfig.processingTimeAvg)
+
+      val processingTimeMin = config
+        .tryValue("processing-time-min")(_.getString)
+        .getOrElse(defaultConfig.processingTimeMin)
+
+      val processingTimeMax = config
+        .tryValue("processing-time-max")(_.getString)
+        .getOrElse(defaultConfig.processingTimeMax)
+
+      val processingTimeSum = config
+        .tryValue("processing-time-sum")(_.getString)
+        .getOrElse(defaultConfig.processingTimeSum)
+
+      val sentMessages = config
+        .tryValue("sent-messages")(_.getString)
+        .getOrElse(defaultConfig.sentMessages)
+
+      val droppedMessages = config
+        .tryValue("dropped-messages")(_.getString)
+        .getOrElse(defaultConfig.droppedMessages)
+
+      MetricNames(
+        mailboxSize,
+        mailboxTimeAvg,
+        mailboxTimeMin,
+        mailboxTimeMax,
+        mailboxTimeSum,
+        stashSize,
+        receivedMessages,
+        processedMessages,
+        failedMessages,
+        processingTimeAvg,
+        processingTimeMin,
+        processingTimeMax,
+        processingTimeSum,
+        sentMessages,
+        droppedMessages
+      )
+    }
+
+    protected val defaultConfig: MetricNames =
       MetricNames(
         "akka_actor_mailbox_size",
         "akka_actor_mailbox_time_avg",
@@ -48,96 +128,6 @@ object OpenTelemetryActorMetricsMonitor {
         "akka_actor_sent_messages_total",
         "akka_actor_dropped_messages_total"
       )
-
-    def fromConfig(config: Config): MetricNames = {
-      import io.scalac.mesmer.extension.config.ConfigurationUtils._
-      val defaultCached = default
-
-      config
-        .tryValue("io.scalac.akka-monitoring.metrics.actor-metrics")(
-          _.getConfig
-        )
-        .map { clusterMetricsConfig =>
-          val mailboxSize = clusterMetricsConfig
-            .tryValue("mailbox-size")(_.getString)
-            .getOrElse(defaultCached.mailboxSize)
-
-          val mailboxTimeAvg = clusterMetricsConfig
-            .tryValue("mailbox-time-avg")(_.getString)
-            .getOrElse(defaultCached.mailboxTimeAvg)
-
-          val mailboxTimeMin = clusterMetricsConfig
-            .tryValue("mailbox-time-min")(_.getString)
-            .getOrElse(defaultCached.mailboxTimeMin)
-
-          val mailboxTimeMax = clusterMetricsConfig
-            .tryValue("mailbox-time-max")(_.getString)
-            .getOrElse(defaultCached.mailboxTimeMax)
-
-          val mailboxTimeSum = clusterMetricsConfig
-            .tryValue("mailbox-time-sum")(_.getString)
-            .getOrElse(defaultCached.mailboxTimeSum)
-
-          val stashSize = clusterMetricsConfig
-            .tryValue("stash-size")(_.getString)
-            .getOrElse(defaultCached.stashedMessages)
-
-          val receivedMessages = clusterMetricsConfig
-            .tryValue("received-messages")(_.getString)
-            .getOrElse(defaultCached.receivedMessages)
-
-          val processedMessages = clusterMetricsConfig
-            .tryValue("processed-messages")(_.getString)
-            .getOrElse(defaultCached.processedMessages)
-
-          val failedMessages = clusterMetricsConfig
-            .tryValue("failed-messages")(_.getString)
-            .getOrElse(defaultCached.failedMessages)
-
-          val processingTimeAvg = clusterMetricsConfig
-            .tryValue("processing-time-avg")(_.getString)
-            .getOrElse(defaultCached.processingTimeAvg)
-
-          val processingTimeMin = clusterMetricsConfig
-            .tryValue("processing-time-min")(_.getString)
-            .getOrElse(defaultCached.processingTimeMin)
-
-          val processingTimeMax = clusterMetricsConfig
-            .tryValue("processing-time-max")(_.getString)
-            .getOrElse(defaultCached.processingTimeMax)
-
-          val processingTimeSum = clusterMetricsConfig
-            .tryValue("processing-time-sum")(_.getString)
-            .getOrElse(defaultCached.processingTimeSum)
-
-          val sentMessages = clusterMetricsConfig
-            .tryValue("sent-messages")(_.getString)
-            .getOrElse(defaultCached.sentMessages)
-
-          val droppedMessages = clusterMetricsConfig
-            .tryValue("dropped-messages")(_.getString)
-            .getOrElse(defaultCached.droppedMessages)
-
-          MetricNames(
-            mailboxSize,
-            mailboxTimeAvg,
-            mailboxTimeMin,
-            mailboxTimeMax,
-            mailboxTimeSum,
-            stashSize,
-            receivedMessages,
-            processedMessages,
-            failedMessages,
-            processingTimeAvg,
-            processingTimeMin,
-            processingTimeMax,
-            processingTimeSum,
-            sentMessages,
-            droppedMessages
-          )
-        }
-        .getOrElse(defaultCached)
-    }
 
   }
 

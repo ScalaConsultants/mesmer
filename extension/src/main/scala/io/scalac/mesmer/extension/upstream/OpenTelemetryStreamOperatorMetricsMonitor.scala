@@ -2,50 +2,46 @@ package io.scalac.mesmer.extension.upstream
 
 import com.typesafe.config.Config
 import io.opentelemetry.api.metrics.Meter
-
-import io.scalac.mesmer.extension.metric.MetricObserver
-import io.scalac.mesmer.extension.metric.RegisterRoot
-import io.scalac.mesmer.extension.metric.StreamOperatorMetricsMonitor
-import io.scalac.mesmer.extension.metric.StreamOperatorMetricsMonitor.BoundMonitor
-import io.scalac.mesmer.extension.metric.StreamOperatorMetricsMonitor.Labels
+import io.scalac.mesmer.core.config.MesmerConfiguration
+import io.scalac.mesmer.extension.metric.StreamOperatorMetricsMonitor.{ BoundMonitor, Labels }
+import io.scalac.mesmer.extension.metric.{ MetricObserver, RegisterRoot, StreamOperatorMetricsMonitor }
 import io.scalac.mesmer.extension.upstream.OpenTelemetryStreamOperatorMetricsMonitor.MetricNames
 import io.scalac.mesmer.extension.upstream.opentelemetry._
 
 object OpenTelemetryStreamOperatorMetricsMonitor {
   case class MetricNames(operatorProcessed: String, connections: String, runningOperators: String, demand: String)
 
-  object MetricNames {
-    private val defaults: MetricNames =
-      MetricNames(
-        "akka_streams_operator_processed_total",
-        "akka_streams_operator_connections",
-        "akka_streams_running_operators",
-        "akka_streams_operator_demand"
-      )
+  object MetricNames extends MesmerConfiguration[MetricNames] {
 
-    def fromConfig(config: Config): MetricNames = {
-      import io.scalac.mesmer.extension.config.ConfigurationUtils._
+    protected val mesmerConfig: String = "metrics.stream-metrics"
 
-      config.tryValue("io.scalac.akka-monitoring.metrics.stream-metrics")(_.getConfig).map { streamMetricsConfig =>
-        val operatorProcessed = streamMetricsConfig
-          .tryValue("operator-processed")(_.getString)
-          .getOrElse(defaults.operatorProcessed)
+    protected val defaultConfig: MetricNames = MetricNames(
+      "akka_streams_operator_processed_total",
+      "akka_streams_operator_connections",
+      "akka_streams_running_operators",
+      "akka_streams_operator_demand"
+    )
 
-        val operatorConnections = streamMetricsConfig
-          .tryValue("operator-connections")(_.getString)
-          .getOrElse(defaults.connections)
+    protected def extractFromConfig(config: Config): MetricNames = {
+      val operatorProcessed = config
+        .tryValue("operator-processed")(_.getString)
+        .getOrElse(defaultConfig.operatorProcessed)
 
-        val runningOperators = streamMetricsConfig
-          .tryValue("running-operators")(_.getString)
-          .getOrElse(defaults.runningOperators)
+      val operatorConnections = config
+        .tryValue("operator-connections")(_.getString)
+        .getOrElse(defaultConfig.connections)
 
-        val demand = streamMetricsConfig
-          .tryValue("operator-demand")(_.getString)
-          .getOrElse(defaults.demand)
+      val runningOperators = config
+        .tryValue("running-operators")(_.getString)
+        .getOrElse(defaultConfig.runningOperators)
 
-        MetricNames(operatorProcessed, operatorConnections, runningOperators, demand)
-      }
-    }.getOrElse(defaults)
+      val demand = config
+        .tryValue("operator-demand")(_.getString)
+        .getOrElse(defaultConfig.demand)
+
+      MetricNames(operatorProcessed, operatorConnections, runningOperators, demand)
+    }
+
   }
 
   def apply(meter: Meter, config: Config): OpenTelemetryStreamOperatorMetricsMonitor =

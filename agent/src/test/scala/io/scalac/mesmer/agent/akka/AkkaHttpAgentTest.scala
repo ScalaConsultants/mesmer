@@ -31,7 +31,7 @@ import io.scalac.mesmer.core.httpServiceKey
 
 class AkkaHttpAgentTest extends InstallAgent with AnyFlatSpecLike with ScalatestRouteTest with Matchers {
 
-  override protected val agent = AkkaHttpAgent.agent
+  override protected val agent = AkkaHttpAgent.agent(ConfigFactory.empty)
 
   override def testConfig: Config = ConfigFactory.load("application-test")
 

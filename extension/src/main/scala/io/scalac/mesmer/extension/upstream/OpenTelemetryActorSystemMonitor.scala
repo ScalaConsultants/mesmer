@@ -2,29 +2,27 @@ package io.scalac.mesmer.extension.upstream
 
 import com.typesafe.config.Config
 import io.opentelemetry.api.metrics.Meter
-
-import io.scalac.mesmer.extension.config.Configuration
-import io.scalac.mesmer.extension.metric.ActorSystemMonitor
+import io.scalac.mesmer.core.config.MesmerConfiguration
 import io.scalac.mesmer.extension.metric.ActorSystemMonitor.BoundMonitor
-import io.scalac.mesmer.extension.metric.RegisterRoot
+import io.scalac.mesmer.extension.metric.{ ActorSystemMonitor, RegisterRoot }
 import io.scalac.mesmer.extension.upstream.OpenTelemetryActorSystemMonitor.MetricNames
-import io.scalac.mesmer.extension.upstream.opentelemetry.SynchronousInstrumentFactory
-import io.scalac.mesmer.extension.upstream.opentelemetry.WrappedCounter
+import io.scalac.mesmer.extension.upstream.opentelemetry.{ SynchronousInstrumentFactory, WrappedCounter }
 
 object OpenTelemetryActorSystemMonitor {
 
-  case class MetricNames(
+  final case class MetricNames(
     createdActors: String,
     terminatedActors: String
   )
 
-  object MetricNames extends Configuration[MetricNames] {
-    def default: MetricNames = MetricNames("akka_system_created_actors_total", "akka_system_terminated_actors_total")
+  object MetricNames extends MesmerConfiguration[MetricNames] {
+    protected val defaultConfig: MetricNames =
+      MetricNames("akka_system_created_actors_total", "akka_system_terminated_actors_total")
 
-    override protected val configurationBase: String = "io.scalac.akka-monitoring.metrics.actor-system-metrics"
+    protected val mesmerConfig: String = "metrics.actor-system-metrics"
 
-    override protected def extractFromConfig(config: Config): MetricNames = {
-      lazy val defaultCached = default
+    protected def extractFromConfig(config: Config): MetricNames = {
+      lazy val defaultCached = defaultConfig
       val createdActors      = config.tryValue("created-actors")(_.getString).getOrElse(defaultCached.createdActors)
 
       val terminatedActors = config.tryValue("terminated-actors")(_.getString).getOrElse(defaultCached.createdActors)

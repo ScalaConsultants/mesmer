@@ -9,7 +9,7 @@ import scala.jdk.CollectionConverters._
 
 import io.scalac.mesmer.core.PathMatcher
 import io.scalac.mesmer.core.model.ActorConfiguration
-import io.scalac.mesmer.extension.config.ConfigurationUtils._
+import io.scalac.mesmer.core.config.ConfigurationUtils._
 
 trait ActorConfigurationService {
   def forActorPath(ref: classic.ActorPath): ActorConfiguration

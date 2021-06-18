@@ -20,7 +20,7 @@ import scala.jdk.DurationConverters.JavaDurationOps
 
 import io.scalac.mesmer.core.model._
 import io.scalac.mesmer.core.util.CachedQueryResult
-import io.scalac.mesmer.extension.config.ConfigurationUtils._
+import io.scalac.mesmer.core.config.ConfigurationUtils._
 import io.scalac.mesmer.extension.metric.ClusterMetricsMonitor
 import io.scalac.mesmer.extension.metric.ClusterMetricsMonitor.Labels
 

@@ -13,7 +13,9 @@ object Agent {
 
   private val logger = LoggerFactory.getLogger(classOf[Agent])
 
-  def apply(head: AgentInstrumentation, tail: AgentInstrumentation*): Agent = Agent((head +: tail).toSet)
+  def apply(head: AgentInstrumentation, tail: AgentInstrumentation*): Agent = new Agent((head +: tail).toSet)
+
+  val empty: Agent = new Agent(Set.empty)
 
   class LoadingResult(val fqns: Seq[String]) {
     import LoadingResult.{ logger => loadingLogger }

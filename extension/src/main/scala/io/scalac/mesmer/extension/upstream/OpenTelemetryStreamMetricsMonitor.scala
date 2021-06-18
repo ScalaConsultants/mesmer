@@ -2,41 +2,40 @@ package io.scalac.mesmer.extension.upstream
 
 import com.typesafe.config.Config
 import io.opentelemetry.api.metrics.Meter
-
-import io.scalac.mesmer.extension.metric.MetricObserver
-import io.scalac.mesmer.extension.metric.RegisterRoot
-import io.scalac.mesmer.extension.metric.StreamMetricsMonitor
+import io.scalac.mesmer.core.config.MesmerConfiguration
+import io.scalac.mesmer.extension.metric.{ MetricObserver, RegisterRoot, StreamMetricsMonitor }
 import io.scalac.mesmer.extension.upstream.OpenTelemetryStreamMetricsMonitor.MetricNames
-import io.scalac.mesmer.extension.upstream.opentelemetry.LongSumObserverBuilderAdapter
-import io.scalac.mesmer.extension.upstream.opentelemetry.SynchronousInstrumentFactory
-import io.scalac.mesmer.extension.upstream.opentelemetry.WrappedLongValueRecorder
+import io.scalac.mesmer.extension.upstream.opentelemetry.{
+  LongSumObserverBuilderAdapter,
+  SynchronousInstrumentFactory,
+  WrappedLongValueRecorder
+}
 
 object OpenTelemetryStreamMetricsMonitor {
-  case class MetricNames(runningStreams: String, streamActors: String, streamProcessed: String)
+  final case class MetricNames(runningStreams: String, streamActors: String, streamProcessed: String)
 
-  object MetricNames {
-    private val defaults: MetricNames =
+  object MetricNames extends MesmerConfiguration[MetricNames] {
+
+    protected val mesmerConfig: String = "metrics.stream-metrics"
+
+    protected val defaultConfig: MetricNames =
       MetricNames("akka_streams_running_streams", "akka_streams_actors", "akka_stream_processed_messages")
 
-    def fromConfig(config: Config): MetricNames = {
-      import io.scalac.mesmer.extension.config.ConfigurationUtils._
+    protected def extractFromConfig(config: Config): MetricNames = {
+      val runningStreams = config
+        .tryValue("running-streams")(_.getString)
+        .getOrElse(defaultConfig.runningStreams)
 
-      config.tryValue("io.scalac.akka-monitoring.metrics.stream-metrics")(_.getConfig).map { streamMetricsConfig =>
-        val runningStreams = streamMetricsConfig
-          .tryValue("running-streams")(_.getString)
-          .getOrElse(defaults.runningStreams)
+      val streamActors = config
+        .tryValue("stream-actors")(_.getString)
+        .getOrElse(defaultConfig.streamActors)
 
-        val streamActors = streamMetricsConfig
-          .tryValue("stream-actors")(_.getString)
-          .getOrElse(defaults.streamActors)
+      val streamProcessed = config
+        .tryValue("stream-processed")(_.getString)
+        .getOrElse(defaultConfig.streamProcessed)
 
-        val streamProcessed = streamMetricsConfig
-          .tryValue("stream-processed")(_.getString)
-          .getOrElse(defaults.streamProcessed)
-
-        MetricNames(runningStreams, streamActors, streamProcessed)
-      }
-    }.getOrElse(defaults)
+      MetricNames(runningStreams, streamActors, streamProcessed)
+    }
   }
 
   def apply(meter: Meter, config: Config): OpenTelemetryStreamMetricsMonitor =

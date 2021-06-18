@@ -5,7 +5,7 @@ import com.typesafe.config.Config
 import scala.concurrent.duration._
 import scala.jdk.DurationConverters._
 
-import io.scalac.mesmer.extension.config
+import io.scalac.mesmer.core.config.ConfigurationUtils._
 
 case class AkkaMonitoringConfig(
   autoStart: AutoStartSettings,
@@ -16,7 +16,7 @@ case class AutoStartSettings(akkaActor: Boolean, akkaHttp: Boolean, akkaPersiste
 
 object AkkaMonitoringConfig {
 
-  import config.ConfigurationUtils._
+
 
   private val autoStartDefaults =
     AutoStartSettings(akkaActor = false, akkaHttp = false, akkaCluster = false, akkaPersistence = false)

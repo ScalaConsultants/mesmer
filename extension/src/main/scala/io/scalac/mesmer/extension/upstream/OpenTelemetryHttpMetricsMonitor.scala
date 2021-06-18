@@ -2,47 +2,38 @@ package io.scalac.mesmer.extension.upstream
 
 import com.typesafe.config.Config
 import io.opentelemetry.api.metrics.Meter
-
-import io.scalac.mesmer.extension.metric.HttpMetricsMonitor
-import io.scalac.mesmer.extension.metric.RegisterRoot
+import io.scalac.mesmer.core.config.MesmerConfiguration
+import io.scalac.mesmer.extension.metric.{ HttpMetricsMonitor, RegisterRoot }
+import io.scalac.mesmer.extension.upstream.OpenTelemetryHttpMetricsMonitor.MetricNames
 import io.scalac.mesmer.extension.upstream.opentelemetry._
 
-import OpenTelemetryHttpMetricsMonitor.MetricNames
-
 object OpenTelemetryHttpMetricsMonitor {
-  case class MetricNames(
+  final case class MetricNames(
     requestDuration: String,
     requestTotal: String
   )
 
-  object MetricNames {
-    def default: MetricNames =
-      MetricNames(
-        "akka_http_request_duration",
-        "akka_http_request_total"
-      )
+  object MetricNames extends MesmerConfiguration[MetricNames] {
 
-    def fromConfig(config: Config): MetricNames = {
-      import io.scalac.mesmer.extension.config.ConfigurationUtils._
-      val defaultCached = default
+    protected val mesmerConfig: String = "metrics.http-metrics"
 
-      config
-        .tryValue("io.scalac.akka-monitoring.metrics.http-metrics")(
-          _.getConfig
-        )
-        .map { clusterMetricsConfig =>
-          val requestDuration = clusterMetricsConfig
-            .tryValue("request-duration")(_.getString)
-            .getOrElse(defaultCached.requestDuration)
+    protected val defaultConfig: MetricNames = MetricNames(
+      "akka_http_request_duration",
+      "akka_http_request_total"
+    )
 
-          val requestTotal = clusterMetricsConfig
-            .tryValue("request-total")(_.getString)
-            .getOrElse(defaultCached.requestTotal)
+    protected def extractFromConfig(config: Config): MetricNames = {
+      val requestDuration = config
+        .tryValue("request-duration")(_.getString)
+        .getOrElse(defaultConfig.requestDuration)
 
-          MetricNames(requestDuration, requestTotal)
-        }
-        .getOrElse(defaultCached)
+      val requestTotal = config
+        .tryValue("request-total")(_.getString)
+        .getOrElse(defaultConfig.requestTotal)
+
+      MetricNames(requestDuration, requestTotal)
     }
+
   }
   def apply(meter: Meter, config: Config): OpenTelemetryHttpMetricsMonitor =
     new OpenTelemetryHttpMetricsMonitor(meter, MetricNames.fromConfig(config))
