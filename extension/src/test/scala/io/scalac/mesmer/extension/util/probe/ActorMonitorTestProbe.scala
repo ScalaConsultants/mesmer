@@ -12,18 +12,18 @@ import io.scalac.mesmer.extension.util.probe.BoundTestProbe.MetricObserverComman
 
 final case class ActorMonitorTestProbe(
   mailboxSizeProbe: TestProbe[MetricObserverCommand[Labels]],
-  mailboxTimeAvgProbe: TestProbe[MetricObserverCommand[Labels]],
   mailboxTimeMinProbe: TestProbe[MetricObserverCommand[Labels]],
   mailboxTimeMaxProbe: TestProbe[MetricObserverCommand[Labels]],
   mailboxTimeSumProbe: TestProbe[MetricObserverCommand[Labels]],
+  mailboxTimeCountProbe: TestProbe[MetricObserverCommand[Labels]],
   stashSizeProbe: TestProbe[MetricObserverCommand[Labels]],
   receivedMessagesProbe: TestProbe[MetricObserverCommand[Labels]],
   processedMessagesProbe: TestProbe[MetricObserverCommand[Labels]],
   failedMessagesProbe: TestProbe[MetricObserverCommand[Labels]],
-  processingTimeAvgProbe: TestProbe[MetricObserverCommand[Labels]],
   processingTimeMinProbe: TestProbe[MetricObserverCommand[Labels]],
   processingTimeMaxProbe: TestProbe[MetricObserverCommand[Labels]],
   processingTimeSumProbe: TestProbe[MetricObserverCommand[Labels]],
+  processingTimeCountProbe: TestProbe[MetricObserverCommand[Labels]],
   sentMessagesProbe: TestProbe[MetricObserverCommand[Labels]],
   droppedMessagesProbe: TestProbe[MetricObserverCommand[Labels]],
   collector: ObserverCollector
@@ -40,8 +40,8 @@ final case class ActorMonitorTestProbe(
   class ActorMonitorTestBoundMonitor extends BoundMonitor {
     val mailboxSize: MetricObserver[Long, Labels] =
       ObserverTestProbeWrapper(mailboxSizeProbe, collector)
-    val mailboxTimeAvg: MetricObserver[Long, Labels] =
-      ObserverTestProbeWrapper(mailboxTimeAvgProbe, collector)
+    val mailboxTimeCount: MetricObserver[Long, Labels] =
+      ObserverTestProbeWrapper(mailboxTimeCountProbe, collector)
     val mailboxTimeMin: MetricObserver[Long, Labels] =
       ObserverTestProbeWrapper(mailboxTimeMinProbe, collector)
     val mailboxTimeMax: MetricObserver[Long, Labels] =
@@ -56,8 +56,8 @@ final case class ActorMonitorTestProbe(
       ObserverTestProbeWrapper(processedMessagesProbe, collector)
     val failedMessages: MetricObserver[Long, Labels] =
       ObserverTestProbeWrapper(failedMessagesProbe, collector)
-    val processingTimeAvg: MetricObserver[Long, Labels] =
-      ObserverTestProbeWrapper(processingTimeAvgProbe, collector)
+    val processingTimeCount: MetricObserver[Long, Labels] =
+      ObserverTestProbeWrapper(processingTimeCountProbe, collector)
     val processingTimeMin: MetricObserver[Long, Labels] =
       ObserverTestProbeWrapper(processingTimeMinProbe, collector)
     val processingTimeMax: MetricObserver[Long, Labels] =
@@ -72,14 +72,14 @@ final case class ActorMonitorTestProbe(
 
     def unbind(): Unit = {
       collector.finish(mailboxSizeProbe)
-      collector.finish(mailboxTimeAvgProbe)
+      collector.finish(mailboxTimeCountProbe)
       collector.finish(mailboxTimeMinProbe)
       collector.finish(mailboxTimeMaxProbe)
       collector.finish(mailboxTimeSumProbe)
       collector.finish(receivedMessagesProbe)
       collector.finish(processedMessagesProbe)
       collector.finish(failedMessagesProbe)
-      collector.finish(processingTimeAvgProbe)
+      collector.finish(processingTimeCountProbe)
       collector.finish(processingTimeMinProbe)
       collector.finish(processingTimeMaxProbe)
       collector.finish(processingTimeSumProbe)
@@ -94,18 +94,18 @@ object ActorMonitorTestProbe {
   def apply(collector: ObserverCollector)(implicit actorSystem: ActorSystem[_]): ActorMonitorTestProbe =
     ActorMonitorTestProbe(
       TestProbe("mailbox-size-probe"),
-      TestProbe("mailbox-time-avg-probe"),
       TestProbe("mailbox-time-min-probe"),
       TestProbe("mailbox-time-max-probe"),
       TestProbe("mailbox-time-sum-probe"),
+      TestProbe("mailbox-time-count-probe"),
       TestProbe("stash-size-probe"),
       TestProbe("received-messages-probe"),
       TestProbe("processed-messages-probe"),
       TestProbe("failed-messages-probe"),
-      TestProbe("processing-time-avg-probe"),
       TestProbe("processing-time-min-probe"),
       TestProbe("processing-time-max-probe"),
       TestProbe("processing-time-sum-probe"),
+      TestProbe("processing-time-count-probe"),
       TestProbe("sent-messages-probe"),
       TestProbe("dropped-messages-probe"),
       collector

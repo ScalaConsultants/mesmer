@@ -11,4 +11,6 @@ private[scalac] final case class ActorRefDetails(
   ref: classic.ActorRef,
   tags: Set[Tag],
   configuration: ActorConfiguration
-)
+) {
+  def withTag(tag: Tag): ActorRefDetails = copy(tags = tags + tag)
+}

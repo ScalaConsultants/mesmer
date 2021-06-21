@@ -24,7 +24,6 @@ class LongNoLockAggregatorTest extends AsyncFlatSpec with Matchers {
         result.sum should be((for (i <- 1 to ps) yield ns * i * factor).sum)
         result.min should be(factor)
         result.max should be(ps * factor)
-        result.avg should be(math.round(((ps + 1) / 2.0) * factor))
       }
   }
 

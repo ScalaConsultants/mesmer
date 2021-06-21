@@ -59,7 +59,7 @@ final class LongNoLockAggregator(val maxSize: Int = 100, val compactionRemaining
         val ts = new LongTimeSeries(listBuffer.toSeq)
         aggRef
           .get()
-          .fold(aggRef.set(Some(LongValueAggMetric.fromTimeSeries(ts))))(agg => aggRef.set(Some(agg.combine(ts))))
+          .fold(aggRef.set(Some(LongValueAggMetric.fromTimeSeries(ts))))(agg => aggRef.set(Some(agg.sum(ts))))
         true
       } finally reentrantLock.unlock()
     } else false

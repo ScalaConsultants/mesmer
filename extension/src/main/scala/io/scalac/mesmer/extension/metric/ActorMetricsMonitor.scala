@@ -12,18 +12,18 @@ object ActorMetricsMonitor {
   trait BoundMonitor extends Bound {
     def mailboxSize: MetricObserver[Long, Labels]
     // TODO Create an abstraction to aggregate multiple metrics (e.g: mailboxTimeAgg: MetricObserverAgg[Long])
-    def mailboxTimeAvg: MetricObserver[Long, Labels]
     def mailboxTimeMin: MetricObserver[Long, Labels]
     def mailboxTimeMax: MetricObserver[Long, Labels]
     def mailboxTimeSum: MetricObserver[Long, Labels]
+    def mailboxTimeCount: MetricObserver[Long, Labels]
     def stashSize: MetricObserver[Long, Labels]
     def receivedMessages: MetricObserver[Long, Labels]
     def processedMessages: MetricObserver[Long, Labels]
     def failedMessages: MetricObserver[Long, Labels]
-    def processingTimeAvg: MetricObserver[Long, Labels]
     def processingTimeMin: MetricObserver[Long, Labels]
     def processingTimeMax: MetricObserver[Long, Labels]
     def processingTimeSum: MetricObserver[Long, Labels]
+    def processingTimeCount: MetricObserver[Long, Labels]
     def sentMessages: MetricObserver[Long, Labels]
     def droppedMessages: MetricObserver[Long, Labels]
 
