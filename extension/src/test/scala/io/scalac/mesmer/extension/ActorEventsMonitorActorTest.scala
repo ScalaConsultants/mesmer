@@ -147,11 +147,11 @@ final class ActorEventsMonitorActorTest
 
   private val ConstActorMetrics: ActorMetrics = ActorMetrics(
     Some(1),
-    Some(LongValueAggMetric(1, 10, 2, 20, 10)),
+    Some(LongValueAggMetric(1, 10, 20, 10)),
     Some(2),
     Some(3),
     Some(4),
-    Some(LongValueAggMetric(10, 100, 20, 200, 10)),
+    Some(LongValueAggMetric(10, 100, 200, 10)),
     Some(5),
     Some(6),
     Some(7)
@@ -162,7 +162,7 @@ final class ActorEventsMonitorActorTest
     val y     = Random.nextLong(1000)
     val sum   = Random.nextLong(1000)
     val count = Random.nextInt(100) + 1
-    if (x > y) LongValueAggMetric(y, x, sum / count, sum, count) else LongValueAggMetric(x, y, sum / count, sum, count)
+    if (x > y) LongValueAggMetric(y, x, sum, count) else LongValueAggMetric(x, y, sum, count)
   }
 
   override implicit val timeout: Timeout = pingOffset
@@ -234,8 +234,7 @@ final class ActorEventsMonitorActorTest
                 pingOffset,
                 new MutableActorMetricStorageFactory,
                 scheduler,
-                c.actorMetricReader,
-                c.timestampFactory
+                c.actorMetricReader
               ).start(c.actorTreeService, loop = false) // false is important here!
             }
           }
@@ -293,7 +292,7 @@ final class ActorEventsMonitorActorTest
     selectProbe: ActorMonitorTestProbe => TestProbe[MetricObserverCommand[Labels]],
     extract: ActorMetrics => T,
     name: String,
-    combine: (T, T) => T,
+    addTo: (T, T) => T,
     extractLong: T => Long
   )(metrics: Seq[ActorMetrics]) =
     it should s"record ${name} after many transitions" in {
@@ -308,7 +307,7 @@ final class ActorEventsMonitorActorTest
       }
       val metricsService = system.systemActorOf(readerBehavior(refsWithMetrics), createUniqueId)
 
-      val expectedValue = extractLong(metrics.map(extract).reduce(combine))
+      val expectedValue = extractLong(metrics.map(extract).reduce(addTo))
 
       testCaseWithSetupAndContext { ctx =>
         ctx.copy(actorTreeService = actorService, actorMetricReader = actorDataReader(metricsService))
@@ -330,39 +329,10 @@ final class ActorEventsMonitorActorTest
 
   private def collect[T](
     selectProbe: ActorMonitorTestProbe => TestProbe[MetricObserverCommand[Labels]],
-    extract: ActorMetrics => T,
-    name: String,
-    combine: (T, T) => T,
-    extractLong: T => Long
-  ): Unit = {
-
-    it should s"add up ${name} for consecutive collections" in {
-
-      val refs         = actorConfiguration(spawnTree(3), ActorConfiguration.instanceConfig)
-      val actorService = system.systemActorOf(constRefsActorServiceTree(refs), createUniqueId)
-      val labels       = Labels(ActorPathOps.getPathString(refs.unfix.value.ref))
-
-      val refsWithMetrics = refs.unfix.mapValues { details =>
-        details.ref -> ConstActorMetrics
-      }
-
-      testCaseWithSetupAndContext { ctx =>
-        ctx.copy(actorTreeService = actorService, actorMetricReader = treeDataReader(refsWithMetrics))
-      } { implicit setup => implicit context =>
-        val ackProbe = TestProbe[Done]
-
-        collectActorMetrics(ackProbe)
-        collectActorMetrics(ackProbe)
-        runUpdaters()
-
-        val extracted     = extract(ConstActorMetrics)
-        val expectedValue = extractLong(combine(extracted, extracted))
-
-        expect(selectProbe, labels, expectedValue)
-      }
-    }
-
-    it should s"record ${name}" in {
+    extract: ActorMetrics => Long,
+    name: String
+  ): Unit =
+    it should s"record ${name} value" in {
 
       val refs         = actorConfiguration(spawnTree(3), ActorConfiguration.instanceConfig)
       val actorService = system.systemActorOf(constRefsActorServiceTree(refs), createUniqueId)
@@ -380,17 +350,17 @@ final class ActorEventsMonitorActorTest
         collectActorMetrics(ackProbe)
         runUpdaters()
 
-        expect(selectProbe, labels, extractLong(extract(ConstActorMetrics)))
+        expect(selectProbe, labels, extract(ConstActorMetrics))
 
       }
     }
-  }
 
   private def reportingAggregation[T](
     selectProbe: ActorMonitorTestProbe => TestProbe[MetricObserverCommand[Labels]],
     extract: ActorMetrics => T,
     name: String,
-    combine: (T, T) => T,
+    sum: (T, T) => T,
+    combineWithExisting: (T, T) => T,
     extractLong: T => Long
   )(addMetrics: Tree[ActorRefDetails] => Tree[(classic.ActorRef, ActorMetrics)]): Unit = {
 
@@ -403,7 +373,7 @@ final class ActorEventsMonitorActorTest
       val refsWithMetrics = addMetrics(refs)
 
       val expectedValue = extractLong(refsWithMetrics.unfix.foldRight[T] { case TreeF((_, metrics), children) =>
-        children.fold(extract(metrics))(combine)
+        children.fold(extract(metrics))(sum)
       })
 
       testCaseWithSetupAndContext { ctx =>
@@ -425,7 +395,7 @@ final class ActorEventsMonitorActorTest
 
       val refsWithMetrics = addMetrics(refs)
       val expectedValue = extractLong(refsWithMetrics.unfix.foldRight[T] { case TreeF((_, metrics), children) =>
-        children.fold(extract(metrics))(combine)
+        children.fold(extract(metrics))(sum)
       })
 
       testCaseWithSetupAndContext { ctx =>
@@ -503,7 +473,7 @@ final class ActorEventsMonitorActorTest
       val refsWithMetrics = addMetrics(allRefs)
 
       val expectedValue = extractLong(refsWithMetrics.unfix.foldRight[T] { case TreeF((_, metrics), children) =>
-        children.fold(extract(metrics))(combine)
+        children.fold(extract(metrics))(sum)
       })
 
       testCaseWithSetupAndContext { ctx =>
@@ -538,9 +508,9 @@ final class ActorEventsMonitorActorTest
        * We expect root value to be taken into account twice
        */
       val expectedValue = extractLong(
-        combine(
+        combineWithExisting(
           refsWithMetrics.unfix.foldRight[T] { case TreeF((_, metrics), children) =>
-            children.fold(extract(metrics))(combine)
+            children.fold(extract(metrics))(sum)
           },
           extract(rootMetrics)
         )
@@ -570,61 +540,70 @@ final class ActorEventsMonitorActorTest
     extract: ActorMetrics => Option[Long],
     name: String
   ): Unit = {
-    collect[Option[Long]](selectProbe, extract, name, combine, _.get)
-    collectMany[Option[Long]](selectProbe, extract, name, combine, _.get)(Seq.fill(10)(randomActorMetrics()))
+    collect[Option[Long]](selectProbe, extract andThen (_.get), name)
+    collectMany[Option[Long]](selectProbe, extract, name, sumLong, _.get)(Seq.fill(10)(randomActorMetrics()))
     (reportingAggregation[Option[Long]](
       selectProbe,
       extract,
       name,
-      combine,
+      sumLong,
+      sumLong,
       _.get
     )(addRandomMetrics))
 
   }
 
   def allBehaviorsAgg(
-    probeAvg: ActorMonitorTestProbe => TestProbe[MetricObserverCommand[Labels]],
     probeMin: ActorMonitorTestProbe => TestProbe[MetricObserverCommand[Labels]],
     probeMax: ActorMonitorTestProbe => TestProbe[MetricObserverCommand[Labels]],
     probeSum: ActorMonitorTestProbe => TestProbe[MetricObserverCommand[Labels]],
+    probeCount: ActorMonitorTestProbe => TestProbe[MetricObserverCommand[Labels]],
     extract: ActorMetrics => Option[LongValueAggMetric],
     name: String
   ): Unit = {
     val args
       : List[(String, LongValueAggMetric => Long, ActorMonitorTestProbe => TestProbe[MetricObserverCommand[Labels]])] =
-      List(("avg", _.avg, probeAvg), ("min", _.min, probeMin), ("max", _.max, probeMax), ("sum", _.sum, probeSum))
+      List(("min", _.min, probeMin), ("max", _.max, probeMax), ("sum", _.sum, probeSum), ("count", _.count, probeCount))
     for {
       (suffix, mapping, probe) <- args
     } {
-      collect[Option[LongValueAggMetric]](probe, extract, s"$name $suffix", combineAgg, _.map(mapping).get)
+      collect[Option[LongValueAggMetric]](probe, extract.andThen(_.map(mapping).get), s"$name $suffix")
       reportingAggregation[Option[LongValueAggMetric]](
         probe,
         extract,
         s"$name $suffix",
-        combineAgg,
+        sumAgg,
+        addToAgg,
         _.map(mapping).get
       )((addRandomMetrics))
-      collectMany[Option[LongValueAggMetric]](probe, extract, s"$name $suffix", combineAgg, _.map(mapping).get)(
+      collectMany[Option[LongValueAggMetric]](probe, extract, s"$name $suffix", addToAgg, _.map(mapping).get)(
         Seq.fill(10)(randomActorMetrics())
       )
-
     }
 
   }
 
-  private val combine: (Option[Long], Option[Long]) => Option[Long] = (optX, optY) => {
+  private val sumLong: (Option[Long], Option[Long]) => Option[Long] = (optX, optY) => {
     (for {
       x <- optX
       y <- optY
     } yield (x + y))
   }
 
-  private val combineAgg: (Option[LongValueAggMetric], Option[LongValueAggMetric]) => Option[LongValueAggMetric] =
+  private val sumAgg: (Option[LongValueAggMetric], Option[LongValueAggMetric]) => Option[LongValueAggMetric] =
     (optX, optY) => {
       (for {
         x <- optX
         y <- optY
-      } yield x.combine(y))
+      } yield x.sum(y))
+    }
+
+  private val addToAgg: (Option[LongValueAggMetric], Option[LongValueAggMetric]) => Option[LongValueAggMetric] =
+    (optX, optY) => {
+      (for {
+        x <- optX
+        y <- optY
+      } yield x.addTo(y))
     }
 
   it should behave like allBehaviorsLong(_.mailboxSizeProbe, _.mailboxSize, "mailbox size")
@@ -636,19 +615,19 @@ final class ActorEventsMonitorActorTest
   it should behave like allBehaviorsLong(_.processedMessagesProbe, _.processedMessages, "processed messages")
 
   it should behave like allBehaviorsAgg(
-    _.mailboxTimeAvgProbe,
     _.mailboxTimeMinProbe,
     _.mailboxTimeMaxProbe,
     _.mailboxTimeSumProbe,
+    _.mailboxTimeCountProbe,
     _.mailboxTime,
     "mailbox time"
   )
 
   it should behave like allBehaviorsAgg(
-    _.processingTimeAvgProbe,
     _.processingTimeMinProbe,
     _.processingTimeMaxProbe,
     _.processingTimeSumProbe,
+    _.processingTimeCountProbe,
     _.processingTime,
     "processing time"
   )
@@ -660,13 +639,12 @@ final class ActorEventsMonitorActorTest
 
     testCaseWithSetupAndContext(_.copy(actorMetricReader = failingReader, actorTreeService = actorService)) {
       implicit setup => implicit context =>
-//        val ackProbe = TestProbe[Done]
         collectActorMetrics()
 
         eventually {
           monitor.unbinds should be(1)
           monitor.binds should be(2)
-      }
+        }
     }
   }
 
@@ -696,39 +674,6 @@ final class ActorEventsMonitorActorTest
       ackProbe.receiveMessage()
       ackProbe.receiveMessage()
       ackProbe.receiveMessage()
-    }
-  }
-
-  it should "update timestamp after all probes run" in {
-    val refs         = actorConfiguration(spawnTree(3), ActorConfiguration.instanceConfig)
-    val actorService = system.systemActorOf(constRefsActorServiceTree(refs), createUniqueId)
-
-    testCaseWithSetupAndContext(
-      _.copy(actorMetricReader = _ => Some(ConstActorMetrics), actorTreeService = actorService)
-    ) { implicit setup => implicit context =>
-      eventually {
-        context.timestampFactory.count() should be(1L)
-      }
-      val ackProbe = TestProbe[Done]
-      collectActorMetrics(ackProbe)
-      runUpdaters()
-      monitor.mailboxSizeProbe.receiveMessage()
-      monitor.mailboxTimeAvgProbe.receiveMessage()
-      monitor.mailboxTimeMinProbe.receiveMessage()
-      monitor.mailboxTimeMaxProbe.receiveMessage()
-      monitor.mailboxTimeSumProbe.receiveMessage()
-      monitor.stashSizeProbe.receiveMessage()
-      monitor.receivedMessagesProbe.receiveMessage()
-      monitor.processedMessagesProbe.receiveMessage()
-      monitor.failedMessagesProbe.receiveMessage()
-      monitor.processingTimeAvgProbe.receiveMessage()
-      monitor.processingTimeMinProbe.receiveMessage()
-      monitor.processingTimeMaxProbe.receiveMessage()
-      monitor.processingTimeSumProbe.receiveMessage()
-      monitor.sentMessagesProbe.receiveMessage()
-      monitor.droppedMessagesProbe.receiveMessage()
-      context.timestampFactory.count() should be(2L)
-
     }
   }
 }

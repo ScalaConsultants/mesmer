@@ -1,5 +1,6 @@
 package io.scalac.mesmer.extension
 
+import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicReference
 
 import akka.Done
@@ -24,7 +25,6 @@ import io.scalac.mesmer.core.model.Tag
 import io.scalac.mesmer.core.util.ActorCellOps
 import io.scalac.mesmer.core.util.ActorPathOps
 import io.scalac.mesmer.core.util.ActorRefOps
-import io.scalac.mesmer.core.util.Timestamp
 import io.scalac.mesmer.extension.ActorEventsMonitorActor._
 import io.scalac.mesmer.extension.actor.ActorCellDecorator
 import io.scalac.mesmer.extension.actor.ActorMetrics
@@ -32,7 +32,6 @@ import io.scalac.mesmer.extension.actor.MetricStorageFactory
 import io.scalac.mesmer.extension.metric.ActorMetricsMonitor
 import io.scalac.mesmer.extension.metric.ActorMetricsMonitor.Labels
 import io.scalac.mesmer.extension.metric.MetricObserver.Result
-import io.scalac.mesmer.extension.metric.SyncWith
 import io.scalac.mesmer.extension.service.ActorTreeService
 import io.scalac.mesmer.extension.service.ActorTreeService.Command.GetActorTree
 import io.scalac.mesmer.extension.service.ActorTreeService.Command.TagSubscribe
@@ -62,8 +61,7 @@ object ActorEventsMonitorActor {
     node: Option[Node],
     pingOffset: FiniteDuration,
     storageFactory: MetricStorageFactory[ActorKey],
-    actorMetricsReader: ActorMetricsReader = ReflectiveActorMetricsReader,
-    timestampFactory: () => Timestamp
+    actorMetricsReader: ActorMetricsReader = ReflectiveActorMetricsReader
   )(implicit askTimeout: Timeout): Behavior[Command] =
     Behaviors.setup[Command] { ctx =>
       GenericBehaviors
@@ -76,8 +74,7 @@ object ActorEventsMonitorActor {
               pingOffset,
               storageFactory,
               scheduler,
-              actorMetricsReader,
-              timestampFactory
+              actorMetricsReader
             ).start(ref, loop = true)
           }
         }
@@ -131,8 +128,7 @@ private[extension] class ActorEventsMonitorActor private[extension] (
   pingOffset: FiniteDuration,
   storageFactory: MetricStorageFactory[ActorKey],
   scheduler: TimerScheduler[Command],
-  actorMetricsReader: ActorMetricsReader = ReflectiveActorMetricsReader,
-  timestampFactory: () => Timestamp
+  actorMetricsReader: ActorMetricsReader = ReflectiveActorMetricsReader
 )(implicit val askTimeout: Timeout) {
 
   import context._
@@ -147,8 +143,7 @@ private[extension] class ActorEventsMonitorActor private[extension] (
 
   private[this] val treeSnapshot = new AtomicReference[Option[Vector[(Labels, ActorMetrics)]]](None)
 
-  @volatile
-  private var lastCollectionTimestamp: Timestamp = timestampFactory()
+  private[this] val exported = new AtomicBoolean(false)
 
   private def updateMetric(extractor: ActorMetrics => Option[Long])(result: Result[Long, Labels]): Unit = {
     val state = treeSnapshot.get()
@@ -162,25 +157,22 @@ private[extension] class ActorEventsMonitorActor private[extension] (
   private def registerUpdaters(): Unit = {
 
     import boundMonitor._
-    SyncWith()
-      .`with`(mailboxSize)(updateMetric(_.mailboxSize))
-      .`with`(failedMessages)(updateMetric(_.failedMessages))
-      .`with`(processedMessages)(updateMetric(_.processedMessages))
-      .`with`(receivedMessages)(updateMetric(_.receivedMessages))
-      .`with`(mailboxTimeAvg)(updateMetric(_.mailboxTime.map(_.avg)))
-      .`with`(mailboxTimeMax)(updateMetric(_.mailboxTime.map(_.max)))
-      .`with`(mailboxTimeMin)(updateMetric(_.mailboxTime.map(_.min)))
-      .`with`(mailboxTimeSum)(updateMetric(_.mailboxTime.map(_.sum)))
-      .`with`(processingTimeAvg)(updateMetric(_.processingTime.map(_.avg)))
-      .`with`(processingTimeMin)(updateMetric(_.processingTime.map(_.min)))
-      .`with`(processingTimeMax)(updateMetric(_.processingTime.map(_.max)))
-      .`with`(processingTimeSum)(updateMetric(_.processingTime.map(_.sum)))
-      .`with`(sentMessages)(updateMetric(_.sentMessages))
-      .`with`(stashSize)(updateMetric(_.stashSize))
-      .`with`(droppedMessages)(updateMetric(_.droppedMessages))
-      .afterAll {
-        lastCollectionTimestamp = timestampFactory()
-      }
+
+    mailboxSize.setUpdater(updateMetric(_.mailboxSize))
+    failedMessages.setUpdater(updateMetric(_.failedMessages))
+    processedMessages.setUpdater(updateMetric(_.processedMessages))
+    receivedMessages.setUpdater(updateMetric(_.receivedMessages))
+    mailboxTimeCount.setUpdater(updateMetric(_.mailboxTime.map(_.count)))
+    mailboxTimeMax.setUpdater(updateMetric(_.mailboxTime.map(_.max)))
+    mailboxTimeMin.setUpdater(updateMetric(_.mailboxTime.map(_.min)))
+    mailboxTimeSum.setUpdater(updateMetric(_.mailboxTime.map(_.sum)))
+    processingTimeCount.setUpdater(updateMetric(_.processingTime.map(_.count)))
+    processingTimeMin.setUpdater(updateMetric(_.processingTime.map(_.min)))
+    processingTimeMax.setUpdater(updateMetric(_.processingTime.map(_.max)))
+    processingTimeSum.setUpdater(updateMetric(_.processingTime.map(_.sum)))
+    sentMessages.setUpdater(updateMetric(_.sentMessages))
+    stashSize.setUpdater(updateMetric(_.stashSize))
+    droppedMessages.setUpdater(updateMetric(_.droppedMessages))
 
   }
 
@@ -268,12 +260,13 @@ private[extension] class ActorEventsMonitorActor private[extension] (
     log.debug("Capturing current actor tree state")
 
     val currentSnapshot = treeSnapshot.get().getOrElse(Vector.empty)
+
     val metrics = storage.iterable.map { case (key, metrics) =>
-      currentSnapshot.find { case (labels, _) =>
-        labels.actorPath == key
-      }.fold((Labels(key, node), metrics)) { case (labels, existingMetrics) =>
-        (labels, existingMetrics.combine(metrics))
-      }
+      currentSnapshot
+        .find(_._1.actorPath == key) // finds if metric already exists
+        .fold((Labels(key, node), metrics)) { case (labels, existingMetrics) =>
+          (labels, existingMetrics.addTo(metrics))
+        }
     }.toVector
 
     treeSnapshot.set(Some(metrics))
