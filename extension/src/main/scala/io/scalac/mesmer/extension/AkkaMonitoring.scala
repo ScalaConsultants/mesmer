@@ -6,6 +6,7 @@ import akka.actor.typed.scaladsl.Behaviors
 import akka.cluster.Cluster
 import akka.util.Timeout
 import io.scalac.mesmer.core.model.{ Module, SupportedVersion, _ }
+import io.scalac.mesmer.core.module.AkkaHttpModule
 import io.scalac.mesmer.core.support.ModulesSupport
 import io.scalac.mesmer.core.util.ModuleInfo.Modules
 import io.scalac.mesmer.core.util.{ ModuleInfo, Timestamp }
@@ -266,32 +267,40 @@ final class AkkaMonitoring(private val system: ActorSystem[_], val config: AkkaM
   }
 
   def startHttpEventListener(): Unit = {
-    log.info("Starting local http event listener")
 
-    val cachingConfig = CachingConfig.fromConfig(actorSystemConfig, ModulesSupport.akkaHttpModule)
+    val httpModuleConfig = AkkaHttpModule.fromConfig(actorSystemConfig)
 
-    val openTelemetryHttpMonitor =
-      CachingMonitor(OpenTelemetryHttpMetricsMonitor(meter, null, actorSystemConfig), cachingConfig)
+    if (httpModuleConfig.enabled) {
+      log.info("Starting local http event listener")
 
-    val openTelemetryHttpConnectionMonitor =
-      CachingMonitor(OpenTelemetryHttpConnectionMetricsMonitor(meter, actorSystemConfig), cachingConfig)
+      val cachingConfig = CachingConfig.fromConfig(actorSystemConfig, ModulesSupport.akkaHttpModule)
 
-    val pathService = new CachingPathService(cachingConfig)
+      val openTelemetryHttpMonitor =
+        CachingMonitor(OpenTelemetryHttpMetricsMonitor(meter, httpModuleConfig, actorSystemConfig), cachingConfig)
 
-    system.systemActorOf(
-      Behaviors
-        .supervise(
-          WithSelfCleaningState
-            .clean(CleanableRequestStorage.withConfig(config.cleaning))
-            .every(config.cleaning.every)(rs =>
-              HttpEventsActor
-                .apply(openTelemetryHttpMonitor, openTelemetryHttpConnectionMonitor, rs, pathService, clusterNodeName)
-            )
-        )
-        .onFailure[Exception](SupervisorStrategy.restart),
-      "httpEventMonitor",
-      dispatcherSelector
-    )
+      val openTelemetryHttpConnectionMonitor =
+        CachingMonitor(OpenTelemetryHttpConnectionMetricsMonitor(meter, actorSystemConfig), cachingConfig)
+
+      val pathService = new CachingPathService(cachingConfig)
+
+      system.systemActorOf(
+        Behaviors
+          .supervise(
+            WithSelfCleaningState
+              .clean(CleanableRequestStorage.withConfig(config.cleaning))
+              .every(config.cleaning.every)(rs =>
+                HttpEventsActor
+                  .apply(openTelemetryHttpMonitor, openTelemetryHttpConnectionMonitor, rs, pathService, clusterNodeName)
+              )
+          )
+          .onFailure[Exception](SupervisorStrategy.restart),
+        "httpEventMonitor",
+        dispatcherSelector
+      )
+    } else {
+      log.warn(s"Module ${AkkaHttpModule.name} set to auto-start but it's disabled")
+    }
+    
   }
 
 }

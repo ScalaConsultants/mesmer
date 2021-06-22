@@ -1,19 +1,24 @@
 package io.scalac.mesmer.core.module
 
-import com.typesafe.config.Config
+import com.typesafe.config.{ Config => TypesafeConfig }
 import io.scalac.mesmer.core.config.MesmerConfigurationBase
 
 trait Module {
   def name: String
   type All[_]
+  type Config = All[Boolean] with ModuleConfig
 
-  def enabled(config: Config): All[Boolean]
+  def enabled(config: TypesafeConfig): Config
+}
+
+trait ModuleConfig {
+  def enabled: Boolean
 }
 
 trait MesmerModule extends Module with MesmerConfigurationBase {
-  override type Result = All[Boolean]
+  override type Result = Config
 
-  final def enabled(config: Config): All[Boolean] = fromConfig(config)
+  final def enabled(config: TypesafeConfig): Config = fromConfig(config)
 
   val mesmerConfig = s"module.$name"
 }

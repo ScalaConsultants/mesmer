@@ -1,6 +1,6 @@
 package io.scalac.mesmer.core.module
 
-import com.typesafe.config.Config
+import com.typesafe.config.{ Config => TypesafeConfig }
 
 /**
  * Definition of AkkHttp request related metrics
@@ -31,6 +31,10 @@ object AkkaHttpModule extends MesmerModule with AkkaHttpRequestMetricsModule wit
   final case class AkkaHttpModuleConfig(requestTime: Boolean, requestCounter: Boolean, connections: Boolean)
       extends AkkaHttpRequestMetricsDef[Boolean]
       with AkkaHttpConnectionsMetricsDef[Boolean]
+      with ModuleConfig {
+    lazy val enabled: Boolean =
+      requestTime || requestCounter || connections // module is considered enabled if any metric is collected
+  }
 
   val name: String = "akka-http"
 
@@ -40,19 +44,26 @@ object AkkaHttpModule extends MesmerModule with AkkaHttpRequestMetricsModule wit
 
   val defaultConfig = AkkaHttpModuleConfig(true, true, true)
 
-  protected def extractFromConfig(config: Config): AkkaHttpModule.All[Boolean] = {
-    val requestTime = config
-      .tryValue("request-time")(_.getBoolean)
-      .getOrElse(defaultConfig.requestTime)
+  protected def extractFromConfig(config: TypesafeConfig): Config = {
 
-    val requestCounter = config
-      .tryValue("request-counter")(_.getBoolean)
-      .getOrElse(defaultConfig.requestCounter)
+    val moduleEnabled = config
+      .tryValue("enabled")(_.getBoolean)
+      .getOrElse(true)
 
-    val connections = config
-      .tryValue("connections")(_.getBoolean)
-      .getOrElse(defaultConfig.connections)
+    if (moduleEnabled) {
+      val requestTime = config
+        .tryValue("request-time")(_.getBoolean)
+        .getOrElse(defaultConfig.requestTime)
 
-    AkkaHttpModuleConfig(requestTime = requestTime, requestCounter = requestCounter, connections = connections)
+      val requestCounter = config
+        .tryValue("request-counter")(_.getBoolean)
+        .getOrElse(defaultConfig.requestCounter)
+
+      val connections = config
+        .tryValue("connections")(_.getBoolean)
+        .getOrElse(defaultConfig.connections)
+      AkkaHttpModuleConfig(requestTime = requestTime, requestCounter = requestCounter, connections = connections)
+    } else AkkaHttpModuleConfig(false, false, false)
+
   }
 }
