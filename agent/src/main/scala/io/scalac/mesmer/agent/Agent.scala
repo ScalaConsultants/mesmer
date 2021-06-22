@@ -1,13 +1,12 @@
 package io.scalac.mesmer.agent
 
-import java.lang.instrument.Instrumentation
-
-import net.bytebuddy.agent.builder.AgentBuilder
-import org.slf4j.LoggerFactory
-
 import io.scalac.mesmer.agent.Agent.LoadingResult
 import io.scalac.mesmer.core.model.SupportedModules
 import io.scalac.mesmer.core.util.ModuleInfo.Modules
+import net.bytebuddy.agent.builder.AgentBuilder
+import org.slf4j.LoggerFactory
+
+import java.lang.instrument.Instrumentation
 
 object Agent {
 
@@ -60,21 +59,29 @@ object AgentInstrumentation {
 }
 
 sealed abstract case class AgentInstrumentation(name: String, instrumentingModules: SupportedModules)
-    extends ((AgentBuilder, Instrumentation, Modules) => LoadingResult) {
+    extends ((AgentBuilder, Instrumentation, Modules) => LoadingResult)
+    with Equals {
 
-  override def hashCode(): Int           = name.hashCode()
-  override def equals(obj: Any): Boolean = name.equals(obj) // instrumentations should be equal when name is the same
+  override def hashCode(): Int = name.hashCode()
+
+  override def canEqual(that: Any): Boolean = that.isInstanceOf[AgentInstrumentation]
+
+  override def equals(obj: Any): Boolean = obj match {
+    case that: AgentInstrumentation if that.canEqual(this) =>
+      that.name == this.name // instrumentations should be equal when name is the same
+    case _ => false
+  }
 }
 
-final case class Agent private (private val set: Set[AgentInstrumentation]) extends {
+final case class Agent private (private[agent] val instrumentations: Set[AgentInstrumentation]) extends {
   import Agent._
 
-  def ++(other: Agent): Agent = Agent(set ++ other.set)
+  def ++(other: Agent): Agent = Agent(instrumentations ++ other.instrumentations)
 
-  def ++(other: AgentInstrumentation): Agent = Agent(set + other)
+  def ++(other: AgentInstrumentation): Agent = Agent(instrumentations + other)
 
   def installOn(builder: AgentBuilder, instrumentation: Instrumentation, modules: Modules): LoadingResult =
-    set.flatMap { agentInstrumentation =>
+    instrumentations.flatMap { agentInstrumentation =>
       val dependencies = agentInstrumentation.instrumentingModules
 
       val allModulesSupported = dependencies.modules.forall { module =>

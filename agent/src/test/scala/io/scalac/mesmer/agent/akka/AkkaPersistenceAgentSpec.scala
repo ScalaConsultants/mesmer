@@ -34,7 +34,7 @@ class AkkaPersistenceAgentSpec
     with ReceptionistOps
     with SafeLoadSystem {
 
-  override protected val agent = AkkaPersistenceAgent.agent
+//  override protected val agent = AkkaPersistenceAgent.agent
 
   implicit val askTimeout: Timeout = Timeout(1.minute)
 

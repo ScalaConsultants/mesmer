@@ -1,33 +1,35 @@
 package io.scalac.mesmer.agent.utils
 
-import com.typesafe.config.ConfigFactory
+import io.scalac.mesmer.agent.Agent
+import io.scalac.mesmer.agent.akka.actor.{ AkkaActorAgent, AkkaMailboxAgent }
+import io.scalac.mesmer.agent.akka.http.AkkaHttpAgent
+import io.scalac.mesmer.agent.akka.persistence.AkkaPersistenceAgent
+import io.scalac.mesmer.agent.akka.stream.AkkaStreamAgent
+import io.scalac.mesmer.agent.util.i13n.InstrumentModuleFactoryTest
+import io.scalac.mesmer.core.module.{ AkkaHttpModule, Module }
+import io.scalac.mesmer.core.util.ModuleInfo.{ extractModulesInformation, Modules }
 import net.bytebuddy.ByteBuddy
 import net.bytebuddy.agent.ByteBuddyAgent
 import net.bytebuddy.agent.builder.AgentBuilder
 import net.bytebuddy.dynamic.scaffold.TypeValidation
-import org.scalatest.BeforeAndAfterAll
 import org.scalatest.TestSuite
-import io.scalac.mesmer.agent.Agent
-import io.scalac.mesmer.agent.akka.actor.AkkaActorAgent
-import io.scalac.mesmer.agent.akka.actor.AkkaMailboxAgent
-import io.scalac.mesmer.agent.akka.http.AkkaHttpAgent
-import io.scalac.mesmer.agent.akka.persistence.AkkaPersistenceAgent
-import io.scalac.mesmer.agent.akka.stream.AkkaStreamAgent
-import io.scalac.mesmer.core.util.ModuleInfo.Modules
-import io.scalac.mesmer.core.util.ModuleInfo.extractModulesInformation
+import org.scalatest.flatspec.AnyFlatSpecLike
+
+import java.net.{ URL, URLClassLoader }
+import scala.util.Try
 
 object InstallAgent {
   def allInstrumentations: Agent =
-    AkkaActorAgent.agent ++ AkkaHttpAgent.agent(ConfigFactory.empty) ++ AkkaPersistenceAgent.agent ++ AkkaStreamAgent.agent ++ AkkaMailboxAgent.agent
+    AkkaActorAgent.agent ++ AkkaHttpAgent.agent(
+      AkkaHttpModule.defaultConfig
+    ) ++ AkkaPersistenceAgent.agent ++ AkkaStreamAgent.agent ++ AkkaMailboxAgent.agent
 }
 
-abstract class InstallAgent extends TestSuite with BeforeAndAfterAll {
-
-  import InstallAgent._
+abstract class InstallAgent extends TestSuite {
 
   def modules: Modules = extractModulesInformation(Thread.currentThread().getContextClassLoader)
 
-  protected def agent: Agent = allInstrumentations
+  protected var agent: Option[Agent] = None
 
   private val builder = new AgentBuilder.Default(
     new ByteBuddy()
@@ -39,13 +41,61 @@ abstract class InstallAgent extends TestSuite with BeforeAndAfterAll {
       AgentBuilder.Listener.StreamWriting.toSystemOut.withTransformationsOnly()
     )
 
-  override protected def beforeAll(): Unit = {
-    super.beforeAll()
-
+  private def installAgent(): Unit = {
     val instrumentation = ByteBuddyAgent.install()
 
-    agent
-      .installOn(builder, instrumentation, modules)
-      .eagerLoad()
+    agent.fold[Unit](throw new AssertionError("Agent must be set")) {
+      _.installOn(builder, instrumentation, modules)
+        .eagerLoad()
+    }
   }
+
+  def withAgent(setup: () => Unit)(test: () => Any): Any = {
+    val context           = Thread.currentThread().getContextClassLoader.asInstanceOf[URLClassLoader]
+    val prefixClassLoader = new PrefixChildFirstClassLoader(Vector("akka.http.scaladsl.HttpExt"), context.getURLs, context)
+    Thread.currentThread().setContextClassLoader(prefixClassLoader)
+
+    setup()
+    installAgent()
+    Class.forName("akka.http.scaladsl.HttpExt", true, prefixClassLoader)
+    test()
+    Thread.currentThread().setContextClassLoader(context)
+  }
+
+}
+
+final class PrefixChildFirstClassLoader(prefix: Vector[String], urls: Array[URL], parent: ClassLoader)
+    extends URLClassLoader(urls, parent) {
+  override def loadClass(name: String, resolve: Boolean): Class[_] = {
+
+    val loaded = Option(findLoadedClass(name)).orElse {
+      if (prefix.exists(p => name.startsWith(p))) {
+        println(s"Loading class: $name")
+
+        Try(findClass(name)).toOption
+      } else None
+    }.orElse(Try(super.loadClass(name, resolve)).toOption).getOrElse(throw new ClassNotFoundException(name))
+
+    if (resolve) {
+      resolveClass(loaded)
+    }
+    loaded
+  }
+
+}
+
+abstract class InstallModule[M <: Module](moduleFactory: InstrumentModuleFactoryTest[M]) extends InstallAgent {
+  this: AnyFlatSpecLike =>
+
+  def withVersion(versions: M#All[Boolean]*)(name: String)(test: => Any): Any =
+    versions.foreach { version =>
+      it should s"$name with $version" in withAgent { () =>
+        agent = Some(moduleFactory.agent(version))
+        println(s"Class loader: ${Thread.currentThread().getContextClassLoader}")
+        println(s"Class loader parent: ${Thread.currentThread().getContextClassLoader.getParent}")
+        println(s"Class loader 2xparent: ${Thread.currentThread().getContextClassLoader.getParent.getParent}")
+      }(() => test)
+
+    }
+
 }

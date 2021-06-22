@@ -1,23 +1,42 @@
 package io.scalac.mesmer.extension.metric
 
-import java.util.concurrent.atomic.AtomicInteger
-
-import scala.annotation.tailrec
-
 import io.scalac.mesmer.extension.metric.SyncWith.UpdaterPair
 
-sealed trait Metric[T]
+import java.util.concurrent.atomic.AtomicInteger
+import scala.annotation.tailrec
 
-trait MetricRecorder[T] extends Metric[T] {
+sealed trait Metric[-T]
+
+trait MetricRecorder[-T] extends Metric[T] {
   def setValue(value: T): Unit
 }
 
-trait Counter[T] extends Metric[T] {
+trait Counter[-T] extends Metric[T] {
   def incValue(value: T): Unit
 }
 
-trait UpDownCounter[T] extends Counter[T] {
+trait UpDownCounter[-T] extends Counter[T] {
   def decValue(value: T): Unit
+}
+
+object Metric {
+//  private case object NoopMetricRecorder extends MetricRecorder[Any] {
+//    def setValue(value: Any): Unit = ()
+//  }
+//
+//  private case object NoopCounter extends Counter[Any] {
+//    def incValue(value: Any): Unit = ()
+//  }
+//
+//  private case object NoopUpDownCounter extends UpDownCounter[Any] {
+//    def decValue(value: Any): Unit = ()
+//
+//    def incValue(value: Any): Unit = ()
+//  }
+//
+//  def noopRecorder[T]: MetricRecorder[T]     = NoopMetricRecorder
+//  def noopCounter[T]: Counter[T]             = NoopCounter
+//  def noopUpDownCounter[T]: UpDownCounter[T] = NoopUpDownCounter
 }
 
 final class SyncWith private (

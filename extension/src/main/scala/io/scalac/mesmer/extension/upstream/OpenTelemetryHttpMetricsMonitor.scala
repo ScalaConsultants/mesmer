@@ -3,6 +3,7 @@ package io.scalac.mesmer.extension.upstream
 import com.typesafe.config.Config
 import io.opentelemetry.api.metrics.Meter
 import io.scalac.mesmer.core.config.MesmerConfiguration
+import io.scalac.mesmer.core.module.AkkaHttpModule
 import io.scalac.mesmer.extension.metric.{ HttpMetricsMonitor, RegisterRoot }
 import io.scalac.mesmer.extension.upstream.OpenTelemetryHttpMetricsMonitor.MetricNames
 import io.scalac.mesmer.extension.upstream.opentelemetry._
@@ -35,37 +36,48 @@ object OpenTelemetryHttpMetricsMonitor {
     }
 
   }
-  def apply(meter: Meter, config: Config): OpenTelemetryHttpMetricsMonitor =
-    new OpenTelemetryHttpMetricsMonitor(meter, MetricNames.fromConfig(config))
+  def apply(
+    meter: Meter,
+    moduleConfig: AkkaHttpModule.AkkaHttpRequestMetricsDef[Boolean],
+    config: Config
+  ): OpenTelemetryHttpMetricsMonitor =
+    new OpenTelemetryHttpMetricsMonitor(meter, moduleConfig, MetricNames.fromConfig(config))
 }
 
-class OpenTelemetryHttpMetricsMonitor(meter: Meter, metricNames: MetricNames) extends HttpMetricsMonitor {
+final class OpenTelemetryHttpMetricsMonitor(
+  meter: Meter,
+  moduleConfig: AkkaHttpModule.AkkaHttpRequestMetricsDef[Boolean],
+  metricNames: MetricNames
+) extends HttpMetricsMonitor {
 
   import HttpMetricsMonitor._
 
-  private val requestTimeRequest = meter
+  private lazy val requestTimeRequest = meter
     .longValueRecorderBuilder(metricNames.requestDuration)
     .setDescription("Amount of ms request took to complete")
     .build()
 
-  private val requestTotalCounter = meter
+  private lazy val requestTotalCounter = meter
     .longCounterBuilder(metricNames.requestTotal)
     .setDescription("Amount of requests")
     .build()
 
   def bind(labels: Labels): BoundMonitor = new HttpMetricsBoundMonitor(labels)
 
-  class HttpMetricsBoundMonitor(labels: Labels)
+  final class HttpMetricsBoundMonitor(labels: Labels)
       extends opentelemetry.Synchronized(meter)
       with BoundMonitor
       with SynchronousInstrumentFactory
       with RegisterRoot {
-    private val openTelemetryLabels = LabelsFactory.of(labels.serialize)
 
-    val requestTime: WrappedLongValueRecorder =
-      metricRecorder(requestTimeRequest, openTelemetryLabels).register(this)
+    protected val otLabels = LabelsFactory.of(labels.serialize)
 
-    val requestCounter: WrappedCounter = counter(requestTotalCounter, openTelemetryLabels).register(this)
+    val requestTime =
+      if (moduleConfig.requestTime) metricRecorder(requestTimeRequest, otLabels).register(this)
+      else noopMetricRecorder[Long]
+
+    val requestCounter: WrappedCounter =
+      if (moduleConfig.requestCounter) counter(requestTotalCounter, otLabels).register(this) else noopCounter[Long]
 
   }
 }

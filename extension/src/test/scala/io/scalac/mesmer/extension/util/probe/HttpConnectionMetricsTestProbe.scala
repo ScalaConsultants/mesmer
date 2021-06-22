@@ -39,7 +39,7 @@ class HttpConnectionMetricsTestProbe(implicit val system: ActorSystem[_]) extend
   ) extends BoundMonitor
       with TestProbeSynchronized {
 
-    val connectionCounter: UpDownCounter[Long] with SyncTestProbeWrapper =
+    val connections: UpDownCounter[Long] with SyncTestProbeWrapper =
       UpDownCounterTestProbeWrapper(connectionCounterProbe, Some(globalConnectionCounter))
 
     def unbind(): Unit = ()

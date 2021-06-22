@@ -1,10 +1,8 @@
 package io.scalac.mesmer.extension.upstream
 
 import com.typesafe.config.Config
-import io.opentelemetry.api.metrics.Meter
-import io.scalac.mesmer.extension.metric.HttpConnectionMetricsMonitor
-import io.scalac.mesmer.extension.metric.RegisterRoot
-import io.scalac.mesmer.extension.metric.UpDownCounter
+import io.opentelemetry.api.metrics.{Meter, common}
+import io.scalac.mesmer.extension.metric.{HttpConnectionMetricsMonitor, Metric, RegisterRoot, UpDownCounter}
 import io.scalac.mesmer.extension.upstream.opentelemetry._
 import OpenTelemetryHttpConnectionMetricsMonitor.MetricNames
 import io.scalac.mesmer.core.config.MesmerConfiguration
@@ -52,10 +50,13 @@ class OpenTelemetryHttpConnectionMetricsMonitor(meter: Meter, metricNames: Metri
       with BoundMonitor
       with SynchronousInstrumentFactory
       with RegisterRoot {
-    private val openTelemetryLabels = LabelsFactory.of(labels.serialize)
 
-    val connectionCounter: UpDownCounter[Long] with Instrument[Long] =
-      upDownCounter(connectionTotalCounter, openTelemetryLabels).register(this)
+    protected val otLabels = LabelsFactory.of(labels.serialize)
 
+    val connections: UpDownCounter[Long] with Instrument[Long] =
+      upDownCounter(connectionTotalCounter, otLabels).register(this)
+
+
+//    override def connections: Metric[Long] = ???
   }
 }

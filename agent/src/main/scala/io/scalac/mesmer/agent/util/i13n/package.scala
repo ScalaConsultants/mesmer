@@ -122,6 +122,7 @@ package object i13n {
 
   // implicit conversion
   implicit def methodNameToMethodDesc(methodName: String): MethodDesc = method(methodName)
+  implicit def classNameToTypeDesc(className: String): TypeDesc = EM.named[TypeDescription](className)
   implicit def typeNameToType(typeName: String): Type                 = `type`(typeName)
   implicit def typeToAgentInstrumentation(typeInstrumentation: TypeInstrumentation): AgentInstrumentation =
     AgentInstrumentationFactory(typeInstrumentation)

@@ -127,7 +127,7 @@ final class OpenTelemetryClusterMetricsMonitor(meter: Meter, metricNames: Metric
       with RegisterRoot
       with SynchronousInstrumentFactory {
 
-    private val otLabels = LabelsFactory.of(labels.serialize)
+    protected val otLabels = LabelsFactory.of(labels.serialize)
 
     val shardPerRegions: MetricObserver[Long, ClusterMetricsMonitor.Labels] =
       shardsPerRegionRecorder.createObserver(this)

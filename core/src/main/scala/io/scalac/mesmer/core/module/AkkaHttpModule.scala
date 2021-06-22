@@ -3,30 +3,44 @@ package io.scalac.mesmer.core.module
 import com.typesafe.config.Config
 
 /**
- * Definition of AkkHttp metric related features
+ * Definition of AkkHttp request related metrics
  */
-sealed trait AkkaHttpMetricsModule extends MetricModule {
+sealed trait AkkaHttpRequestMetricsModule extends MetricModule {
   this: Module =>
 
-  override type Metrics[T] = AkkaHttpMetricsDef[T]
+  override type Metrics[T] <: AkkaHttpRequestMetricsDef[T]
 
-  protected trait AkkaHttpMetricsDef[T] {
+  trait AkkaHttpRequestMetricsDef[T] {
     def requestTime: T
     def requestCounter: T
   }
 }
 
-object AkkaHttpModule extends MesmerModule with AkkaHttpMetricsModule {
+sealed trait AkkaHttpConnectionMetricsModule extends MetricModule {
+  this: Module =>
 
-  final case class AkkaHttpModuleConfig(requestTime: Boolean, requestCounter: Boolean) extends All[Boolean]
+  override type Metrics[T] <: AkkaHttpConnectionsMetricsDef[T]
+
+  trait AkkaHttpConnectionsMetricsDef[T] {
+    def connections: T
+  }
+}
+
+object AkkaHttpModule extends MesmerModule with AkkaHttpRequestMetricsModule with AkkaHttpConnectionMetricsModule {
+
+  final case class AkkaHttpModuleConfig(requestTime: Boolean, requestCounter: Boolean, connections: Boolean)
+      extends AkkaHttpRequestMetricsDef[Boolean]
+      with AkkaHttpConnectionsMetricsDef[Boolean]
 
   val name: String = "akka-http"
 
+  override type Metrics[T] = AkkaHttpRequestMetricsDef[T] with AkkaHttpConnectionsMetricsDef[T]
+
   override type All[T] = Metrics[T]
 
-  val defaultConfig = AkkaHttpModuleConfig(true, true)
+  val defaultConfig = AkkaHttpModuleConfig(true, true, true)
 
-  protected def extractFromConfig(config: Config): AkkaHttpModule.AkkaHttpMetricsDef[Boolean] = {
+  protected def extractFromConfig(config: Config): AkkaHttpModule.All[Boolean] = {
     val requestTime = config
       .tryValue("request-time")(_.getBoolean)
       .getOrElse(defaultConfig.requestTime)
@@ -35,6 +49,10 @@ object AkkaHttpModule extends MesmerModule with AkkaHttpMetricsModule {
       .tryValue("request-counter")(_.getBoolean)
       .getOrElse(defaultConfig.requestCounter)
 
-    AkkaHttpModuleConfig(requestTime = requestTime, requestCounter = requestCounter)
+    val connections = config
+      .tryValue("connections")(_.getBoolean)
+      .getOrElse(defaultConfig.connections)
+
+    AkkaHttpModuleConfig(requestTime = requestTime, requestCounter = requestCounter, connections = connections)
   }
 }

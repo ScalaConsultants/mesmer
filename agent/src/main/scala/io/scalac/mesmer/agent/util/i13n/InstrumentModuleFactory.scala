@@ -18,7 +18,7 @@ abstract class InstrumentModuleFactoryTest[M <: Module](val module: M) {
 
   protected def instrument(tpe: Type): TypeInstrumentation = TypeInstrumentation(TypeTarget(tpe, supportedModules))
 
-  protected def agent(config: M#All[Boolean]): Agent
+  def agent(config: M#All[Boolean]): Agent
 
   final def agent(config: Config): Agent = agent(module.enabled(config))
 }

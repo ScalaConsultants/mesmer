@@ -1,17 +1,10 @@
 package io.scalac.mesmer.agent.akka.http
 
-import _root_.akka.http.scaladsl.model.HttpRequest
-import _root_.akka.http.scaladsl.model.HttpResponse
+import _root_.akka.http.scaladsl.model.{HttpRequest, HttpResponse}
 import _root_.akka.stream.BidiShape
 import akka.actor.typed.scaladsl.adapter._
 import akka.http.scaladsl.HttpExt
-import akka.stream.scaladsl.BidiFlow
-import akka.stream.scaladsl.Broadcast
-import akka.stream.scaladsl.Flow
-import akka.stream.scaladsl.GraphDSL
-import akka.stream.scaladsl.Source
-import akka.stream.scaladsl.Zip
-
+import akka.stream.scaladsl.{BidiFlow, Broadcast, Flow, GraphDSL, Source, Zip}
 import io.scalac.mesmer.core.akka.stream.BidiFlowForward
 import io.scalac.mesmer.core.event.EventBus
 import io.scalac.mesmer.core.event.HttpEvent._
@@ -34,19 +27,13 @@ object HttpInstrumentation {
     }
   }
 
-  def bindAndHandleImpl(
+  def bindAndHandleRequestImpl(
     handler: Flow[HttpRequest, HttpResponse, Any],
-    interface: String,
-    port: java.lang.Integer,
     self: HttpExt
   ): Flow[HttpRequest, HttpResponse, Any] = {
 
     val system = self.asInstanceOf[HttpExt].system.toTyped
 
-    val connectionsCountFlow = BidiFlowForward[HttpRequest, HttpResponse](
-      onPreStart = () => EventBus(system).publishEvent(ConnectionStarted(interface, port)),
-      onPostStop = () => EventBus(system).publishEvent(ConnectionCompleted(interface, port))
-    )
 
     val requestIdFlow =
       BidiFlow.fromGraph[HttpRequest, HttpRequest, HttpResponse, HttpResponse, Any](GraphDSL.create() {
@@ -93,9 +80,25 @@ object HttpInstrumentation {
           BidiShape(outerRequest.in, outerRequestOut.outlet, zipRespone.in0, outerResponse.out)
       })
 
-    connectionsCountFlow
-      .atop(requestIdFlow)
+    requestIdFlow
       .join(handler)
 
+  }
+
+  def bindAndHandleConnectionsImpl(
+    handler: Flow[HttpRequest, HttpResponse, Any],
+    interface: String,
+    port: java.lang.Integer,
+    self: HttpExt
+  ): Flow[HttpRequest, HttpResponse, Any] = {
+
+    val system = self.asInstanceOf[HttpExt].system.toTyped
+
+    val connectionsCountFlow = BidiFlowForward[HttpRequest, HttpResponse](
+      onPreStart = () => EventBus(system).publishEvent(ConnectionStarted(interface, port)),
+      onPostStop = () => EventBus(system).publishEvent(ConnectionCompleted(interface, port))
+    )
+
+    connectionsCountFlow.join(handler)
   }
 }
