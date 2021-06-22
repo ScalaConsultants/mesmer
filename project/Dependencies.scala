@@ -42,9 +42,8 @@ object Dependencies {
     "io.opentelemetry" % "opentelemetry-api" % OpentelemetryVersion
   )
 
-  val openTelemetryMetrics = Seq(
-    "io.opentelemetry" % "opentelemetry-api-metrics" % OpentelemetryMetricsVersion,
-    "io.opentelemetry" % "opentelemetry-sdk-metrics" % OpentelemetryMetricsVersion
+  val openTelemetryApiMetrics = Seq(
+    "io.opentelemetry" % "opentelemetry-api-metrics" % OpentelemetryMetricsVersion
   )
 
   val akkaTestkit = Seq(

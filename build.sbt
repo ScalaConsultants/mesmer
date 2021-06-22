@@ -48,7 +48,7 @@ lazy val core = (project in file("core"))
     libraryDependencies ++= {
       akka ++
       openTelemetryApi ++
-      openTelemetryMetrics ++
+      openTelemetryApiMetrics ++
       scalatest ++
       akkaTestkit
     }
@@ -64,7 +64,7 @@ lazy val extension = (project in file("extension"))
     libraryDependencies ++= {
       akka ++
       openTelemetryApi ++
-      openTelemetryMetrics ++
+      openTelemetryApiMetrics ++
       akkaTestkit ++
       scalatest ++
       akkaMultiNodeTestKit ++
