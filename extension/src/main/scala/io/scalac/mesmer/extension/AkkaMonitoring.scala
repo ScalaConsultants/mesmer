@@ -5,24 +5,19 @@ import akka.actor.typed.receptionist.Receptionist.Register
 import akka.actor.typed.scaladsl.Behaviors
 import akka.cluster.Cluster
 import akka.util.Timeout
-import io.scalac.mesmer.core.model.{ Module, SupportedVersion, _ }
-import io.scalac.mesmer.core.module.AkkaHttpModule
+import io.scalac.mesmer.core.model.{Module, SupportedVersion, _}
+import io.scalac.mesmer.core.module.{AkkaActorModule, AkkaHttpModule}
 import io.scalac.mesmer.core.support.ModulesSupport
 import io.scalac.mesmer.core.util.ModuleInfo.Modules
-import io.scalac.mesmer.core.util.{ ModuleInfo, Timestamp }
+import io.scalac.mesmer.core.util.{ModuleInfo, Timestamp}
 import io.scalac.mesmer.extension.ActorEventsMonitorActor.ReflectiveActorMetricsReader
 import io.scalac.mesmer.extension.actor.MutableActorMetricStorageFactory
-import io.scalac.mesmer.extension.config.{ AkkaMonitoringConfig, CachingConfig, InstrumentationLibrary }
+import io.scalac.mesmer.extension.config.{AkkaMonitoringConfig, CachingConfig, InstrumentationLibrary}
 import io.scalac.mesmer.extension.http.CleanableRequestStorage
 import io.scalac.mesmer.extension.metric.CachingMonitor
-import io.scalac.mesmer.extension.persistence.{ CleanablePersistingStorage, CleanableRecoveryStorage }
+import io.scalac.mesmer.extension.persistence.{CleanablePersistingStorage, CleanableRecoveryStorage}
 import io.scalac.mesmer.extension.service._
-import io.scalac.mesmer.extension.upstream.{
-  OpenTelemetryClusterMetricsMonitor,
-  OpenTelemetryHttpMetricsMonitor,
-  OpenTelemetryPersistenceMetricsMonitor,
-  _
-}
+import io.scalac.mesmer.extension.upstream.{OpenTelemetryClusterMetricsMonitor, OpenTelemetryHttpMetricsMonitor, OpenTelemetryPersistenceMetricsMonitor, _}
 
 import scala.concurrent.duration._
 import scala.language.postfixOps
@@ -166,7 +161,7 @@ final class AkkaMonitoring(private val system: ActorSystem[_], val config: AkkaM
   def startActorMonitor(): Unit = {
     log.debug("Starting actor monitor")
 
-    val actorMonitor = OpenTelemetryActorMetricsMonitor(meter, actorSystemConfig)
+    val actorMonitor = OpenTelemetryActorMetricsMonitor(meter, AkkaActorModule.fromConfig(actorSystemConfig), actorSystemConfig)
 
     system.systemActorOf(
       Behaviors
@@ -300,7 +295,7 @@ final class AkkaMonitoring(private val system: ActorSystem[_], val config: AkkaM
     } else {
       log.warn(s"Module ${AkkaHttpModule.name} set to auto-start but it's disabled")
     }
-    
+
   }
 
 }

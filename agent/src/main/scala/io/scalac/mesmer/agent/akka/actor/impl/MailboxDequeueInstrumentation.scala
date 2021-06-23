@@ -1,9 +1,8 @@
-package io.scalac.mesmer.agent.akka.actor
-
-import net.bytebuddy.asm.Advice._
+package io.scalac.mesmer.agent.akka.actor.impl
 
 import io.scalac.mesmer.core.util.Interval
 import io.scalac.mesmer.extension.actor.ActorCellDecorator
+import net.bytebuddy.asm.Advice.{ OnMethodExit, Return, This }
 
 object MailboxDequeueInstrumentation {
 

@@ -36,7 +36,7 @@ object AkkaPersistenceModule extends MesmerModule with AkkaPersistenceMetricsMod
       snapshot
   }
 
-  protected val defaultConfig: AkkaPersistenceModule.Result = AkkaPersistenceModuleConfig(true, true, true, true, true)
+   val defaultConfig: AkkaPersistenceModule.Result = AkkaPersistenceModuleConfig(true, true, true, true, true)
 
   protected def extractFromConfig(config: TypesafeConfig): Config = {
     val recoveryTime = config

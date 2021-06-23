@@ -20,6 +20,8 @@ trait MesmerModule extends Module with MesmerConfigurationBase {
 
   final def enabled(config: TypesafeConfig): Config = fromConfig(config)
 
+  def defaultConfig: Result
+
   val mesmerConfig = s"module.$name"
 }
 

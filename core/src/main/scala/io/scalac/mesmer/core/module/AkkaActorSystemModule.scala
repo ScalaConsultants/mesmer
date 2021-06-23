@@ -25,7 +25,7 @@ object AkkaActorSystemModule extends MesmerModule with AkkaActorSystemMetricsMod
     lazy val enabled: Boolean = createdActors || terminatedActors
   }
 
-  protected val defaultConfig: Config = ActorSystemModuleConfig(true, true)
+  val defaultConfig: Config = ActorSystemModuleConfig(true, true)
 
   protected def extractFromConfig(config: TypesafeConfig): Config = {
     val createdActors = config.tryValue("created-actors")(_.getBoolean).getOrElse(defaultConfig.createdActors)

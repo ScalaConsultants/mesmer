@@ -1,18 +1,16 @@
-package io.scalac.mesmer.agent.akka.persistence
+package io.scalac.mesmer.agent.akka.persistence.impl
 
-import akka.actor.typed.scaladsl.AbstractBehavior
-import akka.actor.typed.scaladsl.ActorContext
+import akka.actor.typed.scaladsl.{AbstractBehavior, ActorContext}
 import akka.persistence.SaveSnapshotSuccess
-import net.bytebuddy.asm.Advice._
-
-import scala.util.Try
-
+import io.scalac.mesmer.agent.akka.persistence.AkkaPersistenceAgent
 import io.scalac.mesmer.core.event.EventBus
 import io.scalac.mesmer.core.event.PersistenceEvent.SnapshotCreated
 import io.scalac.mesmer.core.model._
 import io.scalac.mesmer.core.util.Timestamp
+import net.bytebuddy.asm.Advice._
 
-class StoringSnapshotInterceptor
+import scala.util.Try
+
 object StoringSnapshotInterceptor {
   import AkkaPersistenceAgent.logger
 

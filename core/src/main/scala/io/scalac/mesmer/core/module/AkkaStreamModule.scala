@@ -52,7 +52,7 @@ object AkkaStreamModule extends MesmerModule with AkkaStreamMetrics with AkkaStr
       demand
   }
 
-  protected def defaultConfig: Config = AkkaStreamModuleConfig(true, true, true, true, true, true)
+   val defaultConfig: Config = AkkaStreamModuleConfig(true, true, true, true, true, true)
 
   protected def extractFromConfig(config: TypesafeConfig): Config = {
 

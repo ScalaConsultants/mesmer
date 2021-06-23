@@ -1,12 +1,13 @@
 package io.scalac.mesmer.agent.utils
 
 import io.scalac.mesmer.agent.Agent
-import io.scalac.mesmer.agent.akka.actor.{ AkkaActorAgent, AkkaMailboxAgent }
+import io.scalac.mesmer.agent.akka.actor.AkkaActorAgent
 import io.scalac.mesmer.agent.akka.http.AkkaHttpAgent
 import io.scalac.mesmer.agent.akka.persistence.AkkaPersistenceAgent
 import io.scalac.mesmer.agent.akka.stream.AkkaStreamAgent
-import io.scalac.mesmer.agent.util.i13n.InstrumentModuleFactoryTest
-import io.scalac.mesmer.core.module.{ AkkaHttpModule, Module }
+import io.scalac.mesmer.agent.util.i13n.InstrumentModuleFactory
+import io.scalac.mesmer.agent.util.i13n.InstrumentModuleFactory._
+import io.scalac.mesmer.core.module.Module
 import io.scalac.mesmer.core.util.ModuleInfo.{ extractModulesInformation, Modules }
 import net.bytebuddy.ByteBuddy
 import net.bytebuddy.agent.ByteBuddyAgent
@@ -20,9 +21,7 @@ import scala.util.Try
 
 object InstallAgent {
   def allInstrumentations: Agent =
-    AkkaActorAgent.agent ++ AkkaHttpAgent.agent(
-      AkkaHttpModule.defaultConfig
-    ) ++ AkkaPersistenceAgent.agent ++ AkkaStreamAgent.agent ++ AkkaMailboxAgent.agent
+    AkkaActorAgent.defaultAgent ++ AkkaHttpAgent.defaultAgent ++ AkkaPersistenceAgent.defaultAgent ++ AkkaStreamAgent.defaultAgent
 }
 
 abstract class InstallAgent extends TestSuite {
@@ -51,8 +50,9 @@ abstract class InstallAgent extends TestSuite {
   }
 
   def withAgent(setup: () => Unit)(test: () => Any): Any = {
-    val context           = Thread.currentThread().getContextClassLoader.asInstanceOf[URLClassLoader]
-    val prefixClassLoader = new PrefixChildFirstClassLoader(Vector("akka.http.scaladsl.HttpExt"), context.getURLs, context)
+    val context = Thread.currentThread().getContextClassLoader.asInstanceOf[URLClassLoader]
+    val prefixClassLoader =
+      new PrefixChildFirstClassLoader(Vector("akka.http.scaladsl.HttpExt"), context.getURLs, context)
     Thread.currentThread().setContextClassLoader(prefixClassLoader)
 
     setup()
@@ -84,10 +84,10 @@ final class PrefixChildFirstClassLoader(prefix: Vector[String], urls: Array[URL]
 
 }
 
-abstract class InstallModule[M <: Module](moduleFactory: InstrumentModuleFactoryTest[M]) extends InstallAgent {
+abstract class InstallModule[M <: Module](moduleFactory: InstrumentModuleFactory[M]) extends InstallAgent {
   this: AnyFlatSpecLike =>
 
-  def withVersion(versions: M#All[Boolean]*)(name: String)(test: => Any): Any =
+  def withVersion(versions: moduleFactory.module.All[Boolean]*)(name: String)(test: => Any): Any =
     versions.foreach { version =>
       it should s"$name with $version" in withAgent { () =>
         agent = Some(moduleFactory.agent(version))

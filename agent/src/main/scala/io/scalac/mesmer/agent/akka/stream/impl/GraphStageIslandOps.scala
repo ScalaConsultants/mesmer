@@ -1,9 +1,7 @@
-package io.scalac.mesmer.agent.akka.stream
+package io.scalac.mesmer.agent.akka.stream.impl
 
-import akka.stream.Attributes
 import akka.stream.Attributes.Attribute
-import akka.stream.Shape
-import akka.stream.SinkShape
+import akka.stream.{ Attributes, Shape, SinkShape }
 
 object GraphStageIslandOps {
 

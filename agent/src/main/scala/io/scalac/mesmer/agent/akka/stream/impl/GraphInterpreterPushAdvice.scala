@@ -1,9 +1,8 @@
-package io.scalac.mesmer.agent.akka.stream
+package io.scalac.mesmer.agent.akka.stream.impl
+
+import io.scalac.mesmer.agent.akka.stream.impl.ConnectionOps._
 import net.bytebuddy.asm.Advice._
 
-import io.scalac.mesmer.agent.akka.stream.ConnectionOps._
-
-class GraphInterpreterPushAdvice
 
 object GraphInterpreterPushAdvice {
 
@@ -12,7 +11,6 @@ object GraphInterpreterPushAdvice {
     ConnectionOps.incrementPushCounter(currentConnection)
 }
 
-class GraphInterpreterPullAdvice
 
 object GraphInterpreterPullAdvice {
 

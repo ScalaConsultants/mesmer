@@ -1,17 +1,15 @@
-package io.scalac.mesmer.agent.akka.persistence
+package io.scalac.mesmer.agent.akka.persistence.impl
 
 import _root_.akka.actor.typed.scaladsl.ActorContext
 import _root_.akka.persistence.typed.PersistenceId
-import net.bytebuddy.asm.Advice
-
-import scala.util.Try
-
+import io.scalac.mesmer.agent.akka.persistence.AkkaPersistenceAgent
 import io.scalac.mesmer.core.event.EventBus
 import io.scalac.mesmer.core.event.PersistenceEvent.RecoveryStarted
 import io.scalac.mesmer.core.model._
 import io.scalac.mesmer.core.util.Timestamp
+import net.bytebuddy.asm.Advice
 
-class RecoveryStartedInterceptor
+import scala.util.Try
 
 object RecoveryStartedInterceptor {
   import AkkaPersistenceAgent.logger

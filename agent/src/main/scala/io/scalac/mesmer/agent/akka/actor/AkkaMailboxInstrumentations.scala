@@ -1,34 +1,22 @@
 package io.scalac.mesmer.agent.akka.actor
 
-import java.util.concurrent.BlockingQueue
-import java.util.concurrent.Callable
-import java.util.concurrent.LinkedBlockingQueue
-
-import akka.AkkaMirror.ActorRefWithCell
-import akka.AkkaMirror.Cell
+import akka.AkkaMirror.{ActorRefWithCell, Cell}
 import akka.dispatch._
 import akka.util.BoundedBlockingQueue
-import akka.{ actor => classic }
-import net.bytebuddy.asm.Advice
-import net.bytebuddy.description.`type`.TypeDescription
-import net.bytebuddy.implementation.FieldAccessor
-import net.bytebuddy.implementation.MethodDelegation
-import net.bytebuddy.implementation.bind.annotation.SuperCall
-import net.bytebuddy.implementation.bind.annotation.This
-import net.bytebuddy.matcher.ElementMatchers
-
-import scala.reflect.ClassTag
-import scala.reflect.classTag
-
-import io.scalac.mesmer.agent.Agent
-import io.scalac.mesmer.agent.util.i13n.InstrumentModuleFactory
+import akka.{actor => classic}
 import io.scalac.mesmer.agent.util.i13n._
-import io.scalac.mesmer.core.model.SupportedModules
-import io.scalac.mesmer.core.support.ModulesSupport
+import io.scalac.mesmer.agent.{Agent, AgentInstrumentation}
 import io.scalac.mesmer.core.util.ReflectionFieldUtils
 import io.scalac.mesmer.extension.actor.ActorCellDecorator
+import net.bytebuddy.asm.Advice
+import net.bytebuddy.description.`type`.TypeDescription
+import net.bytebuddy.implementation.bind.annotation.{SuperCall, This}
+import net.bytebuddy.implementation.{FieldAccessor, MethodDelegation}
+import net.bytebuddy.matcher.ElementMatchers
 
-class BoundedNodeMessageQueueAdvice
+import java.util.concurrent.{BlockingQueue, Callable, LinkedBlockingQueue}
+import scala.reflect.{ClassTag, classTag}
+
 object BoundedNodeMessageQueueAdvice {
 
   @Advice.OnMethodExit
@@ -63,10 +51,9 @@ object LastEnqueueResult {
 }
 
 abstract class LastEnqueueResult[T: ClassTag] {
-  val lastResultFieldName = "_lastEnqueueResult"
 
   lazy val (lastResultGetter, lastResultSetter) =
-    ReflectionFieldUtils.getHandlers(classTag[T].runtimeClass, lastResultFieldName)
+    ReflectionFieldUtils.getHandlers(classTag[T].runtimeClass, LastEnqueueResult.lastResultFieldName)
 
   def setResult(queue: Object, result: Boolean): Unit = lastResultSetter.invoke(queue, result)
 
@@ -89,20 +76,26 @@ class AbstractBoundedNodeQueueAdvice(lastEnqueueResult: => LastEnqueueResult[_])
 
 }
 
-object AkkaMailboxAgent extends InstrumentModuleFactory {
-  protected val supportedModules: SupportedModules =
-    SupportedModules(ModulesSupport.akkaActorModule, ModulesSupport.akkaActor)
+private[actor] trait AkkaMailboxInstrumentations {
+  this: InstrumentModuleFactory[_] =>
 
-  private val boundedQueueBasesMailbox: TypeInstrumentation =
+  /**
+   * Instrumentation that add boolean field that will hold if last enqueue was successful or not
+   */
+  private val boundedQueueBasesMailbox: AgentInstrumentation =
     instrument(
-      "akka.dispatch.AbstractBoundedNodeQueue"
+      "akka.dispatch.AbstractBoundedNodeQueue".fqcn
     )
       .defineField[Boolean](LastEnqueueResult.lastResultFieldName)
       .intercept(
         "add",
         MethodDelegation.to(new AbstractBoundedNodeQueueAdvice(AbstractBoundedQueueDecorator))
       )
-  private val boundedQueueBasedMailboxes: TypeInstrumentation = instrument(
+
+  /**
+   * Instrumentation that add proxy to mailbox queue
+   */
+  private val boundedQueueBasedMailboxes: AgentInstrumentation = instrument(
     `type`(
       "akka.dispatch.BoundedQueueBasedMessageQueue".fqcn,
       ElementMatchers
@@ -122,13 +115,15 @@ object AkkaMailboxAgent extends InstrumentModuleFactory {
     .visit[ProxiedQueue](constructor)
     .intercept(ElementMatchers.named("queue"), FieldAccessor.ofField(ProxiedQueue.queueFieldName))
 
-  val boundedMessageQueueSemantics: TypeInstrumentation = instrument(
-    hierarchy("akka.dispatch.BoundedMessageQueueSemantics")
+  /**
+   * Instrumentation that increase dropped messages if enqueue was a failure and bounded queue is in use
+   */
+  private val boundedMessageQueueSemantics: AgentInstrumentation = instrument(
+    hierarchy("akka.dispatch.BoundedMessageQueueSemantics".fqcn)
       .and(ElementMatchers.not[TypeDescription](ElementMatchers.isAbstract[TypeDescription]))
   )
-    .visit[BoundedNodeMessageQueueAdvice]("enqueue")
+    .visit(BoundedNodeMessageQueueAdvice, "enqueue")
 
-  def agent: Agent =
-    Agent(boundedQueueBasesMailbox, boundedQueueBasedMailboxes, boundedMessageQueueSemantics)
+  protected val boundedQueueAgent = Agent(boundedQueueBasesMailbox, boundedQueueBasedMailboxes, boundedMessageQueueSemantics)
 
 }

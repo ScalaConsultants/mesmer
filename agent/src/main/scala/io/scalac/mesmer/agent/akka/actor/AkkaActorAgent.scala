@@ -1,5 +1,6 @@
 package io.scalac.mesmer.agent.akka.actor
 
+import io.scalac.mesmer.agent.akka.actor.impl._
 import io.scalac.mesmer.agent.util.i13n._
 import io.scalac.mesmer.agent.{ Agent, AgentInstrumentation }
 import io.scalac.mesmer.core.model._
@@ -8,7 +9,10 @@ import io.scalac.mesmer.core.support.ModulesSupport
 import io.scalac.mesmer.core.util.Timestamp
 import io.scalac.mesmer.extension.actor.{ ActorCellDecorator, ActorCellMetrics }
 
-object AkkaActorAgent extends InstrumentModuleFactoryTest(AkkaActorModule) with AkkaActorModule.All[Agent] {
+object AkkaActorAgent
+    extends InstrumentModuleFactory(AkkaActorModule)
+    with AkkaActorModule.All[Agent]
+    with AkkaMailboxInstrumentations {
 
   def agent(config: AkkaActorModule.AkkaActorMetricsDef[Boolean]): Agent =
     Agent.empty ++
@@ -56,7 +60,7 @@ object AkkaActorAgent extends InstrumentModuleFactoryTest(AkkaActorModule) with 
 
   lazy val sentMessages: Agent = sharedInstrumentation ++ mailboxTimeSendMessageIncInstrumentation
 
-  lazy val droppedMessages: Agent = sharedInstrumentation
+  lazy val droppedMessages: Agent = sharedInstrumentation ++ boundedQueueAgent
 
   protected final val supportedModules: SupportedModules =
     SupportedModules(ModulesSupport.akkaActorModule, ModulesSupport.akkaActor)
@@ -66,13 +70,15 @@ object AkkaActorAgent extends InstrumentModuleFactoryTest(AkkaActorModule) with 
    */
   private val classicStashInstrumentationAgent = {
 
+    val instrumentationPrefix = "classic_stash_instrumentation"
+
     val stashLogic =
-      instrument("akka.actor.StashSupport")
+      instrument("akka.actor.StashSupport".fqcnWithTags(s"${instrumentationPrefix}_stash_prepend_operation"))
         .visit(ClassicStashInstrumentationStash, "stash")
         .visit(ClassicStashInstrumentationPrepend, "prepend")
 
     val stashConstructor =
-      instrument(hierarchy("akka.actor.StashSupport").concreteOnly)
+      instrument(hierarchy("akka.actor.StashSupport".fqcnWithTags("stash_support_constructor")).concreteOnly)
         .visit(StashConstructorAdvice, constructor)
 
     Agent(stashLogic, stashConstructor)
@@ -80,11 +86,13 @@ object AkkaActorAgent extends InstrumentModuleFactoryTest(AkkaActorModule) with 
 
   private val mailboxInstrumentation = {
 
+    val mailboxTag = "mailbox_time"
+
     /**
      * Instrumentation that enrich [[ akka.dispatch.Envelope ]] with additional timestamp field
      */
     val mailboxTimeTimestampInstrumentation =
-      instrument("akka.dispatch.Envelope")
+      instrument("akka.dispatch.Envelope".fqcn)
         .defineField[Timestamp](EnvelopeDecorator.TimestampVarName)
     //      .defineField[Boolean](EnvelopeDecorator.TimestampVarName)
 
@@ -92,7 +100,7 @@ object AkkaActorAgent extends InstrumentModuleFactoryTest(AkkaActorModule) with 
      * Instrumentation that sets envelope timestamp to current time on each dispatch
      */
     val mailboxTimeSendMessageInstrumentation =
-      instrument("akka.actor.dungeon.Dispatch".withId("set envelope timestamp"))
+      instrument("akka.actor.dungeon.Dispatch".fqcnWithTags(mailboxTag))
         .visit(
           ActorCellSendMessageTimestampInstrumentation,
           method("sendMessage").takesArgument(0, "akka.dispatch.Envelope")
@@ -102,7 +110,7 @@ object AkkaActorAgent extends InstrumentModuleFactoryTest(AkkaActorModule) with 
      * Instrumentation that computes time in mailbox
      */
     val mailboxTimeDequeueInstrumentation =
-      instrument("akka.dispatch.Mailbox")
+      instrument("akka.dispatch.Mailbox".fqcnWithTags(mailboxTag))
         .visit(MailboxDequeueInstrumentation, "dequeue")
 
     Agent(mailboxTimeTimestampInstrumentation, mailboxTimeSendMessageInstrumentation, mailboxTimeDequeueInstrumentation)
@@ -113,7 +121,7 @@ object AkkaActorAgent extends InstrumentModuleFactoryTest(AkkaActorModule) with 
    * Instrumentation that increase send messages on each dispatch
    */
   private val mailboxTimeSendMessageIncInstrumentation =
-    instrument("akka.actor.dungeon.Dispatch".withId("sent message inc"))
+    instrument("akka.actor.dungeon.Dispatch".fqcnWithTags("send_message"))
       .visit(
         ActorCellSendMessageMetricInstrumentation,
         method("sendMessage").takesArgument(0, "akka.dispatch.Envelope")
@@ -121,9 +129,9 @@ object AkkaActorAgent extends InstrumentModuleFactoryTest(AkkaActorModule) with 
 
   /**
    * Instrumentation that add [[ ActorCellMetrics ]] field to [[ akka.actor.ActorCell ]]
-   * and initialize it in {@code init} method
+   * and initialize it in `init` method
    */
-  private val actorCellInstrumentation = instrument("akka.actor.ActorCell")
+  private val actorCellInstrumentation = instrument("akka.actor.ActorCell".fqcnWithTags("metrics"))
     .defineField[ActorCellMetrics](ActorCellDecorator.fieldName)
     .visit(ActorCellConstructorInstrumentation, "init")
     .visit(ActorCellReceiveMessageInstrumentation, "receiveMessage")
@@ -139,7 +147,7 @@ object AkkaActorAgent extends InstrumentModuleFactoryTest(AkkaActorModule) with 
    * Instrumentation for unhandled metric
    */
   private val receiveUnhandledInstrumentation =
-    instrument("akka.actor.Actor")
+    instrument("akka.actor.Actor".fqcnWithTags("unhandled"))
       .visit(ActorUnhandledInstrumentation, "unhandled")
 
   /**
@@ -147,7 +155,7 @@ object AkkaActorAgent extends InstrumentModuleFactoryTest(AkkaActorModule) with 
    */
   private val abstractSupervisionInstrumentation =
     instrument(
-      hierarchy("akka.actor.typed.internal.AbstractSupervisor")
+      hierarchy("akka.actor.typed.internal.AbstractSupervisor".fqcnWithTags("supervision"))
         .overrides("handleReceiveException")
     ).visit(SupervisorHandleReceiveExceptionInstrumentation, "handleReceiveException")
 
@@ -155,7 +163,7 @@ object AkkaActorAgent extends InstrumentModuleFactoryTest(AkkaActorModule) with 
    * Instrumentation for [[ akka.actor.typed.internal.StashBufferImpl ]] - collection used for typed stash implementation
    */
   private val stashBufferImplementation =
-    instrument(hierarchy("akka.actor.typed.internal.StashBufferImpl"))
+    instrument(hierarchy("akka.actor.typed.internal.StashBufferImpl".fqcnWithTags("typed_stash_buffer")))
       .visit(StashBufferAdvice, "stash")
 
   /**
@@ -163,7 +171,7 @@ object AkkaActorAgent extends InstrumentModuleFactoryTest(AkkaActorModule) with 
    * for any other instrumentation here to work.
    */
   private val localActorRefProviderInstrumentation: AgentInstrumentation =
-    instrument("akka.actor.LocalActorRefProvider")
+    instrument("akka.actor.LocalActorRefProvider".fqcnWithTags("create"))
       .visit(LocalActorRefProviderAdvice, "actorOf")
 
 }

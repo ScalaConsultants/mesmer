@@ -6,8 +6,8 @@ import io.scalac.mesmer.agent.AgentInstrumentation
 object AgentInstrumentationFactory {
 
   def apply(typeInstrumentation: TypeInstrumentation): AgentInstrumentation = {
-    val instrumentationName: InstrumentationName = typeInstrumentation.target.`type`.name
-    AgentInstrumentation(instrumentationName.value, typeInstrumentation.target.modules) {
+    val instrumentationDetails: InstrumentationDetails[_] = typeInstrumentation.target.`type`.name
+    AgentInstrumentation(instrumentationDetails.name, typeInstrumentation.target.modules, instrumentationDetails.tags) {
       (agentBuilder, instrumentation, _) =>
         agentBuilder
           .`type`(typeInstrumentation.target.`type`.desc)
@@ -15,7 +15,7 @@ object AgentInstrumentationFactory {
             typeInstrumentation.transformBuilder(underlying)
           }
           .installOn(instrumentation)
-        if (instrumentationName.fqcn) LoadingResult(instrumentationName.value) else LoadingResult.empty
+        if (instrumentationDetails.isFQCN) LoadingResult(instrumentationDetails.name) else LoadingResult.empty
     }
   }
 

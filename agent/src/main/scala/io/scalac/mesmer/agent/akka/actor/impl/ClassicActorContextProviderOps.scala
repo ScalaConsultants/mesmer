@@ -1,9 +1,9 @@
-package io.scalac.mesmer.agent.akka.actor
-
-import java.lang.invoke.MethodHandles
+package io.scalac.mesmer.agent.akka.actor.impl
 
 import akka.actor.ActorContext
 import akka.actor.typed.TypedActorContext
+
+import java.lang.invoke.MethodHandles
 
 object ClassicActorContextProviderOps {
 

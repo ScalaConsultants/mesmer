@@ -7,7 +7,7 @@ import io.scalac.mesmer.core.module.AkkaHttpModule
 import io.scalac.mesmer.core.support.ModulesSupport
 
 object AkkaHttpAgent
-    extends InstrumentModuleFactoryTest(AkkaHttpModule)
+    extends InstrumentModuleFactory(AkkaHttpModule)
     with AkkaHttpModule.AkkaHttpConnectionsMetricsDef[Agent]
     with AkkaHttpModule.AkkaHttpRequestMetricsDef[Agent] {
 
@@ -23,13 +23,13 @@ object AkkaHttpAgent
 
   private lazy val requestEvents =
     Agent(
-      instrument(`type`("http_requests".id, "akka.http.scaladsl.HttpExt"))
+      instrument("akka.http.scaladsl.HttpExt".fqcnWithTags("requests"))
         .visit[HttpExtRequestsAdvice]("bindAndHandle")
     )
 
   private lazy val connectionEvents =
     Agent(
-      instrument(`type`("http_connections".id, "akka.http.scaladsl.HttpExt"))
+      instrument("akka.http.scaladsl.HttpExt".fqcnWithTags("connections"))
         .visit[HttpExtConnectionsAdvice]("bindAndHandle")
     )
 

@@ -1,25 +1,39 @@
 package io.scalac.mesmer.agent.util
 
 import io.scalac.mesmer.agent.AgentInstrumentation
+import io.scalac.mesmer.agent.util.i13n.InstrumentationDetails._
 import io.scalac.mesmer.core.model.SupportedModules
 import net.bytebuddy.asm.Advice
 import net.bytebuddy.description.`type`.TypeDescription
 import net.bytebuddy.description.method.MethodDescription
 import net.bytebuddy.dynamic.DynamicType
-import net.bytebuddy.implementation.{ Implementation, MethodDelegation }
-import net.bytebuddy.matcher.{ ElementMatcher, ElementMatchers => EM }
+import net.bytebuddy.implementation.{Implementation, MethodDelegation}
+import net.bytebuddy.matcher.{ElementMatcher, ElementMatchers => EM}
 
 import scala.language.implicitConversions
-import scala.reflect.{ classTag, ClassTag }
+import scala.reflect.{ClassTag, classTag}
 
 package object i13n {
 
   final private[i13n] type TypeDesc   = ElementMatcher.Junction[TypeDescription]
   final private[i13n] type MethodDesc = ElementMatcher.Junction[MethodDescription]
 
-  final case class InstrumentationName(value: String, fqcn: Boolean)
+  final case class InstrumentationDetails[S <: Status] private (name: String, tags: Set[String], isFQCN: Boolean)
 
-  final class Type private[i13n] (private[i13n] val name: InstrumentationName, private[i13n] val desc: TypeDesc) {
+  object InstrumentationDetails {
+    sealed trait Status
+
+    sealed trait FQCN extends Status
+
+    sealed trait NonFQCN extends Status
+
+    def fqcn(name: String, tags: Set[String]): InstrumentationDetails[FQCN] =
+      InstrumentationDetails[FQCN](name, tags, isFQCN = true)
+    def nonFQCN(name: String, tags: Set[String]): InstrumentationDetails[NonFQCN] =
+      InstrumentationDetails[NonFQCN](name, tags, isFQCN = false)
+  }
+
+  final class Type private[i13n] (private[i13n] val name: InstrumentationDetails[_], private[i13n] val desc: TypeDesc) {
     def and(addDesc: TypeDesc): Type = new Type(name, desc.and(addDesc))
   }
 
@@ -31,15 +45,12 @@ package object i13n {
 
   val constructor: MethodDesc = EM.isConstructor
 
-  def `type`(name: String): Type =
-    `type`(name.fqcn, EM.named[TypeDescription](name))
+  def `type`(name: InstrumentationDetails[_], desc: TypeDesc): Type = new Type(name, desc)
 
-  def `type`(name: InstrumentationName, desc: TypeDesc): Type = new Type(name, desc)
-
-  def hierarchy(name: String): Type =
+  def hierarchy(details: InstrumentationDetails[FQCN]): Type =
     `type`(
-      name.fqcn,
-      EM.hasSuperType[TypeDescription](EM.named[TypeDescription](name))
+      details,
+      EM.hasSuperType[TypeDescription](EM.named[TypeDescription](details.name))
     )
 
   // wrappers
@@ -56,6 +67,9 @@ package object i13n {
 
     def visit[A](advice: A, method: MethodDesc)(implicit isObject: A <:< Singleton): TypeInstrumentation =
       chain(_.visit(Advice.to(typeFromModule(advice.getClass)).on(method)))
+
+//    def intercept[A](advice: A, method: MethodDesc)(implicit isObject: A <:< Singleton): TypeInstrumentation =
+//      chain(_.method(method).intercept(Advice.to(typeFromModule(advice.getClass))))
 
     def intercept[T](method: MethodDesc)(implicit ct: ClassTag[T]): TypeInstrumentation =
       chain(_.method(method).intercept(Advice.to(ct.runtimeClass)))
@@ -126,16 +140,20 @@ package object i13n {
       methodDesc.and(EM.isOverriddenFrom(typeDesc))
   }
 
-  implicit class StringDlsOps(private val value: String) extends AnyVal {
-    def fqcn: InstrumentationName = InstrumentationName(value, true)
-    def id: InstrumentationName   = InstrumentationName(value, false)
-    def withId(name: String): Type = `type`(name.id, name)
-  }
+//  implicit class StringDlsOps(private val value: String) extends AnyVal {
+//
+//    /**
+//     * Assigns tags to this instrumentation to distinguish it from others and prevent merging
+//     */
+//    def fqcnWithTagsRemove(tags: String*): InstrumentationDetails[FQCN] =
+//      InstrumentationDetails.fqcn(value, tags.toSet)
+//    def nonFQCN: InstrumentationDetails[NonFQCN] = InstrumentationDetails.nonFQCN(value, Set.empty)
+//  }
 
   // implicit conversion
-  implicit def methodNameToMethodDesc(methodName: String): MethodDesc = method(methodName)
-  implicit def classNameToTypeDesc(className: String): TypeDesc       = EM.named[TypeDescription](className)
-  implicit def typeNameToType(name: String): Type                     = `type`(name)
+  implicit def fqcnDetailsToType(details: InstrumentationDetails[FQCN]): Type = `type`(details, details.name)
+  implicit def methodNameToMethodDesc(methodName: String): MethodDesc         = method(methodName)
+  implicit def classNameToTypeDesc(className: String): TypeDesc               = EM.named[TypeDescription](className)
   implicit def typeToAgentInstrumentation(typeInstrumentation: TypeInstrumentation): AgentInstrumentation =
     AgentInstrumentationFactory(typeInstrumentation)
 }

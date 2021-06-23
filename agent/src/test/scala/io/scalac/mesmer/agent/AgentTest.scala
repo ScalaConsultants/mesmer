@@ -38,7 +38,7 @@ class AgentTest extends AnyFlatSpec with Matchers {
       supported ++ (module, SupportedVersion(version))
     }
     val expectedResult = LoadingResult("some.class", "other.class")
-    val sut            = Agent(AgentInstrumentation("sut", supportedModules)(returning(expectedResult)))
+    val sut            = Agent(AgentInstrumentation("sut", supportedModules, Set.empty)(returning(expectedResult)))
     sut.installOn(builder, instrumentation, modules) shouldBe expectedResult
   }
 
@@ -47,7 +47,7 @@ class AgentTest extends AnyFlatSpec with Matchers {
       supported ++ (module, SupportedVersion.none)
     }
     val expectedResult = LoadingResult("some.class", "other.class")
-    val sut            = Agent(AgentInstrumentation("sut", supportedModules)(returning(expectedResult)))
+    val sut            = Agent(AgentInstrumentation("sut", supportedModules,Set.empty)(returning(expectedResult)))
     sut.installOn(builder, instrumentation, modules) shouldBe LoadingResult.empty
   }
 
@@ -56,7 +56,7 @@ class AgentTest extends AnyFlatSpec with Matchers {
       supported ++ (module, SupportedVersion(version))
     } ++ (testModuleOne, SupportedVersion.none)
     val expectedResult = LoadingResult("some.class", "other.class")
-    val sut            = Agent(AgentInstrumentation("sut", supportedModules)(returning(expectedResult)))
+    val sut            = Agent(AgentInstrumentation("sut", supportedModules, Set.empty)(returning(expectedResult)))
     sut.installOn(builder, instrumentation, modules) shouldBe LoadingResult.empty
   }
 
@@ -64,12 +64,12 @@ class AgentTest extends AnyFlatSpec with Matchers {
     case (instrumentation, builder) =>
       val successfulInstrumentationResult = LoadingResult("some.class")
       val successfulInstrumentation =
-        AgentInstrumentation("success", SupportedModules(testModuleOne, SupportedVersion(moduleOneVersion)))(
+        AgentInstrumentation("success", SupportedModules(testModuleOne, SupportedVersion(moduleOneVersion)), Set.empty)(
           returning(successfulInstrumentationResult)
         )
       val failingInstrumentationResult = LoadingResult("other.class")
       val failingInstrumentation =
-        AgentInstrumentation("success", SupportedModules(testModuleTwo, SupportedVersion.none))(
+        AgentInstrumentation("success", SupportedModules(testModuleTwo, SupportedVersion.none), Set.empty)(
           returning(failingInstrumentationResult)
         )
       val sut = Agent(successfulInstrumentation) ++ failingInstrumentation

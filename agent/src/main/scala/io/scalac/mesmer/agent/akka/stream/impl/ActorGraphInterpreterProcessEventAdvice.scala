@@ -1,13 +1,14 @@
 package akka.stream.impl.fusing
 
-import akka.AkkaMirrorTypes.GraphInterpreterShellMirror
 import akka.actor.Actor
 import akka.stream.impl.fusing.ActorGraphInterpreter.BoundaryEvent
+
+
+import akka.AkkaMirrorTypes.GraphInterpreterShellMirror
 import net.bytebuddy.asm.Advice
 
-import io.scalac.mesmer.agent.akka.stream.ActorGraphInterpreterDecorator
+import io.scalac.mesmer.agent.akka.stream.impl.ActorGraphInterpreterDecorator
 
-class ActorGraphInterpreterProcessEventAdvice
 object ActorGraphInterpreterProcessEventAdvice {
 
   @Advice.OnMethodExit
@@ -22,7 +23,6 @@ object ActorGraphInterpreterProcessEventAdvice {
  * Instrumentation for short living streams - part of shell initialization is it's execution
  * If shell is terminated after that it's not added to activeInterpreters
  */
-class ActorGraphInterpreterTryInitAdvice
 object ActorGraphInterpreterTryInitAdvice {
 
   @Advice.OnMethodExit

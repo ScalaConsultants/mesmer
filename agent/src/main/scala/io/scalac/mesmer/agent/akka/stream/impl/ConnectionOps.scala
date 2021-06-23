@@ -1,4 +1,5 @@
-package io.scalac.mesmer.agent.akka.stream
+package io.scalac.mesmer.agent.akka.stream.impl
+
 import io.scalac.mesmer.core.invoke.Lookup
 
 object ConnectionOps extends Lookup {

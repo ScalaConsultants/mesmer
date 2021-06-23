@@ -1,4 +1,4 @@
-package io.scalac.mesmer.agent.akka.actor
+package io.scalac.mesmer.agent.akka.actor.impl
 
 import akka.actor.Actor
 import io.scalac.mesmer.core.util.ActorRefOps

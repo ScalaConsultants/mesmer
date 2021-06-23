@@ -65,7 +65,7 @@ object AkkaActorModule extends MesmerModule with AkkaActorMetrics {
 
   val name: String = "akka-actor"
 
-  protected lazy val defaultConfig: Config =
+  lazy val defaultConfig: Config =
     AkkaActorModuleConfig(true, true, true, true, true, true, true, true, true, true, true, true, true, true, true)
 
   protected def extractFromConfig(config: TypesafeConfig): Config = {

@@ -1,9 +1,7 @@
-package io.scalac.mesmer.agent.akka.actor
-
-import net.bytebuddy.asm.Advice.OnMethodExit
-import net.bytebuddy.asm.Advice.This
+package io.scalac.mesmer.agent.akka.actor.impl
 
 import io.scalac.mesmer.extension.actor.ActorCellDecorator
+import net.bytebuddy.asm.Advice.{OnMethodExit, This}
 
 object ActorUnhandledInstrumentation {
 

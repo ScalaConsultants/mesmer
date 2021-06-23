@@ -1,14 +1,13 @@
-package io.scalac.mesmer.agent.akka.persistence
+package io.scalac.mesmer.agent.akka.persistence.impl
+
 import akka.actor.typed.scaladsl.ActorContext
 import akka.persistence.PersistentRepr
-import net.bytebuddy.asm.Advice._
-
 import io.scalac.mesmer.core.event.EventBus
 import io.scalac.mesmer.core.event.PersistenceEvent.PersistingEventStarted
 import io.scalac.mesmer.core.model._
 import io.scalac.mesmer.core.util.Timestamp
+import net.bytebuddy.asm.Advice._
 
-class JournalInteractionsInterceptor
 object JournalInteractionsInterceptor {
 
   @OnMethodEnter

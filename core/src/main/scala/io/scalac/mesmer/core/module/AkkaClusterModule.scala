@@ -41,7 +41,7 @@ object AkkaClusterModule extends MesmerModule with AkkaClusterMetricsModule {
 
   override type Metrics[T] = AkkaClusterMetricsDef[T]
 
-  protected val defaultConfig: AkkaClusterModule.Result =
+   val defaultConfig: AkkaClusterModule.Result =
     AkkaClusterModuleMetrics(true, true, true, true, true, true, true)
 
   protected def extractFromConfig(config: TypesafeConfig): AkkaClusterModule.Result = {

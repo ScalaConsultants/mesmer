@@ -1,7 +1,7 @@
 package akka;
 
 import akka.actor.Actor;
-import io.scalac.mesmer.agent.akka.stream.ActorGraphInterpreterDecorator;
+import io.scalac.mesmer.agent.akka.stream.impl.ActorGraphInterpreterDecorator;
 import net.bytebuddy.asm.Advice;
 import scala.PartialFunction;
 import scala.runtime.BoxedUnit;

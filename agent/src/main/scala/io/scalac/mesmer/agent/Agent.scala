@@ -16,7 +16,7 @@ object Agent {
 
   val empty: Agent = new Agent(Set.empty)
 
-  class LoadingResult(val fqns: Seq[String]) {
+  class LoadingResult(val fqns: Set[String]) {
     import LoadingResult.{ logger => loadingLogger }
     def eagerLoad(): Unit =
       fqns.foreach { className =>
@@ -39,30 +39,31 @@ object Agent {
   object LoadingResult {
     private val logger = LoggerFactory.getLogger(classOf[LoadingResult])
 
-    def apply(fqns: Seq[String]): LoadingResult = new LoadingResult(fqns)
+    def apply(fqns: Seq[String]): LoadingResult = new LoadingResult(fqns.toSet)
 
     def apply(fqn: String, fqns: String*): LoadingResult = apply(fqn +: fqns)
 
-    def empty: LoadingResult = new LoadingResult(Seq.empty)
+    def empty: LoadingResult = new LoadingResult(Set.empty)
   }
 }
 
 object AgentInstrumentation {
 
-  def apply(name: String, modules: SupportedModules)(
+  def apply(name: String, modules: SupportedModules, tags: Set[String])(
     installation: (AgentBuilder, Instrumentation, Modules) => LoadingResult
   ): AgentInstrumentation =
-    new AgentInstrumentation(name, modules) {
+    new AgentInstrumentation(name, modules, tags) {
       def apply(builder: AgentBuilder, instrumentation: Instrumentation, modules: Modules): LoadingResult =
         installation(builder, instrumentation, modules)
     }
 
 }
 
+//TODO add tests
 sealed abstract case class AgentInstrumentation(
   name: String,
   instrumentingModules: SupportedModules,
-  fqcn: Boolean = false
+  tags: Set[String]
 ) extends ((AgentBuilder, Instrumentation, Modules) => LoadingResult)
     with Equals {
 
@@ -72,7 +73,7 @@ sealed abstract case class AgentInstrumentation(
 
   override def equals(obj: Any): Boolean = obj match {
     case that: AgentInstrumentation if that.canEqual(this) =>
-      that.name == this.name // instrumentations should be equal when name is the same
+      tags == that.tags && name == that.name
     case _ => false
   }
 }

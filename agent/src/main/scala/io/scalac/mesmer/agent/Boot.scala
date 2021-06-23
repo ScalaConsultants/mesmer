@@ -1,7 +1,7 @@
 package io.scalac.mesmer.agent
 
 import com.typesafe.config.ConfigFactory
-import io.scalac.mesmer.agent.akka.actor.{ AkkaActorAgent, AkkaMailboxAgent }
+import io.scalac.mesmer.agent.akka.actor.AkkaActorAgent
 import io.scalac.mesmer.agent.akka.http.AkkaHttpAgent
 import io.scalac.mesmer.agent.akka.persistence.AkkaPersistenceAgent
 import io.scalac.mesmer.agent.akka.stream.AkkaStreamAgent
@@ -28,9 +28,9 @@ object Boot {
       .`with`(AgentBuilder.InstallationListener.StreamWriting.toSystemOut)
 
     val allInstrumentations =
-      AkkaPersistenceAgent.agent ++ AkkaStreamAgent.agent ++ AkkaHttpAgent.agent(
+      AkkaPersistenceAgent.agent(config) ++ AkkaStreamAgent.agent(config) ++ AkkaHttpAgent.agent(
         config
-      ) ++ AkkaActorAgent.agent(config) ++ AkkaMailboxAgent.agent
+      ) ++ AkkaActorAgent.agent(config)
     val moduleInfo = ModuleInfo.extractModulesInformation(Thread.currentThread().getContextClassLoader)
 
     allInstrumentations
