@@ -56,10 +56,14 @@ object AgentInstrumentation {
       def apply(builder: AgentBuilder, instrumentation: Instrumentation, modules: Modules): LoadingResult =
         installation(builder, instrumentation, modules)
     }
+
 }
 
-sealed abstract case class AgentInstrumentation(name: String, instrumentingModules: SupportedModules)
-    extends ((AgentBuilder, Instrumentation, Modules) => LoadingResult)
+sealed abstract case class AgentInstrumentation(
+  name: String,
+  instrumentingModules: SupportedModules,
+  fqcn: Boolean = false
+) extends ((AgentBuilder, Instrumentation, Modules) => LoadingResult)
     with Equals {
 
   override def hashCode(): Int = name.hashCode()

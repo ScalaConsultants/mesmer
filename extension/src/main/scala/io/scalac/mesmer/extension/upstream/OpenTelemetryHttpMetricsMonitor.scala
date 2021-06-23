@@ -76,7 +76,7 @@ final class OpenTelemetryHttpMetricsMonitor(
       if (moduleConfig.requestTime) metricRecorder(requestTimeRequest, otLabels).register(this)
       else noopMetricRecorder[Long]
 
-    val requestCounter: WrappedCounter =
+    val requestCounter =
       if (moduleConfig.requestCounter) counter(requestTotalCounter, otLabels).register(this) else noopCounter[Long]
 
   }

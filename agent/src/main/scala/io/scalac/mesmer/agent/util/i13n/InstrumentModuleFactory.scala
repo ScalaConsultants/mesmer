@@ -12,7 +12,7 @@ trait InstrumentModuleFactory {
 }
 
 abstract class InstrumentModuleFactoryTest[M <: Module](val module: M) {
-  this: M#All[AgentInstrumentation] =>
+  this: M#All[Agent] =>
 
   protected def supportedModules: SupportedModules
 

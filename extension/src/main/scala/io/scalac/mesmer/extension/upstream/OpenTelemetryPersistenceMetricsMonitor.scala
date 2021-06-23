@@ -8,6 +8,8 @@ import io.scalac.mesmer.extension.upstream.OpenTelemetryPersistenceMetricsMonito
 import io.scalac.mesmer.extension.upstream.opentelemetry._
 
 object OpenTelemetryPersistenceMetricsMonitor {
+
+  //TODO remove DRY
   final case class MetricNames(
     recoveryTime: String,
     recoveryTotal: String,
@@ -54,7 +56,7 @@ object OpenTelemetryPersistenceMetricsMonitor {
     new OpenTelemetryPersistenceMetricsMonitor(meter, MetricNames.fromConfig(config))
 }
 
-class OpenTelemetryPersistenceMetricsMonitor(meter: Meter, metricNames: MetricNames) extends PersistenceMetricsMonitor {
+final class OpenTelemetryPersistenceMetricsMonitor(meter: Meter, metricNames: MetricNames) extends PersistenceMetricsMonitor {
   import PersistenceMetricsMonitor._
 
   private val recoveryTimeRecorder = meter

@@ -6,7 +6,6 @@ import net.bytebuddy.asm.Advice.OnMethodExit
 
 import io.scalac.mesmer.extension.actor.ActorCellDecorator
 
-class SupervisorHandleReceiveExceptionInstrumentation
 object SupervisorHandleReceiveExceptionInstrumentation {
 
   @OnMethodExit(onThrowable = classOf[Throwable])

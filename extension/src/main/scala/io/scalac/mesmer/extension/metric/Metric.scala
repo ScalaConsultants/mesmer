@@ -19,26 +19,6 @@ trait UpDownCounter[-T] extends Counter[T] {
   def decValue(value: T): Unit
 }
 
-object Metric {
-//  private case object NoopMetricRecorder extends MetricRecorder[Any] {
-//    def setValue(value: Any): Unit = ()
-//  }
-//
-//  private case object NoopCounter extends Counter[Any] {
-//    def incValue(value: Any): Unit = ()
-//  }
-//
-//  private case object NoopUpDownCounter extends UpDownCounter[Any] {
-//    def decValue(value: Any): Unit = ()
-//
-//    def incValue(value: Any): Unit = ()
-//  }
-//
-//  def noopRecorder[T]: MetricRecorder[T]     = NoopMetricRecorder
-//  def noopCounter[T]: Counter[T]             = NoopCounter
-//  def noopUpDownCounter[T]: UpDownCounter[T] = NoopUpDownCounter
-}
-
 final class SyncWith private (
   private val amount: Int,
   private val updaters: List[
@@ -84,14 +64,20 @@ object SyncWith {
 
 }
 
-trait MetricObserver[T, L] extends Metric[T] {
+trait MetricObserver[-T, -L] extends Metric[T] {
   def setUpdater(updater: MetricObserver.Updater[T, L]): Unit
 }
 
 object MetricObserver {
   type Updater[T, L] = MetricObserver.Result[T, L] => Unit
 
-  trait Result[T, L] {
+  trait Result[-T, -L] {
     def observe(value: T, labels: L): Unit
   }
+
+  case object NoopMetricObserver extends MetricObserver[Any, Any] {
+    def setUpdater(updater: Updater[Any, Any]): Unit = ()
+  }
+
+  def noop[T, L]: MetricObserver[T, L] = NoopMetricObserver
 }

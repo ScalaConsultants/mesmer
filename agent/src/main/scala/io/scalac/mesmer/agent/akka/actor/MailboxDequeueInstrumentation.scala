@@ -5,7 +5,6 @@ import net.bytebuddy.asm.Advice._
 import io.scalac.mesmer.core.util.Interval
 import io.scalac.mesmer.extension.actor.ActorCellDecorator
 
-class MailboxDequeueInstrumentation
 object MailboxDequeueInstrumentation {
 
   @OnMethodExit

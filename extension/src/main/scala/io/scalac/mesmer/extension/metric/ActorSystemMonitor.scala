@@ -4,7 +4,7 @@ import io.scalac.mesmer.core.LabelSerializable
 import io.scalac.mesmer.core.model._
 
 object ActorSystemMonitor {
-  case class Labels(node: Option[Node]) extends LabelSerializable {
+  final case class Labels(node: Option[Node]) extends LabelSerializable {
     override def serialize: RawLabels = node.serialize
   }
 

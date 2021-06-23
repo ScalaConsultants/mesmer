@@ -4,9 +4,9 @@ import com.typesafe.config.Config
 import io.opentelemetry.api.metrics.Meter
 import io.scalac.mesmer.core.config.MesmerConfiguration
 import io.scalac.mesmer.extension.metric.ActorSystemMonitor.BoundMonitor
-import io.scalac.mesmer.extension.metric.{ ActorSystemMonitor, RegisterRoot }
+import io.scalac.mesmer.extension.metric.{ActorSystemMonitor, RegisterRoot}
 import io.scalac.mesmer.extension.upstream.OpenTelemetryActorSystemMonitor.MetricNames
-import io.scalac.mesmer.extension.upstream.opentelemetry.{ SynchronousInstrumentFactory, WrappedCounter }
+import io.scalac.mesmer.extension.upstream.opentelemetry.{SynchronousInstrumentFactory, WrappedCounter}
 
 object OpenTelemetryActorSystemMonitor {
 
@@ -22,10 +22,9 @@ object OpenTelemetryActorSystemMonitor {
     protected val mesmerConfig: String = "metrics.actor-system-metrics"
 
     protected def extractFromConfig(config: Config): MetricNames = {
-      lazy val defaultCached = defaultConfig
-      val createdActors      = config.tryValue("created-actors")(_.getString).getOrElse(defaultCached.createdActors)
+      val createdActors      = config.tryValue("created-actors")(_.getString).getOrElse(defaultConfig.createdActors)
 
-      val terminatedActors = config.tryValue("terminated-actors")(_.getString).getOrElse(defaultCached.createdActors)
+      val terminatedActors = config.tryValue("terminated-actors")(_.getString).getOrElse(defaultConfig.createdActors)
 
       MetricNames(createdActors, terminatedActors)
     }

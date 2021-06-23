@@ -23,7 +23,7 @@ trait MesmerModule extends Module with MesmerConfigurationBase {
   val mesmerConfig = s"module.$name"
 }
 
-trait MetricModule {
+trait MetricsModule {
   this: Module =>
   override type All[T] <: Metrics[T]
   type Metrics[T]

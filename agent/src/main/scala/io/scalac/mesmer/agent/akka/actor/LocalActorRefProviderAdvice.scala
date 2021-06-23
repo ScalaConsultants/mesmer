@@ -8,7 +8,6 @@ import io.scalac.mesmer.core.event.ActorEvent.ActorCreated
 import io.scalac.mesmer.core.event.EventBus
 import io.scalac.mesmer.core.model.ActorRefTags
 
-class LocalActorRefProviderAdvice
 object LocalActorRefProviderAdvice {
 
   @OnMethodExit

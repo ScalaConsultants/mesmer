@@ -5,7 +5,7 @@ import com.typesafe.config.{ Config => TypesafeConfig }
 /**
  * Definition of AkkHttp request related metrics
  */
-sealed trait AkkaHttpRequestMetricsModule extends MetricModule {
+sealed trait AkkaHttpRequestMetricsModule extends MetricsModule {
   this: Module =>
 
   override type Metrics[T] <: AkkaHttpRequestMetricsDef[T]
@@ -16,7 +16,7 @@ sealed trait AkkaHttpRequestMetricsModule extends MetricModule {
   }
 }
 
-sealed trait AkkaHttpConnectionMetricsModule extends MetricModule {
+sealed trait AkkaHttpConnectionMetricsModule extends MetricsModule {
   this: Module =>
 
   override type Metrics[T] <: AkkaHttpConnectionsMetricsDef[T]

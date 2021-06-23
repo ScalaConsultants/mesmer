@@ -5,7 +5,6 @@ import net.bytebuddy.asm.Advice
 
 import io.scalac.mesmer.extension.actor.ActorCellDecorator
 
-class StashBufferAdvice
 object StashBufferAdvice {
 
   @Advice.OnMethodExit

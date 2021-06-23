@@ -30,7 +30,7 @@ object Boot {
     val allInstrumentations =
       AkkaPersistenceAgent.agent ++ AkkaStreamAgent.agent ++ AkkaHttpAgent.agent(
         config
-      ) ++ AkkaActorAgent.agent ++ AkkaMailboxAgent.agent
+      ) ++ AkkaActorAgent.agent(config) ++ AkkaMailboxAgent.agent
     val moduleInfo = ModuleInfo.extractModulesInformation(Thread.currentThread().getContextClassLoader)
 
     allInstrumentations

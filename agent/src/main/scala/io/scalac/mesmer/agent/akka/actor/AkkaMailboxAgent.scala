@@ -104,7 +104,7 @@ object AkkaMailboxAgent extends InstrumentModuleFactory {
       )
   private val boundedQueueBasedMailboxes: TypeInstrumentation = instrument(
     `type`(
-      "akka.dispatch.BoundedQueueBasedMessageQueue",
+      "akka.dispatch.BoundedQueueBasedMessageQueue".fqcn,
       ElementMatchers
         .hasSuperType[TypeDescription](
           ElementMatchers.named[TypeDescription]("akka.dispatch.BoundedQueueBasedMessageQueue")
