@@ -2,8 +2,9 @@ package io.scalac.mesmer.agent.util.i13n
 import com.typesafe.config.Config
 import io.scalac.mesmer.agent.Agent
 import io.scalac.mesmer.agent.util.i13n.InstrumentationDetails.FQCN
-import io.scalac.mesmer.core.model.SupportedModules
-import io.scalac.mesmer.core.module.{MesmerModule, Module}
+import io.scalac.mesmer.core.model.Version
+import io.scalac.mesmer.core.module.{ MesmerModule, Module, RegisterGlobalConfiguration }
+import io.scalac.mesmer.core.util.LibraryInfo.LibraryInfo
 
 object InstrumentModuleFactory {
   protected class StringDlsOps(private val value: (String, Module)) extends AnyVal {
@@ -23,23 +24,49 @@ object InstrumentModuleFactory {
 
   }
 
-  implicit class FactoryOps[M <: MesmerModule](private val factory: InstrumentModuleFactory[M]) extends AnyVal {
-    def defaultAgent: Agent = {
-      factory.agent(factory.module.defaultConfig)
-    }
+  implicit class FactoryOps[M <: MesmerModule with RegisterGlobalConfiguration](private val factory: InstrumentModuleFactory[M]) extends AnyVal {
+
+    def defaultAgent(jarsInfo: LibraryInfo): Agent =
+      factory
+        .initAgent(jarsInfo, factory.module.defaultConfig, registerGlobal = false)
+        .getOrElse(throw new IllegalStateException("Unsupported library version found - cannot install agent"))
   }
 }
 
-abstract class InstrumentModuleFactory[M <: Module](val module: M) {
-  this: M#All[Agent] =>
+abstract class InstrumentModuleFactory[M <: Module with RegisterGlobalConfiguration](val module: M) {
+  /*
+    Requiring all features to be a function from versions to Option[Agent] we allow there to create different instrumentations depending
+    on runtime version of jars. TODO add information on which versions are supported
+   */
+  this: M#All[M#AkkaJar[Version] => Option[Agent]] =>
 
-  protected def supportedModules: SupportedModules
+  protected def instrument(tpe: Type): TypeInstrumentation = TypeInstrumentation(tpe)
 
-  protected def instrument(tpe: Type): TypeInstrumentation = TypeInstrumentation(TypeTarget(tpe, supportedModules))
+  /**
+   * @param config configuration of features that are wanted by the user
+   * @param jars versions of required jars to deduce which features can be enabled
+   * @return Resulting agent and resulting configuration based on runtime properties
+   */
+  protected def agent(config: module.All[Boolean], jars: module.AkkaJar[Version]): (Agent, module.All[Boolean])
 
-  def agent(config: module.All[Boolean]): Agent
+  private[i13n] final def agent(
+    config: module.All[Boolean],
+    jars: module.AkkaJar[Version],
+    registerGlobal: Boolean
+  ): Agent = {
+    val (agents, enabled) = agent(config, jars)
+    if (registerGlobal)
+      module.registerGlobal(enabled)
+    agents
+  }
 
-  final def agent(config: Config): Agent = agent(module.enabled(config))
+  final def initAgent(jarsInfo: LibraryInfo, config: Config): Option[Agent] =
+    initAgent(jarsInfo, module.enabled(config), registerGlobal = true)
+
+  final def initAgent(jarsInfo: LibraryInfo, config: module.All[Boolean], registerGlobal: Boolean): Option[Agent] =
+    module.jarsFromLibraryInfo(jarsInfo).map { jars =>
+      agent(config, jars, registerGlobal)
+    }
 
   implicit def enrichStringDsl(value: String): InstrumentModuleFactory.StringDlsOps =
     new InstrumentModuleFactory.StringDlsOps(value -> module)

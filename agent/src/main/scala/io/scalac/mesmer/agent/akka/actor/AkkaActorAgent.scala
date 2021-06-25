@@ -5,65 +5,113 @@ import io.scalac.mesmer.agent.util.i13n._
 import io.scalac.mesmer.agent.{ Agent, AgentInstrumentation }
 import io.scalac.mesmer.core.model._
 import io.scalac.mesmer.core.module.AkkaActorModule
-import io.scalac.mesmer.core.support.ModulesSupport
 import io.scalac.mesmer.core.util.Timestamp
 import io.scalac.mesmer.extension.actor.{ ActorCellDecorator, ActorCellMetrics }
 
 object AkkaActorAgent
     extends InstrumentModuleFactory(AkkaActorModule)
-    with AkkaActorModule.All[Agent]
+    with AkkaActorModule.All[AkkaActorModule.AkkaJar[Version] => Option[Agent]]
     with AkkaMailboxInstrumentations {
 
-  def agent(config: AkkaActorModule.AkkaActorMetricsDef[Boolean]): Agent =
-    Agent.empty ++
-      (if (config.mailboxSize) mailboxSize else Agent.empty) ++
-      (if (config.mailboxTimeAvg) mailboxTimeAvg else Agent.empty) ++
-      (if (config.mailboxTimeMin) mailboxTimeMin else Agent.empty) ++
-      (if (config.mailboxTimeMax) mailboxTimeMax else Agent.empty) ++
-      (if (config.mailboxTimeSum) mailboxTimeSum else Agent.empty) ++
-      (if (config.stashSize) stashSize else Agent.empty) ++
-      (if (config.receivedMessages) receivedMessages else Agent.empty) ++
-      (if (config.processedMessages) processedMessages else Agent.empty) ++
-      (if (config.failedMessages) failedMessages else Agent.empty) ++
-      (if (config.processingTimeAvg) processingTimeAvg else Agent.empty) ++
-      (if (config.processingTimeMin) processingTimeMin else Agent.empty) ++
-      (if (config.processingTimeMax) processingTimeMax else Agent.empty) ++
-      (if (config.processingTimeSum) processingTimeSum else Agent.empty) ++
-      (if (config.sentMessages) sentMessages else Agent.empty) ++
-      (if (config.droppedMessages) droppedMessages else Agent.empty)
+  /**
+   * @param config configuration of features that are wanted by the user
+   * @param jars   versions of required jars to deduce which features can be enabled
+   * @return Resulting agent and resulting configuration based on runtime properties
+   */
+  override protected def agent(
+    config: AkkaActorModule.All[Boolean],
+    jars: AkkaActorModule.Jars[Version]
+  ): (Agent, AkkaActorModule.All[Boolean]) = {
+    val mailboxSizeAgent       = if (config.mailboxSize) mailboxSize(jars) else None
+    val mailboxTimeAvgAgent    = if (config.mailboxTimeAvg) mailboxTimeAvg(jars) else None
+    val mailboxTimeMinAgent    = if (config.mailboxTimeMin) mailboxTimeMin(jars) else None
+    val mailboxTimeMaxAgent    = if (config.mailboxTimeMax) mailboxTimeMax(jars) else None
+    val mailboxTimeSumAgent    = if (config.mailboxTimeSum) mailboxTimeSum(jars) else None
+    val stashSizeAgent         = if (config.stashSize) stashSize(jars) else None
+    val receivedMessagesAgent  = if (config.receivedMessages) receivedMessages(jars) else None
+    val processedMessagesAgent = if (config.processedMessages) processedMessages(jars) else None
+    val failedMessagesAgent    = if (config.failedMessages) failedMessages(jars) else None
+    val processingTimeAvgAgent = if (config.processingTimeAvg) processingTimeAvg(jars) else None
+    val processingTimeMinAgent = if (config.processingTimeMin) processingTimeMin(jars) else None
+    val processingTimeMaxAgent = if (config.processingTimeMax) processingTimeMax(jars) else None
+    val processingTimeSumAgent = if (config.processingTimeSum) processingTimeSum(jars) else None
+    val sentMessagesAgent      = if (config.sentMessages) sentMessages(jars) else None
+    val droppedMessagesAgent   = if (config.droppedMessages) droppedMessages(jars) else None
 
-  lazy val mailboxSize: Agent = sharedInstrumentation
+    val resultantAgent = mailboxSizeAgent.getOrElse(Agent.empty) ++
+      mailboxTimeAvgAgent.getOrElse(Agent.empty) ++
+      mailboxTimeMinAgent.getOrElse(Agent.empty) ++
+      mailboxTimeMaxAgent.getOrElse(Agent.empty) ++
+      mailboxTimeSumAgent.getOrElse(Agent.empty) ++
+      stashSizeAgent.getOrElse(Agent.empty) ++
+      receivedMessagesAgent.getOrElse(Agent.empty) ++
+      processedMessagesAgent.getOrElse(Agent.empty) ++
+      failedMessagesAgent.getOrElse(Agent.empty) ++
+      processingTimeAvgAgent.getOrElse(Agent.empty) ++
+      processingTimeMinAgent.getOrElse(Agent.empty) ++
+      processingTimeMaxAgent.getOrElse(Agent.empty) ++
+      processingTimeSumAgent.getOrElse(Agent.empty) ++
+      sentMessagesAgent.getOrElse(Agent.empty) ++
+      droppedMessagesAgent.getOrElse(Agent.empty)
 
-  lazy val mailboxTimeAvg: Agent = sharedInstrumentation ++ mailboxInstrumentation
+    val enabled = AkkaActorModule.Impl(
+      mailboxSize = mailboxSizeAgent.isDefined,
+      mailboxTimeAvg = mailboxTimeAvgAgent.isDefined,
+      mailboxTimeMin = mailboxTimeMinAgent.isDefined,
+      mailboxTimeMax = mailboxTimeMaxAgent.isDefined,
+      mailboxTimeSum = mailboxTimeSumAgent.isDefined,
+      stashSize = stashSizeAgent.isDefined,
+      receivedMessages = receivedMessagesAgent.isDefined,
+      processedMessages = processedMessagesAgent.isDefined,
+      failedMessages = failedMessagesAgent.isDefined,
+      processingTimeAvg = processingTimeAvgAgent.isDefined,
+      processingTimeMin = processingTimeMinAgent.isDefined,
+      processingTimeMax = processingTimeMaxAgent.isDefined,
+      processingTimeSum = processingTimeSumAgent.isDefined,
+      sentMessages = sentMessagesAgent.isDefined,
+      droppedMessages = droppedMessagesAgent.isDefined
+    )
 
-  lazy val mailboxTimeMin: Agent = sharedInstrumentation ++ mailboxInstrumentation
+    (resultantAgent, enabled)
+  }
 
-  lazy val mailboxTimeMax: Agent = sharedInstrumentation ++ mailboxInstrumentation
+  lazy val mailboxSize: AkkaActorModule.AkkaJar[Version] => Option[Agent] = _ => Some(sharedInstrumentation)
 
-  lazy val mailboxTimeSum: Agent = sharedInstrumentation ++ mailboxInstrumentation
+  lazy val mailboxTimeAvg: AkkaActorModule.AkkaJar[Version] => Option[Agent] = _ =>
+    Some(sharedInstrumentation ++ mailboxInstrumentation)
 
-  lazy val stashSize: Agent = sharedInstrumentation ++ classicStashInstrumentationAgent ++ stashBufferImplementation
+  lazy val mailboxTimeMin: AkkaActorModule.AkkaJar[Version] => Option[Agent] = _ =>
+    Some(sharedInstrumentation ++ mailboxInstrumentation)
 
-  lazy val receivedMessages: Agent = sharedInstrumentation
+  lazy val mailboxTimeMax: AkkaActorModule.AkkaJar[Version] => Option[Agent] = _ =>
+    Some(sharedInstrumentation ++ mailboxInstrumentation)
 
-  lazy val processedMessages: Agent = sharedInstrumentation
+  lazy val mailboxTimeSum: AkkaActorModule.AkkaJar[Version] => Option[Agent] = _ =>
+    Some(sharedInstrumentation ++ mailboxInstrumentation)
 
-  lazy val failedMessages: Agent = sharedInstrumentation ++ abstractSupervisionInstrumentation
+  lazy val stashSize: AkkaActorModule.AkkaJar[Version] => Option[Agent] = _ =>
+    Some(sharedInstrumentation ++ classicStashInstrumentationAgent ++ stashBufferImplementation)
 
-  lazy val processingTimeAvg: Agent = sharedInstrumentation
+  lazy val receivedMessages: AkkaActorModule.AkkaJar[Version] => Option[Agent] = _ => Some(sharedInstrumentation)
 
-  lazy val processingTimeMin: Agent = sharedInstrumentation
+  lazy val processedMessages: AkkaActorModule.AkkaJar[Version] => Option[Agent] = _ => Some(sharedInstrumentation)
 
-  lazy val processingTimeMax: Agent = sharedInstrumentation
+  lazy val failedMessages: AkkaActorModule.AkkaJar[Version] => Option[Agent] = _ =>
+    Some(sharedInstrumentation ++ abstractSupervisionInstrumentation)
 
-  lazy val processingTimeSum: Agent = sharedInstrumentation
+  lazy val processingTimeAvg: AkkaActorModule.AkkaJar[Version] => Option[Agent] = _ => Some(sharedInstrumentation)
 
-  lazy val sentMessages: Agent = sharedInstrumentation ++ mailboxTimeSendMessageIncInstrumentation
+  lazy val processingTimeMin: AkkaActorModule.AkkaJar[Version] => Option[Agent] = _ => Some(sharedInstrumentation)
 
-  lazy val droppedMessages: Agent = sharedInstrumentation ++ boundedQueueAgent
+  lazy val processingTimeMax: AkkaActorModule.AkkaJar[Version] => Option[Agent] = _ => Some(sharedInstrumentation)
 
-  protected final val supportedModules: SupportedModules =
-    SupportedModules(ModulesSupport.akkaActorModule, ModulesSupport.akkaActor)
+  lazy val processingTimeSum: AkkaActorModule.AkkaJar[Version] => Option[Agent] = _ => Some(sharedInstrumentation)
+
+  lazy val sentMessages: AkkaActorModule.AkkaJar[Version] => Option[Agent] = _ =>
+    Some(sharedInstrumentation ++ mailboxTimeSendMessageIncInstrumentation)
+
+  lazy val droppedMessages: AkkaActorModule.AkkaJar[Version] => Option[Agent] = _ =>
+    Some(sharedInstrumentation ++ boundedQueueAgent)
 
   /**
    * Instrumentation for classic stash
@@ -173,5 +221,4 @@ object AkkaActorAgent
   private val localActorRefProviderInstrumentation: AgentInstrumentation =
     instrument("akka.actor.LocalActorRefProvider".fqcnWithTags("create"))
       .visit(LocalActorRefProviderAdvice, "actorOf")
-
 }

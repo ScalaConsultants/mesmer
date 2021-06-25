@@ -1,5 +1,8 @@
 package io.scalac.mesmer.core.module
 import com.typesafe.config.{ Config => TypesafeConfig }
+import io.scalac.mesmer.core.model.Version
+import io.scalac.mesmer.core.module.Module.{ Combine, Traverse }
+import io.scalac.mesmer.core.util.LibraryInfo.LibraryInfo
 
 sealed trait AkkaActorMetrics extends MetricsModule {
   this: Module =>
@@ -25,48 +28,33 @@ sealed trait AkkaActorMetrics extends MetricsModule {
   }
 }
 
-object AkkaActorModule extends MesmerModule with AkkaActorMetrics {
+object AkkaActorModule extends MesmerModule with AkkaActorMetrics with RegisterGlobalConfiguration {
   override type Metrics[T] = AkkaActorMetricsDef[T]
+  override type All[T]     = Metrics[T]
+  override type AkkaJar[T] = Jars[T]
 
-  final case class AkkaActorModuleConfig(
-    mailboxSize: Boolean,
-    mailboxTimeAvg: Boolean,
-    mailboxTimeMin: Boolean,
-    mailboxTimeMax: Boolean,
-    mailboxTimeSum: Boolean,
-    stashSize: Boolean,
-    receivedMessages: Boolean,
-    processedMessages: Boolean,
-    failedMessages: Boolean,
-    processingTimeAvg: Boolean,
-    processingTimeMin: Boolean,
-    processingTimeMax: Boolean,
-    processingTimeSum: Boolean,
-    sentMessages: Boolean,
-    droppedMessages: Boolean
-  ) extends AkkaActorMetricsDef[Boolean]
-      with ModuleConfig {
-    lazy val enabled: Boolean = {
-      mailboxSize || mailboxTimeAvg || mailboxTimeMin ||
-      mailboxTimeMax ||
-      mailboxTimeSum ||
-      stashSize ||
-      receivedMessages ||
-      processedMessages ||
-      failedMessages ||
-      processingTimeAvg ||
-      processingTimeMin ||
-      processingTimeMax ||
-      processingTimeSum ||
-      sentMessages ||
-      droppedMessages
-    }
-  }
+  final case class Impl[T](
+    mailboxSize: T,
+    mailboxTimeAvg: T,
+    mailboxTimeMin: T,
+    mailboxTimeMax: T,
+    mailboxTimeSum: T,
+    stashSize: T,
+    receivedMessages: T,
+    processedMessages: T,
+    failedMessages: T,
+    processingTimeAvg: T,
+    processingTimeMin: T,
+    processingTimeMax: T,
+    processingTimeSum: T,
+    sentMessages: T,
+    droppedMessages: T
+  ) extends AkkaActorMetricsDef[T]
 
   val name: String = "akka-actor"
 
   lazy val defaultConfig: Config =
-    AkkaActorModuleConfig(true, true, true, true, true, true, true, true, true, true, true, true, true, true, true)
+    Impl[Boolean](true, true, true, true, true, true, true, true, true, true, true, true, true, true, true)
 
   protected def extractFromConfig(config: TypesafeConfig): Config = {
     val moduleEnabled = config
@@ -133,7 +121,7 @@ object AkkaActorModule extends MesmerModule with AkkaActorMetrics {
         .tryValue("dropped-messages")(_.getBoolean)
         .getOrElse(defaultConfig.droppedMessages)
 
-      AkkaActorModuleConfig(
+      Impl[Boolean](
         mailboxSize = mailboxSize,
         mailboxTimeAvg = mailboxTimeAvg,
         mailboxTimeMin = mailboxTimeMin,
@@ -151,10 +139,61 @@ object AkkaActorModule extends MesmerModule with AkkaActorMetrics {
         droppedMessages = droppedMessages
       )
     } else
-      AkkaActorModuleConfig(false, false, false, false, false, false, false, false, false, false, false, false, false,
-        false, false)
+      Impl[Boolean](false, false, false, false, false, false, false, false, false, false, false, false, false, false,
+        false)
 
   }
 
-  override type All[T] = Metrics[T]
+  final case class Jars[T](akkaActor: T, akkaActorTyped: T)
+
+  def jarsFromLibraryInfo(info: LibraryInfo): Option[AkkaJar[Version]] =
+    for {
+      actor      <- info.get(requiredAkkaJars.akkaActor)
+      actorTyped <- info.get(requiredAkkaJars.akkaActorTyped)
+    } yield Jars(actor, actorTyped)
+
+  val requiredAkkaJars: Jars[String] = Jars("akka-actor", "akka-actor-typed")
+
+  /**
+   * Combines config that with AND operator
+   */
+  implicit val combineConfig: Combine[All[Boolean]] = (first, second) => {
+    Impl(
+      mailboxSize = first.mailboxSize && second.mailboxSize,
+      mailboxTimeAvg = first.mailboxTimeAvg && second.mailboxTimeAvg,
+      mailboxTimeMin = first.mailboxTimeMin && second.mailboxTimeMin,
+      mailboxTimeMax = first.mailboxTimeMax && second.mailboxTimeMax,
+      mailboxTimeSum = first.mailboxTimeSum && second.mailboxTimeSum,
+      stashSize = first.stashSize && second.stashSize,
+      receivedMessages = first.receivedMessages && second.receivedMessages,
+      processedMessages = first.processedMessages && second.processedMessages,
+      failedMessages = first.failedMessages && second.failedMessages,
+      processingTimeAvg = first.processingTimeAvg && second.processingTimeAvg,
+      processingTimeMin = first.processingTimeMin && second.processingTimeMin,
+      processingTimeMax = first.processingTimeMax && second.processingTimeMax,
+      processingTimeSum = first.processingTimeSum && second.processingTimeSum,
+      sentMessages = first.sentMessages && second.sentMessages,
+      droppedMessages = first.droppedMessages && second.droppedMessages
+    )
+  }
+
+  implicit val traverseAll: Traverse[All] = new Traverse[All] {
+    def sequence[T](obj: AkkaActorModule.AkkaActorMetricsDef[T]): Seq[T] = Seq(
+      obj.mailboxSize,
+      obj.mailboxTimeAvg,
+      obj.mailboxTimeMin,
+      obj.mailboxTimeMax,
+      obj.mailboxTimeSum,
+      obj.stashSize,
+      obj.receivedMessages,
+      obj.processedMessages,
+      obj.failedMessages,
+      obj.processingTimeAvg,
+      obj.processingTimeMin,
+      obj.processingTimeMax,
+      obj.processingTimeSum,
+      obj.sentMessages,
+      obj.droppedMessages
+    )
+  }
 }

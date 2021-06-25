@@ -3,26 +3,26 @@ package io.scalac.mesmer.extension
 import akka.actor.typed._
 import akka.actor.typed.receptionist.Receptionist.Register
 import akka.actor.typed.scaladsl.adapter._
-import akka.actor.typed.scaladsl.{ActorContext, Behaviors, TimerScheduler}
-import akka.actor.{ActorRef, typed}
+import akka.actor.typed.scaladsl.{ ActorContext, Behaviors, TimerScheduler }
+import akka.actor.{ typed, ActorRef }
 import akka.util.Timeout
 import io.scalac.mesmer.core.akka.model.PushMetrics
 import io.scalac.mesmer.core.config.ConfigurationUtils._
 import io.scalac.mesmer.core.event.Service.streamService
 import io.scalac.mesmer.core.event.StreamEvent
-import io.scalac.mesmer.core.event.StreamEvent.{LastStreamStats, StreamInterpreterStats}
-import io.scalac.mesmer.core.model.Tag.{StageName, StreamName}
+import io.scalac.mesmer.core.event.StreamEvent.{ LastStreamStats, StreamInterpreterStats }
+import io.scalac.mesmer.core.model.Tag.{ StageName, StreamName }
 import io.scalac.mesmer.core.model._
-import io.scalac.mesmer.core.model.stream.{ConnectionStats, StageInfo}
-import io.scalac.mesmer.core.support.ModulesSupport
+import io.scalac.mesmer.core.model.stream.{ ConnectionStats, StageInfo }
+import io.scalac.mesmer.core.module.AkkaStreamModule
 import io.scalac.mesmer.extension.AkkaStreamMonitoring._
-import io.scalac.mesmer.extension.config.{BufferConfig, CachingConfig}
+import io.scalac.mesmer.extension.config.{ BufferConfig, CachingConfig }
 import io.scalac.mesmer.extension.metric.MetricObserver.Result
-import io.scalac.mesmer.extension.metric.StreamMetricsMonitor.{EagerLabels, Labels => GlobalLabels}
+import io.scalac.mesmer.extension.metric.StreamMetricsMonitor.{ EagerLabels, Labels => GlobalLabels }
 import io.scalac.mesmer.extension.metric.StreamOperatorMetricsMonitor.Labels
-import io.scalac.mesmer.extension.metric.{StreamMetricsMonitor, StreamOperatorMetricsMonitor}
+import io.scalac.mesmer.extension.metric.{ StreamMetricsMonitor, StreamOperatorMetricsMonitor }
 import io.scalac.mesmer.extension.service.ActorTreeService.Command.GetActors
-import io.scalac.mesmer.extension.service.{ActorTreeService, actorTreeServiceKey}
+import io.scalac.mesmer.extension.service.{ actorTreeServiceKey, ActorTreeService }
 import io.scalac.mesmer.extension.util.GenericBehaviors
 
 import java.util
@@ -30,10 +30,10 @@ import java.util.concurrent.atomic.AtomicReference
 import scala.annotation.tailrec
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
-import scala.concurrent.duration.{FiniteDuration, _}
+import scala.concurrent.duration.{ FiniteDuration, _ }
 import scala.jdk.CollectionConverters._
 import scala.jdk.DurationConverters._
-import scala.util.{Failure, Success}
+import scala.util.{ Failure, Success }
 
 object AkkaStreamMonitoring {
 
@@ -221,12 +221,11 @@ final class AkkaStreamMonitoring(
   node: Option[Node],
   actorTreeService: typed.ActorRef[ActorTreeService.Command]
 ) {
-  import ModulesSupport._
 
   private implicit val timeout: Timeout = streamCollectionTimeout
 
-  private val cachingConfig          = CachingConfig.fromConfig(context.system.settings.config, akkaStreamModule)
-  private val bufferConfig           = BufferConfig.fromConfig(context.system.settings.config, akkaStreamModule)
+  private val cachingConfig          = CachingConfig.fromConfig(context.system.settings.config, AkkaStreamModule)
+  private val bufferConfig           = BufferConfig.fromConfig(context.system.settings.config, AkkaStreamModule)
   private val indexCache             = ConnectionsIndexCache.bounded(cachingConfig.maxEntries)
   private val operationsBoundMonitor = streamOperatorMonitor.bind()
   private val boundStreamMonitor     = streamMonitor.bind(EagerLabels(node))

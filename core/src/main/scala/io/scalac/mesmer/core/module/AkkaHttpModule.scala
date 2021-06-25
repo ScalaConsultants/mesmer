@@ -1,6 +1,9 @@
 package io.scalac.mesmer.core.module
 
 import com.typesafe.config.{ Config => TypesafeConfig }
+import io.scalac.mesmer.core.model.Version
+import io.scalac.mesmer.core.module.Module.{ Combine, Traverse }
+import io.scalac.mesmer.core.util.LibraryInfo.LibraryInfo
 
 /**
  * Definition of AkkHttp request related metrics
@@ -26,23 +29,23 @@ sealed trait AkkaHttpConnectionMetricsModule extends MetricsModule {
   }
 }
 
-object AkkaHttpModule extends MesmerModule with AkkaHttpRequestMetricsModule with AkkaHttpConnectionMetricsModule {
+object AkkaHttpModule
+    extends MesmerModule
+    with RegisterGlobalConfiguration
+    with AkkaHttpRequestMetricsModule
+    with AkkaHttpConnectionMetricsModule {
 
-  final case class AkkaHttpModuleConfig(requestTime: Boolean, requestCounter: Boolean, connections: Boolean)
-      extends AkkaHttpRequestMetricsDef[Boolean]
-      with AkkaHttpConnectionsMetricsDef[Boolean]
-      with ModuleConfig {
-    lazy val enabled: Boolean =
-      requestTime || requestCounter || connections // module is considered enabled if any metric is collected
-  }
+  final case class Impl[T](requestTime: T, requestCounter: T, connections: T)
+      extends AkkaHttpRequestMetricsDef[T]
+      with AkkaHttpConnectionsMetricsDef[T]
 
   val name: String = "akka-http"
 
-  override type Metrics[T] = AkkaHttpRequestMetricsDef[T] with AkkaHttpConnectionsMetricsDef[T]
+  override type Metrics[T] = AkkaHttpConnectionsMetricsDef[T] with AkkaHttpRequestMetricsDef[T]
 
   override type All[T] = Metrics[T]
 
-  val defaultConfig = AkkaHttpModuleConfig(true, true, true)
+  val defaultConfig: Config = Impl[Boolean](true, true, true)
 
   protected def extractFromConfig(config: TypesafeConfig): Config = {
 
@@ -62,8 +65,33 @@ object AkkaHttpModule extends MesmerModule with AkkaHttpRequestMetricsModule wit
       val connections = config
         .tryValue("connections")(_.getBoolean)
         .getOrElse(defaultConfig.connections)
-      AkkaHttpModuleConfig(requestTime = requestTime, requestCounter = requestCounter, connections = connections)
-    } else AkkaHttpModuleConfig(false, false, false)
+      Impl[Boolean](requestTime = requestTime, requestCounter = requestCounter, connections = connections)
+    } else Impl(false, false, false)
 
+  }
+
+  override type AkkaJar[T] = Jars[T]
+
+  final case class Jars[T](akkaHttp: T)
+
+  def jarsFromLibraryInfo(info: LibraryInfo): Option[AkkaJar[Version]] =
+    info.get(requiredAkkaJars.akkaHttp).map(Jars.apply[Version])
+
+  val requiredAkkaJars: Jars[String] = Jars("akka-http")
+
+  implicit val combineConfig: Combine[All[Boolean]] = (first, second) => {
+    Impl(
+      requestTime = first.requestTime && second.requestTime,
+      requestCounter = first.requestCounter && second.requestCounter,
+      connections = first.connections && second.connections
+    )
+  }
+
+  implicit val traverseAll: Traverse[All] = new Traverse[All] {
+    def sequence[T](obj: All[T]): Seq[T] = Seq(
+      obj.requestTime,
+      obj.requestCounter,
+      obj.connections
+    )
   }
 }

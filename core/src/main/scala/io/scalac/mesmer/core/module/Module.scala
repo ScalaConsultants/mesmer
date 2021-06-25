@@ -2,17 +2,39 @@ package io.scalac.mesmer.core.module
 
 import com.typesafe.config.{ Config => TypesafeConfig }
 import io.scalac.mesmer.core.config.MesmerConfigurationBase
+import io.scalac.mesmer.core.model.Version
+import io.scalac.mesmer.core.util.LibraryInfo.LibraryInfo
 
 trait Module {
   def name: String
-  type All[_]
-  type Config = All[Boolean] with ModuleConfig
+  type All[T] <: AnyRef
+  type Config = All[Boolean]
 
   def enabled(config: TypesafeConfig): Config
+
+  type AkkaJar[T]
+
+  def jarsFromLibraryInfo(info: LibraryInfo): Option[AkkaJar[Version]]
+
+  def requiredAkkaJars: AkkaJar[String]
 }
 
-trait ModuleConfig {
-  def enabled: Boolean
+object Module {
+
+  implicit class AllOps[M[X] <: Module#All[X], T](val value: M[T]) extends AnyVal {
+    def combine(other: M[T])(implicit combine: Combine[M[T]]): M[T]          = combine.combine(value, other)
+    def exists(check: T => Boolean)(implicit traverse: Traverse[M]): Boolean = traverse.sequence(value).exists(check)
+  }
+
+  //TODO is there a standard type class?
+  trait Combine[T] {
+    def combine(first: T, second: T): T
+  }
+
+  trait Traverse[F[_]] {
+    def sequence[T](obj: F[T]): Seq[T]
+  }
+
 }
 
 trait MesmerModule extends Module with MesmerConfigurationBase {
@@ -35,4 +57,15 @@ trait TracesModule {
   this: Module =>
   override type All[T] <: Traces[T]
   type Traces[T]
+}
+
+trait RegisterGlobalConfiguration extends Module {
+
+  @volatile
+  private[this] var global: All[Boolean] = _
+
+  final def registerGlobal(conf: All[Boolean]): Unit =
+    global = conf
+
+  final def globalConfiguration: Option[All[Boolean]] = if (global ne null) Some(global) else None
 }

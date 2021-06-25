@@ -1,16 +1,12 @@
 package io.scalac.mesmer.agent
 
 import io.scalac.mesmer.agent.Agent.LoadingResult
-import io.scalac.mesmer.core.model.SupportedModules
-import io.scalac.mesmer.core.util.ModuleInfo.Modules
 import net.bytebuddy.agent.builder.AgentBuilder
 import org.slf4j.LoggerFactory
 
 import java.lang.instrument.Instrumentation
 
 object Agent {
-
-  private val logger = LoggerFactory.getLogger(classOf[Agent])
 
   def apply(head: AgentInstrumentation, tail: AgentInstrumentation*): Agent = new Agent((head +: tail).toSet)
 
@@ -49,22 +45,20 @@ object Agent {
 
 object AgentInstrumentation {
 
-  def apply(name: String, modules: SupportedModules, tags: Set[String])(
-    installation: (AgentBuilder, Instrumentation, Modules) => LoadingResult
+  def apply(name: String, tags: Set[String])(
+    installation: (AgentBuilder, Instrumentation) => LoadingResult
   ): AgentInstrumentation =
-    new AgentInstrumentation(name, modules, tags) {
-      def apply(builder: AgentBuilder, instrumentation: Instrumentation, modules: Modules): LoadingResult =
-        installation(builder, instrumentation, modules)
+    new AgentInstrumentation(name, tags) {
+      def apply(builder: AgentBuilder, instrumentation: Instrumentation): LoadingResult =
+        installation(builder, instrumentation)
     }
 
 }
 
-//TODO add tests
 sealed abstract case class AgentInstrumentation(
   name: String,
-  instrumentingModules: SupportedModules,
   tags: Set[String]
-) extends ((AgentBuilder, Instrumentation, Modules) => LoadingResult)
+) extends ((AgentBuilder, Instrumentation) => LoadingResult)
     with Equals {
 
   override def hashCode(): Int = name.hashCode()
@@ -85,22 +79,9 @@ final case class Agent private (private[agent] val instrumentations: Set[AgentIn
 
   def ++(other: AgentInstrumentation): Agent = Agent(instrumentations + other)
 
-  def installOn(builder: AgentBuilder, instrumentation: Instrumentation, modules: Modules): LoadingResult =
-    instrumentations.flatMap { agentInstrumentation =>
-      val dependencies = agentInstrumentation.instrumentingModules
+  def installOn(builder: AgentBuilder, instrumentation: Instrumentation): LoadingResult =
+    instrumentations.map { agentInstrumentation =>
+      agentInstrumentation(builder, instrumentation)
 
-      val allModulesSupported = dependencies.modules.forall { module =>
-        modules
-          .get(module)
-          .exists(dependencies.supportedVersion(module).supports)
-      }
-
-      if (allModulesSupported) {
-        val requiredModules = modules.view.filterKeys(dependencies.modules.contains)
-        Some(agentInstrumentation(builder, instrumentation, requiredModules.toMap))
-      } else {
-        logger.error("Unsupported versions for instrumentation for {}", agentInstrumentation.name)
-        None
-      }
     }.fold(LoadingResult.empty)(_ ++ _)
 }

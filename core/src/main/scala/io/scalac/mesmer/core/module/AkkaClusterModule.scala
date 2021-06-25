@@ -1,5 +1,7 @@
 package io.scalac.mesmer.core.module
 import com.typesafe.config.{ Config => TypesafeConfig }
+import io.scalac.mesmer.core.model.Version
+import io.scalac.mesmer.core.util.LibraryInfo.LibraryInfo
 
 sealed trait AkkaClusterMetricsModule extends MetricsModule {
   this: Module =>
@@ -20,69 +22,78 @@ object AkkaClusterModule extends MesmerModule with AkkaClusterMetricsModule {
 
   val name: String = "akka-cluster"
 
-  final case class AkkaClusterModuleMetrics(
-    shardPerRegions: Boolean,
-    entityPerRegion: Boolean,
-    shardRegionsOnNode: Boolean,
-    entitiesOnNode: Boolean,
-    reachableNodes: Boolean,
-    unreachableNodes: Boolean,
-    nodeDown: Boolean
-  ) extends AkkaClusterMetricsDef[Boolean]
-      with ModuleConfig {
-    lazy val enabled: Boolean = shardPerRegions ||
-      entityPerRegion ||
-      shardRegionsOnNode ||
-      entitiesOnNode ||
-      reachableNodes ||
-      unreachableNodes ||
-      nodeDown
-  }
+  final case class Impl[T](
+    shardPerRegions: T,
+    entityPerRegion: T,
+    shardRegionsOnNode: T,
+    entitiesOnNode: T,
+    reachableNodes: T,
+    unreachableNodes: T,
+    nodeDown: T
+  ) extends AkkaClusterMetricsDef[T]
 
   override type Metrics[T] = AkkaClusterMetricsDef[T]
 
-   val defaultConfig: AkkaClusterModule.Result =
-    AkkaClusterModuleMetrics(true, true, true, true, true, true, true)
+  val defaultConfig: AkkaClusterModule.Result =
+    Impl[Boolean](true, true, true, true, true, true, true)
 
   protected def extractFromConfig(config: TypesafeConfig): AkkaClusterModule.Result = {
-    val shardsPerRegion = config
-      .tryValue("shards-per-region")(_.getBoolean)
-      .getOrElse(defaultConfig.shardPerRegions)
+    val moduleEnabled = config
+      .tryValue("enabled")(_.getBoolean)
+      .getOrElse(true)
 
-    val entitiesPerRegion = config
-      .tryValue("entities-per-region")(_.getBoolean)
-      .getOrElse(defaultConfig.entityPerRegion)
+    if (moduleEnabled) {
+      val shardsPerRegion = config
+        .tryValue("shards-per-region")(_.getBoolean)
+        .getOrElse(defaultConfig.shardPerRegions)
 
-    val shardRegionsOnNode = config
-      .tryValue("shard-regions-on-node")(_.getBoolean)
-      .getOrElse(defaultConfig.shardRegionsOnNode)
+      val entitiesPerRegion = config
+        .tryValue("entities-per-region")(_.getBoolean)
+        .getOrElse(defaultConfig.entityPerRegion)
 
-    val entitiesOnNode = config
-      .tryValue("entities-on-node")(_.getBoolean)
-      .getOrElse(defaultConfig.entitiesOnNode)
+      val shardRegionsOnNode = config
+        .tryValue("shard-regions-on-node")(_.getBoolean)
+        .getOrElse(defaultConfig.shardRegionsOnNode)
 
-    val reachableNodes = config
-      .tryValue("reachable-nodes")(_.getBoolean)
-      .getOrElse(defaultConfig.reachableNodes)
+      val entitiesOnNode = config
+        .tryValue("entities-on-node")(_.getBoolean)
+        .getOrElse(defaultConfig.entitiesOnNode)
 
-    val unreachableNodes = config
-      .tryValue("unreachable-nodes")(_.getBoolean)
-      .getOrElse(defaultConfig.unreachableNodes)
+      val reachableNodes = config
+        .tryValue("reachable-nodes")(_.getBoolean)
+        .getOrElse(defaultConfig.reachableNodes)
 
-    val nodesDown = config
-      .tryValue("node-down")(_.getBoolean)
-      .getOrElse(defaultConfig.nodeDown)
+      val unreachableNodes = config
+        .tryValue("unreachable-nodes")(_.getBoolean)
+        .getOrElse(defaultConfig.unreachableNodes)
 
-    AkkaClusterModuleMetrics(
-      shardPerRegions = shardsPerRegion,
-      entityPerRegion = entitiesPerRegion,
-      shardRegionsOnNode = shardRegionsOnNode,
-      entitiesOnNode = entitiesOnNode,
-      reachableNodes = reachableNodes,
-      unreachableNodes = unreachableNodes,
-      nodeDown = nodesDown
-    )
+      val nodesDown = config
+        .tryValue("node-down")(_.getBoolean)
+        .getOrElse(defaultConfig.nodeDown)
+
+      Impl[Boolean](
+        shardPerRegions = shardsPerRegion,
+        entityPerRegion = entitiesPerRegion,
+        shardRegionsOnNode = shardRegionsOnNode,
+        entitiesOnNode = entitiesOnNode,
+        reachableNodes = reachableNodes,
+        unreachableNodes = unreachableNodes,
+        nodeDown = nodesDown
+      )
+    } else Impl[Boolean](false, false, false, false, false, false, false)
+
   }
 
-  override type All[T] = Metrics[T]
+  override type All[T]     = Metrics[T]
+  override type AkkaJar[T] = Jars[T]
+
+  final case class Jars[T](akkaCluster: T, akkaClusterTyped: T)
+
+  override def jarsFromLibraryInfo(info: LibraryInfo): Option[AkkaJar[Version]] =
+    for {
+      cluster      <- info.get(requiredAkkaJars.akkaCluster)
+      clusterTyped <- info.get(requiredAkkaJars.akkaClusterTyped)
+    } yield Jars(cluster, clusterTyped)
+
+  val requiredAkkaJars: AkkaJar[String] = Jars("akka-cluster", "akka-cluster-typed")
 }

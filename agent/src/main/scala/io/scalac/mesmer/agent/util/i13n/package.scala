@@ -2,16 +2,15 @@ package io.scalac.mesmer.agent.util
 
 import io.scalac.mesmer.agent.AgentInstrumentation
 import io.scalac.mesmer.agent.util.i13n.InstrumentationDetails._
-import io.scalac.mesmer.core.model.SupportedModules
 import net.bytebuddy.asm.Advice
 import net.bytebuddy.description.`type`.TypeDescription
 import net.bytebuddy.description.method.MethodDescription
 import net.bytebuddy.dynamic.DynamicType
-import net.bytebuddy.implementation.{Implementation, MethodDelegation}
-import net.bytebuddy.matcher.{ElementMatcher, ElementMatchers => EM}
+import net.bytebuddy.implementation.{ Implementation, MethodDelegation }
+import net.bytebuddy.matcher.{ ElementMatcher, ElementMatchers => EM }
 
 import scala.language.implicitConversions
-import scala.reflect.{ClassTag, classTag}
+import scala.reflect.{ classTag, ClassTag }
 
 package object i13n {
 
@@ -58,7 +57,7 @@ package object i13n {
   private[i13n] type Builder = DynamicType.Builder[_]
 
   final class TypeInstrumentation private (
-    private[i13n] val target: TypeTarget,
+    private[i13n] val `type`: Type,
     private[i13n] val transformBuilder: Builder => Builder
   ) {
 
@@ -95,15 +94,13 @@ package object i13n {
     }
 
     private def chain(that: Builder => Builder): TypeInstrumentation =
-      new TypeInstrumentation(target, transformBuilder.andThen(that))
+      new TypeInstrumentation(`type`, transformBuilder.andThen(that))
 
   }
 
   private[i13n] object TypeInstrumentation {
-    private[i13n] def apply(target: TypeTarget): TypeInstrumentation = new TypeInstrumentation(target, identity)
+    private[i13n] def apply(target: Type): TypeInstrumentation = new TypeInstrumentation(target, identity)
   }
-
-  final private[i13n] case class TypeTarget(`type`: Type, modules: SupportedModules)
 
   // extensions
 
@@ -139,16 +136,6 @@ package object i13n {
     def isOverriddenFrom(typeDesc: TypeDesc): MethodDesc =
       methodDesc.and(EM.isOverriddenFrom(typeDesc))
   }
-
-//  implicit class StringDlsOps(private val value: String) extends AnyVal {
-//
-//    /**
-//     * Assigns tags to this instrumentation to distinguish it from others and prevent merging
-//     */
-//    def fqcnWithTagsRemove(tags: String*): InstrumentationDetails[FQCN] =
-//      InstrumentationDetails.fqcn(value, tags.toSet)
-//    def nonFQCN: InstrumentationDetails[NonFQCN] = InstrumentationDetails.nonFQCN(value, Set.empty)
-//  }
 
   // implicit conversion
   implicit def fqcnDetailsToType(details: InstrumentationDetails[FQCN]): Type = `type`(details, details.name)

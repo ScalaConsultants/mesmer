@@ -31,61 +31,61 @@ class AkkaHttpAgentTest
 
   behavior of "AkkaHttpAgent"
 
-  it should behave like withVersion(
-//    AkkaHttpModule.AkkaHttpModuleConfig(true, true, true),
-//    AkkaHttpModule.AkkaHttpModuleConfig(false, true, true),
-    AkkaHttpModule.AkkaHttpModuleConfig(true, false, true)
-  )(
-    "instrument routes to generate events on http requests"
-  )(AkkaHttpTestImpl.systemWithHttpService { implicit system => monitor =>
-    val testRoute: Route = path("test") {
-      get {
-        complete((StatusCodes.OK, collection.immutable.Seq(Connection("close"))))
-      }
-    }
-//    implicit val timeout = RouteTestTimeout(5 seconds)
-    import system.executionContext
-
-
-    val response = for {
-      binding <- Http().newServerAt("127.0.0.1", 0).bind(testRoute)
-      port      = binding.localAddress.getPort
-      targetUri = Uri.Empty.withPath(Path("/test")).withHost("127.0.0.1").withPort(port).withScheme("http")
-      response <- Http().singleRequest(HttpRequest(HttpMethods.GET, targetUri))
-    } yield {
-      binding.unbind()
-      response
-    }
-    Await.result(response, 5.seconds)
-
-    monitor.expectMessageType[ConnectionStarted]
-    monitor.expectMessageType[RequestStarted]
-    monitor.expectMessageType[RequestCompleted]
-    monitor.expectMessageType[ConnectionCompleted]
-  })
-
-//  "AkkaHttpAgent" should "instrument routes to generate events on http requests" in withVersion(
-//    AkkaHttpModule.defaultConfig
-//  )(test { monitor =>
-//    implicit val timeout = RouteTestTimeout(5 seconds)
-//
-//    Get("/test") ~!> testRoute ~> check {
-//      status should be(StatusCodes.OK)
+//  it should behave like withVersion(
+////    AkkaHttpModule.AkkaHttpModuleConfig(true, true, true),
+////    AkkaHttpModule.AkkaHttpModuleConfig(false, true, true),
+//    AkkaHttpModule.Impl(true, false, true)
+//  )(
+//    "instrument routes to generate events on http requests"
+//  )(AkkaHttpTestImpl.systemWithHttpService { implicit system => monitor =>
+//    val testRoute: Route = path("test") {
+//      get {
+//        complete((StatusCodes.OK, collection.immutable.Seq(Connection("close"))))
+//      }
 //    }
+////    implicit val timeout = RouteTestTimeout(5 seconds)
+//    import system.executionContext
+//
+//
+//    val response = for {
+//      binding <- Http().newServerAt("127.0.0.1", 0).bind(testRoute)
+//      port      = binding.localAddress.getPort
+//      targetUri = Uri.Empty.withPath(Path("/test")).withHost("127.0.0.1").withPort(port).withScheme("http")
+//      response <- Http().singleRequest(HttpRequest(HttpMethods.GET, targetUri))
+//    } yield {
+//      binding.unbind()
+//      response
+//    }
+//    Await.result(response, 5.seconds)
+//
 //    monitor.expectMessageType[ConnectionStarted]
 //    monitor.expectMessageType[RequestStarted]
 //    monitor.expectMessageType[RequestCompleted]
 //    monitor.expectMessageType[ConnectionCompleted]
 //  })
-
-//  it should "contain 2 transformations" in  test { _ =>
-//    agent.value.instrumentations should have size (2)
-//  }
-
-  it should behave like withVersion(AkkaHttpModule.defaultConfig)("contain 2 transformations")(AkkaHttpTestImpl.systemWithHttpService {
-    _ => _ =>
-      agent.value.instrumentations should have size (2)
-
-  })
+//
+////  "AkkaHttpAgent" should "instrument routes to generate events on http requests" in withVersion(
+////    AkkaHttpModule.defaultConfig
+////  )(test { monitor =>
+////    implicit val timeout = RouteTestTimeout(5 seconds)
+////
+////    Get("/test") ~!> testRoute ~> check {
+////      status should be(StatusCodes.OK)
+////    }
+////    monitor.expectMessageType[ConnectionStarted]
+////    monitor.expectMessageType[RequestStarted]
+////    monitor.expectMessageType[RequestCompleted]
+////    monitor.expectMessageType[ConnectionCompleted]
+////  })
+//
+////  it should "contain 2 transformations" in  test { _ =>
+////    agent.value.instrumentations should have size (2)
+////  }
+//
+//  it should behave like withVersion(AkkaHttpModule.defaultConfig)("contain 2 transformations")(AkkaHttpTestImpl.systemWithHttpService {
+//    _ => _ =>
+//      agent.value.instrumentations should have size (2)
+//
+//  })
 
 }

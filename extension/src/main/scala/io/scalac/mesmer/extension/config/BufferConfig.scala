@@ -1,9 +1,8 @@
 package io.scalac.mesmer.extension.config
 
 import com.typesafe.config.Config
-
-import io.scalac.mesmer.core.model.Module
 import io.scalac.mesmer.core.config.ConfigurationUtils._
+import io.scalac.mesmer.core.module.Module
 
 object BufferConfig {
   private val DefaultSize = 1024

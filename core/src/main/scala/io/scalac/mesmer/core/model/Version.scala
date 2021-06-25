@@ -11,4 +11,4 @@ object Version {
   def apply(major: Int, minor: Int, patch: Int): Version = Version(major.toString, minor.toString, patch.toString)
 }
 
-final case class Module(name: String)
+//final case class Module(name: String)

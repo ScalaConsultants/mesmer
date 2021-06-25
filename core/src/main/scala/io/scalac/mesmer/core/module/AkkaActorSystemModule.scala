@@ -1,5 +1,7 @@
 package io.scalac.mesmer.core.module
 import com.typesafe.config.{ Config => TypesafeConfig }
+import io.scalac.mesmer.core.model.Version
+import io.scalac.mesmer.core.util.LibraryInfo.LibraryInfo
 
 sealed trait AkkaActorSystemMetricsModule extends MetricsModule {
   this: Module =>
@@ -20,8 +22,7 @@ object AkkaActorSystemModule extends MesmerModule with AkkaActorSystemMetricsMod
   final case class ActorSystemModuleConfig(
     createdActors: Boolean,
     terminatedActors: Boolean
-  ) extends ActorSystemMetricsDef[Boolean]
-      with ModuleConfig {
+  ) extends ActorSystemMetricsDef[Boolean] {
     lazy val enabled: Boolean = createdActors || terminatedActors
   }
 
@@ -34,4 +35,13 @@ object AkkaActorSystemModule extends MesmerModule with AkkaActorSystemMetricsMod
 
     ActorSystemModuleConfig(createdActors, terminatedActors)
   }
+
+  override type AkkaJar[T] = Jars[T]
+
+  final case class Jars[T](akkaActor: T)
+
+  def jarsFromLibraryInfo(info: LibraryInfo): Option[AkkaJar[Version]] =
+    info.get(requiredAkkaJars.akkaActor).map(Jars.apply[Version])
+
+  val requiredAkkaJars: AkkaJar[String] = Jars("akka-actor")
 }

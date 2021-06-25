@@ -1,5 +1,8 @@
 package io.scalac.mesmer.core.module
-import com.typesafe.config.{Config => TypesafeConfig}
+import com.typesafe.config.{ Config => TypesafeConfig }
+import io.scalac.mesmer.core.model.Version
+import io.scalac.mesmer.core.module.Module.{ Combine, Traverse }
+import io.scalac.mesmer.core.util.LibraryInfo.LibraryInfo
 
 sealed trait AkkaStreamMetrics extends MetricsModule {
   this: Module =>
@@ -27,67 +30,100 @@ sealed trait AkkaStreamOperatorMetrics extends MetricsModule {
 
 }
 
-object AkkaStreamModule extends MesmerModule with AkkaStreamMetrics with AkkaStreamOperatorMetrics {
+object AkkaStreamModule
+    extends MesmerModule
+    with AkkaStreamMetrics
+    with AkkaStreamOperatorMetrics
+    with RegisterGlobalConfiguration {
 
   val name: String = "akka-stream"
 
   override type Metrics[T] = StreamOperatorMetricsDef[T] with StreamMetricsDef[T]
   override type All[T]     = Metrics[T]
 
-  final case class AkkaStreamModuleConfig(
-    runningStreamsTotal: Boolean,
-    streamActorsTotal: Boolean,
-    streamProcessedMessages: Boolean,
-    processedMessages: Boolean,
-    operators: Boolean,
-    demand: Boolean
-  ) extends StreamOperatorMetricsDef[Boolean]
-      with StreamMetricsDef[Boolean]
-      with ModuleConfig {
-    lazy val enabled: Boolean = runningStreamsTotal ||
-      streamActorsTotal ||
-      streamProcessedMessages ||
-      processedMessages ||
-      operators ||
-      demand
-  }
+  final case class Impl[T](
+    runningStreamsTotal: T,
+    streamActorsTotal: T,
+    streamProcessedMessages: T,
+    processedMessages: T,
+    operators: T,
+    demand: T
+  ) extends StreamOperatorMetricsDef[T]
+      with StreamMetricsDef[T]
 
-   val defaultConfig: Config = AkkaStreamModuleConfig(true, true, true, true, true, true)
+  val defaultConfig: Config = Impl(true, true, true, true, true, true)
 
   protected def extractFromConfig(config: TypesafeConfig): Config = {
 
-    val runningStreams = config
-      .tryValue("running-streams")(_.getBoolean)
-      .getOrElse(defaultConfig.runningStreamsTotal)
+    val moduleEnabled = config
+      .tryValue("enabled")(_.getBoolean)
+      .getOrElse(true)
 
-    val streamActors = config
-      .tryValue("stream-actors")(_.getBoolean)
-      .getOrElse(defaultConfig.streamActorsTotal)
+    if (moduleEnabled) {
+      val runningStreams = config
+        .tryValue("running-streams")(_.getBoolean)
+        .getOrElse(defaultConfig.runningStreamsTotal)
 
-    val streamProcessed = config
-      .tryValue("stream-processed")(_.getBoolean)
-      .getOrElse(defaultConfig.streamProcessedMessages)
+      val streamActors = config
+        .tryValue("stream-actors")(_.getBoolean)
+        .getOrElse(defaultConfig.streamActorsTotal)
 
-    val operatorProcessed = config
-      .tryValue("operator-processed")(_.getBoolean)
-      .getOrElse(defaultConfig.processedMessages)
+      val streamProcessed = config
+        .tryValue("stream-processed")(_.getBoolean)
+        .getOrElse(defaultConfig.streamProcessedMessages)
 
-    val runningOperators = config
-      .tryValue("running-operators")(_.getBoolean)
-      .getOrElse(defaultConfig.operators)
+      val operatorProcessed = config
+        .tryValue("operator-processed")(_.getBoolean)
+        .getOrElse(defaultConfig.processedMessages)
 
-    val demand = config
-      .tryValue("operator-demand")(_.getBoolean)
-      .getOrElse(defaultConfig.demand)
+      val runningOperators = config
+        .tryValue("running-operators")(_.getBoolean)
+        .getOrElse(defaultConfig.operators)
 
-    AkkaStreamModuleConfig(
-      runningStreamsTotal = runningStreams,
-      streamActorsTotal = streamActors,
-      streamProcessedMessages = streamProcessed,
-      processedMessages = operatorProcessed,
-      operators = runningOperators,
-      demand = demand
+      val demand = config
+        .tryValue("operator-demand")(_.getBoolean)
+        .getOrElse(defaultConfig.demand)
+
+      Impl[Boolean](
+        runningStreamsTotal = runningStreams,
+        streamActorsTotal = streamActors,
+        streamProcessedMessages = streamProcessed,
+        processedMessages = operatorProcessed,
+        operators = runningOperators,
+        demand = demand
+      )
+    } else Impl[Boolean](false, false, false, false, false, false)
+
+  }
+
+  override type AkkaJar[T] = Jars[T]
+
+  final case class Jars[T](akkaStream: T)
+
+  def jarsFromLibraryInfo(info: LibraryInfo): Option[AkkaJar[Version]] =
+    info.get(requiredAkkaJars.akkaStream).map(Jars.apply[Version])
+
+  val requiredAkkaJars: AkkaJar[String] = Jars("akka-stream")
+
+  implicit val combine: Combine[All[Boolean]] = (first, second) => {
+    Impl(
+      runningStreamsTotal = first.runningStreamsTotal && second.runningStreamsTotal,
+      streamActorsTotal = first.streamActorsTotal && second.streamActorsTotal,
+      streamProcessedMessages = first.streamProcessedMessages && second.streamProcessedMessages,
+      processedMessages = first.processedMessages && second.processedMessages,
+      operators = first.operators && second.operators,
+      demand = first.demand && second.demand
     )
   }
 
+  implicit val traverseAll: Traverse[All] = new Traverse[All] {
+    def sequence[T](obj: All[T]): Seq[T] = Seq(
+      obj.runningStreamsTotal,
+      obj.streamActorsTotal,
+      obj.streamProcessedMessages,
+      obj.processedMessages,
+      obj.operators,
+      obj.demand
+    )
+  }
 }

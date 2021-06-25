@@ -7,8 +7,8 @@ import io.scalac.mesmer.agent.akka.persistence.AkkaPersistenceAgent
 import io.scalac.mesmer.agent.akka.stream.AkkaStreamAgent
 import io.scalac.mesmer.agent.util.i13n.InstrumentModuleFactory
 import io.scalac.mesmer.agent.util.i13n.InstrumentModuleFactory._
-import io.scalac.mesmer.core.module.Module
-import io.scalac.mesmer.core.util.ModuleInfo.{ extractModulesInformation, Modules }
+import io.scalac.mesmer.core.module.{Module, RegisterGlobalConfiguration}
+import io.scalac.mesmer.core.util.LibraryInfo.{LibraryInfo, extractModulesInformation}
 import net.bytebuddy.ByteBuddy
 import net.bytebuddy.agent.ByteBuddyAgent
 import net.bytebuddy.agent.builder.AgentBuilder
@@ -16,17 +16,19 @@ import net.bytebuddy.dynamic.scaffold.TypeValidation
 import org.scalatest.TestSuite
 import org.scalatest.flatspec.AnyFlatSpecLike
 
-import java.net.{ URL, URLClassLoader }
+import java.net.{URL, URLClassLoader}
 import scala.util.Try
 
 object InstallAgent {
-  def allInstrumentations: Agent =
-    AkkaActorAgent.defaultAgent ++ AkkaHttpAgent.defaultAgent ++ AkkaPersistenceAgent.defaultAgent ++ AkkaStreamAgent.defaultAgent
+  def allInstrumentations(info: LibraryInfo): Agent = AkkaActorAgent.defaultAgent(info) ++
+    AkkaHttpAgent.defaultAgent(info) ++
+    AkkaPersistenceAgent.defaultAgent(info) ++
+    AkkaStreamAgent.defaultAgent(info)
 }
 
 abstract class InstallAgent extends TestSuite {
 
-  def modules: Modules = extractModulesInformation(Thread.currentThread().getContextClassLoader)
+  def modules: LibraryInfo = extractModulesInformation(Thread.currentThread().getContextClassLoader)
 
   protected var agent: Option[Agent] = None
 
@@ -44,7 +46,7 @@ abstract class InstallAgent extends TestSuite {
     val instrumentation = ByteBuddyAgent.install()
 
     agent.fold[Unit](throw new AssertionError("Agent must be set")) {
-      _.installOn(builder, instrumentation, modules)
+      _.installOn(builder, instrumentation)
         .eagerLoad()
     }
   }
@@ -84,18 +86,18 @@ final class PrefixChildFirstClassLoader(prefix: Vector[String], urls: Array[URL]
 
 }
 
-abstract class InstallModule[M <: Module](moduleFactory: InstrumentModuleFactory[M]) extends InstallAgent {
+abstract class InstallModule[M <: Module with RegisterGlobalConfiguration](moduleFactory: InstrumentModuleFactory[M]) extends InstallAgent {
   this: AnyFlatSpecLike =>
 
-  def withVersion(versions: moduleFactory.module.All[Boolean]*)(name: String)(test: => Any): Any =
-    versions.foreach { version =>
-      it should s"$name with $version" in withAgent { () =>
-        agent = Some(moduleFactory.agent(version))
-        println(s"Class loader: ${Thread.currentThread().getContextClassLoader}")
-        println(s"Class loader parent: ${Thread.currentThread().getContextClassLoader.getParent}")
-        println(s"Class loader 2xparent: ${Thread.currentThread().getContextClassLoader.getParent.getParent}")
-      }(() => test)
-
-    }
+//  def withVersion(versions: moduleFactory.module.All[Boolean]*)(name: String)(test: => Any): Any =
+//    versions.foreach { version =>
+//      it should s"$name with $version" in withAgent { () =>
+//        agent = Some(moduleFactory.initAgent(version))
+//        println(s"Class loader: ${Thread.currentThread().getContextClassLoader}")
+//        println(s"Class loader parent: ${Thread.currentThread().getContextClassLoader.getParent}")
+//        println(s"Class loader 2xparent: ${Thread.currentThread().getContextClassLoader.getParent.getParent}")
+//      }(() => test)
+//
+//    }
 
 }

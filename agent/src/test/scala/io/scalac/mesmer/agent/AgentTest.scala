@@ -1,79 +1,40 @@
 package io.scalac.mesmer.agent
 
-import java.lang.instrument.Instrumentation
-
+import io.scalac.mesmer.agent.Agent.LoadingResult
 import net.bytebuddy.agent.ByteBuddyAgent
 import net.bytebuddy.agent.builder.AgentBuilder
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
-import io.scalac.mesmer.agent.Agent.LoadingResult
-import io.scalac.mesmer.core.model.Module
-import io.scalac.mesmer.core.model.SupportedModules
-import io.scalac.mesmer.core.model.SupportedVersion
-import io.scalac.mesmer.core.model.Version
-import io.scalac.mesmer.core.util.ModuleInfo.Modules
+import java.lang.instrument.Instrumentation
 
 class AgentTest extends AnyFlatSpec with Matchers {
 
-  val testModuleOne: Module     = Module("test-module-1")
-  val testModuleTwo: Module     = Module("test-module-2")
-  val moduleOneVersion: Version = Version(2, 2, 2)
-  val moduleTwoVersion: Version = Version(3, 3, 3)
-  val modules: Modules          = Map(testModuleOne -> moduleOneVersion, testModuleTwo -> moduleTwoVersion)
+  def returning(result: LoadingResult): (AgentBuilder, Instrumentation) => LoadingResult = (_, _) => result
 
-  type Fixture = (Instrumentation, AgentBuilder)
+  behavior of "Agent"
 
-  def test(body: Fixture => Any): Any = {
+  it should "keep one copy of equal instrumentation" in {
 
-    val instrumentation = ByteBuddyAgent.install()
-    val builder         = new AgentBuilder.Default()
-    Function.untupled(body)(instrumentation, builder)
+    val agentInstrumentationOne = AgentInstrumentation("name", Set("tag"))(returning(LoadingResult.empty))
+    val agentInstrumentationTwo = AgentInstrumentation("name", Set("tag"))(returning(LoadingResult.empty))
+
+    val agent = Agent(agentInstrumentationOne, agentInstrumentationTwo)
+
+    agent.instrumentations should have size (1)
   }
 
-  def returning(result: LoadingResult): (AgentBuilder, Instrumentation, Modules) => LoadingResult = (_, _, _) => result
+  it should "combine result from different agent instrumentations" in {
 
-  "Agent" should "execute instrumenting function when version match" in test { case (instrumentation, builder) =>
-    val supportedModules = modules.foldLeft(SupportedModules.empty) { case (supported, (module, version)) =>
-      supported ++ (module, SupportedVersion(version))
-    }
-    val expectedResult = LoadingResult("some.class", "other.class")
-    val sut            = Agent(AgentInstrumentation("sut", supportedModules, Set.empty)(returning(expectedResult)))
-    sut.installOn(builder, instrumentation, modules) shouldBe expectedResult
+    val agentInstrumentationOne   = AgentInstrumentation("test_name_one", Set("tag"))(returning(LoadingResult("one")))
+    val agentInstrumentationTwo   = AgentInstrumentation("test_name_one", Set.empty)(returning(LoadingResult("two")))
+    val agentInstrumentationThree = AgentInstrumentation("test_name_two", Set("tag"))(returning(LoadingResult("three")))
+
+    val expectedResult = LoadingResult(Seq("one", "two", "three"))
+
+    val agent = Agent(agentInstrumentationOne, agentInstrumentationTwo, agentInstrumentationThree)
+
+    agent.installOn(new AgentBuilder.Default(), ByteBuddyAgent.install()) should be(expectedResult)
   }
 
-  it should "not execute instrumenting when no version match" in test { case (instrumentation, builder) =>
-    val supportedModules = modules.foldLeft(SupportedModules.empty) { case (supported, (module, _)) =>
-      supported ++ (module, SupportedVersion.none)
-    }
-    val expectedResult = LoadingResult("some.class", "other.class")
-    val sut            = Agent(AgentInstrumentation("sut", supportedModules,Set.empty)(returning(expectedResult)))
-    sut.installOn(builder, instrumentation, modules) shouldBe LoadingResult.empty
-  }
-
-  it should "not execute instrumenting when any version doesn't match" in test { case (instrumentation, builder) =>
-    val supportedModules = modules.foldLeft(SupportedModules.empty) { case (supported, (module, version)) =>
-      supported ++ (module, SupportedVersion(version))
-    } ++ (testModuleOne, SupportedVersion.none)
-    val expectedResult = LoadingResult("some.class", "other.class")
-    val sut            = Agent(AgentInstrumentation("sut", supportedModules, Set.empty)(returning(expectedResult)))
-    sut.installOn(builder, instrumentation, modules) shouldBe LoadingResult.empty
-  }
-
-  it should "partially instrument when several agent instrumentations are defined" in test {
-    case (instrumentation, builder) =>
-      val successfulInstrumentationResult = LoadingResult("some.class")
-      val successfulInstrumentation =
-        AgentInstrumentation("success", SupportedModules(testModuleOne, SupportedVersion(moduleOneVersion)), Set.empty)(
-          returning(successfulInstrumentationResult)
-        )
-      val failingInstrumentationResult = LoadingResult("other.class")
-      val failingInstrumentation =
-        AgentInstrumentation("success", SupportedModules(testModuleTwo, SupportedVersion.none), Set.empty)(
-          returning(failingInstrumentationResult)
-        )
-      val sut = Agent(successfulInstrumentation) ++ failingInstrumentation
-
-      sut.installOn(builder, instrumentation, modules) shouldBe successfulInstrumentationResult
-  }
 }

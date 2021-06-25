@@ -2,24 +2,20 @@ package io.scalac.mesmer.agent.akka.http
 
 import io.scalac.mesmer.agent.Agent
 import io.scalac.mesmer.agent.util.i13n._
-import io.scalac.mesmer.core.model.SupportedModules
+import io.scalac.mesmer.core.model.Version
 import io.scalac.mesmer.core.module.AkkaHttpModule
-import io.scalac.mesmer.core.support.ModulesSupport
+import io.scalac.mesmer.core.module.AkkaHttpModule._
 
 object AkkaHttpAgent
     extends InstrumentModuleFactory(AkkaHttpModule)
-    with AkkaHttpModule.AkkaHttpConnectionsMetricsDef[Agent]
-    with AkkaHttpModule.AkkaHttpRequestMetricsDef[Agent] {
+    with AkkaHttpModule.AkkaHttpConnectionsMetricsDef[AkkaHttpModule.AkkaJar[Version] => Option[Agent]]
+    with AkkaHttpModule.AkkaHttpRequestMetricsDef[AkkaHttpModule.AkkaJar[Version] => Option[Agent]] {
 
-  // @ToDo tests all supported versions
-  protected val supportedModules: SupportedModules =
-    SupportedModules(ModulesSupport.akkaHttpModule, ModulesSupport.akkaHttp)
+  def requestTime: AkkaHttpModule.Jars[Version] => Option[Agent] = _ => Some(requestEvents) // Version => Option[Agent]
 
-  def requestTime: Agent = requestEvents
+  def requestCounter: AkkaHttpModule.Jars[Version] => Option[Agent] = _ => Some(requestEvents)
 
-  def requestCounter: Agent = requestEvents
-
-  def connections: Agent = connectionEvents
+  def connections: AkkaHttpModule.Jars[Version] => Option[Agent] = _ => Some(connectionEvents)
 
   private lazy val requestEvents =
     Agent(
@@ -33,12 +29,26 @@ object AkkaHttpAgent
         .visit[HttpExtConnectionsAdvice]("bindAndHandle")
     )
 
-  def agent(config: AkkaHttpModule.All[Boolean]): Agent = {
+  /**
+   * @param config configuration of features that are wanted by the user
+   * @param jars   versions of required jars to deduce which features can be enabled
+   * @return Some if feature can be enabled, None otherwise
+   */
+  override def agent(
+    config: AkkaHttpModule.All[Boolean],
+    jars: AkkaHttpModule.Jars[Version]
+  ): (Agent, AkkaHttpModule.All[Boolean]) = {
+    val requestCounterAgent = if (config.requestCounter) requestCounter(jars) else None
+    val requestTimeAgent    = if (config.requestTime) requestTime(jars) else None
+    val connectionsAgent    = if (config.connections) connections(jars) else None
 
-    val requestCounterAgent = if (config.requestCounter) requestCounter else Agent.empty
-    val requestTimeAgent    = if (config.requestTime) requestTime else Agent.empty
-    val connectionsAgent    = if (config.connections) connections else Agent.empty
+    val resultantAgent = requestCounterAgent.getOrElse(Agent.empty) ++ requestTimeAgent.getOrElse(
+      Agent.empty
+    ) ++ connectionsAgent.getOrElse(Agent.empty)
 
-    requestCounterAgent ++ requestTimeAgent ++ connectionsAgent
+    val enabled = Impl[Boolean](requestCounterAgent.isDefined, requestTimeAgent.isDefined, connectionsAgent.isDefined)
+
+    (resultantAgent, enabled)
   }
+
 }
