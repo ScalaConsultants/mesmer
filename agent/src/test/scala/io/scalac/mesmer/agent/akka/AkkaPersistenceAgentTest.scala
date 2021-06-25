@@ -1,7 +1,6 @@
 package io.scalac.mesmer.agent.akka
 
 import java.util.UUID
-
 import _root_.akka.actor.testkit.typed.scaladsl.TestProbe
 import _root_.akka.actor.typed.receptionist.Receptionist
 import _root_.akka.actor.typed.receptionist.Receptionist.Deregister
@@ -13,28 +12,24 @@ import org.scalatest.flatspec.AnyFlatSpecLike
 import org.scalatest.matchers.should.Matchers
 
 import scala.concurrent.duration._
-
 import io.scalac.mesmer.agent.akka.persistence.AkkaPersistenceAgent
-import io.scalac.mesmer.agent.utils.DummyEventSourcedActor
+import io.scalac.mesmer.agent.utils.{DummyEventSourcedActor, InstallAgent, InstallModule, SafeLoadSystem}
 import io.scalac.mesmer.agent.utils.DummyEventSourcedActor.DoNothing
 import io.scalac.mesmer.agent.utils.DummyEventSourcedActor.Persist
-import io.scalac.mesmer.agent.utils.InstallAgent
-import io.scalac.mesmer.agent.utils.SafeLoadSystem
 import io.scalac.mesmer.core.event.PersistenceEvent
 import io.scalac.mesmer.core.event.PersistenceEvent._
+import io.scalac.mesmer.core.module.AkkaPersistenceModule
 import io.scalac.mesmer.core.persistenceServiceKey
 import io.scalac.mesmer.core.util.ReceptionistOps
 
-class AkkaPersistenceAgentSpec
-    extends InstallAgent
+class AkkaPersistenceAgentTest
+    extends InstallModule(AkkaPersistenceAgent)
     with AnyFlatSpecLike
     with Matchers
     with ScalaFutures
     with OptionValues
     with ReceptionistOps
     with SafeLoadSystem {
-
-//  override protected val agent = AkkaPersistenceAgent.agent
 
   implicit val askTimeout: Timeout = Timeout(1.minute)
 
@@ -49,6 +44,8 @@ class AkkaPersistenceAgentSpec
   }
 
   "AkkaPersistenceAgent" should "generate only recovery events" in test { monitor =>
+
+    agent.instrumentations should have size(4)
     val id = UUID.randomUUID()
     Receptionist(system).ref ! Register(persistenceServiceKey, monitor.ref)
 

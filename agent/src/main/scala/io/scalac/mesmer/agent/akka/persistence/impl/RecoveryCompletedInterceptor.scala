@@ -6,31 +6,15 @@ import io.scalac.mesmer.agent.akka.persistence.AkkaPersistenceAgent
 import io.scalac.mesmer.core.event.EventBus
 import io.scalac.mesmer.core.event.PersistenceEvent.RecoveryFinished
 import io.scalac.mesmer.core.model._
-import io.scalac.mesmer.core.util.Timestamp
+import io.scalac.mesmer.core.util.{ ReflectionFieldUtils, Timestamp }
 import net.bytebuddy.asm.Advice
 
-import scala.util.Try
+object RecoveryCompletedInterceptor extends PersistenceUtils {
 
-object RecoveryCompletedInterceptor {
 
-  private lazy val setupField = {
-    val setup = Class.forName("akka.persistence.typed.internal.ReplayingEvents").getDeclaredField("setup")
-    setup.setAccessible(true)
-    setup
-  }
+  private lazy val persistenceIdHandle =
+    ReflectionFieldUtils.chain(replayingEventsSetupGetter, behaviorSetupPersistenceId)
 
-  private lazy val persistenceIdField = {
-    val persistenceId = Class.forName("akka.persistence.typed.internal.BehaviorSetup").getDeclaredField("persistenceId")
-    persistenceId.setAccessible(true)
-    persistenceId
-  }
-
-  val persistenceIdExtractor: Any => Try[PersistenceId] = ref => {
-    for {
-      setup         <- Try(setupField.get(ref))
-      persistenceId <- Try(persistenceIdField.get(setup))
-    } yield persistenceId.asInstanceOf[PersistenceId]
-  }
   import AkkaPersistenceAgent.logger
   @Advice.OnMethodEnter
   def enter(
@@ -39,14 +23,12 @@ object RecoveryCompletedInterceptor {
   ): Unit = {
     val path = actorContext.self.path.toPath
     logger.trace("Recovery completed for {}", path)
+    val persistenceId = persistenceIdHandle.invoke(thiz).asInstanceOf[PersistenceId]
 
-    persistenceIdExtractor(thiz).fold(
-      _.printStackTrace(),
-      persistenceId =>
-        EventBus(actorContext.system)
-          .publishEvent(
-            RecoveryFinished(path, persistenceId.id, Timestamp.create())
-          )
-    )
+    EventBus(actorContext.system)
+      .publishEvent(
+        RecoveryFinished(path, persistenceId.id, Timestamp.create())
+      )
+
   }
 }

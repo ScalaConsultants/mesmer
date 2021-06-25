@@ -7,6 +7,7 @@ import io.scalac.mesmer.core.event.PersistenceEvent.PersistingEventFinished
 import io.scalac.mesmer.core.model._
 import io.scalac.mesmer.core.util.Timestamp
 import net.bytebuddy.asm.Advice._
+
 object PersistingEventSuccessInterceptor {
 
   @OnMethodEnter

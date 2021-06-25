@@ -1,10 +1,25 @@
 package io.scalac.mesmer.agent.util.i13n
 import com.typesafe.config.Config
 import io.scalac.mesmer.agent.Agent
+import io.scalac.mesmer.agent.util.i13n.InstrumentationDSL.NameDSL
 import io.scalac.mesmer.agent.util.i13n.InstrumentationDetails.FQCN
 import io.scalac.mesmer.core.model.Version
 import io.scalac.mesmer.core.module.{ MesmerModule, Module, RegisterGlobalConfiguration }
 import io.scalac.mesmer.core.util.LibraryInfo.LibraryInfo
+import net.bytebuddy.description.`type`.TypeDescription
+import net.bytebuddy.description.method.MethodDescription
+import net.bytebuddy.matcher.ElementMatchers
+object InstrumentationDSL {
+  final class NameDSL(private val value: String) extends AnyVal {
+    def method: MethodDesc = ElementMatchers.named[MethodDescription](value)
+    def `type`: TypeDesc   = ElementMatchers.named[TypeDescription](value)
+  }
+}
+
+sealed trait InstrumentationDSL {
+
+  protected def named(name: String): NameDSL = new NameDSL(name)
+}
 
 object InstrumentModuleFactory {
   protected class StringDlsOps(private val value: (String, Module)) extends AnyVal {
@@ -24,7 +39,9 @@ object InstrumentModuleFactory {
 
   }
 
-  implicit class FactoryOps[M <: MesmerModule with RegisterGlobalConfiguration](private val factory: InstrumentModuleFactory[M]) extends AnyVal {
+  implicit class FactoryOps[M <: MesmerModule with RegisterGlobalConfiguration](
+    private val factory: InstrumentModuleFactory[M]
+  ) extends AnyVal {
 
     def defaultAgent(jarsInfo: LibraryInfo): Agent =
       factory
@@ -33,7 +50,8 @@ object InstrumentModuleFactory {
   }
 }
 
-abstract class InstrumentModuleFactory[M <: Module with RegisterGlobalConfiguration](val module: M) {
+abstract class InstrumentModuleFactory[M <: Module with RegisterGlobalConfiguration](val module: M)
+    extends InstrumentationDSL {
   /*
     Requiring all features to be a function from versions to Option[Agent] we allow there to create different instrumentations depending
     on runtime version of jars. TODO add information on which versions are supported

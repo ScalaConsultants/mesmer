@@ -8,9 +8,9 @@ import java.lang.instrument.Instrumentation
 
 object Agent {
 
-  def apply(head: AgentInstrumentation, tail: AgentInstrumentation*): Agent = new Agent((head +: tail).toSet)
+  def apply(head: AgentInstrumentation, tail: AgentInstrumentation*): Agent = new Agent(Set.from(head +: tail))
 
-  val empty: Agent = new Agent(Set.empty)
+  val empty: Agent = new Agent(Set.empty[AgentInstrumentation])
 
   class LoadingResult(val fqns: Set[String]) {
     import LoadingResult.{ logger => loadingLogger }
@@ -45,10 +45,10 @@ object Agent {
 
 object AgentInstrumentation {
 
-  def apply(name: String, tags: Set[String])(
+  def apply(name: String, tags: Set[String], deferred: Boolean)(
     installation: (AgentBuilder, Instrumentation) => LoadingResult
   ): AgentInstrumentation =
-    new AgentInstrumentation(name, tags) {
+    new AgentInstrumentation(name, tags, deferred) {
       def apply(builder: AgentBuilder, instrumentation: Instrumentation): LoadingResult =
         installation(builder, instrumentation)
     }
@@ -57,9 +57,11 @@ object AgentInstrumentation {
 
 sealed abstract case class AgentInstrumentation(
   name: String,
-  tags: Set[String]
+  tags: Set[String],
+  private val deferred: Boolean
 ) extends ((AgentBuilder, Instrumentation) => LoadingResult)
-    with Equals {
+    with Equals
+    with Ordered[AgentInstrumentation] {
 
   override def hashCode(): Int = name.hashCode()
 
@@ -70,6 +72,8 @@ sealed abstract case class AgentInstrumentation(
       tags == that.tags && name == that.name
     case _ => false
   }
+
+  final def compare(that: AgentInstrumentation): Int = Ordering[Boolean].compare(this.deferred, that.deferred)
 }
 
 final case class Agent private (private[agent] val instrumentations: Set[AgentInstrumentation]) extends {
@@ -80,7 +84,7 @@ final case class Agent private (private[agent] val instrumentations: Set[AgentIn
   def ++(other: AgentInstrumentation): Agent = Agent(instrumentations + other)
 
   def installOn(builder: AgentBuilder, instrumentation: Instrumentation): LoadingResult =
-    instrumentations.map { agentInstrumentation =>
+    instrumentations.toSeq.sorted.map { agentInstrumentation =>
       agentInstrumentation(builder, instrumentation)
 
     }.fold(LoadingResult.empty)(_ ++ _)

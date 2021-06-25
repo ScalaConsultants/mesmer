@@ -1,21 +1,21 @@
 package io.scalac.mesmer.agent.akka.actor
 
-import akka.AkkaMirror.{ActorRefWithCell, Cell}
+import akka.AkkaMirror.{ ActorRefWithCell, Cell }
 import akka.dispatch._
 import akka.util.BoundedBlockingQueue
-import akka.{actor => classic}
+import akka.{ actor => classic }
 import io.scalac.mesmer.agent.util.i13n._
-import io.scalac.mesmer.agent.{Agent, AgentInstrumentation}
+import io.scalac.mesmer.agent.{ Agent, AgentInstrumentation }
 import io.scalac.mesmer.core.util.ReflectionFieldUtils
 import io.scalac.mesmer.extension.actor.ActorCellDecorator
 import net.bytebuddy.asm.Advice
 import net.bytebuddy.description.`type`.TypeDescription
-import net.bytebuddy.implementation.bind.annotation.{SuperCall, This}
-import net.bytebuddy.implementation.{FieldAccessor, MethodDelegation}
+import net.bytebuddy.implementation.bind.annotation.{ SuperCall, This }
+import net.bytebuddy.implementation.{ FieldAccessor, MethodDelegation }
 import net.bytebuddy.matcher.ElementMatchers
 
-import java.util.concurrent.{BlockingQueue, Callable, LinkedBlockingQueue}
-import scala.reflect.{ClassTag, classTag}
+import java.util.concurrent.{ BlockingQueue, Callable, LinkedBlockingQueue }
+import scala.reflect.{ classTag, ClassTag }
 
 object BoundedNodeMessageQueueAdvice {
 
@@ -113,7 +113,7 @@ private[actor] trait AkkaMailboxInstrumentations {
   )
     .defineField[BlockingQueue[_]](ProxiedQueue.queueFieldName)
     .visit[ProxiedQueue](constructor)
-    .intercept(ElementMatchers.named("queue"), FieldAccessor.ofField(ProxiedQueue.queueFieldName))
+    .intercept(named("queue").method, FieldAccessor.ofField(ProxiedQueue.queueFieldName))
 
   /**
    * Instrumentation that increase dropped messages if enqueue was a failure and bounded queue is in use
@@ -124,6 +124,7 @@ private[actor] trait AkkaMailboxInstrumentations {
   )
     .visit(BoundedNodeMessageQueueAdvice, "enqueue")
 
-  protected val boundedQueueAgent = Agent(boundedQueueBasesMailbox, boundedQueueBasedMailboxes, boundedMessageQueueSemantics)
+  protected val boundedQueueAgent =
+    Agent(boundedQueueBasesMailbox, boundedQueueBasedMailboxes, boundedMessageQueueSemantics)
 
 }

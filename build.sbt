@@ -103,7 +103,6 @@ lazy val agent = (project in file("agent"))
     Test / testOnly / fork := (Test / fork).value,
     Test / testGrouping := ((Test / testGrouping).value flatMap { group =>
       group.tests.map { test =>
-        println(test)
         Tests.Group(name = test.name, tests = Seq(test), runPolicy = group.runPolicy)
       }
     }),

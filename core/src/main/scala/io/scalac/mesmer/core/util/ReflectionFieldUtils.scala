@@ -1,9 +1,9 @@
 package io.scalac.mesmer.core.util
 
-import java.lang.invoke.MethodHandle
-import java.lang.reflect.Field
-
 import io.scalac.mesmer.core.invoke.Lookup
+
+import java.lang.invoke.{ MethodHandle, MethodHandles }
+import java.lang.reflect.Field
 
 object ReflectionFieldUtils extends Lookup {
 
@@ -39,4 +39,6 @@ object ReflectionFieldUtils extends Lookup {
     field
   }
 
+  def chain(first: MethodHandle, second: MethodHandle): MethodHandle =
+    MethodHandles.collectArguments(second, 0, first)
 }

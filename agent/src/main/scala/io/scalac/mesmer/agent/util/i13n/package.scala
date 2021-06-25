@@ -14,8 +14,8 @@ import scala.reflect.{ classTag, ClassTag }
 
 package object i13n {
 
-  final private[i13n] type TypeDesc   = ElementMatcher.Junction[TypeDescription]
-  final private[i13n] type MethodDesc = ElementMatcher.Junction[MethodDescription]
+  type TypeDesc   = ElementMatcher.Junction[TypeDescription]
+  type MethodDesc = ElementMatcher.Junction[MethodDescription]
 
   final case class InstrumentationDetails[S <: Status] private (name: String, tags: Set[String], isFQCN: Boolean)
 
@@ -67,8 +67,8 @@ package object i13n {
     def visit[A](advice: A, method: MethodDesc)(implicit isObject: A <:< Singleton): TypeInstrumentation =
       chain(_.visit(Advice.to(typeFromModule(advice.getClass)).on(method)))
 
-//    def intercept[A](advice: A, method: MethodDesc)(implicit isObject: A <:< Singleton): TypeInstrumentation =
-//      chain(_.method(method).intercept(Advice.to(typeFromModule(advice.getClass))))
+    def intercept[A](advice: A, method: MethodDesc)(implicit isObject: A <:< Singleton): TypeInstrumentation =
+      chain(_.method(method).intercept(Advice.to(typeFromModule(advice.getClass))))
 
     def intercept[T](method: MethodDesc)(implicit ct: ClassTag[T]): TypeInstrumentation =
       chain(_.method(method).intercept(Advice.to(ct.runtimeClass)))
@@ -90,7 +90,7 @@ package object i13n {
 
     private def typeFromModule(clazz: Class[_]): Class[_] = {
       val dollarFreeFQCN = clazz.getName.dropRight(1)
-      Class.forName(dollarFreeFQCN, true, clazz.getClassLoader)
+      Class.forName(dollarFreeFQCN, false, clazz.getClassLoader)
     }
 
     private def chain(that: Builder => Builder): TypeInstrumentation =
@@ -142,5 +142,11 @@ package object i13n {
   implicit def methodNameToMethodDesc(methodName: String): MethodDesc         = method(methodName)
   implicit def classNameToTypeDesc(className: String): TypeDesc               = EM.named[TypeDescription](className)
   implicit def typeToAgentInstrumentation(typeInstrumentation: TypeInstrumentation): AgentInstrumentation =
-    AgentInstrumentationFactory(typeInstrumentation)
+    AgentInstrumentationFactory(typeInstrumentation, Seq.empty, false)
+
+  implicit final class LoadingOps(private val value: TypeInstrumentation) extends AnyRef {
+    def withLoad(fqcn: String, fqcns: String*): AgentInstrumentation =
+      AgentInstrumentationFactory(value, fqcn +: fqcns, false)
+    def deferred: AgentInstrumentation = AgentInstrumentationFactory(value, Seq.empty, true)
+  }
 }

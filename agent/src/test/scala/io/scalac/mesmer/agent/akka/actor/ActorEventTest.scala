@@ -14,9 +14,7 @@ import org.scalatest.matchers.should.Matchers
 import org.scalatest.time.Span
 
 import scala.concurrent.duration._
-
-import io.scalac.mesmer.agent.utils.InstallAgent
-import io.scalac.mesmer.agent.utils.SafeLoadSystem
+import io.scalac.mesmer.agent.utils.{InstallAgent, InstallModule, SafeLoadSystem}
 import io.scalac.mesmer.core.event.ActorEvent
 import io.scalac.mesmer.core.event.ActorEvent.ActorCreated
 import io.scalac.mesmer.core.event.Service.actorService
@@ -26,7 +24,7 @@ import io.scalac.mesmer.core.util.TestBehaviors.Pass
 import io.scalac.mesmer.core.util.TestCase.CommonMonitorTestFactory
 
 class ActorEventTest
-    extends InstallAgent
+    extends InstallModule(AkkaActorAgent)
     with SafeLoadSystem
     with AnyFlatSpecLike
     with Matchers
