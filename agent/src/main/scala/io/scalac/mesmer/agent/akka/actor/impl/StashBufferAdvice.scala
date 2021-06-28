@@ -2,9 +2,8 @@ package io.scalac.mesmer.agent.akka.actor.impl
 
 import akka.actor.typed.scaladsl.ActorContext
 import akka.actor.typed.scaladsl.adapter._
+import io.scalac.mesmer.core.actor.ActorCellDecorator
 import net.bytebuddy.asm.Advice
-
-import io.scalac.mesmer.extension.actor.ActorCellDecorator
 
 object StashBufferAdvice {
 

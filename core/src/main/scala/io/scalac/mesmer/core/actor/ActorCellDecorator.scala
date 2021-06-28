@@ -1,9 +1,6 @@
-package io.scalac.mesmer.extension.actor
+package io.scalac.mesmer.core.actor
 
-import akka.dispatch.MailboxType
-import akka.dispatch.SingleConsumerOnlyUnboundedMailbox
-import akka.dispatch.UnboundedMailbox
-
+import akka.dispatch.{MailboxType, SingleConsumerOnlyUnboundedMailbox, UnboundedMailbox}
 import io.scalac.mesmer.core.util.ReflectionFieldUtils
 
 object ActorCellDecorator {

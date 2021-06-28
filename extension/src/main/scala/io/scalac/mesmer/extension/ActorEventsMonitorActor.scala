@@ -2,7 +2,6 @@ package io.scalac.mesmer.extension
 
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicReference
-
 import akka.Done
 import akka.actor.typed._
 import akka.actor.typed.receptionist.Receptionist.Listing
@@ -10,13 +9,13 @@ import akka.actor.typed.scaladsl.ActorContext
 import akka.actor.typed.scaladsl.Behaviors
 import akka.actor.typed.scaladsl.TimerScheduler
 import akka.util.Timeout
-import akka.{ actor => classic }
+import akka.{actor => classic}
+import io.scalac.mesmer.core.actor.ActorCellDecorator
 import org.slf4j.LoggerFactory
 
 import scala.concurrent.duration._
 import scala.util.Failure
 import scala.util.Success
-
 import io.scalac.mesmer.core.akka.actorPathPartialOrdering
 import io.scalac.mesmer.core.model.ActorKey
 import io.scalac.mesmer.core.model.ActorRefDetails
@@ -26,7 +25,6 @@ import io.scalac.mesmer.core.util.ActorCellOps
 import io.scalac.mesmer.core.util.ActorPathOps
 import io.scalac.mesmer.core.util.ActorRefOps
 import io.scalac.mesmer.extension.ActorEventsMonitorActor._
-import io.scalac.mesmer.extension.actor.ActorCellDecorator
 import io.scalac.mesmer.extension.actor.ActorMetrics
 import io.scalac.mesmer.extension.actor.MetricStorageFactory
 import io.scalac.mesmer.extension.metric.ActorMetricsMonitor
@@ -171,7 +169,7 @@ private[extension] class ActorEventsMonitorActor private[extension] (
     processingTimeMax.setUpdater(updateMetric(_.processingTime.map(_.max)))
     processingTimeSum.setUpdater(updateMetric(_.processingTime.map(_.sum)))
     sentMessages.setUpdater(updateMetric(_.sentMessages))
-    stashSize.setUpdater(updateMetric(_.stashSize))
+    stashedMessages.setUpdater(updateMetric(_.stashSize))
     droppedMessages.setUpdater(updateMetric(_.droppedMessages))
 
   }

@@ -7,13 +7,13 @@ import java.util.concurrent.locks.ReentrantLock
 import scala.collection.mutable.ListBuffer
 import scala.jdk.CollectionConverters._
 
-import io.scalac.mesmer.core.util.AggMetric.LongValueAggMetric
+import io.scalac.mesmer.core.util.MinMaxSumCountAggregation.LongMinMaxSumCountAggregationImpl
 import io.scalac.mesmer.core.util.TimeSeries.LongTimeSeries
 
 // TODO Can we generalize it?
 final class LongNoLockAggregator(val maxSize: Int = 100, val compactionRemainingSize: Int = 25) {
 
-  private[this] val aggRef        = new AtomicReference[Option[LongValueAggMetric]](None)
+  private[this] val aggRef        = new AtomicReference[Option[LongMinMaxSumCountAggregationImpl]](None)
   private[this] val reentrantLock = new ReentrantLock()
 
   @volatile
@@ -33,7 +33,7 @@ final class LongNoLockAggregator(val maxSize: Int = 100, val compactionRemaining
     }
   }
 
-  def fetch(): Option[LongValueAggMetric] = {
+  def fetch(): Option[LongMinMaxSumCountAggregationImpl] = {
     val snapshot = aggRef.get()
     if (compacting) { // producer is compacting queue, return stale data
       snapshot
@@ -59,7 +59,9 @@ final class LongNoLockAggregator(val maxSize: Int = 100, val compactionRemaining
         val ts = new LongTimeSeries(listBuffer.toSeq)
         aggRef
           .get()
-          .fold(aggRef.set(Some(LongValueAggMetric.fromTimeSeries(ts))))(agg => aggRef.set(Some(agg.sum(ts))))
+          .fold(aggRef.set(Some(LongMinMaxSumCountAggregationImpl.fromTimeSeries(ts))))(agg =>
+            aggRef.set(Some(agg.sum(ts)))
+          )
         true
       } finally reentrantLock.unlock()
     } else false

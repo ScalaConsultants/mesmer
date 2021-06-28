@@ -19,7 +19,7 @@ class OpenTelemetryActorMetricsMonitorTest extends AnyFlatSpec with Matchers {
       mailboxTimeMax = true,
       mailboxTimeSum = true,
       mailboxTimeCount = true,
-      stashSize = true,
+      stashedMessages = true,
       receivedMessages = true,
       processedMessages = true,
       failedMessages = true,
@@ -43,7 +43,7 @@ class OpenTelemetryActorMetricsMonitorTest extends AnyFlatSpec with Matchers {
     monitor.mailboxTimeMax should be(a[WrappedMetricObserver[_, _]])
     monitor.mailboxTimeSum should be(a[WrappedMetricObserver[_, _]])
     monitor.mailboxTimeCount should be(a[WrappedMetricObserver[_, _]])
-    monitor.stashSize should be(a[WrappedMetricObserver[_, _]])
+    monitor.stashedMessages should be(a[WrappedMetricObserver[_, _]])
     monitor.receivedMessages should be(a[WrappedMetricObserver[_, _]])
     monitor.processedMessages should be(a[WrappedMetricObserver[_, _]])
     monitor.failedMessages should be(a[WrappedMetricObserver[_, _]])
@@ -62,7 +62,7 @@ class OpenTelemetryActorMetricsMonitorTest extends AnyFlatSpec with Matchers {
       mailboxTimeMin = false,
       mailboxTimeMax = false,
       mailboxTimeSum = false,
-      stashSize = false,
+      stashedMessages = false,
       receivedMessages = false,
       processedMessages = false,
       failedMessages = false,
@@ -87,7 +87,7 @@ class OpenTelemetryActorMetricsMonitorTest extends AnyFlatSpec with Matchers {
     monitor.mailboxTimeMax should be(a[MetricObserver.NoopMetricObserver.type])
     monitor.mailboxTimeSum should be(a[MetricObserver.NoopMetricObserver.type])
     monitor.mailboxTimeCount should be(a[MetricObserver.NoopMetricObserver.type])
-    monitor.stashSize should be(a[MetricObserver.NoopMetricObserver.type])
+    monitor.stashedMessages should be(a[MetricObserver.NoopMetricObserver.type])
     monitor.receivedMessages should be(a[MetricObserver.NoopMetricObserver.type])
     monitor.processedMessages should be(a[MetricObserver.NoopMetricObserver.type])
     monitor.failedMessages should be(a[MetricObserver.NoopMetricObserver.type])

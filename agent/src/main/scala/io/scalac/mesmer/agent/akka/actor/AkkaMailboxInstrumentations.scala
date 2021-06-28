@@ -3,12 +3,11 @@ package io.scalac.mesmer.agent.akka.actor
 import java.util.concurrent.BlockingQueue
 import java.util.concurrent.Callable
 import java.util.concurrent.LinkedBlockingQueue
-
 import akka.AkkaMirror.ActorRefWithCell
 import akka.AkkaMirror.Cell
 import akka.dispatch._
 import akka.util.BoundedBlockingQueue
-import akka.{ actor => classic }
+import akka.{actor => classic}
 import net.bytebuddy.asm.Advice
 import net.bytebuddy.description.`type`.TypeDescription
 import net.bytebuddy.implementation.FieldAccessor
@@ -19,12 +18,11 @@ import net.bytebuddy.matcher.ElementMatchers
 
 import scala.reflect.ClassTag
 import scala.reflect.classTag
-
 import io.scalac.mesmer.agent.Agent
 import io.scalac.mesmer.agent.AgentInstrumentation
 import io.scalac.mesmer.agent.util.i13n._
+import io.scalac.mesmer.core.actor.ActorCellDecorator
 import io.scalac.mesmer.core.util.ReflectionFieldUtils
-import io.scalac.mesmer.extension.actor.ActorCellDecorator
 
 object BoundedNodeMessageQueueAdvice {
 

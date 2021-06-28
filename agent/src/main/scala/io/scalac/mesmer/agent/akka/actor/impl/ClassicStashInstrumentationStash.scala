@@ -2,14 +2,12 @@ package io.scalac.mesmer.agent.akka.actor.impl
 
 import java.lang.invoke.MethodHandles
 import java.lang.invoke.MethodType.methodType
-
 import akka.actor.Actor
 import akka.actor.ActorContext
+import io.scalac.mesmer.core.actor.ActorCellDecorator
 import net.bytebuddy.asm.Advice.Argument
 import net.bytebuddy.asm.Advice.OnMethodExit
 import net.bytebuddy.asm.Advice.This
-
-import io.scalac.mesmer.extension.actor.ActorCellDecorator
 
 object StashConstructorAdvice {
 

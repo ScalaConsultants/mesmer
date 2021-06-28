@@ -4,7 +4,7 @@ import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicLong
 import java.util.concurrent.atomic.AtomicReference
 
-import io.scalac.mesmer.core.util.AggMetric.LongValueAggMetric
+import io.scalac.mesmer.core.util.MinMaxSumCountAggregation.LongMinMaxSumCountAggregationImpl
 
 object MetricsToolKit {
 
@@ -23,9 +23,9 @@ object MetricsToolKit {
   }
 
   final class TimeAggregation {
-    private[core] val aggregator            = new LongNoLockAggregator()
-    def add(time: Interval): Unit           = aggregator.push(time)
-    def metrics: Option[LongValueAggMetric] = aggregator.fetch()
+    private[core] val aggregator                           = new LongNoLockAggregator()
+    def add(time: Interval): Unit                          = aggregator.push(time)
+    def metrics: Option[LongMinMaxSumCountAggregationImpl] = aggregator.fetch()
   }
 
   final class Timer {

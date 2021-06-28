@@ -17,7 +17,7 @@ sealed trait AkkaActorMetrics extends MetricsModule {
     def mailboxTimeMax: T
     def mailboxTimeSum: T
     def mailboxTimeCount: T
-    def stashSize: T
+    def stashedMessages: T
     def receivedMessages: T
     def processedMessages: T
     def failedMessages: T
@@ -41,7 +41,7 @@ object AkkaActorModule extends MesmerModule with AkkaActorMetrics with RegisterG
     mailboxTimeMax: T,
     mailboxTimeSum: T,
     mailboxTimeCount: T,
-    stashSize: T,
+    stashedMessages: T,
     receivedMessages: T,
     processedMessages: T,
     failedMessages: T,
@@ -85,7 +85,7 @@ object AkkaActorModule extends MesmerModule with AkkaActorMetrics with RegisterG
 
       val stashSize = config
         .tryValue("stash-size")(_.getBoolean)
-        .getOrElse(defaultConfig.stashSize)
+        .getOrElse(defaultConfig.stashedMessages)
 
       val receivedMessages = config
         .tryValue("received-messages")(_.getBoolean)
@@ -129,7 +129,7 @@ object AkkaActorModule extends MesmerModule with AkkaActorMetrics with RegisterG
         mailboxTimeMax = mailboxTimeMax,
         mailboxTimeSum = mailboxTimeSum,
         mailboxTimeCount = mailboxTimeCount,
-        stashSize = stashSize,
+        stashedMessages = stashSize,
         receivedMessages = receivedMessages,
         processedMessages = processedMessages,
         failedMessages = failedMessages,
@@ -166,7 +166,7 @@ object AkkaActorModule extends MesmerModule with AkkaActorMetrics with RegisterG
       mailboxTimeMax = first.mailboxTimeMax && second.mailboxTimeMax,
       mailboxTimeSum = first.mailboxTimeSum && second.mailboxTimeSum,
       mailboxTimeCount = first.mailboxTimeCount && second.mailboxTimeCount,
-      stashSize = first.stashSize && second.stashSize,
+      stashedMessages = first.stashedMessages && second.stashedMessages,
       receivedMessages = first.receivedMessages && second.receivedMessages,
       processedMessages = first.processedMessages && second.processedMessages,
       failedMessages = first.failedMessages && second.failedMessages,
@@ -186,7 +186,7 @@ object AkkaActorModule extends MesmerModule with AkkaActorMetrics with RegisterG
       obj.mailboxTimeMax,
       obj.mailboxTimeSum,
       obj.mailboxTimeCount,
-      obj.stashSize,
+      obj.stashedMessages,
       obj.receivedMessages,
       obj.processedMessages,
       obj.failedMessages,

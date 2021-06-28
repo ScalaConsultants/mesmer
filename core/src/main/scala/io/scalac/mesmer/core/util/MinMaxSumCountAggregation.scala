@@ -1,15 +1,15 @@
 package io.scalac.mesmer.core.util
 
-import io.scalac.mesmer.core.util.AggMetric.LongValueAggMetric.fromTimeSeries
+import io.scalac.mesmer.core.util.MinMaxSumCountAggregation.LongMinMaxSumCountAggregationImpl.fromTimeSeries
 
-sealed trait AggMetric[@specialized(Long) T] {
+sealed trait MinMaxSumCountAggregation[@specialized(Long) T] {
   def min: T
   def max: T
   def sum: T
-  def count: Int
+  def count: Long
 }
 
-object AggMetric {
+object MinMaxSumCountAggregation {
 
   /**
    * Case class with all aggregating values in milliseconds
@@ -19,9 +19,10 @@ object AggMetric {
    * @param sum
    * @param count
    */
-  final case class LongValueAggMetric(min: Long, max: Long, sum: Long, count: Int) extends AggMetric[Long] {
+  final case class LongMinMaxSumCountAggregationImpl(min: Long, max: Long, sum: Long, count: Long)
+      extends MinMaxSumCountAggregation[Long] {
 
-    def sum(timeSeries: TimeSeries[Long, Long]): LongValueAggMetric =
+    def sum(timeSeries: TimeSeries[Long, Long]): LongMinMaxSumCountAggregationImpl =
       sum(fromTimeSeries(timeSeries))
 
     /**
@@ -30,11 +31,11 @@ object AggMetric {
      * @param other
      * @return
      */
-    def sum(other: LongValueAggMetric): LongValueAggMetric = {
+    def sum(other: LongMinMaxSumCountAggregationImpl): LongMinMaxSumCountAggregationImpl = {
       val count = this.count + other.count
       val sum   = this.sum + other.sum
 
-      LongValueAggMetric(
+      LongMinMaxSumCountAggregationImpl(
         min = if (this.min < other.min) this.min else other.min,
         max = if (this.max > other.max) this.max else other.max,
         sum = sum,
@@ -48,13 +49,13 @@ object AggMetric {
      * @param next aggregations which min and max will be preserved
      * @return
      */
-    def addTo(next: LongValueAggMetric): LongValueAggMetric =
+    def addTo(next: LongMinMaxSumCountAggregationImpl): LongMinMaxSumCountAggregationImpl =
       next.copy(sum = next.sum + this.sum, count = next.count + this.count)
   }
 
-  final object LongValueAggMetric {
-    def fromTimeSeries(ts: TimeSeries[Long, Long]): LongValueAggMetric =
-      LongValueAggMetric(ts.min, ts.max, ts.sum, ts.count)
+  final object LongMinMaxSumCountAggregationImpl {
+    def fromTimeSeries(ts: TimeSeries[Long, Long]): LongMinMaxSumCountAggregationImpl =
+      LongMinMaxSumCountAggregationImpl(ts.min, ts.max, ts.sum, ts.count)
   }
 
 }

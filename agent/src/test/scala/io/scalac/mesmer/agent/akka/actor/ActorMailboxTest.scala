@@ -1,7 +1,6 @@
 package io.scalac.mesmer.agent.akka.actor
 
 import java.util.Comparator
-
 import akka.actor.ActorSystem
 import akka.actor.PoisonPill
 import akka.actor.typed.ActorRef
@@ -14,7 +13,7 @@ import akka.actor.typed.scaladsl.adapter._
 import akka.dispatch.BoundedPriorityMailbox
 import akka.dispatch.BoundedStablePriorityMailbox
 import akka.dispatch.Envelope
-import akka.{ actor => classic }
+import akka.{actor => classic}
 import com.typesafe.config.Config
 import com.typesafe.config.ConfigFactory
 import org.scalatest.concurrent.Eventually
@@ -24,15 +23,12 @@ import org.scalatest.matchers.should.Matchers
 import scala.annotation.unused
 import scala.concurrent.duration.Duration
 import scala.jdk.DurationConverters._
-
 import io.scalac.mesmer.agent.akka.actor.ActorMailboxTest.ClassicContextPublish
 import io.scalac.mesmer.agent.utils.InstallModule
 import io.scalac.mesmer.agent.utils.SafeLoadSystem
+import io.scalac.mesmer.core.actor.{ActorCellDecorator, ActorCellMetrics, DroppedMessagesCellMetrics}
 import io.scalac.mesmer.core.config.AkkaPatienceConfig
 import io.scalac.mesmer.core.util.TestOps
-import io.scalac.mesmer.extension.actor.ActorCellDecorator
-import io.scalac.mesmer.extension.actor.ActorCellMetrics
-import io.scalac.mesmer.extension.actor.DroppedMessagesCellMetrics
 
 final class HashCodePriorityMailbox(
   capacity: Int,

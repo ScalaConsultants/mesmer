@@ -4,11 +4,10 @@ import io.scalac.mesmer.agent.Agent
 import io.scalac.mesmer.agent.AgentInstrumentation
 import io.scalac.mesmer.agent.akka.actor.impl._
 import io.scalac.mesmer.agent.util.i13n._
+import io.scalac.mesmer.core.actor.{ActorCellDecorator, ActorCellMetrics}
 import io.scalac.mesmer.core.model._
 import io.scalac.mesmer.core.module.AkkaActorModule
 import io.scalac.mesmer.core.util.Timestamp
-import io.scalac.mesmer.extension.actor.ActorCellDecorator
-import io.scalac.mesmer.extension.actor.ActorCellMetrics
 
 object AkkaActorAgent
     extends InstrumentModuleFactory(AkkaActorModule)
@@ -29,7 +28,7 @@ object AkkaActorAgent
     val mailboxTimeMaxAgent      = if (config.mailboxTimeMax) mailboxTimeMax(jars) else None
     val mailboxTimeSumAgent      = if (config.mailboxTimeSum) mailboxTimeSum(jars) else None
     val mailboxTimeCountAgent    = if (config.mailboxTimeCount) mailboxTimeCount(jars) else None
-    val stashSizeAgent           = if (config.stashSize) stashSize(jars) else None
+    val stashedMessagesAgent     = if (config.stashedMessages) stashedMessages(jars) else None
     val receivedMessagesAgent    = if (config.receivedMessages) receivedMessages(jars) else None
     val processedMessagesAgent   = if (config.processedMessages) processedMessages(jars) else None
     val failedMessagesAgent      = if (config.failedMessages) failedMessages(jars) else None
@@ -45,7 +44,7 @@ object AkkaActorAgent
       mailboxTimeMaxAgent.getOrElse(Agent.empty) ++
       mailboxTimeSumAgent.getOrElse(Agent.empty) ++
       mailboxTimeCountAgent.getOrElse(Agent.empty) ++
-      stashSizeAgent.getOrElse(Agent.empty) ++
+      stashedMessagesAgent.getOrElse(Agent.empty) ++
       receivedMessagesAgent.getOrElse(Agent.empty) ++
       processedMessagesAgent.getOrElse(Agent.empty) ++
       failedMessagesAgent.getOrElse(Agent.empty) ++
@@ -62,7 +61,7 @@ object AkkaActorAgent
       mailboxTimeMax = mailboxTimeMaxAgent.isDefined,
       mailboxTimeSum = mailboxTimeSumAgent.isDefined,
       mailboxTimeCount = mailboxTimeCountAgent.isDefined,
-      stashSize = stashSizeAgent.isDefined,
+      stashedMessages = stashedMessagesAgent.isDefined,
       receivedMessages = receivedMessagesAgent.isDefined,
       processedMessages = processedMessagesAgent.isDefined,
       failedMessages = failedMessagesAgent.isDefined,
@@ -91,7 +90,7 @@ object AkkaActorAgent
   lazy val mailboxTimeCount: AkkaActorModule.AkkaJar[Version] => Option[Agent] = _ =>
     Some(sharedInstrumentation ++ mailboxInstrumentation)
 
-  lazy val stashSize: AkkaActorModule.AkkaJar[Version] => Option[Agent] = _ =>
+  lazy val stashedMessages: AkkaActorModule.AkkaJar[Version] => Option[Agent] = _ =>
     Some(sharedInstrumentation ++ classicStashInstrumentationAgent ++ stashBufferImplementation)
 
   lazy val receivedMessages: AkkaActorModule.AkkaJar[Version] => Option[Agent] = _ => Some(sharedInstrumentation)

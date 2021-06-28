@@ -264,8 +264,8 @@ final class OpenTelemetryActorMetricsMonitor(
     val mailboxTimeSum: MetricObserver[Long, ActorMetricsMonitor.Labels] =
       if (moduleConfig.mailboxTimeSum) mailboxTimeSumObserver.createObserver(this) else MetricObserver.noop
 
-    val stashSize: MetricObserver[Long, ActorMetricsMonitor.Labels] =
-      if (moduleConfig.stashSize) stashSizeCounter.createObserver(this) else MetricObserver.noop
+    val stashedMessages: MetricObserver[Long, ActorMetricsMonitor.Labels] =
+      if (moduleConfig.stashedMessages) stashSizeCounter.createObserver(this) else MetricObserver.noop
 
     val receivedMessages: MetricObserver[Long, ActorMetricsMonitor.Labels] =
       if (moduleConfig.receivedMessages) receivedMessagesSumObserver.createObserver(this) else MetricObserver.noop
