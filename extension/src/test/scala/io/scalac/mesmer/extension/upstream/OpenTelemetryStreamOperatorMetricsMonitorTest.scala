@@ -33,6 +33,7 @@ class OpenTelemetryStreamOperatorMetricsMonitorTest extends AnyFlatSpec with Mat
     bound.operators should be(a[WrappedMetricObserver[_, _]])
     bound.demand should be(a[WrappedMetricObserver[_, _]])
   }
+
   it should "bind to noop instruments if metric is disabled" in {
     val sut = new OpenTelemetryStreamOperatorMetricsMonitor(
       OpenTelemetryNoopMeter.instance,

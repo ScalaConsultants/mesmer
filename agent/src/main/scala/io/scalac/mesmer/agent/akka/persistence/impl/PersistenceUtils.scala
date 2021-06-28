@@ -1,7 +1,8 @@
 package io.scalac.mesmer.agent.akka.persistence.impl
 
-import io.scalac.mesmer.core.util.ReflectionFieldUtils
 import java.lang.invoke.MethodHandle
+
+import io.scalac.mesmer.core.util.ReflectionFieldUtils
 
 private[impl] trait PersistenceUtils {
 

@@ -35,7 +35,7 @@ final class MutableActorMetricStorageFactory[K] extends MetricStorageFactory[K] 
     def iterable: Iterable[(K, ActorMetrics)] = persistentBuffer.toVector
 
     def compute(key: K): this.type = {
-      val result = buffer.values.fold(ActorMetrics.empty)(_.combine(_))
+      val result = buffer.values.fold(ActorMetrics.empty)(_.sum(_))
       buffer.clear()
       save(key, result, true)
       this

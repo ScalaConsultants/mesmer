@@ -13,18 +13,18 @@ sealed trait AkkaActorMetrics extends MetricsModule {
 
   trait AkkaActorMetricsDef[T] {
     def mailboxSize: T
-    def mailboxTimeAvg: T
     def mailboxTimeMin: T
     def mailboxTimeMax: T
     def mailboxTimeSum: T
+    def mailboxTimeCount: T
     def stashSize: T
     def receivedMessages: T
     def processedMessages: T
     def failedMessages: T
-    def processingTimeAvg: T
     def processingTimeMin: T
     def processingTimeMax: T
     def processingTimeSum: T
+    def processingTimeCount: T
     def sentMessages: T
     def droppedMessages: T
   }
@@ -37,18 +37,18 @@ object AkkaActorModule extends MesmerModule with AkkaActorMetrics with RegisterG
 
   final case class Impl[T](
     mailboxSize: T,
-    mailboxTimeAvg: T,
     mailboxTimeMin: T,
     mailboxTimeMax: T,
     mailboxTimeSum: T,
+    mailboxTimeCount: T,
     stashSize: T,
     receivedMessages: T,
     processedMessages: T,
     failedMessages: T,
-    processingTimeAvg: T,
     processingTimeMin: T,
     processingTimeMax: T,
     processingTimeSum: T,
+    processingTimeCount: T,
     sentMessages: T,
     droppedMessages: T
   ) extends AkkaActorMetricsDef[T]
@@ -67,9 +67,9 @@ object AkkaActorModule extends MesmerModule with AkkaActorMetrics with RegisterG
         .tryValue("mailbox-size")(_.getBoolean)
         .getOrElse(defaultConfig.mailboxSize)
 
-      val mailboxTimeAvg = config
-        .tryValue("mailbox-time-avg")(_.getBoolean)
-        .getOrElse(defaultConfig.mailboxTimeAvg)
+      val mailboxTimeCount = config
+        .tryValue("mailbox-time-count")(_.getBoolean)
+        .getOrElse(defaultConfig.mailboxTimeCount)
 
       val mailboxTimeMin = config
         .tryValue("mailbox-time-min")(_.getBoolean)
@@ -99,9 +99,9 @@ object AkkaActorModule extends MesmerModule with AkkaActorMetrics with RegisterG
         .tryValue("failed-messages")(_.getBoolean)
         .getOrElse(defaultConfig.failedMessages)
 
-      val processingTimeAvg = config
-        .tryValue("processing-time-avg")(_.getBoolean)
-        .getOrElse(defaultConfig.processingTimeAvg)
+      val processingTimeCount = config
+        .tryValue("processing-time-count")(_.getBoolean)
+        .getOrElse(defaultConfig.processingTimeCount)
 
       val processingTimeMin = config
         .tryValue("processing-time-min")(_.getBoolean)
@@ -125,18 +125,18 @@ object AkkaActorModule extends MesmerModule with AkkaActorMetrics with RegisterG
 
       Impl[Boolean](
         mailboxSize = mailboxSize,
-        mailboxTimeAvg = mailboxTimeAvg,
         mailboxTimeMin = mailboxTimeMin,
         mailboxTimeMax = mailboxTimeMax,
         mailboxTimeSum = mailboxTimeSum,
+        mailboxTimeCount = mailboxTimeCount,
         stashSize = stashSize,
         receivedMessages = receivedMessages,
         processedMessages = processedMessages,
         failedMessages = failedMessages,
-        processingTimeAvg = processingTimeAvg,
         processingTimeMin = processingTimeMin,
         processingTimeMax = processingTimeMax,
         processingTimeSum = processingTimeSum,
+        processingTimeCount = processingTimeCount,
         sentMessages = sentMessages,
         droppedMessages = droppedMessages
       )
@@ -162,15 +162,15 @@ object AkkaActorModule extends MesmerModule with AkkaActorMetrics with RegisterG
   implicit val combineConfig: Combine[All[Boolean]] = (first, second) => {
     Impl(
       mailboxSize = first.mailboxSize && second.mailboxSize,
-      mailboxTimeAvg = first.mailboxTimeAvg && second.mailboxTimeAvg,
       mailboxTimeMin = first.mailboxTimeMin && second.mailboxTimeMin,
       mailboxTimeMax = first.mailboxTimeMax && second.mailboxTimeMax,
       mailboxTimeSum = first.mailboxTimeSum && second.mailboxTimeSum,
+      mailboxTimeCount = first.mailboxTimeCount && second.mailboxTimeCount,
       stashSize = first.stashSize && second.stashSize,
       receivedMessages = first.receivedMessages && second.receivedMessages,
       processedMessages = first.processedMessages && second.processedMessages,
       failedMessages = first.failedMessages && second.failedMessages,
-      processingTimeAvg = first.processingTimeAvg && second.processingTimeAvg,
+      processingTimeCount = first.processingTimeCount && second.processingTimeCount,
       processingTimeMin = first.processingTimeMin && second.processingTimeMin,
       processingTimeMax = first.processingTimeMax && second.processingTimeMax,
       processingTimeSum = first.processingTimeSum && second.processingTimeSum,
@@ -182,18 +182,18 @@ object AkkaActorModule extends MesmerModule with AkkaActorMetrics with RegisterG
   implicit val traverseAll: Traverse[All] = new Traverse[All] {
     def sequence[T](obj: AkkaActorModule.AkkaActorMetricsDef[T]): Seq[T] = Seq(
       obj.mailboxSize,
-      obj.mailboxTimeAvg,
       obj.mailboxTimeMin,
       obj.mailboxTimeMax,
       obj.mailboxTimeSum,
+      obj.mailboxTimeCount,
       obj.stashSize,
       obj.receivedMessages,
       obj.processedMessages,
       obj.failedMessages,
-      obj.processingTimeAvg,
       obj.processingTimeMin,
       obj.processingTimeMax,
       obj.processingTimeSum,
+      obj.processingTimeCount,
       obj.sentMessages,
       obj.droppedMessages
     )

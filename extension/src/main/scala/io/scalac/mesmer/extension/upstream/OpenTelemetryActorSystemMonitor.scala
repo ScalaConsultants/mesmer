@@ -7,10 +7,10 @@ import io.scalac.mesmer.core.config.MesmerConfiguration
 import io.scalac.mesmer.core.module.AkkaActorSystemModule
 import io.scalac.mesmer.extension.metric.ActorSystemMonitor
 import io.scalac.mesmer.extension.metric.ActorSystemMonitor.BoundMonitor
+import io.scalac.mesmer.extension.metric.Counter
 import io.scalac.mesmer.extension.metric.RegisterRoot
 import io.scalac.mesmer.extension.upstream.OpenTelemetryActorSystemMonitor.MetricNames
 import io.scalac.mesmer.extension.upstream.opentelemetry.SynchronousInstrumentFactory
-import io.scalac.mesmer.extension.metric.Counter
 
 object OpenTelemetryActorSystemMonitor {
 

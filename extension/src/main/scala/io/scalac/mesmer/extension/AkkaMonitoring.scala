@@ -18,7 +18,6 @@ import io.scalac.mesmer.core.module.AkkaHttpModule
 import io.scalac.mesmer.core.module.AkkaPersistenceModule
 import io.scalac.mesmer.core.module.Module._
 import io.scalac.mesmer.core.module._
-import io.scalac.mesmer.core.util.Timestamp
 import io.scalac.mesmer.extension.ActorEventsMonitorActor.ReflectiveActorMetricsReader
 import io.scalac.mesmer.extension.AkkaMonitoring.ExportInterval
 import io.scalac.mesmer.extension.actor.MutableActorMetricStorageFactory
@@ -158,8 +157,7 @@ final class AkkaMonitoring(private val system: ActorSystem[_], val config: AkkaM
               clusterNodeName,
               ExportInterval,
               new MutableActorMetricStorageFactory[ActorKey],
-              ReflectiveActorMetricsReader,
-              () => Timestamp.create()
+              ReflectiveActorMetricsReader
             )
           )
           .onFailure(SupervisorStrategy.restart),

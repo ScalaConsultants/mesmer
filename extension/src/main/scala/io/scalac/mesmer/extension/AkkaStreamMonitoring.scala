@@ -41,7 +41,7 @@ import io.scalac.mesmer.extension.config.CachingConfig
 import io.scalac.mesmer.extension.metric.MetricObserver.Result
 import io.scalac.mesmer.extension.metric.StreamMetricsMonitor
 import io.scalac.mesmer.extension.metric.StreamMetricsMonitor.EagerLabels
-import io.scalac.mesmer.extension.metric.StreamMetricsMonitor.{Labels => GlobalLabels}
+import io.scalac.mesmer.extension.metric.StreamMetricsMonitor.{ Labels => GlobalLabels }
 import io.scalac.mesmer.extension.metric.StreamOperatorMetricsMonitor
 import io.scalac.mesmer.extension.metric.StreamOperatorMetricsMonitor.Labels
 import io.scalac.mesmer.extension.service.ActorTreeService

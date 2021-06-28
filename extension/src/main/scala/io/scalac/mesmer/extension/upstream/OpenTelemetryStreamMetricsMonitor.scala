@@ -6,12 +6,12 @@ import io.opentelemetry.api.metrics.Meter
 import io.scalac.mesmer.core.config.MesmerConfiguration
 import io.scalac.mesmer.core.module.AkkaStreamModule
 import io.scalac.mesmer.extension.metric.MetricObserver
+import io.scalac.mesmer.extension.metric.MetricRecorder
 import io.scalac.mesmer.extension.metric.RegisterRoot
 import io.scalac.mesmer.extension.metric.StreamMetricsMonitor
 import io.scalac.mesmer.extension.upstream.OpenTelemetryStreamMetricsMonitor.MetricNames
 import io.scalac.mesmer.extension.upstream.opentelemetry.LongSumObserverBuilderAdapter
 import io.scalac.mesmer.extension.upstream.opentelemetry.SynchronousInstrumentFactory
-import io.scalac.mesmer.extension.metric.MetricRecorder
 
 object OpenTelemetryStreamMetricsMonitor {
   final case class MetricNames(runningStreams: String, streamActors: String, streamProcessed: String)
@@ -90,7 +90,7 @@ final class OpenTelemetryStreamMetricsMonitor(
         metricRecorder(streamActorsTotalRecorder, openTelemetryLabels).register(this)
       else noopMetricRecorder
 
-    lazy val streamProcessedMessages: MetricObserver[Long,Labels] =
+    lazy val streamProcessedMessages: MetricObserver[Long, Labels] =
       if (moduleConfig.streamProcessedMessages) {
         streamProcessedMessagesBuilder.createObserver(this)
       } else MetricObserver.noop

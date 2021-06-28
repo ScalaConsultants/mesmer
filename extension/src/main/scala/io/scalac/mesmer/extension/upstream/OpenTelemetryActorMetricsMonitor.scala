@@ -15,18 +15,18 @@ object OpenTelemetryActorMetricsMonitor {
 
   final case class MetricNames(
     mailboxSize: String,
-    mailboxTimeAvg: String,
     mailboxTimeMin: String,
     mailboxTimeMax: String,
     mailboxTimeSum: String,
+    mailboxTimeCount: String,
     stashedMessages: String,
     receivedMessages: String,
     processedMessages: String,
     failedMessages: String,
-    processingTimeAvg: String,
     processingTimeMin: String,
     processingTimeMax: String,
     processingTimeSum: String,
+    processingTimeCount: String,
     sentMessages: String,
     droppedMessages: String
   )
@@ -40,9 +40,9 @@ object OpenTelemetryActorMetricsMonitor {
         .tryValue("mailbox-size")(_.getString)
         .getOrElse(defaultConfig.mailboxSize)
 
-      val mailboxTimeAvg = config
-        .tryValue("mailbox-time-avg")(_.getString)
-        .getOrElse(defaultConfig.mailboxTimeAvg)
+      val mailboxTimeCount = config
+        .tryValue("mailbox-time-count")(_.getString)
+        .getOrElse(defaultConfig.mailboxTimeCount)
 
       val mailboxTimeMin = config
         .tryValue("mailbox-time-min")(_.getString)
@@ -72,9 +72,9 @@ object OpenTelemetryActorMetricsMonitor {
         .tryValue("failed-messages")(_.getString)
         .getOrElse(defaultConfig.failedMessages)
 
-      val processingTimeAvg = config
-        .tryValue("processing-time-avg")(_.getString)
-        .getOrElse(defaultConfig.processingTimeAvg)
+      val processingTimeCount = config
+        .tryValue("processing-time-count")(_.getString)
+        .getOrElse(defaultConfig.processingTimeCount)
 
       val processingTimeMin = config
         .tryValue("processing-time-min")(_.getString)
@@ -97,21 +97,21 @@ object OpenTelemetryActorMetricsMonitor {
         .getOrElse(defaultConfig.droppedMessages)
 
       MetricNames(
-        mailboxSize,
-        mailboxTimeAvg,
-        mailboxTimeMin,
-        mailboxTimeMax,
-        mailboxTimeSum,
-        stashSize,
-        receivedMessages,
-        processedMessages,
-        failedMessages,
-        processingTimeAvg,
-        processingTimeMin,
-        processingTimeMax,
-        processingTimeSum,
-        sentMessages,
-        droppedMessages
+        mailboxSize = mailboxSize,
+        mailboxTimeMin = mailboxTimeMin,
+        mailboxTimeMax = mailboxTimeMax,
+        mailboxTimeSum = mailboxTimeSum,
+        mailboxTimeCount = mailboxTimeCount,
+        stashedMessages = stashSize,
+        receivedMessages = receivedMessages,
+        processedMessages = processedMessages,
+        failedMessages = failedMessages,
+        processingTimeMin = processingTimeMin,
+        processingTimeMax = processingTimeMax,
+        processingTimeSum = processingTimeSum,
+        processingTimeCount = processingTimeCount,
+        sentMessages = sentMessages,
+        droppedMessages = droppedMessages
       )
     }
 
@@ -157,10 +157,10 @@ final class OpenTelemetryActorMetricsMonitor(
       .setDescription("Tracks the size of an Actor's mailbox")
   )
 
-  private lazy val mailboxTimeAvgObserver = new LongMetricObserverBuilderAdapter[ActorMetricsMonitor.Labels](
+  private lazy val mailboxTimeCountObserver = new LongMetricObserverBuilderAdapter[ActorMetricsMonitor.Labels](
     meter
-      .longValueObserverBuilder(metricNames.mailboxTimeAvg)
-      .setDescription("Tracks the average time of an message in an Actor's mailbox")
+      .longValueObserverBuilder(metricNames.mailboxTimeCount)
+      .setDescription("Tracks the count of messages in an Actor's mailbox")
   )
 
   private lazy val mailboxTimeMinObserver = new LongMetricObserverBuilderAdapter[ActorMetricsMonitor.Labels](
@@ -205,10 +205,10 @@ final class OpenTelemetryActorMetricsMonitor(
       .setDescription("Tracks the sum of failed messages in an Actor")
   )
 
-  private lazy val processingTimeAvgObserver = new LongMetricObserverBuilderAdapter[ActorMetricsMonitor.Labels](
+  private lazy val processingTimeCountObserver = new LongMetricObserverBuilderAdapter[ActorMetricsMonitor.Labels](
     meter
-      .longValueObserverBuilder(metricNames.processingTimeAvg)
-      .setDescription("Tracks the average processing time of an message in an Actor's receive handler")
+      .longValueObserverBuilder(metricNames.processingTimeCount)
+      .setDescription("Tracks the amount of processed messages")
   )
 
   private lazy val processingTimeMinObserver = new LongMetricObserverBuilderAdapter[ActorMetricsMonitor.Labels](
@@ -252,8 +252,8 @@ final class OpenTelemetryActorMetricsMonitor(
     val mailboxSize: MetricObserver[Long, ActorMetricsMonitor.Labels] =
       if (moduleConfig.mailboxSize) mailboxSizeObserver.createObserver(this) else MetricObserver.noop
 
-    val mailboxTimeAvg: MetricObserver[Long, ActorMetricsMonitor.Labels] =
-      if (moduleConfig.mailboxTimeAvg) mailboxTimeAvgObserver.createObserver(this) else MetricObserver.noop
+    val mailboxTimeCount: MetricObserver[Long, ActorMetricsMonitor.Labels] =
+      if (moduleConfig.mailboxTimeCount) mailboxTimeCountObserver.createObserver(this) else MetricObserver.noop
 
     val mailboxTimeMin: MetricObserver[Long, ActorMetricsMonitor.Labels] =
       if (moduleConfig.mailboxTimeMin) mailboxTimeMinObserver.createObserver(this) else MetricObserver.noop
@@ -276,8 +276,8 @@ final class OpenTelemetryActorMetricsMonitor(
     val failedMessages: MetricObserver[Long, ActorMetricsMonitor.Labels] =
       if (moduleConfig.failedMessages) failedMessagesSumObserver.createObserver(this) else MetricObserver.noop
 
-    val processingTimeAvg: MetricObserver[Long, ActorMetricsMonitor.Labels] =
-      if (moduleConfig.processingTimeAvg) processingTimeAvgObserver.createObserver(this) else MetricObserver.noop
+    val processingTimeCount: MetricObserver[Long, ActorMetricsMonitor.Labels] =
+      if (moduleConfig.processingTimeCount) processingTimeCountObserver.createObserver(this) else MetricObserver.noop
 
     val processingTimeMin: MetricObserver[Long, ActorMetricsMonitor.Labels] =
       if (moduleConfig.processingTimeMin) processingTimeMinObserver.createObserver(this) else MetricObserver.noop

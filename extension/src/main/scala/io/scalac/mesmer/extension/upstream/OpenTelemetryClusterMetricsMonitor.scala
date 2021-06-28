@@ -2,6 +2,7 @@ package io.scalac.mesmer.extension.upstream
 
 import com.typesafe.config.Config
 import io.opentelemetry.api.metrics.Meter
+import io.opentelemetry.api.metrics.common.Labels
 
 import io.scalac.mesmer.core.config.MesmerConfiguration
 import io.scalac.mesmer.core.module.AkkaClusterModule
@@ -9,7 +10,6 @@ import io.scalac.mesmer.extension.metric.ClusterMetricsMonitor
 import io.scalac.mesmer.extension.metric._
 import io.scalac.mesmer.extension.upstream.OpenTelemetryClusterMetricsMonitor.MetricNames
 import io.scalac.mesmer.extension.upstream.opentelemetry._
-import io.opentelemetry.api.metrics.common.Labels
 
 object OpenTelemetryClusterMetricsMonitor {
   final case class MetricNames(

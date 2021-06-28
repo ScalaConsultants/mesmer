@@ -2,15 +2,16 @@ package io.scalac.mesmer.extension.upstream
 
 import com.typesafe.config.Config
 import io.opentelemetry.api.metrics.Meter
+import io.opentelemetry.api.metrics.common
 
 import io.scalac.mesmer.core.config.MesmerConfiguration
 import io.scalac.mesmer.core.module.AkkaHttpModule
+import io.scalac.mesmer.extension.metric.Counter
 import io.scalac.mesmer.extension.metric.HttpMetricsMonitor
+import io.scalac.mesmer.extension.metric.MetricRecorder
 import io.scalac.mesmer.extension.metric.RegisterRoot
 import io.scalac.mesmer.extension.upstream.OpenTelemetryHttpMetricsMonitor.MetricNames
 import io.scalac.mesmer.extension.upstream.opentelemetry._
-import io.opentelemetry.api.metrics.common
-import io.scalac.mesmer.extension.metric.{ Counter, MetricRecorder }
 
 object OpenTelemetryHttpMetricsMonitor {
   final case class MetricNames(
