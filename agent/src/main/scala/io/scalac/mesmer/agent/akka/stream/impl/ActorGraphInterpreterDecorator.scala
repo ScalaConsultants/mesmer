@@ -2,7 +2,7 @@ package io.scalac.mesmer.agent.akka.stream.impl
 
 import java.lang.invoke.MethodType.methodType
 
-import akka.AkkaMirrorTypes.GraphInterpreterShellMirror
+import akka.MesmerMirrorTypes.GraphInterpreterShellMirror
 import akka.actor.Actor
 import akka.actor.typed.scaladsl.adapter._
 import akka.stream.GraphLogicOps._

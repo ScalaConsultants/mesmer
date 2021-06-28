@@ -1,6 +1,6 @@
 package akka.stream.impl.fusing
 
-import akka.AkkaMirrorTypes.GraphInterpreterShellMirror
+import akka.MesmerMirrorTypes.GraphInterpreterShellMirror
 import akka.actor.Actor
 import akka.stream.impl.fusing.ActorGraphInterpreter.BoundaryEvent
 import net.bytebuddy.asm.Advice

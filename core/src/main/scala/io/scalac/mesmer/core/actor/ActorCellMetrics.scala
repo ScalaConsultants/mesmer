@@ -25,7 +25,7 @@ trait DroppedMessagesCellMetrics extends ActorCellMetrics {
 }
 
 //trait CellMetrics {
-//  def mailboxTimeAgg:
+//  def mailboxTimeAgg
 //  def processingTimeAgg
 //  def processingTimer
 //  def receivedMessages
@@ -37,17 +37,17 @@ trait DroppedMessagesCellMetrics extends ActorCellMetrics {
 //  def stashSize
 //  def droppedMessages
 //}
-//
-//
-//final class CellMetricsImpl {
-//  val mailboxTimeAgg: TimeAggregation    = new TimeAggregation()
-//  val processingTimeAgg: TimeAggregation = new TimeAggregation()
-//  val processingTimer: Timer           = new Timer
-//  val receivedMessages: Counter        = new Counter
-//  val processedMessages: Counter       = new Counter
-//  val unhandledMessages: Counter       = new Counter
-//  val sentMessages: Counter            = new Counter
-//  val failedMessages: Counter          = new Counter
-//  val exceptionHandledMarker: Marker   = new Marker
-//  val stashSize: UninitializedCounter  = new UninitializedCounter
-//}
+
+
+final class CellMetricsImpl {
+  val mailboxTimeAgg: TimeAggregation    = new TimeAggregation()
+  val processingTimeAgg: TimeAggregation = new TimeAggregation()
+  val processingTimer: Timer           = new Timer
+  val receivedMessages: Counter        = new Counter
+  val processedMessages: Counter       = new Counter
+  val unhandledMessages: Counter       = new Counter
+  val sentMessages: Counter            = new Counter
+  val failedMessages: Counter          = new Counter
+  val exceptionHandledMarker: Marker   = new Marker
+  val stashSize: UninitializedCounter  = new UninitializedCounter
+}

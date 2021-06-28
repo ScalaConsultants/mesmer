@@ -3,8 +3,8 @@ package io.scalac.mesmer.agent.akka.actor
 import java.util.concurrent.BlockingQueue
 import java.util.concurrent.Callable
 import java.util.concurrent.LinkedBlockingQueue
-import akka.AkkaMirror.ActorRefWithCell
-import akka.AkkaMirror.Cell
+import akka.MesmerMirrorTypes.ActorRefWithCell
+import akka.MesmerMirrorTypes.Cell
 import akka.dispatch._
 import akka.util.BoundedBlockingQueue
 import akka.{actor => classic}
