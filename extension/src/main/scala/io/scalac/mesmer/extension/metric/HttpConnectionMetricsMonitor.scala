@@ -1,7 +1,10 @@
 package io.scalac.mesmer.extension.metric
 
 import io.scalac.mesmer.core.LabelSerializable
-import io.scalac.mesmer.core.model.{ Interface, Node, Port, RawLabels }
+import io.scalac.mesmer.core.model.Interface
+import io.scalac.mesmer.core.model.Node
+import io.scalac.mesmer.core.model.Port
+import io.scalac.mesmer.core.model.RawLabels
 import io.scalac.mesmer.core.module.AkkaHttpModule._
 
 object HttpConnectionMetricsMonitor {

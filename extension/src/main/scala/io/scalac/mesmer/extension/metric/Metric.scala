@@ -1,9 +1,10 @@
 package io.scalac.mesmer.extension.metric
 
-import io.scalac.mesmer.extension.metric.SyncWith.UpdaterPair
-
 import java.util.concurrent.atomic.AtomicInteger
+
 import scala.annotation.tailrec
+
+import io.scalac.mesmer.extension.metric.SyncWith.UpdaterPair
 
 sealed trait Metric[-T]
 

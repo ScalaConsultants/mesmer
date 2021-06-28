@@ -5,42 +5,50 @@ import akka.actor.typed.receptionist.Receptionist.Register
 import akka.actor.typed.scaladsl.Behaviors
 import akka.cluster.Cluster
 import akka.util.Timeout
-import io.scalac.mesmer.core.AkkaDispatcher
-import io.scalac.mesmer.core.model._
-import io.scalac.mesmer.core.module.Module._
-import io.scalac.mesmer.core.module.{ AkkaHttpModule, AkkaPersistenceModule, _ }
-import io.scalac.mesmer.core.util.Timestamp
-import io.scalac.mesmer.extension.ActorEventsMonitorActor.ReflectiveActorMetricsReader
-import io.scalac.mesmer.extension.AkkaMonitoring.ExportInterval
-import io.scalac.mesmer.extension.actor.MutableActorMetricStorageFactory
-import io.scalac.mesmer.extension.config.{ AkkaMonitoringConfig, CachingConfig, InstrumentationLibrary }
-import io.scalac.mesmer.extension.http.CleanableRequestStorage
-import io.scalac.mesmer.extension.metric.CachingMonitor
-import io.scalac.mesmer.extension.persistence.{ CleanablePersistingStorage, CleanableRecoveryStorage }
-import io.scalac.mesmer.extension.service._
-import io.scalac.mesmer.extension.upstream.{ OpenTelemetryClusterMetricsMonitor, _ }
 
 import scala.concurrent.duration._
 import scala.language.postfixOps
-import scala.reflect.{ classTag, ClassTag }
+import scala.reflect.ClassTag
+import scala.reflect.classTag
 import scala.util.Try
 
-object AkkaMonitoring extends ExtensionId[AkkaMonitoring] {
+import io.scalac.mesmer.core.AkkaDispatcher
+import io.scalac.mesmer.core.model._
+import io.scalac.mesmer.core.module.AkkaHttpModule
+import io.scalac.mesmer.core.module.AkkaPersistenceModule
+import io.scalac.mesmer.core.module.Module._
+import io.scalac.mesmer.core.module._
+import io.scalac.mesmer.core.util.Timestamp
+import io.scalac.mesmer.extension.ActorEventsMonitorActor.ReflectiveActorMetricsReader
+import io.scalac.mesmer.extension.Mesmer.ExportInterval
+import io.scalac.mesmer.extension.actor.MutableActorMetricStorageFactory
+import io.scalac.mesmer.extension.config.AkkaMonitoringConfig
+import io.scalac.mesmer.extension.config.CachingConfig
+import io.scalac.mesmer.extension.config.InstrumentationLibrary
+import io.scalac.mesmer.extension.http.CleanableRequestStorage
+import io.scalac.mesmer.extension.metric.CachingMonitor
+import io.scalac.mesmer.extension.persistence.CleanablePersistingStorage
+import io.scalac.mesmer.extension.persistence.CleanableRecoveryStorage
+import io.scalac.mesmer.extension.service._
+import io.scalac.mesmer.extension.upstream._
+
+object Mesmer extends ExtensionId[Mesmer] {
 
   private val ExportInterval = 5.seconds
 
-  def createExtension(system: ActorSystem[_]): AkkaMonitoring = {
+  def createExtension(system: ActorSystem[_]): Mesmer = {
     val config = AkkaMonitoringConfig(system.settings.config)
-    new AkkaMonitoring(system, config)
+    new Mesmer(system, config)
   }
 }
 
-final class AkkaMonitoring(private val system: ActorSystem[_], val config: AkkaMonitoringConfig) extends Extension {
+final class Mesmer(private val system: ActorSystem[_], val config: AkkaMonitoringConfig) extends Extension {
   import system.log
 
-  private val meter                              = InstrumentationLibrary.mesmerMeter
-  private val actorSystemConfig                  = system.settings.config
-  private val openTelemetryClusterMetricsMonitor = OpenTelemetryClusterMetricsMonitor(meter, actorSystemConfig)
+  private val meter             = InstrumentationLibrary.mesmerMeter
+  private val actorSystemConfig = system.settings.config
+  private val openTelemetryClusterMetricsMonitor =
+    OpenTelemetryClusterMetricsMonitor(meter, AkkaClusterModule.fromConfig(actorSystemConfig), actorSystemConfig)
 
   implicit private val timeout: Timeout = 5 seconds
 
@@ -110,8 +118,10 @@ final class AkkaMonitoring(private val system: ActorSystem[_], val config: AkkaM
     startWithConfig[AkkaActorModule.type](AkkaActorModule, akkaActorConfig) { _ =>
       val actorSystemMonitor = OpenTelemetryActorSystemMonitor(
         meter,
+        AkkaActorSystemModule.fromConfig(actorSystemConfig),
         actorSystemConfig
       )
+
       val actorConfigurationService = new ConfigBasedConfigurationService(system.settings.config)
 
       val serviceRef = system.systemActorOf(
@@ -164,10 +174,10 @@ final class AkkaMonitoring(private val system: ActorSystem[_], val config: AkkaM
   def startStreamMonitor(): Unit =
     startWithConfig[AkkaStreamModule.type](AkkaStreamModule, akkaStreamConfig) { moduleConfig =>
       log.debug("Start stream monitor")
-      val streamOperatorMonitor = OpenTelemetryStreamOperatorMetricsMonitor(meter, actorSystemConfig)
+      val streamOperatorMonitor = OpenTelemetryStreamOperatorMetricsMonitor(meter, moduleConfig, actorSystemConfig)
 
       val streamMonitor = CachingMonitor(
-        OpenTelemetryStreamMetricsMonitor(meter, actorSystemConfig),
+        OpenTelemetryStreamMetricsMonitor(meter, moduleConfig, actorSystemConfig),
         CachingConfig.fromConfig(actorSystemConfig, AkkaStreamModule)
       )
 
@@ -210,10 +220,10 @@ final class AkkaMonitoring(private val system: ActorSystem[_], val config: AkkaM
    * Start actor responsible for measuring akka persistence metrics
    */
   def startPersistenceMonitor(): Unit =
-    startWithConfig[AkkaPersistenceModule.type](AkkaPersistenceModule, akkaPersistenceConfig) { _ =>
+    startWithConfig[AkkaPersistenceModule.type](AkkaPersistenceModule, akkaPersistenceConfig) { moduleConfig =>
       val cachingConfig = CachingConfig.fromConfig(actorSystemConfig, AkkaPersistenceModule)
       val openTelemetryPersistenceMonitor = CachingMonitor(
-        OpenTelemetryPersistenceMetricsMonitor(meter, actorSystemConfig),
+        OpenTelemetryPersistenceMetricsMonitor(meter, moduleConfig, actorSystemConfig),
         cachingConfig
       )
       val pathService = new CachingPathService(cachingConfig)
@@ -254,7 +264,7 @@ final class AkkaMonitoring(private val system: ActorSystem[_], val config: AkkaM
         CachingMonitor(OpenTelemetryHttpMetricsMonitor(meter, moduleConfig, actorSystemConfig), cachingConfig)
 
       val openTelemetryHttpConnectionMonitor =
-        CachingMonitor(OpenTelemetryHttpConnectionMetricsMonitor(meter, actorSystemConfig), cachingConfig)
+        CachingMonitor(OpenTelemetryHttpConnectionMetricsMonitor(meter, moduleConfig, actorSystemConfig), cachingConfig)
 
       val pathService = new CachingPathService(cachingConfig)
 
@@ -275,7 +285,7 @@ final class AkkaMonitoring(private val system: ActorSystem[_], val config: AkkaM
     }
 
   private def autoStart(): Unit = {
-    import config.{autoStart => autoStartConfig}
+    import config.{ autoStart => autoStartConfig }
 
     if (autoStartConfig.akkaActor || autoStartConfig.akkaStream) {
       startActorTreeService()

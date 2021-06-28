@@ -2,11 +2,15 @@ package io.scalac.mesmer.extension.upstream
 
 import com.typesafe.config.Config
 import io.opentelemetry.api.metrics.Meter
+
 import io.scalac.mesmer.core.config.MesmerConfiguration
+import io.scalac.mesmer.core.module.AkkaActorSystemModule
+import io.scalac.mesmer.extension.metric.ActorSystemMonitor
 import io.scalac.mesmer.extension.metric.ActorSystemMonitor.BoundMonitor
-import io.scalac.mesmer.extension.metric.{ActorSystemMonitor, RegisterRoot}
+import io.scalac.mesmer.extension.metric.RegisterRoot
 import io.scalac.mesmer.extension.upstream.OpenTelemetryActorSystemMonitor.MetricNames
-import io.scalac.mesmer.extension.upstream.opentelemetry.{SynchronousInstrumentFactory, WrappedCounter}
+import io.scalac.mesmer.extension.upstream.opentelemetry.SynchronousInstrumentFactory
+import io.scalac.mesmer.extension.metric.Counter
 
 object OpenTelemetryActorSystemMonitor {
 
@@ -16,13 +20,13 @@ object OpenTelemetryActorSystemMonitor {
   )
 
   object MetricNames extends MesmerConfiguration[MetricNames] {
-    protected val defaultConfig: MetricNames =
+    val defaultConfig: MetricNames =
       MetricNames("akka_system_created_actors_total", "akka_system_terminated_actors_total")
 
     protected val mesmerConfig: String = "metrics.actor-system-metrics"
 
     protected def extractFromConfig(config: Config): MetricNames = {
-      val createdActors      = config.tryValue("created-actors")(_.getString).getOrElse(defaultConfig.createdActors)
+      val createdActors = config.tryValue("created-actors")(_.getString).getOrElse(defaultConfig.createdActors)
 
       val terminatedActors = config.tryValue("terminated-actors")(_.getString).getOrElse(defaultConfig.createdActors)
 
@@ -30,18 +34,26 @@ object OpenTelemetryActorSystemMonitor {
     }
   }
 
-  def apply(meter: Meter, config: Config): OpenTelemetryActorSystemMonitor =
-    new OpenTelemetryActorSystemMonitor(meter, MetricNames.fromConfig(config))
+  def apply(
+    meter: Meter,
+    moduleConfig: AkkaActorSystemModule.All[Boolean],
+    config: Config
+  ): OpenTelemetryActorSystemMonitor =
+    new OpenTelemetryActorSystemMonitor(meter, moduleConfig, MetricNames.fromConfig(config))
 
 }
-final class OpenTelemetryActorSystemMonitor(val meter: Meter, metricNames: MetricNames) extends ActorSystemMonitor {
+final class OpenTelemetryActorSystemMonitor(
+  val meter: Meter,
+  moduleConfig: AkkaActorSystemModule.All[Boolean],
+  metricNames: MetricNames
+) extends ActorSystemMonitor {
 
-  private val createdActorsCounter = meter
+  private lazy val createdActorsCounter = meter
     .longCounterBuilder(metricNames.createdActors)
     .setDescription("Amount of actors created measured from Actor System start")
     .build()
 
-  private val terminatedActorsCounter = meter
+  private lazy val terminatedActorsCounter = meter
     .longCounterBuilder(metricNames.terminatedActors)
     .setDescription("Amount of actors terminated measured from Actor System start")
     .build()
@@ -55,8 +67,10 @@ final class OpenTelemetryActorSystemMonitor(val meter: Meter, metricNames: Metri
       with SynchronousInstrumentFactory {
     private[this] val otLabels = LabelsFactory.of(labels.serialize)
 
-    override lazy val createdActors: WrappedCounter = counter(createdActorsCounter, otLabels)(this)
+    lazy val createdActors: Counter[Long] =
+      if (moduleConfig.createdActors) counter(createdActorsCounter, otLabels)(this) else noopCounter
 
-    override lazy val terminatedActors: WrappedCounter = counter(terminatedActorsCounter, otLabels)(this)
+    lazy val terminatedActors: Counter[Long] =
+      if (moduleConfig.terminatedActors) counter(terminatedActorsCounter, otLabels)(this) else noopCounter
   }
 }

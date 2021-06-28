@@ -1,10 +1,11 @@
 package io.scalac.mesmer.agent
 
-import io.scalac.mesmer.agent.Agent.LoadingResult
+import java.lang.instrument.Instrumentation
+
 import net.bytebuddy.agent.builder.AgentBuilder
 import org.slf4j.LoggerFactory
 
-import java.lang.instrument.Instrumentation
+import io.scalac.mesmer.agent.Agent.LoadingResult
 
 object Agent {
 

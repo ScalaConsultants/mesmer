@@ -1,7 +1,8 @@
 package io.scalac.mesmer.agent.akka.stream.impl
 
-import io.scalac.mesmer.agent.akka.stream.impl.ConnectionOps._
 import net.bytebuddy.asm.Advice._
+
+import io.scalac.mesmer.agent.akka.stream.impl.ConnectionOps._
 
 object GraphInterpreterPushAdvice {
 

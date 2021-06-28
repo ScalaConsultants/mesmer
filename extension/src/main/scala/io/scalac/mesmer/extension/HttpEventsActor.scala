@@ -1,17 +1,22 @@
 package io.scalac.mesmer.extension
 
+import akka.actor.typed.Behavior
+import akka.actor.typed.PostStop
 import akka.actor.typed.receptionist.Receptionist
-import akka.actor.typed.receptionist.Receptionist.{ Deregister, Register }
+import akka.actor.typed.receptionist.Receptionist.Deregister
+import akka.actor.typed.receptionist.Receptionist.Register
 import akka.actor.typed.scaladsl.Behaviors
-import akka.actor.typed.{ Behavior, PostStop }
 import akka.util.Timeout
+
 import io.scalac.mesmer.core._
 import io.scalac.mesmer.core.event.HttpEvent
 import io.scalac.mesmer.core.event.HttpEvent._
-import io.scalac.mesmer.core.model.{ Method, Path, _ }
-import io.scalac.mesmer.core.module.AkkaHttpModule
+import io.scalac.mesmer.core.model.Method
+import io.scalac.mesmer.core.model.Path
+import io.scalac.mesmer.core.model._
 import io.scalac.mesmer.extension.http.RequestStorage
-import io.scalac.mesmer.extension.metric.{ HttpConnectionMetricsMonitor, HttpMetricsMonitor }
+import io.scalac.mesmer.extension.metric.HttpConnectionMetricsMonitor
+import io.scalac.mesmer.extension.metric.HttpMetricsMonitor
 import io.scalac.mesmer.extension.service.PathService
 
 class HttpEventsActor

@@ -1,12 +1,15 @@
 package io.scalac.mesmer.agent.akka.persistence.impl
 
-import akka.actor.typed.scaladsl.{ AbstractBehavior, ActorContext }
+import akka.actor.typed.scaladsl.AbstractBehavior
+import akka.actor.typed.scaladsl.ActorContext
 import akka.persistence.SaveSnapshotSuccess
+import net.bytebuddy.asm.Advice._
+
 import io.scalac.mesmer.core.event.EventBus
 import io.scalac.mesmer.core.event.PersistenceEvent.SnapshotCreated
 import io.scalac.mesmer.core.model._
-import io.scalac.mesmer.core.util.{ ReflectionFieldUtils, Timestamp }
-import net.bytebuddy.asm.Advice._
+import io.scalac.mesmer.core.util.ReflectionFieldUtils
+import io.scalac.mesmer.core.util.Timestamp
 
 object StoringSnapshotInterceptor extends PersistenceUtils {
 

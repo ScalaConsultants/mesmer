@@ -1,14 +1,17 @@
 package io.scalac.mesmer.agent.util.i13n
 import com.typesafe.config.Config
+import net.bytebuddy.description.`type`.TypeDescription
+import net.bytebuddy.description.method.MethodDescription
+import net.bytebuddy.matcher.ElementMatchers
+
 import io.scalac.mesmer.agent.Agent
 import io.scalac.mesmer.agent.util.i13n.InstrumentationDSL.NameDSL
 import io.scalac.mesmer.agent.util.i13n.InstrumentationDetails.FQCN
 import io.scalac.mesmer.core.model.Version
-import io.scalac.mesmer.core.module.{ MesmerModule, Module, RegisterGlobalConfiguration }
+import io.scalac.mesmer.core.module.MesmerModule
+import io.scalac.mesmer.core.module.Module
+import io.scalac.mesmer.core.module.RegisterGlobalConfiguration
 import io.scalac.mesmer.core.util.LibraryInfo.LibraryInfo
-import net.bytebuddy.description.`type`.TypeDescription
-import net.bytebuddy.description.method.MethodDescription
-import net.bytebuddy.matcher.ElementMatchers
 object InstrumentationDSL {
   final class NameDSL(private val value: String) extends AnyVal {
     def method: MethodDesc = ElementMatchers.named[MethodDescription](value)

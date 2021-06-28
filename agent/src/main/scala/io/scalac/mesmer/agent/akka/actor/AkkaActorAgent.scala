@@ -1,12 +1,14 @@
 package io.scalac.mesmer.agent.akka.actor
 
+import io.scalac.mesmer.agent.Agent
+import io.scalac.mesmer.agent.AgentInstrumentation
 import io.scalac.mesmer.agent.akka.actor.impl._
 import io.scalac.mesmer.agent.util.i13n._
-import io.scalac.mesmer.agent.{ Agent, AgentInstrumentation }
 import io.scalac.mesmer.core.model._
 import io.scalac.mesmer.core.module.AkkaActorModule
 import io.scalac.mesmer.core.util.Timestamp
-import io.scalac.mesmer.extension.actor.{ ActorCellDecorator, ActorCellMetrics }
+import io.scalac.mesmer.extension.actor.ActorCellDecorator
+import io.scalac.mesmer.extension.actor.ActorCellMetrics
 
 object AkkaActorAgent
     extends InstrumentModuleFactory(AkkaActorModule)

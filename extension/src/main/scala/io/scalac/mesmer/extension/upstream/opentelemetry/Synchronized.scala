@@ -1,10 +1,12 @@
 package io.scalac.mesmer.extension.upstream.opentelemetry
 
+import io.opentelemetry.api.metrics.BatchRecorder
+import io.opentelemetry.api.metrics.Meter
 import io.opentelemetry.api.metrics.common.Labels
-import io.opentelemetry.api.metrics.{BatchRecorder, Meter}
-import io.scalac.mesmer.extension.metric.{Synchronized => BaseSynchronized}
 
 import scala.collection.mutable.ListBuffer
+
+import io.scalac.mesmer.extension.metric.{ Synchronized => BaseSynchronized }
 
 abstract class Synchronized(private val meter: Meter) extends BaseSynchronized {
   import Synchronized._

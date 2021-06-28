@@ -2,11 +2,15 @@ package io.scalac.mesmer.extension.upstream
 
 import com.typesafe.config.Config
 import io.opentelemetry.api.metrics.Meter
+
 import io.scalac.mesmer.core.config.MesmerConfiguration
 import io.scalac.mesmer.core.module.AkkaHttpModule
-import io.scalac.mesmer.extension.metric.{ HttpMetricsMonitor, RegisterRoot }
+import io.scalac.mesmer.extension.metric.HttpMetricsMonitor
+import io.scalac.mesmer.extension.metric.RegisterRoot
 import io.scalac.mesmer.extension.upstream.OpenTelemetryHttpMetricsMonitor.MetricNames
 import io.scalac.mesmer.extension.upstream.opentelemetry._
+import io.opentelemetry.api.metrics.common
+import io.scalac.mesmer.extension.metric.{ Counter, MetricRecorder }
 
 object OpenTelemetryHttpMetricsMonitor {
   final case class MetricNames(
@@ -18,7 +22,7 @@ object OpenTelemetryHttpMetricsMonitor {
 
     protected val mesmerConfig: String = "metrics.http-metrics"
 
-    protected val defaultConfig: MetricNames = MetricNames(
+    val defaultConfig: MetricNames = MetricNames(
       "akka_http_request_duration",
       "akka_http_request_total"
     )
@@ -70,13 +74,13 @@ final class OpenTelemetryHttpMetricsMonitor(
       with SynchronousInstrumentFactory
       with RegisterRoot {
 
-    protected val otLabels = LabelsFactory.of(labels.serialize)
+    protected val otLabels: common.Labels = LabelsFactory.of(labels.serialize)
 
-    val requestTime =
+    lazy val requestTime: MetricRecorder[Long] with Instrument[Long] =
       if (moduleConfig.requestTime) metricRecorder(requestTimeRequest, otLabels).register(this)
       else noopMetricRecorder[Long]
 
-    val requestCounter =
+    lazy val requestCounter: Counter[Long] with Instrument[Long] =
       if (moduleConfig.requestCounter) counter(requestTotalCounter, otLabels).register(this) else noopCounter[Long]
 
   }

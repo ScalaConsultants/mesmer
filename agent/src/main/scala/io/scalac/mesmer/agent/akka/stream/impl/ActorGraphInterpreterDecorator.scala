@@ -1,20 +1,22 @@
 package io.scalac.mesmer.agent.akka.stream.impl
 
+import java.lang.invoke.MethodType.methodType
+
 import akka.AkkaMirrorTypes.GraphInterpreterShellMirror
 import akka.actor.Actor
+import akka.actor.typed.scaladsl.adapter._
 import akka.stream.GraphLogicOps._
+
 import io.scalac.mesmer.core.akka.model.PushMetrics
 import io.scalac.mesmer.core.event.EventBus
-import io.scalac.mesmer.core.event.StreamEvent.{ LastStreamStats, StreamInterpreterStats }
+import io.scalac.mesmer.core.event.StreamEvent.LastStreamStats
+import io.scalac.mesmer.core.event.StreamEvent.StreamInterpreterStats
 import io.scalac.mesmer.core.invoke.Lookup
 import io.scalac.mesmer.core.model.ShellInfo
 import io.scalac.mesmer.core.model.Tag.SubStreamName
-import io.scalac.mesmer.core.model.stream.{ ConnectionStats, StageInfo }
-import akka.actor.typed.scaladsl.adapter._
-
+import io.scalac.mesmer.core.model.stream.ConnectionStats
+import io.scalac.mesmer.core.model.stream.StageInfo
 import io.scalac.mesmer.core.util.stream.subStreamNameFromActorRef
-
-import java.lang.invoke.MethodType.methodType
 
 object ActorGraphInterpreterDecorator extends Lookup {
 

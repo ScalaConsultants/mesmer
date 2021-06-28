@@ -1,6 +1,7 @@
 package io.scalac.mesmer.agent.akka
 
 import java.util.UUID
+
 import _root_.akka.actor.testkit.typed.scaladsl.TestProbe
 import _root_.akka.actor.typed.receptionist.Receptionist
 import _root_.akka.actor.typed.receptionist.Receptionist.Deregister
@@ -12,13 +13,15 @@ import org.scalatest.flatspec.AnyFlatSpecLike
 import org.scalatest.matchers.should.Matchers
 
 import scala.concurrent.duration._
+
 import io.scalac.mesmer.agent.akka.persistence.AkkaPersistenceAgent
-import io.scalac.mesmer.agent.utils.{DummyEventSourcedActor, InstallAgent, InstallModule, SafeLoadSystem}
+import io.scalac.mesmer.agent.utils.DummyEventSourcedActor
 import io.scalac.mesmer.agent.utils.DummyEventSourcedActor.DoNothing
 import io.scalac.mesmer.agent.utils.DummyEventSourcedActor.Persist
+import io.scalac.mesmer.agent.utils.InstallModule
+import io.scalac.mesmer.agent.utils.SafeLoadSystem
 import io.scalac.mesmer.core.event.PersistenceEvent
 import io.scalac.mesmer.core.event.PersistenceEvent._
-import io.scalac.mesmer.core.module.AkkaPersistenceModule
 import io.scalac.mesmer.core.persistenceServiceKey
 import io.scalac.mesmer.core.util.ReceptionistOps
 
@@ -44,8 +47,7 @@ class AkkaPersistenceAgentTest
   }
 
   "AkkaPersistenceAgent" should "generate only recovery events" in test { monitor =>
-
-    agent.instrumentations should have size(4)
+    agent.instrumentations should have size (4)
     val id = UUID.randomUUID()
     Receptionist(system).ref ! Register(persistenceServiceKey, monitor.ref)
 

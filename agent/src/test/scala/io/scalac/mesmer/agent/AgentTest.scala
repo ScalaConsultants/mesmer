@@ -1,12 +1,13 @@
 package io.scalac.mesmer.agent
 
-import io.scalac.mesmer.agent.Agent.LoadingResult
+import java.lang.instrument.Instrumentation
+
 import net.bytebuddy.agent.ByteBuddyAgent
 import net.bytebuddy.agent.builder.AgentBuilder
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
-import java.lang.instrument.Instrumentation
+import io.scalac.mesmer.agent.Agent.LoadingResult
 
 class AgentTest extends AnyFlatSpec with Matchers {
 

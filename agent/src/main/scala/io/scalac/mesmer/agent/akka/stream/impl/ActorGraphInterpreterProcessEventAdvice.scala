@@ -1,10 +1,8 @@
 package akka.stream.impl.fusing
 
+import akka.AkkaMirrorTypes.GraphInterpreterShellMirror
 import akka.actor.Actor
 import akka.stream.impl.fusing.ActorGraphInterpreter.BoundaryEvent
-
-
-import akka.AkkaMirrorTypes.GraphInterpreterShellMirror
 import net.bytebuddy.asm.Advice
 
 import io.scalac.mesmer.agent.akka.stream.impl.ActorGraphInterpreterDecorator
@@ -12,7 +10,7 @@ import io.scalac.mesmer.agent.akka.stream.impl.ActorGraphInterpreterDecorator
 object ActorGraphInterpreterProcessEventAdvice {
 
   @Advice.OnMethodExit
-  def processEvent(@Advice.This self: AnyRef  , @Advice.Argument(0) boundaryEvent: BoundaryEvent): Unit =
+  def processEvent(@Advice.This self: AnyRef, @Advice.Argument(0) boundaryEvent: BoundaryEvent): Unit =
     if (boundaryEvent.shell.isTerminated) {
       ActorGraphInterpreterDecorator.shellFinished(boundaryEvent.shell, self.asInstanceOf[Actor])
     }

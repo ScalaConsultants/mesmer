@@ -1,9 +1,11 @@
 package io.scalac.mesmer.core.util
 
-import io.scalac.mesmer.core.model.Version
+import java.util.jar.Attributes
+import java.util.jar.Manifest
 
-import java.util.jar.{ Attributes, Manifest }
 import scala.jdk.CollectionConverters._
+
+import io.scalac.mesmer.core.model.Version
 
 object LibraryInfo {
 

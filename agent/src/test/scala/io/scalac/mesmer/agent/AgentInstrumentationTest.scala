@@ -1,8 +1,9 @@
 package io.scalac.mesmer.agent
 
-import io.scalac.mesmer.agent.Agent.LoadingResult
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
+
+import io.scalac.mesmer.agent.Agent.LoadingResult
 
 class AgentInstrumentationTest extends AnyFlatSpec with Matchers {
 

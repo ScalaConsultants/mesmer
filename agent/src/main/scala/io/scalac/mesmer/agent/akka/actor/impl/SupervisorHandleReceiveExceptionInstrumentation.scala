@@ -1,8 +1,10 @@
 package io.scalac.mesmer.agent.akka.actor.impl
 
 import akka.actor.typed.TypedActorContext
+import net.bytebuddy.asm.Advice.Argument
+import net.bytebuddy.asm.Advice.OnMethodExit
+
 import io.scalac.mesmer.extension.actor.ActorCellDecorator
-import net.bytebuddy.asm.Advice.{ Argument, OnMethodExit }
 
 object SupervisorHandleReceiveExceptionInstrumentation {
 

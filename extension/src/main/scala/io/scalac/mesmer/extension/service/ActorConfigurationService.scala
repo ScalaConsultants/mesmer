@@ -8,8 +8,8 @@ import org.slf4j.LoggerFactory
 import scala.jdk.CollectionConverters._
 
 import io.scalac.mesmer.core.PathMatcher
-import io.scalac.mesmer.core.model.ActorConfiguration
 import io.scalac.mesmer.core.config.ConfigurationUtils._
+import io.scalac.mesmer.core.model.ActorConfiguration
 
 trait ActorConfigurationService {
   def forActorPath(ref: classic.ActorPath): ActorConfiguration

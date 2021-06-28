@@ -1,6 +1,7 @@
 package io.scalac.mesmer.core.module
 
 import com.typesafe.config.{ Config => TypesafeConfig }
+
 import io.scalac.mesmer.core.config.MesmerConfigurationBase
 import io.scalac.mesmer.core.model.Version
 import io.scalac.mesmer.core.util.LibraryInfo.LibraryInfo
@@ -21,7 +22,7 @@ trait Module {
 
 object Module {
 
-  implicit class AllOps[M[X] <: Module#All[X], T](val value: M[T]) extends AnyVal {
+  implicit class AllOps[M[X] <: Module#All[X], T](private val value: M[T]) extends AnyVal {
     def combine(other: M[T])(implicit combine: Combine[M[T]]): M[T]          = combine.combine(value, other)
     def exists(check: T => Boolean)(implicit traverse: Traverse[M]): Boolean = traverse.sequence(value).exists(check)
   }
@@ -44,7 +45,7 @@ trait MesmerModule extends Module with MesmerConfigurationBase {
 
   def defaultConfig: Result
 
-  val mesmerConfig = s"module.$name"
+  val mesmerConfig: String = s"module.$name"
 }
 
 trait MetricsModule {

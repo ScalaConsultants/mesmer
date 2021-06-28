@@ -12,14 +12,24 @@ case class AkkaMonitoringConfig(
   cleaning: CleaningSettings
 )
 
-case class AutoStartSettings(akkaActor: Boolean, akkaHttp: Boolean, akkaPersistence: Boolean, akkaCluster: Boolean, akkaStream: Boolean)
+case class AutoStartSettings(
+  akkaActor: Boolean,
+  akkaHttp: Boolean,
+  akkaPersistence: Boolean,
+  akkaCluster: Boolean,
+  akkaStream: Boolean
+)
 
 object AkkaMonitoringConfig {
 
-
-
   private val autoStartDefaults =
-    AutoStartSettings(akkaActor = false, akkaHttp = false, akkaCluster = false, akkaPersistence = false, akkaStream = false)
+    AutoStartSettings(
+      akkaActor = false,
+      akkaHttp = false,
+      akkaCluster = false,
+      akkaPersistence = false,
+      akkaStream = false
+    )
   private val cleaningSettingsDefaults = CleaningSettings(20.seconds, 5.second)
 
   private val akkaMonitoringDefaults = AkkaMonitoringConfig(autoStartDefaults, cleaningSettingsDefaults)

@@ -2,8 +2,13 @@ package io.scalac.mesmer.extension.upstream
 
 import com.typesafe.config.Config
 import io.opentelemetry.api.metrics.Meter
+
 import io.scalac.mesmer.core.config.MesmerConfiguration
-import io.scalac.mesmer.extension.metric.{ Counter, MetricRecorder, PersistenceMetricsMonitor, RegisterRoot }
+import io.scalac.mesmer.core.module.AkkaPersistenceModule
+import io.scalac.mesmer.extension.metric.Counter
+import io.scalac.mesmer.extension.metric.MetricRecorder
+import io.scalac.mesmer.extension.metric.PersistenceMetricsMonitor
+import io.scalac.mesmer.extension.metric.RegisterRoot
 import io.scalac.mesmer.extension.upstream.OpenTelemetryPersistenceMetricsMonitor._
 import io.scalac.mesmer.extension.upstream.opentelemetry._
 
@@ -19,7 +24,7 @@ object OpenTelemetryPersistenceMetricsMonitor {
   )
 
   object MetricNames extends MesmerConfiguration[MetricNames] {
-    protected val defaultConfig: MetricNames =
+    val defaultConfig: MetricNames =
       MetricNames(
         "akka_persistence_recovery_time",
         "akka_persistence_recovery_total",
@@ -52,60 +57,71 @@ object OpenTelemetryPersistenceMetricsMonitor {
     }
 
   }
-  def apply(meter: Meter, config: Config): OpenTelemetryPersistenceMetricsMonitor =
-    new OpenTelemetryPersistenceMetricsMonitor(meter, MetricNames.fromConfig(config))
+  def apply(
+    meter: Meter,
+    moduleConfig: AkkaPersistenceModule.All[Boolean],
+    config: Config
+  ): OpenTelemetryPersistenceMetricsMonitor =
+    new OpenTelemetryPersistenceMetricsMonitor(meter, moduleConfig, MetricNames.fromConfig(config))
 }
 
-final class OpenTelemetryPersistenceMetricsMonitor(meter: Meter, metricNames: MetricNames) extends PersistenceMetricsMonitor {
+final class OpenTelemetryPersistenceMetricsMonitor(
+  meter: Meter,
+  moduleConfig: AkkaPersistenceModule.All[Boolean],
+  metricNames: MetricNames
+) extends PersistenceMetricsMonitor {
   import PersistenceMetricsMonitor._
 
-  private val recoveryTimeRecorder = meter
+  private lazy val recoveryTimeRecorder = meter
     .longValueRecorderBuilder(metricNames.recoveryTime)
     .setDescription("Amount of time needed for entity recovery")
     .build()
 
-  private val recoveryTotalCounter = meter
+  private lazy val recoveryTotalCounter = meter
     .longCounterBuilder(metricNames.recoveryTotal)
     .setDescription("Amount of recoveries")
     .build()
 
-  private val persistentEventRecorder = meter
+  private lazy val persistentEventRecorder = meter
     .longValueRecorderBuilder(metricNames.persistentEvent)
     .setDescription("Amount of time needed for entity to persist events")
     .build()
 
-  private val persistentEventTotalCounter = meter
+  private lazy val persistentEventTotalCounter = meter
     .longCounterBuilder(metricNames.persistentEventTotal)
     .setDescription("Amount of persist events")
     .build()
 
-  private val snapshotCounter = meter
+  private lazy val snapshotCounter = meter
     .longCounterBuilder(metricNames.snapshotTotal)
     .setDescription("Amount of snapshots created")
     .build()
 
   def bind(labels: Labels): BoundMonitor = new OpenTelemetryBoundMonitor(labels)
 
-  class OpenTelemetryBoundMonitor(labels: Labels)
+  final class OpenTelemetryBoundMonitor(labels: Labels)
       extends BoundMonitor
       with RegisterRoot
       with SynchronousInstrumentFactory {
     private val openTelemetryLabels = LabelsFactory.of(labels.serialize)
 
     lazy val recoveryTime: MetricRecorder[Long] =
-      metricRecorder(recoveryTimeRecorder, openTelemetryLabels).register(this)
+      if (moduleConfig.recoveryTime) metricRecorder(recoveryTimeRecorder, openTelemetryLabels).register(this)
+      else noopMetricRecorder
 
     lazy val persistentEvent: MetricRecorder[Long] =
-      metricRecorder(persistentEventRecorder, openTelemetryLabels).register(this)
+      if (moduleConfig.persistentEvent) metricRecorder(persistentEventRecorder, openTelemetryLabels).register(this)
+      else noopMetricRecorder
 
     lazy val persistentEventTotal: Counter[Long] =
-      counter(persistentEventTotalCounter, openTelemetryLabels).register(this)
+      if (moduleConfig.persistentEventTotal) counter(persistentEventTotalCounter, openTelemetryLabels).register(this)
+      else noopCounter
 
     lazy val snapshot: Counter[Long] =
-      counter(snapshotCounter, openTelemetryLabels).register(this)
+      if (moduleConfig.snapshot) counter(snapshotCounter, openTelemetryLabels).register(this) else noopCounter
 
     lazy val recoveryTotal: Counter[Long] =
-      counter(recoveryTotalCounter, openTelemetryLabels).register(this)
+      if (moduleConfig.recoveryTotal) counter(recoveryTotalCounter, openTelemetryLabels).register(this) else noopCounter
 
   }
 }

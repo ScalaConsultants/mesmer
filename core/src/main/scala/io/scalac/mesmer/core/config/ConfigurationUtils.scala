@@ -1,11 +1,14 @@
 package io.scalac.mesmer.core.config
 
-import com.typesafe.config.{ Config, ConfigException }
-import io.scalac.mesmer.core.config.ConfigurationUtils.ConfigOps
+import com.typesafe.config.Config
+import com.typesafe.config.ConfigException
 
 import scala.language.implicitConversions
-import scala.reflect.{ classTag, ClassTag }
+import scala.reflect.ClassTag
+import scala.reflect.classTag
 import scala.util.Try
+
+import io.scalac.mesmer.core.config.ConfigurationUtils.ConfigOps
 
 object ConfigurationUtils {
 
@@ -46,7 +49,7 @@ trait MesmerConfigurationBase extends Configuration {
    */
   private final val mesmerBase: String = "io.scalac.mesmer"
 
-  protected lazy val absoluteBase = s"$mesmerBase.$mesmerConfig"
+  protected lazy val absoluteBase: String = s"$mesmerBase.$mesmerConfig"
 
   /**
    * Name of configuration inside mesmer branch

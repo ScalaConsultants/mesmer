@@ -1,11 +1,12 @@
 package io.scalac.mesmer.agent.akka.persistence
 
+import org.slf4j.LoggerFactory
+
 import io.scalac.mesmer.agent.Agent
 import io.scalac.mesmer.agent.akka.persistence.impl._
 import io.scalac.mesmer.agent.util.i13n._
 import io.scalac.mesmer.core.model.Version
 import io.scalac.mesmer.core.module.AkkaPersistenceModule
-import org.slf4j.LoggerFactory
 
 object AkkaPersistenceAgent
     extends InstrumentModuleFactory(AkkaPersistenceModule)
@@ -69,14 +70,14 @@ object AkkaPersistenceAgent
      */
     val recoveryStartedAgent =
       instrument("akka.persistence.typed.internal.ReplayingSnapshot".fqcnWithTags(recoveryTag))
-        .intercept(RecoveryStartedInterceptor,"onRecoveryStart")
+        .intercept(RecoveryStartedInterceptor, "onRecoveryStart")
 
     /**
      * Instrumentation to fire event on persistent actor recovery complete
      */
     val recoveryCompletedAgent =
       instrument("akka.persistence.typed.internal.ReplayingEvents".fqcnWithTags(recoveryTag))
-        .intercept(RecoveryCompletedInterceptor,"onRecoveryComplete")
+        .intercept(RecoveryCompletedInterceptor, "onRecoveryComplete")
 
     Agent(recoveryStartedAgent, recoveryCompletedAgent)
   }
@@ -87,12 +88,12 @@ object AkkaPersistenceAgent
   private val eventWriteSuccessInstrumentation =
     instrument("akka.persistence.typed.internal.Running".fqcnWithTags("persistent_event"))
       .intercept(PersistingEventSuccessInterceptor, "onWriteSuccess")
-      .intercept(JournalInteractionsInterceptor,"onWriteInitiated")
+      .intercept(JournalInteractionsInterceptor, "onWriteInitiated")
 
   /**
    * Instrumentation to fire event when snapshot is stored
    */
   private val snapshotLoadingInstrumentation =
     instrument("akka.persistence.typed.internal.Running$StoringSnapshot".fqcnWithTags("snapshot_created"))
-      .intercept(StoringSnapshotInterceptor,"onSaveSnapshotResponse")
+      .intercept(StoringSnapshotInterceptor, "onSaveSnapshotResponse")
 }

@@ -1,39 +1,53 @@
 package io.scalac.mesmer.extension
 
+import java.util
+import java.util.concurrent.atomic.AtomicReference
+
+import akka.actor.ActorRef
+import akka.actor.typed
 import akka.actor.typed._
 import akka.actor.typed.receptionist.Receptionist.Register
+import akka.actor.typed.scaladsl.ActorContext
+import akka.actor.typed.scaladsl.Behaviors
+import akka.actor.typed.scaladsl.TimerScheduler
 import akka.actor.typed.scaladsl.adapter._
-import akka.actor.typed.scaladsl.{ ActorContext, Behaviors, TimerScheduler }
-import akka.actor.{ typed, ActorRef }
 import akka.util.Timeout
+
+import scala.annotation.tailrec
+import scala.collection.mutable
+import scala.collection.mutable.ListBuffer
+import scala.concurrent.duration.FiniteDuration
+import scala.concurrent.duration._
+import scala.jdk.CollectionConverters._
+import scala.jdk.DurationConverters._
+import scala.util.Failure
+import scala.util.Success
+
 import io.scalac.mesmer.core.akka.model.PushMetrics
 import io.scalac.mesmer.core.config.ConfigurationUtils._
 import io.scalac.mesmer.core.event.Service.streamService
 import io.scalac.mesmer.core.event.StreamEvent
-import io.scalac.mesmer.core.event.StreamEvent.{ LastStreamStats, StreamInterpreterStats }
-import io.scalac.mesmer.core.model.Tag.{ StageName, StreamName }
+import io.scalac.mesmer.core.event.StreamEvent.LastStreamStats
+import io.scalac.mesmer.core.event.StreamEvent.StreamInterpreterStats
+import io.scalac.mesmer.core.model.Tag.StageName
+import io.scalac.mesmer.core.model.Tag.StreamName
 import io.scalac.mesmer.core.model._
-import io.scalac.mesmer.core.model.stream.{ ConnectionStats, StageInfo }
+import io.scalac.mesmer.core.model.stream.ConnectionStats
+import io.scalac.mesmer.core.model.stream.StageInfo
 import io.scalac.mesmer.core.module.AkkaStreamModule
 import io.scalac.mesmer.extension.AkkaStreamMonitoring._
-import io.scalac.mesmer.extension.config.{ BufferConfig, CachingConfig }
+import io.scalac.mesmer.extension.config.BufferConfig
+import io.scalac.mesmer.extension.config.CachingConfig
 import io.scalac.mesmer.extension.metric.MetricObserver.Result
-import io.scalac.mesmer.extension.metric.StreamMetricsMonitor.{ EagerLabels, Labels => GlobalLabels }
+import io.scalac.mesmer.extension.metric.StreamMetricsMonitor
+import io.scalac.mesmer.extension.metric.StreamMetricsMonitor.EagerLabels
+import io.scalac.mesmer.extension.metric.StreamMetricsMonitor.{Labels => GlobalLabels}
+import io.scalac.mesmer.extension.metric.StreamOperatorMetricsMonitor
 import io.scalac.mesmer.extension.metric.StreamOperatorMetricsMonitor.Labels
-import io.scalac.mesmer.extension.metric.{ StreamMetricsMonitor, StreamOperatorMetricsMonitor }
+import io.scalac.mesmer.extension.service.ActorTreeService
 import io.scalac.mesmer.extension.service.ActorTreeService.Command.GetActors
-import io.scalac.mesmer.extension.service.{ actorTreeServiceKey, ActorTreeService }
+import io.scalac.mesmer.extension.service.actorTreeServiceKey
 import io.scalac.mesmer.extension.util.GenericBehaviors
-
-import java.util
-import java.util.concurrent.atomic.AtomicReference
-import scala.annotation.tailrec
-import scala.collection.mutable
-import scala.collection.mutable.ListBuffer
-import scala.concurrent.duration.{ FiniteDuration, _ }
-import scala.jdk.CollectionConverters._
-import scala.jdk.DurationConverters._
-import scala.util.{ Failure, Success }
 
 object AkkaStreamMonitoring {
 

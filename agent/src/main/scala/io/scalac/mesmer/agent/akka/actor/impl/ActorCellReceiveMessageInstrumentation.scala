@@ -1,7 +1,11 @@
 package io.scalac.mesmer.agent.akka.actor.impl
 
+import net.bytebuddy.asm.Advice.OnMethodEnter
+import net.bytebuddy.asm.Advice.OnMethodExit
+import net.bytebuddy.asm.Advice.This
+import net.bytebuddy.asm.Advice.Thrown
+
 import io.scalac.mesmer.extension.actor.ActorCellDecorator
-import net.bytebuddy.asm.Advice.{ OnMethodEnter, OnMethodExit, This, Thrown }
 
 object ActorCellReceiveMessageInstrumentation {
 

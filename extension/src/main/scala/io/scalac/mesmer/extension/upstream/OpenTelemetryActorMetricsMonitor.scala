@@ -2,9 +2,12 @@ package io.scalac.mesmer.extension.upstream
 
 import com.typesafe.config.Config
 import io.opentelemetry.api.metrics.Meter
+
 import io.scalac.mesmer.core.config.MesmerConfiguration
 import io.scalac.mesmer.core.module.AkkaActorModule
-import io.scalac.mesmer.extension.metric.{ ActorMetricsMonitor, MetricObserver, RegisterRoot }
+import io.scalac.mesmer.extension.metric.ActorMetricsMonitor
+import io.scalac.mesmer.extension.metric.MetricObserver
+import io.scalac.mesmer.extension.metric.RegisterRoot
 import io.scalac.mesmer.extension.upstream.OpenTelemetryActorMetricsMonitor.MetricNames
 import io.scalac.mesmer.extension.upstream.opentelemetry._
 
@@ -112,7 +115,7 @@ object OpenTelemetryActorMetricsMonitor {
       )
     }
 
-    protected val defaultConfig: MetricNames =
+    val defaultConfig: MetricNames =
       MetricNames(
         "akka_actor_mailbox_size",
         "akka_actor_mailbox_time_avg",
@@ -142,7 +145,7 @@ object OpenTelemetryActorMetricsMonitor {
 
 }
 
-class OpenTelemetryActorMetricsMonitor(
+final class OpenTelemetryActorMetricsMonitor(
   meter: Meter,
   moduleConfig: AkkaActorModule.All[Boolean],
   metricNames: MetricNames
