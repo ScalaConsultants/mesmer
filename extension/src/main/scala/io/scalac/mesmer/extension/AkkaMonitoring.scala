@@ -20,7 +20,7 @@ import io.scalac.mesmer.core.module.Module._
 import io.scalac.mesmer.core.module._
 import io.scalac.mesmer.core.util.Timestamp
 import io.scalac.mesmer.extension.ActorEventsMonitorActor.ReflectiveActorMetricsReader
-import io.scalac.mesmer.extension.Mesmer.ExportInterval
+import io.scalac.mesmer.extension.AkkaMonitoring.ExportInterval
 import io.scalac.mesmer.extension.actor.MutableActorMetricStorageFactory
 import io.scalac.mesmer.extension.config.AkkaMonitoringConfig
 import io.scalac.mesmer.extension.config.CachingConfig
@@ -32,17 +32,17 @@ import io.scalac.mesmer.extension.persistence.CleanableRecoveryStorage
 import io.scalac.mesmer.extension.service._
 import io.scalac.mesmer.extension.upstream._
 
-object Mesmer extends ExtensionId[Mesmer] {
+object AkkaMonitoring extends ExtensionId[AkkaMonitoring] {
 
   private val ExportInterval = 5.seconds
 
-  def createExtension(system: ActorSystem[_]): Mesmer = {
+  def createExtension(system: ActorSystem[_]): AkkaMonitoring = {
     val config = AkkaMonitoringConfig(system.settings.config)
-    new Mesmer(system, config)
+    new AkkaMonitoring(system, config)
   }
 }
 
-final class Mesmer(private val system: ActorSystem[_], val config: AkkaMonitoringConfig) extends Extension {
+final class AkkaMonitoring(private val system: ActorSystem[_], val config: AkkaMonitoringConfig) extends Extension {
   import system.log
 
   private val meter             = InstrumentationLibrary.mesmerMeter
