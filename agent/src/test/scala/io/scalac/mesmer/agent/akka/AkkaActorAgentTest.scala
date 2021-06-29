@@ -1,16 +1,16 @@
 package io.scalac.mesmer.agent.akka
 
-import akka.actor.PoisonPill
-import akka.actor.Props
 import akka.actor.testkit.typed.scaladsl.TestProbe
-import akka.actor.typed.ActorRef
-import akka.actor.typed.Behavior
-import akka.actor.typed.SupervisorStrategy
-import akka.actor.typed.scaladsl.ActorContext
-import akka.actor.typed.scaladsl.Behaviors
-import akka.actor.typed.scaladsl.StashBuffer
 import akka.actor.typed.scaladsl.adapter._
+import akka.actor.typed.scaladsl.{ActorContext, Behaviors, StashBuffer}
+import akka.actor.typed.{ActorRef, Behavior, SupervisorStrategy}
+import akka.actor.{PoisonPill, Props}
 import akka.{actor => classic}
+import io.scalac.mesmer.agent.utils.{InstallAgent, SafeLoadSystem}
+import io.scalac.mesmer.core.actor.{ActorCellDecorator, ActorCellMetrics}
+import io.scalac.mesmer.core.event.ActorEvent
+import io.scalac.mesmer.core.util.MetricsToolKit.Counter
+import io.scalac.mesmer.core.util.ReceptionistOps
 import org.scalatest.OptionValues
 import org.scalatest.concurrent.Eventually
 import org.scalatest.flatspec.AnyFlatSpecLike
@@ -18,12 +18,6 @@ import org.scalatest.matchers.should.Matchers
 
 import scala.concurrent.duration._
 import scala.util.control.NoStackTrace
-import io.scalac.mesmer.agent.utils.InstallAgent
-import io.scalac.mesmer.agent.utils.SafeLoadSystem
-import io.scalac.mesmer.core.actor.{ActorCellDecorator, ActorCellMetrics}
-import io.scalac.mesmer.core.event.ActorEvent
-import io.scalac.mesmer.core.util.MetricsToolKit.Counter
-import io.scalac.mesmer.core.util.ReceptionistOps
 
 class AkkaActorAgentTest
     extends InstallAgent
@@ -116,7 +110,12 @@ class AkkaActorAgentTest
     val waitingMessages = messages - 1
 
     val check: classic.ActorContext => Any = ctx => {
-      val metrics = ActorCellDecorator.get(ctx).flatMap(_.mailboxTimeAgg.metrics).value
+
+      val metrics = (for {
+        cellMetrics <- ActorCellDecorator.get(ctx) if cellMetrics.mailboxTimeAgg.isDefined
+        agg         <- cellMetrics.mailboxTimeAgg.get.metrics
+      } yield agg).value
+
       metrics.count should be(messages)
       metrics.sum should be((waitingMessages * idle.toNanos) +- ToleranceNanos)
       metrics.min should be(0L +- ToleranceNanos)
@@ -137,7 +136,11 @@ class AkkaActorAgentTest
     val workingMessages = messages - 1
 
     val check: classic.ActorContext => Any = ctx => {
-      val metrics = ActorCellDecorator.get(ctx).flatMap(_.processingTimeAgg.metrics).value
+//      val metrics = ActorCellDecorator.get(ctx).flatMap(_.processingTimeAgg.metrics).value
+val metrics = (for {
+  cellMetrics <- ActorCellDecorator.get(ctx) if cellMetrics.processingTimeAgg.isDefined
+  agg         <- cellMetrics.processingTimeAgg.get.metrics
+} yield agg).value
       metrics.count should be(messages)
       metrics.sum should be((workingMessages * processing.toNanos) +- ToleranceNanos)
       metrics.min should be(0L +- ToleranceNanos)
@@ -213,10 +216,10 @@ class AkkaActorAgentTest
 
   it should "record the amount of received messages" in {
     testWithoutEffect[Unit]((), (), ())(
-      (0, check(_.receivedMessages)(_.get() should be(0))),
-      (1, check(_.receivedMessages)(_.get() should be(1))),
-      (0, check(_.receivedMessages)(_.get() should be(1))),
-      (2, check(_.receivedMessages)(_.get() should be(3)))
+      (0, check(_.receivedMessages)(_.get.get() should be(0))),
+      (1, check(_.receivedMessages)(_.get.get() should be(1))),
+      (0, check(_.receivedMessages)(_.get.get() should be(1))),
+      (2, check(_.receivedMessages)(_.get.get() should be(3)))
     )
   }
 
@@ -229,12 +232,12 @@ class AkkaActorAgentTest
       },
       false
     )("fail", "", "fail")(
-      (0, check(_.failedMessages)(_.get() should be(0))),
-      (1, check(_.failedMessages)(_.get() should be(1))),
-      (0, check(_.failedMessages)(_.get() should be(1))),
-      (1, check(_.failedMessages)(_.get() should be(1))),
+      (0, check(_.failedMessages)(_.get.get() should be(0))),
+      (1, check(_.failedMessages)(_.get.get() should be(1))),
+      (0, check(_.failedMessages)(_.get.get() should be(1))),
+      (1, check(_.failedMessages)(_.get.get() should be(1))),
       // why zero? because akka suspend any further message processing after an unsupervisioned failure
-      (1, check(_.failedMessages)(_.get() should be(1)))
+      (1, check(_.failedMessages)(_.get.get() should be(1)))
     )
   }
 
@@ -249,11 +252,11 @@ class AkkaActorAgentTest
         strategy,
         probes = false
       )("fail", "", "fail", "fail")(
-        (0, check(_.failedMessages)(_.get() should be(0))),
-        (1, check(_.failedMessages)(_.get() should be(1))),
-        (0, check(_.failedMessages)(_.get() should be(1))),
-        (1, check(_.failedMessages)(_.get() should be(1))),
-        (2, check(_.failedMessages)(_.get() should be(if (strategy != SupervisorStrategy.stop) 3 else 1)))
+        (0, check(_.failedMessages)(_.get.get() should be(0))),
+        (1, check(_.failedMessages)(_.get.get() should be(1))),
+        (0, check(_.failedMessages)(_.get.get() should be(1))),
+        (1, check(_.failedMessages)(_.get.get() should be(1))),
+        (2, check(_.failedMessages)(_.get.get() should be(if (strategy != SupervisorStrategy.stop) 3 else 1)))
       )
 
     testForStrategy(SupervisorStrategy.restart)
@@ -267,11 +270,11 @@ class AkkaActorAgentTest
       case "unhandled" => Behaviors.unhandled
       case _           => Behaviors.same
     }("unhandled", "unhandled", "unhandled", "other")(
-      (0, check(_.unhandledMessages)(_.get() should be(0))),
-      (1, check(_.unhandledMessages)(_.get() should be(1))),
-      (0, check(_.unhandledMessages)(_.get() should be(1))),
-      (2, check(_.unhandledMessages)(_.get() should be(3))),
-      (1, check(_.unhandledMessages)(_.get() should be(3)))
+      (0, check(_.unhandledMessages)(_.get.get() should be(0))),
+      (1, check(_.unhandledMessages)(_.get.get() should be(1))),
+      (0, check(_.unhandledMessages)(_.get.get() should be(1))),
+      (2, check(_.unhandledMessages)(_.get.get() should be(3))),
+      (1, check(_.unhandledMessages)(_.get.get() should be(3)))
     )
 
   }
@@ -296,7 +299,7 @@ class AkkaActorAgentTest
     val receiver      = classicSystem.actorOf(classic.Props(new Receiver), createUniqueId)
     val sender        = system.classicSystem.actorOf(classic.Props(new Sender(receiver)), createUniqueId)
 
-    val sent = createCounterChecker(senderContext.get, _.sentMessages)
+    val sent = createCounterChecker(senderContext.get, _.sentMessages.get)
 
     sender ! "forward"
     sent(1)
@@ -328,10 +331,10 @@ class AkkaActorAgentTest
         },
       false
     )("forward", "", "forward", "forward")(
-      (0, check(_.sentMessages)(_.get() should be(0))),
-      (1, check(_.sentMessages)(_.get() should be(0))),
-      (0, check(_.sentMessages)(_.get() should be(0))),
-      (2, check(_.sentMessages)(_.get() should be(0)))
+      (0, check(_.sentMessages)(_.get.get() should be(0))),
+      (1, check(_.sentMessages)(_.get.get() should be(0))),
+      (0, check(_.sentMessages)(_.get.get() should be(0))),
+      (2, check(_.sentMessages)(_.get.get() should be(0)))
     )
 
   }
@@ -367,7 +370,9 @@ object AkkaActorAgentTest {
   trait Inspectable {
 
     protected def inspectStashSize(ref: classic.ActorRef, ctx: classic.ActorContext): Unit = {
-      val size = ActorCellDecorator.get(ctx).flatMap(_.stashSize.get())
+      val size = for {
+        cellMetrics <- ActorCellDecorator.get(ctx) if cellMetrics.stashedMessages.isDefined
+      } yield cellMetrics.stashedMessages.get.get()
       ref ! StashSize(size)
     }
   }

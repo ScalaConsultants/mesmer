@@ -1,45 +1,29 @@
 package io.scalac.mesmer.extension
 
-import java.util.concurrent.atomic.AtomicBoolean
-import java.util.concurrent.atomic.AtomicReference
-import akka.Done
 import akka.actor.typed._
 import akka.actor.typed.receptionist.Receptionist.Listing
-import akka.actor.typed.scaladsl.ActorContext
-import akka.actor.typed.scaladsl.Behaviors
-import akka.actor.typed.scaladsl.TimerScheduler
+import akka.actor.typed.scaladsl.{ ActorContext, Behaviors, TimerScheduler }
 import akka.util.Timeout
-import akka.{actor => classic}
+import akka.{ Done, actor => classic }
 import io.scalac.mesmer.core.actor.ActorCellDecorator
-import org.slf4j.LoggerFactory
-
-import scala.concurrent.duration._
-import scala.util.Failure
-import scala.util.Success
 import io.scalac.mesmer.core.akka.actorPathPartialOrdering
-import io.scalac.mesmer.core.model.ActorKey
-import io.scalac.mesmer.core.model.ActorRefDetails
-import io.scalac.mesmer.core.model.Node
-import io.scalac.mesmer.core.model.Tag
-import io.scalac.mesmer.core.util.ActorCellOps
-import io.scalac.mesmer.core.util.ActorPathOps
-import io.scalac.mesmer.core.util.ActorRefOps
+import io.scalac.mesmer.core.model.{ ActorKey, ActorRefDetails, Node, Tag }
+import io.scalac.mesmer.core.util.{ ActorCellOps, ActorPathOps, ActorRefOps }
 import io.scalac.mesmer.extension.ActorEventsMonitorActor._
-import io.scalac.mesmer.extension.actor.ActorMetrics
-import io.scalac.mesmer.extension.actor.MetricStorageFactory
+import io.scalac.mesmer.extension.actor.{ ActorMetrics, MetricStorageFactory }
 import io.scalac.mesmer.extension.metric.ActorMetricsMonitor
 import io.scalac.mesmer.extension.metric.ActorMetricsMonitor.Labels
 import io.scalac.mesmer.extension.metric.MetricObserver.Result
-import io.scalac.mesmer.extension.service.ActorTreeService
-import io.scalac.mesmer.extension.service.ActorTreeService.Command.GetActorTree
-import io.scalac.mesmer.extension.service.ActorTreeService.Command.TagSubscribe
-import io.scalac.mesmer.extension.service.actorTreeServiceKey
-import io.scalac.mesmer.extension.util.GenericBehaviors
-import io.scalac.mesmer.extension.util.Tree
-import io.scalac.mesmer.extension.util.Tree.Tree
+import io.scalac.mesmer.extension.service.ActorTreeService.Command.{ GetActorTree, TagSubscribe }
+import io.scalac.mesmer.extension.service.{ actorTreeServiceKey, ActorTreeService }
 import io.scalac.mesmer.extension.util.Tree.TreeOrdering._
-import io.scalac.mesmer.extension.util.Tree._
-import io.scalac.mesmer.extension.util.TreeF
+import io.scalac.mesmer.extension.util.Tree.{ Tree, _ }
+import io.scalac.mesmer.extension.util.{ GenericBehaviors, Tree, TreeF }
+import org.slf4j.LoggerFactory
+
+import java.util.concurrent.atomic.AtomicReference
+import scala.concurrent.duration._
+import scala.util.{ Failure, Success }
 
 object ActorEventsMonitorActor {
 
@@ -97,14 +81,14 @@ object ActorEventsMonitorActor {
         metrics <- ActorCellDecorator.get(cell)
       } yield ActorMetrics(
         mailboxSize = safeRead(ActorCellOps.numberOfMessages(cell)),
-        mailboxTime = metrics.mailboxTimeAgg.metrics,
-        processingTime = metrics.processingTimeAgg.metrics,
-        receivedMessages = Some(metrics.receivedMessages.take()),
-        unhandledMessages = Some(metrics.unhandledMessages.take()),
-        failedMessages = Some(metrics.failedMessages.take()),
-        sentMessages = Some(metrics.sentMessages.take()),
-        stashSize = metrics.stashSize.take(),
-        droppedMessages = metrics.droppedMessages.map(_.take())
+        mailboxTime = metrics.mailboxTimeAgg.toOption.flatMap(_.metrics),
+        processingTime = metrics.processingTimeAgg.toOption.flatMap(_.metrics),
+        receivedMessages = metrics.receivedMessages.toOption.map(_.take),
+        unhandledMessages = metrics.unhandledMessages.toOption.map(_.take),
+        failedMessages = metrics.failedMessages.toOption.map(_.take),
+        sentMessages = metrics.sentMessages.toOption.map(_.take),
+        stashSize = metrics.stashedMessages.toOption.map(_.take),
+        droppedMessages = metrics.droppedMessages.toOption.map(_.take)
       )
 
     private def safeRead[T](value: => T): Option[T] =
@@ -140,8 +124,6 @@ private[extension] class ActorEventsMonitorActor private[extension] (
   private[this] val boundMonitor = monitor.bind()
 
   private[this] val treeSnapshot = new AtomicReference[Option[Vector[(Labels, ActorMetrics)]]](None)
-
-  private[this] val exported = new AtomicBoolean(false)
 
   private def updateMetric(extractor: ActorMetrics => Option[Long])(result: Result[Long, Labels]): Unit = {
     val state = treeSnapshot.get()

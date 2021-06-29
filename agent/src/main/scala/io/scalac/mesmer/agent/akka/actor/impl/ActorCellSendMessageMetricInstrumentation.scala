@@ -2,8 +2,8 @@ package io.scalac.mesmer.agent.akka.actor.impl
 
 import akka.actor.Actor
 import io.scalac.mesmer.core.actor.ActorCellDecorator
-import net.bytebuddy.asm.Advice._
 import io.scalac.mesmer.core.util.ActorRefOps
+import net.bytebuddy.asm.Advice._
 
 object ActorCellSendMessageMetricInstrumentation {
 
@@ -14,8 +14,8 @@ object ActorCellSendMessageMetricInstrumentation {
       if (sender != Actor.noSender)
         for {
           cell    <- ActorRefOps.Local.cell(sender)
-          metrics <- ActorCellDecorator.get(cell)
-        } metrics.sentMessages.inc()
+          metrics <- ActorCellDecorator.get(cell) if metrics.sentMessages.isDefined
+        } metrics.sentMessages.get.inc()
     }
 }
 
