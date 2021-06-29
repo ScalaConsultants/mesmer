@@ -13,20 +13,6 @@ import io.scalac.mesmer.core.util.LibraryInfo.LibraryInfo
 class SupportedModulesTest extends AnyFlatSpec with Matchers with Inspectors {
   type Id[T] = T
 
-//  object TestModuleOne extends Module {
-//    val name: String = "test-module-one"
-//
-//    type All[T] = Any
-//
-//    def enabled(config: TypesafeConfig) = ()
-//
-//    override type AkkaJar = Any
-//
-//    def jarsFromLibraryInfo(info: LibraryInfo) = None
-//
-//    val requiredAkkaJars: Any = ()
-//  }
-
   object TestModuleOne extends Module {
     val name: String = "test-module-one"
 

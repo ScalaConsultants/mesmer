@@ -33,28 +33,4 @@ object MetricsToolKit {
     def interval(): Interval = timestamp.get().interval()
   }
 
-//  final class UninitializedCounter {
-//
-//    @volatile
-//    private var counter: AtomicLong = _
-//
-//    def inc(): Unit            = ensureInitialized(_.getAndIncrement())
-//    def add(value: Long): Unit = ensureInitialized(_.getAndAdd(value))
-//    def take(): Option[Long]   = ifInitialized(_.getAndSet(0L))
-//    def get(): Option[Long]    = ifInitialized(_.get())
-//    def reset(): Unit          = ifInitialized(_.set(0L))
-//    def set(value: Long): Unit = ensureInitialized(_.set(value))
-//
-//    def initialize(): Unit = counter = new AtomicLong(0L)
-//
-//    private def ifInitialized[@specialized(Long) T](map: AtomicLong => T): Option[T] =
-//      if (counter ne null) Some(map(counter)) else None
-//
-//    private def ensureInitialized[@specialized(Long) T](map: AtomicLong => T): T = {
-//      if (counter eq null) initialize()
-//      map(counter)
-//    }
-//
-//  }
-
 }
