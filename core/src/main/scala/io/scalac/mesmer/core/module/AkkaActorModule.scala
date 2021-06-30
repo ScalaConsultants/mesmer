@@ -1,9 +1,7 @@
 package io.scalac.mesmer.core.module
 import com.typesafe.config.{ Config => TypesafeConfig }
-
 import io.scalac.mesmer.core.model.Version
-import io.scalac.mesmer.core.module.Module.Combine
-import io.scalac.mesmer.core.module.Module.Traverse
+import io.scalac.mesmer.core.module.Module.{ Combine, JarsNames, Traverse }
 import io.scalac.mesmer.core.util.LibraryInfo.LibraryInfo
 
 sealed trait AkkaActorMetrics extends MetricsModule {
@@ -146,15 +144,13 @@ object AkkaActorModule extends MesmerModule with AkkaActorMetrics with RegisterG
 
   }
 
-  final case class Jars[T](akkaActor: T, akkaActorTyped: T)
+  final case class Jars[T](akkaActor: T, akkaActorTyped: T) extends Module.CommonJars[T]
 
   def jarsFromLibraryInfo(info: LibraryInfo): Option[AkkaJar[Version]] =
     for {
-      actor      <- info.get(requiredAkkaJars.akkaActor)
-      actorTyped <- info.get(requiredAkkaJars.akkaActorTyped)
+      actor      <- info.get(JarsNames.akkaActor)
+      actorTyped <- info.get(JarsNames.akkaActorTyped)
     } yield Jars(actor, actorTyped)
-
-  val requiredAkkaJars: Jars[String] = Jars("akka-actor", "akka-actor-typed")
 
   /**
    * Combines config that with AND operator

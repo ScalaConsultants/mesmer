@@ -1,7 +1,9 @@
 package io.scalac.mesmer.agent.akka.actor.impl
 
-import io.scalac.mesmer.core.actor.{ ActorCellDecorator, ActorCellMetrics }
 import net.bytebuddy.implementation.bind.annotation.FieldValue
+
+import io.scalac.mesmer.core.actor.ActorCellDecorator
+import io.scalac.mesmer.core.actor.ActorCellMetrics
 
 final class ActorCellInitializer(init: ActorCellMetrics => Unit) {
 

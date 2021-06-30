@@ -1,10 +1,8 @@
 package io.scalac.mesmer.core.module
 
 import com.typesafe.config.{ Config => TypesafeConfig }
-
 import io.scalac.mesmer.core.model.Version
-import io.scalac.mesmer.core.module.Module.Combine
-import io.scalac.mesmer.core.module.Module.Traverse
+import io.scalac.mesmer.core.module.Module.{ Combine, CommonJars, JarsNames, Traverse }
 import io.scalac.mesmer.core.util.LibraryInfo.LibraryInfo
 
 /**
@@ -74,12 +72,14 @@ object AkkaHttpModule
 
   override type AkkaJar[T] = Jars[T]
 
-  final case class Jars[T](akkaHttp: T)
+  final case class Jars[T](akkaActor: T, akkaActorTyped: T, akkaHttp: T) extends CommonJars[T]
 
   def jarsFromLibraryInfo(info: LibraryInfo): Option[AkkaJar[Version]] =
-    info.get(requiredAkkaJars.akkaHttp).map(Jars.apply[Version])
-
-  val requiredAkkaJars: Jars[String] = Jars("akka-http")
+    for {
+      actor      <- info.get(JarsNames.akkaActor)
+      actorTyped <- info.get(JarsNames.akkaActorTyped)
+      http       <- info.get(JarsNames.akkaHttp)
+    } yield Jars(actor, actorTyped, http)
 
   implicit val combineConfig: Combine[All[Boolean]] = (first, second) => {
     Impl(

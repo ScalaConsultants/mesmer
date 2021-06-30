@@ -2,14 +2,14 @@ package io.scalac.mesmer.agent.akka.stream
 
 import akka.ActorGraphInterpreterAdvice
 import akka.stream.GraphStageIslandAdvice
-import akka.stream.impl.fusing.{ ActorGraphInterpreterProcessEventAdvice, ActorGraphInterpreterTryInitAdvice }
+import akka.stream.impl.fusing.ActorGraphInterpreterProcessEventAdvice
+import akka.stream.impl.fusing.ActorGraphInterpreterTryInitAdvice
+
 import io.scalac.mesmer.agent.Agent
-import io.scalac.mesmer.agent.akka.stream.impl.{
-  ConnectionOps,
-  GraphInterpreterPullAdvice,
-  GraphInterpreterPushAdvice,
-  PhasedFusingActorMaterializerAdvice
-}
+import io.scalac.mesmer.agent.akka.stream.impl.ConnectionOps
+import io.scalac.mesmer.agent.akka.stream.impl.GraphInterpreterPullAdvice
+import io.scalac.mesmer.agent.akka.stream.impl.GraphInterpreterPushAdvice
+import io.scalac.mesmer.agent.akka.stream.impl.PhasedFusingActorMaterializerAdvice
 import io.scalac.mesmer.agent.util.i13n._
 import io.scalac.mesmer.core.akka.version26x
 import io.scalac.mesmer.core.model.Version

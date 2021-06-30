@@ -1,16 +1,16 @@
 package io.scalac.mesmer.agent.akka
 
+import akka.actor.PoisonPill
+import akka.actor.Props
 import akka.actor.testkit.typed.scaladsl.TestProbe
+import akka.actor.typed.ActorRef
+import akka.actor.typed.Behavior
+import akka.actor.typed.SupervisorStrategy
+import akka.actor.typed.scaladsl.ActorContext
+import akka.actor.typed.scaladsl.Behaviors
+import akka.actor.typed.scaladsl.StashBuffer
 import akka.actor.typed.scaladsl.adapter._
-import akka.actor.typed.scaladsl.{ActorContext, Behaviors, StashBuffer}
-import akka.actor.typed.{ActorRef, Behavior, SupervisorStrategy}
-import akka.actor.{PoisonPill, Props}
-import akka.{actor => classic}
-import io.scalac.mesmer.agent.utils.{InstallAgent, SafeLoadSystem}
-import io.scalac.mesmer.core.actor.{ActorCellDecorator, ActorCellMetrics}
-import io.scalac.mesmer.core.event.ActorEvent
-import io.scalac.mesmer.core.util.MetricsToolKit.Counter
-import io.scalac.mesmer.core.util.ReceptionistOps
+import akka.{ actor => classic }
 import org.scalatest.OptionValues
 import org.scalatest.concurrent.Eventually
 import org.scalatest.flatspec.AnyFlatSpecLike
@@ -18,6 +18,14 @@ import org.scalatest.matchers.should.Matchers
 
 import scala.concurrent.duration._
 import scala.util.control.NoStackTrace
+
+import io.scalac.mesmer.agent.utils.InstallAgent
+import io.scalac.mesmer.agent.utils.SafeLoadSystem
+import io.scalac.mesmer.core.actor.ActorCellDecorator
+import io.scalac.mesmer.core.actor.ActorCellMetrics
+import io.scalac.mesmer.core.event.ActorEvent
+import io.scalac.mesmer.core.util.MetricsToolKit.Counter
+import io.scalac.mesmer.core.util.ReceptionistOps
 
 class AkkaActorAgentTest
     extends InstallAgent
@@ -137,10 +145,10 @@ class AkkaActorAgentTest
 
     val check: classic.ActorContext => Any = ctx => {
 //      val metrics = ActorCellDecorator.get(ctx).flatMap(_.processingTimeAgg.metrics).value
-val metrics = (for {
-  cellMetrics <- ActorCellDecorator.get(ctx) if cellMetrics.processingTimeAgg.isDefined
-  agg         <- cellMetrics.processingTimeAgg.get.metrics
-} yield agg).value
+      val metrics = (for {
+        cellMetrics <- ActorCellDecorator.get(ctx) if cellMetrics.processingTimeAgg.isDefined
+        agg         <- cellMetrics.processingTimeAgg.get.metrics
+      } yield agg).value
       metrics.count should be(messages)
       metrics.sum should be((workingMessages * processing.toNanos) +- ToleranceNanos)
       metrics.min should be(0L +- ToleranceNanos)

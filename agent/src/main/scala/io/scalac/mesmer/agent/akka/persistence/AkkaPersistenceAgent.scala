@@ -1,12 +1,13 @@
 package io.scalac.mesmer.agent.akka.persistence
 
+import org.slf4j.LoggerFactory
+
 import io.scalac.mesmer.agent.Agent
 import io.scalac.mesmer.agent.akka.persistence.impl._
 import io.scalac.mesmer.agent.util.i13n._
 import io.scalac.mesmer.core.akka.version26x
 import io.scalac.mesmer.core.model.Version
 import io.scalac.mesmer.core.module.AkkaPersistenceModule
-import org.slf4j.LoggerFactory
 
 object AkkaPersistenceAgent
     extends InstrumentModuleFactory(AkkaPersistenceModule)
@@ -46,10 +47,15 @@ object AkkaPersistenceAgent
     (resultantAgent, enabled)
   }
 
-  private def ifSupported(agent: => Agent)(versions: AkkaPersistenceModule.AkkaJar[Version]): Option[Agent] =
-    if (version26x.supports(versions.akkaPersistence) && version26x.supports(versions.akkaPersistenceTyped))
+  private def ifSupported(agent: => Agent)(versions: AkkaPersistenceModule.AkkaJar[Version]): Option[Agent] = {
+    import versions._
+    if (
+      version26x.supports(akkaPersistence) && version26x.supports(akkaPersistenceTyped) && version26x
+        .supports(akkaActor) && version26x.supports(akkaActorTyped)
+    )
       Some(agent)
     else None
+  }
 
   lazy val recoveryTime: AkkaPersistenceModule.AkkaJar[Version] => Option[Agent] = ifSupported(recoveryAgent)
 

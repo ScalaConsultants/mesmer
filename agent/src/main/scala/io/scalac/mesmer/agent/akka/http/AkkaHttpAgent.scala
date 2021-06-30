@@ -12,14 +12,19 @@ object AkkaHttpAgent
     with AkkaHttpModule.AkkaHttpConnectionsMetricsDef[AkkaHttpModule.AkkaJar[Version] => Option[Agent]]
     with AkkaHttpModule.AkkaHttpRequestMetricsDef[AkkaHttpModule.AkkaJar[Version] => Option[Agent]] {
 
-  private val supportedVersions = version101x.or(version102x)
+  private val supportedHttpVersions = version101x.or(version102x)
 
-  private def ifSupported(versions: AkkaHttpModule.AkkaJar[Version])(agent: => Agent): Option[Agent] =
-    if (supportedVersions.supports(versions.akkaHttp))
+  private def ifSupported(versions: AkkaHttpModule.AkkaJar[Version])(agent: => Agent): Option[Agent] = {
+    import versions._
+    if (
+      version26x.supports(akkaActor) && version26x.supports(akkaActorTyped) && supportedHttpVersions.supports(akkaHttp)
+    )
       Some(agent)
     else None
+  }
 
-  val requestTime: AkkaHttpModule.Jars[Version] => Option[Agent] = versions => ifSupported(versions)(requestEvents) // Version => Option[Agent]
+  val requestTime: AkkaHttpModule.Jars[Version] => Option[Agent] =
+    versions => ifSupported(versions)(requestEvents) // Version => Option[Agent]
 
   val requestCounter: AkkaHttpModule.Jars[Version] => Option[Agent] = versions => ifSupported(versions)(requestEvents)
 

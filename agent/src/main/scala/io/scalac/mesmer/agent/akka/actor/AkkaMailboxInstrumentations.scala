@@ -1,21 +1,30 @@
 package io.scalac.mesmer.agent.akka.actor
 
-import akka.MesmerMirrorTypes.{ ActorRefWithCell, Cell }
+import java.util.concurrent.BlockingQueue
+import java.util.concurrent.Callable
+import java.util.concurrent.LinkedBlockingQueue
+
+import akka.MesmerMirrorTypes.ActorRefWithCell
+import akka.MesmerMirrorTypes.Cell
 import akka.dispatch._
 import akka.util.BoundedBlockingQueue
 import akka.{ actor => classic }
-import io.scalac.mesmer.agent.util.i13n._
-import io.scalac.mesmer.agent.{ Agent, AgentInstrumentation }
-import io.scalac.mesmer.core.actor.ActorCellDecorator
-import io.scalac.mesmer.core.util.ReflectionFieldUtils
 import net.bytebuddy.asm.Advice
 import net.bytebuddy.description.`type`.TypeDescription
-import net.bytebuddy.implementation.bind.annotation.{ SuperCall, This }
-import net.bytebuddy.implementation.{ FieldAccessor, MethodDelegation }
+import net.bytebuddy.implementation.FieldAccessor
+import net.bytebuddy.implementation.MethodDelegation
+import net.bytebuddy.implementation.bind.annotation.SuperCall
+import net.bytebuddy.implementation.bind.annotation.This
 import net.bytebuddy.matcher.ElementMatchers
 
-import java.util.concurrent.{ BlockingQueue, Callable, LinkedBlockingQueue }
-import scala.reflect.{ classTag, ClassTag }
+import scala.reflect.ClassTag
+import scala.reflect.classTag
+
+import io.scalac.mesmer.agent.Agent
+import io.scalac.mesmer.agent.AgentInstrumentation
+import io.scalac.mesmer.agent.util.i13n._
+import io.scalac.mesmer.core.actor.ActorCellDecorator
+import io.scalac.mesmer.core.util.ReflectionFieldUtils
 
 object BoundedNodeMessageQueueAdvice {
 
