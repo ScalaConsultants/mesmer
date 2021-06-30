@@ -19,7 +19,8 @@ import org.scalatest.matchers.should.Matchers
 import scala.concurrent.duration._
 import scala.util.control.NoStackTrace
 
-import io.scalac.mesmer.agent.utils.InstallAgent
+import io.scalac.mesmer.agent.akka.actor.AkkaActorAgent
+import io.scalac.mesmer.agent.utils.InstallModule
 import io.scalac.mesmer.agent.utils.SafeLoadSystem
 import io.scalac.mesmer.core.actor.ActorCellDecorator
 import io.scalac.mesmer.core.actor.ActorCellMetrics
@@ -28,8 +29,7 @@ import io.scalac.mesmer.core.util.MetricsToolKit.Counter
 import io.scalac.mesmer.core.util.ReceptionistOps
 
 class AkkaActorAgentTest
-    extends InstallAgent
-//    extends InstallModule(AkkaActorAgent)
+    extends InstallModule(AkkaActorAgent)
     with AnyFlatSpecLike
     with ReceptionistOps
     with OptionValues
