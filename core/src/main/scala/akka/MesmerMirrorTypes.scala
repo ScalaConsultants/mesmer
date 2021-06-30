@@ -1,9 +1,9 @@
 package akka
 
 import akka.stream.impl.ExtendedActorMaterializer
-import akka.stream.impl.fusing.{ GraphInterpreter, GraphInterpreterShell }
+import akka.stream.impl.fusing.GraphInterpreter
+import akka.stream.impl.fusing.GraphInterpreterShell
 import akka.stream.stage.GraphStageLogic
-import akka.util.{ OptionVal => AkkaOptionVal }
 
 object MesmerMirrorTypes {
   type ActorRefWithCell                = akka.actor.ActorRefWithCell

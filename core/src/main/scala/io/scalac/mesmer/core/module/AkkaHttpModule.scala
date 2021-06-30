@@ -1,8 +1,12 @@
 package io.scalac.mesmer.core.module
 
 import com.typesafe.config.{ Config => TypesafeConfig }
+
 import io.scalac.mesmer.core.model.Version
-import io.scalac.mesmer.core.module.Module.{ Combine, CommonJars, JarsNames, Traverse }
+import io.scalac.mesmer.core.module.Module.Combine
+import io.scalac.mesmer.core.module.Module.CommonJars
+import io.scalac.mesmer.core.module.Module.JarsNames
+import io.scalac.mesmer.core.module.Module.Traverse
 import io.scalac.mesmer.core.util.LibraryInfo.LibraryInfo
 
 /**

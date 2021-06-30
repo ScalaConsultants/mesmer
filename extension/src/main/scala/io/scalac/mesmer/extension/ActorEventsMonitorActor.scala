@@ -1,29 +1,46 @@
 package io.scalac.mesmer.extension
 
+import java.util.concurrent.atomic.AtomicReference
+
+import akka.Done
 import akka.actor.typed._
 import akka.actor.typed.receptionist.Receptionist.Listing
-import akka.actor.typed.scaladsl.{ ActorContext, Behaviors, TimerScheduler }
+import akka.actor.typed.scaladsl.ActorContext
+import akka.actor.typed.scaladsl.Behaviors
+import akka.actor.typed.scaladsl.TimerScheduler
 import akka.util.Timeout
-import akka.{ Done, actor => classic }
+import akka.{ actor => classic }
+import org.slf4j.LoggerFactory
+
+import scala.concurrent.duration._
+import scala.util.Failure
+import scala.util.Success
+
 import io.scalac.mesmer.core.actor.ActorCellDecorator
 import io.scalac.mesmer.core.akka.actorPathPartialOrdering
-import io.scalac.mesmer.core.model.{ ActorKey, ActorRefDetails, Node, Tag }
-import io.scalac.mesmer.core.util.{ ActorCellOps, ActorPathOps, ActorRefOps }
+import io.scalac.mesmer.core.model.ActorKey
+import io.scalac.mesmer.core.model.ActorRefDetails
+import io.scalac.mesmer.core.model.Node
+import io.scalac.mesmer.core.model.Tag
+import io.scalac.mesmer.core.util.ActorCellOps
+import io.scalac.mesmer.core.util.ActorPathOps
+import io.scalac.mesmer.core.util.ActorRefOps
 import io.scalac.mesmer.extension.ActorEventsMonitorActor._
-import io.scalac.mesmer.extension.actor.{ ActorMetrics, MetricStorageFactory }
+import io.scalac.mesmer.extension.actor.ActorMetrics
+import io.scalac.mesmer.extension.actor.MetricStorageFactory
 import io.scalac.mesmer.extension.metric.ActorMetricsMonitor
 import io.scalac.mesmer.extension.metric.ActorMetricsMonitor.Labels
 import io.scalac.mesmer.extension.metric.MetricObserver.Result
-import io.scalac.mesmer.extension.service.ActorTreeService.Command.{ GetActorTree, TagSubscribe }
-import io.scalac.mesmer.extension.service.{ actorTreeServiceKey, ActorTreeService }
+import io.scalac.mesmer.extension.service.ActorTreeService
+import io.scalac.mesmer.extension.service.ActorTreeService.Command.GetActorTree
+import io.scalac.mesmer.extension.service.ActorTreeService.Command.TagSubscribe
+import io.scalac.mesmer.extension.service.actorTreeServiceKey
+import io.scalac.mesmer.extension.util.GenericBehaviors
+import io.scalac.mesmer.extension.util.Tree
+import io.scalac.mesmer.extension.util.Tree.Tree
 import io.scalac.mesmer.extension.util.Tree.TreeOrdering._
-import io.scalac.mesmer.extension.util.Tree.{ Tree, _ }
-import io.scalac.mesmer.extension.util.{ GenericBehaviors, Tree, TreeF }
-import org.slf4j.LoggerFactory
-
-import java.util.concurrent.atomic.AtomicReference
-import scala.concurrent.duration._
-import scala.util.{ Failure, Success }
+import io.scalac.mesmer.extension.util.Tree._
+import io.scalac.mesmer.extension.util.TreeF
 
 object ActorEventsMonitorActor {
 

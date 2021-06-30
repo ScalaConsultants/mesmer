@@ -1,6 +1,9 @@
 package io.scalac.mesmer.core.actor
 
-import akka.OptionVal.{ apply, none, _ }
+import akka.OptionVal._
+import akka.OptionVal.apply
+import akka.OptionVal.none
+
 import io.scalac.mesmer.core.util.MetricsToolKit._
 
 final class ActorCellMetrics {

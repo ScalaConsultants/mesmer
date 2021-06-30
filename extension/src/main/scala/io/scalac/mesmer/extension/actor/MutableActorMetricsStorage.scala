@@ -7,7 +7,7 @@ import io.scalac.mesmer.extension.resource.MutableStorage
 final class MutableActorMetricStorageFactory[K] extends MetricStorageFactory[K] {
   type Storage = MutableActorMetricsStorage
 
-  final class MutableActorMetricsStorage private[actor](
+  final class MutableActorMetricsStorage private[actor] (
     protected val buffer: mutable.Map[K, ActorMetrics],
     protected val persistentBuffer: mutable.Map[K, ActorMetrics]
   ) extends MutableStorage[K, ActorMetrics]
