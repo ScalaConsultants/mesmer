@@ -2,15 +2,16 @@ package io.scalac.mesmer.agent.akka.stream
 
 import akka.ActorGraphInterpreterAdvice
 import akka.stream.GraphStageIslandAdvice
-import akka.stream.impl.fusing.ActorGraphInterpreterProcessEventAdvice
-import akka.stream.impl.fusing.ActorGraphInterpreterTryInitAdvice
-
+import akka.stream.impl.fusing.{ ActorGraphInterpreterProcessEventAdvice, ActorGraphInterpreterTryInitAdvice }
 import io.scalac.mesmer.agent.Agent
-import io.scalac.mesmer.agent.akka.stream.impl.ConnectionOps
-import io.scalac.mesmer.agent.akka.stream.impl.GraphInterpreterPullAdvice
-import io.scalac.mesmer.agent.akka.stream.impl.GraphInterpreterPushAdvice
-import io.scalac.mesmer.agent.akka.stream.impl.PhasedFusingActorMaterializerAdvice
+import io.scalac.mesmer.agent.akka.stream.impl.{
+  ConnectionOps,
+  GraphInterpreterPullAdvice,
+  GraphInterpreterPushAdvice,
+  PhasedFusingActorMaterializerAdvice
+}
 import io.scalac.mesmer.agent.util.i13n._
+import io.scalac.mesmer.core.akka.version26x
 import io.scalac.mesmer.core.model.Version
 import io.scalac.mesmer.core.module.AkkaStreamModule
 
@@ -54,18 +55,26 @@ object AkkaStreamAgent
     (resultantAgent, enabled)
   }
 
-  lazy val runningStreamsTotal: AkkaStreamModule.AkkaJar[Version] => Option[Agent] = _ => Some(sharedImplementations)
+  private def ifSupported(agent: => Agent)(versions: AkkaStreamModule.AkkaJar[Version]): Option[Agent] = {
+    import versions._
+    if (version26x.supports(akkaStream) && version26x.supports(akkaActorTyped) && version26x.supports(akkaActor)) {
+      Some(agent)
+    } else None
+  }
 
-  lazy val streamActorsTotal: AkkaStreamModule.AkkaJar[Version] => Option[Agent] = _ => Some(sharedImplementations)
+  lazy val runningStreamsTotal: AkkaStreamModule.AkkaJar[Version] => Option[Agent] = ifSupported(sharedImplementations)
 
-  lazy val streamProcessedMessages: AkkaStreamModule.AkkaJar[Version] => Option[Agent] = _ =>
-    Some(sharedImplementations)
+  lazy val streamActorsTotal: AkkaStreamModule.AkkaJar[Version] => Option[Agent] = ifSupported(sharedImplementations)
 
-  lazy val processedMessages: AkkaStreamModule.AkkaJar[Version] => Option[Agent] = _ => Some(sharedImplementations)
+  lazy val streamProcessedMessages: AkkaStreamModule.AkkaJar[Version] => Option[Agent] = ifSupported(
+    sharedImplementations
+  )
 
-  lazy val operators: AkkaStreamModule.AkkaJar[Version] => Option[Agent] = _ => Some(sharedImplementations)
+  lazy val processedMessages: AkkaStreamModule.AkkaJar[Version] => Option[Agent] = ifSupported(sharedImplementations)
 
-  lazy val demand: AkkaStreamModule.AkkaJar[Version] => Option[Agent] = _ => Some(sharedImplementations)
+  lazy val operators: AkkaStreamModule.AkkaJar[Version] => Option[Agent] = ifSupported(sharedImplementations)
+
+  lazy val demand: AkkaStreamModule.AkkaJar[Version] => Option[Agent] = ifSupported(sharedImplementations)
 
   /**
    * actorOf methods is called when island decide to materialize itself

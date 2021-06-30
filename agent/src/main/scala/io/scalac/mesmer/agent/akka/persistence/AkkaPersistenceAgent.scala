@@ -1,12 +1,12 @@
 package io.scalac.mesmer.agent.akka.persistence
 
-import org.slf4j.LoggerFactory
-
 import io.scalac.mesmer.agent.Agent
 import io.scalac.mesmer.agent.akka.persistence.impl._
 import io.scalac.mesmer.agent.util.i13n._
+import io.scalac.mesmer.core.akka.version26x
 import io.scalac.mesmer.core.model.Version
 import io.scalac.mesmer.core.module.AkkaPersistenceModule
+import org.slf4j.LoggerFactory
 
 object AkkaPersistenceAgent
     extends InstrumentModuleFactory(AkkaPersistenceModule)
@@ -46,18 +46,26 @@ object AkkaPersistenceAgent
     (resultantAgent, enabled)
   }
 
-  lazy val recoveryTime: AkkaPersistenceModule.AkkaJar[Version] => Option[Agent] = _ => Some(recoveryAgent)
+  private def ifSupported(agent: => Agent)(versions: AkkaPersistenceModule.AkkaJar[Version]): Option[Agent] =
+    if (version26x.supports(versions.akkaPersistence) && version26x.supports(versions.akkaPersistenceTyped))
+      Some(agent)
+    else None
 
-  lazy val recoveryTotal: AkkaPersistenceModule.AkkaJar[Version] => Option[Agent] = _ => Some(recoveryAgent)
+  lazy val recoveryTime: AkkaPersistenceModule.AkkaJar[Version] => Option[Agent] = ifSupported(recoveryAgent)
 
-  lazy val persistentEvent: AkkaPersistenceModule.AkkaJar[Version] => Option[Agent] = _ =>
-    Some(Agent(eventWriteSuccessInstrumentation))
+  lazy val recoveryTotal: AkkaPersistenceModule.AkkaJar[Version] => Option[Agent] = ifSupported(recoveryAgent)
 
-  lazy val persistentEventTotal: AkkaPersistenceModule.AkkaJar[Version] => Option[Agent] = _ =>
-    Some(Agent(eventWriteSuccessInstrumentation))
+  lazy val persistentEvent: AkkaPersistenceModule.AkkaJar[Version] => Option[Agent] = ifSupported(
+    Agent(eventWriteSuccessInstrumentation)
+  )
 
-  lazy val snapshot: AkkaPersistenceModule.AkkaJar[Version] => Option[Agent] = _ =>
-    Some(Agent(snapshotLoadingInstrumentation))
+  lazy val persistentEventTotal: AkkaPersistenceModule.AkkaJar[Version] => Option[Agent] = ifSupported(
+    Agent(eventWriteSuccessInstrumentation)
+  )
+
+  lazy val snapshot: AkkaPersistenceModule.AkkaJar[Version] => Option[Agent] = ifSupported(
+    Agent(snapshotLoadingInstrumentation)
+  )
 
   private[persistence] val logger = LoggerFactory.getLogger(AkkaPersistenceAgent.getClass)
 

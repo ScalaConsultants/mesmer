@@ -2,6 +2,7 @@ package io.scalac.mesmer.agent.akka.http
 
 import io.scalac.mesmer.agent.Agent
 import io.scalac.mesmer.agent.util.i13n._
+import io.scalac.mesmer.core.akka._
 import io.scalac.mesmer.core.model.Version
 import io.scalac.mesmer.core.module.AkkaHttpModule
 import io.scalac.mesmer.core.module.AkkaHttpModule._
@@ -11,11 +12,18 @@ object AkkaHttpAgent
     with AkkaHttpModule.AkkaHttpConnectionsMetricsDef[AkkaHttpModule.AkkaJar[Version] => Option[Agent]]
     with AkkaHttpModule.AkkaHttpRequestMetricsDef[AkkaHttpModule.AkkaJar[Version] => Option[Agent]] {
 
-  def requestTime: AkkaHttpModule.Jars[Version] => Option[Agent] = _ => Some(requestEvents) // Version => Option[Agent]
+  private val supportedVersions = version101x.or(version102x)
 
-  def requestCounter: AkkaHttpModule.Jars[Version] => Option[Agent] = _ => Some(requestEvents)
+  private def ifSupported(versions: AkkaHttpModule.AkkaJar[Version])(agent: => Agent): Option[Agent] =
+    if (supportedVersions.supports(versions.akkaHttp))
+      Some(agent)
+    else None
 
-  def connections: AkkaHttpModule.Jars[Version] => Option[Agent] = _ => Some(connectionEvents)
+  val requestTime: AkkaHttpModule.Jars[Version] => Option[Agent] = versions => ifSupported(versions)(requestEvents) // Version => Option[Agent]
+
+  val requestCounter: AkkaHttpModule.Jars[Version] => Option[Agent] = versions => ifSupported(versions)(requestEvents)
+
+  val connections: AkkaHttpModule.Jars[Version] => Option[Agent] = versions => ifSupported(versions)(connectionEvents)
 
   private lazy val requestEvents =
     Agent(

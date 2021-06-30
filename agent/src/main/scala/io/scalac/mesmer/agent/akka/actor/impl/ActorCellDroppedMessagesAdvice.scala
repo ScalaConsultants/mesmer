@@ -10,10 +10,11 @@ object ActorCellDroppedMessagesAdvice {
   def init(@This actorCell: Object, @Argument(1) mailboxType: MailboxType): Unit =
     mailboxType match {
       case _: UnboundedMailbox | _: SingleConsumerOnlyUnboundedMailbox =>
+
+      case _ =>
         ActorCellDecorator.get(actorCell).foreach { metrics =>
           metrics.initDroppedMessages()
         }
-      case _ =>
     }
 
 }

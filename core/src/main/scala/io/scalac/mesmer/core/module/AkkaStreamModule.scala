@@ -1,9 +1,7 @@
 package io.scalac.mesmer.core.module
 import com.typesafe.config.{ Config => TypesafeConfig }
-
 import io.scalac.mesmer.core.model.Version
-import io.scalac.mesmer.core.module.Module.Combine
-import io.scalac.mesmer.core.module.Module.Traverse
+import io.scalac.mesmer.core.module.Module.{ Combine, Traverse }
 import io.scalac.mesmer.core.util.LibraryInfo.LibraryInfo
 
 sealed trait AkkaStreamMetrics extends MetricsModule {
@@ -100,12 +98,16 @@ object AkkaStreamModule
 
   override type AkkaJar[T] = Jars[T]
 
-  final case class Jars[T](akkaStream: T)
+  final case class Jars[T](akkaStream: T, akkaActor: T, akkaActorTyped: T)
 
   def jarsFromLibraryInfo(info: LibraryInfo): Option[AkkaJar[Version]] =
-    info.get(requiredAkkaJars.akkaStream).map(Jars.apply[Version])
+    for {
+      stream     <- info.get(requiredAkkaJars.akkaStream)
+      actor      <- info.get(requiredAkkaJars.akkaActor)
+      actorTyped <- info.get(requiredAkkaJars.akkaActorTyped)
+    } yield Jars(stream, actor, actorTyped)
 
-  val requiredAkkaJars: AkkaJar[String] = Jars("akka-stream")
+  val requiredAkkaJars: AkkaJar[String] = Jars("akka-stream", "akka-actor", "akka-actor-typed")
 
   implicit val combine: Combine[All[Boolean]] = (first, second) => {
     Impl(

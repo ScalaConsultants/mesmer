@@ -1,9 +1,9 @@
 package io.scalac.mesmer.agent.akka.actor
 
-import akka.actor.{ ActorSystem, PoisonPill }
-import akka.actor.typed.{ ActorRef, Behavior, MailboxSelector, Props }
-import akka.actor.typed.scaladsl.{ ActorContext, Behaviors }
 import akka.actor.typed.scaladsl.adapter._
+import akka.actor.typed.scaladsl.{ ActorContext, Behaviors }
+import akka.actor.typed.{ ActorRef, Behavior, MailboxSelector, Props }
+import akka.actor.{ ActorSystem, PoisonPill }
 import akka.dispatch.{ BoundedPriorityMailbox, BoundedStablePriorityMailbox, Envelope }
 import akka.{ actor => classic }
 import com.typesafe.config.{ Config, ConfigFactory }
@@ -171,22 +171,20 @@ class ActorMailboxTest
     testWithProps(props)
   }
 
-//  it should "not have dropped messages defined for default typed configuration" in {
-//    val (sut, context) = actorRefWithContext(Props.empty)
-//
-//    val metrics = ActorCellDecorator.get(context.toClassic).get
-//    metrics.droppedMessages should be(None)
-//    assertThrows[ClassCastException] {
-//      metrics.asInstanceOf[ActorCellMetrics with DroppedMessagesCellMetrics]
-//    }
-//    sut.unsafeUpcast ! PoisonPill
-//  }
+  it should "not have dropped messages defined for default typed configuration" in {
+    val (sut, context) = actorRefWithContext(Props.empty)
+
+    val metrics = ActorCellDecorator.get(context.toClassic).get
+    metrics.droppedMessages.toOption should be(None)
+
+    sut.unsafeUpcast ! PoisonPill
+  }
 
   it should "not have dropped messages defined for default classic configuration" in {
     val (sut, context) = classicActorRefWithContext(classic.Props.empty)
 
     val metrics = ActorCellDecorator.get(context).get
-    metrics.droppedMessages should be(None)
+    metrics.droppedMessages.toOption should be(None)
 //    assertThrows[ClassCastException] {
 //      metrics.asInstanceOf[ActorCellMetrics with DroppedMessagesCellMetrics]
 //    }
