@@ -1,4 +1,5 @@
 package io.scalac.mesmer.extension
+
 import akka.actor.ExtendedActorSystem
 import akka.actor.typed._
 import akka.actor.typed.receptionist.Receptionist.Register
@@ -36,12 +37,13 @@ object AkkaMonitoring extends ExtensionId[AkkaMonitoring] {
   private val ExportInterval = 5.seconds
 
   def createExtension(system: ActorSystem[_]): AkkaMonitoring = {
-    val config = AkkaMonitoringConfig(system.settings.config)
+    val config = AkkaMonitoringConfig.fromConfig(system.settings.config)
     new AkkaMonitoring(system, config)
   }
 }
 
 final class AkkaMonitoring(private val system: ActorSystem[_], val config: AkkaMonitoringConfig) extends Extension {
+
   import system.log
 
   private val meter             = InstrumentationLibrary.mesmerMeter
@@ -286,22 +288,30 @@ final class AkkaMonitoring(private val system: ActorSystem[_], val config: AkkaM
     import config.{ autoStart => autoStartConfig }
 
     if (autoStartConfig.akkaActor || autoStartConfig.akkaStream) {
+      log.debug("Start actor tree service")
       startActorTreeService()
     }
     if (autoStartConfig.akkaStream) {
+      log.debug("Start akka stream service")
+
       startStreamMonitor()
     }
     if (autoStartConfig.akkaActor) {
+      log.debug("Start akka actor service")
       startActorMonitor()
     }
     if (autoStartConfig.akkaHttp) {
+      log.debug("Start akka persistence service")
       startHttpMonitor()
     }
-    if (autoStartConfig.akkaHttp) {
+    if (autoStartConfig.akkaPersistence) {
+      log.debug("Start akka http service")
+
       startPersistenceMonitor()
     }
 
     if (autoStartConfig.akkaCluster) {
+      log.debug("Start akka cluster service")
       startClusterEventsMonitor()
       startClusterRegionsMonitor()
       startSelfMemberMonitor()

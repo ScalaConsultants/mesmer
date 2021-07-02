@@ -33,12 +33,14 @@ trait Configuration {
   type Result
 
   protected def defaultConfig: Result
+
   def fromConfig(config: Config): Result = config
     .tryValue(absoluteBase)(_.getConfig)
     .map(extractFromConfig)
     .getOrElse(defaultConfig)
 
   protected val absoluteBase: String
+
   protected def extractFromConfig(config: Config): Result
 }
 
@@ -49,7 +51,10 @@ trait MesmerConfigurationBase extends Configuration {
    */
   private final val mesmerBase: String = "io.scalac.mesmer"
 
-  protected lazy val absoluteBase: String = s"$mesmerBase.$mesmerConfig"
+  protected lazy val absoluteBase: String = {
+    val branch = mesmerConfig
+    if (mesmerConfig.isEmpty) mesmerBase else s"$mesmerBase.$branch"
+  }
 
   /**
    * Name of configuration inside mesmer branch
