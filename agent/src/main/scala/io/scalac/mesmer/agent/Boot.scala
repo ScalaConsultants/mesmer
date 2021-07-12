@@ -2,6 +2,7 @@ package io.scalac.mesmer.agent
 
 import java.lang.instrument.Instrumentation
 
+import com.typesafe.config.ConfigFactory
 import net.bytebuddy.ByteBuddy
 import net.bytebuddy.agent.builder.AgentBuilder
 import net.bytebuddy.dynamic.scaffold.TypeValidation
@@ -9,15 +10,17 @@ import net.bytebuddy.dynamic.scaffold.TypeValidation
 import scala.annotation.unused
 
 import io.scalac.mesmer.agent.akka.actor.AkkaActorAgent
-import io.scalac.mesmer.agent.akka.actor.AkkaMailboxAgent
 import io.scalac.mesmer.agent.akka.http.AkkaHttpAgent
 import io.scalac.mesmer.agent.akka.persistence.AkkaPersistenceAgent
 import io.scalac.mesmer.agent.akka.stream.AkkaStreamAgent
-import io.scalac.mesmer.core.util.ModuleInfo
+import io.scalac.mesmer.core.util.LibraryInfo
 
 object Boot {
 
+  //TODO better configuration specification
   def premain(@unused arg: String, instrumentation: Instrumentation): Unit = {
+
+    val config = ConfigFactory.load()
 
     val agentBuilder = new AgentBuilder.Default()
       .`with`(new ByteBuddy().`with`(TypeValidation.DISABLED))
@@ -27,12 +30,15 @@ object Boot {
       )
       .`with`(AgentBuilder.InstallationListener.StreamWriting.toSystemOut)
 
-    val allInstrumentations =
-      AkkaPersistenceAgent.agent ++ AkkaHttpAgent.agent ++ AkkaStreamAgent.agent ++ AkkaActorAgent.agent ++ AkkaMailboxAgent.agent
-    val moduleInfo = ModuleInfo.extractModulesInformation(Thread.currentThread().getContextClassLoader)
+    val info = LibraryInfo.extractModulesInformation(Thread.currentThread().getContextClassLoader)
+
+    val allInstrumentations = AkkaPersistenceAgent.initAgent(info, config).getOrElse(Agent.empty) ++
+      AkkaStreamAgent.initAgent(info, config).getOrElse(Agent.empty) ++
+      AkkaHttpAgent.initAgent(info, config).getOrElse(Agent.empty) ++
+      AkkaActorAgent.initAgent(info, config).getOrElse(Agent.empty)
 
     allInstrumentations
-      .installOn(agentBuilder, instrumentation, moduleInfo)
+      .installOn(agentBuilder, instrumentation)
       .eagerLoad()
 
   }
