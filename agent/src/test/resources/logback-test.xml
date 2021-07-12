@@ -15,6 +15,7 @@
         <appender-ref ref="STDOUT"/>
     </appender>
     <logger name="io.scalac.mesmer.core.event.ReceptionistBasedEventBus" level="OFF"/>
+    <logger name="io.scalac.mesmer.agent" level="TRACE"/>
 
     <root level="INFO">
         <appender-ref ref="STDOUT"/>

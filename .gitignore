@@ -8,3 +8,4 @@ target/
 *.sh
 .vscode/
 .metals/
+.bloop/

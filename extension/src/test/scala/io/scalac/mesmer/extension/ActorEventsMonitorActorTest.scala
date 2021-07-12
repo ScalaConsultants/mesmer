@@ -26,7 +26,7 @@ import scala.util.Random
 import scala.util.control.NoStackTrace
 
 import io.scalac.mesmer.core.model._
-import io.scalac.mesmer.core.util.AggMetric.LongValueAggMetric
+import io.scalac.mesmer.core.util.MinMaxSumCountAggregation.LongMinMaxSumCountAggregationImpl
 import io.scalac.mesmer.core.util.TestCase._
 import io.scalac.mesmer.core.util.TestConfig
 import io.scalac.mesmer.core.util.TestOps
@@ -147,11 +147,11 @@ final class ActorEventsMonitorActorTest
 
   private val ConstActorMetrics: ActorMetrics = ActorMetrics(
     Some(1),
-    Some(LongValueAggMetric(1, 10, 20, 10)),
+    Some(LongMinMaxSumCountAggregationImpl(1, 10, 20, 10)),
     Some(2),
     Some(3),
     Some(4),
-    Some(LongValueAggMetric(10, 100, 200, 10)),
+    Some(LongMinMaxSumCountAggregationImpl(10, 100, 200, 10)),
     Some(5),
     Some(6),
     Some(7)
@@ -162,7 +162,8 @@ final class ActorEventsMonitorActorTest
     val y     = Random.nextLong(1000)
     val sum   = Random.nextLong(1000)
     val count = Random.nextInt(100) + 1
-    if (x > y) LongValueAggMetric(y, x, sum, count) else LongValueAggMetric(x, y, sum, count)
+    if (x > y) LongMinMaxSumCountAggregationImpl(y, x, sum, count)
+    else LongMinMaxSumCountAggregationImpl(x, y, sum, count)
   }
 
   override implicit val timeout: Timeout = pingOffset
@@ -558,17 +559,22 @@ final class ActorEventsMonitorActorTest
     probeMax: ActorMonitorTestProbe => TestProbe[MetricObserverCommand[Labels]],
     probeSum: ActorMonitorTestProbe => TestProbe[MetricObserverCommand[Labels]],
     probeCount: ActorMonitorTestProbe => TestProbe[MetricObserverCommand[Labels]],
-    extract: ActorMetrics => Option[LongValueAggMetric],
+    extract: ActorMetrics => Option[LongMinMaxSumCountAggregationImpl],
     name: String
   ): Unit = {
-    val args
-      : List[(String, LongValueAggMetric => Long, ActorMonitorTestProbe => TestProbe[MetricObserverCommand[Labels]])] =
+    val args: List[
+      (
+        String,
+        LongMinMaxSumCountAggregationImpl => Long,
+        ActorMonitorTestProbe => TestProbe[MetricObserverCommand[Labels]]
+      )
+    ] =
       List(("min", _.min, probeMin), ("max", _.max, probeMax), ("sum", _.sum, probeSum), ("count", _.count, probeCount))
     for {
       (suffix, mapping, probe) <- args
     } {
-      collect[Option[LongValueAggMetric]](probe, extract.andThen(_.map(mapping).get), s"$name $suffix")
-      reportingAggregation[Option[LongValueAggMetric]](
+      collect[Option[LongMinMaxSumCountAggregationImpl]](probe, extract.andThen(_.map(mapping).get), s"$name $suffix")
+      reportingAggregation[Option[LongMinMaxSumCountAggregationImpl]](
         probe,
         extract,
         s"$name $suffix",
@@ -576,7 +582,13 @@ final class ActorEventsMonitorActorTest
         addToAgg,
         _.map(mapping).get
       )((addRandomMetrics))
-      collectMany[Option[LongValueAggMetric]](probe, extract, s"$name $suffix", addToAgg, _.map(mapping).get)(
+      collectMany[Option[LongMinMaxSumCountAggregationImpl]](
+        probe,
+        extract,
+        s"$name $suffix",
+        addToAgg,
+        _.map(mapping).get
+      )(
         Seq.fill(10)(randomActorMetrics())
       )
     }
@@ -590,7 +602,9 @@ final class ActorEventsMonitorActorTest
     } yield (x + y))
   }
 
-  private val sumAgg: (Option[LongValueAggMetric], Option[LongValueAggMetric]) => Option[LongValueAggMetric] =
+  private val sumAgg: (Option[LongMinMaxSumCountAggregationImpl], Option[LongMinMaxSumCountAggregationImpl]) => Option[
+    LongMinMaxSumCountAggregationImpl
+  ] =
     (optX, optY) => {
       (for {
         x <- optX
@@ -598,7 +612,10 @@ final class ActorEventsMonitorActorTest
       } yield x.sum(y))
     }
 
-  private val addToAgg: (Option[LongValueAggMetric], Option[LongValueAggMetric]) => Option[LongValueAggMetric] =
+  private val addToAgg
+    : (Option[LongMinMaxSumCountAggregationImpl], Option[LongMinMaxSumCountAggregationImpl]) => Option[
+      LongMinMaxSumCountAggregationImpl
+    ] =
     (optX, optY) => {
       (for {
         x <- optX
@@ -610,7 +627,7 @@ final class ActorEventsMonitorActorTest
   it should behave like allBehaviorsLong(_.receivedMessagesProbe, _.receivedMessages, "received messages")
   it should behave like allBehaviorsLong(_.failedMessagesProbe, _.failedMessages, "failed messages")
   it should behave like allBehaviorsLong(_.sentMessagesProbe, _.sentMessages, "sent messages")
-  it should behave like allBehaviorsLong(_.stashSizeProbe, _.stashSize, "stash messages")
+  it should behave like allBehaviorsLong(_.stashedMessagesProbe, _.stashSize, "stash messages")
   it should behave like allBehaviorsLong(_.droppedMessagesProbe, _.droppedMessages, "dropped messages")
   it should behave like allBehaviorsLong(_.processedMessagesProbe, _.processedMessages, "processed messages")
 

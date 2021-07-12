@@ -23,7 +23,7 @@ import scala.concurrent.ExecutionContext
 import scala.concurrent.Future
 import scala.concurrent.duration._
 
-import io.scalac.mesmer.agent.utils.InstallAgent
+import io.scalac.mesmer.agent.utils.InstallModule
 import io.scalac.mesmer.agent.utils.SafeLoadSystem
 import io.scalac.mesmer.core.akka.model.PushMetrics
 import io.scalac.mesmer.core.config.AkkaPatienceConfig
@@ -39,7 +39,7 @@ import io.scalac.mesmer.core.util.TestBehaviors.Pass
 import io.scalac.mesmer.core.util.TestCase.CommonMonitorTestFactory
 
 class AkkaStreamAgentTest
-    extends InstallAgent
+    extends InstallModule(AkkaStreamAgent)
     with AnyFlatSpecLike
     with Matchers
     with SafeLoadSystem
