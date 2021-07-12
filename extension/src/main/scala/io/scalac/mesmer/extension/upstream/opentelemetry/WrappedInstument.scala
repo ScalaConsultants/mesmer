@@ -14,5 +14,5 @@ trait UnregisteredInstrument[T <: WrappedInstrument] extends (RegisterRoot => T#
  * Common base trait for both synchronous and asynchronous instruments
  */
 trait WrappedInstrument { self =>
-  type Self >: self.type <: WrappedInstrument
+  type Self <: WrappedInstrument
 }
