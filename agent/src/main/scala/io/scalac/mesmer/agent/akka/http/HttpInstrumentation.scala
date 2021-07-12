@@ -34,19 +34,12 @@ object HttpInstrumentation {
     }
   }
 
-  def bindAndHandleImpl(
+  def bindAndHandleRequestImpl(
     handler: Flow[HttpRequest, HttpResponse, Any],
-    interface: String,
-    port: java.lang.Integer,
     self: HttpExt
   ): Flow[HttpRequest, HttpResponse, Any] = {
 
     val system = self.asInstanceOf[HttpExt].system.toTyped
-
-    val connectionsCountFlow = BidiFlowForward[HttpRequest, HttpResponse](
-      onPreStart = () => EventBus(system).publishEvent(ConnectionStarted(interface, port)),
-      onPostStop = () => EventBus(system).publishEvent(ConnectionCompleted(interface, port))
-    )
 
     val requestIdFlow =
       BidiFlow.fromGraph[HttpRequest, HttpRequest, HttpResponse, HttpResponse, Any](GraphDSL.create() {
@@ -93,9 +86,25 @@ object HttpInstrumentation {
           BidiShape(outerRequest.in, outerRequestOut.outlet, zipRespone.in0, outerResponse.out)
       })
 
-    connectionsCountFlow
-      .atop(requestIdFlow)
+    requestIdFlow
       .join(handler)
 
+  }
+
+  def bindAndHandleConnectionsImpl(
+    handler: Flow[HttpRequest, HttpResponse, Any],
+    interface: String,
+    port: java.lang.Integer,
+    self: HttpExt
+  ): Flow[HttpRequest, HttpResponse, Any] = {
+
+    val system = self.asInstanceOf[HttpExt].system.toTyped
+
+    val connectionsCountFlow = BidiFlowForward[HttpRequest, HttpResponse](
+      onPreStart = () => EventBus(system).publishEvent(ConnectionStarted(interface, port)),
+      onPostStop = () => EventBus(system).publishEvent(ConnectionCompleted(interface, port))
+    )
+
+    connectionsCountFlow.join(handler)
   }
 }

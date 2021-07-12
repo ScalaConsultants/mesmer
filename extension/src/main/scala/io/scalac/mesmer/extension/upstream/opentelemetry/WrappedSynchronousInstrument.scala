@@ -10,7 +10,6 @@ import io.scalac.mesmer.extension.metric._
 
 trait SynchronousInstrumentFactory {
 
-//  private def wrappedLongValueFactor()
   private[upstream] def metricRecorder(
     underlying: LongValueRecorder,
     labels: Labels
@@ -37,12 +36,49 @@ trait SynchronousInstrumentFactory {
     root.registerUnbind(instrument)
     instrument
   }
+
+  private[upstream] def noopMetricRecorder[T]: WrappedSynchronousInstrument[T] with MetricRecorder[T] =
+    NoopLongValueRecorder
+  private[upstream] def noopCounter[T]: WrappedSynchronousInstrument[T] with Counter[T]             = NoopCounter
+  private[upstream] def noopUpDownCounter[T]: WrappedSynchronousInstrument[T] with UpDownCounter[T] = NoopUpDownCounter
 }
 
-sealed trait WrappedSynchronousInstrument[L] extends Unbind with WrappedInstrument {
+sealed trait WrappedSynchronousInstrument[-L] extends Unbind with WrappedInstrument {
 
   private[extension] def underlying: SynchronousInstrument[_]
-  private[extension] def labels: Labels
+}
+
+sealed trait WrappedNoOp extends WrappedSynchronousInstrument[Any] {
+  final private[extension] def underlying: SynchronousInstrument[_] = throw new UnsupportedOperationException(
+    "Cannot get underlying instrument from noop"
+  )
+}
+
+case object NoopLongValueRecorder extends WrappedNoOp with MetricRecorder[Any] {
+
+  private[scalac] def unbind(): Unit = ()
+
+  def setValue(value: Any): Unit = ()
+
+  override type Self = Nothing
+}
+
+case object NoopCounter extends WrappedNoOp with Counter[Any] {
+  def incValue(value: Any): Unit = ()
+
+  private[scalac] def unbind(): Unit = ()
+
+  override type Self = Nothing
+}
+
+case object NoopUpDownCounter extends WrappedNoOp with UpDownCounter[Any] {
+  def decValue(value: Any): Unit = ()
+
+  private[scalac] def unbind(): Unit = ()
+
+  def incValue(value: Any): Unit = ()
+
+  override type Self = Nothing
 }
 
 final case class WrappedLongValueRecorder private[opentelemetry] (underlying: LongValueRecorder, labels: Labels)

@@ -11,11 +11,13 @@ import io.scalac.mesmer.extension.metric.{ Synchronized => BaseSynchronized }
 abstract class Synchronized(private val meter: Meter) extends BaseSynchronized {
   import Synchronized._
 
-  type Instrument[X] = WrappedSynchronousInstrument[X] // TODO check if this type is sound
+  type Instrument[X] = WrappedSynchronousInstrument[X]
+
+  protected val otLabels: Labels
 
   def atomically[A, B](first: Instrument[A], second: Instrument[B]): (A, B) => Unit = { (a, b) =>
     meter
-      .newBatchRecorder(extractLabels(first.labels): _*)
+      .newBatchRecorder(extractLabels(otLabels): _*)
       .putValue(first, a)
       .putValue(second, b)
       .record()
@@ -37,6 +39,7 @@ object Synchronized {
         case WrappedLongValueRecorder(underlying, _) => recorder.put(underlying, value)
         case WrappedCounter(underlying, _)           => recorder.put(underlying, value)
         case WrappedUpDownCounter(underlying, _)     => recorder.put(underlying, value)
+        case _: WrappedNoOp                          => // skip any noop monitor
       }
       recorder
     }

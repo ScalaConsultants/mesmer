@@ -1,6 +1,7 @@
 package io.scalac.mesmer.agent.util
 
 import net.bytebuddy.asm.Advice
+import net.bytebuddy.description.`type`.TypeDefinition
 import net.bytebuddy.description.`type`.TypeDescription
 import net.bytebuddy.description.method.MethodDescription
 import net.bytebuddy.dynamic.DynamicType
@@ -14,14 +15,29 @@ import scala.reflect.ClassTag
 import scala.reflect.classTag
 
 import io.scalac.mesmer.agent.AgentInstrumentation
-import io.scalac.mesmer.core.model.SupportedModules
+import io.scalac.mesmer.agent.util.i13n.InstrumentationDetails._
 
 package object i13n {
 
-  final private[i13n] type TypeDesc   = ElementMatcher.Junction[TypeDescription]
-  final private[i13n] type MethodDesc = ElementMatcher.Junction[MethodDescription]
+  type TypeDesc   = ElementMatcher.Junction[TypeDescription]
+  type MethodDesc = ElementMatcher.Junction[MethodDescription]
 
-  final class Type private[i13n] (private[i13n] val name: String, private[i13n] val desc: TypeDesc) {
+  final case class InstrumentationDetails[S <: Status] private (name: String, tags: Set[String], isFQCN: Boolean)
+
+  object InstrumentationDetails {
+    sealed trait Status
+
+    sealed trait FQCN extends Status
+
+    sealed trait NonFQCN extends Status
+
+    def fqcn(name: String, tags: Set[String]): InstrumentationDetails[FQCN] =
+      InstrumentationDetails[FQCN](name, tags, isFQCN = true)
+    def nonFQCN(name: String, tags: Set[String]): InstrumentationDetails[NonFQCN] =
+      InstrumentationDetails[NonFQCN](name, tags, isFQCN = false)
+  }
+
+  final class Type private[i13n] (private[i13n] val name: InstrumentationDetails[_], private[i13n] val desc: TypeDesc) {
     def and(addDesc: TypeDesc): Type = new Type(name, desc.and(addDesc))
   }
 
@@ -33,15 +49,12 @@ package object i13n {
 
   val constructor: MethodDesc = EM.isConstructor
 
-  def `type`(name: String): Type =
-    `type`(name, EM.named[TypeDescription](name))
+  def `type`(name: InstrumentationDetails[_], desc: TypeDesc): Type = new Type(name, desc)
 
-  def `type`(name: String, desc: TypeDesc): Type = new Type(name, desc)
-
-  def hierarchy(name: String): Type =
+  def hierarchy(details: InstrumentationDetails[FQCN]): Type =
     `type`(
-      name,
-      EM.hasSuperType[TypeDescription](EM.named[TypeDescription](name))
+      details,
+      EM.hasSuperType[TypeDescription](EM.named[TypeDescription](details.name))
     )
 
   // wrappers
@@ -49,12 +62,18 @@ package object i13n {
   private[i13n] type Builder = DynamicType.Builder[_]
 
   final class TypeInstrumentation private (
-    private[i13n] val target: TypeTarget,
+    private[i13n] val `type`: Type,
     private[i13n] val transformBuilder: Builder => Builder
   ) {
 
     def visit[T](method: MethodDesc)(implicit ct: ClassTag[T]): TypeInstrumentation =
       chain(_.visit(Advice.to(ct.runtimeClass).on(method)))
+
+    def visit[A](advice: A, method: MethodDesc)(implicit isObject: A <:< Singleton): TypeInstrumentation =
+      chain(_.visit(Advice.to(typeFromModule(advice.getClass)).on(method)))
+
+    def intercept[A](advice: A, method: MethodDesc)(implicit isObject: A <:< Singleton): TypeInstrumentation =
+      chain(_.method(method).intercept(Advice.to(typeFromModule(advice.getClass))))
 
     def intercept[T](method: MethodDesc)(implicit ct: ClassTag[T]): TypeInstrumentation =
       chain(_.method(method).intercept(Advice.to(ct.runtimeClass)))
@@ -68,22 +87,30 @@ package object i13n {
     def defineField[T](name: String)(implicit ct: ClassTag[T]): TypeInstrumentation =
       chain(_.defineField(name, ct.runtimeClass))
 
+    def defineMethod[T](name: String, result: TypeDefinition, impl: Implementation)(implicit
+      ct: ClassTag[T]
+    ): TypeInstrumentation =
+      chain(_.defineMethod(name, result).intercept(impl))
+
     def implement[C: ClassTag](impl: Option[Implementation]): TypeInstrumentation =
       chain { builder =>
         val implemented = builder.implement(classTag[C].runtimeClass)
         impl.fold[Builder](implemented)(implemented.intercept)
       }
 
+    private def typeFromModule(clazz: Class[_]): Class[_] = {
+      val dollarFreeFQCN = clazz.getName.dropRight(1)
+      Class.forName(dollarFreeFQCN, false, clazz.getClassLoader)
+    }
+
     private def chain(that: Builder => Builder): TypeInstrumentation =
-      new TypeInstrumentation(target, transformBuilder.andThen(that))
+      new TypeInstrumentation(`type`, transformBuilder.andThen(that))
 
   }
 
   private[i13n] object TypeInstrumentation {
-    private[i13n] def apply(target: TypeTarget): TypeInstrumentation = new TypeInstrumentation(target, identity)
+    private[i13n] def apply(target: Type): TypeInstrumentation = new TypeInstrumentation(target, identity)
   }
-
-  final private[i13n] case class TypeTarget(tpe: Type, modules: SupportedModules)
 
   // extensions
 
@@ -121,8 +148,15 @@ package object i13n {
   }
 
   // implicit conversion
-  implicit def methodNameToMethodDesc(methodName: String): MethodDesc = method(methodName)
-  implicit def typeNameToType(typeName: String): Type                 = `type`(typeName)
+  implicit def fqcnDetailsToType(details: InstrumentationDetails[FQCN]): Type = `type`(details, details.name)
+  implicit def methodNameToMethodDesc(methodName: String): MethodDesc         = method(methodName)
+  implicit def classNameToTypeDesc(className: String): TypeDesc               = EM.named[TypeDescription](className)
   implicit def typeToAgentInstrumentation(typeInstrumentation: TypeInstrumentation): AgentInstrumentation =
-    AgentInstrumentationFactory(typeInstrumentation)
+    AgentInstrumentationFactory(typeInstrumentation, Seq.empty, false)
+
+  implicit final class LoadingOps(private val value: TypeInstrumentation) extends AnyRef {
+    def withLoad(fqcn: String, fqcns: String*): AgentInstrumentation =
+      AgentInstrumentationFactory(value, fqcn +: fqcns, false)
+    def deferred: AgentInstrumentation = AgentInstrumentationFactory(value, Seq.empty, true)
+  }
 }

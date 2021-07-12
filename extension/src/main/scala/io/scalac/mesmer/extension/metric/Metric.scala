@@ -6,17 +6,17 @@ import scala.annotation.tailrec
 
 import io.scalac.mesmer.extension.metric.SyncWith.UpdaterPair
 
-sealed trait Metric[T]
+sealed trait Metric[-T]
 
-trait MetricRecorder[T] extends Metric[T] {
+trait MetricRecorder[-T] extends Metric[T] {
   def setValue(value: T): Unit
 }
 
-trait Counter[T] extends Metric[T] {
+trait Counter[-T] extends Metric[T] {
   def incValue(value: T): Unit
 }
 
-trait UpDownCounter[T] extends Counter[T] {
+trait UpDownCounter[-T] extends Counter[T] {
   def decValue(value: T): Unit
 }
 
@@ -65,14 +65,22 @@ object SyncWith {
 
 }
 
-trait MetricObserver[T, L] extends Metric[T] {
+trait MetricObserver[-T, -L] extends Metric[T] {
+
   def setUpdater(updater: MetricObserver.Updater[T, L]): Unit
 }
 
 object MetricObserver {
-  type Updater[T, L] = MetricObserver.Result[T, L] => Unit
 
-  trait Result[T, L] {
+  type Updater[+T, +L] = MetricObserver.Result[T, L] => Unit
+
+  trait Result[-T, -L] {
     def observe(value: T, labels: L): Unit
   }
+
+  case object NoopMetricObserver extends MetricObserver[Any, Any] {
+    def setUpdater(updater: Updater[Any, Any]): Unit = ()
+  }
+
+  def noop[T, L]: MetricObserver[T, L] = NoopMetricObserver
 }

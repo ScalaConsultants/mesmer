@@ -16,7 +16,7 @@ final case class ActorMonitorTestProbe(
   mailboxTimeMaxProbe: TestProbe[MetricObserverCommand[Labels]],
   mailboxTimeSumProbe: TestProbe[MetricObserverCommand[Labels]],
   mailboxTimeCountProbe: TestProbe[MetricObserverCommand[Labels]],
-  stashSizeProbe: TestProbe[MetricObserverCommand[Labels]],
+  stashedMessagesProbe: TestProbe[MetricObserverCommand[Labels]],
   receivedMessagesProbe: TestProbe[MetricObserverCommand[Labels]],
   processedMessagesProbe: TestProbe[MetricObserverCommand[Labels]],
   failedMessagesProbe: TestProbe[MetricObserverCommand[Labels]],
@@ -48,8 +48,8 @@ final case class ActorMonitorTestProbe(
       ObserverTestProbeWrapper(mailboxTimeMaxProbe, collector)
     val mailboxTimeSum: MetricObserver[Long, Labels] =
       ObserverTestProbeWrapper(mailboxTimeSumProbe, collector)
-    val stashSize: MetricObserver[Long, Labels] =
-      ObserverTestProbeWrapper(stashSizeProbe, collector)
+    val stashedMessages: MetricObserver[Long, Labels] =
+      ObserverTestProbeWrapper(stashedMessagesProbe, collector)
     val receivedMessages: MetricObserver[Long, Labels] =
       ObserverTestProbeWrapper(receivedMessagesProbe, collector)
     val processedMessages: MetricObserver[Long, Labels] =
