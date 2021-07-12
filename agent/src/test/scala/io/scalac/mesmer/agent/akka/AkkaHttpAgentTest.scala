@@ -14,6 +14,7 @@ import akka.http.scaladsl.testkit.RouteTestTimeout
 import akka.http.scaladsl.testkit.ScalatestRouteTest
 import com.typesafe.config.Config
 import com.typesafe.config.ConfigFactory
+import org.scalatest.OptionValues
 import org.scalatest.flatspec.AnyFlatSpecLike
 import org.scalatest.matchers.should.Matchers
 
@@ -21,17 +22,22 @@ import scala.concurrent.duration._
 import scala.language.postfixOps
 
 import io.scalac.mesmer.agent.akka.http.AkkaHttpAgent
-import io.scalac.mesmer.agent.utils.InstallAgent
+import io.scalac.mesmer.agent.utils.InstallModule
 import io.scalac.mesmer.core.event.HttpEvent
 import io.scalac.mesmer.core.event.HttpEvent.ConnectionCompleted
 import io.scalac.mesmer.core.event.HttpEvent.ConnectionStarted
 import io.scalac.mesmer.core.event.HttpEvent.RequestCompleted
 import io.scalac.mesmer.core.event.HttpEvent.RequestStarted
 import io.scalac.mesmer.core.httpServiceKey
+import io.scalac.mesmer.core.util.TestOps
 
-class AkkaHttpAgentTest extends InstallAgent with AnyFlatSpecLike with ScalatestRouteTest with Matchers {
-
-  override protected val agent = AkkaHttpAgent.agent
+class AkkaHttpAgentTest
+    extends InstallModule(AkkaHttpAgent)
+    with ScalatestRouteTest
+    with AnyFlatSpecLike
+    with Matchers
+    with OptionValues
+    with TestOps {
 
   override def testConfig: Config = ConfigFactory.load("application-test")
 
