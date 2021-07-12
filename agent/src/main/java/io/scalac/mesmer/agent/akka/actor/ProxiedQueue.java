@@ -1,6 +1,5 @@
 package io.scalac.mesmer.agent.akka.actor;
 
-import akka.dispatch.BoundedQueueBasedMessageQueue;
 import akka.dispatch.Envelope;
 
 import java.util.concurrent.BlockingQueue;

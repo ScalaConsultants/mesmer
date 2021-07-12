@@ -59,7 +59,7 @@ In mesmer we support 3 types of metrics:
 - Recovery time - recorder
 - Snapshots - counter
 
-### Akka Streams
+### Akka Streams (experimental)
 
 - Running streams - gauge
 - Running operators per stream - gauge

@@ -1,7 +1,7 @@
 package akka.stream;
 
 import akka.stream.impl.StreamLayout;
-import io.scalac.mesmer.agent.akka.stream.GraphStageIslandOps;
+import io.scalac.mesmer.agent.akka.stream.impl.GraphStageIslandOps;
 import net.bytebuddy.asm.Advice;
 
 import java.util.ArrayList;

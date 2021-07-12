@@ -5,6 +5,7 @@ import io.scalac.mesmer.core.model.Interface
 import io.scalac.mesmer.core.model.Node
 import io.scalac.mesmer.core.model.Port
 import io.scalac.mesmer.core.model.RawLabels
+import io.scalac.mesmer.core.module.AkkaHttpModule._
 
 object HttpConnectionMetricsMonitor {
 
@@ -12,8 +13,8 @@ object HttpConnectionMetricsMonitor {
     val serialize: RawLabels = node.serialize ++ interface.serialize ++ port.serialize
   }
 
-  trait BoundMonitor extends Synchronized with Bound {
-    def connectionCounter: UpDownCounter[Long] with Instrument[Long]
+  trait BoundMonitor extends AkkaHttpConnectionsMetricsDef[Metric[Long]] with Synchronized with Bound {
+    def connections: UpDownCounter[Long] with Instrument[Long]
   }
 
 }

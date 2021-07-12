@@ -3,6 +3,8 @@ package io.scalac.mesmer.extension.upstream
 import com.typesafe.config.Config
 import io.opentelemetry.api.metrics.Meter
 
+import io.scalac.mesmer.core.config.MesmerConfiguration
+import io.scalac.mesmer.core.module.AkkaPersistenceModule
 import io.scalac.mesmer.extension.metric.Counter
 import io.scalac.mesmer.extension.metric.MetricRecorder
 import io.scalac.mesmer.extension.metric.PersistenceMetricsMonitor
@@ -11,7 +13,9 @@ import io.scalac.mesmer.extension.upstream.OpenTelemetryPersistenceMetricsMonito
 import io.scalac.mesmer.extension.upstream.opentelemetry._
 
 object OpenTelemetryPersistenceMetricsMonitor {
-  case class MetricNames(
+
+  //TODO remove DRY
+  final case class MetricNames(
     recoveryTime: String,
     recoveryTotal: String,
     persistentEvent: String,
@@ -19,8 +23,8 @@ object OpenTelemetryPersistenceMetricsMonitor {
     snapshotTotal: String
   )
 
-  object MetricNames {
-    def default: MetricNames =
+  object MetricNames extends MesmerConfiguration[MetricNames] {
+    val defaultConfig: MetricNames =
       MetricNames(
         "akka_persistence_recovery_time",
         "akka_persistence_recovery_total",
@@ -29,90 +33,95 @@ object OpenTelemetryPersistenceMetricsMonitor {
         "akka_persistence_snapshot_total"
       )
 
-    def fromConfig(config: Config): MetricNames = {
-      import io.scalac.mesmer.extension.config.ConfigurationUtils._
-      val defaultCached = default
+    protected val mesmerConfig: String = "metrics.persistence-metrics"
 
-      config
-        .tryValue("io.scalac.akka-monitoring.metrics.cluster-metrics")(
-          _.getConfig
-        )
-        .map { clusterMetricsConfig =>
-          val recoveryTime = clusterMetricsConfig
-            .tryValue("recovery-time")(_.getString)
-            .getOrElse(defaultCached.recoveryTime)
-          val recoveryTotal = clusterMetricsConfig
-            .tryValue("recovery-total")(_.getString)
-            .getOrElse(defaultCached.recoveryTotal)
-          val persistentEvent = clusterMetricsConfig
-            .tryValue("persistent-event")(_.getString)
-            .getOrElse(defaultCached.persistentEvent)
-          val persistentEventTotal = clusterMetricsConfig
-            .tryValue("persistent-event-total")(_.getString)
-            .getOrElse(defaultCached.persistentEventTotal)
-          val snapshotTotal = clusterMetricsConfig
-            .tryValue("snapshot")(_.getString)
-            .getOrElse(defaultCached.snapshotTotal)
+    protected def extractFromConfig(config: Config): MetricNames = {
+      val recoveryTime = config
+        .tryValue("recovery-time")(_.getString)
+        .getOrElse(defaultConfig.recoveryTime)
+      val recoveryTotal = config
+        .tryValue("recovery-total")(_.getString)
+        .getOrElse(defaultConfig.recoveryTotal)
+      val persistentEvent = config
+        .tryValue("persistent-event")(_.getString)
+        .getOrElse(defaultConfig.persistentEvent)
+      val persistentEventTotal = config
+        .tryValue("persistent-event-total")(_.getString)
+        .getOrElse(defaultConfig.persistentEventTotal)
+      val snapshotTotal = config
+        .tryValue("snapshot")(_.getString)
+        .getOrElse(defaultConfig.snapshotTotal)
 
-          MetricNames(recoveryTime, recoveryTotal, persistentEvent, persistentEventTotal, snapshotTotal)
-        }
-        .getOrElse(defaultCached)
+      MetricNames(recoveryTime, recoveryTotal, persistentEvent, persistentEventTotal, snapshotTotal)
+
     }
+
   }
-  def apply(meter: Meter, config: Config): OpenTelemetryPersistenceMetricsMonitor =
-    new OpenTelemetryPersistenceMetricsMonitor(meter, MetricNames.fromConfig(config))
+  def apply(
+    meter: Meter,
+    moduleConfig: AkkaPersistenceModule.All[Boolean],
+    config: Config
+  ): OpenTelemetryPersistenceMetricsMonitor =
+    new OpenTelemetryPersistenceMetricsMonitor(meter, moduleConfig, MetricNames.fromConfig(config))
 }
 
-class OpenTelemetryPersistenceMetricsMonitor(meter: Meter, metricNames: MetricNames) extends PersistenceMetricsMonitor {
+final class OpenTelemetryPersistenceMetricsMonitor(
+  meter: Meter,
+  moduleConfig: AkkaPersistenceModule.All[Boolean],
+  metricNames: MetricNames
+) extends PersistenceMetricsMonitor {
   import PersistenceMetricsMonitor._
 
-  private val recoveryTimeRecorder = meter
+  private lazy val recoveryTimeRecorder = meter
     .longValueRecorderBuilder(metricNames.recoveryTime)
     .setDescription("Amount of time needed for entity recovery")
     .build()
 
-  private val recoveryTotalCounter = meter
+  private lazy val recoveryTotalCounter = meter
     .longCounterBuilder(metricNames.recoveryTotal)
     .setDescription("Amount of recoveries")
     .build()
 
-  private val persistentEventRecorder = meter
+  private lazy val persistentEventRecorder = meter
     .longValueRecorderBuilder(metricNames.persistentEvent)
     .setDescription("Amount of time needed for entity to persist events")
     .build()
 
-  private val persistentEventTotalCounter = meter
+  private lazy val persistentEventTotalCounter = meter
     .longCounterBuilder(metricNames.persistentEventTotal)
     .setDescription("Amount of persist events")
     .build()
 
-  private val snapshotCounter = meter
+  private lazy val snapshotCounter = meter
     .longCounterBuilder(metricNames.snapshotTotal)
     .setDescription("Amount of snapshots created")
     .build()
 
   def bind(labels: Labels): BoundMonitor = new OpenTelemetryBoundMonitor(labels)
 
-  class OpenTelemetryBoundMonitor(labels: Labels)
+  final class OpenTelemetryBoundMonitor(labels: Labels)
       extends BoundMonitor
       with RegisterRoot
       with SynchronousInstrumentFactory {
     private val openTelemetryLabels = LabelsFactory.of(labels.serialize)
 
     lazy val recoveryTime: MetricRecorder[Long] =
-      metricRecorder(recoveryTimeRecorder, openTelemetryLabels).register(this)
+      if (moduleConfig.recoveryTime) metricRecorder(recoveryTimeRecorder, openTelemetryLabels).register(this)
+      else noopMetricRecorder
 
     lazy val persistentEvent: MetricRecorder[Long] =
-      metricRecorder(persistentEventRecorder, openTelemetryLabels).register(this)
+      if (moduleConfig.persistentEvent) metricRecorder(persistentEventRecorder, openTelemetryLabels).register(this)
+      else noopMetricRecorder
 
     lazy val persistentEventTotal: Counter[Long] =
-      counter(persistentEventTotalCounter, openTelemetryLabels).register(this)
+      if (moduleConfig.persistentEventTotal) counter(persistentEventTotalCounter, openTelemetryLabels).register(this)
+      else noopCounter
 
     lazy val snapshot: Counter[Long] =
-      counter(snapshotCounter, openTelemetryLabels).register(this)
+      if (moduleConfig.snapshot) counter(snapshotCounter, openTelemetryLabels).register(this) else noopCounter
 
     lazy val recoveryTotal: Counter[Long] =
-      counter(recoveryTotalCounter, openTelemetryLabels).register(this)
+      if (moduleConfig.recoveryTotal) counter(recoveryTotalCounter, openTelemetryLabels).register(this) else noopCounter
 
   }
 }

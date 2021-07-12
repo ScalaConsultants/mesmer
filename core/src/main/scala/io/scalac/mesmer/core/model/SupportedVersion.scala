@@ -1,5 +1,6 @@
 package io.scalac.mesmer.core.model
 
+//TODO add descriptive toString
 sealed trait SupportedVersion {
   import SupportedVersion._
 

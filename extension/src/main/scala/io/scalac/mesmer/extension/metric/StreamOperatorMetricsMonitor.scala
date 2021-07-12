@@ -3,6 +3,7 @@ package io.scalac.mesmer.extension.metric
 import io.scalac.mesmer.core.LabelSerializable
 import io.scalac.mesmer.core.model.Tag._
 import io.scalac.mesmer.core.model._
+import io.scalac.mesmer.core.module.AkkaStreamModule
 
 object StreamOperatorMetricsMonitor {
 
@@ -25,7 +26,7 @@ object StreamOperatorMetricsMonitor {
     }
   }
 
-  trait BoundMonitor extends Bound {
+  trait BoundMonitor extends Bound with AkkaStreamModule.StreamOperatorMetricsDef[Metric[Long]] {
     def processedMessages: MetricObserver[Long, StreamOperatorMetricsMonitor.Labels]
     def operators: MetricObserver[Long, StreamOperatorMetricsMonitor.Labels]
     def demand: MetricObserver[Long, StreamOperatorMetricsMonitor.Labels]
