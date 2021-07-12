@@ -3,7 +3,7 @@ package io.scalac.mesmer.extension.actor
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
-import io.scalac.mesmer.core.util.AggMetric.LongValueAggMetric
+import io.scalac.mesmer.core.util.MinMaxSumCountAggregation.LongMinMaxSumCountAggregationImpl
 import io.scalac.mesmer.core.util.TimeSeries
 
 class MutableActorMetricStorageFactoryTest extends AnyFlatSpec with Matchers {
@@ -12,11 +12,11 @@ class MutableActorMetricStorageFactoryTest extends AnyFlatSpec with Matchers {
 
   private def TestMetrics(value: Int) = ActorMetrics(
     Some(value),
-    Some(LongValueAggMetric.fromTimeSeries(TimeSeries(1L, 1L, 10L))),
+    Some(LongMinMaxSumCountAggregationImpl.fromTimeSeries(TimeSeries(1L, 1L, 10L))),
     Some(value),
     Some(value),
     Some(value),
-    Some(LongValueAggMetric.fromTimeSeries(TimeSeries(1L, 1L, 10L))),
+    Some(LongMinMaxSumCountAggregationImpl.fromTimeSeries(TimeSeries(1L, 1L, 10L))),
     Some(value),
     Some(value),
     Some(value)

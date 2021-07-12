@@ -2,6 +2,7 @@ package io.scalac.mesmer.extension.metric
 
 import io.scalac.mesmer.core.LabelSerializable
 import io.scalac.mesmer.core.model._
+import io.scalac.mesmer.core.module.AkkaClusterModule
 
 object ClusterMetricsMonitor {
 
@@ -12,7 +13,7 @@ object ClusterMetricsMonitor {
     def withRegion(region: Region): Labels = copy(region = Some(region))
   }
 
-  trait BoundMonitor extends Synchronized with Bound {
+  trait BoundMonitor extends Synchronized with Bound with AkkaClusterModule.All[Metric[Long]] {
     def shardPerRegions: MetricObserver[Long, Labels]
     def entityPerRegion: MetricObserver[Long, Labels]
     def shardRegionsOnNode: MetricObserver[Long, Labels]

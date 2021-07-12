@@ -3,13 +3,13 @@ import sbt._
 object Dependencies {  
 
   val AkkaHttpVersion             = "10.2.4"
-  val AkkaManagementVersion       = "1.1.0"
+  val AkkaManagementVersion       = "1.1.1"
   val AkkaVersion                 = "2.6.14"
   val CirceVersion                = "0.14.1"
   val LogbackVersion              = "1.2.3"
   val OpentelemetryVersion        = "1.3.0"
   val OpentelemetryMetricsVersion = "1.2.0-alpha"
-  val PostgresVersion             = "42.2.22"
+  val PostgresVersion             = "42.2.23"
   val ScalatestVersion            = "3.2.9"
   val SlickVersion                = "3.3.3"
   
@@ -32,8 +32,8 @@ object Dependencies {
   )
 
   val byteBuddy = Seq(
-    "net.bytebuddy" % "byte-buddy"       % "1.11.5",
-    "net.bytebuddy" % "byte-buddy-agent" % "1.11.5"
+    "net.bytebuddy" % "byte-buddy"       % "1.11.6",
+    "net.bytebuddy" % "byte-buddy-agent" % "1.11.6"
   )
 
   val logback = Seq("ch.qos.logback" % "logback-classic" % LogbackVersion)
@@ -75,6 +75,6 @@ object Dependencies {
     "com.lightbend.akka.management" %% "akka-management-cluster-bootstrap"  % AkkaManagementVersion,
     "com.lightbend.akka.discovery"  %% "akka-discovery-kubernetes-api"      % AkkaManagementVersion,
     "io.opentelemetry"              % "opentelemetry-exporter-otlp-metrics" % OpentelemetryMetricsVersion,
-    "io.grpc"                       % "grpc-netty-shaded"                   % "1.38.1"
+    "io.grpc"                       % "grpc-netty-shaded"                   % "1.39.0"
   )
 }
