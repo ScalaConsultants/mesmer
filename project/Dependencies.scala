@@ -3,7 +3,7 @@ import sbt._
 object Dependencies {  
 
   val AkkaHttpVersion             = "10.2.4"
-  val AkkaManagementVersion       = "1.1.0"
+  val AkkaManagementVersion       = "1.1.1"
   val AkkaVersion                 = "2.6.14"
   val CirceVersion                = "0.14.1"
   val LogbackVersion              = "1.2.3"
@@ -75,6 +75,6 @@ object Dependencies {
     "com.lightbend.akka.management" %% "akka-management-cluster-bootstrap"  % AkkaManagementVersion,
     "com.lightbend.akka.discovery"  %% "akka-discovery-kubernetes-api"      % AkkaManagementVersion,
     "io.opentelemetry"              % "opentelemetry-exporter-otlp-metrics" % OpentelemetryMetricsVersion,
-    "io.grpc"                       % "grpc-netty-shaded"                   % "1.38.1"
+    "io.grpc"                       % "grpc-netty-shaded"                   % "1.39.0"
   )
 }

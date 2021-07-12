@@ -24,6 +24,7 @@ import scala.util.Failure
 import scala.util.Success
 
 import io.scalac.mesmer.core.akka.model.PushMetrics
+import io.scalac.mesmer.core.config.ConfigurationUtils._
 import io.scalac.mesmer.core.event.Service.streamService
 import io.scalac.mesmer.core.event.StreamEvent
 import io.scalac.mesmer.core.event.StreamEvent.LastStreamStats
@@ -33,11 +34,10 @@ import io.scalac.mesmer.core.model.Tag.StreamName
 import io.scalac.mesmer.core.model._
 import io.scalac.mesmer.core.model.stream.ConnectionStats
 import io.scalac.mesmer.core.model.stream.StageInfo
-import io.scalac.mesmer.core.support.ModulesSupport
+import io.scalac.mesmer.core.module.AkkaStreamModule
 import io.scalac.mesmer.extension.AkkaStreamMonitoring._
 import io.scalac.mesmer.extension.config.BufferConfig
 import io.scalac.mesmer.extension.config.CachingConfig
-import io.scalac.mesmer.extension.config.ConfigurationUtils._
 import io.scalac.mesmer.extension.metric.MetricObserver.Result
 import io.scalac.mesmer.extension.metric.StreamMetricsMonitor
 import io.scalac.mesmer.extension.metric.StreamMetricsMonitor.EagerLabels
@@ -235,12 +235,11 @@ final class AkkaStreamMonitoring(
   node: Option[Node],
   actorTreeService: typed.ActorRef[ActorTreeService.Command]
 ) {
-  import ModulesSupport._
 
   private implicit val timeout: Timeout = streamCollectionTimeout
 
-  private val cachingConfig          = CachingConfig.fromConfig(context.system.settings.config, akkaStreamModule)
-  private val bufferConfig           = BufferConfig.fromConfig(context.system.settings.config, akkaStreamModule)
+  private val cachingConfig          = CachingConfig.fromConfig(context.system.settings.config, AkkaStreamModule)
+  private val bufferConfig           = BufferConfig.fromConfig(context.system.settings.config, AkkaStreamModule)
   private val indexCache             = ConnectionsIndexCache.bounded(cachingConfig.maxEntries)
   private val operationsBoundMonitor = streamOperatorMonitor.bind()
   private val boundStreamMonitor     = streamMonitor.bind(EagerLabels(node))

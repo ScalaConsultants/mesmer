@@ -1,5 +1,7 @@
 package io.scalac.mesmer.core.model
 
+import io.scalac.mesmer.core.module.Module
+
 object SupportedModules {
   def apply(module: Module, supportedVersion: SupportedVersion): SupportedModules =
     new SupportedModules(Map(module -> supportedVersion))
