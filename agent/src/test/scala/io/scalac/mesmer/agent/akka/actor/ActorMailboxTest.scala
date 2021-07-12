@@ -26,13 +26,11 @@ import scala.concurrent.duration.Duration
 import scala.jdk.DurationConverters._
 
 import io.scalac.mesmer.agent.akka.actor.ActorMailboxTest.ClassicContextPublish
-import io.scalac.mesmer.agent.utils.InstallAgent
+import io.scalac.mesmer.agent.utils.InstallModule
 import io.scalac.mesmer.agent.utils.SafeLoadSystem
+import io.scalac.mesmer.core.actor.ActorCellDecorator
 import io.scalac.mesmer.core.config.AkkaPatienceConfig
 import io.scalac.mesmer.core.util.TestOps
-import io.scalac.mesmer.extension.actor.ActorCellDecorator
-import io.scalac.mesmer.extension.actor.ActorCellMetrics
-import io.scalac.mesmer.extension.actor.DroppedMessagesCellMetrics
 
 final class HashCodePriorityMailbox(
   capacity: Int,
@@ -59,7 +57,7 @@ final class StableHashCodePriorityMailbox(
 }
 
 class ActorMailboxTest
-    extends InstallAgent
+    extends InstallModule(AkkaActorAgent)
     with SafeLoadSystem
     with AnyFlatSpecLike
     with Matchers
@@ -151,7 +149,7 @@ class ActorMailboxTest
     )
     eventually {
       val metrics = ActorCellDecorator.get(context.toClassic).get
-      metrics.droppedMessages.map(_.get()) should be(Some(expectedValue))
+      metrics.droppedMessages.toOption.map(_.get()) should be(Some(expectedValue))
     }
     sut.unsafeUpcast[Any] ! PoisonPill
   }
@@ -188,10 +186,8 @@ class ActorMailboxTest
     val (sut, context) = actorRefWithContext(Props.empty)
 
     val metrics = ActorCellDecorator.get(context.toClassic).get
-    metrics.droppedMessages should be(None)
-    assertThrows[ClassCastException] {
-      metrics.asInstanceOf[ActorCellMetrics with DroppedMessagesCellMetrics]
-    }
+    metrics.droppedMessages.toOption should be(None)
+
     sut.unsafeUpcast ! PoisonPill
   }
 
@@ -199,10 +195,10 @@ class ActorMailboxTest
     val (sut, context) = classicActorRefWithContext(classic.Props.empty)
 
     val metrics = ActorCellDecorator.get(context).get
-    metrics.droppedMessages should be(None)
-    assertThrows[ClassCastException] {
-      metrics.asInstanceOf[ActorCellMetrics with DroppedMessagesCellMetrics]
-    }
+    metrics.droppedMessages.toOption should be(None)
+//    assertThrows[ClassCastException] {
+//      metrics.asInstanceOf[ActorCellMetrics with DroppedMessagesCellMetrics]
+//    }
     sut.unsafeUpcast ! PoisonPill
   }
 

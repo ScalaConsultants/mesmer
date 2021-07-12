@@ -3,6 +3,8 @@ package io.scalac.mesmer.extension.upstream
 import com.typesafe.config.Config
 import io.opentelemetry.api.metrics.Meter
 
+import io.scalac.mesmer.core.config.MesmerConfiguration
+import io.scalac.mesmer.core.module.AkkaStreamModule
 import io.scalac.mesmer.extension.metric.MetricObserver
 import io.scalac.mesmer.extension.metric.RegisterRoot
 import io.scalac.mesmer.extension.metric.StreamOperatorMetricsMonitor
@@ -14,60 +16,66 @@ import io.scalac.mesmer.extension.upstream.opentelemetry._
 object OpenTelemetryStreamOperatorMetricsMonitor {
   case class MetricNames(operatorProcessed: String, connections: String, runningOperators: String, demand: String)
 
-  object MetricNames {
-    private val defaults: MetricNames =
-      MetricNames(
-        "akka_streams_operator_processed_total",
-        "akka_streams_operator_connections",
-        "akka_streams_running_operators",
-        "akka_streams_operator_demand"
-      )
+  object MetricNames extends MesmerConfiguration[MetricNames] {
 
-    def fromConfig(config: Config): MetricNames = {
-      import io.scalac.mesmer.extension.config.ConfigurationUtils._
+    protected val mesmerConfig: String = "metrics.stream-metrics"
 
-      config.tryValue("io.scalac.akka-monitoring.metrics.stream-metrics")(_.getConfig).map { streamMetricsConfig =>
-        val operatorProcessed = streamMetricsConfig
-          .tryValue("operator-processed")(_.getString)
-          .getOrElse(defaults.operatorProcessed)
+    val defaultConfig: MetricNames = MetricNames(
+      "akka_streams_operator_processed_total",
+      "akka_streams_operator_connections",
+      "akka_streams_running_operators",
+      "akka_streams_operator_demand"
+    )
 
-        val operatorConnections = streamMetricsConfig
-          .tryValue("operator-connections")(_.getString)
-          .getOrElse(defaults.connections)
+    protected def extractFromConfig(config: Config): MetricNames = {
+      val operatorProcessed = config
+        .tryValue("operator-processed")(_.getString)
+        .getOrElse(defaultConfig.operatorProcessed)
 
-        val runningOperators = streamMetricsConfig
-          .tryValue("running-operators")(_.getString)
-          .getOrElse(defaults.runningOperators)
+      val operatorConnections = config
+        .tryValue("operator-connections")(_.getString)
+        .getOrElse(defaultConfig.connections)
 
-        val demand = streamMetricsConfig
-          .tryValue("operator-demand")(_.getString)
-          .getOrElse(defaults.demand)
+      val runningOperators = config
+        .tryValue("running-operators")(_.getString)
+        .getOrElse(defaultConfig.runningOperators)
 
-        MetricNames(operatorProcessed, operatorConnections, runningOperators, demand)
-      }
-    }.getOrElse(defaults)
+      val demand = config
+        .tryValue("operator-demand")(_.getString)
+        .getOrElse(defaultConfig.demand)
+
+      MetricNames(operatorProcessed, operatorConnections, runningOperators, demand)
+    }
+
   }
 
-  def apply(meter: Meter, config: Config): OpenTelemetryStreamOperatorMetricsMonitor =
-    new OpenTelemetryStreamOperatorMetricsMonitor(meter, MetricNames.fromConfig(config))
+  def apply(
+    meter: Meter,
+    moduleConfig: AkkaStreamModule.StreamOperatorMetricsDef[Boolean],
+    config: Config
+  ): OpenTelemetryStreamOperatorMetricsMonitor =
+    new OpenTelemetryStreamOperatorMetricsMonitor(meter, moduleConfig, MetricNames.fromConfig(config))
 }
 
-class OpenTelemetryStreamOperatorMetricsMonitor(meter: Meter, metricNames: MetricNames)
-    extends StreamOperatorMetricsMonitor {
+final class OpenTelemetryStreamOperatorMetricsMonitor(
+  meter: Meter,
+  moduleConfig: AkkaStreamModule.StreamOperatorMetricsDef[Boolean],
+  metricNames: MetricNames
+) extends StreamOperatorMetricsMonitor {
 
-  private val processedMessageAdapter = new LongSumObserverBuilderAdapter[Labels](
+  private lazy val processedMessageAdapter = new LongSumObserverBuilderAdapter[Labels](
     meter
       .longSumObserverBuilder(metricNames.operatorProcessed)
       .setDescription("Amount of messages process by operator")
   )
 
-  private val operatorsAdapter = new LongMetricObserverBuilderAdapter[Labels](
+  private lazy val operatorsAdapter = new LongMetricObserverBuilderAdapter[Labels](
     meter
       .longValueObserverBuilder(metricNames.runningOperators)
       .setDescription("Amount of operators in a system")
   )
 
-  private val demandAdapter = new LongSumObserverBuilderAdapter[Labels](
+  private lazy val demandAdapter = new LongSumObserverBuilderAdapter[Labels](
     meter
       .longSumObserverBuilder(metricNames.demand)
       .setDescription("Amount of messages demanded by operator")
@@ -76,10 +84,12 @@ class OpenTelemetryStreamOperatorMetricsMonitor(meter: Meter, metricNames: Metri
   def bind(): StreamOperatorMetricsMonitor.BoundMonitor = new BoundMonitor with RegisterRoot {
 
     lazy val processedMessages: MetricObserver[Long, Labels] =
-      processedMessageAdapter.createObserver(this)
+      if (moduleConfig.processedMessages) processedMessageAdapter.createObserver(this) else MetricObserver.noop
 
-    lazy val operators: MetricObserver[Long, Labels] = operatorsAdapter.createObserver(this)
+    lazy val operators: MetricObserver[Long, Labels] =
+      if (moduleConfig.operators) operatorsAdapter.createObserver(this) else MetricObserver.noop
 
-    lazy val demand: MetricObserver[Long, Labels] = demandAdapter.createObserver(this)
+    lazy val demand: MetricObserver[Long, Labels] =
+      if (moduleConfig.demand) demandAdapter.createObserver(this) else MetricObserver.noop
   }
 }
