@@ -48,7 +48,7 @@ lazy val core = (project in file("core"))
     libraryDependencies ++= {
       akka ++
       openTelemetryApi ++
-      openTelemetryMetrics ++
+      openTelemetryApiMetrics ++
       scalatest ++
       akkaTestkit
     }
@@ -64,7 +64,7 @@ lazy val extension = (project in file("extension"))
     libraryDependencies ++= {
       akka ++
       openTelemetryApi ++
-      openTelemetryMetrics ++
+      openTelemetryApiMetrics ++
       akkaTestkit ++
       scalatest ++
       akkaMultiNodeTestKit ++
@@ -98,11 +98,14 @@ lazy val agent = (project in file("agent"))
     assembly / assemblyOption ~= { _.copy(includeScala = false) },
     assemblyMergeStrategySettings,
     Test / fork := true,
+    Test / parallelExecution := true,
+    Test / testOnly / fork := (Test / fork).value,
     Test / testGrouping := ((Test / testGrouping).value flatMap { group =>
       group.tests.map { test =>
         Tests.Group(name = test.name, tests = Seq(test), runPolicy = group.runPolicy)
       }
-    })
+    }),
+    Test / testOnly / testGrouping := (Test/ testGrouping).value
   )
   .dependsOn(
     core % "provided->compile;test->test"

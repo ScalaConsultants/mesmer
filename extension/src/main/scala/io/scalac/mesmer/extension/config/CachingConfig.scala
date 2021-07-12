@@ -2,8 +2,8 @@ package io.scalac.mesmer.extension.config
 
 import com.typesafe.config.Config
 
-import io.scalac.mesmer.core.model.Module
-import io.scalac.mesmer.extension.config.ConfigurationUtils._
+import io.scalac.mesmer.core.config.ConfigurationUtils._
+import io.scalac.mesmer.core.module.Module
 
 case class CachingConfig(maxEntries: Int)
 
@@ -18,5 +18,5 @@ object CachingConfig {
       } yield CachingConfig(maxEntries)
     ).getOrElse(CachingConfig.empty)
 
-  def empty: CachingConfig = CachingConfig(DefaultSize)
+  val empty: CachingConfig = CachingConfig(DefaultSize)
 }
