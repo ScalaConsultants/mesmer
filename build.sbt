@@ -94,11 +94,10 @@ lazy val agent = (project in file("agent"))
     },
     assembly / test := {},
     assembly / assemblyJarName := "mesmer-akka-agent.jar",
-    assembly / assemblyOption ~= { _.copy(includeScala = false) },
+    assembly / assemblyOption ~= { _.withIncludeScala(false) },
     assemblyMergeStrategySettings,
     Test / fork := true,
     Test / parallelExecution := true,
-    Test / testOnly / fork := (Test / fork).value,
     Test / testGrouping := ((Test / testGrouping).value flatMap { group =>
       group.tests.map { test =>
         Tests.Group(name = test.name, tests = Seq(test), runPolicy = group.runPolicy)
@@ -106,8 +105,14 @@ lazy val agent = (project in file("agent"))
     }),
     Test / testOnly / testGrouping := (Test/ testGrouping).value
   )
+  // .settings(
+  //   Compile / assembly / artifact ~= { art =>
+  //     art.withClassifier(Some("assembly"))
+  //   }
+  // )
+  .settings(addArtifact(Compile / assembly / artifact, assembly).settings: _*)
   .dependsOn(
-    core % "provided->compile;test->test"
+    core
   )
 
 lazy val example = (project in file("example"))
