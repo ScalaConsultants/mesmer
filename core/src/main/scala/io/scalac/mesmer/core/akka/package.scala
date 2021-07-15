@@ -3,6 +3,7 @@ package io.scalac.mesmer.core
 import scala.math.PartialOrdering
 
 import io.scalac.mesmer.core.model.ActorPath
+import io.scalac.mesmer.core.model.SupportedVersion
 
 package object akka {
 
@@ -19,5 +20,11 @@ package object akka {
 
     private def actorLevel(path: ActorPath): Int = path.count(_ == '/')
   }
+
+  val version26x: SupportedVersion = SupportedVersion.majors("2").and(SupportedVersion.minors("6"))
+
+  val version101x: SupportedVersion = SupportedVersion.majors("10").and(SupportedVersion.minors("1"))
+
+  val version102x: SupportedVersion = SupportedVersion.majors("10").and(SupportedVersion.minors("2"))
 
 }

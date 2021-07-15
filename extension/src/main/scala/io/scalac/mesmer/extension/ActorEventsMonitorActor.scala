@@ -1,6 +1,5 @@
 package io.scalac.mesmer.extension
 
-import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicReference
 
 import akka.Done
@@ -17,6 +16,7 @@ import scala.concurrent.duration._
 import scala.util.Failure
 import scala.util.Success
 
+import io.scalac.mesmer.core.actor.ActorCellDecorator
 import io.scalac.mesmer.core.akka.actorPathPartialOrdering
 import io.scalac.mesmer.core.model.ActorKey
 import io.scalac.mesmer.core.model.ActorRefDetails
@@ -26,7 +26,6 @@ import io.scalac.mesmer.core.util.ActorCellOps
 import io.scalac.mesmer.core.util.ActorPathOps
 import io.scalac.mesmer.core.util.ActorRefOps
 import io.scalac.mesmer.extension.ActorEventsMonitorActor._
-import io.scalac.mesmer.extension.actor.ActorCellDecorator
 import io.scalac.mesmer.extension.actor.ActorMetrics
 import io.scalac.mesmer.extension.actor.MetricStorageFactory
 import io.scalac.mesmer.extension.metric.ActorMetricsMonitor
@@ -99,14 +98,14 @@ object ActorEventsMonitorActor {
         metrics <- ActorCellDecorator.get(cell)
       } yield ActorMetrics(
         mailboxSize = safeRead(ActorCellOps.numberOfMessages(cell)),
-        mailboxTime = metrics.mailboxTimeAgg.metrics,
-        processingTime = metrics.processingTimeAgg.metrics,
-        receivedMessages = Some(metrics.receivedMessages.take()),
-        unhandledMessages = Some(metrics.unhandledMessages.take()),
-        failedMessages = Some(metrics.failedMessages.take()),
-        sentMessages = Some(metrics.sentMessages.take()),
-        stashSize = metrics.stashSize.take(),
-        droppedMessages = metrics.droppedMessages.map(_.take())
+        mailboxTime = metrics.mailboxTimeAgg.toOption.flatMap(_.metrics),
+        processingTime = metrics.processingTimeAgg.toOption.flatMap(_.metrics),
+        receivedMessages = metrics.receivedMessages.toOption.map(_.take),
+        unhandledMessages = metrics.unhandledMessages.toOption.map(_.take),
+        failedMessages = metrics.failedMessages.toOption.map(_.take),
+        sentMessages = metrics.sentMessages.toOption.map(_.take),
+        stashSize = metrics.stashedMessages.toOption.map(_.take),
+        droppedMessages = metrics.droppedMessages.toOption.map(_.take)
       )
 
     private def safeRead[T](value: => T): Option[T] =
@@ -143,8 +142,6 @@ private[extension] class ActorEventsMonitorActor private[extension] (
 
   private[this] val treeSnapshot = new AtomicReference[Option[Vector[(Labels, ActorMetrics)]]](None)
 
-  private[this] val exported = new AtomicBoolean(false)
-
   private def updateMetric(extractor: ActorMetrics => Option[Long])(result: Result[Long, Labels]): Unit = {
     val state = treeSnapshot.get()
     state
@@ -171,7 +168,7 @@ private[extension] class ActorEventsMonitorActor private[extension] (
     processingTimeMax.setUpdater(updateMetric(_.processingTime.map(_.max)))
     processingTimeSum.setUpdater(updateMetric(_.processingTime.map(_.sum)))
     sentMessages.setUpdater(updateMetric(_.sentMessages))
-    stashSize.setUpdater(updateMetric(_.stashSize))
+    stashedMessages.setUpdater(updateMetric(_.stashSize))
     droppedMessages.setUpdater(updateMetric(_.droppedMessages))
 
   }

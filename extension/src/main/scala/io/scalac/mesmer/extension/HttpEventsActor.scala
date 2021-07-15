@@ -52,10 +52,10 @@ object HttpEventsActor {
       requestStorage: RequestStorage
     ): Behavior[Event] =
       Behaviors
-        .receiveMessage[Event] {
+        .receiveMessagePartial[Event] {
 
           case HttpEventWrapper(connectionEvent: ConnectionEvent) =>
-            val counter = httpConnectionMetricMonitor.bind(createConnectionLabels(connectionEvent)).connectionCounter
+            val counter = httpConnectionMetricMonitor.bind(createConnectionLabels(connectionEvent)).connections
             connectionEvent match {
               case _: ConnectionStarted   => counter.incValue(1L)
               case _: ConnectionCompleted => counter.decValue(1L)

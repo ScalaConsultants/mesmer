@@ -6,16 +6,14 @@ import net.bytebuddy.agent.builder.AgentBuilder
 import org.slf4j.LoggerFactory
 
 import io.scalac.mesmer.agent.Agent.LoadingResult
-import io.scalac.mesmer.core.model.SupportedModules
-import io.scalac.mesmer.core.util.ModuleInfo.Modules
 
 object Agent {
 
-  private val logger = LoggerFactory.getLogger(classOf[Agent])
+  def apply(head: AgentInstrumentation, tail: AgentInstrumentation*): Agent = new Agent(Set.from(head +: tail))
 
-  def apply(head: AgentInstrumentation, tail: AgentInstrumentation*): Agent = Agent((head +: tail).toSet)
+  val empty: Agent = new Agent(Set.empty[AgentInstrumentation])
 
-  class LoadingResult(val fqns: Seq[String]) {
+  class LoadingResult(val fqns: Set[String]) {
     import LoadingResult.{ logger => loadingLogger }
     def eagerLoad(): Unit =
       fqns.foreach { className =>
@@ -38,55 +36,57 @@ object Agent {
   object LoadingResult {
     private val logger = LoggerFactory.getLogger(classOf[LoadingResult])
 
-    def apply(fqns: Seq[String]): LoadingResult = new LoadingResult(fqns)
+    def apply(fqns: Seq[String]): LoadingResult = new LoadingResult(fqns.toSet)
 
     def apply(fqn: String, fqns: String*): LoadingResult = apply(fqn +: fqns)
 
-    def empty: LoadingResult = new LoadingResult(Seq.empty)
+    def empty: LoadingResult = new LoadingResult(Set.empty)
   }
 }
 
 object AgentInstrumentation {
 
-  def apply(name: String, modules: SupportedModules)(
-    installation: (AgentBuilder, Instrumentation, Modules) => LoadingResult
+  def apply(name: String, tags: Set[String], deferred: Boolean)(
+    installation: (AgentBuilder, Instrumentation) => LoadingResult
   ): AgentInstrumentation =
-    new AgentInstrumentation(name, modules) {
-      def apply(builder: AgentBuilder, instrumentation: Instrumentation, modules: Modules): LoadingResult =
-        installation(builder, instrumentation, modules)
+    new AgentInstrumentation(name, tags, deferred) {
+      def apply(builder: AgentBuilder, instrumentation: Instrumentation): LoadingResult =
+        installation(builder, instrumentation)
     }
+
 }
 
-sealed abstract case class AgentInstrumentation(name: String, instrumentingModules: SupportedModules)
-    extends ((AgentBuilder, Instrumentation, Modules) => LoadingResult) {
+sealed abstract case class AgentInstrumentation(
+  name: String,
+  tags: Set[String],
+  private val deferred: Boolean
+) extends ((AgentBuilder, Instrumentation) => LoadingResult)
+    with Equals
+    with Ordered[AgentInstrumentation] {
 
-  override def hashCode(): Int           = name.hashCode()
-  override def equals(obj: Any): Boolean = name.equals(obj) // instrumentations should be equal when name is the same
+  override def hashCode(): Int = name.hashCode()
+
+  override def canEqual(that: Any): Boolean = that.isInstanceOf[AgentInstrumentation]
+
+  override def equals(obj: Any): Boolean = obj match {
+    case that: AgentInstrumentation if that.canEqual(this) =>
+      tags == that.tags && name == that.name
+    case _ => false
+  }
+
+  final def compare(that: AgentInstrumentation): Int = Ordering[Boolean].compare(this.deferred, that.deferred)
 }
 
-final case class Agent private (private val set: Set[AgentInstrumentation]) extends {
+final case class Agent private (private[agent] val instrumentations: Set[AgentInstrumentation]) extends {
   import Agent._
 
-  def ++(other: Agent): Agent = Agent(set ++ other.set)
+  def ++(other: Agent): Agent = Agent(instrumentations ++ other.instrumentations)
 
-  def ++(other: AgentInstrumentation): Agent = Agent(set + other)
+  def ++(other: AgentInstrumentation): Agent = Agent(instrumentations + other)
 
-  def installOn(builder: AgentBuilder, instrumentation: Instrumentation, modules: Modules): LoadingResult =
-    set.flatMap { agentInstrumentation =>
-      val dependencies = agentInstrumentation.instrumentingModules
+  def installOn(builder: AgentBuilder, instrumentation: Instrumentation): LoadingResult =
+    instrumentations.toSeq.sorted.map { agentInstrumentation =>
+      agentInstrumentation(builder, instrumentation)
 
-      val allModulesSupported = dependencies.modules.forall { module =>
-        modules
-          .get(module)
-          .exists(dependencies.supportedVersion(module).supports)
-      }
-
-      if (allModulesSupported) {
-        val requiredModules = modules.view.filterKeys(dependencies.modules.contains)
-        Some(agentInstrumentation(builder, instrumentation, requiredModules.toMap))
-      } else {
-        logger.error("Unsupported versions for instrumentation for {}", agentInstrumentation.name)
-        None
-      }
     }.fold(LoadingResult.empty)(_ ++ _)
 }

@@ -2,6 +2,7 @@ package io.scalac.mesmer.extension.metric
 
 import io.scalac.mesmer.core.LabelSerializable
 import io.scalac.mesmer.core.model._
+import io.scalac.mesmer.core.module.AkkaHttpModule._
 
 object HttpMetricsMonitor {
 
@@ -9,7 +10,7 @@ object HttpMetricsMonitor {
     val serialize: RawLabels = node.serialize ++ path.serialize ++ method.serialize ++ status.serialize
   }
 
-  trait BoundMonitor extends Synchronized with Bound {
+  trait BoundMonitor extends AkkaHttpRequestMetricsDef[Metric[Long]] with Synchronized with Bound {
     def requestTime: MetricRecorder[Long] with Instrument[Long]
     def requestCounter: Counter[Long] with Instrument[Long]
   }
