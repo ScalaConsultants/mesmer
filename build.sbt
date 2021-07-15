@@ -105,12 +105,6 @@ lazy val agent = (project in file("agent"))
     }),
     Test / testOnly / testGrouping := (Test/ testGrouping).value
   )
-  // .settings(
-  //   Compile / assembly / artifact ~= { art =>
-  //     art.withClassifier(Some("assembly"))
-  //   }
-  // )
-  .settings(addArtifact(Compile / assembly / artifact, assembly).settings: _*)
   .dependsOn(
     core % "compile->compile;test->test"
   )
