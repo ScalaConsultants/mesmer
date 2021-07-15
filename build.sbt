@@ -44,7 +44,6 @@ lazy val core = (project in file("core"))
   .disablePlugins(sbtassembly.AssemblyPlugin)
   .settings(
     name := "mesmer-akka-core",
-    publish / skip := true,
     libraryDependencies ++= {
       akka ++
       openTelemetryApi ++
