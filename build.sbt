@@ -112,7 +112,7 @@ lazy val agent = (project in file("agent"))
   // )
   .settings(addArtifact(Compile / assembly / artifact, assembly).settings: _*)
   .dependsOn(
-    core
+    core % "compile->compile;test->test"
   )
 
 lazy val example = (project in file("example"))
