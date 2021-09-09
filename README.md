@@ -42,12 +42,42 @@ Download the latest agent jar from https://github.com/ScalaConsultants/mesmer-ak
 
 where `PATH_TO_JAR` is your **absolute** path to the Mesmer agent jar.
 
-### Exporters:
+### Exporter:
 
-As mesmer uses OpenTelemetry underneath to export data to metric backend you need to set up an exporter.
-All exporters require OpenTelemetry SDK present, so make sure you have one added to your project - without this all measurement operations will be NoOp. You can check out how to
-configure Prometheus with Akka HTTP [here](https://github.com/ScalaConsultants/mesmer-akka-agent/blob/main/example/src/main/scala/io/scalac/Boot.scala#L64-L74).
+As Mesmer uses OpenTelemetry underneath to export data to metric backend you need to set up an exporter.
+All exporters require OpenTelemetry SDK present, so make sure you have one added to your project - without this all measurement operations will be NoOp.
+You can for example set up your project with OTLP metrics exporter that also includes the SDK:
 
+```
+"io.opentelemetry" % "opentelemetry-exporter-otlp-metrics" % <version>
+```
+
+After that you will need to initialize the exporter in your application entry point:
+
+```scala
+import io.opentelemetry.exporter.otlp.metrics.OtlpGrpcMetricExporter
+import io.opentelemetry.sdk.metrics.SdkMeterProvider
+import io.opentelemetry.sdk.metrics.export.IntervalMetricReader
+
+val metricExporter: OtlpGrpcMetricExporter = OtlpGrpcMetricExporter.getDefault()
+
+val meterProvider: SdkMeterProvider = SdkMeterProvider.builder().buildAndRegisterGlobal()
+
+IntervalMetricReader
+  .builder()
+  .setMetricExporter(metricExporter)
+  .setMetricProducers(Collections.singleton(meterProvider))
+  .setExportIntervalMillis(exportInterval)
+  .buildAndStart()
+```
+
+and it's a good practice to shut it down gracefully:
+
+```scala
+sys.addShutdownHook(metricReader.shutdown())
+```
+
+You can check out in details how to configure Prometheus with Akka HTTP in our example application [here](https://github.com/ScalaConsultants/mesmer-akka-agent/blob/main/example/src/main/scala/io/scalac/Boot.scala#L64-L74).
 
 ## Supported metrics
 
