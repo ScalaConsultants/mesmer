@@ -105,8 +105,9 @@ lazy val agent = (project in file("agent"))
     }),
     Test / testOnly / testGrouping := (Test/ testGrouping).value
   )
+  .settings(addArtifact(Compile / assembly / artifact, assembly).settings: _*)
   .dependsOn(
-    core % "compile->compile;test->test"
+    core % "provided->compile;test->test"
   )
 
 lazy val example = (project in file("example"))
