@@ -10,7 +10,7 @@ object Dependencies {
   val OpentelemetryVersion        = "1.4.1"
   val OpentelemetryMetricsVersion = "1.2.0-alpha"
   val PostgresVersion             = "42.2.23"
-  val ScalatestVersion            = "3.2.9"
+  val ScalatestVersion            = "3.2.10"
   val SlickVersion                = "3.3.3"
   
   val akka = Seq(
