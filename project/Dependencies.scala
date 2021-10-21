@@ -7,7 +7,7 @@ object Dependencies {
   val AkkaVersion                 = "2.6.15"
   val CirceVersion                = "0.14.1"
   val LogbackVersion              = "1.2.3"
-  val OpentelemetryVersion        = "1.4.0"
+  val OpentelemetryVersion        = "1.4.1"
   val OpentelemetryMetricsVersion = "1.2.0-alpha"
   val PostgresVersion             = "42.2.23"
   val ScalatestVersion            = "3.2.9"
@@ -32,8 +32,8 @@ object Dependencies {
   )
 
   val byteBuddy = Seq(
-    "net.bytebuddy" % "byte-buddy"       % "1.11.6",
-    "net.bytebuddy" % "byte-buddy-agent" % "1.11.6"
+    "net.bytebuddy" % "byte-buddy"       % "1.11.21",
+    "net.bytebuddy" % "byte-buddy-agent" % "1.11.21"
   )
 
   val logback = Seq("ch.qos.logback" % "logback-classic" % LogbackVersion)
@@ -57,7 +57,7 @@ object Dependencies {
 
   val akkaMultiNodeTestKit = Seq("com.typesafe.akka" %% "akka-multi-node-testkit" % AkkaVersion % Test)
 
-  val slf4jApi = Seq("org.slf4j" % "slf4j-api" % "1.7.31")
+  val slf4jApi = Seq("org.slf4j" % "slf4j-api" % "1.7.32")
 
   val reflection: String => Seq[ModuleID] = version => Seq("org.scala-lang" % "scala-reflect" % version)
 
