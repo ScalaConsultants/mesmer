@@ -4,7 +4,7 @@ object Dependencies {
 
   val AkkaHttpVersion             = "10.2.6"
   val AkkaManagementVersion       = "1.1.1"
-  val AkkaVersion                 = "2.6.15"
+  val AkkaVersion                 = "2.6.16"
   val CirceVersion                = "0.14.1"
   val LogbackVersion              = "1.2.6"
   val OpentelemetryVersion        = "1.4.1"
@@ -27,7 +27,7 @@ object Dependencies {
 
   val akkaPersistance = Seq(
     "com.typesafe.akka"  %% "akka-persistence-typed" % AkkaVersion,
-    "com.lightbend.akka" %% "akka-persistence-jdbc"  % "5.0.1",
+    "com.lightbend.akka" %% "akka-persistence-jdbc"  % "5.0.4",
     "com.typesafe.akka"  %% "akka-persistence-query" % AkkaVersion
   )
 
