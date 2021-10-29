@@ -1,6 +1,6 @@
 import sbt._
 
-object Dependencies {  
+object Dependencies {
 
   val AkkaHttpVersion             = "10.2.6"
   val AkkaManagementVersion       = "1.1.1"
@@ -9,10 +9,10 @@ object Dependencies {
   val LogbackVersion              = "1.2.6"
   val OpentelemetryVersion        = "1.7.0"
   val OpentelemetryMetricsVersion = "1.2.0-alpha"
-  val PostgresVersion             = "42.2.24"
+  val PostgresVersion             = "42.3.1"
   val ScalatestVersion            = "3.2.10"
   val SlickVersion                = "3.3.3"
-  
+
   val akka = Seq(
     "com.typesafe.akka" %% "akka-http"                   % AkkaHttpVersion,
     "com.typesafe.akka" %% "akka-http-spray-json"        % AkkaHttpVersion,
@@ -62,19 +62,19 @@ object Dependencies {
   val reflection: String => Seq[ModuleID] = version => Seq("org.scala-lang" % "scala-reflect" % version)
 
   val exampleDependencies = Seq(
-    "io.circe"                      %% "circe-core"                         % CirceVersion,
-    "io.circe"                      %% "circe-generic"                      % CirceVersion,
-    "io.circe"                      %% "circe-parser"                       % CirceVersion,
-    "de.heikoseeberger"             %% "akka-http-circe"                    % "1.38.2",
-    "org.postgresql"                %  "postgresql"                         % PostgresVersion,
-    "com.typesafe.slick"            %% "slick"                              % SlickVersion,
-    "com.typesafe.slick"            %% "slick-hikaricp"                     % SlickVersion,
-    "com.typesafe.akka"             %% "akka-discovery"                     % AkkaVersion,
-    "com.lightbend.akka.management" %% "akka-management"                    % AkkaManagementVersion,
-    "com.lightbend.akka.management" %% "akka-management-cluster-http"       % AkkaManagementVersion,
-    "com.lightbend.akka.management" %% "akka-management-cluster-bootstrap"  % AkkaManagementVersion,
-    "com.lightbend.akka.discovery"  %% "akka-discovery-kubernetes-api"      % AkkaManagementVersion,
-    "io.opentelemetry"              % "opentelemetry-exporter-otlp-metrics" % OpentelemetryMetricsVersion,
-    "io.grpc"                       % "grpc-netty-shaded"                   % "1.41.0"
+    "io.circe"                      %% "circe-core"                          % CirceVersion,
+    "io.circe"                      %% "circe-generic"                       % CirceVersion,
+    "io.circe"                      %% "circe-parser"                        % CirceVersion,
+    "de.heikoseeberger"             %% "akka-http-circe"                     % "1.38.2",
+    "org.postgresql"                 % "postgresql"                          % PostgresVersion,
+    "com.typesafe.slick"            %% "slick"                               % SlickVersion,
+    "com.typesafe.slick"            %% "slick-hikaricp"                      % SlickVersion,
+    "com.typesafe.akka"             %% "akka-discovery"                      % AkkaVersion,
+    "com.lightbend.akka.management" %% "akka-management"                     % AkkaManagementVersion,
+    "com.lightbend.akka.management" %% "akka-management-cluster-http"        % AkkaManagementVersion,
+    "com.lightbend.akka.management" %% "akka-management-cluster-bootstrap"   % AkkaManagementVersion,
+    "com.lightbend.akka.discovery"  %% "akka-discovery-kubernetes-api"       % AkkaManagementVersion,
+    "io.opentelemetry"               % "opentelemetry-exporter-otlp-metrics" % OpentelemetryMetricsVersion,
+    "io.grpc"                        % "grpc-netty-shaded"                   % "1.41.0"
   )
 }
