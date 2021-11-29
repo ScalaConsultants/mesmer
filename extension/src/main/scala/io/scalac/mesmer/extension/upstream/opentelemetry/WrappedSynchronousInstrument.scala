@@ -1,36 +1,35 @@
 package io.scalac.mesmer.extension.upstream.opentelemetry
 
+import io.opentelemetry.api.common.Attributes
 import io.opentelemetry.api.metrics.LongCounter
+import io.opentelemetry.api.metrics.LongHistogram
 import io.opentelemetry.api.metrics.LongUpDownCounter
-import io.opentelemetry.api.metrics.LongValueRecorder
-import io.opentelemetry.api.metrics.SynchronousInstrument
-import io.opentelemetry.api.metrics.common.Labels
 
 import io.scalac.mesmer.extension.metric._
 
 trait SynchronousInstrumentFactory {
 
   private[upstream] def metricRecorder(
-    underlying: LongValueRecorder,
-    labels: Labels
+    underlying: LongHistogram,
+    attrs: Attributes
   ): UnregisteredInstrument[WrappedLongValueRecorder] = { root =>
-    val instrument = WrappedLongValueRecorder(underlying, labels)
+    val instrument = WrappedLongValueRecorder(underlying, attrs)
     root.registerUnbind(instrument)
     instrument
   }
 
   private[upstream] def counter(
     underlying: LongCounter,
-    labels: Labels
+    attributes: Attributes
   ): UnregisteredInstrument[WrappedCounter] = { root =>
-    val instrument = WrappedCounter(underlying, labels)
+    val instrument = WrappedCounter(underlying, attributes)
     root.registerUnbind(instrument)
     instrument
   }
 
   private[upstream] def upDownCounter(
     underlying: LongUpDownCounter,
-    labels: Labels
+    labels: Attributes
   ): UnregisteredInstrument[WrappedUpDownCounter] = { root =>
     val instrument = WrappedUpDownCounter(underlying, labels)
     root.registerUnbind(instrument)
@@ -43,16 +42,9 @@ trait SynchronousInstrumentFactory {
   private[upstream] def noopUpDownCounter[T]: WrappedSynchronousInstrument[T] with UpDownCounter[T] = NoopUpDownCounter
 }
 
-sealed trait WrappedSynchronousInstrument[-L] extends Unbind with WrappedInstrument {
+sealed trait WrappedSynchronousInstrument[-L] extends Unbind with WrappedInstrument
 
-  private[extension] def underlying: SynchronousInstrument[_]
-}
-
-sealed trait WrappedNoOp extends WrappedSynchronousInstrument[Any] {
-  final private[extension] def underlying: SynchronousInstrument[_] = throw new UnsupportedOperationException(
-    "Cannot get underlying instrument from noop"
-  )
-}
+sealed trait WrappedNoOp extends WrappedSynchronousInstrument[Any]
 
 case object NoopLongValueRecorder extends WrappedNoOp with MetricRecorder[Any] {
 
@@ -81,24 +73,24 @@ case object NoopUpDownCounter extends WrappedNoOp with UpDownCounter[Any] {
   override type Self = Nothing
 }
 
-final case class WrappedLongValueRecorder private[opentelemetry] (underlying: LongValueRecorder, labels: Labels)
+final case class WrappedLongValueRecorder private[opentelemetry] (underlying: LongHistogram, attrs: Attributes)
     extends WrappedSynchronousInstrument[Long]
     with MetricRecorder[Long] {
   type Self = WrappedLongValueRecorder
 
-  private[this] lazy val bound = underlying.bind(labels)
+  private[this] lazy val bound = underlying.bind(attrs)
 
   def setValue(value: Long): Unit = bound.record(value)
 
   def unbind(): Unit = bound.unbind()
 }
 
-final case class WrappedUpDownCounter private[opentelemetry] (underlying: LongUpDownCounter, labels: Labels)
+final case class WrappedUpDownCounter private[opentelemetry] (underlying: LongUpDownCounter, attrs: Attributes)
     extends WrappedSynchronousInstrument[Long]
     with UpDownCounter[Long] {
   type Self = WrappedUpDownCounter
 
-  private[this] lazy val bound = underlying.bind(labels)
+  private[this] lazy val bound = underlying.bind(attrs)
 
   def decValue(value: Long): Unit = bound.add(-value)
 
@@ -107,12 +99,12 @@ final case class WrappedUpDownCounter private[opentelemetry] (underlying: LongUp
   def unbind(): Unit = bound.unbind()
 }
 
-final case class WrappedCounter private[opentelemetry] (underlying: LongCounter, labels: Labels)
+final case class WrappedCounter private[opentelemetry] (underlying: LongCounter, attrs: Attributes)
     extends WrappedSynchronousInstrument[Long]
     with Counter[Long] {
   type Self = WrappedCounter
 
-  private[this] lazy val bound = underlying.bind(labels)
+  private[this] lazy val bound = underlying.bind(attrs)
 
   def incValue(value: Long): Unit = bound.add(value)
 

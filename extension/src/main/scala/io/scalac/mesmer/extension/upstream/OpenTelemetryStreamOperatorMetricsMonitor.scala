@@ -65,19 +65,20 @@ final class OpenTelemetryStreamOperatorMetricsMonitor(
 
   private lazy val processedMessageAdapter = new LongSumObserverBuilderAdapter[Labels](
     meter
-      .longSumObserverBuilder(metricNames.operatorProcessed)
+      .counterBuilder(metricNames.operatorProcessed)
       .setDescription("Amount of messages process by operator")
   )
 
-  private lazy val operatorsAdapter = new LongMetricObserverBuilderAdapter[Labels](
+  private lazy val operatorsAdapter = new GaugeBuilderAdapter[Labels](
     meter
-      .longValueObserverBuilder(metricNames.runningOperators)
+      .gaugeBuilder(metricNames.runningOperators)
+      .ofLongs()
       .setDescription("Amount of operators in a system")
   )
 
   private lazy val demandAdapter = new LongSumObserverBuilderAdapter[Labels](
     meter
-      .longSumObserverBuilder(metricNames.demand)
+      .counterBuilder(metricNames.demand)
       .setDescription("Amount of messages demanded by operator")
   )
 

@@ -1,8 +1,8 @@
 package io.scalac.mesmer.extension.upstream
 
 import com.typesafe.config.Config
+import io.opentelemetry.api.common.Attributes
 import io.opentelemetry.api.metrics.Meter
-import io.opentelemetry.api.metrics.common.Labels
 
 import io.scalac.mesmer.core.config.MesmerConfiguration
 import io.scalac.mesmer.core.module.AkkaClusterModule
@@ -91,42 +91,46 @@ final class OpenTelemetryClusterMetricsMonitor(
   metricNames: MetricNames
 ) extends ClusterMetricsMonitor {
 
-  private lazy val shardsPerRegionRecorder = new LongMetricObserverBuilderAdapter[ClusterMetricsMonitor.Labels](
+  private lazy val shardsPerRegionRecorder = new GaugeBuilderAdapter[ClusterMetricsMonitor.Labels](
     meter
-      .longValueObserverBuilder(metricNames.shardPerEntity)
+      .gaugeBuilder(metricNames.shardPerEntity)
+      .ofLongs()
       .setDescription("Amount of shards in region")
   )
 
-  private lazy val entityPerRegionRecorder = new LongMetricObserverBuilderAdapter[ClusterMetricsMonitor.Labels](
+  private lazy val entityPerRegionRecorder = new GaugeBuilderAdapter[ClusterMetricsMonitor.Labels](
     meter
-      .longValueObserverBuilder(metricNames.entityPerRegion)
+      .gaugeBuilder(metricNames.entityPerRegion)
+      .ofLongs()
       .setDescription("Amount of entities in region")
   )
 
   private lazy val reachableNodeCounter = meter
-    .longUpDownCounterBuilder(metricNames.reachableNodes)
+    .upDownCounterBuilder(metricNames.reachableNodes)
     .setDescription("Amount of reachable nodes")
     .build()
 
   private lazy val unreachableNodeCounter = meter
-    .longUpDownCounterBuilder(metricNames.unreachableNodes)
+    .upDownCounterBuilder(metricNames.unreachableNodes)
     .setDescription("Amount of unreachable nodes")
     .build()
 
-  private lazy val shardRegionsOnNodeRecorder = new LongMetricObserverBuilderAdapter[ClusterMetricsMonitor.Labels](
+  private lazy val shardRegionsOnNodeRecorder = new GaugeBuilderAdapter[ClusterMetricsMonitor.Labels](
     meter
-      .longValueObserverBuilder(metricNames.shardRegionsOnNode)
+      .gaugeBuilder(metricNames.shardRegionsOnNode)
+      .ofLongs()
       .setDescription("Amount of shard regions on node")
   )
 
-  private lazy val entitiesOnNodeObserver = new LongMetricObserverBuilderAdapter[ClusterMetricsMonitor.Labels](
+  private lazy val entitiesOnNodeObserver = new GaugeBuilderAdapter[ClusterMetricsMonitor.Labels](
     meter
-      .longValueObserverBuilder(metricNames.entitiesOnNode)
+      .gaugeBuilder(metricNames.entitiesOnNode)
+      .ofLongs()
       .setDescription("Amount of entities on node")
   )
 
   private lazy val nodeDownCounter = meter
-    .longCounterBuilder(metricNames.nodeDown)
+    .counterBuilder(metricNames.nodeDown)
     .setDescription("Counter for node down events")
     .build()
 
@@ -138,7 +142,7 @@ final class OpenTelemetryClusterMetricsMonitor(
       with RegisterRoot
       with SynchronousInstrumentFactory {
 
-    protected val otLabels: Labels = LabelsFactory.of(labels.serialize)
+    protected val otLabels: Attributes = LabelsFactory.of(labels.serialize)
 
     lazy val shardPerRegions: MetricObserver[Long, ClusterMetricsMonitor.Labels] = {
       if (moduleConfig.shardPerRegions) shardsPerRegionRecorder.createObserver(this) else MetricObserver.noop

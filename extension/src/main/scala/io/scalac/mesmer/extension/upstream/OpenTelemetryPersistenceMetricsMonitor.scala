@@ -73,27 +73,29 @@ final class OpenTelemetryPersistenceMetricsMonitor(
   import PersistenceMetricsMonitor._
 
   private lazy val recoveryTimeRecorder = meter
-    .longValueRecorderBuilder(metricNames.recoveryTime)
+    .histogramBuilder(metricNames.recoveryTime)
+    .ofLongs()
     .setDescription("Amount of time needed for entity recovery")
     .build()
 
   private lazy val recoveryTotalCounter = meter
-    .longCounterBuilder(metricNames.recoveryTotal)
+    .counterBuilder(metricNames.recoveryTotal)
     .setDescription("Amount of recoveries")
     .build()
 
   private lazy val persistentEventRecorder = meter
-    .longValueRecorderBuilder(metricNames.persistentEvent)
+    .histogramBuilder(metricNames.persistentEvent)
+    .ofLongs()
     .setDescription("Amount of time needed for entity to persist events")
     .build()
 
   private lazy val persistentEventTotalCounter = meter
-    .longCounterBuilder(metricNames.persistentEventTotal)
+    .counterBuilder(metricNames.persistentEventTotal)
     .setDescription("Amount of persist events")
     .build()
 
   private lazy val snapshotCounter = meter
-    .longCounterBuilder(metricNames.snapshotTotal)
+    .counterBuilder(metricNames.snapshotTotal)
     .setDescription("Amount of snapshots created")
     .build()
 

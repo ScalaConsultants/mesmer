@@ -1,8 +1,8 @@
 package io.scalac.mesmer.extension.upstream
 
 import com.typesafe.config.Config
+import io.opentelemetry.api.common.Attributes
 import io.opentelemetry.api.metrics.Meter
-import io.opentelemetry.api.metrics.common
 
 import io.scalac.mesmer.core.config.MesmerConfiguration
 import io.scalac.mesmer.core.module.AkkaHttpModule
@@ -49,7 +49,7 @@ final class OpenTelemetryHttpConnectionMetricsMonitor(
   import HttpConnectionMetricsMonitor._
 
   private lazy val connectionTotalCounter = meter
-    .longUpDownCounterBuilder(metricNames.connectionTotal)
+    .upDownCounterBuilder(metricNames.connectionTotal)
     .setDescription("Amount of connections")
     .build()
 
@@ -61,10 +61,12 @@ final class OpenTelemetryHttpConnectionMetricsMonitor(
       with SynchronousInstrumentFactory
       with RegisterRoot {
 
-    protected lazy val otLabels: common.Labels = LabelsFactory.of(labels.serialize)
+    protected lazy val otLabels: Attributes = LabelsFactory.of(labels.serialize)
 
     lazy val connections: UpDownCounter[Long] with Instrument[Long] =
-      if (moduleConfig.connections) upDownCounter(connectionTotalCounter, otLabels).register(this)
-      else noopUpDownCounter
+      if (moduleConfig.connections)
+        upDownCounter(connectionTotalCounter, otLabels).register(this)
+      else
+        noopUpDownCounter
   }
 }

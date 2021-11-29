@@ -49,12 +49,12 @@ final class OpenTelemetryActorSystemMonitor(
 ) extends ActorSystemMonitor {
 
   private lazy val createdActorsCounter = meter
-    .longCounterBuilder(metricNames.createdActors)
+    .counterBuilder(metricNames.createdActors)
     .setDescription("Amount of actors created measured from Actor System start")
     .build()
 
   private lazy val terminatedActorsCounter = meter
-    .longCounterBuilder(metricNames.terminatedActors)
+    .counterBuilder(metricNames.terminatedActors)
     .setDescription("Amount of actors terminated measured from Actor System start")
     .build()
 

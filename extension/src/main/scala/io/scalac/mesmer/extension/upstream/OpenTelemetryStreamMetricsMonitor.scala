@@ -57,18 +57,20 @@ final class OpenTelemetryStreamMetricsMonitor(
   import StreamMetricsMonitor._
 
   private lazy val runningStreamsTotalRecorder = meter
-    .longValueRecorderBuilder(metricNames.runningStreams)
+    .histogramBuilder(metricNames.runningStreams)
+    .ofLongs()
     .setDescription("Amount of running streams on a system")
     .build()
 
   private lazy val streamActorsTotalRecorder = meter
-    .longValueRecorderBuilder(metricNames.streamActors)
+    .histogramBuilder(metricNames.streamActors)
+    .ofLongs()
     .setDescription("Amount of actors running streams on a system")
     .build()
 
   private lazy val streamProcessedMessagesBuilder = new LongSumObserverBuilderAdapter[Labels](
     meter
-      .longSumObserverBuilder(metricNames.streamProcessed)
+      .counterBuilder(metricNames.streamProcessed)
       .setDescription("Amount of messages processed by whole stream")
   )
 

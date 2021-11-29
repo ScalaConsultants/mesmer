@@ -1,8 +1,8 @@
 package io.scalac.mesmer.extension.upstream
 
 import com.typesafe.config.Config
+import io.opentelemetry.api.common.Attributes
 import io.opentelemetry.api.metrics.Meter
-import io.opentelemetry.api.metrics.common
 
 import io.scalac.mesmer.core.config.MesmerConfiguration
 import io.scalac.mesmer.core.module.AkkaHttpModule
@@ -58,12 +58,13 @@ final class OpenTelemetryHttpMetricsMonitor(
   import HttpMetricsMonitor._
 
   private lazy val requestTimeRequest = meter
-    .longValueRecorderBuilder(metricNames.requestDuration)
+    .histogramBuilder(metricNames.requestDuration)
+    .ofLongs()
     .setDescription("Amount of ms request took to complete")
     .build()
 
   private lazy val requestTotalCounter = meter
-    .longCounterBuilder(metricNames.requestTotal)
+    .counterBuilder(metricNames.requestTotal)
     .setDescription("Amount of requests")
     .build()
 
@@ -75,7 +76,7 @@ final class OpenTelemetryHttpMetricsMonitor(
       with SynchronousInstrumentFactory
       with RegisterRoot {
 
-    protected val otLabels: common.Labels = LabelsFactory.of(labels.serialize)
+    protected val otLabels: Attributes = LabelsFactory.of(labels.serialize)
 
     lazy val requestTime: MetricRecorder[Long] with Instrument[Long] =
       if (moduleConfig.requestTime) metricRecorder(requestTimeRequest, otLabels).register(this)

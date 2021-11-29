@@ -3,36 +3,45 @@ package io.scalac.mesmer.extension.upstream.opentelemetry
 import java.util.concurrent.CopyOnWriteArrayList
 import java.util.concurrent.atomic.AtomicBoolean
 
-import io.opentelemetry.api.metrics.AsynchronousInstrument
-import io.opentelemetry.api.metrics.AsynchronousInstrument.LongResult
+import io.opentelemetry.api.common.Attributes
 import io.opentelemetry.api.metrics._
-import io.opentelemetry.api.metrics.common.Labels
 
 import scala.jdk.CollectionConverters._
+import scala.jdk.FunctionConverters._
 
 import io.scalac.mesmer.core.LabelSerializable
 import io.scalac.mesmer.extension.metric.MetricObserver
 import io.scalac.mesmer.extension.upstream.LabelsFactory
 
 private object Defs {
-  type WrappedResult[T]    = (T, Labels) => Unit
+  type WrappedResult[T]    = (T, Attributes) => Unit
   type ResultWrapper[R, T] = R => WrappedResult[T]
-  val longResultWrapper: ResultWrapper[LongResult, Long] = result => result.observe
+  val longResultWrapper: ResultWrapper[ObservableLongMeasurement, Long] = result => result.observe
 }
 
 import io.scalac.mesmer.extension.upstream.opentelemetry.Defs._
 
-final class LongMetricObserverBuilderAdapter[L <: LabelSerializable](builder: LongValueObserverBuilder)
-    extends MetricObserverBuilderAdapter[LongResult, Long, L](builder, longResultWrapper)
+final class GaugeBuilderAdapter[L <: LabelSerializable](builder: LongGaugeBuilder)
+    extends MetricObserverBuilderAdapter[ObservableLongMeasurement, Long, L](
+      result => builder.buildWithCallback(result.asJava),
+      longResultWrapper
+    )
 
-final class LongUpDownSumObserverBuilderAdapter[L <: LabelSerializable](builder: LongUpDownSumObserverBuilder)
-    extends MetricObserverBuilderAdapter[LongResult, Long, L](builder, longResultWrapper)
+final class LongUpDownSumObserverBuilderAdapter[L <: LabelSerializable](builder: LongUpDownCounterBuilder)
+    extends MetricObserverBuilderAdapter[ObservableLongMeasurement, Long, L](
+      result => builder.buildWithCallback(result.asJava),
+      longResultWrapper
+    )
 
-final class LongSumObserverBuilderAdapter[L <: LabelSerializable](builder: LongSumObserverBuilder)
-    extends MetricObserverBuilderAdapter[LongResult, Long, L](builder, longResultWrapper)
+final class LongSumObserverBuilderAdapter[L <: LabelSerializable](builder: LongCounterBuilder)
+    extends MetricObserverBuilderAdapter[ObservableLongMeasurement, Long, L](
+      result => builder.buildWithCallback(result.asJava),
+      longResultWrapper
+    )
 
-sealed abstract class MetricObserverBuilderAdapter[R <: AsynchronousInstrument.LongResult, T, L <: LabelSerializable](
-  builder: AsynchronousInstrumentBuilder[R],
+sealed abstract class MetricObserverBuilderAdapter[R <: ObservableMeasurement, T, L <: LabelSerializable](
+//  builder: AsynchronousInstrumentBuilder[R],
+  register: (R => Unit) => Unit,
   wrapper: ResultWrapper[R, T]
 ) {
 
@@ -53,9 +62,7 @@ sealed abstract class MetricObserverBuilderAdapter[R <: AsynchronousInstrument.L
   private def registerUpdater(observer: => WrappedMetricObserver[T, L]): () => Unit = () => {
     if (!instrumentStarted.get()) {
       if (instrumentStarted.compareAndSet(false, true)) { // no-lock way to ensure this is going to be called once
-        builder
-          .setUpdater(updateAll)
-          .build()
+        register(updateAll)
       }
     }
     observers += observer
