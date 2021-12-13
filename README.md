@@ -32,7 +32,7 @@ libraryDependencies += "io.scalac" %% "mesmer-akka-extension" % "<version>"
 
 Add this entry to your `application.conf`:
 
-    akka.actor.typed.extensions= ["io.scalac.mesmer.extension.Mesmer"] 
+    akka.actor.typed.extensions= ["io.scalac.mesmer.extension.AkkaMonitoring"] 
 
 ### JVM agent:
 
