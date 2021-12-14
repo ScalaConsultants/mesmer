@@ -40,7 +40,6 @@ final class LongSumObserverBuilderAdapter[L <: AttributesSerializable](builder: 
     )
 
 sealed abstract class MetricObserverBuilderAdapter[R <: ObservableMeasurement, T, L <: AttributesSerializable](
-//  builder: AsynchronousInstrumentBuilder[R],
   register: (R => Unit) => Unit,
   wrapper: ResultWrapper[R, T]
 ) {
