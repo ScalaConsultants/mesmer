@@ -35,7 +35,7 @@ import io.scalac.mesmer.core.util.probe.ObserverCollector.ManualCollectorImpl
 import io.scalac.mesmer.extension.ActorEventsMonitorActor._
 import io.scalac.mesmer.extension.actor.ActorMetrics
 import io.scalac.mesmer.extension.actor.MutableActorMetricStorageFactory
-import io.scalac.mesmer.extension.metric.ActorMetricsMonitor.Labels
+import io.scalac.mesmer.extension.metric.ActorMetricsMonitor.Attributes
 import io.scalac.mesmer.extension.service.ActorTreeService
 import io.scalac.mesmer.extension.service.ActorTreeService.Command.GetActorTree
 import io.scalac.mesmer.extension.service.ActorTreeService.Command.TagSubscribe
@@ -262,35 +262,35 @@ final class ActorEventsMonitorActorTest
 
   def runUpdaters()(implicit context: Context): Unit = context.monitor.collector.collectAll()
 
-  private def rootLabels(tree: Tree[ActorRefDetails]): Labels =
-    Labels(ActorPathOps.getPathString(tree.unfix.value.ref))
+  private def rootLabels(tree: Tree[ActorRefDetails]): Attributes =
+    Attributes(ActorPathOps.getPathString(tree.unfix.value.ref))
 
-  private def nonRootLabels(tree: Tree[ActorRefDetails]): Option[Labels] =
-    tree.unfix.foldRight[Option[Labels]] {
+  private def nonRootLabels(tree: Tree[ActorRefDetails]): Option[Attributes] =
+    tree.unfix.foldRight[Option[Attributes]] {
       case TreeF(value, Vector()) =>
-        Some(Labels(ActorPathOps.getPathString(value.ref)))
+        Some(Attributes(ActorPathOps.getPathString(value.ref)))
       case TreeF(_, children) => Random.shuffle(children.flatten).headOption
     }
 
   behavior of "ActorEventsMonitor"
 
   private def expect(
-    selectProbe: ActorMonitorTestProbe => TestProbe[MetricObserverCommand[Labels]],
-    labels: Labels,
+    selectProbe: ActorMonitorTestProbe => TestProbe[MetricObserverCommand[Attributes]],
+    attributes: Attributes,
     value: Long
   )(implicit context: Context): Unit =
     selectProbe(context.monitor)
       .fishForMessage(pingOffset) {
-        case MetricObserved(_, `labels`) => FishingOutcomes.complete()
-        case _                           => FishingOutcomes.continueAndIgnore()
+        case MetricObserved(_, `attributes`) => FishingOutcomes.complete()
+        case _                               => FishingOutcomes.continueAndIgnore()
       }
-      .loneElement should be(MetricObserved(value, labels))
+      .loneElement should be(MetricObserved(value, attributes))
 
   /**
    * Checks aggregation when there were several metrics collection messages but no export in the meantime
    */
   private def collectMany[T](
-    selectProbe: ActorMonitorTestProbe => TestProbe[MetricObserverCommand[Labels]],
+    selectProbe: ActorMonitorTestProbe => TestProbe[MetricObserverCommand[Attributes]],
     extract: ActorMetrics => T,
     name: String,
     addTo: (T, T) => T,
@@ -300,7 +300,7 @@ final class ActorEventsMonitorActorTest
 
       val refs         = actorConfiguration(spawnTree(3), ActorConfiguration.instanceConfig)
       val actorService = system.systemActorOf(constRefsActorServiceTree(refs), createUniqueId)
-      val labels       = Labels(ActorPathOps.getPathString(refs.unfix.value.ref))
+      val attributes   = Attributes(ActorPathOps.getPathString(refs.unfix.value.ref))
 
       val Seq(firstMetrics, metricsTransitions @ _*) = metrics
       val refsWithMetrics = refs.unfix.mapValues { details =>
@@ -324,12 +324,12 @@ final class ActorEventsMonitorActorTest
         }
         runUpdaters()
 
-        expect(selectProbe, labels, expectedValue)
+        expect(selectProbe, attributes, expectedValue)
       }
     }
 
   private def collect[T](
-    selectProbe: ActorMonitorTestProbe => TestProbe[MetricObserverCommand[Labels]],
+    selectProbe: ActorMonitorTestProbe => TestProbe[MetricObserverCommand[Attributes]],
     extract: ActorMetrics => Long,
     name: String
   ): Unit =
@@ -337,7 +337,7 @@ final class ActorEventsMonitorActorTest
 
       val refs         = actorConfiguration(spawnTree(3), ActorConfiguration.instanceConfig)
       val actorService = system.systemActorOf(constRefsActorServiceTree(refs), createUniqueId)
-      val labels       = Labels(ActorPathOps.getPathString(refs.unfix.value.ref))
+      val attributes   = Attributes(ActorPathOps.getPathString(refs.unfix.value.ref))
 
       val refsWithMetrics = refs.unfix.mapValues { details =>
         details.ref -> ConstActorMetrics
@@ -351,13 +351,13 @@ final class ActorEventsMonitorActorTest
         collectActorMetrics(ackProbe)
         runUpdaters()
 
-        expect(selectProbe, labels, extract(ConstActorMetrics))
+        expect(selectProbe, attributes, extract(ConstActorMetrics))
 
       }
     }
 
   private def reportingAggregation[T](
-    selectProbe: ActorMonitorTestProbe => TestProbe[MetricObserverCommand[Labels]],
+    selectProbe: ActorMonitorTestProbe => TestProbe[MetricObserverCommand[Attributes]],
     extract: ActorMetrics => T,
     name: String,
     sum: (T, T) => T,
@@ -369,7 +369,7 @@ final class ActorEventsMonitorActorTest
       val refs = rootGrouping(spawnTree(3), ActorConfiguration.instanceConfig)
 
       val actorService = system.systemActorOf(constRefsActorServiceTree(refs), createUniqueId)
-      val labels       = rootLabels(refs)
+      val attributes   = rootLabels(refs)
 
       val refsWithMetrics = addMetrics(refs)
 
@@ -385,14 +385,14 @@ final class ActorEventsMonitorActorTest
         collectActorMetrics(ackProbe)
         runUpdaters()
 
-        expect(selectProbe, labels, expectedValue)
+        expect(selectProbe, attributes, expectedValue)
       }
     }
 
     it should s"aggregate ${name} in root node when child have disabled config" in {
       val refs         = rootGrouping(spawnTree(3), ActorConfiguration.disabledConfig)
       val actorService = system.systemActorOf(constRefsActorServiceTree(refs), createUniqueId)
-      val labels       = rootLabels(refs)
+      val attributes   = rootLabels(refs)
 
       val refsWithMetrics = addMetrics(refs)
       val expectedValue = extractLong(refsWithMetrics.unfix.foldRight[T] { case TreeF((_, metrics), children) =>
@@ -407,7 +407,7 @@ final class ActorEventsMonitorActorTest
         collectActorMetrics(ackProbe)
         runUpdaters()
 
-        expect(selectProbe, labels, expectedValue)
+        expect(selectProbe, attributes, expectedValue)
 
       }
     }
@@ -415,12 +415,12 @@ final class ActorEventsMonitorActorTest
     it should s"publish ${name} for non-root node when child have instance config" in {
       val refs         = rootGrouping(spawnTree(3), ActorConfiguration.instanceConfig)
       val actorService = system.systemActorOf(constRefsActorServiceTree(refs), createUniqueId)
-      val labels       = nonRootLabels(refs).value
+      val attributes   = nonRootLabels(refs).value
 
       val refsWithMetrics = addMetrics(refs)
 
       val expectedValue = extractLong(extract(refsWithMetrics.unfix.find { case (ref, _) =>
-        ref.path.toStringWithoutAddress == labels.actorPath
+        ref.path.toStringWithoutAddress == attributes.actorPath
       }.map(_._2).value))
 
       testCaseWithSetupAndContext { ctx =>
@@ -431,14 +431,14 @@ final class ActorEventsMonitorActorTest
         collectActorMetrics(ackProbe)
         runUpdaters()
 
-        expect(selectProbe, labels, expectedValue)
+        expect(selectProbe, attributes, expectedValue)
       }
     }
 
     it should s"not publish ${name} for non-root node when child have disabled config" in {
       val refs         = rootGrouping(spawnTree(3), ActorConfiguration.disabledConfig)
       val actorService = system.systemActorOf(constRefsActorServiceTree(refs), createUniqueId)
-      val labels       = rootLabels(refs)
+      val attributes   = rootLabels(refs)
 
       val refsWithMetrics = addMetrics(refs)
 
@@ -453,7 +453,7 @@ final class ActorEventsMonitorActorTest
         val probe = selectProbe(context.monitor)
 
         inside(probe.receiveMessage) { case MetricObserved(_, l) =>
-          l should be(labels)
+          l should be(attributes)
         }
         probe.expectNoMessage()
       }
@@ -469,7 +469,7 @@ final class ActorEventsMonitorActorTest
       val actorService =
         system.systemActorOf(subscribeAllConstRefsActorServiceTree(terminatingRefs)(rootRef), createUniqueId)
 
-      val labels = rootLabels(allRefs)
+      val attributes = rootLabels(allRefs)
 
       val refsWithMetrics = addMetrics(allRefs)
 
@@ -485,7 +485,7 @@ final class ActorEventsMonitorActorTest
         collectActorMetrics(ackProbe)
         runUpdaters()
 
-        expect(selectProbe, labels, expectedValue)
+        expect(selectProbe, attributes, expectedValue)
       }
     }
 
@@ -499,7 +499,7 @@ final class ActorEventsMonitorActorTest
       val actorService =
         system.systemActorOf(subscribeAllConstRefsActorServiceTree(terminatingRefs)(rootRef), createUniqueId)
 
-      val labels = rootLabels(allRefs)
+      val attributes = rootLabels(allRefs)
 
       val refsWithMetrics = addMetrics(allRefs)
 
@@ -530,14 +530,14 @@ final class ActorEventsMonitorActorTest
         collectActorMetrics(ackProbe)
         runUpdaters()
 
-        expect(selectProbe, labels, expectedValue)
+        expect(selectProbe, attributes, expectedValue)
       }
     }
 
   }
 
   def allBehaviorsLong(
-    selectProbe: ActorMonitorTestProbe => TestProbe[MetricObserverCommand[Labels]],
+    selectProbe: ActorMonitorTestProbe => TestProbe[MetricObserverCommand[Attributes]],
     extract: ActorMetrics => Option[Long],
     name: String
   ): Unit = {
@@ -555,10 +555,10 @@ final class ActorEventsMonitorActorTest
   }
 
   def allBehaviorsAgg(
-    probeMin: ActorMonitorTestProbe => TestProbe[MetricObserverCommand[Labels]],
-    probeMax: ActorMonitorTestProbe => TestProbe[MetricObserverCommand[Labels]],
-    probeSum: ActorMonitorTestProbe => TestProbe[MetricObserverCommand[Labels]],
-    probeCount: ActorMonitorTestProbe => TestProbe[MetricObserverCommand[Labels]],
+    probeMin: ActorMonitorTestProbe => TestProbe[MetricObserverCommand[Attributes]],
+    probeMax: ActorMonitorTestProbe => TestProbe[MetricObserverCommand[Attributes]],
+    probeSum: ActorMonitorTestProbe => TestProbe[MetricObserverCommand[Attributes]],
+    probeCount: ActorMonitorTestProbe => TestProbe[MetricObserverCommand[Attributes]],
     extract: ActorMetrics => Option[LongMinMaxSumCountAggregationImpl],
     name: String
   ): Unit = {
@@ -566,7 +566,7 @@ final class ActorEventsMonitorActorTest
       (
         String,
         LongMinMaxSumCountAggregationImpl => Long,
-        ActorMonitorTestProbe => TestProbe[MetricObserverCommand[Labels]]
+        ActorMonitorTestProbe => TestProbe[MetricObserverCommand[Attributes]]
       )
     ] =
       List(("min", _.min, probeMin), ("max", _.max, probeMax), ("sum", _.sum, probeSum), ("count", _.count, probeCount))

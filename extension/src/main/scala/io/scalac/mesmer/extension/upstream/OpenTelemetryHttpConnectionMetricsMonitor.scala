@@ -1,7 +1,7 @@
 package io.scalac.mesmer.extension.upstream
 
 import com.typesafe.config.Config
-import io.opentelemetry.api.common.Attributes
+import io.opentelemetry.api.common
 import io.opentelemetry.api.metrics.Meter
 
 import io.scalac.mesmer.core.config.MesmerConfiguration
@@ -53,19 +53,19 @@ final class OpenTelemetryHttpConnectionMetricsMonitor(
     .setDescription("Amount of connections")
     .build()
 
-  def bind(labels: Labels): BoundMonitor = new HttpConnectionMetricBoundMonitor(labels)
+  def bind(attributes: Attributes): BoundMonitor = new HttpConnectionMetricBoundMonitor(attributes)
 
-  class HttpConnectionMetricBoundMonitor(labels: Labels)
+  class HttpConnectionMetricBoundMonitor(attributes: Attributes)
       extends opentelemetry.Synchronized(meter)
       with BoundMonitor
       with SynchronousInstrumentFactory
       with RegisterRoot {
 
-    protected lazy val otLabels: Attributes = LabelsFactory.of(labels.serialize)
+    protected lazy val otAttributes: common.Attributes = AttributesFactory.of(attributes.serialize)
 
     lazy val connections: UpDownCounter[Long] with Instrument[Long] =
       if (moduleConfig.connections)
-        upDownCounter(connectionTotalCounter, otLabels).register(this)
+        upDownCounter(connectionTotalCounter, otAttributes).register(this)
       else
         noopUpDownCounter
   }

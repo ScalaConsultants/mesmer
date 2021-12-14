@@ -42,11 +42,11 @@ object HttpEventsActor {
 
     Receptionist(ctx.system).ref ! Register(httpServiceKey, ctx.messageAdapter(HttpEventWrapper.apply))
 
-    def createConnectionLabels(connectionEvent: ConnectionEvent): HttpConnectionMetricsMonitor.Labels =
-      HttpConnectionMetricsMonitor.Labels(node, connectionEvent.interface, connectionEvent.port)
+    def createConnectionAttributes(connectionEvent: ConnectionEvent): HttpConnectionMetricsMonitor.Attributes =
+      HttpConnectionMetricsMonitor.Attributes(node, connectionEvent.interface, connectionEvent.port)
 
-    def createRequestLabels(path: Path, method: Method, status: Status): HttpMetricsMonitor.Labels =
-      HttpMetricsMonitor.Labels(node, pathService.template(path), method, status)
+    def createRequestAttributes(path: Path, method: Method, status: Status): HttpMetricsMonitor.Attributes =
+      HttpMetricsMonitor.Attributes(node, pathService.template(path), method, status)
 
     def monitorHttp(
       requestStorage: RequestStorage
@@ -55,7 +55,7 @@ object HttpEventsActor {
         .receiveMessagePartial[Event] {
 
           case HttpEventWrapper(connectionEvent: ConnectionEvent) =>
-            val counter = httpConnectionMetricMonitor.bind(createConnectionLabels(connectionEvent)).connections
+            val counter = httpConnectionMetricMonitor.bind(createConnectionAttributes(connectionEvent)).connections
             connectionEvent match {
               case _: ConnectionStarted   => counter.incValue(1L)
               case _: ConnectionCompleted => counter.decValue(1L)
@@ -73,7 +73,7 @@ object HttpEventsActor {
                 Behaviors.same[Event]
               } { case (storage, started) =>
                 val requestDuration = started.timestamp.interval(timestamp)
-                val monitorBoundary = createRequestLabels(started.path, started.method, status)
+                val monitorBoundary = createRequestAttributes(started.path, started.method, status)
                 val monitor         = httpMetricMonitor.bind(monitorBoundary)
 
                 monitor.requestTime.setValue(requestDuration.toMillis)

@@ -91,14 +91,14 @@ final class OpenTelemetryClusterMetricsMonitor(
   metricNames: MetricNames
 ) extends ClusterMetricsMonitor {
 
-  private lazy val shardsPerRegionRecorder = new GaugeBuilderAdapter[ClusterMetricsMonitor.Labels](
+  private lazy val shardsPerRegionRecorder = new GaugeBuilderAdapter[ClusterMetricsMonitor.Attributes](
     meter
       .gaugeBuilder(metricNames.shardPerEntity)
       .ofLongs()
       .setDescription("Amount of shards in region")
   )
 
-  private lazy val entityPerRegionRecorder = new GaugeBuilderAdapter[ClusterMetricsMonitor.Labels](
+  private lazy val entityPerRegionRecorder = new GaugeBuilderAdapter[ClusterMetricsMonitor.Attributes](
     meter
       .gaugeBuilder(metricNames.entityPerRegion)
       .ofLongs()
@@ -115,14 +115,14 @@ final class OpenTelemetryClusterMetricsMonitor(
     .setDescription("Amount of unreachable nodes")
     .build()
 
-  private lazy val shardRegionsOnNodeRecorder = new GaugeBuilderAdapter[ClusterMetricsMonitor.Labels](
+  private lazy val shardRegionsOnNodeRecorder = new GaugeBuilderAdapter[ClusterMetricsMonitor.Attributes](
     meter
       .gaugeBuilder(metricNames.shardRegionsOnNode)
       .ofLongs()
       .setDescription("Amount of shard regions on node")
   )
 
-  private lazy val entitiesOnNodeObserver = new GaugeBuilderAdapter[ClusterMetricsMonitor.Labels](
+  private lazy val entitiesOnNodeObserver = new GaugeBuilderAdapter[ClusterMetricsMonitor.Attributes](
     meter
       .gaugeBuilder(metricNames.entitiesOnNode)
       .ofLongs()
@@ -134,37 +134,38 @@ final class OpenTelemetryClusterMetricsMonitor(
     .setDescription("Counter for node down events")
     .build()
 
-  def bind(labels: ClusterMetricsMonitor.Labels): ClusterBoundMonitor = new ClusterBoundMonitor(labels)
+  def bind(attributes: ClusterMetricsMonitor.Attributes): ClusterBoundMonitor = new ClusterBoundMonitor(attributes)
 
-  final class ClusterBoundMonitor(labels: ClusterMetricsMonitor.Labels)
+  final class ClusterBoundMonitor(attributes: ClusterMetricsMonitor.Attributes)
       extends opentelemetry.Synchronized(meter)
       with ClusterMetricsMonitor.BoundMonitor
       with RegisterRoot
       with SynchronousInstrumentFactory {
 
-    protected val otLabels: Attributes = LabelsFactory.of(labels.serialize)
+    protected val otAttributes: Attributes = AttributesFactory.of(attributes.serialize)
 
-    lazy val shardPerRegions: MetricObserver[Long, ClusterMetricsMonitor.Labels] = {
+    lazy val shardPerRegions: MetricObserver[Long, ClusterMetricsMonitor.Attributes] = {
       if (moduleConfig.shardPerRegions) shardsPerRegionRecorder.createObserver(this) else MetricObserver.noop
     }
 
-    lazy val entityPerRegion: MetricObserver[Long, ClusterMetricsMonitor.Labels] =
+    lazy val entityPerRegion: MetricObserver[Long, ClusterMetricsMonitor.Attributes] =
       if (moduleConfig.entityPerRegion) entityPerRegionRecorder.createObserver(this) else MetricObserver.noop
 
-    lazy val shardRegionsOnNode: MetricObserver[Long, ClusterMetricsMonitor.Labels] =
+    lazy val shardRegionsOnNode: MetricObserver[Long, ClusterMetricsMonitor.Attributes] =
       if (moduleConfig.shardRegionsOnNode) shardRegionsOnNodeRecorder.createObserver(this) else MetricObserver.noop
 
-    lazy val entitiesOnNode: MetricObserver[Long, ClusterMetricsMonitor.Labels] =
+    lazy val entitiesOnNode: MetricObserver[Long, ClusterMetricsMonitor.Attributes] =
       if (moduleConfig.entitiesOnNode) entitiesOnNodeObserver.createObserver(this) else MetricObserver.noop
 
     lazy val reachableNodes: UpDownCounter[Long] with Instrument[Long] =
-      if (moduleConfig.reachableNodes) upDownCounter(reachableNodeCounter, otLabels)(this) else noopUpDownCounter
+      if (moduleConfig.reachableNodes) upDownCounter(reachableNodeCounter, otAttributes)(this) else noopUpDownCounter
 
     lazy val unreachableNodes: UpDownCounter[Long] with Instrument[Long] =
-      if (moduleConfig.unreachableNodes) upDownCounter(unreachableNodeCounter, otLabels)(this) else noopUpDownCounter
+      if (moduleConfig.unreachableNodes) upDownCounter(unreachableNodeCounter, otAttributes)(this)
+      else noopUpDownCounter
 
     lazy val nodeDown: Counter[Long] with Instrument[Long] =
-      if (moduleConfig.nodeDown) counter(nodeDownCounter, otLabels)(this) else noopCounter
+      if (moduleConfig.nodeDown) counter(nodeDownCounter, otAttributes)(this) else noopCounter
 
   }
 }

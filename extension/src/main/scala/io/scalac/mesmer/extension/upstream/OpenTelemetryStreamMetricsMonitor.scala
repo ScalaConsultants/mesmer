@@ -68,31 +68,31 @@ final class OpenTelemetryStreamMetricsMonitor(
     .setDescription("Amount of actors running streams on a system")
     .build()
 
-  private lazy val streamProcessedMessagesBuilder = new LongSumObserverBuilderAdapter[Labels](
+  private lazy val streamProcessedMessagesBuilder = new LongSumObserverBuilderAdapter[Attributes](
     meter
       .counterBuilder(metricNames.streamProcessed)
       .setDescription("Amount of messages processed by whole stream")
   )
 
-  def bind(labels: EagerLabels): BoundMonitor = new StreamMetricsBoundMonitor(labels)
+  def bind(attributes: EagerAttributes): BoundMonitor = new StreamMetricsBoundMonitor(attributes)
 
-  final class StreamMetricsBoundMonitor(labels: EagerLabels)
+  final class StreamMetricsBoundMonitor(attributes: EagerAttributes)
       extends BoundMonitor
       with RegisterRoot
       with SynchronousInstrumentFactory {
-    private val openTelemetryLabels = LabelsFactory.of(labels.serialize)
+    private val openTelemetryAttributes = AttributesFactory.of(attributes.serialize)
 
     lazy val runningStreamsTotal: MetricRecorder[Long] =
       if (moduleConfig.runningStreamsTotal)
-        metricRecorder(runningStreamsTotalRecorder, openTelemetryLabels).register(this)
+        metricRecorder(runningStreamsTotalRecorder, openTelemetryAttributes).register(this)
       else noopMetricRecorder
 
     lazy val streamActorsTotal: MetricRecorder[Long] =
       if (moduleConfig.streamActorsTotal)
-        metricRecorder(streamActorsTotalRecorder, openTelemetryLabels).register(this)
+        metricRecorder(streamActorsTotalRecorder, openTelemetryAttributes).register(this)
       else noopMetricRecorder
 
-    lazy val streamProcessedMessages: MetricObserver[Long, Labels] =
+    lazy val streamProcessedMessages: MetricObserver[Long, Attributes] =
       if (moduleConfig.streamProcessedMessages) {
         streamProcessedMessagesBuilder.createObserver(this)
       } else MetricObserver.noop

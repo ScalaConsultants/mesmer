@@ -24,7 +24,7 @@ object BoundTestProbe {
 
   sealed trait MetricObserverCommand[L]
 
-  final case class MetricObserved[L](value: Long, labels: L) extends MetricObserverCommand[L]
+  final case class MetricObserved[L](value: Long, attributes: L) extends MetricObserverCommand[L]
 
 }
 
@@ -85,6 +85,6 @@ final case class ObserverTestProbeWrapper[L](
   type Cmd = MetricObserverCommand[L]
 
   protected def handleCallback(updater: Updater[Long, L]): Unit =
-    updater((value, labels) => probe.ref ! MetricObserved(value, labels))
+    updater((value, attributes) => probe.ref ! MetricObserved(value, attributes))
 
 }

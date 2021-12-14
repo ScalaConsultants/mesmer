@@ -16,7 +16,7 @@ import io.scalac.mesmer.core.event.ActorEvent
 import io.scalac.mesmer.core.model.Tag
 import io.scalac.mesmer.core.model._
 import io.scalac.mesmer.extension.metric.ActorSystemMonitor
-import io.scalac.mesmer.extension.metric.ActorSystemMonitor.Labels
+import io.scalac.mesmer.extension.metric.ActorSystemMonitor.Attributes
 import io.scalac.mesmer.extension.service.ActorTreeService.Api
 import io.scalac.mesmer.extension.service.SubscriptionService.AddSubscriber
 import io.scalac.mesmer.extension.service.SubscriptionService.Broadcast
@@ -139,7 +139,7 @@ final class ActorTreeService(
     })
 
   private[this] val snapshot     = Tree.builder[classic.ActorRef, ActorRefDetails]
-  private[this] val boundMonitor = monitor.bind(Labels(node))
+  private[this] val boundMonitor = monitor.bind(Attributes(node))
 
   private[this] lazy val subscriptions = mutable.Map
     .empty[Tag, ActorRef[SubscriptionService.Command[ActorRefDetails]]]

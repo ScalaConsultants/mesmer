@@ -9,9 +9,9 @@ import io.opentelemetry.api.metrics._
 import scala.jdk.CollectionConverters._
 import scala.jdk.FunctionConverters._
 
-import io.scalac.mesmer.core.LabelSerializable
+import io.scalac.mesmer.core.AttributesSerializable
 import io.scalac.mesmer.extension.metric.MetricObserver
-import io.scalac.mesmer.extension.upstream.LabelsFactory
+import io.scalac.mesmer.extension.upstream.AttributesFactory
 
 private object Defs {
   type WrappedResult[T]    = (T, Attributes) => Unit
@@ -21,25 +21,25 @@ private object Defs {
 
 import io.scalac.mesmer.extension.upstream.opentelemetry.Defs._
 
-final class GaugeBuilderAdapter[L <: LabelSerializable](builder: LongGaugeBuilder)
+final class GaugeBuilderAdapter[L <: AttributesSerializable](builder: LongGaugeBuilder)
     extends MetricObserverBuilderAdapter[ObservableLongMeasurement, Long, L](
       result => builder.buildWithCallback(result.asJava),
       longResultWrapper
     )
 
-final class LongUpDownSumObserverBuilderAdapter[L <: LabelSerializable](builder: LongUpDownCounterBuilder)
+final class LongUpDownSumObserverBuilderAdapter[L <: AttributesSerializable](builder: LongUpDownCounterBuilder)
     extends MetricObserverBuilderAdapter[ObservableLongMeasurement, Long, L](
       result => builder.buildWithCallback(result.asJava),
       longResultWrapper
     )
 
-final class LongSumObserverBuilderAdapter[L <: LabelSerializable](builder: LongCounterBuilder)
+final class LongSumObserverBuilderAdapter[L <: AttributesSerializable](builder: LongCounterBuilder)
     extends MetricObserverBuilderAdapter[ObservableLongMeasurement, Long, L](
       result => builder.buildWithCallback(result.asJava),
       longResultWrapper
     )
 
-sealed abstract class MetricObserverBuilderAdapter[R <: ObservableMeasurement, T, L <: LabelSerializable](
+sealed abstract class MetricObserverBuilderAdapter[R <: ObservableMeasurement, T, L <: AttributesSerializable](
 //  builder: AsynchronousInstrumentBuilder[R],
   register: (R => Unit) => Unit,
   wrapper: ResultWrapper[R, T]
@@ -72,7 +72,7 @@ sealed abstract class MetricObserverBuilderAdapter[R <: ObservableMeasurement, T
     observers.foreach(_.update(wrapper(result)))
 }
 
-final case class WrappedMetricObserver[T, L <: LabelSerializable] private (onSet: () => Unit)
+final case class WrappedMetricObserver[T, L <: AttributesSerializable] private (onSet: () => Unit)
     extends MetricObserver[T, L]
     with WrappedInstrument {
 
@@ -87,5 +87,7 @@ final case class WrappedMetricObserver[T, L <: LabelSerializable] private (onSet
   }
 
   def update(result: WrappedResult[T]): Unit =
-    valueUpdater.foreach(updater => updater((value: T, labels: L) => result(value, LabelsFactory.of(labels.serialize))))
+    valueUpdater.foreach(updater =>
+      updater((value: T, attributes: L) => result(value, AttributesFactory.of(attributes.serialize)))
+    )
 }

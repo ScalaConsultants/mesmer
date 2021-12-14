@@ -10,7 +10,7 @@ abstract class Synchronized(private val meter: Meter) extends BaseSynchronized {
 
   type Instrument[X] = WrappedSynchronousInstrument[X]
 
-  protected val otLabels: Attributes
+  protected val otAttributes: Attributes
 
   def atomically[A, B](first: Instrument[A], second: Instrument[B]): (A, B) => Unit = { (a, b) =>
     first.putValue(a)

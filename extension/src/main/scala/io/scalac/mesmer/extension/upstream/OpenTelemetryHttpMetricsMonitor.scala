@@ -1,7 +1,7 @@
 package io.scalac.mesmer.extension.upstream
 
 import com.typesafe.config.Config
-import io.opentelemetry.api.common.Attributes
+import io.opentelemetry.api.common
 import io.opentelemetry.api.metrics.Meter
 
 import io.scalac.mesmer.core.config.MesmerConfiguration
@@ -68,22 +68,22 @@ final class OpenTelemetryHttpMetricsMonitor(
     .setDescription("Amount of requests")
     .build()
 
-  def bind(labels: Labels): BoundMonitor = new HttpMetricsBoundMonitor(labels)
+  def bind(attributes: Attributes): BoundMonitor = new HttpMetricsBoundMonitor(attributes)
 
-  final class HttpMetricsBoundMonitor(labels: Labels)
+  final class HttpMetricsBoundMonitor(attributes: Attributes)
       extends opentelemetry.Synchronized(meter)
       with BoundMonitor
       with SynchronousInstrumentFactory
       with RegisterRoot {
 
-    protected val otLabels: Attributes = LabelsFactory.of(labels.serialize)
+    protected val otAttributes: common.Attributes = AttributesFactory.of(attributes.serialize)
 
     lazy val requestTime: MetricRecorder[Long] with Instrument[Long] =
-      if (moduleConfig.requestTime) metricRecorder(requestTimeRequest, otLabels).register(this)
+      if (moduleConfig.requestTime) metricRecorder(requestTimeRequest, otAttributes).register(this)
       else noopMetricRecorder[Long]
 
     lazy val requestCounter: Counter[Long] with Instrument[Long] =
-      if (moduleConfig.requestCounter) counter(requestTotalCounter, otLabels).register(this) else noopCounter[Long]
+      if (moduleConfig.requestCounter) counter(requestTotalCounter, otAttributes).register(this) else noopCounter[Long]
 
   }
 }

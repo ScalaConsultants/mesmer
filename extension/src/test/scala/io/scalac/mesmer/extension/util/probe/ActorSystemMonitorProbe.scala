@@ -13,7 +13,7 @@ final case class ActorSystemMonitorProbe(
   terminatedActorsProbe: TestProbe[CounterCommand]
 ) extends ActorSystemMonitor
     with BindUnbindMonitor {
-  override def bind(labels: ActorSystemMonitor.Labels): ActorSystemMonitor.BoundMonitor = {
+  override def bind(attributes: ActorSystemMonitor.Attributes): ActorSystemMonitor.BoundMonitor = {
     onBind()
     new ActorSystemTestBoundMonitor with UnbindMonitor
   }

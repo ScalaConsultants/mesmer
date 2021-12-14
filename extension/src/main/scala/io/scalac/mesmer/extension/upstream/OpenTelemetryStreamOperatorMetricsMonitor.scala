@@ -8,8 +8,8 @@ import io.scalac.mesmer.core.module.AkkaStreamModule
 import io.scalac.mesmer.extension.metric.MetricObserver
 import io.scalac.mesmer.extension.metric.RegisterRoot
 import io.scalac.mesmer.extension.metric.StreamOperatorMetricsMonitor
+import io.scalac.mesmer.extension.metric.StreamOperatorMetricsMonitor.Attributes
 import io.scalac.mesmer.extension.metric.StreamOperatorMetricsMonitor.BoundMonitor
-import io.scalac.mesmer.extension.metric.StreamOperatorMetricsMonitor.Labels
 import io.scalac.mesmer.extension.upstream.OpenTelemetryStreamOperatorMetricsMonitor.MetricNames
 import io.scalac.mesmer.extension.upstream.opentelemetry._
 
@@ -63,20 +63,20 @@ final class OpenTelemetryStreamOperatorMetricsMonitor(
   metricNames: MetricNames
 ) extends StreamOperatorMetricsMonitor {
 
-  private lazy val processedMessageAdapter = new LongSumObserverBuilderAdapter[Labels](
+  private lazy val processedMessageAdapter = new LongSumObserverBuilderAdapter[Attributes](
     meter
       .counterBuilder(metricNames.operatorProcessed)
       .setDescription("Amount of messages process by operator")
   )
 
-  private lazy val operatorsAdapter = new GaugeBuilderAdapter[Labels](
+  private lazy val operatorsAdapter = new GaugeBuilderAdapter[Attributes](
     meter
       .gaugeBuilder(metricNames.runningOperators)
       .ofLongs()
       .setDescription("Amount of operators in a system")
   )
 
-  private lazy val demandAdapter = new LongSumObserverBuilderAdapter[Labels](
+  private lazy val demandAdapter = new LongSumObserverBuilderAdapter[Attributes](
     meter
       .counterBuilder(metricNames.demand)
       .setDescription("Amount of messages demanded by operator")
@@ -84,13 +84,13 @@ final class OpenTelemetryStreamOperatorMetricsMonitor(
 
   def bind(): StreamOperatorMetricsMonitor.BoundMonitor = new BoundMonitor with RegisterRoot {
 
-    lazy val processedMessages: MetricObserver[Long, Labels] =
+    lazy val processedMessages: MetricObserver[Long, Attributes] =
       if (moduleConfig.processedMessages) processedMessageAdapter.createObserver(this) else MetricObserver.noop
 
-    lazy val operators: MetricObserver[Long, Labels] =
+    lazy val operators: MetricObserver[Long, Attributes] =
       if (moduleConfig.operators) operatorsAdapter.createObserver(this) else MetricObserver.noop
 
-    lazy val demand: MetricObserver[Long, Labels] =
+    lazy val demand: MetricObserver[Long, Attributes] =
       if (moduleConfig.demand) demandAdapter.createObserver(this) else MetricObserver.noop
   }
 }

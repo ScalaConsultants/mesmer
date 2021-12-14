@@ -5,27 +5,27 @@ import io.opentelemetry.api.common.Attributes
 
 import scala.annotation.switch
 
-object LabelsFactory {
+object AttributesFactory {
 
   def of(required: (String, String)*)(optionals: (String, Option[String])*): Attributes =
     of(required ++ optionals.collect { case (k, Some(v)) => (k, v) })
 
   /**
-   * Microoptimized version that produce OpenTelemetry labels from sequence of tuples
-   * @param labels
+   * Microoptimized version that produce OpenTelemetry attributes from sequence of tuples
+   * @param attributes
    * @return
    */
-  def of(labels: Seq[(String, String)]): Attributes = {
-    val size = labels.size
+  def of(attributes: Seq[(String, String)]): Attributes = {
+    val size = attributes.size
     (size: @switch) match {
       case 1 =>
-        val Seq((key, value)) = labels
+        val Seq((key, value)) = attributes
         Attributes.of(AttributeKey.stringKey(key), value)
       case 2 =>
-        val Seq((key1, value1), (key2, value2)) = labels
+        val Seq((key1, value1), (key2, value2)) = attributes
         Attributes.of(AttributeKey.stringKey(key1), (value1), AttributeKey.stringKey(key2), value2)
       case 3 =>
-        val Seq((key1, value1), (key2, value2), (key3, value3)) = labels
+        val Seq((key1, value1), (key2, value2), (key3, value3)) = attributes
         Attributes.of(
           AttributeKey.stringKey(key1),
           value1,
@@ -35,7 +35,7 @@ object LabelsFactory {
           value3
         )
       case 4 =>
-        val Seq((key1, value1), (key2, value2), (key3, value3), (key4, value4)) = labels
+        val Seq((key1, value1), (key2, value2), (key3, value3), (key4, value4)) = attributes
         Attributes.of(
           AttributeKey.stringKey(key1),
           value1,
@@ -47,7 +47,7 @@ object LabelsFactory {
           value4
         )
       case 5 =>
-        val Seq((key1, value1), (key2, value2), (key3, value3), (key4, value4), (key5, value5)) = labels
+        val Seq((key1, value1), (key2, value2), (key3, value3), (key4, value4), (key5, value5)) = attributes
         Attributes.of(
           AttributeKey.stringKey(key1),
           value1,
@@ -61,7 +61,7 @@ object LabelsFactory {
           value5
         )
       case _ =>
-        labels
+        attributes
           .foldLeft(Attributes.builder()) { case (builder, (key, value)) =>
             builder.put(key, value)
           }
