@@ -1,12 +1,12 @@
 package io.scalac.mesmer.extension.metric
 
-import io.scalac.mesmer.core.LabelSerializable
+import io.scalac.mesmer.core.AttributesSerializable
 import io.scalac.mesmer.core.model._
 import io.scalac.mesmer.core.module.AkkaActorSystemModule
 
 object ActorSystemMonitor {
-  final case class Labels(node: Option[Node]) extends LabelSerializable {
-    override def serialize: RawLabels = node.serialize
+  final case class Attributes(node: Option[Node]) extends AttributesSerializable {
+    override def serialize: RawAttributes = node.serialize
   }
 
   trait BoundMonitor extends Bound with AkkaActorSystemModule.All[Metric[Long]] {

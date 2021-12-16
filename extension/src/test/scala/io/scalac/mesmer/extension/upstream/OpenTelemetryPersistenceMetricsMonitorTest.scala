@@ -5,7 +5,7 @@ import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
 import io.scalac.mesmer.core.module.AkkaPersistenceModule
-import io.scalac.mesmer.extension.metric.PersistenceMetricsMonitor.Labels
+import io.scalac.mesmer.extension.metric.PersistenceMetricsMonitor.Attributes
 import io.scalac.mesmer.extension.upstream.opentelemetry.NoopCounter
 import io.scalac.mesmer.extension.upstream.opentelemetry.NoopLongValueRecorder
 import io.scalac.mesmer.extension.upstream.opentelemetry.WrappedCounter
@@ -14,7 +14,7 @@ import io.scalac.mesmer.extension.upstream.opentelemetry.WrappedLongValueRecorde
 class OpenTelemetryPersistenceMetricsMonitorTest extends AnyFlatSpec with Matchers {
   behavior of "OpenTelemetryHttpConnectionMetricsMonitor"
 
-  val TestLabels: Labels = Labels(None, "/", "")
+  val TestLabels: Attributes = Attributes(None, "/", "")
 
   private def config(value: Boolean) = AkkaPersistenceModule.Impl(
     recoveryTime = value,

@@ -6,32 +6,32 @@ import org.scalatest.matchers.should.Matchers
 
 import scala.collection.mutable.ListBuffer
 
-import io.scalac.mesmer.core.LabelSerializable
+import io.scalac.mesmer.core.AttributesSerializable
 import io.scalac.mesmer.core.model._
 import io.scalac.mesmer.extension.config.CachingConfig
 
 class CachingMonitorTest extends AnyFlatSpec with Matchers with Inspectors {
 
-  case class TestLabels(label: String) extends LabelSerializable {
-    def serialize: RawLabels = Seq("label" -> label)
+  case class TestAttributes(attribute: String) extends AttributesSerializable {
+    def serialize: RawAttributes = Seq("attribute" -> attribute)
   }
 
-  case class TestBound(labels: TestLabels) extends Bound {
+  case class TestBound(attributes: TestAttributes) extends Bound {
     private[this] var _unbound = false
     def unbind(): Unit         = _unbound = true
     def unbound: Boolean       = _unbound
   }
 
-  class TestBindable extends Bindable[TestLabels, TestBound]() {
+  class TestBindable extends Bindable[TestAttributes, TestBound]() {
 
-    private[this] val _binds: ListBuffer[TestLabels] = ListBuffer.empty
+    private[this] val _binds: ListBuffer[TestAttributes] = ListBuffer.empty
 
-    def bind(labels: TestLabels): TestBound = {
-      _binds += labels
-      TestBound(labels)
+    def bind(attributes: TestAttributes): TestBound = {
+      _binds += attributes
+      TestBound(attributes)
     }
 
-    def binds: List[TestLabels] = _binds.toList
+    def binds: List[TestAttributes] = _binds.toList
   }
 
   type Fixture = TestBindable
@@ -42,54 +42,55 @@ class CachingMonitorTest extends AnyFlatSpec with Matchers with Inspectors {
   "CachingMonitor" should "proxy to wrapped monitor" in test { testBindable =>
     val sut = CachingMonitor(testBindable, CachingConfig.empty)
 
-    val labels = List.tabulate(10)(num => s"label_$num").map(TestLabels.apply)
+    val attributes = List.tabulate(10)(num => s"attribute_$num").map(TestAttributes.apply)
 
-    labels.foreach(sut.bind)
+    attributes.foreach(sut.bind)
 
-    testBindable.binds should contain theSameElementsInOrderAs labels
+    testBindable.binds should contain theSameElementsInOrderAs attributes
   }
 
   it should "return same instance when keys repeat" in test { testBindable =>
-    val sut       = CachingMonitor(testBindable, CachingConfig.empty)
-    val label     = TestLabels("label")
-    val labels    = List.fill(10)(label)
-    val instances = labels.map(sut.bind)
+    val sut        = CachingMonitor(testBindable, CachingConfig.empty)
+    val attribute  = TestAttributes("attribute")
+    val attributes = List.fill(10)(attribute)
+    val instances  = attributes.map(sut.bind)
 
     testBindable.binds should have size 1
-    testBindable.binds shouldBe List(label)
+    testBindable.binds shouldBe List(attribute)
 
     forAll(instances.tail)(_ should be theSameInstanceAs instances.head)
   }
 
   it should "evict elements when cache limit is hit" in test { testBindable =>
-    val cacheSize = 5
-    val sut       = CachingMonitor(testBindable, CachingConfig(cacheSize))
-    val labels    = List.tabulate(cacheSize + 1)(num => s"label_$num").map(TestLabels.apply)
+    val cacheSize  = 5
+    val sut        = CachingMonitor(testBindable, CachingConfig(cacheSize))
+    val attributes = List.tabulate(cacheSize + 1)(num => s"attribute_$num").map(TestAttributes.apply)
 
-    val instances = labels.map(sut.bind)
+    val instances = attributes.map(sut.bind)
     instances.head.unbound shouldBe true
     forAll(instances.tail)(_.unbound shouldBe false)
     sut.cachedMonitors should have size cacheSize
-    sut.cachedMonitors.keys should contain theSameElementsAs labels.tail
+    sut.cachedMonitors.keys should contain theSameElementsAs attributes.tail
   }
 
   it should "evict monitors in LRU manner" in test { testBindable =>
-    val cacheSize                              = 5
-    val sut                                    = CachingMonitor(testBindable, CachingConfig(cacheSize))
-    val labels @ firstLabel :: _ :: labelsTail = List.tabulate(cacheSize)(num => s"label_$num").map(TestLabels.apply)
-    val additionalLabel                        = TestLabels("evicting_label")
+    val cacheSize = 5
+    val sut       = CachingMonitor(testBindable, CachingConfig(cacheSize))
+    val attributes @ firstAttribute :: _ :: attributesTail =
+      List.tabulate(cacheSize)(num => s"attribute_$num").map(TestAttributes.apply)
+    val additionalAttribute = TestAttributes("evicting_attribute")
 
-    val instances @ firstInstance :: secondInstance :: instancesTail = labels.map(sut.bind)
-    sut.bind(firstLabel)
+    val instances @ firstInstance :: secondInstance :: instancesTail = attributes.map(sut.bind)
+    sut.bind(firstAttribute)
     //
     forAll(instances)(_.unbound shouldBe false)
-    sut.cachedMonitors.keys should contain theSameElementsAs labels
-    val additionalInstance = sut.bind(additionalLabel)
+    sut.cachedMonitors.keys should contain theSameElementsAs attributes
+    val additionalInstance = sut.bind(additionalAttribute)
 
     secondInstance.unbound shouldBe true
 
     forAll(firstInstance :: additionalInstance :: instancesTail)(_.unbound shouldBe false)
 
-    sut.cachedMonitors.keys should contain theSameElementsAs (firstLabel :: additionalLabel :: labelsTail)
+    sut.cachedMonitors.keys should contain theSameElementsAs (firstAttribute :: additionalAttribute :: attributesTail)
   }
 }

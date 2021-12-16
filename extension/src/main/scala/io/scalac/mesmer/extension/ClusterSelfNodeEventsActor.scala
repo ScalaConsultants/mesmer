@@ -13,7 +13,7 @@ import akka.cluster.typed.Subscribe
 
 import io.scalac.mesmer.core.model.AkkaNodeOps
 import io.scalac.mesmer.extension.metric.ClusterMetricsMonitor
-import io.scalac.mesmer.extension.metric.ClusterMetricsMonitor.Labels
+import io.scalac.mesmer.extension.metric.ClusterMetricsMonitor.Attributes
 
 class ClusterSelfNodeEventsActor
 object ClusterSelfNodeEventsActor extends ClusterMonitorActor {
@@ -37,7 +37,7 @@ object ClusterSelfNodeEventsActor extends ClusterMonitorActor {
 
         import Command._
 
-        val monitor = clusterMetricsMonitor.bind(Labels(selfMember.uniqueAddress.toNode))
+        val monitor = clusterMetricsMonitor.bind(Attributes(selfMember.uniqueAddress.toNode))
         val cluster = Cluster(system)
 
         // bootstrap messages

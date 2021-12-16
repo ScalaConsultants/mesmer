@@ -8,8 +8,7 @@ import akka.remote.transport.ThrottlerTransportAdapter.Direction
 import io.scalac.mesmer.core.util.ScalaTestMultiNodeSpec
 import io.scalac.mesmer.extension.util.probe.ClusterMonitorTestProbe
 import io.scalac.mesmer.core.util.probe.ObserverCollector.ScheduledCollectorImpl
-import io.scalac.mesmer.extension.util.probe.BoundTestProbe.{Dec, Inc}
-import io.scalac.mesmer.extension.util.probe.ClusterMonitorTestProbe
+import io.scalac.mesmer.extension.util.probe.BoundTestProbe.{ Dec, Inc }
 import org.scalatest.Inspectors
 
 import scala.concurrent.duration._

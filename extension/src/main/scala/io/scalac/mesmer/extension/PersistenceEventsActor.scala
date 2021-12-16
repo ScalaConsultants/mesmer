@@ -10,7 +10,7 @@ import io.scalac.mesmer.core.event.PersistenceEvent
 import io.scalac.mesmer.core.event.PersistenceEvent._
 import io.scalac.mesmer.core.model._
 import io.scalac.mesmer.extension.metric.PersistenceMetricsMonitor
-import io.scalac.mesmer.extension.metric.PersistenceMetricsMonitor.Labels
+import io.scalac.mesmer.extension.metric.PersistenceMetricsMonitor.Attributes
 import io.scalac.mesmer.extension.persistence.PersistStorage
 import io.scalac.mesmer.extension.persistence.RecoveryStorage
 import io.scalac.mesmer.extension.service.PathService
@@ -40,9 +40,9 @@ object PersistenceEventsActor {
         if (pathLastSlashIndex > 0 && path.substring(pathLastSlashIndex + 1, path.length) == persistenceId) {
           val persistentIdTemplate =
             templatedPath.substring(templatedPath.lastIndexOf('/', templatedPath.length - 2) + 1, templatedPath.length)
-          monitor.bind(Labels(node, templatedPath, persistentIdTemplate))
+          monitor.bind(Attributes(node, templatedPath, persistentIdTemplate))
         } else {
-          monitor.bind(Labels(node, templatedPath, pathService.template(persistenceId)))
+          monitor.bind(Attributes(node, templatedPath, pathService.template(persistenceId)))
         }
       }
 

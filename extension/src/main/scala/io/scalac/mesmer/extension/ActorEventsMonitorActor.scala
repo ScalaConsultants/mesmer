@@ -29,7 +29,7 @@ import io.scalac.mesmer.extension.ActorEventsMonitorActor._
 import io.scalac.mesmer.extension.actor.ActorMetrics
 import io.scalac.mesmer.extension.actor.MetricStorageFactory
 import io.scalac.mesmer.extension.metric.ActorMetricsMonitor
-import io.scalac.mesmer.extension.metric.ActorMetricsMonitor.Labels
+import io.scalac.mesmer.extension.metric.ActorMetricsMonitor.Attributes
 import io.scalac.mesmer.extension.metric.MetricObserver.Result
 import io.scalac.mesmer.extension.service.ActorTreeService
 import io.scalac.mesmer.extension.service.ActorTreeService.Command.GetActorTree
@@ -140,13 +140,13 @@ private[extension] class ActorEventsMonitorActor private[extension] (
 
   private[this] val boundMonitor = monitor.bind()
 
-  private[this] val treeSnapshot = new AtomicReference[Option[Vector[(Labels, ActorMetrics)]]](None)
+  private[this] val treeSnapshot = new AtomicReference[Option[Vector[(Attributes, ActorMetrics)]]](None)
 
-  private def updateMetric(extractor: ActorMetrics => Option[Long])(result: Result[Long, Labels]): Unit = {
+  private def updateMetric(extractor: ActorMetrics => Option[Long])(result: Result[Long, Attributes]): Unit = {
     val state = treeSnapshot.get()
     state
-      .foreach(_.foreach { case (labels, metrics) =>
-        extractor(metrics).foreach(value => result.observe(value, labels))
+      .foreach(_.foreach { case (attributes, metrics) =>
+        extractor(metrics).foreach(value => result.observe(value, attributes))
       })
   }
 
@@ -261,8 +261,8 @@ private[extension] class ActorEventsMonitorActor private[extension] (
     val metrics = storage.iterable.map { case (key, metrics) =>
       currentSnapshot
         .find(_._1.actorPath == key) // finds if metric already exists
-        .fold((Labels(key, node), metrics)) { case (labels, existingMetrics) =>
-          (labels, existingMetrics.addTo(metrics))
+        .fold((Attributes(key, node), metrics)) { case (attributes, existingMetrics) =>
+          (attributes, existingMetrics.addTo(metrics))
         }
     }.toVector
 
