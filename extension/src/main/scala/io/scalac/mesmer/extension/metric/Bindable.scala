@@ -1,7 +1,7 @@
 package io.scalac.mesmer.extension.metric
 
-import io.scalac.mesmer.core.LabelSerializable
-import io.scalac.mesmer.core.model.RawLabels
+import io.scalac.mesmer.core.AttributesSerializable
+import io.scalac.mesmer.core.model.RawAttributes
 
 trait Unbind {
   private[scalac] def unbind(): Unit
@@ -18,19 +18,19 @@ trait RegisterRoot extends Unbind {
 
 trait Bound extends Unbind
 
-trait Bindable[L <: LabelSerializable, +B <: Bound] extends (L => B) {
-  final def apply(labels: L): B = bind(labels)
-  def bind(labels: L): B
+trait Bindable[L <: AttributesSerializable, +B <: Bound] extends (L => B) {
+  final def apply(attributes: L): B = bind(attributes)
+  def bind(attributes: L): B
 }
 
-trait EmptyBind[B <: Bound] extends Bindable[EmptyBind.EmptyLabels, B] {
-  final def bind(labels: EmptyBind.EmptyLabels): B = this.bind()
+trait EmptyBind[B <: Bound] extends Bindable[EmptyBind.EmptyAttributes, B] {
+  final def bind(attributes: EmptyBind.EmptyAttributes): B = this.bind()
   def bind(): B
 }
 
 object EmptyBind {
   // no implementation of this is needed
-  sealed trait EmptyLabels extends LabelSerializable {
-    val serialize: RawLabels = Seq.empty
+  sealed trait EmptyAttributes extends AttributesSerializable {
+    val serialize: RawAttributes = Seq.empty
   }
 }

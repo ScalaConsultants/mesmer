@@ -1,34 +1,34 @@
 package io.scalac.mesmer.extension.metric
 
-import io.scalac.mesmer.core.LabelSerializable
+import io.scalac.mesmer.core.AttributesSerializable
 import io.scalac.mesmer.core.model.Tag._
 import io.scalac.mesmer.core.model._
 import io.scalac.mesmer.core.module.AkkaStreamModule
 
 object StreamOperatorMetricsMonitor {
 
-  final case class Labels(
+  final case class Attributes(
     operator: StageName,
     stream: StreamName,
     terminal: Boolean,
     node: Option[Node],
     connectedWith: Option[String] // TODO change this to StageName
-  ) extends LabelSerializable {
-    val serialize: RawLabels = {
+  ) extends AttributesSerializable {
+    val serialize: RawAttributes = {
 
-      val connected = connectedWith.fold[RawLabels](Seq.empty) { stageName =>
+      val connected = connectedWith.fold[RawAttributes](Seq.empty) { stageName =>
         Seq("connected_with" -> stageName)
       }
 
-      val terminalLabels = if (terminal) Seq("terminal" -> "true") else Seq.empty
+      val terminalAttributes = if (terminal) Seq("terminal" -> "true") else Seq.empty
 
-      operator.serialize ++ stream.serialize ++ node.serialize ++ connected ++ terminalLabels
+      operator.serialize ++ stream.serialize ++ node.serialize ++ connected ++ terminalAttributes
     }
   }
 
   trait BoundMonitor extends Bound with AkkaStreamModule.StreamOperatorMetricsDef[Metric[Long]] {
-    def processedMessages: MetricObserver[Long, StreamOperatorMetricsMonitor.Labels]
-    def operators: MetricObserver[Long, StreamOperatorMetricsMonitor.Labels]
-    def demand: MetricObserver[Long, StreamOperatorMetricsMonitor.Labels]
+    def processedMessages: MetricObserver[Long, StreamOperatorMetricsMonitor.Attributes]
+    def operators: MetricObserver[Long, StreamOperatorMetricsMonitor.Attributes]
+    def demand: MetricObserver[Long, StreamOperatorMetricsMonitor.Attributes]
   }
 }

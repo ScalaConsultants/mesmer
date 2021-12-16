@@ -12,7 +12,7 @@ public class ProxiedQueue {
     @OnMethodExit
     public static void constructor(
             @FieldValue(value = queueFieldName, readOnly = false) BlockingQueue<Envelope> queue,
-            @This  BlockingQueue<Envelope> self
+            @This BlockingQueue<Envelope> self
     ) {
         queue = new BoundedQueueProxy<>(self);
     }

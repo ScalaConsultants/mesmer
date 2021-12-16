@@ -11,21 +11,21 @@ import io.scalac.mesmer.extension.metric.MetricObserver
 import io.scalac.mesmer.extension.util.probe.BoundTestProbe.MetricObserverCommand
 
 final case class ActorMonitorTestProbe(
-  mailboxSizeProbe: TestProbe[MetricObserverCommand[Labels]],
-  mailboxTimeMinProbe: TestProbe[MetricObserverCommand[Labels]],
-  mailboxTimeMaxProbe: TestProbe[MetricObserverCommand[Labels]],
-  mailboxTimeSumProbe: TestProbe[MetricObserverCommand[Labels]],
-  mailboxTimeCountProbe: TestProbe[MetricObserverCommand[Labels]],
-  stashedMessagesProbe: TestProbe[MetricObserverCommand[Labels]],
-  receivedMessagesProbe: TestProbe[MetricObserverCommand[Labels]],
-  processedMessagesProbe: TestProbe[MetricObserverCommand[Labels]],
-  failedMessagesProbe: TestProbe[MetricObserverCommand[Labels]],
-  processingTimeMinProbe: TestProbe[MetricObserverCommand[Labels]],
-  processingTimeMaxProbe: TestProbe[MetricObserverCommand[Labels]],
-  processingTimeSumProbe: TestProbe[MetricObserverCommand[Labels]],
-  processingTimeCountProbe: TestProbe[MetricObserverCommand[Labels]],
-  sentMessagesProbe: TestProbe[MetricObserverCommand[Labels]],
-  droppedMessagesProbe: TestProbe[MetricObserverCommand[Labels]],
+  mailboxSizeProbe: TestProbe[MetricObserverCommand[Attributes]],
+  mailboxTimeMinProbe: TestProbe[MetricObserverCommand[Attributes]],
+  mailboxTimeMaxProbe: TestProbe[MetricObserverCommand[Attributes]],
+  mailboxTimeSumProbe: TestProbe[MetricObserverCommand[Attributes]],
+  mailboxTimeCountProbe: TestProbe[MetricObserverCommand[Attributes]],
+  stashedMessagesProbe: TestProbe[MetricObserverCommand[Attributes]],
+  receivedMessagesProbe: TestProbe[MetricObserverCommand[Attributes]],
+  processedMessagesProbe: TestProbe[MetricObserverCommand[Attributes]],
+  failedMessagesProbe: TestProbe[MetricObserverCommand[Attributes]],
+  processingTimeMinProbe: TestProbe[MetricObserverCommand[Attributes]],
+  processingTimeMaxProbe: TestProbe[MetricObserverCommand[Attributes]],
+  processingTimeSumProbe: TestProbe[MetricObserverCommand[Attributes]],
+  processingTimeCountProbe: TestProbe[MetricObserverCommand[Attributes]],
+  sentMessagesProbe: TestProbe[MetricObserverCommand[Attributes]],
+  droppedMessagesProbe: TestProbe[MetricObserverCommand[Attributes]],
   collector: ObserverCollector
 )(implicit val actorSystem: ActorSystem[_])
     extends ActorMetricsMonitor
@@ -38,36 +38,36 @@ final case class ActorMonitorTestProbe(
   }
 
   class ActorMonitorTestBoundMonitor extends BoundMonitor {
-    val mailboxSize: MetricObserver[Long, Labels] =
+    val mailboxSize: MetricObserver[Long, Attributes] =
       ObserverTestProbeWrapper(mailboxSizeProbe, collector)
-    val mailboxTimeCount: MetricObserver[Long, Labels] =
+    val mailboxTimeCount: MetricObserver[Long, Attributes] =
       ObserverTestProbeWrapper(mailboxTimeCountProbe, collector)
-    val mailboxTimeMin: MetricObserver[Long, Labels] =
+    val mailboxTimeMin: MetricObserver[Long, Attributes] =
       ObserverTestProbeWrapper(mailboxTimeMinProbe, collector)
-    val mailboxTimeMax: MetricObserver[Long, Labels] =
+    val mailboxTimeMax: MetricObserver[Long, Attributes] =
       ObserverTestProbeWrapper(mailboxTimeMaxProbe, collector)
-    val mailboxTimeSum: MetricObserver[Long, Labels] =
+    val mailboxTimeSum: MetricObserver[Long, Attributes] =
       ObserverTestProbeWrapper(mailboxTimeSumProbe, collector)
-    val stashedMessages: MetricObserver[Long, Labels] =
+    val stashedMessages: MetricObserver[Long, Attributes] =
       ObserverTestProbeWrapper(stashedMessagesProbe, collector)
-    val receivedMessages: MetricObserver[Long, Labels] =
+    val receivedMessages: MetricObserver[Long, Attributes] =
       ObserverTestProbeWrapper(receivedMessagesProbe, collector)
-    val processedMessages: MetricObserver[Long, Labels] =
+    val processedMessages: MetricObserver[Long, Attributes] =
       ObserverTestProbeWrapper(processedMessagesProbe, collector)
-    val failedMessages: MetricObserver[Long, Labels] =
+    val failedMessages: MetricObserver[Long, Attributes] =
       ObserverTestProbeWrapper(failedMessagesProbe, collector)
-    val processingTimeCount: MetricObserver[Long, Labels] =
+    val processingTimeCount: MetricObserver[Long, Attributes] =
       ObserverTestProbeWrapper(processingTimeCountProbe, collector)
-    val processingTimeMin: MetricObserver[Long, Labels] =
+    val processingTimeMin: MetricObserver[Long, Attributes] =
       ObserverTestProbeWrapper(processingTimeMinProbe, collector)
-    val processingTimeMax: MetricObserver[Long, Labels] =
+    val processingTimeMax: MetricObserver[Long, Attributes] =
       ObserverTestProbeWrapper(processingTimeMaxProbe, collector)
-    val processingTimeSum: MetricObserver[Long, Labels] =
+    val processingTimeSum: MetricObserver[Long, Attributes] =
       ObserverTestProbeWrapper(processingTimeSumProbe, collector)
-    val sentMessages: MetricObserver[Long, Labels] =
+    val sentMessages: MetricObserver[Long, Attributes] =
       ObserverTestProbeWrapper(sentMessagesProbe, collector)
 
-    val droppedMessages: MetricObserver[Long, Labels] =
+    val droppedMessages: MetricObserver[Long, Attributes] =
       ObserverTestProbeWrapper(droppedMessagesProbe, collector)
 
     def unbind(): Unit = {

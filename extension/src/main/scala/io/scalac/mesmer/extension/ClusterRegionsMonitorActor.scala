@@ -22,7 +22,7 @@ import io.scalac.mesmer.core.config.ConfigurationUtils._
 import io.scalac.mesmer.core.model._
 import io.scalac.mesmer.core.util.CachedQueryResult
 import io.scalac.mesmer.extension.metric.ClusterMetricsMonitor
-import io.scalac.mesmer.extension.metric.ClusterMetricsMonitor.Labels
+import io.scalac.mesmer.extension.metric.ClusterMetricsMonitor.Attributes
 
 class ClusterRegionsMonitorActor
 object ClusterRegionsMonitorActor extends ClusterMonitorActor {
@@ -41,8 +41,8 @@ object ClusterRegionsMonitorActor extends ClusterMonitorActor {
         import system.executionContext
 
         val node         = selfMember.uniqueAddress.toNode
-        val labels       = Labels(node)
-        val boundMonitor = monitor.bind(labels)
+        val attributes   = Attributes(node)
+        val boundMonitor = monitor.bind(attributes)
 
         val regions = new Regions(
           system,
@@ -52,7 +52,7 @@ object ClusterRegionsMonitorActor extends ClusterMonitorActor {
               .setUpdater(result =>
                 entry.get.foreach { regionStats =>
                   val entities = regionStats.values.sum
-                  result.observe(entities, Labels(node, Some(region)))
+                  result.observe(entities, Attributes(node, Some(region)))
                   logger.trace("Recorded amount of entities per region {}", entities)
                 }
               )
@@ -61,7 +61,7 @@ object ClusterRegionsMonitorActor extends ClusterMonitorActor {
               .setUpdater(result =>
                 entry.get.foreach { regionStats =>
                   val shards = regionStats.size
-                  result.observe(shards, Labels(node, Some(region)))
+                  result.observe(shards, Attributes(node, Some(region)))
                   logger.trace("Recorded amount of shards per region {}", shards)
                 }
               )
@@ -71,13 +71,13 @@ object ClusterRegionsMonitorActor extends ClusterMonitorActor {
         boundMonitor.entitiesOnNode.setUpdater { result =>
           regions.regionStats.map { regionsStats =>
             val entities = regionsStats.view.values.flatMap(_.values).sum
-            result.observe(entities, labels)
+            result.observe(entities, attributes)
             logger.trace("Recorded amount of entities on node {}", entities)
           }
         }
 
         boundMonitor.shardRegionsOnNode.setUpdater { result =>
-          result.observe(regions.size, labels)
+          result.observe(regions.size, attributes)
           logger.trace("Recorded amount of regions on node {}", regions)
         }
 

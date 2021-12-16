@@ -6,16 +6,16 @@ import akka.actor.typed.ActorSystem
 import io.scalac.mesmer.core.util.probe.Collected
 import io.scalac.mesmer.core.util.probe.ObserverCollector
 import io.scalac.mesmer.extension.metric.StreamMetricsMonitor
+import io.scalac.mesmer.extension.metric.StreamMetricsMonitor.Attributes
 import io.scalac.mesmer.extension.metric.StreamMetricsMonitor.BoundMonitor
-import io.scalac.mesmer.extension.metric.StreamMetricsMonitor.Labels
 import io.scalac.mesmer.extension.metric.StreamOperatorMetricsMonitor
 import io.scalac.mesmer.extension.util.probe.BoundTestProbe.MetricObserverCommand
 import io.scalac.mesmer.extension.util.probe.BoundTestProbe.MetricRecorderCommand
 
 final case class StreamOperatorMonitorTestProbe(
-  processedTestProbe: TestProbe[MetricObserverCommand[StreamOperatorMetricsMonitor.Labels]],
-  runningOperatorsTestProbe: TestProbe[MetricObserverCommand[StreamOperatorMetricsMonitor.Labels]],
-  demandTestProbe: TestProbe[MetricObserverCommand[StreamOperatorMetricsMonitor.Labels]],
+  processedTestProbe: TestProbe[MetricObserverCommand[StreamOperatorMetricsMonitor.Attributes]],
+  runningOperatorsTestProbe: TestProbe[MetricObserverCommand[StreamOperatorMetricsMonitor.Attributes]],
+  demandTestProbe: TestProbe[MetricObserverCommand[StreamOperatorMetricsMonitor.Attributes]],
   collector: ObserverCollector
 )(implicit val system: ActorSystem[_])
     extends StreamOperatorMetricsMonitor
@@ -32,11 +32,11 @@ final case class StreamOperatorMonitorTestProbe(
 object StreamOperatorMonitorTestProbe {
   def apply(collector: ObserverCollector)(implicit system: ActorSystem[_]): StreamOperatorMonitorTestProbe = {
     val processProbe =
-      TestProbe[MetricObserverCommand[StreamOperatorMetricsMonitor.Labels]]("akka_stream_processed_messages")
+      TestProbe[MetricObserverCommand[StreamOperatorMetricsMonitor.Attributes]]("akka_stream_processed_messages")
     val demandProbe =
-      TestProbe[MetricObserverCommand[StreamOperatorMetricsMonitor.Labels]]("akka_stream_demand")
+      TestProbe[MetricObserverCommand[StreamOperatorMetricsMonitor.Attributes]]("akka_stream_demand")
     val runningOperators =
-      TestProbe[MetricObserverCommand[StreamOperatorMetricsMonitor.Labels]]("akka_stream_running_operators")
+      TestProbe[MetricObserverCommand[StreamOperatorMetricsMonitor.Attributes]]("akka_stream_running_operators")
 
     StreamOperatorMonitorTestProbe(processProbe, demandProbe, runningOperators, collector)
   }
@@ -45,12 +45,12 @@ object StreamOperatorMonitorTestProbe {
 class StreamMonitorTestProbe(
   val runningStreamsProbe: TestProbe[MetricRecorderCommand],
   val streamActorsProbe: TestProbe[MetricRecorderCommand],
-  val processedMessagesProbe: TestProbe[MetricObserverCommand[Labels]],
+  val processedMessagesProbe: TestProbe[MetricObserverCommand[Attributes]],
   val collector: ObserverCollector
 )(implicit val system: ActorSystem[_])
     extends StreamMetricsMonitor
     with Collected {
-  def bind(labels: StreamMetricsMonitor.EagerLabels): StreamMetricsMonitor.BoundMonitor = new BoundMonitor {
+  def bind(attributes: StreamMetricsMonitor.EagerAttributes): StreamMetricsMonitor.BoundMonitor = new BoundMonitor {
 
     val runningStreamsTotal = RecorderTestProbeWrapper(runningStreamsProbe)
 
@@ -66,7 +66,7 @@ object StreamMonitorTestProbe {
   def apply(collector: ObserverCollector)(implicit system: ActorSystem[_]): StreamMonitorTestProbe = {
     val runningStream          = TestProbe[MetricRecorderCommand]()
     val streamActorsProbe      = TestProbe[MetricRecorderCommand]()
-    val processedMessagesProbe = TestProbe[MetricObserverCommand[Labels]]()
+    val processedMessagesProbe = TestProbe[MetricObserverCommand[Attributes]]()
     new StreamMonitorTestProbe(runningStream, streamActorsProbe, processedMessagesProbe, collector)
   }
 }
