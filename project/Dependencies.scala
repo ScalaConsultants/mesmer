@@ -8,7 +8,7 @@ object Dependencies {
   val CirceVersion                = "0.14.1"
   val LogbackVersion              = "1.2.6"
   val OpentelemetryVersion        = "1.7.0"
-  val OpentelemetryMetricsVersion = "1.2.0-alpha"
+  val OpentelemetryMetricsVersion = "1.7.0-alpha"
   val PostgresVersion             = "42.2.24"
   val ScalatestVersion            = "3.2.10"
   val SlickVersion                = "3.3.3"
@@ -75,6 +75,6 @@ object Dependencies {
     "com.lightbend.akka.management" %% "akka-management-cluster-bootstrap"   % AkkaManagementVersion,
     "com.lightbend.akka.discovery"  %% "akka-discovery-kubernetes-api"       % AkkaManagementVersion,
     "io.opentelemetry"               % "opentelemetry-exporter-otlp-metrics" % OpentelemetryMetricsVersion,
-    "io.grpc"                        % "grpc-netty-shaded"                   % "1.41.1"
+    "io.grpc"                        % "grpc-netty-shaded"                   % "1.41.0"
   )
 }

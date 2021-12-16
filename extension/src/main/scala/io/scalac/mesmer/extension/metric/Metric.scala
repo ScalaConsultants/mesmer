@@ -75,7 +75,7 @@ object MetricObserver {
   type Updater[+T, +L] = MetricObserver.Result[T, L] => Unit
 
   trait Result[-T, -L] {
-    def observe(value: T, labels: L): Unit
+    def observe(value: T, attributes: L): Unit
   }
 
   case object NoopMetricObserver extends MetricObserver[Any, Any] {

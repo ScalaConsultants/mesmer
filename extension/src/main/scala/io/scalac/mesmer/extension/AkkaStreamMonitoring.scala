@@ -40,10 +40,10 @@ import io.scalac.mesmer.extension.config.BufferConfig
 import io.scalac.mesmer.extension.config.CachingConfig
 import io.scalac.mesmer.extension.metric.MetricObserver.Result
 import io.scalac.mesmer.extension.metric.StreamMetricsMonitor
-import io.scalac.mesmer.extension.metric.StreamMetricsMonitor.EagerLabels
-import io.scalac.mesmer.extension.metric.StreamMetricsMonitor.{ Labels => GlobalLabels }
+import io.scalac.mesmer.extension.metric.StreamMetricsMonitor.EagerAttributes
+import io.scalac.mesmer.extension.metric.StreamMetricsMonitor.{ Attributes => GlobalAttributes }
 import io.scalac.mesmer.extension.metric.StreamOperatorMetricsMonitor
-import io.scalac.mesmer.extension.metric.StreamOperatorMetricsMonitor.Labels
+import io.scalac.mesmer.extension.metric.StreamOperatorMetricsMonitor.Attributes
 import io.scalac.mesmer.extension.service.ActorTreeService
 import io.scalac.mesmer.extension.service.ActorTreeService.Command.GetActors
 import io.scalac.mesmer.extension.service.actorTreeServiceKey
@@ -242,7 +242,7 @@ final class AkkaStreamMonitoring(
   private val bufferConfig           = BufferConfig.fromConfig(context.system.settings.config, AkkaStreamModule)
   private val indexCache             = ConnectionsIndexCache.bounded(cachingConfig.maxEntries)
   private val operationsBoundMonitor = streamOperatorMonitor.bind()
-  private val boundStreamMonitor     = streamMonitor.bind(EagerLabels(node))
+  private val boundStreamMonitor     = streamMonitor.bind(EagerAttributes(node))
 
   import context._
 
@@ -265,8 +265,8 @@ final class AkkaStreamMonitoring(
       val streams = globalProcessedSnapshot.get()
       streams.foreach { statsSeq =>
         for (stats <- statsSeq) {
-          val labels = GlobalLabels(node, stats.streamName)
-          result.observe(stats.processesMessages, labels)
+          val attributes = GlobalAttributes(node, stats.streamName)
+          result.observe(stats.processesMessages, attributes)
         }
       }
     }
@@ -470,26 +470,26 @@ final class AkkaStreamMonitoring(
     localDemandSnapshot.clear()
   }
 
-  private def observeSnapshot(result: Result[Long, Labels], snapshot: Option[Seq[SnapshotEntry]]): Unit =
+  private def observeSnapshot(result: Result[Long, Attributes], snapshot: Option[Seq[SnapshotEntry]]): Unit =
     snapshot.foreach(_.foreach {
       case SnapshotEntry(stageInfo, Some(StageData(value, connectedWith))) =>
-        val labels =
-          Labels(
+        val attributes =
+          Attributes(
             stageInfo.stageName,
             stageInfo.subStreamName.streamName,
             stageInfo.terminal,
             node,
             Some(connectedWith)
           )
-        result.observe(value, labels)
+        result.observe(value, attributes)
       case _ => // ignore metrics without data
     })
 
-  private def observeOperators(result: Result[Long, Labels], snapshot: Option[Seq[SnapshotEntry]]): Unit =
+  private def observeOperators(result: Result[Long, Attributes], snapshot: Option[Seq[SnapshotEntry]]): Unit =
     snapshot.foreach(_.groupBy(_.stage.subStreamName.streamName).foreach { case (streamName, snapshots) =>
       snapshots.groupBy(_.stage.stageName.nameOnly).foreach { case (stageName, elems) =>
-        val labels = Labels(stageName, streamName, terminal = false, node, None)
-        result.observe(elems.size, labels)
+        val attributes = Attributes(stageName, streamName, terminal = false, node, None)
+        result.observe(elems.size, attributes)
       }
     })
 

@@ -20,19 +20,20 @@ class HttpConnectionMetricsTestProbe(implicit val system: ActorSystem[_]) extend
 
   val globalConnectionCounter: TestProbe[CounterCommand] = TestProbe[CounterCommand]()
 
-  private[this] val monitors: CMap[Labels, BoundHttpProbes] = new ConcurrentHashMap[Labels, BoundHttpProbes]().asScala
-  private[this] val _binds: AtomicInteger                   = new AtomicInteger(0)
+  private[this] val monitors: CMap[Attributes, BoundHttpProbes] =
+    new ConcurrentHashMap[Attributes, BoundHttpProbes]().asScala
+  private[this] val _binds: AtomicInteger = new AtomicInteger(0)
 
-  def bind(labels: Labels): BoundHttpProbes = {
+  def bind(attributes: Attributes): BoundHttpProbes = {
     _binds.addAndGet(1)
-    monitors.getOrElseUpdate(labels, createBoundProbes)
+    monitors.getOrElseUpdate(attributes, createBoundProbes)
   }
 
-  def probes(labels: Labels): Option[BoundHttpProbes] = monitors.get(labels)
-  def boundLabels: Set[Labels]                        = monitors.keys.toSet
-  def boundSize: Int                                  = monitors.size
-  def binds: Int                                      = _binds.get()
-  private def createBoundProbes: BoundHttpProbes      = new BoundHttpProbes(TestProbe())
+  def probes(attributes: Attributes): Option[BoundHttpProbes] = monitors.get(attributes)
+  def boundAttributes: Set[Attributes]                        = monitors.keys.toSet
+  def boundSize: Int                                          = monitors.size
+  def binds: Int                                              = _binds.get()
+  private def createBoundProbes: BoundHttpProbes              = new BoundHttpProbes(TestProbe())
 
   class BoundHttpProbes(
     val connectionCounterProbe: TestProbe[CounterCommand]
