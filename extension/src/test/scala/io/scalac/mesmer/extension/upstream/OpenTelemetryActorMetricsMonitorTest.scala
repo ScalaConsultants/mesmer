@@ -80,7 +80,6 @@ class OpenTelemetryActorMetricsMonitorTest extends AnyFlatSpec with Matchers {
     )
 
     val monitor = sut.bind()
-    MetricObserver.noop
 
     monitor.mailboxSize should be(a[MetricObserver.NoopMetricObserver.type])
     monitor.mailboxTimeMin should be(a[MetricObserver.NoopMetricObserver.type])

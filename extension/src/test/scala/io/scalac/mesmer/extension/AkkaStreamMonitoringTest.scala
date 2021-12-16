@@ -197,18 +197,18 @@ class AkkaStreamMonitoringTest
       val processed = operations.processedTestProbe.receiveMessages(ExpectedCount * (Flows + 1), OperationsPing)
       val demand    = operations.demandTestProbe.receiveMessages(ExpectedCount * (Flows + 1), OperationsPing)
 
-      forAll(processed)(inside(_) { case MetricObserved(value, labels) =>
+      forAll(processed)(inside(_) { case MetricObserved(value, attributes) =>
         value shouldBe Push
-        labels.node shouldBe empty
+        attributes.node shouldBe empty
       })
 
-      operators.collect { case MetricObserved(_, labels) =>
-        labels.operator.name
+      operators.collect { case MetricObserved(_, attributes) =>
+        attributes.operator.name
       }.distinct should contain theSameElementsAs StagesNames
 
-      forAll(demand)(inside(_) { case MetricObserved(value, labels) =>
+      forAll(demand)(inside(_) { case MetricObserved(value, attributes) =>
         value shouldBe Pull
-        labels.node shouldBe empty
+        attributes.node shouldBe empty
       })
   }
 

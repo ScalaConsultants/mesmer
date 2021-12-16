@@ -5,14 +5,14 @@ import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
 import io.scalac.mesmer.core.module.AkkaActorSystemModule.ActorSystemModuleConfig
-import io.scalac.mesmer.extension.metric.ActorSystemMonitor.Labels
+import io.scalac.mesmer.extension.metric.ActorSystemMonitor.Attributes
 import io.scalac.mesmer.extension.upstream.opentelemetry.NoopCounter
 import io.scalac.mesmer.extension.upstream.opentelemetry.WrappedCounter
 
 class OpenTelemetryActorSystemMonitorTest extends AnyFlatSpec with Matchers {
 
   behavior of "OpenTelemetryActorSystemMonitor"
-  val TestLabels: Labels = Labels(None)
+  val TestLabels: Attributes = Attributes(None)
 
   private def config(value: Boolean) = ActorSystemModuleConfig(
     createdActors = value,

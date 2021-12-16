@@ -12,7 +12,7 @@ import scala.jdk.CollectionConverters._
 import io.scalac.mesmer.extension.metric.Counter
 import io.scalac.mesmer.extension.metric.MetricRecorder
 import io.scalac.mesmer.extension.metric.PersistenceMetricsMonitor
-import io.scalac.mesmer.extension.metric.PersistenceMetricsMonitor.Labels
+import io.scalac.mesmer.extension.metric.PersistenceMetricsMonitor.Attributes
 import io.scalac.mesmer.extension.util.probe.BoundTestProbe.CounterCommand
 import io.scalac.mesmer.extension.util.probe.BoundTestProbe.MetricRecorderCommand
 
@@ -32,12 +32,13 @@ trait ConcurrentBoundProbes[L] {
   private[this] val monitors: CMap[L, B] =
     new ConcurrentHashMap[L, B]().asScala
 
-  protected def createBoundProbes(labels: L): B
-  final protected def concurrentBind(labels: L): B = monitors.getOrElseUpdate(labels, createBoundProbes(labels))
+  protected def createBoundProbes(attributes: L): B
+  final protected def concurrentBind(attributes: L): B =
+    monitors.getOrElseUpdate(attributes, createBoundProbes(attributes))
 
-  def probes(labels: L): Option[B] = monitors.get(labels)
-  def boundLabels: Set[L]          = monitors.keySet.toSet
-  def boundSize: Int               = monitors.size
+  def probes(attributes: L): Option[B] = monitors.get(attributes)
+  def boundAttributes: Set[L]          = monitors.keySet.toSet
+  def boundSize: Int                   = monitors.size
 
 }
 
@@ -47,7 +48,7 @@ trait GlobalProbe {
 
 class PersistenceMonitorTestProbe(implicit val system: ActorSystem[_])
     extends PersistenceMetricsMonitor
-    with ConcurrentBoundProbes[Labels]
+    with ConcurrentBoundProbes[Attributes]
     with BindCounter
     with GlobalProbe {
 
@@ -55,12 +56,12 @@ class PersistenceMonitorTestProbe(implicit val system: ActorSystem[_])
 
   val globalCounter: TestProbe[CounterCommand] = TestProbe()
 
-  def bind(labels: Labels): PersistenceMetricsMonitor.BoundMonitor =
+  def bind(attributes: Attributes): PersistenceMetricsMonitor.BoundMonitor =
     counting {
-      concurrentBind(labels)
+      concurrentBind(attributes)
     }
 
-  protected def createBoundProbes(labels: Labels): BoundPersistenceProbes =
+  protected def createBoundProbes(attributes: Attributes): BoundPersistenceProbes =
     new BoundPersistenceProbes(TestProbe(), TestProbe(), TestProbe(), TestProbe(), TestProbe())
 
   class BoundPersistenceProbes(
