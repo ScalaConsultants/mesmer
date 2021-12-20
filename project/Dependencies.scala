@@ -4,7 +4,7 @@ object Dependencies {
 
   val AkkaHttpVersion             = "10.2.6"
   val AkkaManagementVersion       = "1.1.1"
-  val AkkaVersion                 = "2.6.16"
+  val AkkaVersion                 = "2.6.18"
   val CirceVersion                = "0.14.1"
   val LogbackVersion              = "1.2.6"
   val OpentelemetryVersion        = "1.7.0"
