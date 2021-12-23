@@ -65,7 +65,7 @@ object Dependencies {
     "io.circe"                      %% "circe-core"                          % CirceVersion,
     "io.circe"                      %% "circe-generic"                       % CirceVersion,
     "io.circe"                      %% "circe-parser"                        % CirceVersion,
-    "de.heikoseeberger"             %% "akka-http-circe"                     % "1.38.2",
+    "de.heikoseeberger"             %% "akka-http-circe"                     % "1.39.2",
     "org.postgresql"                 % "postgresql"                          % PostgresVersion,
     "com.typesafe.slick"            %% "slick"                               % SlickVersion,
     "com.typesafe.slick"            %% "slick-hikaricp"                      % SlickVersion,
