@@ -38,7 +38,7 @@ lazy val all = (project in file("."))
     name := "mesmer-all",
     publish / skip := true
   )
-  .aggregate(extension, agent, example, core)
+  .aggregate(extension, agent, example, core, otelExtension)
 
 lazy val core = (project in file("core"))
   .disablePlugins(sbtassembly.AssemblyPlugin)
@@ -51,6 +51,12 @@ lazy val core = (project in file("core"))
       scalatest ++
       akkaTestkit
     }
+  )
+
+lazy val otelExtension = (project in file("otel-agent-extension"))
+  .disablePlugins(sbtassembly.AssemblyPlugin)
+  .settings(
+    name := "mesmer-otel-agent-extension"
   )
 
 lazy val extension = (project in file("extension"))
@@ -103,7 +109,7 @@ lazy val agent = (project in file("agent"))
         Tests.Group(name = test.name, tests = Seq(test), runPolicy = group.runPolicy)
       }
     }),
-    Test / testOnly / testGrouping := (Test/ testGrouping).value
+    Test / testOnly / testGrouping := (Test / testGrouping).value
   )
   .settings(addArtifact(Compile / assembly / artifact, assembly).settings: _*)
   .dependsOn(
