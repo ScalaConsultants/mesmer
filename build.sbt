@@ -54,9 +54,21 @@ lazy val core = (project in file("core"))
   )
 
 lazy val otelExtension = (project in file("otel-agent-extension"))
-  .disablePlugins(sbtassembly.AssemblyPlugin)
   .settings(
-    name := "mesmer-otel-agent-extension"
+    name := "mesmer-otel-agent-extension",
+    libraryDependencies ++= {
+      openTelemetryInstrumentation
+    },
+    Compile / packageBin / packageOptions := {
+      (Compile / packageBin / packageOptions).value.map {
+        case MainClass(mainClassName) =>
+          ManifestAttributes(List("Premain-Class" -> mainClassName): _*)
+        case other => other
+      }
+    },
+    assembly / test := {},
+    assembly / assemblyJarName := "mesmer-akka-agent.jar",
+    assembly / assemblyOption ~= { _.withIncludeScala(false) }
   )
 
 lazy val extension = (project in file("extension"))
