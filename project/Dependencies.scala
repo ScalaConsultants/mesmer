@@ -1,7 +1,6 @@
 import sbt._
 
 object Dependencies {
-
   val AkkaHttpVersion                     = "10.2.6"
   val AkkaManagementVersion               = "1.1.1"
   val AkkaVersion                         = "2.6.16"
@@ -44,9 +43,10 @@ object Dependencies {
   )
 
   val openTelemetryInstrumentation = Seq(
-    "io.opentelemetry.instrumentation" % "opentelemetry-instrumentation-api" % OpentelemetryInstrumentationVersion,
-    "io.opentelemetry.javaagent"       % "opentelemetry-javaagent-tooling"   % OpentelemetryInstrumentationVersion,
-    "com.google.auto.service"          % "auto-service"                      % "1.0-rc7"
+    "com.google.auto.service"    % "auto-service"                          % "1.0-rc7",
+    "io.opentelemetry.javaagent" % "opentelemetry-javaagent-extension-api" % OpentelemetryInstrumentationVersion
+    //"io.opentelemetry.javaagent" % "opentelemetry-javaagent-instrumentation-api" % OpentelemetryInstrumentationVersion
+    //"io.opentelemetry"           % "opentelemetry-sdk-extension-autoconfigure"   % OpentelemetryInstrumentationVersion
   )
 
   val openTelemetryApiMetrics = Seq(

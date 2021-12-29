@@ -67,7 +67,7 @@ lazy val otelExtension = (project in file("otel-agent-extension"))
       }
     },
     assembly / test := {},
-    assembly / assemblyJarName := "mesmer-akka-agent.jar",
+    assembly / assemblyJarName := "mesmer-otel-agent-extension.jar",
     assembly / assemblyOption ~= { _.withIncludeScala(false) }
   )
 
@@ -213,7 +213,8 @@ def runWithAgent = Command.command("runWithAgent") { state =>
         run / javaOptions ++= Seq(
           "-Denv=local",
           "-Dconfig.resource=local/application.conf",
-          s"-javaagent:${(agent / assembly).value.absolutePath}"
+          "-javaagent:/Users/lg/projects/opentelemetry-javaagent170.jar",
+          "-Dotel.instrumentation.jdbc.enabled=true\n-Dotel.javaagent.extensions=/Users/lg/projects/opentelemetry-java-instrumentation/examples/extension/build/libs/opentelemetry-java-instrumentation-extension-demo-1.0-all.jar"
         )
       ),
       state

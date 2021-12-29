@@ -8,10 +8,12 @@ import java.util.List;
 
 import static java.util.Collections.singletonList;
 
+
+// This is java because otherwise we can't use the autoService
 @AutoService(InstrumentationModule.class)
 public class OtelAgentExtensionInstrumentationModule extends InstrumentationModule {
-    protected OtelAgentExtensionInstrumentationModule() {
-        super("akka-http-mesmer", "akka-http-mesmer-metrics");
+    public OtelAgentExtensionInstrumentationModule() {
+        super("akka-http", "akka-http");
     }
 
     @Override
