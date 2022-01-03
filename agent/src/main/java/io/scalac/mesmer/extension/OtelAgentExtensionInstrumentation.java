@@ -1,4 +1,4 @@
-package io.scalac.mesmer.otel_agent_extension;
+package io.scalac.mesmer.extension;
 
 import io.opentelemetry.javaagent.extension.instrumentation.TypeInstrumentation;
 import io.opentelemetry.javaagent.extension.instrumentation.TypeTransformer;
@@ -18,11 +18,20 @@ class OtelAgentExtensionInstrumentation implements TypeInstrumentation {
     @Override
     public void transform(TypeTransformer typeTransformer) {
         System.out.println(this.getClass().getName());
+//
+//        AgentBuilder.Transformer.ForAdvice bindAndHandle = new AgentBuilder.Transformer.ForAdvice()
+//                .include(getClass().getClassLoader())
+//                .advice(
+//                        named("bindAndHandle"),
+//                        "io.scalac.mesmer.agent.akka.http.HttpExtConnectionsAdvice"
+//                );
+//
+//        typeTransformer.applyTransformer(bindAndHandle);
 
         typeTransformer.applyAdviceToMethod(
                 named("bindAndHandle"),
-                "io.scalac.mesmer.otel_agent_extension.OtelAdvice");
-
-        System.out.println("foo2");
+                "io.scalac.mesmer.agent.akka.http.HttpExtConnectionsAdvice");
     }
+
+
 }

@@ -13,6 +13,8 @@ public class HttpExtConnectionsAdvice {
                                      @Advice.Argument(1) String _interface,
                                      @Advice.Argument(2) Integer port,
                                      @Advice.This Object self) {
+
+        System.out.println("Works!");
         handler = HttpInstrumentation.bindAndHandleConnectionsImpl(handler, _interface, port, (HttpExt) self);
     }
 }

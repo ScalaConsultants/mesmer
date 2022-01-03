@@ -45,8 +45,6 @@ object Dependencies {
   val openTelemetryInstrumentation = Seq(
     "com.google.auto.service"    % "auto-service"                          % "1.0-rc7",
     "io.opentelemetry.javaagent" % "opentelemetry-javaagent-extension-api" % OpentelemetryInstrumentationVersion
-    //"io.opentelemetry.javaagent" % "opentelemetry-javaagent-instrumentation-api" % OpentelemetryInstrumentationVersion
-    //"io.opentelemetry"           % "opentelemetry-sdk-extension-autoconfigure"   % OpentelemetryInstrumentationVersion
   )
 
   val openTelemetryApiMetrics = Seq(

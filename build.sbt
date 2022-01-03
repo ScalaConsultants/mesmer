@@ -38,7 +38,7 @@ lazy val all = (project in file("."))
     name := "mesmer-all",
     publish / skip := true
   )
-  .aggregate(extension, agent, example, core, otelExtension)
+  .aggregate(extension, agent, example, core)
 
 lazy val core = (project in file("core"))
   .disablePlugins(sbtassembly.AssemblyPlugin)
@@ -51,24 +51,6 @@ lazy val core = (project in file("core"))
       scalatest ++
       akkaTestkit
     }
-  )
-
-lazy val otelExtension = (project in file("otel-agent-extension"))
-  .settings(
-    name := "mesmer-otel-agent-extension",
-    libraryDependencies ++= {
-      openTelemetryInstrumentation
-    },
-    Compile / packageBin / packageOptions := {
-      (Compile / packageBin / packageOptions).value.map {
-        case MainClass(mainClassName) =>
-          ManifestAttributes(List("Premain-Class" -> mainClassName): _*)
-        case other => other
-      }
-    },
-    assembly / test := {},
-    assembly / assemblyJarName := "mesmer-otel-agent-extension.jar",
-    assembly / assemblyOption ~= { _.withIncludeScala(false) }
   )
 
 lazy val extension = (project in file("extension"))
@@ -100,6 +82,7 @@ lazy val agent = (project in file("agent"))
       scalatest ++
       akkaTestkit ++
       slf4jApi ++
+      openTelemetryInstrumentation ++
       reflection(scalaVersion.value)
     },
     Compile / mainClass := Some("io.scalac.mesmer.agent.Boot"),
@@ -111,7 +94,7 @@ lazy val agent = (project in file("agent"))
       }
     },
     assembly / test := {},
-    assembly / assemblyJarName := "mesmer-akka-agent.jar",
+    assembly / assemblyJarName := "mesmer-akka.jar",
     assembly / assemblyOption ~= { _.withIncludeScala(false) },
     assemblyMergeStrategySettings,
     Test / fork := true,
@@ -214,7 +197,7 @@ def runWithAgent = Command.command("runWithAgent") { state =>
           "-Denv=local",
           "-Dconfig.resource=local/application.conf",
           "-javaagent:/Users/lg/projects/opentelemetry-javaagent170.jar",
-          "-Dotel.instrumentation.jdbc.enabled=true\n-Dotel.javaagent.extensions=/Users/lg/projects/opentelemetry-java-instrumentation/examples/extension/build/libs/opentelemetry-java-instrumentation-extension-demo-1.0-all.jar"
+          "-Dotel.javaagent.extensions=/Users/lg/projects/mesmer-akka-agent/agent/target/scala-2.13/mesmer-akka.jar"
         )
       ),
       state

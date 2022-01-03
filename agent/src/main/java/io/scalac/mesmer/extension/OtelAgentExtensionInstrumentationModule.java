@@ -1,8 +1,10 @@
-package io.scalac.mesmer.otel_agent_extension;
+package io.scalac.mesmer.extension;
 
 import com.google.auto.service.AutoService;
+import io.opentelemetry.javaagent.extension.instrumentation.HelperResourceBuilder;
 import io.opentelemetry.javaagent.extension.instrumentation.InstrumentationModule;
 import io.opentelemetry.javaagent.extension.instrumentation.TypeInstrumentation;
+import io.scalac.mesmer.agent.akka.http.HttpInstrumentation;
 
 import java.util.List;
 
