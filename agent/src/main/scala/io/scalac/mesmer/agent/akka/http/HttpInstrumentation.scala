@@ -3,6 +3,7 @@ package io.scalac.mesmer.agent.akka.http
 import _root_.akka.http.scaladsl.model.HttpRequest
 import _root_.akka.http.scaladsl.model.HttpResponse
 import _root_.akka.stream.BidiShape
+import akka.actor.typed.ActorSystem
 import akka.actor.typed.scaladsl.adapter._
 import akka.http.scaladsl.HttpExt
 import akka.stream.scaladsl.BidiFlow
@@ -11,7 +12,7 @@ import akka.stream.scaladsl.Flow
 import akka.stream.scaladsl.GraphDSL
 import akka.stream.scaladsl.Source
 import akka.stream.scaladsl.Zip
-
+import com.typesafe.config.Config
 import io.scalac.mesmer.core.akka.stream.BidiFlowForward
 import io.scalac.mesmer.core.event.EventBus
 import io.scalac.mesmer.core.event.HttpEvent._
@@ -39,7 +40,10 @@ object HttpInstrumentation {
     self: HttpExt
   ): Flow[HttpRequest, HttpResponse, Any] = {
 
-    val system = self.asInstanceOf[HttpExt].system.toTyped
+    val system: ActorSystem[Nothing] = self.asInstanceOf[HttpExt].system.toTyped
+
+    // TODO (LEARNING): So we can also access config here...
+    val config: Config = system.settings.config
 
     val requestIdFlow =
       BidiFlow.fromGraph[HttpRequest, HttpRequest, HttpResponse, HttpResponse, Any](GraphDSL.create() {

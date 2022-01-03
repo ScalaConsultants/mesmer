@@ -12,13 +12,10 @@ import scala.language.postfixOps
 import scala.reflect.ClassTag
 import scala.reflect.classTag
 import scala.util.Try
-
 import io.scalac.mesmer.core.AkkaDispatcher
 import io.scalac.mesmer.core.model._
-import io.scalac.mesmer.core.module.AkkaHttpModule
-import io.scalac.mesmer.core.module.AkkaPersistenceModule
+import io.scalac.mesmer.core.module.{ AkkaActorModule, AkkaHttpModule, AkkaPersistenceModule, _ }
 import io.scalac.mesmer.core.module.Module._
-import io.scalac.mesmer.core.module._
 import io.scalac.mesmer.extension.ActorEventsMonitorActor.ReflectiveActorMetricsReader
 import io.scalac.mesmer.extension.AkkaMonitoring.ExportInterval
 import io.scalac.mesmer.extension.actor.MutableActorMetricStorageFactory
@@ -78,7 +75,9 @@ final class AkkaMonitoring(private val system: ActorSystem[_], val config: AkkaM
     We combine global config published by agent with current config to account for actor system having
     different config file than agent. We take account only for 4 modules as those are only affected by agent.
    */
-  private lazy val akkaActorConfig =
+
+  // TODO (LEARNING) where is the global config taken from? Why is agent involved in getting it?
+  private lazy val akkaActorConfig: Option[AkkaActorModule.AkkaActorMetricsDef[Boolean]] =
     AkkaActorModule.globalConfiguration.map { config =>
       config.combine(AkkaActorModule.enabled(actorSystemConfig))
     }

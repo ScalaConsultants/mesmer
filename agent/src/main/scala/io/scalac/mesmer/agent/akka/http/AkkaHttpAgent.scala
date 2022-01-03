@@ -1,6 +1,7 @@
 package io.scalac.mesmer.agent.akka.http
 
 import io.scalac.mesmer.agent.Agent
+import io.scalac.mesmer.agent.util.i13n
 import io.scalac.mesmer.agent.util.i13n._
 import io.scalac.mesmer.core.akka._
 import io.scalac.mesmer.core.model.Version
@@ -30,11 +31,16 @@ object AkkaHttpAgent
 
   val connections: AkkaHttpModule.Jars[Version] => Option[Agent] = versions => ifSupported(versions)(connectionEvents)
 
-  private lazy val requestEvents =
-    Agent(
+  private lazy val requestEvents = {
+    val agentInstrumentation: TypeInstrumentation =
       instrument("akka.http.scaladsl.HttpExt".fqcnWithTags("requests"))
         .visit[HttpExtRequestsAdvice]("bindAndHandle")
+
+    Agent(
+      // TODO: (LEARNING) this is a type instrumentation being transformed to agentInstrumentation (was an implicit)
+      i13n.typeToAgentInstrumentation(agentInstrumentation)
     )
+  }
 
   private lazy val connectionEvents =
     Agent(
@@ -51,9 +57,9 @@ object AkkaHttpAgent
     config: AkkaHttpModule.All[Boolean],
     jars: AkkaHttpModule.Jars[Version]
   ): (Agent, AkkaHttpModule.All[Boolean]) = {
-    val requestCounterAgent = if (config.requestCounter) requestCounter(jars) else None
-    val requestTimeAgent    = if (config.requestTime) requestTime(jars) else None
-    val connectionsAgent    = if (config.connections) connections(jars) else None
+    val requestCounterAgent: Option[Agent] = if (config.requestCounter) requestCounter(jars) else None
+    val requestTimeAgent                   = if (config.requestTime) requestTime(jars) else None
+    val connectionsAgent                   = if (config.connections) connections(jars) else None
 
     val resultantAgent = requestCounterAgent.getOrElse(Agent.empty) ++ requestTimeAgent.getOrElse(
       Agent.empty

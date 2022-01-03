@@ -68,6 +68,14 @@ abstract class InstrumentModuleFactory[M <: Module with RegisterGlobalConfigurat
    * @param jars versions of required jars to deduce which features can be enabled
    * @return Resulting agent and resulting configuration based on runtime properties
    */
+
+  // TODO (LEARNING): So these 2 methods:
+  //  - create agents to be later installed (bytebuddy will install them on java.instrumentation.Instrumentation)
+  //  - the first one below is to be implemented by the AkkaHttpAgent/AkkaPersistenceAgent etc.
+  //  - what does RegisterGlobal do?
+  //  - so it seems that the intention was to then "deduce which features can be enabled".
+  //  TODO: check if this is really used or do we just turn on/off a particular library and that's it.
+  //   If we just want to turn on/off a library, the otel agent does that too so this functionality is obsolete.
   protected def agent(config: module.All[Boolean], jars: module.AkkaJar[Version]): (Agent, module.All[Boolean])
 
   private[i13n] final def agent(
