@@ -49,7 +49,7 @@ object AkkaHttpModule
 
   override type All[T] = Metrics[T]
 
-  val defaultConfig: Config = Impl[Boolean](true, true, true)
+  val defaultConfig: Config = Impl[Boolean](false, false, true)
 
   protected def extractFromConfig(config: TypesafeConfig): Config = {
 

@@ -67,6 +67,7 @@ object Dependencies {
   val reflection: String => Seq[ModuleID] = version => Seq("org.scala-lang" % "scala-reflect" % version)
 
   val exampleDependencies = Seq(
+    "org.wvlet.airframe"            %% "airframe-log"                        % "21.12.1",
     "io.circe"                      %% "circe-core"                          % CirceVersion,
     "io.circe"                      %% "circe-generic"                       % CirceVersion,
     "io.circe"                      %% "circe-parser"                        % CirceVersion,

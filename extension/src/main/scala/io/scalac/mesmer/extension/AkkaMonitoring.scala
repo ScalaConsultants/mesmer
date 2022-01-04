@@ -6,6 +6,7 @@ import akka.actor.typed.receptionist.Receptionist.Register
 import akka.actor.typed.scaladsl.Behaviors
 import akka.cluster.Cluster
 import akka.util.Timeout
+import com.typesafe.config.ConfigFactory
 
 import scala.concurrent.duration._
 import scala.language.postfixOps
@@ -28,13 +29,31 @@ import io.scalac.mesmer.extension.persistence.CleanablePersistingStorage
 import io.scalac.mesmer.extension.persistence.CleanableRecoveryStorage
 import io.scalac.mesmer.extension.service._
 import io.scalac.mesmer.extension.upstream._
+import io.opentelemetry.instrumentation.api.config.Config
 
 object AkkaMonitoring extends ExtensionId[AkkaMonitoring] {
 
   private val ExportInterval = 5.seconds
 
   def createExtension(system: ActorSystem[_]): AkkaMonitoring = {
+
+    val otelConfig = Config
+      .builder()
+      .readProperties(new MesmerDefaultPropertyValues().getProperties)
+      .readSystemProperties()
+      .readEnvironmentVariables()
+      .build()
+
+    System.out.println("CREATE EXTENSION")
+
+    val exampleString = otelConfig.getString("otel.mesmer.akkahttp.examplestring")
+    System.out.println("AkkaMonitoring: " + exampleString)
+
+    val someprop = otelConfig.getString("otel.mesmer.someprop")
+    System.out.println("AkkaMonitoring, someprop: " + someprop)
+
     val config = AkkaMonitoringConfig.fromConfig(system.settings.config)
+
     new AkkaMonitoring(system, config)
   }
 }
@@ -74,6 +93,8 @@ final class AkkaMonitoring(private val system: ActorSystem[_], val config: AkkaM
   /*
     We combine global config published by agent with current config to account for actor system having
     different config file than agent. We take account only for 4 modules as those are only affected by agent.
+
+    TODO (LEARNING): isn't it better to just rely only on the agent config? After all the extension without the agent is useless.
    */
 
   // TODO (LEARNING) where is the global config taken from? Why is agent involved in getting it?
@@ -82,10 +103,10 @@ final class AkkaMonitoring(private val system: ActorSystem[_], val config: AkkaM
       config.combine(AkkaActorModule.enabled(actorSystemConfig))
     }
 
-  private lazy val akkaHttpConfig =
-    AkkaHttpModule.globalConfiguration.map { config =>
-      config.combine(AkkaHttpModule.enabled(actorSystemConfig))
-    }
+  private lazy val akkaHttpConfig = Some(AkkaHttpModule.enabled(actorSystemConfig))
+  //AkkaHttpModule.globalConfiguration.map { config =>
+  //  config.combine(AkkaHttpModule.enabled(actorSystemConfig))
+  //}
 
   private lazy val akkaPersistenceConfig =
     AkkaPersistenceModule.globalConfiguration.map { config =>

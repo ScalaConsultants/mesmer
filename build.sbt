@@ -64,13 +64,14 @@ lazy val extension = (project in file("extension"))
       akka ++
       openTelemetryApi ++
       openTelemetryApiMetrics ++
+      openTelemetryInstrumentation ++
       akkaTestkit ++
       scalatest ++
       akkaMultiNodeTestKit ++
       logback.map(_ % Test)
     }
   )
-  .dependsOn(core % "compile->compile;test->test")
+  .dependsOn(core % "compile->compile;test->test", agent)
 
 lazy val agent = (project in file("agent"))
   .settings(
@@ -159,7 +160,7 @@ lazy val example = (project in file("example"))
     Docker / version := version.value.takeWhile(_ != '+'), //drop the snapshot part (eg. 0.1.1+553-b4ee8e44-SNAPSHOT)
     dockerUpdateLatest := true
   )
-  .dependsOn(extension)
+  .dependsOn(extension, agent)
 
 lazy val assemblyMergeStrategySettings = assembly / assemblyMergeStrategy := {
   case PathList("META-INF", "services", _ @_*)           => MergeStrategy.concat
@@ -195,6 +196,8 @@ def runWithAgent = Command.command("runWithAgent") { state =>
       Seq(
         run / javaOptions ++= Seq(
           "-Denv=local",
+          "-Dotel.mesmer.akkahttp=true",
+          "-Dotel.mesmer.akkahttp.examplestring=exampleString",
           "-Dconfig.resource=local/application.conf",
           "-javaagent:/Users/lg/projects/opentelemetry-javaagent170.jar",
           "-Dotel.javaagent.extensions=/Users/lg/projects/mesmer-akka-agent/agent/target/scala-2.13/mesmer-akka.jar"
