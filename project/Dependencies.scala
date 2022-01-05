@@ -47,6 +47,10 @@ object Dependencies {
     "io.opentelemetry.javaagent" % "opentelemetry-javaagent-extension-api" % OpentelemetryInstrumentationVersion
   )
 
+  val opentelemetryMetricsSdk = Seq(
+    "io.opentelemetry" % "opentelemetry-exporter-otlp-metrics" % OpentelemetryMetricsVersion
+  )
+
   val openTelemetryApiMetrics = Seq(
     "io.opentelemetry" % "opentelemetry-api-metrics" % OpentelemetryMetricsVersion
   )

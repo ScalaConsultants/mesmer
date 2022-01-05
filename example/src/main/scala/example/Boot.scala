@@ -9,8 +9,7 @@ import akka.http.scaladsl.Http
 import akka.management.cluster.bootstrap.ClusterBootstrap
 import akka.management.scaladsl.AkkaManagement
 import akka.util.Timeout
-import com.typesafe.config.ConfigFactory
-import com.typesafe.config.ConfigValueFactory
+import com.typesafe.config.{ Config, ConfigFactory, ConfigValueFactory }
 import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport
 import example.api.AccountRoutes
 import example.domain.AccountStateActor
@@ -44,6 +43,7 @@ object Boot extends App with FailFastCirceSupport with JsonCodecs {
 
   def initOpenTelemetryMetrics(exportInterval: FiniteDuration): Unit = {
 
+    println("initOpenTelemetryMetrics WAS CALLED")
     val metricExporter: OtlpGrpcMetricExporter = OtlpGrpcMetricExporter.getDefault
 
     val factory = PeriodicMetricReader.create(metricExporter, exportInterval.toJava)
@@ -61,7 +61,7 @@ object Boot extends App with FailFastCirceSupport with JsonCodecs {
       if (local) ConfigFactory.load("local/application")
       else ConfigFactory.load()
 
-    val config =
+    val config: Config =
       baseConfig
         .withFallback(fallbackConfig)
         .resolve

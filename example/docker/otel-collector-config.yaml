@@ -1,7 +1,7 @@
 receivers:
   otlp:
     protocols:
-        grpc:
+      grpc:
 
 exporters:
   prometheus:
@@ -9,6 +9,16 @@ exporters:
     namespace: promexample
   logging:
     loglevel: info
+
+  zipkin:
+    endpoint: "http://zipkin-all-in-one:9411/api/v2/spans"
+    format: proto
+
+  jaeger:
+    endpoint: jaeger-all-in-one:14250
+    tls:
+      insecure: true
+
 
 processors:
   batch:
@@ -21,10 +31,14 @@ extensions:
     endpoint: :55679
 
 service:
-  extensions: [pprof, zpages, health_check]
+  extensions: [ pprof, zpages, health_check ]
   pipelines:
+    traces:
+      receivers: [ otlp ]
+      processors: [ batch ]
+      exporters: [ logging, zipkin, jaeger ]
     metrics:
-      receivers: [otlp]
-      processors: [batch]
-      exporters: [prometheus]
+      receivers: [ otlp ]
+      processors: [ batch ]
+      exporters: [ logging, prometheus ]
       

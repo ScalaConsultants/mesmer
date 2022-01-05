@@ -7,6 +7,7 @@ import akka.actor.typed.scaladsl.Behaviors
 import akka.cluster.Cluster
 import akka.util.Timeout
 import com.typesafe.config.ConfigFactory
+import io.opentelemetry.exporter.otlp.metrics.OtlpGrpcMetricExporter
 
 import scala.concurrent.duration._
 import scala.language.postfixOps
@@ -30,12 +31,18 @@ import io.scalac.mesmer.extension.persistence.CleanableRecoveryStorage
 import io.scalac.mesmer.extension.service._
 import io.scalac.mesmer.extension.upstream._
 import io.opentelemetry.instrumentation.api.config.Config
+import io.opentelemetry.sdk.metrics.SdkMeterProvider
+import io.opentelemetry.sdk.metrics.`export`.PeriodicMetricReader
+
+import scala.compat.java8.DurationConverters.FiniteDurationops
 
 object AkkaMonitoring extends ExtensionId[AkkaMonitoring] {
 
   private val ExportInterval = 5.seconds
 
   def createExtension(system: ActorSystem[_]): AkkaMonitoring = {
+
+    initOpenTelemetryMetrics(Duration(5, "second"))
 
     val otelConfig = Config
       .builder()
@@ -44,17 +51,32 @@ object AkkaMonitoring extends ExtensionId[AkkaMonitoring] {
       .readEnvironmentVariables()
       .build()
 
-    System.out.println("CREATE EXTENSION")
+    println("CREATE EXTENSION")
 
     val exampleString = otelConfig.getString("otel.mesmer.akkahttp.examplestring")
-    System.out.println("AkkaMonitoring: " + exampleString)
+    println("AkkaMonitoring: " + exampleString)
 
     val someprop = otelConfig.getString("otel.mesmer.someprop")
-    System.out.println("AkkaMonitoring, someprop: " + someprop)
+    println("AkkaMonitoring, someprop: " + someprop)
 
     val config = AkkaMonitoringConfig.fromConfig(system.settings.config)
 
     new AkkaMonitoring(system, config)
+  }
+
+  def initOpenTelemetryMetrics(exportInterval: FiniteDuration): Unit = {
+
+    println("initOpenTelemetryMetrics WAS CALLED")
+    val metricExporter: OtlpGrpcMetricExporter = OtlpGrpcMetricExporter.getDefault
+
+    val factory = PeriodicMetricReader.create(metricExporter, exportInterval.toJava)
+
+    val meterProvider: SdkMeterProvider = SdkMeterProvider
+      .builder()
+      .registerMetricReader(factory)
+      .buildAndRegisterGlobal()
+
+    sys.addShutdownHook(meterProvider.shutdown())
   }
 }
 

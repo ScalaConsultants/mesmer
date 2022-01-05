@@ -65,6 +65,7 @@ lazy val extension = (project in file("extension"))
       openTelemetryApi ++
       openTelemetryApiMetrics ++
       openTelemetryInstrumentation ++
+      opentelemetryMetricsSdk ++
       akkaTestkit ++
       scalatest ++
       akkaMultiNodeTestKit ++

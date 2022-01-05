@@ -1,6 +1,19 @@
 version: '3.3'
 
 services:
+
+  jaeger-all-in-one:
+    image: jaegertracing/all-in-one:latest
+    ports:
+      - "16686:16686"
+      - "14268"
+      - "14250"
+
+  zipkin-all-in-one:
+    image: openzipkin/zipkin:latest
+    ports:
+      - "9411:9411"
+
   postgres:
     container_name: mesmer_example_postgres
     image: postgres:9.6
@@ -26,6 +39,9 @@ services:
       - "13133:13133" # health_check extension
       - "55681:55679" # zpages extension
       - "4317:4317"   # otlp receiver
+    depends_on:
+      - jaeger-all-in-one
+      - zipkin-all-in-one
 
   prometheus:
     container_name: mesmer_example_prometheus
