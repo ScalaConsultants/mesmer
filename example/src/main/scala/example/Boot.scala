@@ -74,7 +74,7 @@ object Boot extends App with FailFastCirceSupport with JsonCodecs {
     // this is important to initialize metric exporting before actor system when starting mesmer from configuration
     // mesmer on initialization gets hook to OTel metricProvider and if it's not initialized before it defaults to noop
     logger.info("Starting metric exporter")
-    initOpenTelemetryMetrics(exportInterval.millis)
+    //initOpenTelemetryMetrics(exportInterval.millis)
 
     implicit val system: ActorSystem[Nothing] =
       ActorSystem[Nothing](Behaviors.empty, systemName, config)

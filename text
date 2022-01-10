@@ -1,0 +1,12 @@
+
+-Denv=local
+
+-Dotel.mesmer.akkahttp=true
+-Dotel.service.name=lukasz-backend
+-Dotel.mesmer.akkahttp.examplestring=exampleString
+
+-Dconfig.resource=local/application.conf
+
+-javaagent:/Users/lg/projects/opentelemetry-javaagent170.jar
+
+-Dotel.javaagent.extensions=/Users/lg/projects/mesmer-akka-agent/agent/target/scala-2.13/mesmer-akka.jar

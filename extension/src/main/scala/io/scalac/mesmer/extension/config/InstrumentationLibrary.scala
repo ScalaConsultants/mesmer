@@ -16,9 +16,11 @@ object InstrumentationLibrary {
   // TODO (switched this completely to enforce the SdkMeterProvider)
   // FIXME: shouldn't it be the default way to go rather than using the GlobalMeterProvider (which is noop?)
   def nonGlobalMeterProvider(): MeterProvider = {
+
+    println("instrumenting opentelemetry metrics")
     val metricExporter: OtlpGrpcMetricExporter = OtlpGrpcMetricExporter.getDefault
 
-    val factory = PeriodicMetricReader.create(metricExporter, Duration(5, "second").toJava)
+    val factory = PeriodicMetricReader.create(metricExporter, Duration(1, "second").toJava)
 
     SdkMeterProvider
       .builder()

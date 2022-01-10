@@ -6,7 +6,6 @@ import akka.actor.typed.receptionist.Receptionist.Register
 import akka.actor.typed.scaladsl.Behaviors
 import akka.cluster.Cluster
 import akka.util.Timeout
-import com.typesafe.config.ConfigFactory
 import io.opentelemetry.exporter.otlp.metrics.OtlpGrpcMetricExporter
 
 import scala.concurrent.duration._
@@ -42,8 +41,6 @@ object AkkaMonitoring extends ExtensionId[AkkaMonitoring] {
 
   def createExtension(system: ActorSystem[_]): AkkaMonitoring = {
 
-    initOpenTelemetryMetrics(Duration(5, "second"))
-
     val otelConfig = Config
       .builder()
       .readProperties(new MesmerDefaultPropertyValues().getProperties)
@@ -56,27 +53,12 @@ object AkkaMonitoring extends ExtensionId[AkkaMonitoring] {
     val exampleString = otelConfig.getString("otel.mesmer.akkahttp.examplestring")
     println("AkkaMonitoring: " + exampleString)
 
-    val someprop = otelConfig.getString("otel.mesmer.someprop")
+    val someprop = otelConfig.getString("į")
     println("AkkaMonitoring, someprop: " + someprop)
 
     val config = AkkaMonitoringConfig.fromConfig(system.settings.config)
 
     new AkkaMonitoring(system, config)
-  }
-
-  def initOpenTelemetryMetrics(exportInterval: FiniteDuration): Unit = {
-
-    println("initOpenTelemetryMetrics WAS CALLED")
-    val metricExporter: OtlpGrpcMetricExporter = OtlpGrpcMetricExporter.getDefault
-
-    val factory = PeriodicMetricReader.create(metricExporter, exportInterval.toJava)
-
-    val meterProvider: SdkMeterProvider = SdkMeterProvider
-      .builder()
-      .registerMetricReader(factory)
-      .buildAndRegisterGlobal()
-
-    sys.addShutdownHook(meterProvider.shutdown())
   }
 }
 
