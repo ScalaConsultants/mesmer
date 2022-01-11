@@ -16,7 +16,7 @@ import io.scalac.mesmer.extension.upstream.AttributesFactory
 private object Defs {
   type WrappedResult[T]    = (T, Attributes) => Unit
   type ResultWrapper[R, T] = R => WrappedResult[T]
-  val longResultWrapper: ResultWrapper[ObservableLongMeasurement, Long] = result => result.observe
+  val longResultWrapper: ResultWrapper[ObservableLongMeasurement, Long] = result => result.record
 }
 
 import io.scalac.mesmer.extension.upstream.opentelemetry.Defs._
@@ -39,7 +39,7 @@ final class LongSumObserverBuilderAdapter[L <: AttributesSerializable](builder: 
       longResultWrapper
     )
 
-sealed abstract class MetricObserverBuilderAdapter[R <: ObservableMeasurement, T, L <: AttributesSerializable](
+sealed abstract class MetricObserverBuilderAdapter[R <: ObservableLongMeasurement, T, L <: AttributesSerializable](
   register: (R => Unit) => Unit,
   wrapper: ResultWrapper[R, T]
 ) {

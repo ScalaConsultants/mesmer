@@ -78,11 +78,11 @@ final case class WrappedLongValueRecorder private[opentelemetry] (underlying: Lo
     with MetricRecorder[Long] {
   type Self = WrappedLongValueRecorder
 
-  private[this] lazy val bound = underlying.bind(attributes)
+  private[this] lazy val bound = underlying
 
-  def setValue(value: Long): Unit = bound.record(value)
+  def setValue(value: Long): Unit = bound.record(value, attributes)
 
-  def unbind(): Unit = bound.unbind()
+  def unbind(): Unit = {}
 }
 
 final case class WrappedUpDownCounter private[opentelemetry] (underlying: LongUpDownCounter, attributes: Attributes)
@@ -90,13 +90,13 @@ final case class WrappedUpDownCounter private[opentelemetry] (underlying: LongUp
     with UpDownCounter[Long] {
   type Self = WrappedUpDownCounter
 
-  private[this] lazy val bound = underlying.bind(attributes)
+  private[this] lazy val bound = underlying
 
-  def decValue(value: Long): Unit = bound.add(-value)
+  def decValue(value: Long): Unit = bound.add(-value, attributes)
 
-  def incValue(value: Long): Unit = bound.add(value)
+  def incValue(value: Long): Unit = bound.add(value, attributes)
 
-  def unbind(): Unit = bound.unbind()
+  def unbind(): Unit = {}
 }
 
 final case class WrappedCounter private[opentelemetry] (underlying: LongCounter, attributes: Attributes)
@@ -104,9 +104,9 @@ final case class WrappedCounter private[opentelemetry] (underlying: LongCounter,
     with Counter[Long] {
   type Self = WrappedCounter
 
-  private[this] lazy val bound = underlying.bind(attributes)
+  private[this] lazy val bound = underlying
 
-  def incValue(value: Long): Unit = bound.add(value)
+  def incValue(value: Long): Unit = bound.add(value, attributes)
 
-  def unbind(): Unit = bound.unbind()
+  def unbind(): Unit = {}
 }

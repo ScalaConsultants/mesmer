@@ -1,6 +1,5 @@
 package io.scalac.mesmer.extension.upstream
 
-import io.opentelemetry.api.metrics.OpenTelemetryNoopMeter
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
@@ -8,6 +7,7 @@ import io.scalac.mesmer.core.module.AkkaActorSystemModule.ActorSystemModuleConfi
 import io.scalac.mesmer.extension.metric.ActorSystemMonitor.Attributes
 import io.scalac.mesmer.extension.upstream.opentelemetry.NoopCounter
 import io.scalac.mesmer.extension.upstream.opentelemetry.WrappedCounter
+import io.scalac.mesmer.extension.util.OpenTelemetryNoopMeter
 
 class OpenTelemetryActorSystemMonitorTest extends AnyFlatSpec with Matchers {
 
