@@ -50,16 +50,12 @@ case object NoopLongHistogram extends WrappedNoOp with Histogram[Any] {
   private[scalac] def unbind(): Unit = ()
 
   def setValue(value: Any): Unit = ()
-
-  override type Self = Nothing
 }
 
 case object NoopCounter extends WrappedNoOp with Counter[Any] {
   def incValue(value: Any): Unit = ()
 
   private[scalac] def unbind(): Unit = ()
-
-  override type Self = Nothing
 }
 
 case object NoopUpDownCounter extends WrappedNoOp with UpDownCounter[Any] {
@@ -68,14 +64,11 @@ case object NoopUpDownCounter extends WrappedNoOp with UpDownCounter[Any] {
   private[scalac] def unbind(): Unit = ()
 
   def incValue(value: Any): Unit = ()
-
-  override type Self = Nothing
 }
 
 final case class WrappedHistogram private[opentelemetry] (underlying: LongHistogram, attributes: Attributes)
     extends WrappedSynchronousInstrument[Long]
     with Histogram[Long] {
-  type Self = WrappedHistogram
 
   private[this] lazy val bound = underlying
 
@@ -87,7 +80,6 @@ final case class WrappedHistogram private[opentelemetry] (underlying: LongHistog
 final case class WrappedUpDownCounter private[opentelemetry] (underlying: LongUpDownCounter, attributes: Attributes)
     extends WrappedSynchronousInstrument[Long]
     with UpDownCounter[Long] {
-  type Self = WrappedUpDownCounter
 
   private[this] lazy val bound = underlying
 
@@ -101,7 +93,6 @@ final case class WrappedUpDownCounter private[opentelemetry] (underlying: LongUp
 final case class WrappedCounter private[opentelemetry] (underlying: LongCounter, attributes: Attributes)
     extends WrappedSynchronousInstrument[Long]
     with Counter[Long] {
-  type Self = WrappedCounter
 
   private[this] lazy val bound = underlying
 

@@ -75,8 +75,6 @@ final case class WrappedMetricObserver[T, L <: AttributesSerializable] private (
     extends MetricObserver[T, L]
     with WrappedInstrument {
 
-  type Self = WrappedMetricObserver[T, L]
-
   @volatile
   private var valueUpdater: Option[MetricObserver.Updater[T, L]] = None
 
