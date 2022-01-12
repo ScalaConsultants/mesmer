@@ -6,9 +6,9 @@ import org.scalatest.matchers.should.Matchers
 import io.scalac.mesmer.core.module.AkkaHttpModule
 import io.scalac.mesmer.extension.metric.HttpMetricsMonitor.Attributes
 import io.scalac.mesmer.extension.upstream.opentelemetry.NoopCounter
-import io.scalac.mesmer.extension.upstream.opentelemetry.NoopLongValueRecorder
+import io.scalac.mesmer.extension.upstream.opentelemetry.NoopLongHistogram
 import io.scalac.mesmer.extension.upstream.opentelemetry.WrappedCounter
-import io.scalac.mesmer.extension.upstream.opentelemetry.WrappedLongValueRecorder
+import io.scalac.mesmer.extension.upstream.opentelemetry.WrappedHistogram
 import io.scalac.mesmer.extension.util.OpenTelemetryNoopMeter
 
 class OpenTelemetryHttpMetricsMonitorTest extends AnyFlatSpec with Matchers {
@@ -31,7 +31,7 @@ class OpenTelemetryHttpMetricsMonitorTest extends AnyFlatSpec with Matchers {
 
     val bound = sut.bind(TestLabels)
 
-    bound.requestTime should be(a[WrappedLongValueRecorder])
+    bound.requestTime should be(a[WrappedHistogram])
     bound.requestCounter should be(a[WrappedCounter])
 
   }
@@ -44,7 +44,7 @@ class OpenTelemetryHttpMetricsMonitorTest extends AnyFlatSpec with Matchers {
     )
 
     val bound = sut.bind(TestLabels)
-    bound.requestTime should be(a[NoopLongValueRecorder.type])
+    bound.requestTime should be(a[NoopLongHistogram.type])
     bound.requestCounter should be(a[NoopCounter.type])
   }
 }

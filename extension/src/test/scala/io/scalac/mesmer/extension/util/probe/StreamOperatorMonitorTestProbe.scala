@@ -9,8 +9,8 @@ import io.scalac.mesmer.extension.metric.StreamMetricsMonitor
 import io.scalac.mesmer.extension.metric.StreamMetricsMonitor.Attributes
 import io.scalac.mesmer.extension.metric.StreamMetricsMonitor.BoundMonitor
 import io.scalac.mesmer.extension.metric.StreamOperatorMetricsMonitor
+import io.scalac.mesmer.extension.util.probe.BoundTestProbe.HistogramCommand
 import io.scalac.mesmer.extension.util.probe.BoundTestProbe.MetricObserverCommand
-import io.scalac.mesmer.extension.util.probe.BoundTestProbe.MetricRecorderCommand
 
 final case class StreamOperatorMonitorTestProbe(
   processedTestProbe: TestProbe[MetricObserverCommand[StreamOperatorMetricsMonitor.Attributes]],
@@ -43,8 +43,8 @@ object StreamOperatorMonitorTestProbe {
 }
 
 class StreamMonitorTestProbe(
-  val runningStreamsProbe: TestProbe[MetricRecorderCommand],
-  val streamActorsProbe: TestProbe[MetricRecorderCommand],
+  val runningStreamsProbe: TestProbe[HistogramCommand],
+  val streamActorsProbe: TestProbe[HistogramCommand],
   val processedMessagesProbe: TestProbe[MetricObserverCommand[Attributes]],
   val collector: ObserverCollector
 )(implicit val system: ActorSystem[_])
@@ -64,8 +64,8 @@ class StreamMonitorTestProbe(
 
 object StreamMonitorTestProbe {
   def apply(collector: ObserverCollector)(implicit system: ActorSystem[_]): StreamMonitorTestProbe = {
-    val runningStream          = TestProbe[MetricRecorderCommand]()
-    val streamActorsProbe      = TestProbe[MetricRecorderCommand]()
+    val runningStream          = TestProbe[HistogramCommand]()
+    val streamActorsProbe      = TestProbe[HistogramCommand]()
     val processedMessagesProbe = TestProbe[MetricObserverCommand[Attributes]]()
     new StreamMonitorTestProbe(runningStream, streamActorsProbe, processedMessagesProbe, collector)
   }

@@ -9,11 +9,11 @@ import io.scalac.mesmer.extension.metric._
 
 trait SynchronousInstrumentFactory {
 
-  private[upstream] def metricRecorder(
+  private[upstream] def histogram(
     underlying: LongHistogram,
     attributes: Attributes
-  ): UnregisteredInstrument[WrappedLongValueRecorder] = { root =>
-    val instrument = WrappedLongValueRecorder(underlying, attributes)
+  ): UnregisteredInstrument[WrappedHistogram] = { root =>
+    val instrument = WrappedHistogram(underlying, attributes)
     root.registerUnbind(instrument)
     instrument
   }
@@ -36,8 +36,7 @@ trait SynchronousInstrumentFactory {
     instrument
   }
 
-  private[upstream] def noopMetricRecorder[T]: WrappedSynchronousInstrument[T] with MetricRecorder[T] =
-    NoopLongValueRecorder
+  private[upstream] def noopHistogram[T]: WrappedSynchronousInstrument[T] with Histogram[T]         = NoopLongHistogram
   private[upstream] def noopCounter[T]: WrappedSynchronousInstrument[T] with Counter[T]             = NoopCounter
   private[upstream] def noopUpDownCounter[T]: WrappedSynchronousInstrument[T] with UpDownCounter[T] = NoopUpDownCounter
 }
@@ -46,7 +45,7 @@ sealed trait WrappedSynchronousInstrument[-L] extends Unbind with WrappedInstrum
 
 sealed trait WrappedNoOp extends WrappedSynchronousInstrument[Any]
 
-case object NoopLongValueRecorder extends WrappedNoOp with MetricRecorder[Any] {
+case object NoopLongHistogram extends WrappedNoOp with Histogram[Any] {
 
   private[scalac] def unbind(): Unit = ()
 
@@ -73,10 +72,10 @@ case object NoopUpDownCounter extends WrappedNoOp with UpDownCounter[Any] {
   override type Self = Nothing
 }
 
-final case class WrappedLongValueRecorder private[opentelemetry] (underlying: LongHistogram, attributes: Attributes)
+final case class WrappedHistogram private[opentelemetry] (underlying: LongHistogram, attributes: Attributes)
     extends WrappedSynchronousInstrument[Long]
-    with MetricRecorder[Long] {
-  type Self = WrappedLongValueRecorder
+    with Histogram[Long] {
+  type Self = WrappedHistogram
 
   private[this] lazy val bound = underlying
 

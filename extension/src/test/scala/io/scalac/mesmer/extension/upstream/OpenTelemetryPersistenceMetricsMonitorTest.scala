@@ -6,9 +6,9 @@ import org.scalatest.matchers.should.Matchers
 import io.scalac.mesmer.core.module.AkkaPersistenceModule
 import io.scalac.mesmer.extension.metric.PersistenceMetricsMonitor.Attributes
 import io.scalac.mesmer.extension.upstream.opentelemetry.NoopCounter
-import io.scalac.mesmer.extension.upstream.opentelemetry.NoopLongValueRecorder
+import io.scalac.mesmer.extension.upstream.opentelemetry.NoopLongHistogram
 import io.scalac.mesmer.extension.upstream.opentelemetry.WrappedCounter
-import io.scalac.mesmer.extension.upstream.opentelemetry.WrappedLongValueRecorder
+import io.scalac.mesmer.extension.upstream.opentelemetry.WrappedHistogram
 import io.scalac.mesmer.extension.util.OpenTelemetryNoopMeter
 
 class OpenTelemetryPersistenceMetricsMonitorTest extends AnyFlatSpec with Matchers {
@@ -33,8 +33,8 @@ class OpenTelemetryPersistenceMetricsMonitorTest extends AnyFlatSpec with Matche
 
     val bound = sut.bind(TestLabels)
 
-    bound.recoveryTime should be(a[WrappedLongValueRecorder])
-    bound.persistentEvent should be(a[WrappedLongValueRecorder])
+    bound.recoveryTime should be(a[WrappedHistogram])
+    bound.persistentEvent should be(a[WrappedHistogram])
     bound.recoveryTotal should be(a[WrappedCounter])
     bound.persistentEventTotal should be(a[WrappedCounter])
     bound.snapshot should be(a[WrappedCounter])
@@ -49,8 +49,8 @@ class OpenTelemetryPersistenceMetricsMonitorTest extends AnyFlatSpec with Matche
 
     val bound = sut.bind(TestLabels)
 
-    bound.recoveryTime should be(a[NoopLongValueRecorder.type])
-    bound.persistentEvent should be(a[NoopLongValueRecorder.type])
+    bound.recoveryTime should be(a[NoopLongHistogram.type])
+    bound.persistentEvent should be(a[NoopLongHistogram.type])
     bound.recoveryTotal should be(a[NoopCounter.type])
     bound.persistentEventTotal should be(a[NoopCounter.type])
     bound.snapshot should be(a[NoopCounter.type])

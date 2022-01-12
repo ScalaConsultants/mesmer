@@ -5,8 +5,8 @@ import io.opentelemetry.api.metrics.Meter
 
 import io.scalac.mesmer.core.config.MesmerConfiguration
 import io.scalac.mesmer.core.module.AkkaStreamModule
+import io.scalac.mesmer.extension.metric.Histogram
 import io.scalac.mesmer.extension.metric.MetricObserver
-import io.scalac.mesmer.extension.metric.MetricRecorder
 import io.scalac.mesmer.extension.metric.RegisterRoot
 import io.scalac.mesmer.extension.metric.StreamMetricsMonitor
 import io.scalac.mesmer.extension.upstream.OpenTelemetryStreamMetricsMonitor.MetricNames
@@ -82,15 +82,15 @@ final class OpenTelemetryStreamMetricsMonitor(
       with SynchronousInstrumentFactory {
     private val openTelemetryAttributes = AttributesFactory.of(attributes.serialize)
 
-    lazy val runningStreamsTotal: MetricRecorder[Long] =
+    lazy val runningStreamsTotal: Histogram[Long] =
       if (moduleConfig.runningStreamsTotal)
-        metricRecorder(runningStreamsTotalRecorder, openTelemetryAttributes).register(this)
-      else noopMetricRecorder
+        histogram(runningStreamsTotalRecorder, openTelemetryAttributes).register(this)
+      else noopHistogram
 
-    lazy val streamActorsTotal: MetricRecorder[Long] =
+    lazy val streamActorsTotal: Histogram[Long] =
       if (moduleConfig.streamActorsTotal)
-        metricRecorder(streamActorsTotalRecorder, openTelemetryAttributes).register(this)
-      else noopMetricRecorder
+        histogram(streamActorsTotalRecorder, openTelemetryAttributes).register(this)
+      else noopHistogram
 
     lazy val streamProcessedMessages: MetricObserver[Long, Attributes] =
       if (moduleConfig.streamProcessedMessages) {
