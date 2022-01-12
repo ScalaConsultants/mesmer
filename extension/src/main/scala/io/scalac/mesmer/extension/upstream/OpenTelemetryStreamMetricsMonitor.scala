@@ -84,12 +84,12 @@ final class OpenTelemetryStreamMetricsMonitor(
 
     lazy val runningStreamsTotal: Histogram[Long] =
       if (moduleConfig.runningStreamsTotal)
-        histogram(runningStreamsTotalRecorder, openTelemetryAttributes).register(this)
+        histogram(runningStreamsTotalRecorder, openTelemetryAttributes)
       else noopHistogram
 
     lazy val streamActorsTotal: Histogram[Long] =
       if (moduleConfig.streamActorsTotal)
-        histogram(streamActorsTotalRecorder, openTelemetryAttributes).register(this)
+        histogram(streamActorsTotalRecorder, openTelemetryAttributes)
       else noopHistogram
 
     lazy val streamProcessedMessages: MetricObserver[Long, Attributes] =

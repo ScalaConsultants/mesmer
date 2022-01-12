@@ -108,22 +108,22 @@ final class OpenTelemetryPersistenceMetricsMonitor(
     private val otAttributes = AttributesFactory.of(attributes.serialize)
 
     lazy val recoveryTime: Histogram[Long] =
-      if (moduleConfig.recoveryTime) histogram(recoveryTimeRecorder, otAttributes).register(this)
+      if (moduleConfig.recoveryTime) histogram(recoveryTimeRecorder, otAttributes)
       else noopHistogram
 
     lazy val persistentEvent: Histogram[Long] =
-      if (moduleConfig.persistentEvent) histogram(persistentEventRecorder, otAttributes).register(this)
+      if (moduleConfig.persistentEvent) histogram(persistentEventRecorder, otAttributes)
       else noopHistogram
 
     lazy val persistentEventTotal: Counter[Long] =
-      if (moduleConfig.persistentEventTotal) counter(persistentEventTotalCounter, otAttributes).register(this)
+      if (moduleConfig.persistentEventTotal) counter(persistentEventTotalCounter, otAttributes)
       else noopCounter
 
     lazy val snapshot: Counter[Long] =
-      if (moduleConfig.snapshot) counter(snapshotCounter, otAttributes).register(this) else noopCounter
+      if (moduleConfig.snapshot) counter(snapshotCounter, otAttributes) else noopCounter
 
     lazy val recoveryTotal: Counter[Long] =
-      if (moduleConfig.recoveryTotal) counter(recoveryTotalCounter, otAttributes).register(this) else noopCounter
+      if (moduleConfig.recoveryTotal) counter(recoveryTotalCounter, otAttributes) else noopCounter
 
   }
 }

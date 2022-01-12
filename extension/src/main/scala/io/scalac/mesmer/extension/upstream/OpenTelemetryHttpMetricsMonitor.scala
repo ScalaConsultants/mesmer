@@ -79,11 +79,11 @@ final class OpenTelemetryHttpMetricsMonitor(
     protected val otAttributes: common.Attributes = AttributesFactory.of(attributes.serialize)
 
     lazy val requestTime: Histogram[Long] with Instrument[Long] =
-      if (moduleConfig.requestTime) histogram(requestTimeRequest, otAttributes).register(this)
+      if (moduleConfig.requestTime) histogram(requestTimeRequest, otAttributes)
       else noopHistogram[Long]
 
     lazy val requestCounter: Counter[Long] with Instrument[Long] =
-      if (moduleConfig.requestCounter) counter(requestTotalCounter, otAttributes).register(this) else noopCounter[Long]
+      if (moduleConfig.requestCounter) counter(requestTotalCounter, otAttributes) else noopCounter[Long]
 
   }
 }
