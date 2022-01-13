@@ -3,7 +3,7 @@ import sbt.Package.{ MainClass, ManifestAttributes }
 
 inThisBuild(
   List(
-    scalaVersion := "2.13.6",
+    scalaVersion := "2.13.8",
     organization := "io.scalac",
     homepage := Some(url("https://github.com/ScalaConsultants/mesmer-akka-agent")),
     licenses := List("Apache-2.0" -> url("http://www.apache.org/licenses/LICENSE-2.0")),
@@ -103,7 +103,7 @@ lazy val agent = (project in file("agent"))
         Tests.Group(name = test.name, tests = Seq(test), runPolicy = group.runPolicy)
       }
     }),
-    Test / testOnly / testGrouping := (Test/ testGrouping).value
+    Test / testOnly / testGrouping := (Test / testGrouping).value
   )
   .settings(addArtifact(Compile / assembly / artifact, assembly).settings: _*)
   .dependsOn(
