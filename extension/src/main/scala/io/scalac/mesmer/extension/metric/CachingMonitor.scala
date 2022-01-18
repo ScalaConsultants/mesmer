@@ -7,10 +7,10 @@ import org.slf4j.LoggerFactory
 import scala.collection.mutable.{ Map => MutableMap }
 import scala.jdk.CollectionConverters._
 
-import io.scalac.mesmer.core.LabelSerializable
+import io.scalac.mesmer.core.AttributesSerializable
 import io.scalac.mesmer.extension.config.CachingConfig
 
-case class CachingMonitor[L <: LabelSerializable, B <: Bound](
+case class CachingMonitor[L <: AttributesSerializable, B <: Bound](
   bindable: Bindable[L, B],
   config: CachingConfig = CachingConfig.empty
 ) extends Bindable[L, B] {
@@ -29,14 +29,14 @@ case class CachingMonitor[L <: LabelSerializable, B <: Bound](
     }.asScala
   }
 
-  final def bind(labels: L): B =
-    cachedMonitors.getOrElse(labels, updateMonitors(labels))
+  final def bind(attributes: L): B =
+    cachedMonitors.getOrElse(attributes, updateMonitors(attributes))
 
-  final private def updateMonitors(labels: L): B =
+  final private def updateMonitors(attributes: L): B =
     cachedMonitors.getOrElseUpdate(
-      labels, {
-        logger.debug("Creating new monitor for lables {}", labels)
-        bindable(labels)
+      attributes, {
+        logger.debug("Creating new monitor for lables {}", attributes)
+        bindable(attributes)
       }
     )
 
