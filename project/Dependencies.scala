@@ -1,11 +1,12 @@
 import sbt._
 
 object Dependencies {
+
   val AkkaHttpVersion                     = "10.2.6"
   val AkkaManagementVersion               = "1.1.1"
   val AkkaVersion                         = "2.6.16"
   val CirceVersion                        = "0.14.1"
-  val LogbackVersion                      = "1.2.6"
+  val LogbackVersion                      = "1.2.10"
   val OpentelemetryVersion                = "1.10.0"
   val OpentelemetryMetricsApiVersion      = "1.10.0-alpha-rc.1"
   val OpentelemetryMetricsExporterVersion = "1.10.0-alpha"
