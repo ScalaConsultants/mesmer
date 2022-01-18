@@ -13,10 +13,11 @@ import scala.reflect.classTag
 object GenericBehaviors {
 
   /**
-   * Creates behavior that waits for service to be accessible on [[ serviceKey ]]
-   * After that it transition to specified behavior using [[ next ]] function as factory
+   * Creates behavior that waits for service to be accessible on [[serviceKey]] After that it transition to specified
+   * behavior using [[next]] function as factory
    * @param serviceKey
-   * @param next factory function creating target behavior
+   * @param next
+   *   factory function creating target behavior
    * @tparam T
    * @tparam I
    * @return

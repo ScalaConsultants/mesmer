@@ -11,11 +11,12 @@ final class Interval(private val nanos: Long) extends AnyVal {
 }
 
 /**
- * For performance and testing reasons [[Timestamp]] is implemented as value class but should be treated as abstract type with its
- * only public member being interval method. No direct access of [[value]] is recommended.
+ * For performance and testing reasons [[Timestamp]] is implemented as value class but should be treated as abstract
+ * type with its only public member being interval method. No direct access of [[value]] is recommended.
  *
- * @param value created by monotonic clock. Use should not make any assumptions about this value and should be treated
- *              as implementation detail
+ * @param value
+ *   created by monotonic clock. Use should not make any assumptions about this value and should be treated as
+ *   implementation detail
  */
 class Timestamp(private[Timestamp] val value: Long) extends AnyVal {
   def interval(): Interval                    = interval(Timestamp.create())
@@ -24,16 +25,20 @@ class Timestamp(private[Timestamp] val value: Long) extends AnyVal {
   /**
    * This is created only for testing
    *
-   * @param offset to add to current timestamp
-   * @return new Timestamp that indicate moment in time after offset ms
+   * @param offset
+   *   to add to current timestamp
+   * @return
+   *   new Timestamp that indicate moment in time after offset ms
    */
   private[scalac] def plus(offset: FiniteDuration): Timestamp = moveTimestamp(this, offset.toNanos)
 
   /**
    * This is created only for testing
    *
-   * @param offset to remove from current timestamp
-   * @return new Timestamp that indicate moment in time offset ms before
+   * @param offset
+   *   to remove from current timestamp
+   * @return
+   *   new Timestamp that indicate moment in time offset ms before
    */
   private[scalac] def minus(offset: FiniteDuration): Timestamp = moveTimestamp(this, -offset.toNanos)
 
@@ -44,17 +49,21 @@ class Timestamp(private[Timestamp] val value: Long) extends AnyVal {
 object Timestamp {
 
   /**
-   * @return new [[Timestamp]] instance representing current point of execution. Should be called before and after
-   *         measured code is executed
+   * @return
+   *   new [[Timestamp]] instance representing current point of execution. Should be called before and after measured
+   *   code is executed
    */
   def create(): Timestamp = new Timestamp(System.nanoTime())
 
   /**
    * Calculates interval time in ms between two timestamps
    *
-   *  @param start Timestamp created when event started
-   *  @param finished Timestamp created when event finished
-   *  @return a latency between events in milliseconds
+   * @param start
+   *   Timestamp created when event started
+   * @param finished
+   *   Timestamp created when event finished
+   * @return
+   *   a latency between events in milliseconds
    */
   def interval(start: Timestamp, finished: Timestamp): Interval =
     new Interval(math.abs(finished.value - start.value))

@@ -26,7 +26,7 @@ object Module {
     def exists(check: T => Boolean)(implicit traverse: Traverse[M]): Boolean = traverse.sequence(value).exists(check)
   }
 
-  //TODO is there a standard type class?
+  // TODO is there a standard type class?
   trait Combine[T] {
     def combine(first: T, second: T): T
   }

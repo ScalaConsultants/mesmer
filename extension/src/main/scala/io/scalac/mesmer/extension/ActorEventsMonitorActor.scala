@@ -49,7 +49,7 @@ object ActorEventsMonitorActor {
   private[ActorEventsMonitorActor] final case class MeasureActorTree(
     refs: Tree[ActorRefDetails],
     replyTo: Option[ActorRef[Done]]
-  )                                                                                           extends Command
+  ) extends Command
   private[ActorEventsMonitorActor] final case class ActorTerminateEvent(ref: ActorRefDetails) extends Command
   private[ActorEventsMonitorActor] final case class ServiceListing(listing: Listing)          extends Command
 
@@ -80,9 +80,8 @@ object ActorEventsMonitorActor {
     }
 
   /**
-   * This trait is not side-effect free - aggregation of metrics depend
-   * on this to report metrics that changed only from last read - this is required
-   * to account for disappearing actors
+   * This trait is not side-effect free - aggregation of metrics depend on this to report metrics that changed only from
+   * last read - this is required to account for disappearing actors
    */
   trait ActorMetricsReader {
     def read(actor: classic.ActorRef): Option[ActorMetrics]
@@ -177,11 +176,13 @@ private[extension] class ActorEventsMonitorActor private[extension] (
     treeService ! TagSubscribe(Tag.terminated, context.messageAdapter[ActorRefDetails](ActorTerminateEvent.apply))
 
   /**
-   * Creates behavior that ask treeService for current actor tree state and then aggregate metrics measurement for later export.
-   * It has to be created once as it registerUpdaters - doint this twice will create resource leak
+   * Creates behavior that ask treeService for current actor tree state and then aggregate metrics measurement for later
+   * export. It has to be created once as it registerUpdaters - doint this twice will create resource leak
    *
-   * @param treeService service to obtain actor refs from
-   * @param loop parameter to control if actor should periodically measure actors
+   * @param treeService
+   *   service to obtain actor refs from
+   * @param loop
+   *   parameter to control if actor should periodically measure actors
    * @return
    */
   def start(treeService: ActorRef[ActorTreeService.Command], loop: Boolean): Behavior[Command] = {

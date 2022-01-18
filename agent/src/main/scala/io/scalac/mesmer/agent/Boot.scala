@@ -17,7 +17,7 @@ import io.scalac.mesmer.core.util.LibraryInfo
 
 object Boot {
 
-  //TODO better configuration specification
+  // TODO better configuration specification
   def premain(@unused arg: String, instrumentation: Instrumentation): Unit = {
 
     val config = ConfigFactory.load()

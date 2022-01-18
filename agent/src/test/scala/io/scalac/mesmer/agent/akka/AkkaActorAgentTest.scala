@@ -108,9 +108,8 @@ class AkkaActorAgentTest
   private def testWithoutEffect[T](messages: T*)(checks: (Int, classic.ActorContext => Any)*): Any =
     testEffect[T](_ => ())(messages: _*)(checks: _*)
 
-  private def check[T](extr: ActorCellMetrics => T)(checkFunc: T => Any): classic.ActorContext => Any = ctx => {
+  private def check[T](extr: ActorCellMetrics => T)(checkFunc: T => Any): classic.ActorContext => Any = ctx =>
     checkFunc(ActorCellDecorator.get(ctx).map(extr).value)
-  }
 
   "AkkaActorAgent" should "record mailbox time properly" in {
     val idle            = 100.milliseconds
@@ -372,7 +371,7 @@ object AkkaActorAgentTest {
   final case object Close                             extends Command
   final case object Message                           extends Command
   final case class Inspect(replyTo: classic.ActorRef) extends Command
-  //replies
+  // replies
   final case class StashSize(stash: Option[Long])
 
   trait Inspectable {

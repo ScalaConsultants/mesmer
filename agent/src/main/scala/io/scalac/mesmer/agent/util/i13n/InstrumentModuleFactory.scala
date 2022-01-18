@@ -28,15 +28,15 @@ object InstrumentModuleFactory {
   protected class StringDlsOps(private val value: (String, Module)) extends AnyVal {
 
     /**
-     * Assigns `tags` and module name to tags to distinguish this instrumentation from those from other modules and this one
-     * and mark it as fully qualified class name
+     * Assigns `tags` and module name to tags to distinguish this instrumentation from those from other modules and this
+     * one and mark it as fully qualified class name
      */
     def fqcnWithTags(tags: String*): InstrumentationDetails[FQCN] =
       InstrumentationDetails.fqcn(value._1, Set(value._2.name) ++ tags)
 
     /**
-     * Assigns module name to tags to distinguish this instrumentation from those from other modules
-     * and mark it as fully qualified class name
+     * Assigns module name to tags to distinguish this instrumentation from those from other modules and mark it as
+     * fully qualified class name
      */
     def fqcn: InstrumentationDetails[FQCN] = InstrumentationDetails.fqcn(value._1, Set(value._2.name))
 
@@ -64,9 +64,12 @@ abstract class InstrumentModuleFactory[M <: Module with RegisterGlobalConfigurat
   protected def instrument(tpe: Type): TypeInstrumentation = TypeInstrumentation(tpe)
 
   /**
-   * @param config configuration of features that are wanted by the user
-   * @param jars versions of required jars to deduce which features can be enabled
-   * @return Resulting agent and resulting configuration based on runtime properties
+   * @param config
+   *   configuration of features that are wanted by the user
+   * @param jars
+   *   versions of required jars to deduce which features can be enabled
+   * @return
+   *   Resulting agent and resulting configuration based on runtime properties
    */
   protected def agent(config: module.All[Boolean], jars: module.AkkaJar[Version]): (Agent, module.All[Boolean])
 

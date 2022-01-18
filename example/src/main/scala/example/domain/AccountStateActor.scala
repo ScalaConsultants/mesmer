@@ -33,8 +33,8 @@ object AccountStateActor {
   sealed trait Reply extends SerializableMessage
 
   object Reply {
-    final case class CurrentBalance(value: Double)             extends Reply
-    final case object InsufficientFunds                        extends IllegalStateException("Insufficient funds") with Reply
+    final case class CurrentBalance(value: Double) extends Reply
+    final case object InsufficientFunds            extends IllegalStateException("Insufficient funds") with Reply
     final case class PersistentStorageFailure(message: String) extends IOException(message) with Reply
   }
 

@@ -33,7 +33,8 @@ object ConnectionOps extends Lookup {
   /**
    * Use method handles to extract values stored in synthetic fields
    * @param connection
-   * @return respectively push and pull counter values
+   * @return
+   *   respectively push and pull counter values
    */
   def getAndResetCounterValues(connection: AnyRef): (Long, Long) =
     (pushHandleGetter.invoke(connection).asInstanceOf[Long], pullHandleGetter.invoke(connection).asInstanceOf[Long])

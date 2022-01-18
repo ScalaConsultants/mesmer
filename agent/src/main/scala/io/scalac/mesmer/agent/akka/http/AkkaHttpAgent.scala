@@ -43,9 +43,12 @@ object AkkaHttpAgent
     )
 
   /**
-   * @param config configuration of features that are wanted by the user
-   * @param jars   versions of required jars to deduce which features can be enabled
-   * @return Some if feature can be enabled, None otherwise
+   * @param config
+   *   configuration of features that are wanted by the user
+   * @param jars
+   *   versions of required jars to deduce which features can be enabled
+   * @return
+   *   Some if feature can be enabled, None otherwise
    */
   override def agent(
     config: AkkaHttpModule.All[Boolean],

@@ -111,7 +111,7 @@ object AkkaStreamModule
       stream     <- info.get(JarsNames.akkaStream)
     } yield Jars(actor, actorTyped, stream)
 
-  implicit val combine: Combine[All[Boolean]] = (first, second) => {
+  implicit val combine: Combine[All[Boolean]] = (first, second) =>
     Impl(
       runningStreamsTotal = first.runningStreamsTotal && second.runningStreamsTotal,
       streamActorsTotal = first.streamActorsTotal && second.streamActorsTotal,
@@ -120,7 +120,6 @@ object AkkaStreamModule
       operators = first.operators && second.operators,
       demand = first.demand && second.demand
     )
-  }
 
   implicit val traverseAll: Traverse[All] = new Traverse[All] {
     def sequence[T](obj: All[T]): Seq[T] = Seq(

@@ -16,7 +16,7 @@ object Tree {
   type Tree[T] = Fix[({ type L[A] = TreeF[T, A] })#L]
 
   implicit final class TreeFOps[T](private val value: TreeF[T, Fix[({ type L[A] = TreeF[T, A] })#L]]) extends AnyVal {
-    //non recursive tree
+    // non recursive tree
     private type NRTree[A] = TreeF[T, A]
 
     // cata
@@ -68,9 +68,12 @@ object Tree {
     /**
      * Inserts key and value into tree structure.
      *
-     * @param key key to be inserted
-     * @param value value to be inserted
-     * @return new builder with specified element
+     * @param key
+     *   key to be inserted
+     * @param value
+     *   value to be inserted
+     * @return
+     *   new builder with specified element
      */
     def insert(key: K, value: V): Builder[K, V]
 
@@ -78,44 +81,56 @@ object Tree {
      * Removes single element from tree under key preserving it's children.
      *
      * @param key
-     * @return Removed element and new builder
+     * @return
+     *   Removed element and new builder
      */
     def remove(key: K): (Option[V], Builder[K, V])
 
     /**
-     * Removes all elements that are logically after this key (inclusively).
-     * All elements after are removed even if key is not present.
+     * Removes all elements that are logically after this key (inclusively). All elements after are removed even if key
+     * is not present.
      *
-     * @param key key after which all elements should be removed (the key included)
-     * @return new builder without elements after the key
+     * @param key
+     *   key after which all elements should be removed (the key included)
+     * @return
+     *   new builder without elements after the key
      */
     def removeAfter(key: K): (Vector[V], Builder[K, V])
 
     /**
      * Mapping for values contained under specific key.
      *
-     * @param key key under which modification should be performed
-     * @param func mapping function
-     * @return new builder containing mapped value
+     * @param key
+     *   key under which modification should be performed
+     * @param func
+     *   mapping function
+     * @return
+     *   new builder containing mapped value
      */
     def modify(key: K, func: V => V): Builder[K, V]
 
     /**
-     * Creates immutable tree from current builder using filter function. If builder
-     * doesn't have a root value (this might happen under specific circumstances), returns None.
+     * Creates immutable tree from current builder using filter function. If builder doesn't have a root value (this
+     * might happen under specific circumstances), returns None.
      *
-     * @param filter filter function that allow to transform / filter out elements
-     * @tparam O type of elements in immutable tree
-     * @return new immutable tree
+     * @param filter
+     *   filter function that allow to transform / filter out elements
+     * @tparam O
+     *   type of elements in immutable tree
+     * @return
+     *   new immutable tree
      */
     def buildTree[O](filter: (K, V) => Option[O]): Option[Tree[O]]
 
     /**
      * Creates flat structure from all elements in current builder.
      *
-     * @param filter filter function that allow to transform / filter out elements
-     * @tparam O type of elements in immutable tree
-     * @return new flat structure
+     * @param filter
+     *   filter function that allow to transform / filter out elements
+     * @tparam O
+     *   type of elements in immutable tree
+     * @return
+     *   new flat structure
      */
     def buildSeq[O](filter: (K, V) => Option[O]): Seq[O]
 
@@ -154,9 +169,12 @@ object Tree {
 
     /**
      * Proxies all children that has parent relation with key
-     * @param key key to proxy children with
-     * @param value value to proxy children with
-     * @return true if any child was proxied otherwise false
+     * @param key
+     *   key to proxy children with
+     * @param value
+     *   value to proxy children with
+     * @return
+     *   true if any child was proxied otherwise false
      */
     private def proxyOrInsertChildren(key: K, value: V): Unit = {
       val selectedChildren = children
@@ -235,11 +253,13 @@ object Tree {
         }
 
     /**
-     * Removes all elements that are logically after this key (inclusively).
-     * All elements after are removed even if key is not present.
+     * Removes all elements that are logically after this key (inclusively). All elements after are removed even if key
+     * is not present.
      *
-     * @param key key after which all elements should be removed (the key included)
-     * @return new builder without elements after the key
+     * @param key
+     *   key after which all elements should be removed (the key included)
+     * @return
+     *   new builder without elements after the key
      */
     def removeAfter(key: K): (Vector[V], Builder[K, V]) = {
       val nodesRemoved = root.filter { case (rootKey, _) =>
@@ -307,9 +327,9 @@ object Tree {
     override def equals(other: Any): Boolean = other match {
       case that: Root[_, _] =>
         that.canEqual(this) &&
-          this.root == that.root &&
-          this.children.size == that.children.size &&
-          this.children.forall(that.children.contains)
+        this.root == that.root &&
+        this.children.size == that.children.size &&
+        this.children.forall(that.children.contains)
       case _ => false
     }
 
@@ -339,9 +359,12 @@ object Tree {
 
     /**
      * Proxies all children that has parent relation with key
-     * @param key key to proxy children with
-     * @param value value to proxy children with
-     * @return true if any child was proxied otherwise false
+     * @param key
+     *   key to proxy children with
+     * @param value
+     *   value to proxy children with
+     * @return
+     *   true if any child was proxied otherwise false
      */
     private def proxyOrInsertChildren(key: K, value: V): Unit = {
       val selectedChildren = children
@@ -373,8 +396,10 @@ object Tree {
     }
 
     /**
-     * @param key to be removed from children
-     * @return Some(value) if key is contained in children nodes otherwise None
+     * @param key
+     *   to be removed from children
+     * @return
+     *   Some(value) if key is contained in children nodes otherwise None
      */
     def remove(key: K): Option[V] = {
 
@@ -448,9 +473,9 @@ object Tree {
     override def equals(other: Any): Boolean = other match {
       case that: NonRoot[_, _] =>
         that.canEqual(this) &&
-          this.value == that.value &&
-          this.children.size == that.children.size &&
-          this.children.forall(that.children.contains)
+        this.value == that.value &&
+        this.children.size == that.children.size &&
+        this.children.forall(that.children.contains)
       case _ => false
     }
 

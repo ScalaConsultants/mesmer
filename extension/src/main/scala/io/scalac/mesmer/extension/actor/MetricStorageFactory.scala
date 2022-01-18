@@ -8,7 +8,8 @@ trait MetricStorageFactory[K] {
     /**
      * @param key
      * @param metrics
-     * @param persistent if metrics should be returned from iterable
+     * @param persistent
+     *   if metrics should be returned from iterable
      * @return
      */
     def save(key: K, metrics: ActorMetrics, persistent: Boolean): Storage

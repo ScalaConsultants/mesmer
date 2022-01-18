@@ -144,9 +144,8 @@ final class OpenTelemetryClusterMetricsMonitor(
 
     protected val otAttributes: Attributes = AttributesFactory.of(attributes.serialize)
 
-    lazy val shardPerRegions: MetricObserver[Long, ClusterMetricsMonitor.Attributes] = {
+    lazy val shardPerRegions: MetricObserver[Long, ClusterMetricsMonitor.Attributes] =
       if (moduleConfig.shardPerRegions) shardsPerRegionRecorder.createObserver(this) else MetricObserver.noop
-    }
 
     lazy val entityPerRegion: MetricObserver[Long, ClusterMetricsMonitor.Attributes] =
       if (moduleConfig.entityPerRegion) entityPerRegionRecorder.createObserver(this) else MetricObserver.noop

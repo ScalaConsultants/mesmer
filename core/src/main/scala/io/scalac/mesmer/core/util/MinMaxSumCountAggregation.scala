@@ -26,8 +26,7 @@ object MinMaxSumCountAggregation {
       sum(fromTimeSeries(timeSeries))
 
     /**
-     * Sums all monotonically increasing values from this and other aggregation and
-     * compute values for min and max
+     * Sums all monotonically increasing values from this and other aggregation and compute values for min and max
      * @param other
      * @return
      */
@@ -44,9 +43,9 @@ object MinMaxSumCountAggregation {
     }
 
     /**
-     * Adds this aggregation monotonically increasing counters to other
-     * and leave it's min and max untouched
-     * @param next aggregations which min and max will be preserved
+     * Adds this aggregation monotonically increasing counters to other and leave it's min and max untouched
+     * @param next
+     *   aggregations which min and max will be preserved
      * @return
      */
     def addTo(next: LongMinMaxSumCountAggregationImpl): LongMinMaxSumCountAggregationImpl =

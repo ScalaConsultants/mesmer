@@ -78,7 +78,7 @@ object AkkaPersistenceModule extends MesmerModule with AkkaPersistenceMetricsMod
       persistenceTyped <- info.get(JarsNames.akkaPersistenceTyped)
     } yield Jars(actor, actorTyped, persistence, persistenceTyped)
 
-  implicit val combineConfig: Combine[All[Boolean]] = (first, second) => {
+  implicit val combineConfig: Combine[All[Boolean]] = (first, second) =>
     Impl(
       recoveryTime = first.recoveryTime && second.recoveryTime,
       recoveryTotal = first.recoveryTotal && second.recoveryTotal,
@@ -86,7 +86,6 @@ object AkkaPersistenceModule extends MesmerModule with AkkaPersistenceMetricsMod
       persistentEventTotal = first.persistentEventTotal && second.persistentEventTotal,
       snapshot = first.snapshot && second.snapshot
     )
-  }
 
   implicit val traverseAll: Traverse[All] = new Traverse[All] {
     def sequence[T](obj: All[T]): Seq[T] = Seq(

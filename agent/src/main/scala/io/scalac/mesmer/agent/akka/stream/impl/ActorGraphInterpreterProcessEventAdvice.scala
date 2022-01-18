@@ -18,8 +18,8 @@ object ActorGraphInterpreterProcessEventAdvice {
 }
 
 /**
- * Instrumentation for short living streams - part of shell initialization is it's execution
- * If shell is terminated after that it's not added to activeInterpreters
+ * Instrumentation for short living streams - part of shell initialization is it's execution If shell is terminated
+ * after that it's not added to activeInterpreters
  */
 object ActorGraphInterpreterTryInitAdvice {
 

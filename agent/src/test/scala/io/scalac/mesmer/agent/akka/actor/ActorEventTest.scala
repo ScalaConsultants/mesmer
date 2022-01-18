@@ -52,7 +52,7 @@ class ActorEventTest
       case _                                            => FishingOutcomes.continueAndIgnore
     }
 
-    //cleanup
+    // cleanup
     ref.unsafeUpcast[Any] ! PoisonPill
   }
 
@@ -77,7 +77,7 @@ class ActorEventTest
 
     monitor.expectNoMessage(Timeout)
 
-    //cleanup
+    // cleanup
     ref.unsafeUpcast[Any] ! PoisonPill
   }
 
