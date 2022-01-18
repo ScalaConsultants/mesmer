@@ -6,7 +6,7 @@ import io.opentelemetry.api.metrics.Meter
 import io.scalac.mesmer.core.config.MesmerConfiguration
 import io.scalac.mesmer.core.module.AkkaPersistenceModule
 import io.scalac.mesmer.extension.metric.Counter
-import io.scalac.mesmer.extension.metric.MetricRecorder
+import io.scalac.mesmer.extension.metric.Histogram
 import io.scalac.mesmer.extension.metric.PersistenceMetricsMonitor
 import io.scalac.mesmer.extension.metric.RegisterRoot
 import io.scalac.mesmer.extension.upstream.OpenTelemetryPersistenceMetricsMonitor._
@@ -107,23 +107,23 @@ final class OpenTelemetryPersistenceMetricsMonitor(
       with SynchronousInstrumentFactory {
     private val otAttributes = AttributesFactory.of(attributes.serialize)
 
-    lazy val recoveryTime: MetricRecorder[Long] =
-      if (moduleConfig.recoveryTime) metricRecorder(recoveryTimeRecorder, otAttributes).register(this)
-      else noopMetricRecorder
+    lazy val recoveryTime: Histogram[Long] =
+      if (moduleConfig.recoveryTime) histogram(recoveryTimeRecorder, otAttributes)
+      else noopHistogram
 
-    lazy val persistentEvent: MetricRecorder[Long] =
-      if (moduleConfig.persistentEvent) metricRecorder(persistentEventRecorder, otAttributes).register(this)
-      else noopMetricRecorder
+    lazy val persistentEvent: Histogram[Long] =
+      if (moduleConfig.persistentEvent) histogram(persistentEventRecorder, otAttributes)
+      else noopHistogram
 
     lazy val persistentEventTotal: Counter[Long] =
-      if (moduleConfig.persistentEventTotal) counter(persistentEventTotalCounter, otAttributes).register(this)
+      if (moduleConfig.persistentEventTotal) counter(persistentEventTotalCounter, otAttributes)
       else noopCounter
 
     lazy val snapshot: Counter[Long] =
-      if (moduleConfig.snapshot) counter(snapshotCounter, otAttributes).register(this) else noopCounter
+      if (moduleConfig.snapshot) counter(snapshotCounter, otAttributes) else noopCounter
 
     lazy val recoveryTotal: Counter[Long] =
-      if (moduleConfig.recoveryTotal) counter(recoveryTotalCounter, otAttributes).register(this) else noopCounter
+      if (moduleConfig.recoveryTotal) counter(recoveryTotalCounter, otAttributes) else noopCounter
 
   }
 }

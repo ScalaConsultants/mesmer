@@ -68,9 +68,9 @@ final class OpenTelemetryActorSystemMonitor(
     private[this] val otAttributes = AttributesFactory.of(attributes.serialize)
 
     lazy val createdActors: Counter[Long] =
-      if (moduleConfig.createdActors) counter(createdActorsCounter, otAttributes)(this) else noopCounter
+      if (moduleConfig.createdActors) counter(createdActorsCounter, otAttributes) else noopCounter
 
     lazy val terminatedActors: Counter[Long] =
-      if (moduleConfig.terminatedActors) counter(terminatedActorsCounter, otAttributes)(this) else noopCounter
+      if (moduleConfig.terminatedActors) counter(terminatedActorsCounter, otAttributes) else noopCounter
   }
 }
