@@ -158,14 +158,14 @@ final class OpenTelemetryClusterMetricsMonitor(
       if (moduleConfig.entitiesOnNode) entitiesOnNodeObserver.createObserver(this) else MetricObserver.noop
 
     lazy val reachableNodes: UpDownCounter[Long] with Instrument[Long] =
-      if (moduleConfig.reachableNodes) upDownCounter(reachableNodeCounter, otAttributes)(this) else noopUpDownCounter
+      if (moduleConfig.reachableNodes) upDownCounter(reachableNodeCounter, otAttributes) else noopUpDownCounter
 
     lazy val unreachableNodes: UpDownCounter[Long] with Instrument[Long] =
-      if (moduleConfig.unreachableNodes) upDownCounter(unreachableNodeCounter, otAttributes)(this)
+      if (moduleConfig.unreachableNodes) upDownCounter(unreachableNodeCounter, otAttributes)
       else noopUpDownCounter
 
     lazy val nodeDown: Counter[Long] with Instrument[Long] =
-      if (moduleConfig.nodeDown) counter(nodeDownCounter, otAttributes)(this) else noopCounter
+      if (moduleConfig.nodeDown) counter(nodeDownCounter, otAttributes) else noopCounter
 
   }
 }

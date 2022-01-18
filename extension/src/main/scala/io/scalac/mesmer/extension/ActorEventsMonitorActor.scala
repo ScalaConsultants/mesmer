@@ -143,7 +143,7 @@ private[extension] class ActorEventsMonitorActor private[extension] (
   private[this] val treeSnapshot = new AtomicReference[Option[Vector[(Attributes, ActorMetrics)]]](None)
 
   private def updateMetric(extractor: ActorMetrics => Option[Long])(result: Result[Long, Attributes]): Unit = {
-    val state = treeSnapshot.get()
+    val state: Option[Vector[(Attributes, ActorMetrics)]] = treeSnapshot.get()
     state
       .foreach(_.foreach { case (attributes, metrics) =>
         extractor(metrics).foreach(value => result.observe(value, attributes))

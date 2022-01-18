@@ -11,37 +11,37 @@ import scala.jdk.FunctionConverters._
 
 import io.scalac.mesmer.core.AttributesSerializable
 import io.scalac.mesmer.extension.metric.MetricObserver
+import io.scalac.mesmer.extension.metric.RegisterRoot
 import io.scalac.mesmer.extension.upstream.AttributesFactory
 
 private object Defs {
   type WrappedResult[T]    = (T, Attributes) => Unit
   type ResultWrapper[R, T] = R => WrappedResult[T]
-  val longResultWrapper: ResultWrapper[ObservableLongMeasurement, Long] = result => result.observe
+  val longResultWrapper: ResultWrapper[ObservableLongMeasurement, Long] = result => result.record
 }
 
 import io.scalac.mesmer.extension.upstream.opentelemetry.Defs._
 
 final class GaugeBuilderAdapter[L <: AttributesSerializable](builder: LongGaugeBuilder)
     extends MetricObserverBuilderAdapter[ObservableLongMeasurement, Long, L](
-      result => builder.buildWithCallback(result.asJava),
+      callback => builder.buildWithCallback(callback.asJava),
       longResultWrapper
     )
 
 final class LongUpDownSumObserverBuilderAdapter[L <: AttributesSerializable](builder: LongUpDownCounterBuilder)
     extends MetricObserverBuilderAdapter[ObservableLongMeasurement, Long, L](
-      result => builder.buildWithCallback(result.asJava),
+      callback => builder.buildWithCallback(callback.asJava),
       longResultWrapper
     )
 
 final class LongSumObserverBuilderAdapter[L <: AttributesSerializable](builder: LongCounterBuilder)
     extends MetricObserverBuilderAdapter[ObservableLongMeasurement, Long, L](
-      result => builder.buildWithCallback(result.asJava),
+      callback => builder.buildWithCallback(callback.asJava),
       longResultWrapper
     )
-
-sealed abstract class MetricObserverBuilderAdapter[R <: ObservableMeasurement, T, L <: AttributesSerializable](
-  register: (R => Unit) => Unit,
-  wrapper: ResultWrapper[R, T]
+sealed abstract class MetricObserverBuilderAdapter[R <: ObservableLongMeasurement, T, L <: AttributesSerializable](
+  registerCallback: (R => Unit) => Unit,
+  resultWrapper: ResultWrapper[R, T]
 ) {
 
   private[this] val instrumentStarted = new AtomicBoolean()
@@ -50,7 +50,7 @@ sealed abstract class MetricObserverBuilderAdapter[R <: ObservableMeasurement, T
   //  that observers will be mostly iterated on
   private val observers = new CopyOnWriteArrayList[WrappedMetricObserver[T, L]]().asScala
 
-  def createObserver: UnregisteredInstrument[WrappedMetricObserver[T, L]] = { root =>
+  def createObserver(root: RegisterRoot): WrappedMetricObserver[T, L] = {
     lazy val observer: WrappedMetricObserver[T, L] =
       WrappedMetricObserver[T, L](registerUpdater(observer)) // defer adding observer to iterator
 
@@ -61,21 +61,19 @@ sealed abstract class MetricObserverBuilderAdapter[R <: ObservableMeasurement, T
   private def registerUpdater(observer: => WrappedMetricObserver[T, L]): () => Unit = () => {
     if (!instrumentStarted.get()) {
       if (instrumentStarted.compareAndSet(false, true)) { // no-lock way to ensure this is going to be called once
-        register(updateAll)
+        registerCallback(updateAll)
       }
     }
     observers += observer
   }
 
   private def updateAll(result: R): Unit =
-    observers.foreach(_.update(wrapper(result)))
+    observers.foreach(_.update(resultWrapper(result)))
 }
 
 final case class WrappedMetricObserver[T, L <: AttributesSerializable] private (onSet: () => Unit)
     extends MetricObserver[T, L]
     with WrappedInstrument {
-
-  type Self = WrappedMetricObserver[T, L]
 
   @volatile
   private var valueUpdater: Option[MetricObserver.Updater[T, L]] = None
