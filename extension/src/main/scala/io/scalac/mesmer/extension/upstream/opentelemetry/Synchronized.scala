@@ -24,7 +24,7 @@ object Synchronized {
       extends AnyVal {
     def putValue(value: Any): Unit =
       instrument match {
-        case rec @ WrappedLongValueRecorder(underlying, _) => rec.setValue(value.asInstanceOf[Long])
+        case rec @ WrappedHistogram(underlying, _)         => rec.setValue(value.asInstanceOf[Long])
         case counter @ WrappedCounter(underlying, _)       => counter.incValue(value.asInstanceOf[Long])
         case counter @ WrappedUpDownCounter(underlying, _) => counter.incValue(value.asInstanceOf[Long])
         case _: WrappedNoOp                                => // skip any noop monitor

@@ -18,8 +18,8 @@ object StreamMetricsMonitor {
   }
 
   trait BoundMonitor extends Bound with AkkaStreamModule.StreamMetricsDef[Metric[Long]] {
-    def runningStreamsTotal: MetricRecorder[Long]
-    def streamActorsTotal: MetricRecorder[Long]
+    def runningStreamsTotal: Histogram[Long]
+    def streamActorsTotal: Histogram[Long]
     def streamProcessedMessages: MetricObserver[Long, Attributes]
   }
 

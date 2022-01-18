@@ -24,7 +24,7 @@ inThisBuild(
     scalacOptions ++= Seq("-deprecation", "-feature"),
     semanticdbEnabled := true,
     scalacOptions += "-Wunused:imports",
-    scalafixDependencies += "com.github.liancheng" %% "organize-imports" % "0.5.0",
+    scalafixDependencies += "com.github.liancheng" %% "organize-imports" % "0.6.0",
     scalafixScalaBinaryVersion := "2.13"
   )
 )
@@ -103,7 +103,7 @@ lazy val agent = (project in file("agent"))
         Tests.Group(name = test.name, tests = Seq(test), runPolicy = group.runPolicy)
       }
     }),
-    Test / testOnly / testGrouping := (Test/ testGrouping).value
+    Test / testOnly / testGrouping := (Test / testGrouping).value
   )
   .settings(addArtifact(Compile / assembly / artifact, assembly).settings: _*)
   .dependsOn(
