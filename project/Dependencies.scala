@@ -4,9 +4,9 @@ object Dependencies {
 
   val AkkaHttpVersion                     = "10.2.6"
   val AkkaManagementVersion               = "1.1.1"
-  val AkkaVersion                         = "2.6.16"
+  val AkkaVersion                         = "2.6.18"
   val CirceVersion                        = "0.14.1"
-  val LogbackVersion                      = "1.2.6"
+  val LogbackVersion                      = "1.2.10"
   val OpentelemetryVersion                = "1.10.0"
   val OpentelemetryMetricsApiVersion      = "1.10.0-alpha-rc.1"
   val OpentelemetryMetricsExporterVersion = "1.10.0-alpha"
@@ -66,7 +66,7 @@ object Dependencies {
     "io.circe"                      %% "circe-core"                          % CirceVersion,
     "io.circe"                      %% "circe-generic"                       % CirceVersion,
     "io.circe"                      %% "circe-parser"                        % CirceVersion,
-    "de.heikoseeberger"             %% "akka-http-circe"                     % "1.38.2",
+    "de.heikoseeberger"             %% "akka-http-circe"                     % "1.39.2",
     "org.postgresql"                 % "postgresql"                          % PostgresVersion,
     "com.typesafe.slick"            %% "slick"                               % SlickVersion,
     "com.typesafe.slick"            %% "slick-hikaricp"                      % SlickVersion,
@@ -77,6 +77,6 @@ object Dependencies {
     "com.lightbend.akka.discovery"  %% "akka-discovery-kubernetes-api"       % AkkaManagementVersion,
     "io.opentelemetry"               % "opentelemetry-exporter-otlp-metrics" % OpentelemetryMetricsExporterVersion,
     "io.opentelemetry"               % "opentelemetry-sdk"                   % OpentelemetryVersion,
-    "io.grpc"                        % "grpc-netty-shaded"                   % "1.41.2"
+    "io.grpc"                        % "grpc-netty-shaded"                   % "1.42.0"
   )
 }
