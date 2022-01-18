@@ -65,101 +65,103 @@ class HttpEventsActorTest
   protected def createMonitor(implicit s: ActorSystem[_]): Monitor =
     MonitorImpl(new HttpMonitorTestProbe()(s), new HttpConnectionMetricsTestProbe()(s))
 
-  def connectionStarted(labels: HttpConnectionMetricsMonitor.Labels): Unit =
-    EventBus(system).publishEvent(ConnectionStarted(labels.interface, labels.port))
+  def connectionStarted(attributes: HttpConnectionMetricsMonitor.Attributes): Unit =
+    EventBus(system).publishEvent(ConnectionStarted(attributes.interface, attributes.port))
 
-  def connectionCompleted(labels: HttpConnectionMetricsMonitor.Labels): Unit =
-    EventBus(system).publishEvent(ConnectionCompleted(labels.interface, labels.port))
+  def connectionCompleted(attributes: HttpConnectionMetricsMonitor.Attributes): Unit =
+    EventBus(system).publishEvent(ConnectionCompleted(attributes.interface, attributes.port))
 
-  def requestStarted(id: String, labels: HttpMetricsMonitor.Labels): Unit =
-    EventBus(system).publishEvent(RequestStarted(id, Timestamp.create(), labels.path, labels.method))
+  def requestStarted(id: String, attributes: HttpMetricsMonitor.Attributes): Unit =
+    EventBus(system).publishEvent(RequestStarted(id, Timestamp.create(), attributes.path, attributes.method))
 
   def requestCompleted(id: String, status: model.Status): Unit =
     EventBus(system).publishEvent(RequestCompleted(id, Timestamp.create(), status))
 
   "HttpEventsActor" should "collect metrics for single request" in testCase { implicit c =>
-    val status: model.Status     = "200"
-    val expectedConnectionLabels = HttpConnectionMetricsMonitor.Labels(None, "0.0.0.0", 8080)
-    val expectedRequestLabels    = HttpMetricsMonitor.Labels(None, "/api/v1/test", "GET", status)
+    val status: model.Status         = "200"
+    val expectedConnectionAttributes = HttpConnectionMetricsMonitor.Attributes(None, "0.0.0.0", 8080)
+    val expectedRequestAttributes    = HttpMetricsMonitor.Attributes(None, "/api/v1/test", "GET", status)
 
-    connectionStarted(expectedConnectionLabels)
+    connectionStarted(expectedConnectionAttributes)
     eventually(monitor.connection.boundSize shouldBe 1)(patienceConfig, implicitly, implicitly)
 
     val id = createUniqueId
-    requestStarted(id, expectedRequestLabels)
+    requestStarted(id, expectedRequestAttributes)
     Thread.sleep(1050)
     requestCompleted(id, status)
     eventually(monitor.request.boundSize shouldBe 1)(patienceConfig, implicitly, implicitly)
 
-    monitor.connection.boundLabels should contain theSameElementsAs Seq(expectedConnectionLabels)
-    monitor.request.boundLabels should contain theSameElementsAs Seq(expectedRequestLabels)
+    monitor.connection.boundAttributes should contain theSameElementsAs Seq(expectedConnectionAttributes)
+    monitor.request.boundAttributes should contain theSameElementsAs Seq(expectedRequestAttributes)
 
-    val requestBoundProbes = monitor.request.probes(expectedRequestLabels)
+    val requestBoundProbes = monitor.request.probes(expectedRequestAttributes)
     requestBoundProbes.value.requestCounterProbe.receiveMessage() should be(Inc(1L))
     inside(requestBoundProbes.value.requestTimeProbe.receiveMessage()) { case MetricRecorded(value) =>
       value shouldBe 1000L +- 100L
     }
 
-    val connectionBoundProbes = monitor.connection.probes(expectedConnectionLabels)
+    val connectionBoundProbes = monitor.connection.probes(expectedConnectionAttributes)
     connectionBoundProbes.value.connectionCounterProbe.receiveMessage() should be(Inc(1L))
-    connectionCompleted(expectedConnectionLabels)
+    connectionCompleted(expectedConnectionAttributes)
     connectionBoundProbes.value.connectionCounterProbe.receiveMessage() should be(Dec(1L))
 
   }
 
-  it should "reuse monitors for same labels" in testCaseWith(_.withCaching) { implicit c =>
-    val expectedConnectionLabels = List(
-      HttpConnectionMetricsMonitor.Labels(None, "0.0.0.0", 8080),
-      HttpConnectionMetricsMonitor.Labels(None, "0.0.0.0", 8081)
+  it should "reuse monitors for same attributes" in testCaseWith(_.withCaching) { implicit c =>
+    val expectedConnectionAttributes = List(
+      HttpConnectionMetricsMonitor.Attributes(None, "0.0.0.0", 8080),
+      HttpConnectionMetricsMonitor.Attributes(None, "0.0.0.0", 8081)
     )
 
-    val expectedRequestLabels = List(
-      HttpMetricsMonitor.Labels(None, "/api/v1/test", "GET", "200"),
-      HttpMetricsMonitor.Labels(None, "/api/v2/test", "POST", "201")
+    val expectedRequestAttributes = List(
+      HttpMetricsMonitor.Attributes(None, "/api/v1/test", "GET", "200"),
+      HttpMetricsMonitor.Attributes(None, "/api/v2/test", "POST", "201")
     )
     val requestCount = 10
 
-    expectedConnectionLabels.foreach(connectionStarted)
+    expectedConnectionAttributes.foreach(connectionStarted)
 
     for {
-      label <- expectedRequestLabels
-      id    <- List.fill(requestCount)(createUniqueId)
+      attribute <- expectedRequestAttributes
+      id        <- List.fill(requestCount)(createUniqueId)
     } {
-      requestStarted(id, label)
-      requestCompleted(id, label.status)
+      requestStarted(id, attribute)
+      requestCompleted(id, attribute.status)
     }
 
-    expectedConnectionLabels.foreach(connectionCompleted)
+    expectedConnectionAttributes.foreach(connectionCompleted)
 
-    monitor.connection.globalConnectionCounter.receiveMessages(2 * expectedConnectionLabels.size)
-    monitor.request.globalRequestCounter.receiveMessages(requestCount * expectedRequestLabels.size)
+    monitor.connection.globalConnectionCounter.receiveMessages(2 * expectedConnectionAttributes.size)
+    monitor.request.globalRequestCounter.receiveMessages(requestCount * expectedRequestAttributes.size)
 
-    monitor.connection.binds should be(expectedConnectionLabels.size)
-    monitor.request.binds should be(expectedRequestLabels.size)
+    monitor.connection.binds should be(expectedConnectionAttributes.size)
+    monitor.request.binds should be(expectedRequestAttributes.size)
   }
 
   it should "collect metric for several concurrent requests" in testCaseWith(_.withCaching) { implicit c =>
-    val connectionLabels = List.tabulate(10)(i => HttpConnectionMetricsMonitor.Labels(None, "0.0.0.0", 8080 + i))
-    connectionLabels.foreach(connectionStarted)
+    val connectionAttributes =
+      List.tabulate(10)(i => HttpConnectionMetricsMonitor.Attributes(None, "0.0.0.0", 8080 + i))
+    connectionAttributes.foreach(connectionStarted)
 
-    val requestLabels = List.fill(10)(createUniqueId).map(id => HttpMetricsMonitor.Labels(None, id, "GET", "204"))
-    val requests      = requestLabels.map(l => createUniqueId -> l).toMap
+    val requestAttributes =
+      List.fill(10)(createUniqueId).map(id => HttpMetricsMonitor.Attributes(None, id, "GET", "204"))
+    val requests = requestAttributes.map(l => createUniqueId -> l).toMap
     requests.foreach(Function.tupled(requestStarted))
     Thread.sleep(1050)
-    requests.foreach { case (id, labels) =>
-      requestCompleted(id, labels.status)
+    requests.foreach { case (id, attributes) =>
+      requestCompleted(id, attributes.status)
     }
 
-    connectionLabels.foreach(connectionCompleted)
+    connectionAttributes.foreach(connectionCompleted)
 
-    monitor.connection.globalConnectionCounter.receiveMessages(connectionLabels.size)
+    monitor.connection.globalConnectionCounter.receiveMessages(connectionAttributes.size)
     monitor.request.globalRequestCounter.receiveMessages(requests.size)
 
-    monitor.connection.boundLabels should contain theSameElementsAs connectionLabels
-    monitor.request.boundLabels should contain theSameElementsAs requestLabels
+    monitor.connection.boundAttributes should contain theSameElementsAs connectionAttributes
+    monitor.request.boundAttributes should contain theSameElementsAs requestAttributes
 
-    val connectionProbes = connectionLabels.flatMap(monitor.connection.probes)
-    connectionProbes should have size connectionLabels.size
+    val connectionProbes = connectionAttributes.flatMap(monitor.connection.probes)
+    connectionProbes should have size connectionAttributes.size
     forAll(connectionProbes) { probes =>
       import probes._
       connectionCounterProbe.within(500 milliseconds) {
@@ -167,8 +169,8 @@ class HttpEventsActorTest
       }
     }
 
-    val requestProbes = requestLabels.flatMap(monitor.request.probes)
-    requestProbes should have size requestLabels.size
+    val requestProbes = requestAttributes.flatMap(monitor.request.probes)
+    requestProbes should have size requestAttributes.size
     forAll(requestProbes) { probes =>
       import probes._
       requestCounterProbe.within(500 millis) {
