@@ -1,7 +1,6 @@
 import sbt._
 
 object Dependencies {
-
   val AkkaHttpVersion                     = "10.2.6"
   val AkkaManagementVersion               = "1.1.1"
   val AkkaVersion                         = "2.6.16"
@@ -77,6 +76,6 @@ object Dependencies {
     "com.lightbend.akka.discovery"  %% "akka-discovery-kubernetes-api"       % AkkaManagementVersion,
     "io.opentelemetry"               % "opentelemetry-exporter-otlp-metrics" % OpentelemetryMetricsExporterVersion,
     "io.opentelemetry"               % "opentelemetry-sdk"                   % OpentelemetryVersion,
-    "io.grpc"                        % "grpc-netty-shaded"                   % "1.41.2"
+    "io.grpc"                        % "grpc-netty-shaded"                   % "1.42.0"
   )
 }
