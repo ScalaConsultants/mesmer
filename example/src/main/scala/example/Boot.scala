@@ -1,7 +1,5 @@
 package example
 
-import java.util.Collections
-
 import akka.actor.typed.ActorSystem
 import akka.actor.typed.scaladsl.Behaviors
 import akka.cluster.sharding.typed.scaladsl.ClusterSharding
@@ -18,8 +16,9 @@ import example.api.AccountRoutes
 import example.domain.AccountStateActor
 import example.domain.JsonCodecs
 import io.opentelemetry.exporter.otlp.metrics.OtlpGrpcMetricExporter
+import io.opentelemetry.sdk.OpenTelemetrySdk
 import io.opentelemetry.sdk.metrics.SdkMeterProvider
-import io.opentelemetry.sdk.metrics.export.IntervalMetricReader
+import io.opentelemetry.sdk.metrics.export.PeriodicMetricReader
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
@@ -27,6 +26,7 @@ import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
 import scala.io.StdIn
 import scala.jdk.CollectionConverters._
+import scala.jdk.DurationConverters._
 import scala.language.postfixOps
 import scala.util.Failure
 import scala.util.Success
@@ -43,17 +43,26 @@ object Boot extends App with FailFastCirceSupport with JsonCodecs {
     )
     .resolve
 
-  def initOpenTelemetryMetrics(exportInterval: Long): IntervalMetricReader = {
-    val metricExporter: OtlpGrpcMetricExporter = OtlpGrpcMetricExporter.getDefault()
+  def initOpenTelemetryMetrics(exportInterval: FiniteDuration): Unit = {
 
-    val meterProvider: SdkMeterProvider = SdkMeterProvider.builder().buildAndRegisterGlobal()
+    val metricExporter: OtlpGrpcMetricExporter = OtlpGrpcMetricExporter.getDefault
 
-    IntervalMetricReader
+    val factory = PeriodicMetricReader
+      .builder(metricExporter)
+      .setInterval(exportInterval.toJava)
+      .newMetricReaderFactory()
+
+    val meterProvider: SdkMeterProvider = SdkMeterProvider
       .builder()
-      .setMetricExporter(metricExporter)
-      .setMetricProducers(Collections.singleton(meterProvider))
-      .setExportIntervalMillis(exportInterval)
-      .buildAndStart()
+      .registerMetricReader(factory)
+      .build()
+
+    OpenTelemetrySdk
+      .builder()
+      .setMeterProvider(meterProvider)
+      .buildAndRegisterGlobal()
+
+    sys.addShutdownHook(meterProvider.shutdown())
   }
 
   def startUp(local: Boolean): Unit = {
@@ -74,7 +83,7 @@ object Boot extends App with FailFastCirceSupport with JsonCodecs {
     // this is important to initialize metric exporting before actor system when starting mesmer from configuration
     // mesmer on initialization gets hook to OTel metricProvider and if it's not initialized before it defaults to noop
     logger.info("Starting metric exporter")
-    val metricReader = initOpenTelemetryMetrics(exportInterval)
+    initOpenTelemetryMetrics(exportInterval.millis)
 
     implicit val system: ActorSystem[Nothing] =
       ActorSystem[Nothing](Behaviors.empty, systemName, config)
@@ -109,8 +118,6 @@ object Boot extends App with FailFastCirceSupport with JsonCodecs {
       .bind(accountRoutes.routes)
 
     StdIn.readLine()
-
-    sys.addShutdownHook(metricReader.shutdown())
 
     sys.addShutdownHook {
       binding

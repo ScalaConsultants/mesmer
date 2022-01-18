@@ -1,13 +1,13 @@
 package io.scalac.mesmer.core.model
 
-import io.scalac.mesmer.core.model.Tag.StreamName.StreamNameLabel
+import io.scalac.mesmer.core.model.Tag.StreamName.StreamNameAttributeKey
 
 sealed trait Tag extends Any {
   def serialize: Seq[(String, String)]
 
   override def toString: String =
-    this.serialize.map { case (label, value) =>
-      s"$label -> $value"
+    this.serialize.map { case (attributeKey, attributeValue) =>
+      s"$attributeKey -> $attributeValue"
     }.mkString("[", ", ", "]")
 }
 
@@ -75,7 +75,7 @@ object Tag {
   sealed trait StreamName extends Any with Tag {
     def name: String
 
-    def serialize: Seq[(String, String)] = Seq(StreamNameLabel -> name)
+    def serialize: Seq[(String, String)] = Seq(StreamNameAttributeKey -> name)
   }
 
   object StreamName {
@@ -84,7 +84,7 @@ object Tag {
     def apply(matName: StreamName, terminalStage: StageName): StreamName =
       TerminalOperatorStreamName(matName, terminalStage)
 
-    private final val StreamNameLabel = "stream_name"
+    private final val StreamNameAttributeKey = "stream_name"
 
     final class StreamNameImpl(val name: String) extends AnyVal with StreamName
 

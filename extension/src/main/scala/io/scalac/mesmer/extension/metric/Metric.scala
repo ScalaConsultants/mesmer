@@ -8,7 +8,7 @@ import io.scalac.mesmer.extension.metric.SyncWith.UpdaterPair
 
 sealed trait Metric[-T]
 
-trait MetricRecorder[-T] extends Metric[T] {
+trait Histogram[-T] extends Metric[T] {
   def setValue(value: T): Unit
 }
 
@@ -75,7 +75,7 @@ object MetricObserver {
   type Updater[+T, +L] = MetricObserver.Result[T, L] => Unit
 
   trait Result[-T, -L] {
-    def observe(value: T, labels: L): Unit
+    def observe(value: T, attributes: L): Unit
   }
 
   case object NoopMetricObserver extends MetricObserver[Any, Any] {
