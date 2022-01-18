@@ -9,7 +9,7 @@ import akka.cluster.typed.Subscribe
 import io.scalac.mesmer.core.model._
 import io.scalac.mesmer.extension.ClusterEventsMonitor.Command.MemberEventWrapper
 import io.scalac.mesmer.extension.metric.ClusterMetricsMonitor
-import io.scalac.mesmer.extension.metric.ClusterMetricsMonitor.Labels
+import io.scalac.mesmer.extension.metric.ClusterMetricsMonitor.Attributes
 
 object ClusterEventsMonitor extends ClusterMonitorActor {
 
@@ -29,7 +29,7 @@ object ClusterEventsMonitor extends ClusterMonitorActor {
           classOf[MemberEvent]
         )
 
-        val boundMonitor = clusterMonitor.bind(Labels(selfMember.uniqueAddress.toNode))
+        val boundMonitor = clusterMonitor.bind(Attributes(selfMember.uniqueAddress.toNode))
 
         boundMonitor.nodeDown.incValue(0L)
 

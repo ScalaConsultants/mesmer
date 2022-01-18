@@ -2,17 +2,17 @@ package io.scalac.mesmer.extension
 
 import akka.actor.typed.scaladsl.Behaviors
 import akka.actor.typed.scaladsl.adapter._
-import akka.actor.typed.{ActorSystem, SupervisorStrategy}
+import akka.actor.typed.{ ActorSystem, SupervisorStrategy }
 import akka.cluster.Cluster
-import akka.cluster.typed.{ClusterSingleton, SingletonActor}
+import akka.cluster.typed.{ ClusterSingleton, SingletonActor }
 import akka.remote.testkit.MultiNodeSpec
 import akka.remote.transport.ThrottlerTransportAdapter.Direction
 import io.scalac.mesmer.core.util.ScalaTestMultiNodeSpec
 import io.scalac.mesmer.core.util.probe.ObserverCollector.ScheduledCollectorImpl
 import io.scalac.mesmer.extension.ThreeNodesConfig._
-import io.scalac.mesmer.extension.util.probe.BoundTestProbe.{Dec, Inc}
+import io.scalac.mesmer.extension.util.probe.BoundTestProbe.{ Dec, Inc }
 import io.scalac.mesmer.extension.util.probe.ClusterMonitorTestProbe
-import org.scalatest.{BeforeAndAfterAll, Inspectors}
+import org.scalatest.{ BeforeAndAfterAll, Inspectors }
 
 import scala.concurrent.duration._
 import scala.language.postfixOps

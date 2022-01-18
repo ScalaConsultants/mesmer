@@ -1,14 +1,14 @@
 package io.scalac.mesmer.extension.upstream
 
 import com.typesafe.config.Config
+import io.opentelemetry.api.common
 import io.opentelemetry.api.metrics.Meter
-import io.opentelemetry.api.metrics.common
 
 import io.scalac.mesmer.core.config.MesmerConfiguration
 import io.scalac.mesmer.core.module.AkkaHttpModule
 import io.scalac.mesmer.extension.metric.Counter
+import io.scalac.mesmer.extension.metric.Histogram
 import io.scalac.mesmer.extension.metric.HttpMetricsMonitor
-import io.scalac.mesmer.extension.metric.MetricRecorder
 import io.scalac.mesmer.extension.metric.RegisterRoot
 import io.scalac.mesmer.extension.upstream.OpenTelemetryHttpMetricsMonitor.MetricNames
 import io.scalac.mesmer.extension.upstream.opentelemetry._
@@ -58,31 +58,32 @@ final class OpenTelemetryHttpMetricsMonitor(
   import HttpMetricsMonitor._
 
   private lazy val requestTimeRequest = meter
-    .longValueRecorderBuilder(metricNames.requestDuration)
+    .histogramBuilder(metricNames.requestDuration)
+    .ofLongs()
     .setDescription("Amount of ms request took to complete")
     .build()
 
   private lazy val requestTotalCounter = meter
-    .longCounterBuilder(metricNames.requestTotal)
+    .counterBuilder(metricNames.requestTotal)
     .setDescription("Amount of requests")
     .build()
 
-  def bind(labels: Labels): BoundMonitor = new HttpMetricsBoundMonitor(labels)
+  def bind(attributes: Attributes): BoundMonitor = new HttpMetricsBoundMonitor(attributes)
 
-  final class HttpMetricsBoundMonitor(labels: Labels)
+  final class HttpMetricsBoundMonitor(attributes: Attributes)
       extends opentelemetry.Synchronized(meter)
       with BoundMonitor
       with SynchronousInstrumentFactory
       with RegisterRoot {
 
-    protected val otLabels: common.Labels = LabelsFactory.of(labels.serialize)
+    protected val otAttributes: common.Attributes = AttributesFactory.of(attributes.serialize)
 
-    lazy val requestTime: MetricRecorder[Long] with Instrument[Long] =
-      if (moduleConfig.requestTime) metricRecorder(requestTimeRequest, otLabels).register(this)
-      else noopMetricRecorder[Long]
+    lazy val requestTime: Histogram[Long] with Instrument[Long] =
+      if (moduleConfig.requestTime) histogram(requestTimeRequest, otAttributes)
+      else noopHistogram[Long]
 
     lazy val requestCounter: Counter[Long] with Instrument[Long] =
-      if (moduleConfig.requestCounter) counter(requestTotalCounter, otLabels).register(this) else noopCounter[Long]
+      if (moduleConfig.requestCounter) counter(requestTotalCounter, otAttributes) else noopCounter[Long]
 
   }
 }
