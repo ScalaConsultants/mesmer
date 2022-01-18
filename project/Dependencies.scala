@@ -9,7 +9,7 @@ object Dependencies {
   val LogbackVersion              = "1.2.6"
   val OpentelemetryVersion        = "1.10.0"
   val OpentelemetryMetricsVersion = "1.10.0-alpha-rc.1"
-  val PostgresVersion             = "42.2.24"
+  val PostgresVersion             = "42.3.1"
   val ScalatestVersion            = "3.2.10"
   val SlickVersion                = "3.3.3"
 
@@ -76,6 +76,6 @@ object Dependencies {
     "com.lightbend.akka.discovery"  %% "akka-discovery-kubernetes-api"       % AkkaManagementVersion,
     "io.opentelemetry"               % "opentelemetry-exporter-otlp-metrics" % OpentelemetryMetricsVersion,
     "io.opentelemetry"               % "opentelemetry-sdk"                   % OpentelemetryVersion,
-    "io.grpc"                        % "grpc-netty-shaded"                   % "1.41.0"
+    "io.grpc"                        % "grpc-netty-shaded"                   % "1.41.2"
   )
 }
