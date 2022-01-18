@@ -176,7 +176,7 @@ final class ActorTreeService(
       reply ! snapshot.buildSeq((ref, details) => if (details.tags.contains(tag)) Some(ref) else None)
       Behaviors.same
     case GetActorTree(reply) =>
-      //TODO change this to be more secure
+      // TODO change this to be more secure
       snapshot.buildTree((_, details) => Some(details)).foreach(reply ! _)
       Behaviors.same
     case TagSubscribe(tag, ref) =>

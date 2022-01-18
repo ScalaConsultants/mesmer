@@ -7,11 +7,10 @@ import io.scalac.mesmer.core.model.Tag._
 
 object stream {
 
-  //TODO FIX doc
+  // TODO FIX doc
   /**
-   * Error prone way to get stream name from actor.
-   * Most of the time actors that take part in running a stream has path following convention:
-   * {stream_name}-{stream_id}-{island_id}-{last-operator-name}
+   * Error prone way to get stream name from actor. Most of the time actors that take part in running a stream has path
+   * following convention: {stream_name}-{stream_id}-{island_id}-{last-operator-name}
    * @param ref
    * @return
    */

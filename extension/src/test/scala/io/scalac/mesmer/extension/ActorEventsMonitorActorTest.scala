@@ -81,16 +81,13 @@ final class ActorEventsMonitorActorTest
 
   val CheckInterval: FiniteDuration = scaled(100.millis)
 
-  private def treeDataReader(tree: Tree[(classic.ActorRef, ActorMetrics)]): ActorMetricsReader = ref => {
+  private def treeDataReader(tree: Tree[(classic.ActorRef, ActorMetrics)]): ActorMetricsReader = ref =>
     tree.unfix.find(_._1 == ref).map { case (_, data) =>
       data
     }
-  }
 
   private def actorDataReader(actorRef: ActorRef[ReaderCommand])(implicit timeout: Timeout): ActorMetricsReader =
-    classicRef => {
-      Await.result(actorRef.ask[Option[ActorMetrics]](replyTo => GetOne(classicRef, replyTo)), Duration.Inf)
-    }
+    classicRef => Await.result(actorRef.ask[Option[ActorMetrics]](replyTo => GetOne(classicRef, replyTo)), Duration.Inf)
 
   private def randomActorMetrics(): ActorMetrics = ActorMetrics(
     Some(Random.nextLong(100)),
@@ -595,33 +592,30 @@ final class ActorEventsMonitorActorTest
 
   }
 
-  private val sumLong: (Option[Long], Option[Long]) => Option[Long] = (optX, optY) => {
+  private val sumLong: (Option[Long], Option[Long]) => Option[Long] = (optX, optY) =>
     (for {
       x <- optX
       y <- optY
     } yield (x + y))
-  }
 
   private val sumAgg: (Option[LongMinMaxSumCountAggregationImpl], Option[LongMinMaxSumCountAggregationImpl]) => Option[
     LongMinMaxSumCountAggregationImpl
   ] =
-    (optX, optY) => {
+    (optX, optY) =>
       (for {
         x <- optX
         y <- optY
       } yield x.sum(y))
-    }
 
   private val addToAgg
     : (Option[LongMinMaxSumCountAggregationImpl], Option[LongMinMaxSumCountAggregationImpl]) => Option[
       LongMinMaxSumCountAggregationImpl
     ] =
-    (optX, optY) => {
+    (optX, optY) =>
       (for {
         x <- optX
         y <- optY
       } yield x.addTo(y))
-    }
 
   it should behave like allBehaviorsLong(_.mailboxSizeProbe, _.mailboxSize, "mailbox size")
   it should behave like allBehaviorsLong(_.receivedMessagesProbe, _.receivedMessages, "received messages")
@@ -735,7 +729,7 @@ object ActorEventsMonitorActorTest {
 
     final case class Message(text: String) extends Command
 
-    //TODO delete
+    // TODO delete
     object StashActor {
       def apply(capacity: Int): Behavior[Command] =
         Behaviors.withStash(capacity)(buffer => new StashActor(buffer).closed())

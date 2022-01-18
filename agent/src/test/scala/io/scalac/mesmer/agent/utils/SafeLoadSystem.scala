@@ -21,7 +21,7 @@ trait SafeLoadSystem extends BeforeAndAfterAll {
 
   protected def config: Config = ConfigFactory.load("application-test")
 
-  //dsl
+  // dsl
   def createTestProbe[M]: TestProbe[M] = TestProbe[M]()
 
   def classicSystem: ExtendedActorSystem = system.classicSystem.asInstanceOf[ExtendedActorSystem]

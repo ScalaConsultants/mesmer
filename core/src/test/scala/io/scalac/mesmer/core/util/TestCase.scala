@@ -80,7 +80,7 @@ object TestCase {
     implicit protected def system: ActorSystem[_]
 
     // overrides
-    protected final def startEnv(): ActorSystem[_] = system
+    protected final def startEnv(): ActorSystem[_]         = system
     protected final def stopEnv(env: ActorSystem[_]): Unit = {}
   }
 

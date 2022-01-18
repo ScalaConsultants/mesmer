@@ -24,9 +24,12 @@ object AkkaActorAgent
     with AkkaMailboxInstrumentations {
 
   /**
-   * @param config configuration of features that are wanted by the user
-   * @param jars   versions of required jars to deduce which features can be enabled
-   * @return Resulting agent and resulting configuration based on runtime properties
+   * @param config
+   *   configuration of features that are wanted by the user
+   * @param jars
+   *   versions of required jars to deduce which features can be enabled
+   * @return
+   *   Resulting agent and resulting configuration based on runtime properties
    */
   override protected def agent(
     config: AkkaActorModule.All[Boolean],
@@ -216,7 +219,7 @@ object AkkaActorAgent
     val mailboxTag = "mailbox_time"
 
     /**
-     * Instrumentation that enrich [[ akka.dispatch.Envelope ]] with additional timestamp field
+     * Instrumentation that enrich [[akka.dispatch.Envelope]] with additional timestamp field
      */
     val mailboxTimeTimestampInstrumentation =
       instrument("akka.dispatch.Envelope".fqcn)
@@ -254,8 +257,7 @@ object AkkaActorAgent
       )
 
   /**
-   * Instrumentation that add [[ ActorCellMetrics ]] field to [[ akka.actor.ActorCell ]]
-   * and initialize it in `init` method
+   * Instrumentation that add [[ActorCellMetrics]] field to [[akka.actor.ActorCell]] and initialize it in `init` method
    */
   private val actorCellInstrumentation = instrument("akka.actor.ActorCell".fqcnWithTags("metrics"))
     .defineField[ActorCellMetrics](ActorCellDecorator.fieldName)
@@ -300,7 +302,7 @@ object AkkaActorAgent
     ).visit(SupervisorHandleReceiveExceptionInstrumentation, "handleReceiveException")
 
   /**
-   * Instrumentation for [[ akka.actor.typed.internal.StashBufferImpl ]] - collection used for typed stash implementation
+   * Instrumentation for [[akka.actor.typed.internal.StashBufferImpl]] - collection used for typed stash implementation
    */
   private val stashBufferImplementation =
     instrument(hierarchy("akka.actor.typed.internal.StashBufferImpl".fqcnWithTags("typed_stash_buffer")))
@@ -310,8 +312,8 @@ object AkkaActorAgent
     .visit(ActorCellDroppedMessagesAdvice, "init")
 
   /**
-   * Instrumentation to publish events when new actor is created. This must be enabled
-   * for any other instrumentation here to work.
+   * Instrumentation to publish events when new actor is created. This must be enabled for any other instrumentation
+   * here to work.
    */
   private val localActorRefProviderInstrumentation: AgentInstrumentation =
     instrument("akka.actor.LocalActorRefProvider".fqcnWithTags("create"))

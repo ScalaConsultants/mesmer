@@ -28,8 +28,8 @@ class ConfigBasedConfigurationServiceTest extends AnyFlatSpec with Matchers {
     val config = ConfigFactory.parseString("""
                                              |io.scalac.mesmer.actor.reporting-default=group
                                              |""".stripMargin)
-    val sut    = new ConfigBasedConfigurationService(config)
-    val path   = actorPath("/user/testactor")
+    val sut  = new ConfigBasedConfigurationService(config)
+    val path = actorPath("/user/testactor")
     sut.forActorPath(path) should be(groupingConfig)
   }
 
@@ -39,8 +39,8 @@ class ConfigBasedConfigurationServiceTest extends AnyFlatSpec with Matchers {
                                              |  "/user/nonexistent" = instance
                                              |}
                                              |""".stripMargin)
-    val sut    = new ConfigBasedConfigurationService(config)
-    val path   = actorPath("/user/testactor")
+    val sut  = new ConfigBasedConfigurationService(config)
+    val path = actorPath("/user/testactor")
     sut.forActorPath(path) should be(disabledConfig)
   }
 
@@ -50,8 +50,8 @@ class ConfigBasedConfigurationServiceTest extends AnyFlatSpec with Matchers {
                                              |  "/user/testactor" = instance
                                              |}
                                              |""".stripMargin)
-    val sut    = new ConfigBasedConfigurationService(config)
-    val path   = actorPath("/user/testactor")
+    val sut  = new ConfigBasedConfigurationService(config)
+    val path = actorPath("/user/testactor")
     sut.forActorPath(path) should be(instanceConfig)
   }
 
@@ -61,7 +61,7 @@ class ConfigBasedConfigurationServiceTest extends AnyFlatSpec with Matchers {
                                              |  "/user/testactor/*" = instance
                                              |}
                                              |""".stripMargin)
-    val sut    = new ConfigBasedConfigurationService(config)
+    val sut = new ConfigBasedConfigurationService(config)
 
     sut.forActorPath(actorPath("/user/testactor")) should be(instanceConfig)
     sut.forActorPath(actorPath("/user/testactor/a")) should be(instanceConfig)
@@ -77,7 +77,7 @@ class ConfigBasedConfigurationServiceTest extends AnyFlatSpec with Matchers {
                                              |  "/user/testactor" = instance
                                              |}
                                              |""".stripMargin)
-    val sut    = new ConfigBasedConfigurationService(config)
+    val sut = new ConfigBasedConfigurationService(config)
 
     sut.forActorPath(actorPath("/user/testactor")) should be(instanceConfig)
   }
@@ -90,7 +90,7 @@ class ConfigBasedConfigurationServiceTest extends AnyFlatSpec with Matchers {
                                              |  "/user/more/specific/actor/*" = instance
                                              |}
                                              |""".stripMargin)
-    val sut    = new ConfigBasedConfigurationService(config)
+    val sut = new ConfigBasedConfigurationService(config)
 
     sut.forActorPath(actorPath("/user/more/specific/actor/some/name")) should be(instanceConfig)
     sut.forActorPath(actorPath("/user/other/actor/name")) should be(groupingConfig)
@@ -103,7 +103,7 @@ class ConfigBasedConfigurationServiceTest extends AnyFlatSpec with Matchers {
                                                       |  "user/more/specific/actor/" = instance
                                                       |}
                                                       |""".stripMargin)
-    val sut             = new ConfigBasedConfigurationService(incorrectConfig)
+    val sut = new ConfigBasedConfigurationService(incorrectConfig)
 
     sut.forActorPath(actorPath("/user/more/specific/actor/some/name")) should be(disabledConfig)
     sut.forActorPath(actorPath("/user/other/actor/name")) should be(disabledConfig)

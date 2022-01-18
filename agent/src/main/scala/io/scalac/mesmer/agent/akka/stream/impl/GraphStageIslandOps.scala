@@ -10,8 +10,7 @@ object GraphStageIslandOps {
   final case object TerminalSink extends Attribute
 
   /**
-   * Marks terminal sink in Graph island
-   * Index 0 is used because traversal is reversed
+   * Marks terminal sink in Graph island Index 0 is used because traversal is reversed
    * @param mod
    * @param attributes
    * @param index

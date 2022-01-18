@@ -14,9 +14,12 @@ object AkkaPersistenceAgent
     with AkkaPersistenceModule.All[AkkaPersistenceModule.AkkaJar[Version] => Option[Agent]] {
 
   /**
-   * @param config configuration of features that are wanted by the user
-   * @param jars   versions of required jars to deduce which features can be enabled
-   * @return Resulting agent and resulting configuration based on runtime properties
+   * @param config
+   *   configuration of features that are wanted by the user
+   * @param jars
+   *   versions of required jars to deduce which features can be enabled
+   * @return
+   *   Resulting agent and resulting configuration based on runtime properties
    */
   override protected def agent(
     config: AkkaPersistenceModule.AkkaPersistenceMetricsDef[Boolean],

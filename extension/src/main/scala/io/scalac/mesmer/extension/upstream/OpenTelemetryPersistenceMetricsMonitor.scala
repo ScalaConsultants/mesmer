@@ -14,7 +14,7 @@ import io.scalac.mesmer.extension.upstream.opentelemetry._
 
 object OpenTelemetryPersistenceMetricsMonitor {
 
-  //TODO remove DRY
+  // TODO remove DRY
   final case class MetricNames(
     recoveryTime: String,
     recoveryTotal: String,

@@ -20,8 +20,8 @@ final case class ActorMetrics(
     } yield received - unhandled
 
   /**
-   * Adds this ActorMetrics monotonically increasing counter to other.
-   * This will leave other metrics untouched - aggregations, gauges etc
+   * Adds this ActorMetrics monotonically increasing counter to other. This will leave other metrics untouched -
+   * aggregations, gauges etc
    * @param other
    * @return
    */
@@ -40,7 +40,8 @@ final case class ActorMetrics(
   /**
    * Sums this ActorMetrics with other - this means than all counters - monotonically and nonmonotinically increasing
    * are add up. Max and min are computed normally.
-   * @param other ActorMetrics to be summed up with this one
+   * @param other
+   *   ActorMetrics to be summed up with this one
    * @return
    */
   def sum(other: ActorMetrics): ActorMetrics = ActorMetrics(

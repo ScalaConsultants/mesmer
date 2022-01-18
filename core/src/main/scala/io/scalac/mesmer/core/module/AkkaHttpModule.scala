@@ -85,13 +85,12 @@ object AkkaHttpModule
       http       <- info.get(JarsNames.akkaHttp)
     } yield Jars(actor, actorTyped, http)
 
-  implicit val combineConfig: Combine[All[Boolean]] = (first, second) => {
+  implicit val combineConfig: Combine[All[Boolean]] = (first, second) =>
     Impl(
       requestTime = first.requestTime && second.requestTime,
       requestCounter = first.requestCounter && second.requestCounter,
       connections = first.connections && second.connections
     )
-  }
 
   implicit val traverseAll: Traverse[All] = new Traverse[All] {
     def sequence[T](obj: All[T]): Seq[T] = Seq(

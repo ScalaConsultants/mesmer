@@ -26,7 +26,7 @@ object CommonRegexPathService extends PathService {
           case subs if subs.length == 36 =>
             subs match {
               case uuidRegex(_*) =>
-                //next must be slash, so skip it
+                // next must be slash, so skip it
                 replaceInPath(nextIndex + 1, replacements :+ (offset, nextIndex, uuidTemplate))
               case _ => replaceInPath(nextIndex + 1, replacements)
             }

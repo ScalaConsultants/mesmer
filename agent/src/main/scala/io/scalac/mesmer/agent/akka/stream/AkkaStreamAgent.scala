@@ -21,9 +21,12 @@ object AkkaStreamAgent
     with AkkaStreamModule.StreamOperatorMetricsDef[AkkaStreamModule.AkkaJar[Version] => Option[Agent]] {
 
   /**
-   * @param config configuration of features that are wanted by the user
-   * @param jars   versions of required jars to deduce which features can be enabled
-   * @return Resulting agent and resulting configuration based on runtime properties
+   * @param config
+   *   configuration of features that are wanted by the user
+   * @param jars
+   *   versions of required jars to deduce which features can be enabled
+   * @return
+   *   Resulting agent and resulting configuration based on runtime properties
    */
   protected def agent(
     config: AkkaStreamModule.All[Boolean],
@@ -94,7 +97,7 @@ object AkkaStreamAgent
       .deferred
 
     /**
-     * Adds push counter to [[ akka.stream.impl.fusing.GraphInterpreter.Connection ]]
+     * Adds push counter to [[akka.stream.impl.fusing.GraphInterpreter.Connection]]
      */
     val pushField = instrument("akka.stream.impl.fusing.GraphInterpreter$Connection".fqcnWithTags("push"))
       .defineField[Long](ConnectionOps.PushCounterVarName)
@@ -113,7 +116,7 @@ object AkkaStreamAgent
       .deferred
 
     /**
-     * Adds pull counter to [[ akka.stream.impl.fusing.GraphInterpreter.Connection ]]
+     * Adds pull counter to [[akka.stream.impl.fusing.GraphInterpreter.Connection]]
      */
     val pullField = instrument("akka.stream.impl.fusing.GraphInterpreter$Connection".fqcnWithTags("pull"))
       .defineField[Long](ConnectionOps.PullCounterVarName)
@@ -123,8 +126,8 @@ object AkkaStreamAgent
   }
 
   /**
-   * Instrumentation for Actor that execute streams - adds another message for it to handle that
-   * pushes all connection data to EventBus and propagation of short living streams
+   * Instrumentation for Actor that execute streams - adds another message for it to handle that pushes all connection
+   * data to EventBus and propagation of short living streams
    */
   private val actorGraphInterpreterInstrumentation =
     instrument("akka.stream.impl.fusing.ActorGraphInterpreter".fqcn)

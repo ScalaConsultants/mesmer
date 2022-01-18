@@ -25,7 +25,8 @@ object ObserverCollector {
 
   /**
    * TestProbeImpl does not implement hashCode so we need to wrap it
-   * @param probe underlying probe
+   * @param probe
+   *   underlying probe
    */
   case class ProbeKey(probe: TestProbe[_])
 

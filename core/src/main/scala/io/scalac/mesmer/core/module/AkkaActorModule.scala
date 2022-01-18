@@ -158,7 +158,7 @@ object AkkaActorModule extends MesmerModule with AkkaActorMetrics with RegisterG
   /**
    * Combines config that with AND operator
    */
-  implicit val combineConfig: Combine[All[Boolean]] = (first, second) => {
+  implicit val combineConfig: Combine[All[Boolean]] = (first, second) =>
     Impl(
       mailboxSize = first.mailboxSize && second.mailboxSize,
       mailboxTimeMin = first.mailboxTimeMin && second.mailboxTimeMin,
@@ -176,7 +176,6 @@ object AkkaActorModule extends MesmerModule with AkkaActorMetrics with RegisterG
       sentMessages = first.sentMessages && second.sentMessages,
       droppedMessages = first.droppedMessages && second.droppedMessages
     )
-  }
 
   implicit val traverseAll: Traverse[All] = new Traverse[All] {
     def sequence[T](obj: AkkaActorModule.AkkaActorMetricsDef[T]): Seq[T] = Seq(

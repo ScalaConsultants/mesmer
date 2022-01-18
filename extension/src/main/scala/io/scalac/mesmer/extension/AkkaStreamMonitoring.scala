@@ -250,7 +250,7 @@ final class AkkaStreamMonitoring(
   private[this] val demandSnapshot          = new AtomicReference[Option[Seq[SnapshotEntry]]](None)
   private[this] val globalProcessedSnapshot = new AtomicReference[Option[Seq[StreamStats]]](None)
 
-  //append this only
+  // append this only
   private[this] val localProcessedSnapshot = ListBuffer.empty[SnapshotEntry]
   private[this] val localDemandSnapshot    = ListBuffer.empty[SnapshotEntry]
   private[this] val localStreamStats       = mutable.Map.empty[StreamName, StreamStatsBuilder]
@@ -360,7 +360,7 @@ final class AkkaStreamMonitoring(
               updateLocalProcessedState(stage, inputStats, stageInfo, inputDistinct)
               updateLocalDemandState(stage, outputStats, stageInfo, outputDistinct)
 
-              //set name for stream is it's terminal operator
+              // set name for stream is it's terminal operator
               if (stage.terminal) {
                 log.info("Found terminal stage {}", stage)
                 streamStats.terminalName(stage.stageName.nameOnly)

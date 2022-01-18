@@ -97,9 +97,9 @@ class SupportedVersionTest extends AnyFlatSpec with Matchers with Inspectors {
     val (intersectedSupportedVersion, otherVersions) = List.fill(10)(randomVersion).splitAt(5) match {
       case (supported, notSupported) =>
         supported.map(_.copy(major = supportedMajor, minor = supportedMinor)) ->
-          notSupported.map(
-            _.copy(major = Random.shuffle(notSupportedMajors).head, Random.shuffle(notSupportedMinors).head)
-          )
+        notSupported.map(
+          _.copy(major = Random.shuffle(notSupportedMajors).head, Random.shuffle(notSupportedMinors).head)
+        )
     }
 
     val sut = SupportedVersion(intersectedSupportedVersion ++ otherVersions) && SupportedVersion.majors(

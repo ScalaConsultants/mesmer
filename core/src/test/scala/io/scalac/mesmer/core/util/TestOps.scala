@@ -10,13 +10,12 @@ trait TestOps {
 
   def createUniqueId: String = java.util.UUID.randomUUID().toString
 
-  def sameOrParent(parent: ActorRef[_]): Matcher[ActorRef[_]] = ref => {
+  def sameOrParent(parent: ActorRef[_]): Matcher[ActorRef[_]] = ref =>
     MatchResult(
       testSameOrParent(ref, parent),
       s"$parent is not same or parent of $ref",
       s"$parent is same as or parent of $ref"
     )
-  }
 
   def randomString(length: Int): String = {
     val array: Array[Byte] = Array.fill(length)((Random.nextInt(26) + 97).toByte)

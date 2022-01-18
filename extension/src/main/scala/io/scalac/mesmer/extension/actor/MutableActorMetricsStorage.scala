@@ -16,7 +16,8 @@ final class MutableActorMetricStorageFactory[K] extends MetricStorageFactory[K] 
     /**
      * @param actorRef
      * @param metrics
-     * @param persistent if metrics should be returned from iterable
+     * @param persistent
+     *   if metrics should be returned from iterable
      * @return
      */
     def save(key: K, metrics: ActorMetrics, persistent: Boolean): this.type = {
