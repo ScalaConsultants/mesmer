@@ -2,16 +2,17 @@ import sbt._
 
 object Dependencies {
 
-  val AkkaHttpVersion             = "10.2.7"
-  val AkkaManagementVersion       = "1.1.1"
-  val AkkaVersion                 = "2.6.16"
-  val CirceVersion                = "0.14.1"
-  val LogbackVersion              = "1.2.6"
-  val OpentelemetryVersion        = "1.10.0"
-  val OpentelemetryMetricsVersion = "1.10.0-alpha-rc.1"
-  val PostgresVersion             = "42.2.24"
-  val ScalatestVersion            = "3.2.10"
-  val SlickVersion                = "3.3.3"
+  val AkkaHttpVersion                     = "10.2.7"
+  val AkkaManagementVersion               = "1.1.1"
+  val AkkaVersion                         = "2.6.18"
+  val CirceVersion                        = "0.14.1"
+  val LogbackVersion                      = "1.2.10"
+  val OpentelemetryVersion                = "1.10.0"
+  val OpentelemetryMetricsApiVersion      = "1.10.0-alpha-rc.1"
+  val OpentelemetryMetricsExporterVersion = "1.10.0-alpha"
+  val PostgresVersion                     = "42.3.1"
+  val ScalatestVersion                    = "3.2.10"
+  val SlickVersion                        = "3.3.3"
 
   val akka = Seq(
     "com.typesafe.akka" %% "akka-http"                   % AkkaHttpVersion,
@@ -32,8 +33,8 @@ object Dependencies {
   )
 
   val byteBuddy = Seq(
-    "net.bytebuddy" % "byte-buddy"       % "1.11.21",
-    "net.bytebuddy" % "byte-buddy-agent" % "1.11.21"
+    "net.bytebuddy" % "byte-buddy"       % "1.11.22",
+    "net.bytebuddy" % "byte-buddy-agent" % "1.11.22"
   )
 
   val logback = Seq("ch.qos.logback" % "logback-classic" % LogbackVersion)
@@ -43,7 +44,7 @@ object Dependencies {
   )
 
   val openTelemetryApiMetrics = Seq(
-    "io.opentelemetry" % "opentelemetry-api-metrics" % OpentelemetryMetricsVersion
+    "io.opentelemetry" % "opentelemetry-api-metrics" % OpentelemetryMetricsApiVersion
   )
 
   val akkaTestkit = Seq(
@@ -65,7 +66,7 @@ object Dependencies {
     "io.circe"                      %% "circe-core"                          % CirceVersion,
     "io.circe"                      %% "circe-generic"                       % CirceVersion,
     "io.circe"                      %% "circe-parser"                        % CirceVersion,
-    "de.heikoseeberger"             %% "akka-http-circe"                     % "1.38.2",
+    "de.heikoseeberger"             %% "akka-http-circe"                     % "1.39.2",
     "org.postgresql"                 % "postgresql"                          % PostgresVersion,
     "com.typesafe.slick"            %% "slick"                               % SlickVersion,
     "com.typesafe.slick"            %% "slick-hikaricp"                      % SlickVersion,
@@ -74,8 +75,8 @@ object Dependencies {
     "com.lightbend.akka.management" %% "akka-management-cluster-http"        % AkkaManagementVersion,
     "com.lightbend.akka.management" %% "akka-management-cluster-bootstrap"   % AkkaManagementVersion,
     "com.lightbend.akka.discovery"  %% "akka-discovery-kubernetes-api"       % AkkaManagementVersion,
-    "io.opentelemetry"               % "opentelemetry-exporter-otlp-metrics" % OpentelemetryMetricsVersion,
+    "io.opentelemetry"               % "opentelemetry-exporter-otlp-metrics" % OpentelemetryMetricsExporterVersion,
     "io.opentelemetry"               % "opentelemetry-sdk"                   % OpentelemetryVersion,
-    "io.grpc"                        % "grpc-netty-shaded"                   % "1.41.0"
+    "io.grpc"                        % "grpc-netty-shaded"                   % "1.42.0"
   )
 }
