@@ -4,7 +4,7 @@ object Dependencies {
 
   val AkkaHttpVersion                     = "10.2.6"
   val AkkaManagementVersion               = "1.1.2"
-  val AkkaVersion                         = "2.6.16"
+  val AkkaVersion                         = "2.6.18"
   val CirceVersion                        = "0.14.1"
   val LogbackVersion                      = "1.2.10"
   val OpentelemetryVersion                = "1.10.0"
@@ -66,7 +66,7 @@ object Dependencies {
     "io.circe"                      %% "circe-core"                          % CirceVersion,
     "io.circe"                      %% "circe-generic"                       % CirceVersion,
     "io.circe"                      %% "circe-parser"                        % CirceVersion,
-    "de.heikoseeberger"             %% "akka-http-circe"                     % "1.38.2",
+    "de.heikoseeberger"             %% "akka-http-circe"                     % "1.39.2",
     "org.postgresql"                 % "postgresql"                          % PostgresVersion,
     "com.typesafe.slick"            %% "slick"                               % SlickVersion,
     "com.typesafe.slick"            %% "slick-hikaricp"                      % SlickVersion,
