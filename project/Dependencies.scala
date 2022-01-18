@@ -2,7 +2,7 @@ import sbt._
 
 object Dependencies {
 
-  val AkkaHttpVersion                     = "10.2.6"
+  val AkkaHttpVersion                     = "10.2.7"
   val AkkaManagementVersion               = "1.1.2"
   val AkkaVersion                         = "2.6.18"
   val CirceVersion                        = "0.14.1"
@@ -33,8 +33,8 @@ object Dependencies {
   )
 
   val byteBuddy = Seq(
-    "net.bytebuddy" % "byte-buddy"       % "1.11.21",
-    "net.bytebuddy" % "byte-buddy-agent" % "1.11.21"
+    "net.bytebuddy" % "byte-buddy"       % "1.11.22",
+    "net.bytebuddy" % "byte-buddy-agent" % "1.11.22"
   )
 
   val logback = Seq("ch.qos.logback" % "logback-classic" % LogbackVersion)
@@ -66,7 +66,7 @@ object Dependencies {
     "io.circe"                      %% "circe-core"                          % CirceVersion,
     "io.circe"                      %% "circe-generic"                       % CirceVersion,
     "io.circe"                      %% "circe-parser"                        % CirceVersion,
-    "de.heikoseeberger"             %% "akka-http-circe"                     % "1.38.2",
+    "de.heikoseeberger"             %% "akka-http-circe"                     % "1.39.2",
     "org.postgresql"                 % "postgresql"                          % PostgresVersion,
     "com.typesafe.slick"            %% "slick"                               % SlickVersion,
     "com.typesafe.slick"            %% "slick-hikaricp"                      % SlickVersion,
