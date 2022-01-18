@@ -2,16 +2,17 @@ import sbt._
 
 object Dependencies {
 
-  val AkkaHttpVersion             = "10.2.6"
-  val AkkaManagementVersion       = "1.1.2"
-  val AkkaVersion                 = "2.6.16"
-  val CirceVersion                = "0.14.1"
-  val LogbackVersion              = "1.2.6"
-  val OpentelemetryVersion        = "1.7.0"
-  val OpentelemetryMetricsVersion = "1.7.0-alpha"
-  val PostgresVersion             = "42.2.24"
-  val ScalatestVersion            = "3.2.10"
-  val SlickVersion                = "3.3.3"
+  val AkkaHttpVersion                     = "10.2.6"
+  val AkkaManagementVersion               = "1.1.1"
+  val AkkaVersion                         = "2.6.18"
+  val CirceVersion                        = "0.14.1"
+  val LogbackVersion                      = "1.2.10"
+  val OpentelemetryVersion                = "1.10.0"
+  val OpentelemetryMetricsApiVersion      = "1.10.0-alpha-rc.1"
+  val OpentelemetryMetricsExporterVersion = "1.10.0-alpha"
+  val PostgresVersion                     = "42.3.1"
+  val ScalatestVersion                    = "3.2.10"
+  val SlickVersion                        = "3.3.3"
 
   val akka = Seq(
     "com.typesafe.akka" %% "akka-http"                   % AkkaHttpVersion,
@@ -43,7 +44,7 @@ object Dependencies {
   )
 
   val openTelemetryApiMetrics = Seq(
-    "io.opentelemetry" % "opentelemetry-api-metrics" % OpentelemetryMetricsVersion
+    "io.opentelemetry" % "opentelemetry-api-metrics" % OpentelemetryMetricsApiVersion
   )
 
   val akkaTestkit = Seq(
@@ -57,7 +58,7 @@ object Dependencies {
 
   val akkaMultiNodeTestKit = Seq("com.typesafe.akka" %% "akka-multi-node-testkit" % AkkaVersion % Test)
 
-  val slf4jApi = Seq("org.slf4j" % "slf4j-api" % "1.7.32")
+  val slf4jApi = Seq("org.slf4j" % "slf4j-api" % "1.7.33")
 
   val reflection: String => Seq[ModuleID] = version => Seq("org.scala-lang" % "scala-reflect" % version)
 
@@ -74,7 +75,8 @@ object Dependencies {
     "com.lightbend.akka.management" %% "akka-management-cluster-http"        % AkkaManagementVersion,
     "com.lightbend.akka.management" %% "akka-management-cluster-bootstrap"   % AkkaManagementVersion,
     "com.lightbend.akka.discovery"  %% "akka-discovery-kubernetes-api"       % AkkaManagementVersion,
-    "io.opentelemetry"               % "opentelemetry-exporter-otlp-metrics" % OpentelemetryMetricsVersion,
-    "io.grpc"                        % "grpc-netty-shaded"                   % "1.41.0"
+    "io.opentelemetry"               % "opentelemetry-exporter-otlp-metrics" % OpentelemetryMetricsExporterVersion,
+    "io.opentelemetry"               % "opentelemetry-sdk"                   % OpentelemetryVersion,
+    "io.grpc"                        % "grpc-netty-shaded"                   % "1.42.0"
   )
 }

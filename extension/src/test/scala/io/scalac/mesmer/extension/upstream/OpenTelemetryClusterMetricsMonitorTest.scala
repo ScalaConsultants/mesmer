@@ -1,6 +1,5 @@
 package io.scalac.mesmer.extension.upstream
 
-import io.opentelemetry.api.metrics.OpenTelemetryNoopMeter
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
@@ -8,6 +7,7 @@ import io.scalac.mesmer.core.module.AkkaClusterModule
 import io.scalac.mesmer.extension.metric.ClusterMetricsMonitor.Attributes
 import io.scalac.mesmer.extension.metric.MetricObserver.NoopMetricObserver
 import io.scalac.mesmer.extension.upstream.opentelemetry._
+import io.scalac.mesmer.extension.util.OpenTelemetryNoopMeter
 
 class OpenTelemetryClusterMetricsMonitorTest extends AnyFlatSpec with Matchers {
 
