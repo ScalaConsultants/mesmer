@@ -10,11 +10,11 @@ import scala.collection.concurrent.{ Map => CMap }
 import scala.jdk.CollectionConverters._
 
 import io.scalac.mesmer.extension.metric.Counter
+import io.scalac.mesmer.extension.metric.Histogram
 import io.scalac.mesmer.extension.metric.HttpMetricsMonitor
-import io.scalac.mesmer.extension.metric.MetricRecorder
 import io.scalac.mesmer.extension.util.TestProbeSynchronized
 import io.scalac.mesmer.extension.util.probe.BoundTestProbe.CounterCommand
-import io.scalac.mesmer.extension.util.probe.BoundTestProbe.MetricRecorderCommand
+import io.scalac.mesmer.extension.util.probe.BoundTestProbe.HistogramCommand
 
 class HttpMonitorTestProbe(implicit val system: ActorSystem[_]) extends HttpMetricsMonitor {
 
@@ -22,27 +22,28 @@ class HttpMonitorTestProbe(implicit val system: ActorSystem[_]) extends HttpMetr
 
   val globalRequestCounter: TestProbe[CounterCommand] = TestProbe[CounterCommand]()
 
-  private[this] val monitors: CMap[Labels, BoundHttpProbes] = new ConcurrentHashMap[Labels, BoundHttpProbes]().asScala
-  private[this] val _binds: AtomicInteger                   = new AtomicInteger(0)
+  private[this] val monitors: CMap[Attributes, BoundHttpProbes] =
+    new ConcurrentHashMap[Attributes, BoundHttpProbes]().asScala
+  private[this] val _binds: AtomicInteger = new AtomicInteger(0)
 
-  def bind(labels: Labels): BoundHttpProbes = {
+  def bind(attributes: Attributes): BoundHttpProbes = {
     _binds.addAndGet(1)
-    monitors.getOrElseUpdate(labels, createBoundProbes)
+    monitors.getOrElseUpdate(attributes, createBoundProbes)
   }
 
-  def probes(labels: Labels): Option[BoundHttpProbes] = monitors.get(labels)
-  def boundLabels: Set[Labels]                        = monitors.keys.toSet
-  def boundSize: Int                                  = monitors.size
-  def binds: Int                                      = _binds.get()
-  private def createBoundProbes: BoundHttpProbes      = new BoundHttpProbes(TestProbe(), TestProbe())
+  def probes(attributes: Attributes): Option[BoundHttpProbes] = monitors.get(attributes)
+  def boundAttributes: Set[Attributes]                        = monitors.keys.toSet
+  def boundSize: Int                                          = monitors.size
+  def binds: Int                                              = _binds.get()
+  private def createBoundProbes: BoundHttpProbes              = new BoundHttpProbes(TestProbe(), TestProbe())
 
   class BoundHttpProbes(
-    val requestTimeProbe: TestProbe[MetricRecorderCommand],
+    val requestTimeProbe: TestProbe[HistogramCommand],
     val requestCounterProbe: TestProbe[CounterCommand]
   ) extends BoundMonitor
       with TestProbeSynchronized {
 
-    val requestTime: MetricRecorder[Long] with SyncTestProbeWrapper =
+    val requestTime: Histogram[Long] with SyncTestProbeWrapper =
       RecorderTestProbeWrapper(requestTimeProbe)
 
     val requestCounter: Counter[Long] with SyncTestProbeWrapper =

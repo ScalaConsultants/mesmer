@@ -49,28 +49,28 @@ final class OpenTelemetryActorSystemMonitor(
 ) extends ActorSystemMonitor {
 
   private lazy val createdActorsCounter = meter
-    .longCounterBuilder(metricNames.createdActors)
+    .counterBuilder(metricNames.createdActors)
     .setDescription("Amount of actors created measured from Actor System start")
     .build()
 
   private lazy val terminatedActorsCounter = meter
-    .longCounterBuilder(metricNames.terminatedActors)
+    .counterBuilder(metricNames.terminatedActors)
     .setDescription("Amount of actors terminated measured from Actor System start")
     .build()
 
-  override def bind(labels: ActorSystemMonitor.Labels): ActorSystemMonitor.BoundMonitor =
-    new ActorSystemBoundMonitor(labels)
+  override def bind(attributes: ActorSystemMonitor.Attributes): ActorSystemMonitor.BoundMonitor =
+    new ActorSystemBoundMonitor(attributes)
 
-  class ActorSystemBoundMonitor(labels: ActorSystemMonitor.Labels)
+  class ActorSystemBoundMonitor(attributes: ActorSystemMonitor.Attributes)
       extends BoundMonitor
       with RegisterRoot
       with SynchronousInstrumentFactory {
-    private[this] val otLabels = LabelsFactory.of(labels.serialize)
+    private[this] val otAttributes = AttributesFactory.of(attributes.serialize)
 
     lazy val createdActors: Counter[Long] =
-      if (moduleConfig.createdActors) counter(createdActorsCounter, otLabels)(this) else noopCounter
+      if (moduleConfig.createdActors) counter(createdActorsCounter, otAttributes) else noopCounter
 
     lazy val terminatedActors: Counter[Long] =
-      if (moduleConfig.terminatedActors) counter(terminatedActorsCounter, otLabels)(this) else noopCounter
+      if (moduleConfig.terminatedActors) counter(terminatedActorsCounter, otAttributes) else noopCounter
   }
 }

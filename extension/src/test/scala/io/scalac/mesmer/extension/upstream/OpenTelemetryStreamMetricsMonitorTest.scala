@@ -1,15 +1,15 @@
 package io.scalac.mesmer.extension.upstream
 
-import io.opentelemetry.api.metrics.OpenTelemetryNoopMeter
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
 import io.scalac.mesmer.core.module.AkkaStreamModule
 import io.scalac.mesmer.extension.metric.MetricObserver
-import io.scalac.mesmer.extension.metric.StreamMetricsMonitor.EagerLabels
-import io.scalac.mesmer.extension.upstream.opentelemetry.NoopLongValueRecorder
-import io.scalac.mesmer.extension.upstream.opentelemetry.WrappedLongValueRecorder
+import io.scalac.mesmer.extension.metric.StreamMetricsMonitor.EagerAttributes
+import io.scalac.mesmer.extension.upstream.opentelemetry.NoopLongHistogram
+import io.scalac.mesmer.extension.upstream.opentelemetry.WrappedHistogram
 import io.scalac.mesmer.extension.upstream.opentelemetry.WrappedMetricObserver
+import io.scalac.mesmer.extension.util.OpenTelemetryNoopMeter
 
 class OpenTelemetryStreamMetricsMonitorTest extends AnyFlatSpec with Matchers {
 
@@ -22,7 +22,7 @@ class OpenTelemetryStreamMetricsMonitorTest extends AnyFlatSpec with Matchers {
     demand = value
   )
 
-  val testLabels: EagerLabels = EagerLabels(None)
+  val testAttributes: EagerAttributes = EagerAttributes(None)
 
   it should "bind to OpenTelemetry instruments if metric is enabled" in {
 
@@ -32,10 +32,10 @@ class OpenTelemetryStreamMetricsMonitorTest extends AnyFlatSpec with Matchers {
       OpenTelemetryStreamMetricsMonitor.MetricNames.defaultConfig
     )
 
-    val bound = sut.bind(testLabels)
+    val bound = sut.bind(testAttributes)
 
-    bound.runningStreamsTotal should be(a[WrappedLongValueRecorder])
-    bound.streamActorsTotal should be(a[WrappedLongValueRecorder])
+    bound.runningStreamsTotal should be(a[WrappedHistogram])
+    bound.streamActorsTotal should be(a[WrappedHistogram])
     bound.streamProcessedMessages should be(a[WrappedMetricObserver[_, _]])
   }
 
@@ -47,10 +47,10 @@ class OpenTelemetryStreamMetricsMonitorTest extends AnyFlatSpec with Matchers {
       OpenTelemetryStreamMetricsMonitor.MetricNames.defaultConfig
     )
 
-    val bound = sut.bind(testLabels)
+    val bound = sut.bind(testAttributes)
 
-    bound.runningStreamsTotal should be(a[NoopLongValueRecorder.type])
-    bound.streamActorsTotal should be(a[NoopLongValueRecorder.type])
+    bound.runningStreamsTotal should be(a[NoopLongHistogram.type])
+    bound.streamActorsTotal should be(a[NoopLongHistogram.type])
     bound.streamProcessedMessages should be(a[MetricObserver.NoopMetricObserver.type])
   }
 }

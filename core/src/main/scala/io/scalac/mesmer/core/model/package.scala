@@ -37,19 +37,21 @@ package object model {
   type PersistenceId = String @@ PersistenceIdTag
   type ActorPath     = String @@ ActorPathTag
   type ActorKey      = ActorPath
-  type RawLabels     = Seq[(String, String)]
+  type RawAttributes = Seq[(String, String)]
 
-  implicit val nodeLabelSerializer: LabelSerializer[Node]           = node => Seq("node" -> node.unwrap)
-  implicit val interfaceLabelSerializer: LabelSerializer[Interface] = interface => Seq("interface" -> interface.unwrap)
-  implicit val portLabelSerializer: LabelSerializer[Port]           = port => Seq("port" -> port.unwrap.toString)
-  implicit val regionLabelSerializer: LabelSerializer[Region]       = region => Seq("region" -> region.unwrap)
-  implicit val pathLabelSerializer: LabelSerializer[Path]           = path => Seq("path" -> path.unwrap)
-  implicit val statusLabelSerializer: LabelSerializer[Status] = status =>
+  implicit val nodeAttributeSerializer: AttributeSerializer[Node] = node => Seq("node" -> node.unwrap)
+  implicit val interfaceAttributeSerializer: AttributeSerializer[Interface] = interface =>
+    Seq("interface" -> interface.unwrap)
+  implicit val portAttributeSerializer: AttributeSerializer[Port]     = port => Seq("port" -> port.unwrap.toString)
+  implicit val regionAttributeSerializer: AttributeSerializer[Region] = region => Seq("region" -> region.unwrap)
+  implicit val pathAttributeSerializer: AttributeSerializer[Path]     = path => Seq("path" -> path.unwrap)
+  implicit val statusAttributeSerializer: AttributeSerializer[Status] = status =>
     Seq("status" -> status.unwrap, "status_group" -> s"${status.charAt(0)}xx")
 
-  implicit val methodLabelSerializer: LabelSerializer[Method]       = method => Seq("method" -> method.unwrap)
-  implicit val actorPathLabelSerializer: LabelSerializer[ActorPath] = actorPath => Seq("actor_path" -> actorPath.unwrap)
-  implicit val persistenceIdLabelSerializer: LabelSerializer[PersistenceId] = persistenceId =>
+  implicit val methodAttributeSerializer: AttributeSerializer[Method] = method => Seq("method" -> method.unwrap)
+  implicit val actorPathAttributeSerializer: AttributeSerializer[ActorPath] = actorPath =>
+    Seq("actor_path" -> actorPath.unwrap)
+  implicit val persistenceIdAttributeSerializer: AttributeSerializer[PersistenceId] = persistenceId =>
     Seq("persistence_id" -> persistenceId.asInstanceOf[String])
 
   /**
@@ -78,11 +80,12 @@ package object model {
   }
 
   implicit class SerializationOps[T](private val tag: T) extends AnyVal {
-    def serialize(implicit ls: LabelSerializer[T]): RawLabels = ls.serialize(tag)
+    def serialize(implicit ls: AttributeSerializer[T]): RawAttributes = ls.serialize(tag)
   }
 
   implicit class OptionSerializationOps[T](private val optTag: Option[T]) extends AnyVal {
-    def serialize(implicit ls: LabelSerializer[T]): RawLabels = optTag.fold[RawLabels](Seq.empty)(ls.serialize)
+    def serialize(implicit ls: AttributeSerializer[T]): RawAttributes =
+      optTag.fold[RawAttributes](Seq.empty)(ls.serialize)
   }
 
 }

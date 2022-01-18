@@ -4,16 +4,16 @@ import akka.actor.testkit.typed.scaladsl.TestProbe
 import akka.actor.typed.ActorSystem
 
 import io.scalac.mesmer.core.util.probe.ObserverCollector
-import io.scalac.mesmer.extension.metric.ClusterMetricsMonitor.Labels
+import io.scalac.mesmer.extension.metric.ClusterMetricsMonitor.Attributes
 import io.scalac.mesmer.extension.metric._
 import io.scalac.mesmer.extension.util.TestProbeSynchronized
 import io.scalac.mesmer.extension.util.probe.BoundTestProbe._
 
 class ClusterMonitorTestProbe private (
-  val shardPerRegionsProbe: TestProbe[MetricObserverCommand[Labels]],
-  val entityPerRegionProbe: TestProbe[MetricObserverCommand[Labels]],
-  val shardRegionsOnNodeProbe: TestProbe[MetricObserverCommand[Labels]],
-  val entitiesOnNodeProbe: TestProbe[MetricObserverCommand[Labels]],
+  val shardPerRegionsProbe: TestProbe[MetricObserverCommand[Attributes]],
+  val entityPerRegionProbe: TestProbe[MetricObserverCommand[Attributes]],
+  val shardRegionsOnNodeProbe: TestProbe[MetricObserverCommand[Attributes]],
+  val entitiesOnNodeProbe: TestProbe[MetricObserverCommand[Attributes]],
   val reachableNodesProbe: TestProbe[CounterCommand],
   val unreachableNodesProbe: TestProbe[CounterCommand],
   val nodeDownProbe: TestProbe[CounterCommand],
@@ -21,10 +21,10 @@ class ClusterMonitorTestProbe private (
 )(implicit system: ActorSystem[_])
     extends ClusterMetricsMonitor {
 
-  def bind(node: Labels): ClusterMetricsMonitor.BoundMonitor =
+  def bind(node: Attributes): ClusterMetricsMonitor.BoundMonitor =
     new ClusterMetricsMonitor.BoundMonitor with TestProbeSynchronized {
 
-      private type CustomMetricObserver = MetricObserver[Long, Labels] with AsyncTestProbe[_]
+      private type CustomMetricObserver = MetricObserver[Long, Attributes] with AsyncTestProbe[_]
 
       val shardPerRegions: CustomMetricObserver = ObserverTestProbeWrapper(shardPerRegionsProbe, collector)
 
@@ -57,10 +57,10 @@ class ClusterMonitorTestProbe private (
 
 object ClusterMonitorTestProbe {
   def apply(collector: ObserverCollector)(implicit system: ActorSystem[_]): ClusterMonitorTestProbe = {
-    val shardPerRegionsProbe    = TestProbe[MetricObserverCommand[Labels]]("shardPerRegionsProbe")
-    val entityPerRegionProbe    = TestProbe[MetricObserverCommand[Labels]]("entityPerRegionProbe")
-    val shardRegionsOnNodeProbe = TestProbe[MetricObserverCommand[Labels]]("shardRegionsOnNodeProbe")
-    val entitiesOnNodeProbe     = TestProbe[MetricObserverCommand[Labels]]("entitiesOnNodeProbe")
+    val shardPerRegionsProbe    = TestProbe[MetricObserverCommand[Attributes]]("shardPerRegionsProbe")
+    val entityPerRegionProbe    = TestProbe[MetricObserverCommand[Attributes]]("entityPerRegionProbe")
+    val shardRegionsOnNodeProbe = TestProbe[MetricObserverCommand[Attributes]]("shardRegionsOnNodeProbe")
+    val entitiesOnNodeProbe     = TestProbe[MetricObserverCommand[Attributes]]("entitiesOnNodeProbe")
     val reachableNodesProbe     = TestProbe[CounterCommand]("reachableNodesProbe")
     val unreachableNodesProbe   = TestProbe[CounterCommand]("unreachableNodesProbe")
     val nodeDownProbe           = TestProbe[CounterCommand]("nodeDownProbe")
