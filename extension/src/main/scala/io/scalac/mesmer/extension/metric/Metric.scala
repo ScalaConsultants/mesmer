@@ -8,7 +8,7 @@ import io.scalac.mesmer.extension.metric.SyncWith.UpdaterPair
 
 sealed trait Metric[-T]
 
-trait MetricRecorder[-T] extends Metric[T] {
+trait Histogram[-T] extends Metric[T] {
   def setValue(value: T): Unit
 }
 
