@@ -65,7 +65,7 @@ final class OpenTelemetryHttpConnectionMetricsMonitor(
 
     lazy val connections: UpDownCounter[Long] with Instrument[Long] =
       if (moduleConfig.connections)
-        upDownCounter(connectionTotalCounter, otAttributes).register(this)
+        upDownCounter(connectionTotalCounter, otAttributes)
       else
         noopUpDownCounter
   }

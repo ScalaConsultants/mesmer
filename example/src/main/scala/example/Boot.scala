@@ -16,6 +16,7 @@ import example.api.AccountRoutes
 import example.domain.AccountStateActor
 import example.domain.JsonCodecs
 import io.opentelemetry.exporter.otlp.metrics.OtlpGrpcMetricExporter
+import io.opentelemetry.sdk.OpenTelemetrySdk
 import io.opentelemetry.sdk.metrics.SdkMeterProvider
 import io.opentelemetry.sdk.metrics.export.PeriodicMetricReader
 import org.slf4j.Logger
@@ -46,11 +47,19 @@ object Boot extends App with FailFastCirceSupport with JsonCodecs {
 
     val metricExporter: OtlpGrpcMetricExporter = OtlpGrpcMetricExporter.getDefault
 
-    val factory = PeriodicMetricReader.create(metricExporter, exportInterval.toJava)
+    val factory = PeriodicMetricReader
+      .builder(metricExporter)
+      .setInterval(exportInterval.toJava)
+      .newMetricReaderFactory()
 
     val meterProvider: SdkMeterProvider = SdkMeterProvider
       .builder()
       .registerMetricReader(factory)
+      .build()
+
+    OpenTelemetrySdk
+      .builder()
+      .setMeterProvider(meterProvider)
       .buildAndRegisterGlobal()
 
     sys.addShutdownHook(meterProvider.shutdown())
