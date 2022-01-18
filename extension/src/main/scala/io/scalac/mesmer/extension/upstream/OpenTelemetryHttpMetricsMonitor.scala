@@ -7,8 +7,8 @@ import io.opentelemetry.api.metrics.Meter
 import io.scalac.mesmer.core.config.MesmerConfiguration
 import io.scalac.mesmer.core.module.AkkaHttpModule
 import io.scalac.mesmer.extension.metric.Counter
+import io.scalac.mesmer.extension.metric.Histogram
 import io.scalac.mesmer.extension.metric.HttpMetricsMonitor
-import io.scalac.mesmer.extension.metric.MetricRecorder
 import io.scalac.mesmer.extension.metric.RegisterRoot
 import io.scalac.mesmer.extension.upstream.OpenTelemetryHttpMetricsMonitor.MetricNames
 import io.scalac.mesmer.extension.upstream.opentelemetry._
@@ -78,12 +78,12 @@ final class OpenTelemetryHttpMetricsMonitor(
 
     protected val otAttributes: common.Attributes = AttributesFactory.of(attributes.serialize)
 
-    lazy val requestTime: MetricRecorder[Long] with Instrument[Long] =
-      if (moduleConfig.requestTime) metricRecorder(requestTimeRequest, otAttributes).register(this)
-      else noopMetricRecorder[Long]
+    lazy val requestTime: Histogram[Long] with Instrument[Long] =
+      if (moduleConfig.requestTime) histogram(requestTimeRequest, otAttributes)
+      else noopHistogram[Long]
 
     lazy val requestCounter: Counter[Long] with Instrument[Long] =
-      if (moduleConfig.requestCounter) counter(requestTotalCounter, otAttributes).register(this) else noopCounter[Long]
+      if (moduleConfig.requestCounter) counter(requestTotalCounter, otAttributes) else noopCounter[Long]
 
   }
 }

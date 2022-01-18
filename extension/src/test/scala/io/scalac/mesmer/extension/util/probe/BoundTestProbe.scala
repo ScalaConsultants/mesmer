@@ -4,17 +4,17 @@ import akka.actor.testkit.typed.scaladsl.TestProbe
 
 import io.scalac.mesmer.core.util.probe.ObserverCollector
 import io.scalac.mesmer.extension.metric.Counter
+import io.scalac.mesmer.extension.metric.Histogram
 import io.scalac.mesmer.extension.metric.MetricObserver
 import io.scalac.mesmer.extension.metric.MetricObserver.Updater
-import io.scalac.mesmer.extension.metric.MetricRecorder
 import io.scalac.mesmer.extension.metric.UpDownCounter
 import io.scalac.mesmer.extension.util.probe.BoundTestProbe._
 
 object BoundTestProbe {
 
-  sealed trait MetricRecorderCommand
+  sealed trait HistogramCommand
 
-  final case class MetricRecorded(value: Long) extends MetricRecorderCommand
+  final case class MetricRecorded(value: Long) extends HistogramCommand
 
   sealed trait CounterCommand
 
@@ -55,12 +55,12 @@ case class UpDownCounterTestProbeWrapper(
   }
 }
 
-case class RecorderTestProbeWrapper(private val _probe: TestProbe[MetricRecorderCommand])
+case class RecorderTestProbeWrapper(private val _probe: TestProbe[HistogramCommand])
     extends SyncTestProbeWrapper
-    with MetricRecorder[Long] {
-  type Cmd = MetricRecorderCommand
+    with Histogram[Long] {
+  type Cmd = HistogramCommand
 
-  def probe: TestProbe[MetricRecorderCommand] = _probe
+  def probe: TestProbe[HistogramCommand] = _probe
 
   def setValue(value: Long): Unit = _probe.ref ! MetricRecorded(value)
 }

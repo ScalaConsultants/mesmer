@@ -1,8 +1,9 @@
-package io.opentelemetry.api.metrics
+package io.scalac.mesmer.extension.util
 
-import io.opentelemetry.api.metrics.internal.NoopMeterProvider
+import io.opentelemetry.api.metrics.Meter
+import io.opentelemetry.api.metrics.MeterProvider
 
 object OpenTelemetryNoopMeter {
 
-  lazy val instance: Meter = NoopMeterProvider.getInstance().meterBuilder("tests").build()
+  lazy val instance: Meter = MeterProvider.noop().meterBuilder("tests").build()
 }
