@@ -10,11 +10,11 @@ import scala.collection.concurrent.{ Map => CMap }
 import scala.jdk.CollectionConverters._
 
 import io.scalac.mesmer.extension.metric.Counter
+import io.scalac.mesmer.extension.metric.Histogram
 import io.scalac.mesmer.extension.metric.HttpMetricsMonitor
-import io.scalac.mesmer.extension.metric.MetricRecorder
 import io.scalac.mesmer.extension.util.TestProbeSynchronized
 import io.scalac.mesmer.extension.util.probe.BoundTestProbe.CounterCommand
-import io.scalac.mesmer.extension.util.probe.BoundTestProbe.MetricRecorderCommand
+import io.scalac.mesmer.extension.util.probe.BoundTestProbe.HistogramCommand
 
 class HttpMonitorTestProbe(implicit val system: ActorSystem[_]) extends HttpMetricsMonitor {
 
@@ -38,12 +38,12 @@ class HttpMonitorTestProbe(implicit val system: ActorSystem[_]) extends HttpMetr
   private def createBoundProbes: BoundHttpProbes              = new BoundHttpProbes(TestProbe(), TestProbe())
 
   class BoundHttpProbes(
-    val requestTimeProbe: TestProbe[MetricRecorderCommand],
+    val requestTimeProbe: TestProbe[HistogramCommand],
     val requestCounterProbe: TestProbe[CounterCommand]
   ) extends BoundMonitor
       with TestProbeSynchronized {
 
-    val requestTime: MetricRecorder[Long] with SyncTestProbeWrapper =
+    val requestTime: Histogram[Long] with SyncTestProbeWrapper =
       RecorderTestProbeWrapper(requestTimeProbe)
 
     val requestCounter: Counter[Long] with SyncTestProbeWrapper =
