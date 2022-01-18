@@ -10,11 +10,11 @@ import scala.collection.concurrent.{ Map => CMap }
 import scala.jdk.CollectionConverters._
 
 import io.scalac.mesmer.extension.metric.Counter
-import io.scalac.mesmer.extension.metric.MetricRecorder
+import io.scalac.mesmer.extension.metric.Histogram
 import io.scalac.mesmer.extension.metric.PersistenceMetricsMonitor
 import io.scalac.mesmer.extension.metric.PersistenceMetricsMonitor.Attributes
 import io.scalac.mesmer.extension.util.probe.BoundTestProbe.CounterCommand
-import io.scalac.mesmer.extension.util.probe.BoundTestProbe.MetricRecorderCommand
+import io.scalac.mesmer.extension.util.probe.BoundTestProbe.HistogramCommand
 
 trait BindCounter {
   private[this] val _binds: AtomicInteger = new AtomicInteger(0)
@@ -65,19 +65,19 @@ class PersistenceMonitorTestProbe(implicit val system: ActorSystem[_])
     new BoundPersistenceProbes(TestProbe(), TestProbe(), TestProbe(), TestProbe(), TestProbe())
 
   class BoundPersistenceProbes(
-    val recoveryTimeProbe: TestProbe[MetricRecorderCommand],
+    val recoveryTimeProbe: TestProbe[HistogramCommand],
     val recoveryTotalProbe: TestProbe[CounterCommand],
-    val persistentEventProbe: TestProbe[MetricRecorderCommand],
+    val persistentEventProbe: TestProbe[HistogramCommand],
     val persistentEventTotalProbe: TestProbe[CounterCommand],
     val snapshotProbe: TestProbe[CounterCommand]
   ) extends PersistenceMetricsMonitor.BoundMonitor {
-    def recoveryTime: SyncTestProbeWrapper with MetricRecorder[Long] =
+    def recoveryTime: SyncTestProbeWrapper with Histogram[Long] =
       RecorderTestProbeWrapper(recoveryTimeProbe)
 
     def recoveryTotal: SyncTestProbeWrapper with Counter[Long] =
       UpDownCounterTestProbeWrapper(recoveryTotalProbe, Some(globalCounter))
 
-    def persistentEvent: SyncTestProbeWrapper with MetricRecorder[Long] =
+    def persistentEvent: SyncTestProbeWrapper with Histogram[Long] =
       RecorderTestProbeWrapper(persistentEventProbe)
 
     def persistentEventTotal: SyncTestProbeWrapper with Counter[Long] =

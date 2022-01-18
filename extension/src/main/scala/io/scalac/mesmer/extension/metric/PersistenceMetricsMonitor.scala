@@ -11,9 +11,9 @@ object PersistenceMetricsMonitor {
   }
 
   trait BoundMonitor extends Bound with AkkaPersistenceModule.Metrics[Metric[Long]] {
-    def recoveryTime: MetricRecorder[Long]
+    def recoveryTime: Histogram[Long]
     def recoveryTotal: Counter[Long]
-    def persistentEvent: MetricRecorder[Long]
+    def persistentEvent: Histogram[Long]
     def persistentEventTotal: Counter[Long]
     def snapshot: Counter[Long]
   }

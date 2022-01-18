@@ -7,8 +7,8 @@ object Dependencies {
   val AkkaVersion                 = "2.6.16"
   val CirceVersion                = "0.14.1"
   val LogbackVersion              = "1.2.6"
-  val OpentelemetryVersion        = "1.7.0"
-  val OpentelemetryMetricsVersion = "1.7.0-alpha"
+  val OpentelemetryVersion        = "1.10.0"
+  val OpentelemetryMetricsVersion = "1.10.0-alpha-rc.1"
   val PostgresVersion             = "42.2.24"
   val ScalatestVersion            = "3.2.10"
   val SlickVersion                = "3.3.3"
@@ -57,7 +57,7 @@ object Dependencies {
 
   val akkaMultiNodeTestKit = Seq("com.typesafe.akka" %% "akka-multi-node-testkit" % AkkaVersion % Test)
 
-  val slf4jApi = Seq("org.slf4j" % "slf4j-api" % "1.7.32")
+  val slf4jApi = Seq("org.slf4j" % "slf4j-api" % "1.7.33")
 
   val reflection: String => Seq[ModuleID] = version => Seq("org.scala-lang" % "scala-reflect" % version)
 
@@ -75,6 +75,7 @@ object Dependencies {
     "com.lightbend.akka.management" %% "akka-management-cluster-bootstrap"   % AkkaManagementVersion,
     "com.lightbend.akka.discovery"  %% "akka-discovery-kubernetes-api"       % AkkaManagementVersion,
     "io.opentelemetry"               % "opentelemetry-exporter-otlp-metrics" % OpentelemetryMetricsVersion,
+    "io.opentelemetry"               % "opentelemetry-sdk"                   % OpentelemetryVersion,
     "io.grpc"                        % "grpc-netty-shaded"                   % "1.41.0"
   )
 }
