@@ -1,20 +1,20 @@
 package io.scalac.mesmer.extension.upstream
 
-import io.opentelemetry.api.metrics.OpenTelemetryNoopMeter
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
 import io.scalac.mesmer.core.module.AkkaHttpModule
-import io.scalac.mesmer.extension.metric.HttpMetricsMonitor.Labels
+import io.scalac.mesmer.extension.metric.HttpMetricsMonitor.Attributes
 import io.scalac.mesmer.extension.upstream.opentelemetry.NoopCounter
-import io.scalac.mesmer.extension.upstream.opentelemetry.NoopLongValueRecorder
+import io.scalac.mesmer.extension.upstream.opentelemetry.NoopLongHistogram
 import io.scalac.mesmer.extension.upstream.opentelemetry.WrappedCounter
-import io.scalac.mesmer.extension.upstream.opentelemetry.WrappedLongValueRecorder
+import io.scalac.mesmer.extension.upstream.opentelemetry.WrappedHistogram
+import io.scalac.mesmer.extension.util.OpenTelemetryNoopMeter
 
 class OpenTelemetryHttpMetricsMonitorTest extends AnyFlatSpec with Matchers {
   behavior of "OpenTelemetryHttpConnectionMetricsMonitor"
 
-  val TestLabels: Labels = Labels(None, "/test", "GET", "200")
+  val TestLabels: Attributes = Attributes(None, "/test", "GET", "200")
 
   private def config(value: Boolean) = AkkaHttpModule.Impl(
     requestTime = value,
@@ -31,7 +31,7 @@ class OpenTelemetryHttpMetricsMonitorTest extends AnyFlatSpec with Matchers {
 
     val bound = sut.bind(TestLabels)
 
-    bound.requestTime should be(a[WrappedLongValueRecorder])
+    bound.requestTime should be(a[WrappedHistogram])
     bound.requestCounter should be(a[WrappedCounter])
 
   }
@@ -44,7 +44,7 @@ class OpenTelemetryHttpMetricsMonitorTest extends AnyFlatSpec with Matchers {
     )
 
     val bound = sut.bind(TestLabels)
-    bound.requestTime should be(a[NoopLongValueRecorder.type])
+    bound.requestTime should be(a[NoopLongHistogram.type])
     bound.requestCounter should be(a[NoopCounter.type])
   }
 }
