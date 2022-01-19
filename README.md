@@ -123,7 +123,7 @@ Before contributing, please setup the following:
 
 1. Copy the `./githooks/pre-commit` file to your local `.git/hooks/` directory. Please make sure that the hook is marked
    as executable.
-2. if you're using IntelijIdea: 
+2. if you're using IntelliJ Idea: 
    - go to Preferences -> Editor -> Code Style -> Scala and select "Scalafmt" as the formatter
    - in the same section, mark "Reformat on file save" as checked and apply the new settings
 
