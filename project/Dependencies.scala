@@ -74,7 +74,6 @@ object Dependencies {
     "com.lightbend.akka.management" %% "akka-management"                     % AkkaManagementVersion,
     "com.lightbend.akka.management" %% "akka-management-cluster-http"        % AkkaManagementVersion,
     "com.lightbend.akka.management" %% "akka-management-cluster-bootstrap"   % AkkaManagementVersion,
-    "com.lightbend.akka.discovery"  %% "akka-discovery-kubernetes-api"       % AkkaManagementVersion,
     "io.opentelemetry"               % "opentelemetry-exporter-otlp-metrics" % OpentelemetryMetricsExporterVersion,
     "io.opentelemetry"               % "opentelemetry-sdk"                   % OpentelemetryVersion,
     "io.grpc"                        % "grpc-netty-shaded"                   % "1.43.2"
