@@ -117,6 +117,16 @@ See [overview](https://github.com/ScalaConsultants/mesmer-akka-agent/blob/main/e
 `example` subproject contains a test application that uses Akka Cluster sharding with Mesmer Akka Agent extension.
 Go [here](example/README.md) for more information.
 
+# Contributor setup
+
+Before contributing, please setup the following:
+
+1. Copy the `./githooks/pre-commit` file to your local `.git/hooks/` directory. Please make sure that the hook is marked
+   as executable.
+2. if you're using IntelijIdea: 
+   - go to Preferences -> Editor -> Code Style -> Scala and select "Scalafmt" as the formatter
+   - in the same section, mark "Reformat on file save" as checked and apply the new settings
+
 [Badge-CI]: https://github.com/ScalaConsultants/mesmer-akka-agent/workflows/Scala%20CI/badge.svg
 
 [badge-releases]: https://img.shields.io/nexus/r/https/oss.sonatype.org/io.scalac/mesmer-akka-extension_2.13 "Sonatype Releases"
