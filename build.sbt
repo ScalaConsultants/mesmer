@@ -112,7 +112,7 @@ lazy val agent = (project in file("agent"))
   )
 
 lazy val example = (project in file("example"))
-  .enablePlugins(JavaAppPackaging, DockerPlugin, UniversalPlugin)
+  .enablePlugins(JavaAppPackaging, UniversalPlugin)
   .settings(
     name           := "mesmer-akka-example",
     publish / skip := true,
@@ -141,20 +141,7 @@ lazy val example = (project in file("example"))
     Universal / mappings += {
       val jar = (agent / assembly).value
       jar -> "mesmer.agent.jar"
-    },
-    dockerExposedPorts ++= Seq(8080),
-    Docker / dockerRepository := {
-      sys.env.get("DOCKER_REPO")
-    },
-    Docker / dockerRepository := {
-      sys.env.get("DOCKER_USER")
-    },
-    Docker / packageName := {
-      val old = (Docker / packageName).value
-      sys.env.getOrElse("DOCKER_PACKAGE_NAME", old)
-    },
-    Docker / version   := version.value.takeWhile(_ != '+'), // drop the snapshot part (eg. 0.1.1+553-b4ee8e44-SNAPSHOT)
-    dockerUpdateLatest := true
+    }
   )
   .dependsOn(extension)
 
