@@ -5,8 +5,8 @@ inThisBuild(
   List(
     scalaVersion := "2.13.8",
     organization := "io.scalac",
-    homepage := Some(url("https://github.com/ScalaConsultants/mesmer-akka-agent")),
-    licenses := List("Apache-2.0" -> url("http://www.apache.org/licenses/LICENSE-2.0")),
+    homepage     := Some(url("https://github.com/ScalaConsultants/mesmer-akka-agent")),
+    licenses     := List("Apache-2.0" -> url("http://www.apache.org/licenses/LICENSE-2.0")),
     developers := List(
       Developer(
         "jczuchnowski",
@@ -26,7 +26,7 @@ inThisBuild(
     semanticdbVersion := scalafixSemanticdb.revision,
     scalacOptions += "-Wunused:imports",
     scalafixDependencies += "com.github.liancheng" %% "organize-imports" % "0.6.0",
-    scalafixScalaBinaryVersion := "2.13"
+    scalafixScalaBinaryVersion                     := "2.13"
   )
 )
 
@@ -36,7 +36,7 @@ addCommandAlias("check", "scalafixAll --check; scalafmtCheckAll")
 lazy val all = (project in file("."))
   .disablePlugins(sbtassembly.AssemblyPlugin)
   .settings(
-    name := "mesmer-all",
+    name           := "mesmer-all",
     publish / skip := true
   )
   .aggregate(extension, agent, example, core)
@@ -60,7 +60,7 @@ lazy val extension = (project in file("extension"))
   .configs(MultiJvm)
   .settings(
     Test / parallelExecution := true,
-    name := "mesmer-akka-extension",
+    name                     := "mesmer-akka-extension",
     libraryDependencies ++= {
       akka ++
       openTelemetryApi ++
@@ -93,11 +93,11 @@ lazy val agent = (project in file("agent"))
         case other => other
       }
     },
-    assembly / test := {},
+    assembly / test            := {},
     assembly / assemblyJarName := "mesmer-akka-agent.jar",
     assembly / assemblyOption ~= { _.withIncludeScala(false) },
     assemblyMergeStrategySettings,
-    Test / fork := true,
+    Test / fork              := true,
     Test / parallelExecution := true,
     Test / testGrouping := ((Test / testGrouping).value flatMap { group =>
       group.tests.map { test =>
@@ -112,9 +112,9 @@ lazy val agent = (project in file("agent"))
   )
 
 lazy val example = (project in file("example"))
-  .enablePlugins(JavaAppPackaging, DockerPlugin, UniversalPlugin)
+  .enablePlugins(JavaAppPackaging, UniversalPlugin)
   .settings(
-    name := "mesmer-akka-example",
+    name           := "mesmer-akka-example",
     publish / skip := true,
     libraryDependencies ++= {
       akka ++
@@ -125,7 +125,7 @@ lazy val example = (project in file("example"))
       exampleDependencies
     },
     assemblyMergeStrategySettings,
-    assembly / mainClass := Some("io.scalac.Boot"),
+    assembly / mainClass       := Some("io.scalac.Boot"),
     assembly / assemblyJarName := "mesmer-akka-example.jar",
     resolvers += "Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots",
     run / fork := true,
@@ -141,23 +141,7 @@ lazy val example = (project in file("example"))
     Universal / mappings += {
       val jar = (agent / assembly).value
       jar -> "mesmer.agent.jar"
-    },
-    dockerEnvVars := {
-      Map("JAVA_OPTS" -> s"-javaagent:/opt/docker/mesmer.agent.jar -Dconfig.resource=dev/application.conf")
-    },
-    dockerExposedPorts ++= Seq(8080),
-    Docker / dockerRepository := {
-      sys.env.get("DOCKER_REPO")
-    },
-    Docker / dockerRepository := {
-      sys.env.get("DOCKER_USER")
-    },
-    Docker / packageName := {
-      val old = (Docker / packageName).value
-      sys.env.getOrElse("DOCKER_PACKAGE_NAME", old)
-    },
-    Docker / version := version.value.takeWhile(_ != '+'), //drop the snapshot part (eg. 0.1.1+553-b4ee8e44-SNAPSHOT)
-    dockerUpdateLatest := true
+    }
   )
   .dependsOn(extension)
 
@@ -190,17 +174,14 @@ lazy val benchmark = (project in file("benchmark"))
 
 def runWithAgent = Command.command("runWithAgent") { state =>
   val extracted = Project extract state
-  val newState =
-    extracted.appendWithSession(
-      Seq(
-        run / javaOptions ++= Seq(
-          "-Denv=local",
-          "-Dconfig.resource=local/application.conf",
-          s"-javaagent:${(agent / assembly).value.absolutePath}"
-        )
-      ),
-      state
-    )
+  val newState = extracted.appendWithSession(
+    Seq(
+      run / javaOptions ++= Seq(
+        s"-javaagent:${(agent / assembly).value.absolutePath}"
+      )
+    ),
+    state
+  )
   val (s, _) =
     Project.extract(newState).runInputTask(Compile / run, "", newState)
   s

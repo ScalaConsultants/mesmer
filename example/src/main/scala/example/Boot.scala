@@ -6,7 +6,6 @@ import akka.cluster.sharding.typed.scaladsl.ClusterSharding
 import akka.cluster.sharding.typed.scaladsl.Entity
 import akka.cluster.sharding.typed.scaladsl.EntityTypeKey
 import akka.http.scaladsl.Http
-import akka.management.cluster.bootstrap.ClusterBootstrap
 import akka.management.scaladsl.AkkaManagement
 import akka.util.Timeout
 import com.typesafe.config.ConfigFactory
@@ -65,10 +64,9 @@ object Boot extends App with FailFastCirceSupport with JsonCodecs {
     sys.addShutdownHook(meterProvider.shutdown())
   }
 
-  def startUp(local: Boolean): Unit = {
-    val baseConfig =
-      if (local) ConfigFactory.load("local/application")
-      else ConfigFactory.load()
+  def startUp(): Unit = {
+    logger.info("Starting application with static seed nodes")
+    val baseConfig = ConfigFactory.load()
 
     val config =
       baseConfig
@@ -96,11 +94,6 @@ object Boot extends App with FailFastCirceSupport with JsonCodecs {
       case Failure(exception) => logger.error("Couldn't start Akka Management", exception)
     }
 
-    if (!local) {
-      logger.info("Starting Akka Cluster")
-      ClusterBootstrap(system).start()
-    }
-
     val entity = EntityTypeKey[AccountStateActor.Command]("accounts")
 
     val accountsShards = ClusterSharding(system)
@@ -126,11 +119,5 @@ object Boot extends App with FailFastCirceSupport with JsonCodecs {
     }
   }
 
-  val local: Boolean = sys.props.get("env").exists(_.toLowerCase() == "local")
-  if (local) {
-    logger.info("Starting application with static seed nodes")
-  } else {
-    logger.info("Staring application with ClusterBootstrap")
-  }
-  startUp(local)
+  startUp()
 }
