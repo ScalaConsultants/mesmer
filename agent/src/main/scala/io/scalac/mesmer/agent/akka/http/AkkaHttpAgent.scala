@@ -6,6 +6,7 @@ import io.scalac.mesmer.core.akka._
 import io.scalac.mesmer.core.model.Version
 import io.scalac.mesmer.core.module.AkkaHttpModule
 import io.scalac.mesmer.core.module.AkkaHttpModule._
+import io.scalac.mesmer.instrumentations.akka.http.HttpExtRequestsAdvice
 
 object AkkaHttpAgent
     extends InstrumentModuleFactory(AkkaHttpModule)

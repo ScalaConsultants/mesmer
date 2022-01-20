@@ -1,4 +1,4 @@
-package io.scalac.mesmer.agent.akka.http;
+package io.scalac.mesmer.instrumentations.akka.http;
 
 import akka.http.scaladsl.HttpExt;
 import akka.http.scaladsl.model.HttpRequest;

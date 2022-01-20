@@ -1,17 +1,10 @@
-package io.scalac.mesmer.agent.akka.http
+package io.scalac.mesmer.instrumentations.akka.http
 
-import _root_.akka.http.scaladsl.model.HttpRequest
-import _root_.akka.http.scaladsl.model.HttpResponse
+import _root_.akka.http.scaladsl.model.{ HttpRequest, HttpResponse }
 import _root_.akka.stream.BidiShape
 import akka.actor.typed.scaladsl.adapter._
 import akka.http.scaladsl.HttpExt
-import akka.stream.scaladsl.BidiFlow
-import akka.stream.scaladsl.Broadcast
-import akka.stream.scaladsl.Flow
-import akka.stream.scaladsl.GraphDSL
-import akka.stream.scaladsl.Source
-import akka.stream.scaladsl.Zip
-
+import akka.stream.scaladsl.{ BidiFlow, Broadcast, Flow, GraphDSL, Source, Zip }
 import io.scalac.mesmer.core.akka.stream.BidiFlowForward
 import io.scalac.mesmer.core.event.EventBus
 import io.scalac.mesmer.core.event.HttpEvent._
@@ -29,7 +22,7 @@ object HttpInstrumentation {
         .append(prefix)
         .append(id)
         .toString()
-      id += 1L // TODO check for overflow
+      id += 1L
       value
     }
   }
@@ -39,7 +32,7 @@ object HttpInstrumentation {
     self: HttpExt
   ): Flow[HttpRequest, HttpResponse, Any] = {
 
-    val system = self.asInstanceOf[HttpExt].system.toTyped
+    val system = self.system.toTyped
 
     val requestIdFlow =
       BidiFlow.fromGraph[HttpRequest, HttpRequest, HttpResponse, HttpResponse, Any](GraphDSL.create() {
@@ -98,7 +91,7 @@ object HttpInstrumentation {
     self: HttpExt
   ): Flow[HttpRequest, HttpResponse, Any] = {
 
-    val system = self.asInstanceOf[HttpExt].system.toTyped
+    val system = self.system.toTyped
 
     val connectionsCountFlow = BidiFlowForward[HttpRequest, HttpResponse](
       onPreStart = () => EventBus(system).publishEvent(ConnectionStarted(interface, port)),

@@ -108,14 +108,19 @@ lazy val agent = (project in file("agent"))
   )
   .settings(addArtifact(Compile / assembly / artifact, assembly).settings: _*)
   .dependsOn(
-    core % "provided->compile;test->test"
+    core % "provided->compile;test->test",
+    instrumentations
   )
-
 
 lazy val instrumentations = (project in file("instrumentations"))
   .settings(
-    name := "mesmer-instrumentations"
+    name := "mesmer-instrumentations",
+    libraryDependencies ++= {
+      akka ++
+      byteBuddy
+    }
   )
+  .dependsOn(core % "provided->compile;test->test")
 
 lazy val example = (project in file("example"))
   .enablePlugins(JavaAppPackaging, UniversalPlugin)
