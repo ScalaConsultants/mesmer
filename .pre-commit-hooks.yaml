@@ -1,0 +1,8 @@
+- id: sbt-fix-formatting
+  name: Scala formatting fix
+  language: system
+  always_run: true
+  pass_filenames: false
+  verbose: true
+  entry: sbt
+  args: [fmt]

@@ -1,11 +1,11 @@
 receivers:
   otlp:
     protocols:
-        grpc:
+      grpc:
 
 exporters:
   prometheus:
-    endpoint: "0.0.0.0:8889"
+    endpoint: 0.0.0.0:8889
     namespace: promexample
   logging:
     loglevel: info
@@ -27,4 +27,3 @@ service:
       receivers: [otlp]
       processors: [batch]
       exporters: [prometheus]
-      

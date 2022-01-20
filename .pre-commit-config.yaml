@@ -1,0 +1,31 @@
+repos:
+- repo: https://github.com/pre-commit/pre-commit-hooks
+  rev: v4.1.0
+  hooks:
+  - id: check-yaml
+  - id: check-json
+  - id: check-xml
+  - id: detect-private-key
+  - id: end-of-file-fixer
+  - id: no-commit-to-branch
+    args: [--branch, main]
+  - id: trailing-whitespace
+  - id: check-shebang-scripts-are-executable
+  - id: pretty-format-json
+    args: [--autofix]
+  - id: trailing-whitespace
+- repo: https://github.com/macisamuele/language-formatters-pre-commit-hooks
+  rev: v2.2.0
+  hooks:
+  - id: pretty-format-java
+    args: [--autofix]
+  - id: pretty-format-yaml
+    args: [--autofix]
+- repo: https://github.com/sqlfluff/sqlfluff.git
+  rev: 0.9.1
+  hooks:
+  - id: sqlfluff-lint
+- repo: https://github.com/ScalaConsultants/mesmer-akka-agent
+  rev: v0.5.1
+  hooks:
+  - id: sbt-fix-formatting

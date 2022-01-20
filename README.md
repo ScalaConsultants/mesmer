@@ -119,13 +119,11 @@ Go [here](example/README.md) for more information.
 
 # Contributor setup
 
-Before contributing, please setup the following:
-
-1. Copy the `./githooks/pre-commit` file to your local `.git/hooks/` directory. Please make sure that the hook is marked
-   as executable.
-2. if you're using IntelliJ Idea: 
-   - go to Preferences -> Editor -> Code Style -> Scala and select "Scalafmt" as the formatter
-   - in the same section, mark "Reformat on file save" as checked and apply the new settings
+1. Install [pre-commit](https://pre-commit.com/)
+2. Run `pre-commit install`
+3. If you're using Intelij Idea:
+    - Download "google-java-format" plugin and use it
+    - Go to "Editor" -> "Code Style" -> "YAML". Uncheck "Indent sequence value" and "Brackets" (in the "Spaces" menu)
 
 [Badge-CI]: https://github.com/ScalaConsultants/mesmer-akka-agent/workflows/Scala%20CI/badge.svg
 
