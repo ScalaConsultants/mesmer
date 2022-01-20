@@ -7,9 +7,10 @@ import akka.stream.scaladsl.Flow;
 import net.bytebuddy.asm.Advice;
 
 public class HttpExtRequestsAdvice {
-    @Advice.OnMethodEnter
-    public static void bindAndHandle(@Advice.Argument(value = 0, readOnly = false) Flow<HttpRequest, HttpResponse, Object> handler,
-                                     @Advice.This Object self) {
-        handler = HttpInstrumentation.bindAndHandleRequestImpl(handler, (HttpExt) self);
-    }
+  @Advice.OnMethodEnter
+  public static void bindAndHandle(
+      @Advice.Argument(value = 0, readOnly = false) Flow<HttpRequest, HttpResponse, Object> handler,
+      @Advice.This Object self) {
+    handler = HttpInstrumentation.bindAndHandleRequestImpl(handler, (HttpExt) self);
+  }
 }

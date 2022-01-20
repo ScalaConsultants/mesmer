@@ -5,8 +5,9 @@ import net.bytebuddy.asm.Advice;
 
 public class ActorCellInitAdvice {
 
-    @Advice.OnMethodEnter
-    public static void initActorCell(@Advice.FieldValue(value = "_actorCellMetrics", readOnly = false) ActorCellMetrics metrics) {
-        metrics = new ActorCellMetrics();
-    }
+  @Advice.OnMethodEnter
+  public static void initActorCell(
+      @Advice.FieldValue(value = "_actorCellMetrics", readOnly = false) ActorCellMetrics metrics) {
+    metrics = new ActorCellMetrics();
+  }
 }
