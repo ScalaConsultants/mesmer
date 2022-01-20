@@ -111,6 +111,12 @@ lazy val agent = (project in file("agent"))
     core % "provided->compile;test->test"
   )
 
+
+lazy val instrumentations = (project in file("instrumentations"))
+  .settings(
+    name := "mesmer-instrumentations"
+  )
+
 lazy val example = (project in file("example"))
   .enablePlugins(JavaAppPackaging, UniversalPlugin)
   .settings(
