@@ -113,6 +113,7 @@ lazy val agent = (project in file("agent"))
   )
 
 lazy val instrumentations = (project in file("instrumentations"))
+  .disablePlugins(sbtassembly.AssemblyPlugin)
   .settings(
     name := "mesmer-instrumentations",
     libraryDependencies ++= {
@@ -121,6 +122,18 @@ lazy val instrumentations = (project in file("instrumentations"))
     }
   )
   .dependsOn(core % "provided->compile;test->test")
+
+lazy val otelExtension = (project in file("otel-extension"))
+  .settings(
+    name := "mesmer-otel-extension",
+    libraryDependencies ++= {
+      openTelemetryInstrumentation
+    },
+    assembly / test            := {},
+    assembly / assemblyJarName := "mesmer-otel-extension.jar",
+    assemblyMergeStrategySettings
+  )
+  .dependsOn(instrumentations)
 
 lazy val example = (project in file("example"))
   .enablePlugins(JavaAppPackaging, UniversalPlugin)
@@ -154,7 +167,7 @@ lazy val example = (project in file("example"))
       jar -> "mesmer.agent.jar"
     }
   )
-  .dependsOn(extension)
+  .dependsOn(extension, instrumentations)
 
 lazy val assemblyMergeStrategySettings = assembly / assemblyMergeStrategy := {
   case PathList("META-INF", "services", _ @_*)           => MergeStrategy.concat
