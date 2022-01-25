@@ -35,7 +35,7 @@ libraryDependencies += "io.scalac" %% "mesmer-akka-extension" % "<version>"
 
 Add this entry to your `application.conf`:
 
-    akka.actor.typed.extensions= ["io.scalac.mesmer.extension.AkkaMonitoring"] 
+    akka.actor.typed.extensions= ["io.scalac.mesmer.extension.AkkaMonitoring"]
 
 ### JVM agent:
 
@@ -48,52 +48,24 @@ where `PATH_TO_JAR` is your **absolute** path to the Mesmer agent jar.
 
 ### Exporter:
 
-Since the Mesmer agent doesn't set up the Open Telemetry Exporter, you need to do that in your app. Only then your
-application will send your metrics to the Open Telemetry Collector.
+Since neither the Mesmer agent nor the Mesmer Akka Extension set up the Open Telemetry SDK, you need to do that in your
+app. Only then your application will send your metrics to the Open Telemetry Collector.
 
-You can for example set up your project with an OTLP Metrics Exporter:
+For example, you can set up your project with an OTLP Metrics Exporter. To do that you will need to implement an Open
+Telemetry Configuration Provider:
+
+1. add the necessary dependencies in your build.sbt file:
 
 ```
 "io.opentelemetry" % "opentelemetry-exporter-otlp-metrics" % <version>,
 "io.opentelemetry" % "opentelemetry-sdk" % <version>
 ```
 
-After that you will need to initialize the exporter in your application entry point:
-
-```scala
-import io.opentelemetry.exporter.otlp.metrics.OtlpGrpcMetricExporter
-import io.opentelemetry.sdk.OpenTelemetrySdk
-import io.opentelemetry.sdk.metrics.SdkMeterProvider
-import io.opentelemetry.sdk.metrics.export.PeriodicMetricReader
-
-val metricExporter: OtlpGrpcMetricExporter = OtlpGrpcMetricExporter.getDefault
-
-val factory = PeriodicMetricReader
-  .builder(metricExporter)
-  .setInterval(exportInterval.toJava)
-  .newMetricReaderFactory()
-
-val meterProvider: SdkMeterProvider = SdkMeterProvider
-  .builder()
-  .registerMetricReader(factory)
-  .build()
-
-OpenTelemetrySdk
-  .builder()
-  .setMeterProvider(meterProvider)
-  .buildAndRegisterGlobal()
-}
-```
-
-It's also recommended shutting down the metric reader gracefully:
-
-```scala
-sys.addShutdownHook(metricReader.shutdown())
-```
-
-You can check out in details how to configure Prometheus with Akka HTTP in our example
-application [here](https://github.com/ScalaConsultants/mesmer-akka-agent/blob/main/example/src/main/scala/io/scalac/Boot.scala#L64-L74)
-.
+2. implement the `OpenTelemetryProvider` interface similarly to what's done in `OpenTelemetrySetup` class (the example
+   application),
+3. don't forget to make the service provider discoverable - add
+   the `META-INF/services/io.scalac.mesmer.extension.opentelemetry.OpenTelemetryProvider` in the application code,
+   pointing to your OpenTelemetry Provider class.
 
 ## Supported metrics
 

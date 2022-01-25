@@ -6,6 +6,9 @@ import akka.actor.typed.receptionist.Receptionist.Register
 import akka.actor.typed.scaladsl.Behaviors
 import akka.cluster.Cluster
 import akka.util.Timeout
+import com.typesafe.config.Config
+import io.opentelemetry.api.OpenTelemetry
+import io.opentelemetry.api.metrics.Meter
 
 import scala.concurrent.duration._
 import scala.language.postfixOps
@@ -20,35 +23,29 @@ import io.scalac.mesmer.core.module.AkkaPersistenceModule
 import io.scalac.mesmer.core.module.Module._
 import io.scalac.mesmer.core.module._
 import io.scalac.mesmer.extension.ActorEventsMonitorActor.ReflectiveActorMetricsReader
-import io.scalac.mesmer.extension.AkkaMonitoring.ExportInterval
 import io.scalac.mesmer.extension.actor.MutableActorMetricStorageFactory
 import io.scalac.mesmer.extension.config.AkkaMonitoringConfig
 import io.scalac.mesmer.extension.config.CachingConfig
-import io.scalac.mesmer.extension.config.InstrumentationLibrary
 import io.scalac.mesmer.extension.http.CleanableRequestStorage
 import io.scalac.mesmer.extension.metric.CachingMonitor
+import io.scalac.mesmer.extension.opentelemetry.OpenTelemetryLoader
 import io.scalac.mesmer.extension.persistence.CleanablePersistingStorage
 import io.scalac.mesmer.extension.persistence.CleanableRecoveryStorage
 import io.scalac.mesmer.extension.service._
 import io.scalac.mesmer.extension.upstream._
 
 object AkkaMonitoring extends ExtensionId[AkkaMonitoring] {
-
-  private val ExportInterval = 5.seconds
-
-  def createExtension(system: ActorSystem[_]): AkkaMonitoring = {
-    val config = AkkaMonitoringConfig.fromConfig(system.settings.config)
-    new AkkaMonitoring(system, config)
-  }
+  def createExtension(system: ActorSystem[_]): AkkaMonitoring = new AkkaMonitoring(system)
 }
 
-final class AkkaMonitoring(private val system: ActorSystem[_], val config: AkkaMonitoringConfig) extends Extension {
-
+final class AkkaMonitoring(system: ActorSystem[_])(implicit otelLoader: OpenTelemetryLoader) extends Extension {
   import system.log
 
-  private val meter             = InstrumentationLibrary.mesmerMeter
-  private val actorSystemConfig = system.settings.config
-  private val openTelemetryClusterMetricsMonitor =
+  private val openTelemetry: OpenTelemetry = otelLoader.load().create()
+  private val config: AkkaMonitoringConfig = AkkaMonitoringConfig.fromConfig(system.settings.config)
+  private val meter: Meter                 = openTelemetry.getMeter("mesmer-akka")
+  private val actorSystemConfig: Config    = system.settings.config
+  private val openTelemetryClusterMetricsMonitor: OpenTelemetryClusterMetricsMonitor =
     OpenTelemetryClusterMetricsMonitor(meter, AkkaClusterModule.fromConfig(actorSystemConfig), actorSystemConfig)
 
   implicit private val timeout: Timeout = 5 seconds
@@ -146,7 +143,9 @@ final class AkkaMonitoring(private val system: ActorSystem[_], val config: AkkaM
   /**
    * Start actor that monitor actor metrics
    */
-  def startActorMonitor(): Unit =
+  def startActorMonitor(): Unit = {
+    val exportInterval: FiniteDuration = 5.seconds
+
     startWithConfig[AkkaActorModule.type](AkkaActorModule, akkaActorConfig) { moduleConfig =>
       val actorMonitor =
         OpenTelemetryActorMetricsMonitor(meter, moduleConfig, actorSystemConfig)
@@ -157,7 +156,7 @@ final class AkkaMonitoring(private val system: ActorSystem[_], val config: AkkaM
             ActorEventsMonitorActor(
               actorMonitor,
               clusterNodeName,
-              ExportInterval,
+              exportInterval,
               new MutableActorMetricStorageFactory[ActorKey],
               ReflectiveActorMetricsReader
             )
@@ -167,6 +166,7 @@ final class AkkaMonitoring(private val system: ActorSystem[_], val config: AkkaM
         dispatcher
       )
     }
+  }
 
   /**
    * Start actor monitoring stream performance
@@ -318,7 +318,5 @@ final class AkkaMonitoring(private val system: ActorSystem[_], val config: AkkaM
     }
 
   }
-
   autoStart()
-
 }
