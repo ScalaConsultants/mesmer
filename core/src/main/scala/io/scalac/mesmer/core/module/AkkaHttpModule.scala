@@ -4,7 +4,6 @@ import com.typesafe.config.{ Config => TypesafeConfig }
 
 import io.scalac.mesmer.core.model.Version
 import io.scalac.mesmer.core.module.Module.CommonJars
-import io.scalac.mesmer.core.module.Module.JarsNames
 import io.scalac.mesmer.core.typeclasses.Combine
 import io.scalac.mesmer.core.typeclasses.Traverse
 import io.scalac.mesmer.core.util.LibraryInfo.LibraryInfo
@@ -35,7 +34,7 @@ sealed trait AkkaHttpConnectionMetricsModule extends MetricsModule {
 
 object AkkaHttpModule
     extends MesmerModule
-    with RegisterGlobalConfiguration
+    with RegistersGlobalConfiguration
     with AkkaHttpRequestMetricsModule
     with AkkaHttpConnectionMetricsModule {
 
@@ -80,9 +79,9 @@ object AkkaHttpModule
 
   def jarsFromLibraryInfo(info: LibraryInfo): Option[AkkaJar[Version]] =
     for {
-      actor      <- info.get(JarsNames.akkaActor)
-      actorTyped <- info.get(JarsNames.akkaActorTyped)
-      http       <- info.get(JarsNames.akkaHttp)
+      actor      <- info.get(AkkaJarNames.akkaActor)
+      actorTyped <- info.get(AkkaJarNames.akkaActorTyped)
+      http       <- info.get(AkkaJarNames.akkaHttp)
     } yield Jars(actor, actorTyped, http)
 
   implicit val combineConfig: Combine[All[Boolean]] = (first, second) =>

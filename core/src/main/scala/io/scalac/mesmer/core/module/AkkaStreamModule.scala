@@ -3,7 +3,6 @@ import com.typesafe.config.{ Config => TypesafeConfig }
 
 import io.scalac.mesmer.core.model.Version
 import io.scalac.mesmer.core.module.Module.CommonJars
-import io.scalac.mesmer.core.module.Module.JarsNames
 import io.scalac.mesmer.core.typeclasses.Combine
 import io.scalac.mesmer.core.typeclasses.Traverse
 import io.scalac.mesmer.core.util.LibraryInfo.LibraryInfo
@@ -38,7 +37,7 @@ object AkkaStreamModule
     extends MesmerModule
     with AkkaStreamMetrics
     with AkkaStreamOperatorMetrics
-    with RegisterGlobalConfiguration {
+    with RegistersGlobalConfiguration {
 
   val name: String = "akka-stream"
 
@@ -106,9 +105,9 @@ object AkkaStreamModule
 
   def jarsFromLibraryInfo(info: LibraryInfo): Option[AkkaJar[Version]] =
     for {
-      actor      <- info.get(JarsNames.akkaActor)
-      actorTyped <- info.get(JarsNames.akkaActorTyped)
-      stream     <- info.get(JarsNames.akkaStream)
+      actor      <- info.get(AkkaJarNames.akkaActor)
+      actorTyped <- info.get(AkkaJarNames.akkaActorTyped)
+      stream     <- info.get(AkkaJarNames.akkaStream)
     } yield Jars(actor, actorTyped, stream)
 
   implicit val combine: Combine[All[Boolean]] = (first, second) =>

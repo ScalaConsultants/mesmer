@@ -3,7 +3,6 @@ import com.typesafe.config.{ Config => TypesafeConfig }
 
 import io.scalac.mesmer.core.model.Version
 import io.scalac.mesmer.core.module.Module.CommonJars
-import io.scalac.mesmer.core.module.Module.JarsNames
 import io.scalac.mesmer.core.typeclasses.Combine
 import io.scalac.mesmer.core.typeclasses.Traverse
 import io.scalac.mesmer.core.util.LibraryInfo.LibraryInfo
@@ -22,7 +21,7 @@ sealed trait AkkaPersistenceMetricsModule extends MetricsModule {
   }
 }
 
-object AkkaPersistenceModule extends MesmerModule with AkkaPersistenceMetricsModule with RegisterGlobalConfiguration {
+object AkkaPersistenceModule extends MesmerModule with AkkaPersistenceMetricsModule with RegistersGlobalConfiguration {
   override type Metrics[T] = AkkaPersistenceMetricsDef[T]
 
   val name: String = "akka-persistence"
@@ -72,10 +71,10 @@ object AkkaPersistenceModule extends MesmerModule with AkkaPersistenceMetricsMod
 
   def jarsFromLibraryInfo(info: LibraryInfo): Option[AkkaJar[Version]] =
     for {
-      actor            <- info.get(JarsNames.akkaActor)
-      actorTyped       <- info.get(JarsNames.akkaActorTyped)
-      persistence      <- info.get(JarsNames.akkaPersistence)
-      persistenceTyped <- info.get(JarsNames.akkaPersistenceTyped)
+      actor            <- info.get(AkkaJarNames.akkaActor)
+      actorTyped       <- info.get(AkkaJarNames.akkaActorTyped)
+      persistence      <- info.get(AkkaJarNames.akkaPersistence)
+      persistenceTyped <- info.get(AkkaJarNames.akkaPersistenceTyped)
     } yield Jars(actor, actorTyped, persistence, persistenceTyped)
 
   implicit val combineConfig: Combine[All[Boolean]] = (first, second) =>

@@ -10,7 +10,7 @@ import io.scalac.mesmer.agent.util.i13n.InstrumentationDetails.FQCN
 import io.scalac.mesmer.core.model.Version
 import io.scalac.mesmer.core.module.MesmerModule
 import io.scalac.mesmer.core.module.Module
-import io.scalac.mesmer.core.module.RegisterGlobalConfiguration
+import io.scalac.mesmer.core.module.RegistersGlobalConfiguration
 import io.scalac.mesmer.core.util.LibraryInfo.LibraryInfo
 object InstrumentationDSL {
   final class NameDSL(private val value: String) extends AnyVal {
@@ -42,7 +42,7 @@ object InstrumentModuleFactory {
 
   }
 
-  implicit class FactoryOps[M <: MesmerModule with RegisterGlobalConfiguration](
+  implicit class FactoryOps[M <: MesmerModule with RegistersGlobalConfiguration](
     private val factory: InstrumentModuleFactory[M]
   ) extends AnyVal {
 
@@ -53,7 +53,7 @@ object InstrumentModuleFactory {
   }
 }
 
-abstract class InstrumentModuleFactory[M <: Module with RegisterGlobalConfiguration](val module: M)
+abstract class InstrumentModuleFactory[M <: Module with RegistersGlobalConfiguration](val module: M)
     extends InstrumentationDSL {
   /*
     Requiring all features to be a function from versions to Option[Agent] we allow there to create different instrumentations depending

@@ -32,18 +32,6 @@ object Module {
     def akkaActor: T
     def akkaActorTyped: T
   }
-
-  object JarsNames {
-    final val akkaActor            = "akka-actor"
-    final val akkaActorTyped       = "akka-actor-typed"
-    final val akkaPersistence      = "akka-persistence"
-    final val akkaPersistenceTyped = "akka-persistence-typed"
-    final val akkaStream           = "akka-stream"
-    final val akkaHttp             = "akka-http"
-    final val akkaCluster          = "akka-cluster"
-    final val akkaClusterTyped     = "akka-cluster-typed"
-  }
-
 }
 
 trait MesmerModule extends Module with MesmerConfigurationBase {
@@ -62,7 +50,7 @@ trait MetricsModule {
   type Metrics[T]
 }
 
-trait RegisterGlobalConfiguration extends Module {
+trait RegistersGlobalConfiguration extends Module {
 
   @volatile
   private[this] var global: All[Boolean] = _

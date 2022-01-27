@@ -3,7 +3,6 @@ import com.typesafe.config.{ Config => TypesafeConfig }
 
 import io.scalac.mesmer.core.model.Version
 import io.scalac.mesmer.core.module.Module.CommonJars
-import io.scalac.mesmer.core.module.Module.JarsNames
 import io.scalac.mesmer.core.util.LibraryInfo.LibraryInfo
 
 sealed trait AkkaClusterMetricsModule extends MetricsModule {
@@ -94,9 +93,9 @@ object AkkaClusterModule extends MesmerModule with AkkaClusterMetricsModule {
 
   override def jarsFromLibraryInfo(info: LibraryInfo): Option[AkkaJar[Version]] =
     for {
-      actor        <- info.get(JarsNames.akkaActor)
-      actorTyped   <- info.get(JarsNames.akkaActorTyped)
-      cluster      <- info.get(JarsNames.akkaCluster)
-      clusterTyped <- info.get(JarsNames.akkaClusterTyped)
+      actor        <- info.get(AkkaJarNames.akkaActor)
+      actorTyped   <- info.get(AkkaJarNames.akkaActorTyped)
+      cluster      <- info.get(AkkaJarNames.akkaCluster)
+      clusterTyped <- info.get(AkkaJarNames.akkaClusterTyped)
     } yield Jars(actor, actorTyped, cluster, clusterTyped)
 }
