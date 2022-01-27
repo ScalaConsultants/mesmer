@@ -5,6 +5,8 @@ import com.typesafe.config.{ Config => TypesafeConfig }
 import io.scalac.mesmer.core.config.MesmerConfigurationBase
 import io.scalac.mesmer.core.model.Version
 import io.scalac.mesmer.core.module.Module.CommonJars
+import io.scalac.mesmer.core.typeclasses.Combine
+import io.scalac.mesmer.core.typeclasses.Traverse
 import io.scalac.mesmer.core.util.LibraryInfo.LibraryInfo
 
 trait Module {
@@ -24,15 +26,6 @@ object Module {
   implicit class AllOps[M[X] <: Module#All[X], T](private val value: M[T]) extends AnyVal {
     def combine(other: M[T])(implicit combine: Combine[M[T]]): M[T]          = combine.combine(value, other)
     def exists(check: T => Boolean)(implicit traverse: Traverse[M]): Boolean = traverse.sequence(value).exists(check)
-  }
-
-  // TODO is there a standard type class?
-  trait Combine[T] {
-    def combine(first: T, second: T): T
-  }
-
-  trait Traverse[F[_]] {
-    def sequence[T](obj: F[T]): Seq[T]
   }
 
   trait CommonJars[T] {
@@ -67,12 +60,6 @@ trait MetricsModule {
   this: Module =>
   override type All[T] <: Metrics[T]
   type Metrics[T]
-}
-
-trait TracesModule {
-  this: Module =>
-  override type All[T] <: Traces[T]
-  type Traces[T]
 }
 
 trait RegisterGlobalConfiguration extends Module {
