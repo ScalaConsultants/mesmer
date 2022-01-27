@@ -73,16 +73,16 @@ object AkkaHttpModule
 
   }
 
-  override type AkkaJar[T] = Jars[T]
+  override type Jars[T] = AkkaHttpJars[T]
 
-  final case class Jars[T](akkaActor: T, akkaActorTyped: T, akkaHttp: T) extends CommonJars[T]
+  final case class AkkaHttpJars[T](akkaActor: T, akkaActorTyped: T, akkaHttp: T) extends CommonJars[T]
 
-  def jarsFromLibraryInfo(info: LibraryInfo): Option[AkkaJar[Version]] =
+  def jarsFromLibraryInfo(info: LibraryInfo): Option[Jars[Version]] =
     for {
-      actor      <- info.get(AkkaJarNames.akkaActor)
-      actorTyped <- info.get(AkkaJarNames.akkaActorTyped)
-      http       <- info.get(AkkaJarNames.akkaHttp)
-    } yield Jars(actor, actorTyped, http)
+      actor      <- info.get(JarNames.akkaActor)
+      actorTyped <- info.get(JarNames.akkaActorTyped)
+      http       <- info.get(JarNames.akkaHttp)
+    } yield AkkaHttpJars(actor, actorTyped, http)
 
   implicit val combineConfig: Combine[All[Boolean]] = (first, second) =>
     Impl(

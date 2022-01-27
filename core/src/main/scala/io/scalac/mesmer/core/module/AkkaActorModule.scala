@@ -33,7 +33,7 @@ sealed trait AkkaActorMetrics extends MetricsModule {
 object AkkaActorModule extends MesmerModule with AkkaActorMetrics with RegistersGlobalConfiguration {
   override type Metrics[T] = AkkaActorMetricsDef[T]
   override type All[T]     = Metrics[T]
-  override type AkkaJar[T] = Jars[T]
+  override type Jars[T]    = AkkaActorJars[T]
 
   final case class Impl[T](
     mailboxSize: T,
@@ -146,13 +146,13 @@ object AkkaActorModule extends MesmerModule with AkkaActorMetrics with Registers
 
   }
 
-  final case class Jars[T](akkaActor: T, akkaActorTyped: T) extends Module.CommonJars[T]
+  final case class AkkaActorJars[T](akkaActor: T, akkaActorTyped: T) extends Module.CommonJars[T]
 
-  def jarsFromLibraryInfo(info: LibraryInfo): Option[AkkaJar[Version]] =
+  def jarsFromLibraryInfo(info: LibraryInfo): Option[Jars[Version]] =
     for {
-      actor      <- info.get(AkkaJarNames.akkaActor)
-      actorTyped <- info.get(AkkaJarNames.akkaActorTyped)
-    } yield Jars(actor, actorTyped)
+      actor      <- info.get(JarNames.akkaActor)
+      actorTyped <- info.get(JarNames.akkaActorTyped)
+    } yield AkkaActorJars(actor, actorTyped)
 
   /**
    * Combines config that with AND operator

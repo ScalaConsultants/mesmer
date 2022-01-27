@@ -1,6 +1,6 @@
 package io.scalac.mesmer.core.module
 
-object AkkaJarNames {
+object JarNames {
   final val akkaActor            = "akka-actor"
   final val akkaActorTyped       = "akka-actor-typed"
   final val akkaPersistence      = "akka-persistence"

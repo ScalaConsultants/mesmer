@@ -16,9 +16,9 @@ trait Module {
 
   def enabled(config: TypesafeConfig): Config
 
-  type AkkaJar[T] <: CommonJars[T]
+  type Jars[T] <: CommonJars[T]
 
-  def jarsFromLibraryInfo(info: LibraryInfo): Option[AkkaJar[Version]]
+  def jarsFromLibraryInfo(info: LibraryInfo): Option[Jars[Version]]
 }
 
 object Module {

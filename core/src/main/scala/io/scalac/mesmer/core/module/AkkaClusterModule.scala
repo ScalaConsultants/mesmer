@@ -86,16 +86,17 @@ object AkkaClusterModule extends MesmerModule with AkkaClusterMetricsModule {
 
   }
 
-  override type All[T]     = Metrics[T]
-  override type AkkaJar[T] = Jars[T]
+  override type All[T]  = Metrics[T]
+  override type Jars[T] = AkkaClusterJars[T]
 
-  final case class Jars[T](akkaActor: T, akkaActorTyped: T, akkaCluster: T, akkaClusterTyped: T) extends CommonJars[T]
+  final case class AkkaClusterJars[T](akkaActor: T, akkaActorTyped: T, akkaCluster: T, akkaClusterTyped: T)
+      extends CommonJars[T]
 
-  override def jarsFromLibraryInfo(info: LibraryInfo): Option[AkkaJar[Version]] =
+  override def jarsFromLibraryInfo(info: LibraryInfo): Option[Jars[Version]] =
     for {
-      actor        <- info.get(AkkaJarNames.akkaActor)
-      actorTyped   <- info.get(AkkaJarNames.akkaActorTyped)
-      cluster      <- info.get(AkkaJarNames.akkaCluster)
-      clusterTyped <- info.get(AkkaJarNames.akkaClusterTyped)
-    } yield Jars(actor, actorTyped, cluster, clusterTyped)
+      actor        <- info.get(JarNames.akkaActor)
+      actorTyped   <- info.get(JarNames.akkaActorTyped)
+      cluster      <- info.get(JarNames.akkaCluster)
+      clusterTyped <- info.get(JarNames.akkaClusterTyped)
+    } yield AkkaClusterJars(actor, actorTyped, cluster, clusterTyped)
 }

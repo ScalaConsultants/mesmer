@@ -99,16 +99,16 @@ object AkkaStreamModule
 
   }
 
-  override type AkkaJar[T] = Jars[T]
+  override type Jars[T] = AkkaStreamsJars[T]
 
-  final case class Jars[T](akkaActor: T, akkaActorTyped: T, akkaStream: T) extends CommonJars[T]
+  final case class AkkaStreamsJars[T](akkaActor: T, akkaActorTyped: T, akkaStream: T) extends CommonJars[T]
 
-  def jarsFromLibraryInfo(info: LibraryInfo): Option[AkkaJar[Version]] =
+  def jarsFromLibraryInfo(info: LibraryInfo): Option[Jars[Version]] =
     for {
-      actor      <- info.get(AkkaJarNames.akkaActor)
-      actorTyped <- info.get(AkkaJarNames.akkaActorTyped)
-      stream     <- info.get(AkkaJarNames.akkaStream)
-    } yield Jars(actor, actorTyped, stream)
+      actor      <- info.get(JarNames.akkaActor)
+      actorTyped <- info.get(JarNames.akkaActorTyped)
+      stream     <- info.get(JarNames.akkaStream)
+    } yield AkkaStreamsJars(actor, actorTyped, stream)
 
   implicit val combine: Combine[All[Boolean]] = (first, second) =>
     Impl(

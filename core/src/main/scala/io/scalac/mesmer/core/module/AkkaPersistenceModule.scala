@@ -63,19 +63,19 @@ object AkkaPersistenceModule extends MesmerModule with AkkaPersistenceMetricsMod
 
   }
 
-  override type All[T]     = Metrics[T]
-  override type AkkaJar[T] = Jars[T]
+  override type All[T]  = Metrics[T]
+  override type Jars[T] = AkkaPersistenceJars[T]
 
-  final case class Jars[T](akkaActor: T, akkaActorTyped: T, akkaPersistence: T, akkaPersistenceTyped: T)
+  final case class AkkaPersistenceJars[T](akkaActor: T, akkaActorTyped: T, akkaPersistence: T, akkaPersistenceTyped: T)
       extends CommonJars[T]
 
-  def jarsFromLibraryInfo(info: LibraryInfo): Option[AkkaJar[Version]] =
+  def jarsFromLibraryInfo(info: LibraryInfo): Option[Jars[Version]] =
     for {
-      actor            <- info.get(AkkaJarNames.akkaActor)
-      actorTyped       <- info.get(AkkaJarNames.akkaActorTyped)
-      persistence      <- info.get(AkkaJarNames.akkaPersistence)
-      persistenceTyped <- info.get(AkkaJarNames.akkaPersistenceTyped)
-    } yield Jars(actor, actorTyped, persistence, persistenceTyped)
+      actor            <- info.get(JarNames.akkaActor)
+      actorTyped       <- info.get(JarNames.akkaActorTyped)
+      persistence      <- info.get(JarNames.akkaPersistence)
+      persistenceTyped <- info.get(JarNames.akkaPersistenceTyped)
+    } yield AkkaPersistenceJars(actor, actorTyped, persistence, persistenceTyped)
 
   implicit val combineConfig: Combine[All[Boolean]] = (first, second) =>
     Impl(
