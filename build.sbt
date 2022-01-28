@@ -161,7 +161,8 @@ lazy val example = (project in file("example"))
         (key, value) <- properties.asScala.toList if value.nonEmpty
       } yield s"-D$key=$value"
     },
-    commands += runWithAgent,
+    commands += runWithMesmerAgent,
+    commands += runWithOtelAgent,
     Universal / mappings += {
       val jar = (agent / assembly).value
       jar -> "mesmer.agent.jar"
@@ -196,12 +197,28 @@ lazy val benchmark = (project in file("benchmark"))
   }
   .dependsOn(extension)
 
-def runWithAgent = Command.command("runWithAgent") { state =>
+def runWithMesmerAgent = Command.command("runWithMesmerAgent") { state =>
   val extracted = Project extract state
   val newState = extracted.appendWithSession(
     Seq(
       run / javaOptions ++= Seq(
         s"-javaagent:${(agent / assembly).value.absolutePath}"
+      )
+    ),
+    state
+  )
+  val (s, _) =
+    Project.extract(newState).runInputTask(Compile / run, "", newState)
+  s
+}
+
+def runWithOtelAgent = Command.command("runWithOtelAgent") { state =>
+  val extracted = Project extract state
+  val newState = extracted.appendWithSession(
+    Seq(
+      run / javaOptions ++= Seq(
+        s"-javaagent:../opentelemetry-javaagent110.jar",
+        s"-Dotel.javaagent.extensions=${(otelExtension / assembly).value.absolutePath}"
       )
     ),
     state
