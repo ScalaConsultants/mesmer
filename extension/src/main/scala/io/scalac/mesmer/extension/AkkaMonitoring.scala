@@ -7,6 +7,7 @@ import akka.actor.typed.scaladsl.Behaviors
 import akka.cluster.Cluster
 import akka.util.Timeout
 import com.typesafe.config.Config
+import com.typesafe.config.ConfigFactory
 import io.opentelemetry.api.metrics.Meter
 
 import scala.concurrent.duration._
@@ -272,9 +273,7 @@ final class AkkaMonitoring(system: ActorSystem[_])(implicit otelLoader: OpenTele
     }
 
   private def startHttpMonitor(): Unit = {
-
-    val x: Option[AkkaHttpModule.AkkaHttpConnectionsMetricsDef[Boolean]
-      with AkkaHttpModule.AkkaHttpRequestMetricsDef[Boolean]] = AkkaHttpModule.globalConfiguration
+    reloadGlobalConfig(AkkaHttpModule)
 
     val akkaHttpConfig =
       AkkaHttpModule.globalConfiguration.map { config =>
@@ -314,6 +313,15 @@ final class AkkaMonitoring(system: ActorSystem[_])(implicit otelLoader: OpenTele
       )
     }
   }
+
+  /**
+   * Reloads global configuration in case it's not loaded yet. This is needed when mesmer is run with the Open Telemetry
+   * agent.
+   */
+  private def reloadGlobalConfig(module: RegistersGlobalConfiguration): Unit =
+    if (module.globalConfiguration.isEmpty) {
+      module.registerGlobal(module.enabled(ConfigFactory.load()))
+    }
 
   autoStart()
 }

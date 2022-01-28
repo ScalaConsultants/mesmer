@@ -37,7 +37,8 @@ object Module {
 trait MesmerModule extends Module with MesmerConfigurationBase {
   override type Result = Config
 
-  final def enabled(config: TypesafeConfig): Config = fromConfig(config)
+  final def enabled(config: TypesafeConfig): Config =
+    fromConfig(config)
 
   def defaultConfig: Result
 
@@ -55,8 +56,7 @@ trait RegistersGlobalConfiguration extends Module {
   @volatile
   private[this] var global: All[Boolean] = _
 
-  final def registerGlobal(conf: All[Boolean]): Unit =
-    global = conf
+  final def registerGlobal(conf: All[Boolean]): Unit = global = conf
 
   final def globalConfiguration: Option[All[Boolean]] = if (global ne null) Some(global) else None
 }
