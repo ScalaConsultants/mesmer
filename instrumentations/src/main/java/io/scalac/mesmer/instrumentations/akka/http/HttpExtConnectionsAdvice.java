@@ -1,10 +1,9 @@
-package io.scalac.mesmer.agent.akka.http;
+package io.scalac.mesmer.instrumentations.akka.http;
 
 import akka.http.scaladsl.HttpExt;
 import akka.http.scaladsl.model.HttpRequest;
 import akka.http.scaladsl.model.HttpResponse;
 import akka.stream.scaladsl.Flow;
-import io.scalac.mesmer.instrumentations.akka.http.HttpInstrumentation;
 import net.bytebuddy.asm.Advice;
 
 public class HttpExtConnectionsAdvice {
