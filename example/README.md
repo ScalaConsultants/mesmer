@@ -13,9 +13,15 @@ This will set up everything needed by the application:
 
 ## Run the application
 
-To run the application with default settings:
+### Running the application with the Mesmer Agent:
 ```
-sbt "project example" runWithAgent
+sbt "project example" runWithMesmerAgent
+```
+
+### Running the application with the Open Telemetry Agent:
+
+```
+sbt "project example" runWithOtelAgent
 ```
 
 ## Call the endpoints
