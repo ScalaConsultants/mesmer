@@ -5,6 +5,8 @@ import com.typesafe.config.{ Config => TypesafeConfig }
 import io.scalac.mesmer.core.config.MesmerConfigurationBase
 import io.scalac.mesmer.core.model.Version
 import io.scalac.mesmer.core.module.Module.CommonJars
+import io.scalac.mesmer.core.typeclasses.Combine
+import io.scalac.mesmer.core.typeclasses.Traverse
 import io.scalac.mesmer.core.util.LibraryInfo.LibraryInfo
 
 trait Module {
@@ -14,9 +16,9 @@ trait Module {
 
   def enabled(config: TypesafeConfig): Config
 
-  type AkkaJar[T] <: CommonJars[T]
+  type Jars[T] <: CommonJars[T]
 
-  def jarsFromLibraryInfo(info: LibraryInfo): Option[AkkaJar[Version]]
+  def jarsFromLibraryInfo(info: LibraryInfo): Option[Jars[Version]]
 }
 
 object Module {
@@ -26,37 +28,17 @@ object Module {
     def exists(check: T => Boolean)(implicit traverse: Traverse[M]): Boolean = traverse.sequence(value).exists(check)
   }
 
-  // TODO is there a standard type class?
-  trait Combine[T] {
-    def combine(first: T, second: T): T
-  }
-
-  trait Traverse[F[_]] {
-    def sequence[T](obj: F[T]): Seq[T]
-  }
-
   trait CommonJars[T] {
     def akkaActor: T
     def akkaActorTyped: T
   }
-
-  object JarsNames {
-    final val akkaActor            = "akka-actor"
-    final val akkaActorTyped       = "akka-actor-typed"
-    final val akkaPersistence      = "akka-persistence"
-    final val akkaPersistenceTyped = "akka-persistence-typed"
-    final val akkaStream           = "akka-stream"
-    final val akkaHttp             = "akka-http"
-    final val akkaCluster          = "akka-cluster"
-    final val akkaClusterTyped     = "akka-cluster-typed"
-  }
-
 }
 
 trait MesmerModule extends Module with MesmerConfigurationBase {
   override type Result = Config
 
-  final def enabled(config: TypesafeConfig): Config = fromConfig(config)
+  final def enabled(config: TypesafeConfig): Config =
+    fromConfig(config)
 
   def defaultConfig: Result
 
@@ -69,19 +51,12 @@ trait MetricsModule {
   type Metrics[T]
 }
 
-trait TracesModule {
-  this: Module =>
-  override type All[T] <: Traces[T]
-  type Traces[T]
-}
-
-trait RegisterGlobalConfiguration extends Module {
+trait RegistersGlobalConfiguration extends Module {
 
   @volatile
   private[this] var global: All[Boolean] = _
 
-  final def registerGlobal(conf: All[Boolean]): Unit =
-    global = conf
+  final def registerGlobal(conf: All[Boolean]): Unit = global = conf
 
   final def globalConfiguration: Option[All[Boolean]] = if (global ne null) Some(global) else None
 }

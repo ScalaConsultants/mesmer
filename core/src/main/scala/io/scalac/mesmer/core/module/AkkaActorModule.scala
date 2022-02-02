@@ -2,9 +2,8 @@ package io.scalac.mesmer.core.module
 import com.typesafe.config.{ Config => TypesafeConfig }
 
 import io.scalac.mesmer.core.model.Version
-import io.scalac.mesmer.core.module.Module.Combine
-import io.scalac.mesmer.core.module.Module.JarsNames
-import io.scalac.mesmer.core.module.Module.Traverse
+import io.scalac.mesmer.core.typeclasses.Combine
+import io.scalac.mesmer.core.typeclasses.Traverse
 import io.scalac.mesmer.core.util.LibraryInfo.LibraryInfo
 
 sealed trait AkkaActorMetrics extends MetricsModule {
@@ -31,10 +30,10 @@ sealed trait AkkaActorMetrics extends MetricsModule {
   }
 }
 
-object AkkaActorModule extends MesmerModule with AkkaActorMetrics with RegisterGlobalConfiguration {
+object AkkaActorModule extends MesmerModule with AkkaActorMetrics with RegistersGlobalConfiguration {
   override type Metrics[T] = AkkaActorMetricsDef[T]
   override type All[T]     = Metrics[T]
-  override type AkkaJar[T] = Jars[T]
+  override type Jars[T]    = AkkaActorJars[T]
 
   final case class Impl[T](
     mailboxSize: T,
@@ -147,13 +146,13 @@ object AkkaActorModule extends MesmerModule with AkkaActorMetrics with RegisterG
 
   }
 
-  final case class Jars[T](akkaActor: T, akkaActorTyped: T) extends Module.CommonJars[T]
+  final case class AkkaActorJars[T](akkaActor: T, akkaActorTyped: T) extends Module.CommonJars[T]
 
-  def jarsFromLibraryInfo(info: LibraryInfo): Option[AkkaJar[Version]] =
+  def jarsFromLibraryInfo(info: LibraryInfo): Option[Jars[Version]] =
     for {
-      actor      <- info.get(JarsNames.akkaActor)
-      actorTyped <- info.get(JarsNames.akkaActorTyped)
-    } yield Jars(actor, actorTyped)
+      actor      <- info.get(JarNames.akkaActor)
+      actorTyped <- info.get(JarNames.akkaActorTyped)
+    } yield AkkaActorJars(actor, actorTyped)
 
   /**
    * Combines config that with AND operator

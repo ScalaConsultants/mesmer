@@ -6,11 +6,13 @@ object Dependencies {
   val AkkaManagementVersion               = "1.1.2"
   val AkkaVersion                         = "2.6.18"
   val CirceVersion                        = "0.14.1"
+  val GoogleAutoServiceVersion            = "1.0.1"
   val LogbackVersion                      = "1.2.10"
   val OpentelemetryVersion                = "1.10.0"
   val OpentelemetryMetricsApiVersion      = "1.10.0-alpha-rc.1"
   val OpentelemetryMetricsExporterVersion = "1.10.0-alpha"
-  val PostgresVersion                     = "42.3.2"
+  val OpentelemetryInstrumentationVersion = "1.10.0-alpha"
+  val PostgresVersion                     = "42.3.1"
   val ScalatestVersion                    = "3.2.10"
   val SlickVersion                        = "3.3.3"
 
@@ -45,6 +47,11 @@ object Dependencies {
 
   val openTelemetryApiMetrics = Seq(
     "io.opentelemetry" % "opentelemetry-api-metrics" % OpentelemetryMetricsApiVersion
+  )
+
+  val openTelemetryInstrumentation = Seq(
+    "com.google.auto.service"    % "auto-service"                          % GoogleAutoServiceVersion,
+    "io.opentelemetry.javaagent" % "opentelemetry-javaagent-extension-api" % OpentelemetryInstrumentationVersion
   )
 
   val akkaTestkit = Seq(

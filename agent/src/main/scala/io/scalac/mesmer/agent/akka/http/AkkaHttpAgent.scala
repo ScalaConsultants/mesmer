@@ -6,15 +6,16 @@ import io.scalac.mesmer.core.akka._
 import io.scalac.mesmer.core.model.Version
 import io.scalac.mesmer.core.module.AkkaHttpModule
 import io.scalac.mesmer.core.module.AkkaHttpModule._
+import io.scalac.mesmer.instrumentations.akka.http.HttpExtRequestsAdvice
 
 object AkkaHttpAgent
     extends InstrumentModuleFactory(AkkaHttpModule)
-    with AkkaHttpModule.AkkaHttpConnectionsMetricsDef[AkkaHttpModule.AkkaJar[Version] => Option[Agent]]
-    with AkkaHttpModule.AkkaHttpRequestMetricsDef[AkkaHttpModule.AkkaJar[Version] => Option[Agent]] {
+    with AkkaHttpModule.AkkaHttpConnectionsMetricsDef[AkkaHttpModule.Jars[Version] => Option[Agent]]
+    with AkkaHttpModule.AkkaHttpRequestMetricsDef[AkkaHttpModule.Jars[Version] => Option[Agent]] {
 
   private val supportedHttpVersions = version101x.or(version102x)
 
-  private def ifSupported(versions: AkkaHttpModule.AkkaJar[Version])(agent: => Agent): Option[Agent] = {
+  private def ifSupported(versions: AkkaHttpModule.Jars[Version])(agent: => Agent): Option[Agent] = {
     import versions._
     if (
       version26x.supports(akkaActor) && version26x.supports(akkaActorTyped) && supportedHttpVersions.supports(akkaHttp)
@@ -23,12 +24,14 @@ object AkkaHttpAgent
     else None
   }
 
-  val requestTime: AkkaHttpModule.Jars[Version] => Option[Agent] =
+  val requestTime: AkkaHttpModule.AkkaHttpJars[Version] => Option[Agent] =
     versions => ifSupported(versions)(requestEvents) // Version => Option[Agent]
 
-  val requestCounter: AkkaHttpModule.Jars[Version] => Option[Agent] = versions => ifSupported(versions)(requestEvents)
+  val requestCounter: AkkaHttpModule.AkkaHttpJars[Version] => Option[Agent] = versions =>
+    ifSupported(versions)(requestEvents)
 
-  val connections: AkkaHttpModule.Jars[Version] => Option[Agent] = versions => ifSupported(versions)(connectionEvents)
+  val connections: AkkaHttpModule.AkkaHttpJars[Version] => Option[Agent] = versions =>
+    ifSupported(versions)(connectionEvents)
 
   private lazy val requestEvents =
     Agent(
@@ -52,7 +55,7 @@ object AkkaHttpAgent
    */
   override def agent(
     config: AkkaHttpModule.All[Boolean],
-    jars: AkkaHttpModule.Jars[Version]
+    jars: AkkaHttpModule.AkkaHttpJars[Version]
   ): (Agent, AkkaHttpModule.All[Boolean]) = {
     val requestCounterAgent = if (config.requestCounter) requestCounter(jars) else None
     val requestTimeAgent    = if (config.requestTime) requestTime(jars) else None

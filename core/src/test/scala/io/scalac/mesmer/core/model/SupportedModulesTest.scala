@@ -21,9 +21,9 @@ class SupportedModulesTest extends AnyFlatSpec with Matchers with Inspectors {
 
     def enabled(config: TypesafeConfig) = BoxedUnit.UNIT
 
-    override type AkkaJar[T] = CommonJars[T]
+    override type Jars[T] = CommonJars[T]
 
-    def jarsFromLibraryInfo(info: LibraryInfo): Option[AkkaJar[Version]] = None
+    def jarsFromLibraryInfo(info: LibraryInfo): Option[Jars[Version]] = None
 
   }
 

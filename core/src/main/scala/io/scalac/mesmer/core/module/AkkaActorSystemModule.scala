@@ -3,7 +3,6 @@ import com.typesafe.config.{ Config => TypesafeConfig }
 
 import io.scalac.mesmer.core.model.Version
 import io.scalac.mesmer.core.module.Module.CommonJars
-import io.scalac.mesmer.core.module.Module.JarsNames
 import io.scalac.mesmer.core.util.LibraryInfo.LibraryInfo
 
 sealed trait AkkaActorSystemMetricsModule extends MetricsModule {
@@ -39,14 +38,14 @@ object AkkaActorSystemModule extends MesmerModule with AkkaActorSystemMetricsMod
     ActorSystemModuleConfig(createdActors, terminatedActors)
   }
 
-  override type AkkaJar[T] = Jars[T]
+  override type Jars[T] = ActorSystemJars[T]
 
-  final case class Jars[T](akkaActor: T, akkaActorTyped: T) extends CommonJars[T]
+  final case class ActorSystemJars[T](akkaActor: T, akkaActorTyped: T) extends CommonJars[T]
 
-  def jarsFromLibraryInfo(info: LibraryInfo): Option[AkkaJar[Version]] =
+  def jarsFromLibraryInfo(info: LibraryInfo): Option[Jars[Version]] =
     for {
-      actor      <- info.get(JarsNames.akkaActor)
-      actorTyped <- info.get(JarsNames.akkaActorTyped)
-    } yield Jars(actor, actorTyped)
+      actor      <- info.get(JarNames.akkaActor)
+      actorTyped <- info.get(JarNames.akkaActorTyped)
+    } yield ActorSystemJars(actor, actorTyped)
 
 }
