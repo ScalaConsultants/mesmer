@@ -5,30 +5,30 @@ import java.lang.instrument.Instrumentation
 import net.bytebuddy.agent.builder.AgentBuilder
 import org.slf4j.LoggerFactory
 
-import io.scalac.mesmer.agent.Agent.LoadingResult
-
 object Agent {
 
   def apply(head: AgentInstrumentation, tail: AgentInstrumentation*): Agent = new Agent(Set.from(head +: tail))
 
   val empty: Agent = new Agent(Set.empty[AgentInstrumentation])
 
-  class LoadingResult(val fqns: Set[String]) {
+  case class LoadingResult(fullyQualifiedNames: Set[String]) {
     import LoadingResult.{ logger => loadingLogger }
     def eagerLoad(): Unit =
-      fqns.foreach { className =>
+      fullyQualifiedNames.foreach { className =>
         try Thread.currentThread().getContextClassLoader.loadClass(className)
         catch {
           case _: ClassNotFoundException => loadingLogger.error("Couldn't load class {}", className)
         }
       }
 
-    def ++(other: LoadingResult): LoadingResult = new LoadingResult(this.fqns ++ other.fqns)
+    def ++(other: LoadingResult): LoadingResult = new LoadingResult(
+      this.fullyQualifiedNames ++ other.fullyQualifiedNames
+    )
 
-    override def hashCode(): Int = fqns.hashCode()
+    override def hashCode(): Int = fullyQualifiedNames.hashCode()
 
     override def equals(obj: Any): Boolean = obj match {
-      case loadingResult: LoadingResult => loadingResult.fqns == this.fqns
+      case loadingResult: LoadingResult => loadingResult.fullyQualifiedNames == this.fullyQualifiedNames
       case _                            => false
     }
   }
@@ -44,39 +44,6 @@ object Agent {
   }
 }
 
-object AgentInstrumentation {
-
-  def apply(name: String, tags: Set[String], deferred: Boolean)(
-    installation: (AgentBuilder, Instrumentation) => LoadingResult
-  ): AgentInstrumentation =
-    new AgentInstrumentation(name, tags, deferred) {
-      def apply(builder: AgentBuilder, instrumentation: Instrumentation): LoadingResult =
-        installation(builder, instrumentation)
-    }
-
-}
-
-sealed abstract case class AgentInstrumentation(
-  name: String,
-  tags: Set[String],
-  private val deferred: Boolean
-) extends ((AgentBuilder, Instrumentation) => LoadingResult)
-    with Equals
-    with Ordered[AgentInstrumentation] {
-
-  override def hashCode(): Int = name.hashCode()
-
-  override def canEqual(that: Any): Boolean = that.isInstanceOf[AgentInstrumentation]
-
-  override def equals(obj: Any): Boolean = obj match {
-    case that: AgentInstrumentation if that.canEqual(this) =>
-      tags == that.tags && name == that.name
-    case _ => false
-  }
-
-  final def compare(that: AgentInstrumentation): Int = Ordering[Boolean].compare(this.deferred, that.deferred)
-}
-
 final case class Agent private (private[agent] val instrumentations: Set[AgentInstrumentation]) extends {
   import Agent._
 
@@ -85,8 +52,10 @@ final case class Agent private (private[agent] val instrumentations: Set[AgentIn
   def ++(other: AgentInstrumentation): Agent = Agent(instrumentations + other)
 
   def installOn(builder: AgentBuilder, instrumentation: Instrumentation): LoadingResult =
+    // Sorting a set is very brittle when it comes to determining the installation order.
+    // See more: https://github.com/ScalaConsultants/mesmer-akka-agent/issues/294
     instrumentations.toSeq.sorted.map { agentInstrumentation =>
-      agentInstrumentation(builder, instrumentation)
+      agentInstrumentation.mesmerAgentInstallation(builder, instrumentation)
 
     }.fold(LoadingResult.empty)(_ ++ _)
 }

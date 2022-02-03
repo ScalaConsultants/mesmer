@@ -143,7 +143,6 @@ class AkkaActorAgentTest
     val workingMessages = messages - 1
 
     val check: classic.ActorContext => Any = ctx => {
-//      val metrics = ActorCellDecorator.get(ctx).flatMap(_.processingTimeAgg.metrics).value
       val metrics = (for {
         cellMetrics <- ActorCellDecorator.get(ctx) if cellMetrics.processingTimeAgg.isDefined
         agg         <- cellMetrics.processingTimeAgg.get.metrics

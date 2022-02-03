@@ -37,7 +37,7 @@ package object i13n {
       InstrumentationDetails[NonFQCN](name, tags, isFQCN = false)
   }
 
-  final class Type private[i13n] (private[i13n] val name: InstrumentationDetails[_], private[i13n] val desc: TypeDesc) {
+  final class Type(val name: InstrumentationDetails[_], val desc: TypeDesc) {
     def and(addDesc: TypeDesc): Type = new Type(name, desc.and(addDesc))
   }
 
@@ -62,8 +62,8 @@ package object i13n {
   private[i13n] type Builder = DynamicType.Builder[_]
 
   final class TypeInstrumentation private (
-    private[i13n] val `type`: Type,
-    private[i13n] val transformBuilder: Builder => Builder
+    val `type`: Type,
+    val transformBuilder: Builder => Builder
   ) {
 
     def visit[T](method: MethodDesc)(implicit ct: ClassTag[T]): TypeInstrumentation =
@@ -108,8 +108,8 @@ package object i13n {
 
   }
 
-  private[i13n] object TypeInstrumentation {
-    private[i13n] def apply(target: Type): TypeInstrumentation = new TypeInstrumentation(target, identity)
+  object TypeInstrumentation {
+    def instrument(target: Type): TypeInstrumentation = new TypeInstrumentation(target, identity)
   }
 
   // extensions
@@ -152,11 +152,6 @@ package object i13n {
   implicit def methodNameToMethodDesc(methodName: String): MethodDesc         = method(methodName)
   implicit def classNameToTypeDesc(className: String): TypeDesc               = EM.named[TypeDescription](className)
   implicit def typeToAgentInstrumentation(typeInstrumentation: TypeInstrumentation): AgentInstrumentation =
-    AgentInstrumentationFactory(typeInstrumentation, Seq.empty, false)
+    AgentInstrumentation(typeInstrumentation)
 
-  implicit final class LoadingOps(private val value: TypeInstrumentation) extends AnyRef {
-    def withLoad(fqcn: String, fqcns: String*): AgentInstrumentation =
-      AgentInstrumentationFactory(value, fqcn +: fqcns, false)
-    def deferred: AgentInstrumentation = AgentInstrumentationFactory(value, Seq.empty, true)
-  }
 }
