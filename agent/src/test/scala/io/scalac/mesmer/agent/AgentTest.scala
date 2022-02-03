@@ -43,7 +43,7 @@ class AgentTest extends AnyFlatSpec with Matchers {
 
     val agent = Agent(agentInstrumentationOne, agentInstrumentationTwo, agentInstrumentationThree)
 
-    agent.installOn(new AgentBuilder.Default(), ByteBuddyAgent.install()) should be(expectedResult)
+    agent.installOnMesmerAgent(new AgentBuilder.Default(), ByteBuddyAgent.install()) should be(expectedResult)
   }
 
 }

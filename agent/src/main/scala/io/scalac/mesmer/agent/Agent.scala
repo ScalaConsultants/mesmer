@@ -5,6 +5,9 @@ import java.lang.instrument.Instrumentation
 import net.bytebuddy.agent.builder.AgentBuilder
 import org.slf4j.LoggerFactory
 
+import io.scalac.mesmer.agent.util.i13n
+import io.scalac.mesmer.agent.util.i13n.InstrumentationDetails
+
 object Agent {
 
   def apply(head: AgentInstrumentation, tail: AgentInstrumentation*): Agent = new Agent(Set.from(head +: tail))
@@ -51,11 +54,23 @@ final case class Agent private (private[agent] val instrumentations: Set[AgentIn
 
   def ++(other: AgentInstrumentation): Agent = Agent(instrumentations + other)
 
-  def installOn(builder: AgentBuilder, instrumentation: Instrumentation): LoadingResult =
+  def installOnMesmerAgent(builder: AgentBuilder, instrumentation: Instrumentation): LoadingResult = {
+
+    def mesmerAgentInstallation(agentInstrumentation: AgentInstrumentation): LoadingResult = {
+      val typeInstrumentation: i13n.TypeInstrumentation     = agentInstrumentation.typeInstrumentation
+      val instrumentationDetails: InstrumentationDetails[_] = typeInstrumentation.`type`.name
+      builder
+        .`type`(typeInstrumentation.`type`.desc)
+        .transform((underlying, _, _, _) => typeInstrumentation.transformBuilder(underlying))
+        .installOn(instrumentation)
+      if (instrumentationDetails.isFQCN) LoadingResult(instrumentationDetails.name +: agentInstrumentation.load)
+      else LoadingResult.empty
+    }
+
     // Sorting a set is very brittle when it comes to determining the installation order.
     // See more: https://github.com/ScalaConsultants/mesmer-akka-agent/issues/294
-    instrumentations.toSeq.sorted.map { agentInstrumentation =>
-      agentInstrumentation.mesmerAgentInstallation(builder, instrumentation)
-
-    }.fold(LoadingResult.empty)(_ ++ _)
+    instrumentations.toSeq.sorted
+      .map(mesmerAgentInstallation)
+      .fold(LoadingResult.empty)(_ ++ _)
+  }
 }
