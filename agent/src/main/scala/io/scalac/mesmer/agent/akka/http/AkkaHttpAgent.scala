@@ -45,6 +45,15 @@ object AkkaHttpAgent
         .visit[HttpExtConnectionsAdvice]("bindAndHandle")
     )
 
+  def agent(config: com.typesafe.config.Config): Agent = {
+    def orEmpty(condition: Boolean, agent: Agent): Agent = if (condition) agent else Agent.empty
+    val configuration: AkkaHttpModule.Config             = module.enabled(config)
+
+    orEmpty(configuration.connections, connectionEvents) ++
+    orEmpty(configuration.requestTime, requestEvents) ++
+    orEmpty(configuration.requestCounter, requestEvents)
+  }
+
   /**
    * @param config
    *   configuration of features that are wanted by the user

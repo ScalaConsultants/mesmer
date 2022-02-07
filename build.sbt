@@ -77,7 +77,8 @@ lazy val agent = (project in file("agent"))
   .settings(
     name := "mesmer-akka-agent",
     libraryDependencies ++= {
-      akka.map(_    % "provided") ++
+      openTelemetryInstrumentation ++
+      akka.map(_ % "provided") ++
       logback.map(_ % Test) ++
       byteBuddy ++
       scalatest ++
@@ -133,7 +134,7 @@ lazy val otelExtension = (project in file("otel-extension"))
     assembly / assemblyJarName := "mesmer-otel-extension.jar",
     assemblyMergeStrategySettings
   )
-  .dependsOn(instrumentations)
+  .dependsOn(instrumentations, core, agent)
 
 lazy val example = (project in file("example"))
   .enablePlugins(JavaAppPackaging, UniversalPlugin)
@@ -168,7 +169,11 @@ lazy val example = (project in file("example"))
       jar -> "mesmer.agent.jar"
     }
   )
-  .dependsOn(extension, instrumentations)
+  .dependsOn(
+    extension,
+    instrumentations,
+    agent
+  ) // TODO: we still keep some instrumentations in agent, so we depend on it
 
 lazy val assemblyMergeStrategySettings = assembly / assemblyMergeStrategy := {
   case PathList("META-INF", "services", _ @_*)           => MergeStrategy.concat
