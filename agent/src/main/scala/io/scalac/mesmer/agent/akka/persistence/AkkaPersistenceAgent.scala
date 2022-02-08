@@ -61,7 +61,8 @@ object AkkaPersistenceAgent
     orEmpty(configuration.recoveryTotal, recoveryAgent) ++
     orEmpty(configuration.recoveryTime, recoveryAgent) ++
     orEmpty(configuration.persistentEvent, eventWriteSuccessAgent) ++
-    orEmpty(configuration.persistentEventTotal, eventWriteSuccessAgent)
+    orEmpty(configuration.persistentEventTotal, eventWriteSuccessAgent) ++
+    orEmpty(configuration.snapshot, snapshotLoadingAgent)
   }
 
   private def ifSupported(agent: => Agent)(versions: AkkaPersistenceModule.Jars[Version]): Option[Agent] = {
@@ -122,6 +123,6 @@ object AkkaPersistenceAgent
   private val snapshotLoadingAgent =
     Agent(
       instrument("akka.persistence.typed.internal.Running$StoringSnapshot".fqcnWithTags("snapshot_created"))
-        .intercept(StoringSnapshotInterceptor, "onSaveSnapshotResponse")
+        .visit[StoringSnapshotAdvice]("onSaveSnapshotResponse")
     )
 }
