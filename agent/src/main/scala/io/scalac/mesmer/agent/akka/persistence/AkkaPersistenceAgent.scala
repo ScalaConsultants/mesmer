@@ -58,6 +58,8 @@ object AkkaPersistenceAgent
 
     val configuration = module.enabled(config)
 
+    orEmpty(configuration.recoveryTotal, recoveryAgent) ++
+    orEmpty(configuration.recoveryTime, recoveryAgent) ++
     orEmpty(configuration.persistentEvent, eventWriteSuccessAgent) ++
     orEmpty(configuration.persistentEventTotal, eventWriteSuccessAgent)
   }
@@ -92,14 +94,14 @@ object AkkaPersistenceAgent
      */
     val recoveryStartedAgent =
       instrument("akka.persistence.typed.internal.ReplayingSnapshot".fqcnWithTags(recoveryTag))
-        .intercept(RecoveryStartedInterceptor, "onRecoveryStart")
+        .visit[RecoveryStartedAdvice]("onRecoveryStart")
 
     /**
      * Instrumentation to fire event on persistent actor recovery complete
      */
     val recoveryCompletedAgent =
       instrument("akka.persistence.typed.internal.ReplayingEvents".fqcnWithTags(recoveryTag))
-        .intercept(RecoveryCompletedInterceptor, "onRecoveryComplete")
+        .visit[RecoveryCompletedAdvice]("onRecoveryComplete")
 
     Agent(recoveryStartedAgent, recoveryCompletedAgent)
   }
