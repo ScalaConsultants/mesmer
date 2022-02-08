@@ -1,5 +1,6 @@
 package io.scalac.mesmer.agent.akka.persistence
 
+import com.typesafe.config.Config
 import org.slf4j.LoggerFactory
 
 import io.scalac.mesmer.agent.Agent
@@ -12,6 +13,8 @@ import io.scalac.mesmer.core.module.AkkaPersistenceModule
 object AkkaPersistenceAgent
     extends InstrumentModuleFactory(AkkaPersistenceModule)
     with AkkaPersistenceModule.All[AkkaPersistenceModule.Jars[Version] => Option[Agent]] {
+
+  private[persistence] val logger = LoggerFactory.getLogger(AkkaPersistenceAgent.getClass)
 
   /**
    * @param config
@@ -50,6 +53,15 @@ object AkkaPersistenceAgent
     (resultantAgent, enabled)
   }
 
+  def agent(config: Config): Agent = {
+    def orEmpty(condition: Boolean, agent: Agent): Agent = if (condition) agent else Agent.empty
+
+    val configuration = module.enabled(config)
+
+    orEmpty(configuration.persistentEvent, eventWriteSuccessAgent) ++
+    orEmpty(configuration.persistentEventTotal, eventWriteSuccessAgent)
+  }
+
   private def ifSupported(agent: => Agent)(versions: AkkaPersistenceModule.Jars[Version]): Option[Agent] = {
     import versions._
     if (
@@ -64,19 +76,12 @@ object AkkaPersistenceAgent
 
   lazy val recoveryTotal: AkkaPersistenceModule.Jars[Version] => Option[Agent] = ifSupported(recoveryAgent)
 
-  lazy val persistentEvent: AkkaPersistenceModule.Jars[Version] => Option[Agent] = ifSupported(
-    Agent(eventWriteSuccessInstrumentation)
-  )
+  lazy val persistentEvent: AkkaPersistenceModule.Jars[Version] => Option[Agent] = ifSupported(eventWriteSuccessAgent)
 
-  lazy val persistentEventTotal: AkkaPersistenceModule.Jars[Version] => Option[Agent] = ifSupported(
-    Agent(eventWriteSuccessInstrumentation)
-  )
+  lazy val persistentEventTotal: AkkaPersistenceModule.Jars[Version] => Option[Agent] =
+    ifSupported(eventWriteSuccessAgent)
 
-  lazy val snapshot: AkkaPersistenceModule.Jars[Version] => Option[Agent] = ifSupported(
-    Agent(snapshotLoadingInstrumentation)
-  )
-
-  private[persistence] val logger = LoggerFactory.getLogger(AkkaPersistenceAgent.getClass)
+  lazy val snapshot: AkkaPersistenceModule.Jars[Version] => Option[Agent] = ifSupported(snapshotLoadingAgent)
 
   private val recoveryAgent = {
 
@@ -102,15 +107,19 @@ object AkkaPersistenceAgent
   /**
    * Instrumentation to fire events on persistent event start and stop
    */
-  private val eventWriteSuccessInstrumentation =
-    instrument("akka.persistence.typed.internal.Running".fqcnWithTags("persistent_event"))
-      .intercept(PersistingEventSuccessInterceptor, "onWriteSuccess")
-      .intercept(JournalInteractionsInterceptor, "onWriteInitiated")
+  private val eventWriteSuccessAgent =
+    Agent(
+      instrument("akka.persistence.typed.internal.Running".fqcnWithTags("persistent_event"))
+        .visit[PersistingEventSuccessAdvice]("onWriteSuccess")
+        .visit[JournalInteractionsAdvice]("onWriteInitiated")
+    )
 
   /**
    * Instrumentation to fire event when snapshot is stored
    */
-  private val snapshotLoadingInstrumentation =
-    instrument("akka.persistence.typed.internal.Running$StoringSnapshot".fqcnWithTags("snapshot_created"))
-      .intercept(StoringSnapshotInterceptor, "onSaveSnapshotResponse")
+  private val snapshotLoadingAgent =
+    Agent(
+      instrument("akka.persistence.typed.internal.Running$StoringSnapshot".fqcnWithTags("snapshot_created"))
+        .intercept(StoringSnapshotInterceptor, "onSaveSnapshotResponse")
+    )
 }

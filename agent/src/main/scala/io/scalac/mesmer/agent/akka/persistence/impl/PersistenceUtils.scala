@@ -6,8 +6,6 @@ import io.scalac.mesmer.core.util.ReflectionFieldUtils
 
 private[impl] trait PersistenceUtils {
 
-//  protected val (elo, melon) = ("String", "elo")
-
   protected lazy val replayingSnapshotsSetupGetter: MethodHandle =
     ReflectionFieldUtils.getGetter("akka.persistence.typed.internal.ReplayingSnapshot", "setup")
 

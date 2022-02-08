@@ -5,18 +5,20 @@ import akka.persistence.PersistentRepr
 import net.bytebuddy.asm.Advice._
 
 import io.scalac.mesmer.core.event.EventBus
-import io.scalac.mesmer.core.event.PersistenceEvent.PersistingEventStarted
+import io.scalac.mesmer.core.event.PersistenceEvent.PersistingEventFinished
 import io.scalac.mesmer.core.model._
 import io.scalac.mesmer.core.util.Timestamp
 
-object JournalInteractionsInterceptor {
+class PersistingEventSuccessAdvice
+object PersistingEventSuccessAdvice {
 
   @OnMethodEnter
-  def onWriteInitiated(@Argument(0) context: ActorContext[_], @Argument(2) event: PersistentRepr): Unit = {
-    val path = context.self.path.toPath
+  def onWriteSuccess(@Argument(0) context: ActorContext[_], @Argument(1) event: PersistentRepr): Unit = {
+    val path: Path = context.self.path.toPath
+
     EventBus(context.system)
       .publishEvent(
-        PersistingEventStarted(
+        PersistingEventFinished(
           path,
           event.persistenceId,
           event.sequenceNr,
@@ -24,5 +26,4 @@ object JournalInteractionsInterceptor {
         )
       )
   }
-
 }
