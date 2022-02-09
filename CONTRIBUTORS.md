@@ -27,7 +27,7 @@ For conveyor of messages we use Reception
 
 ## Opentelemetry
 
-It's a fusion of opentracing and openCensus.  It's an specification and an implementation for creating, aggregating and publishing traces and metrics.
+It's a fusion of opentracing and openCensus. It's an specification and an implementation for creating, aggregating and publishing traces and metrics.
 We use this extensively as it's makes publishing metrics to different backends (prometheus, datadog etc) easy and can take care of some aggregations (mostly histograms ATM).
 Links to read more:
 - https://opentelemetry.io/docs/instrumentation/java/
