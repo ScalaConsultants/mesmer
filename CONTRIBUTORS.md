@@ -12,7 +12,7 @@ Projects is comprised of 3 major parts:
 The most interesting parts are java agent and akka extension. They have to work in tandem - `agent` creates a foundation on which `extension` can build and calculate metrics.
 It's good to use an example to get a better understanding - `agent` allows to trigger an event whenever http request starts and completes
 We've found places where those events should be triggered by looking at Akka source code and then modified necessary classes during load). 
-`extension` then catch those events and calculate duration between the two and save it in opentelemetry instrument. There will be more about opentelemetry role in the product later in this document.
+`extension` then captures those events, calculates the duration between the two, and passes this calculated metric (request time) in opentelemetry instrument. There will be more about opentelemetry role in the product later in this document.
 
 
 ## Extension
