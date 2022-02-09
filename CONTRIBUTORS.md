@@ -38,7 +38,7 @@ Links to read more:
 ## Agent
 
 This is probably the most complicated part of mesmer development (there is an ongoing [proposal](https://github.com/ScalaConsultants/mesmer-akka-agent/discussions/272) to switch from our custom agent to opentelemetry one which would simplify development and enable tracing).
-In some cases it requires writing `.java` files as scala doesn't allow some operations that are needed  for class instrumentations.
+In some cases it requires writing `.java` files as scala doesn't allow some operations that are needed for class instrumentations.
 We use bytebyddy as a preferred tool for bytecode generation - it operates on higher level that ASM and has an `Advice` abstraction - this can be thing as a blueprint that will be injected into loaded class file.
 
 Links to read more:
