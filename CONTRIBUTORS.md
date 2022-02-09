@@ -7,7 +7,7 @@ Mesmer is a project to extract and export akka specific metrics.
 Projects is comprised of 3 major parts:
 - java agent (called `agent` from now on) - a piece of technology allowing to modify classes during load.
 - akka extension (called `extension` from now on)  - this is where all custom metrics computation happens.
-- application that is being instrumented - in repo example, but this in theory this could be any application that uses akka.
+- application that is being instrumented - in repo we have the "example" app, but this in theory this could be any application that uses akka.
 
 The most interesting parts are java agent and akka extension. They have to work in tandem - `agent` creates a foundation on which `extension` can build and calculate metrics.
 It's good to use an example to get a better understanding - `agent` allows to trigger an event whenever http request starts and completes
