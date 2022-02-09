@@ -37,7 +37,7 @@ package object i13n {
       InstrumentationDetails[NonFQCN](name, tags, isFQCN = false)
   }
 
-  final class Type(val name: InstrumentationDetails[_], val desc: TypeDesc) {
+  final class Type private[i13n] (val name: InstrumentationDetails[_], val desc: TypeDesc) {
     def and(addDesc: TypeDesc): Type = new Type(name, desc.and(addDesc))
   }
 

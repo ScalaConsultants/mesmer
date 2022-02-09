@@ -69,7 +69,7 @@ object Agent {
 
   val empty: Agent = new Agent(Set.empty[AgentInstrumentation])
 
-  case class LoadingResult(fullyQualifiedNames: Set[String]) {
+  final case class LoadingResult(fullyQualifiedNames: Set[String]) {
     import LoadingResult.{ logger => loadingLogger }
     def eagerLoad(): Unit =
       fullyQualifiedNames.foreach { className =>
