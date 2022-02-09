@@ -17,7 +17,7 @@ We've found places where those events should be triggered by looking at Akka sou
 
 ## Extension
 
-It's a part that is responsible for calculating and exporting metrics. The fact that it's akka extension is an implementation detail, but it's worth to know that.
+It's a part that is responsible for calculating and exporting metrics. The fact that it's an Akka extension is an implementation detail, but it's worth knowing that.
 Akka extension are plugins that grant additional functionality to akka and can be enabled with configuration - this is the approach that we took.
 At the start up of the extension we check for configured metrics that were enabled and start only those monitors that are required.
 In our example monitors are akka system actors, but this is also an implementation detail.
