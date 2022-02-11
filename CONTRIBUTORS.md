@@ -44,3 +44,29 @@ We use [ByteBuddy](https://bytebuddy.net/#/) as a preferred tool for bytecode ge
 Links to read more:
 - https://bytebuddy.net/#/tutorial
 - https://www.youtube.com/watch?v=oflzFGONG08 - introduction to bytebuddy and advices by it's creator Rafael Winterhalter
+
+## How to add a new metric
+
+Although adding a new metrics might be a little tricky, there are a couple of steps that are worth following:
+
+* choose a metric that you want to instrument
+* check which api might expose this metric
+* start with tests first - check if you have an application that use chosen API e.g. if if it's an Akka library, see if our example app uses that.
+If not, create a simple example app for testing (consider contributing it to the `examples` directory in Mesmer)
+* choose what is a kind of metric e.g. is a gauge, counter or histogram?
+* dive into source library source code - find a fragments of code that you can hook on to extract a metric.
+This is a tricky part and in many cases you might be forced to change previously made decision (e.g. change the metric type).
+This might get overwhelming quickly, so try to deliver a working PoC rather than figuring out all the details upfront.
+* write `agent` instrumentation code - this varies from metric to metric, but there are a couple rules of thumb
+  * don't use mutable state - currently preferred approach is to fire an event with `EventBus`
+  * use `Advice` rather than `Intercept` API
+  * use java classes as last resort and try to make it as thin as possible - it's usually better to write logic in scala functions
+* write monitor classes - current approach is not to use `opentelemetry` monitors directly but to use our `wrappers` which allowed for better testability.
+Check `io.scalac.mesmer.extension.metric` package in `extension` for current implementations.
+* write events handling class - currently those are solely actors, but this might change in the future. This is the part that should take
+previously defined monitor as a parameter and submit values to it after it's done doing calculations.
+* remember about tests for both `extension` and `agent` part
+
+### Writing agent
+
+// TODO here will be content for adding agents
