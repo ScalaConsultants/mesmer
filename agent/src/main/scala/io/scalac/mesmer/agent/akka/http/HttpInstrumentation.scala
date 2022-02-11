@@ -1,17 +1,23 @@
-package io.scalac.mesmer.instrumentations.akka.http
+package io.scalac.mesmer.agent.akka.http
 
-import _root_.akka.http.scaladsl.model.{ HttpRequest, HttpResponse }
+import _root_.akka.http.scaladsl.model.HttpRequest
+import _root_.akka.http.scaladsl.model.HttpResponse
 import _root_.akka.stream.BidiShape
 import akka.actor.typed.scaladsl.adapter._
 import akka.http.scaladsl.HttpExt
-import akka.stream.scaladsl.{ BidiFlow, Broadcast, Flow, GraphDSL, Source, Zip }
+import akka.stream.scaladsl.BidiFlow
+import akka.stream.scaladsl.Broadcast
+import akka.stream.scaladsl.Flow
+import akka.stream.scaladsl.GraphDSL
+import akka.stream.scaladsl.Source
+import akka.stream.scaladsl.Zip
+
 import io.scalac.mesmer.core.akka.stream.BidiFlowForward
 import io.scalac.mesmer.core.event.EventBus
 import io.scalac.mesmer.core.event.HttpEvent._
 import io.scalac.mesmer.core.model._
 import io.scalac.mesmer.core.util.Timestamp
 
-class HttpInstrumentation
 object HttpInstrumentation {
 
   final class RandomIdGenerator(val prefix: String) {
@@ -31,7 +37,6 @@ object HttpInstrumentation {
     handler: Flow[HttpRequest, HttpResponse, Any],
     self: HttpExt
   ): Flow[HttpRequest, HttpResponse, Any] = {
-
     val system = self.system.toTyped
 
     val requestIdFlow =
@@ -90,14 +95,12 @@ object HttpInstrumentation {
     port: java.lang.Integer,
     self: HttpExt
   ): Flow[HttpRequest, HttpResponse, Any] = {
-
     val system = self.system.toTyped
 
     val connectionsCountFlow = BidiFlowForward[HttpRequest, HttpResponse](
       onPreStart = () => EventBus(system).publishEvent(ConnectionStarted(interface, port)),
       onPostStop = () => EventBus(system).publishEvent(ConnectionCompleted(interface, port))
     )
-
     connectionsCountFlow.join(handler)
   }
 }

@@ -18,9 +18,6 @@ import scala.util.Try
 
 import io.scalac.mesmer.core.AkkaDispatcher
 import io.scalac.mesmer.core.model._
-import io.scalac.mesmer.core.module.AkkaActorModule
-import io.scalac.mesmer.core.module.AkkaHttpModule
-import io.scalac.mesmer.core.module.AkkaPersistenceModule
 import io.scalac.mesmer.core.module.Module._
 import io.scalac.mesmer.core.module._
 import io.scalac.mesmer.core.typeclasses.Traverse
@@ -219,6 +216,8 @@ final class AkkaMonitoring(system: ActorSystem[_])(implicit otelLoader: OpenTele
   private def startClusterRegionsMonitor(): Unit = startClusterMonitor(ClusterRegionsMonitorActor)
 
   private def startPersistenceMonitor(): Unit = {
+    reloadGlobalConfig(AkkaPersistenceModule)
+
     val akkaPersistenceConfig =
       AkkaPersistenceModule.globalConfiguration.map { config =>
         config.combine(AkkaPersistenceModule.enabled(actorSystemConfig))

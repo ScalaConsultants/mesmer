@@ -1,12 +1,13 @@
 package io.scalac.mesmer.agent.akka.http
 
+import com.typesafe.config.{ Config => TypesafeConfig }
+
 import io.scalac.mesmer.agent.Agent
 import io.scalac.mesmer.agent.util.i13n._
 import io.scalac.mesmer.core.akka._
 import io.scalac.mesmer.core.model.Version
 import io.scalac.mesmer.core.module.AkkaHttpModule
 import io.scalac.mesmer.core.module.AkkaHttpModule._
-import io.scalac.mesmer.instrumentations.akka.http.HttpExtRequestsAdvice
 
 object AkkaHttpAgent
     extends InstrumentModuleFactory(AkkaHttpModule)
@@ -44,6 +45,15 @@ object AkkaHttpAgent
       instrument("akka.http.scaladsl.HttpExt".fqcnWithTags("connections"))
         .visit[HttpExtConnectionsAdvice]("bindAndHandle")
     )
+
+  def agent(typesafeConfig: TypesafeConfig): Agent = {
+    def orEmpty(condition: Boolean, agent: Agent): Agent = if (condition) agent else Agent.empty
+    val configuration: AkkaHttpModule.Config             = module.enabled(typesafeConfig)
+
+    orEmpty(configuration.connections, connectionEvents) ++
+    orEmpty(configuration.requestTime, requestEvents) ++
+    orEmpty(configuration.requestCounter, requestEvents)
+  }
 
   /**
    * @param config

@@ -38,7 +38,7 @@ object Boot {
       AkkaActorAgent.initAgent(info, config).getOrElse(Agent.empty)
 
     allInstrumentations
-      .installOn(agentBuilder, instrumentation)
+      .installOnMesmerAgent(agentBuilder, instrumentation)
       .eagerLoad()
 
   }

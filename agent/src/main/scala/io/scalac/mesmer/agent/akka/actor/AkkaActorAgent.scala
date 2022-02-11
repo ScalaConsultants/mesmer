@@ -259,24 +259,29 @@ object AkkaActorAgent
   /**
    * Instrumentation that add [[ActorCellMetrics]] field to [[akka.actor.ActorCell]] and initialize it in `init` method
    */
-  private val actorCellInstrumentation = instrument("akka.actor.ActorCell".fqcnWithTags("metrics"))
-    .defineField[ActorCellMetrics](ActorCellDecorator.fieldName)
-    .defineMethod("setupMetrics", TargetType.DESCRIPTION, FixedValue.self())
-    .intercept(
-      named("init").method,
-      Advice
-        .to(classOf[ActorCellInitAdvice])
-        .wrap(
-          SuperMethodCall.INSTANCE.andThen(MethodCall.invoke(named("setupMetrics").method))
-        )
-    )
-    .visit(ActorCellReceiveMessageInstrumentation, "receiveMessage")
-    .deferred
+  private val actorCellInstrumentation = AgentInstrumentation.deferred(
+    instrument("akka.actor.ActorCell".fqcnWithTags("metrics"))
+      .defineField[ActorCellMetrics](ActorCellDecorator.fieldName)
+      .defineMethod("setupMetrics", TargetType.DESCRIPTION, FixedValue.self())
+      .intercept(
+        named("init").method,
+        Advice
+          .to(classOf[ActorCellInitAdvice])
+          .wrap(
+            SuperMethodCall.INSTANCE.andThen(MethodCall.invoke(named("setupMetrics").method))
+          )
+      )
+      .visit(ActorCellReceiveMessageInstrumentation, "receiveMessage")
+  )
 
   private def initField(name: String, init: ActorCellMetrics => Unit): AgentInstrumentation =
-    instrument("akka.actor.ActorCell".fqcnWithTags(name))
-      .intercept("setupMetrics", MethodDelegation.to(new ActorCellInitializer(init)).andThen(SuperMethodCall.INSTANCE))
-      .deferred
+    AgentInstrumentation.deferred(
+      instrument("akka.actor.ActorCell".fqcnWithTags(name))
+        .intercept(
+          "setupMetrics",
+          MethodDelegation.to(new ActorCellInitializer(init)).andThen(SuperMethodCall.INSTANCE)
+        )
+    )
 
   private lazy val sharedInstrumentation: Agent =
     Agent(

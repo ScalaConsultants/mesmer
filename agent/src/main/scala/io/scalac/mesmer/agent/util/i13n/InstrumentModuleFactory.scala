@@ -61,7 +61,7 @@ abstract class InstrumentModuleFactory[M <: Module with RegistersGlobalConfigura
    */
   this: M#All[M#Jars[Version] => Option[Agent]] =>
 
-  protected def instrument(tpe: Type): TypeInstrumentation = TypeInstrumentation(tpe)
+  protected def instrument(t: Type): TypeInstrumentation = TypeInstrumentation.instrument(t)
 
   /**
    * @param config
