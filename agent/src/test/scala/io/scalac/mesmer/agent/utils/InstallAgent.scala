@@ -49,7 +49,7 @@ abstract class InstallAgent extends TestSuite with BeforeAndAfterAll {
     val instrumentation = ByteBuddyAgent.install()
 
     agent
-      .installOn(builder, instrumentation)
+      .installOnMesmerAgent(builder, instrumentation)
       .eagerLoad()
   }
 }

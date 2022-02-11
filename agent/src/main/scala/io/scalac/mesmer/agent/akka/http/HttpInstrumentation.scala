@@ -1,10 +1,17 @@
-package io.scalac.mesmer.instrumentations.akka.http
+package io.scalac.mesmer.agent.akka.http
 
-import _root_.akka.http.scaladsl.model.{ HttpRequest, HttpResponse }
+import _root_.akka.http.scaladsl.model.HttpRequest
+import _root_.akka.http.scaladsl.model.HttpResponse
 import _root_.akka.stream.BidiShape
 import akka.actor.typed.scaladsl.adapter._
 import akka.http.scaladsl.HttpExt
-import akka.stream.scaladsl.{ BidiFlow, Broadcast, Flow, GraphDSL, Source, Zip }
+import akka.stream.scaladsl.BidiFlow
+import akka.stream.scaladsl.Broadcast
+import akka.stream.scaladsl.Flow
+import akka.stream.scaladsl.GraphDSL
+import akka.stream.scaladsl.Source
+import akka.stream.scaladsl.Zip
+
 import io.scalac.mesmer.core.akka.stream.BidiFlowForward
 import io.scalac.mesmer.core.event.EventBus
 import io.scalac.mesmer.core.event.HttpEvent._
