@@ -29,7 +29,7 @@ object HttpInstrumentation {
         .append(prefix)
         .append(id)
         .toString()
-      id += 1L // TODO check for overflow
+      id += 1L
       value
     }
   }
@@ -39,7 +39,7 @@ object HttpInstrumentation {
     self: HttpExt
   ): Flow[HttpRequest, HttpResponse, Any] = {
 
-    val system = self.asInstanceOf[HttpExt].system.toTyped
+    val system = self.system.toTyped
 
     val requestIdFlow =
       BidiFlow.fromGraph[HttpRequest, HttpRequest, HttpResponse, HttpResponse, Any](GraphDSL.create() {
@@ -98,7 +98,7 @@ object HttpInstrumentation {
     self: HttpExt
   ): Flow[HttpRequest, HttpResponse, Any] = {
 
-    val system = self.asInstanceOf[HttpExt].system.toTyped
+    val system = self.system.toTyped
 
     val connectionsCountFlow = BidiFlowForward[HttpRequest, HttpResponse](
       onPreStart = () => EventBus(system).publishEvent(ConnectionStarted(interface, port)),

@@ -3,10 +3,9 @@ package io.scalac.mesmer.core.module
 import com.typesafe.config.{ Config => TypesafeConfig }
 
 import io.scalac.mesmer.core.model.Version
-import io.scalac.mesmer.core.module.Module.Combine
 import io.scalac.mesmer.core.module.Module.CommonJars
-import io.scalac.mesmer.core.module.Module.JarsNames
-import io.scalac.mesmer.core.module.Module.Traverse
+import io.scalac.mesmer.core.typeclasses.Combine
+import io.scalac.mesmer.core.typeclasses.Traverse
 import io.scalac.mesmer.core.util.LibraryInfo.LibraryInfo
 
 /**
@@ -35,7 +34,7 @@ sealed trait AkkaHttpConnectionMetricsModule extends MetricsModule {
 
 object AkkaHttpModule
     extends MesmerModule
-    with RegisterGlobalConfiguration
+    with RegistersGlobalConfiguration
     with AkkaHttpRequestMetricsModule
     with AkkaHttpConnectionMetricsModule {
 
@@ -74,16 +73,16 @@ object AkkaHttpModule
 
   }
 
-  override type AkkaJar[T] = Jars[T]
+  override type Jars[T] = AkkaHttpJars[T]
 
-  final case class Jars[T](akkaActor: T, akkaActorTyped: T, akkaHttp: T) extends CommonJars[T]
+  final case class AkkaHttpJars[T](akkaActor: T, akkaActorTyped: T, akkaHttp: T) extends CommonJars[T]
 
-  def jarsFromLibraryInfo(info: LibraryInfo): Option[AkkaJar[Version]] =
+  def jarsFromLibraryInfo(info: LibraryInfo): Option[Jars[Version]] =
     for {
-      actor      <- info.get(JarsNames.akkaActor)
-      actorTyped <- info.get(JarsNames.akkaActorTyped)
-      http       <- info.get(JarsNames.akkaHttp)
-    } yield Jars(actor, actorTyped, http)
+      actor      <- info.get(JarNames.akkaActor)
+      actorTyped <- info.get(JarNames.akkaActorTyped)
+      http       <- info.get(JarNames.akkaHttp)
+    } yield AkkaHttpJars(actor, actorTyped, http)
 
   implicit val combineConfig: Combine[All[Boolean]] = (first, second) =>
     Impl(

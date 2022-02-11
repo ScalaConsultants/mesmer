@@ -16,7 +16,7 @@ import io.scalac.mesmer.agent.util.i13n.InstrumentModuleFactory
 import io.scalac.mesmer.agent.util.i13n.InstrumentModuleFactory._
 import io.scalac.mesmer.agent.utils.InstallAgent.allInstrumentations
 import io.scalac.mesmer.core.module.MesmerModule
-import io.scalac.mesmer.core.module.RegisterGlobalConfiguration
+import io.scalac.mesmer.core.module.RegistersGlobalConfiguration
 import io.scalac.mesmer.core.util.LibraryInfo.LibraryInfo
 import io.scalac.mesmer.core.util.LibraryInfo.extractModulesInformation
 
@@ -49,12 +49,12 @@ abstract class InstallAgent extends TestSuite with BeforeAndAfterAll {
     val instrumentation = ByteBuddyAgent.install()
 
     agent
-      .installOn(builder, instrumentation)
+      .installOnMesmerAgent(builder, instrumentation)
       .eagerLoad()
   }
 }
 
-abstract class InstallModule[M <: MesmerModule with RegisterGlobalConfiguration](
+abstract class InstallModule[M <: MesmerModule with RegistersGlobalConfiguration](
   moduleFactory: InstrumentModuleFactory[M]
 ) extends InstallAgent {
   import InstrumentModuleFactory._

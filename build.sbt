@@ -77,7 +77,8 @@ lazy val agent = (project in file("agent"))
   .settings(
     name := "mesmer-akka-agent",
     libraryDependencies ++= {
-      akka.map(_    % "provided") ++
+      openTelemetryInstrumentation ++
+      akka.map(_ % "provided") ++
       logback.map(_ % Test) ++
       byteBuddy ++
       scalatest ++
@@ -107,9 +108,19 @@ lazy val agent = (project in file("agent"))
     Test / testOnly / testGrouping := (Test / testGrouping).value
   )
   .settings(addArtifact(Compile / assembly / artifact, assembly).settings: _*)
-  .dependsOn(
-    core % "provided->compile;test->test"
+  .dependsOn(core % "provided->compile;test->test")
+
+lazy val otelExtension = (project in file("otel-extension"))
+  .settings(
+    name := "mesmer-otel-extension",
+    libraryDependencies ++= {
+      openTelemetryInstrumentation
+    },
+    assembly / test            := {},
+    assembly / assemblyJarName := "mesmer-otel-extension.jar",
+    assemblyMergeStrategySettings
   )
+  .dependsOn(core, agent)
 
 lazy val example = (project in file("example"))
   .enablePlugins(JavaAppPackaging, UniversalPlugin)
@@ -137,13 +148,14 @@ lazy val example = (project in file("example"))
         (key, value) <- properties.asScala.toList if value.nonEmpty
       } yield s"-D$key=$value"
     },
-    commands += runWithAgent,
+    commands += runWithMesmerAgent,
+    commands += runWithOtelAgent,
     Universal / mappings += {
       val jar = (agent / assembly).value
       jar -> "mesmer.agent.jar"
     }
   )
-  .dependsOn(extension)
+  .dependsOn(extension, agent)
 
 lazy val assemblyMergeStrategySettings = assembly / assemblyMergeStrategy := {
   case PathList("META-INF", "services", _ @_*)           => MergeStrategy.concat
@@ -172,12 +184,28 @@ lazy val benchmark = (project in file("benchmark"))
   }
   .dependsOn(extension)
 
-def runWithAgent = Command.command("runWithAgent") { state =>
+def runWithMesmerAgent = Command.command("runWithMesmerAgent") { state =>
   val extracted = Project extract state
   val newState = extracted.appendWithSession(
     Seq(
       run / javaOptions ++= Seq(
         s"-javaagent:${(agent / assembly).value.absolutePath}"
+      )
+    ),
+    state
+  )
+  val (s, _) =
+    Project.extract(newState).runInputTask(Compile / run, "", newState)
+  s
+}
+
+def runWithOtelAgent = Command.command("runWithOtelAgent") { state =>
+  val extracted = Project extract state
+  val newState = extracted.appendWithSession(
+    Seq(
+      run / javaOptions ++= Seq(
+        s"-javaagent:../opentelemetry-javaagent110.jar",
+        s"-Dotel.javaagent.extensions=${(otelExtension / assembly).value.absolutePath}"
       )
     ),
     state

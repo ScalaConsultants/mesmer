@@ -6,6 +6,7 @@ import akka.stream.impl.fusing.ActorGraphInterpreterProcessEventAdvice
 import akka.stream.impl.fusing.ActorGraphInterpreterTryInitAdvice
 
 import io.scalac.mesmer.agent.Agent
+import io.scalac.mesmer.agent.AgentInstrumentation
 import io.scalac.mesmer.agent.akka.stream.impl.ConnectionOps
 import io.scalac.mesmer.agent.akka.stream.impl.GraphInterpreterPullAdvice
 import io.scalac.mesmer.agent.akka.stream.impl.GraphInterpreterPushAdvice
@@ -17,8 +18,8 @@ import io.scalac.mesmer.core.module.AkkaStreamModule
 
 object AkkaStreamAgent
     extends InstrumentModuleFactory(AkkaStreamModule)
-    with AkkaStreamModule.StreamMetricsDef[AkkaStreamModule.AkkaJar[Version] => Option[Agent]]
-    with AkkaStreamModule.StreamOperatorMetricsDef[AkkaStreamModule.AkkaJar[Version] => Option[Agent]] {
+    with AkkaStreamModule.StreamMetricsDef[AkkaStreamModule.Jars[Version] => Option[Agent]]
+    with AkkaStreamModule.StreamOperatorMetricsDef[AkkaStreamModule.Jars[Version] => Option[Agent]] {
 
   /**
    * @param config
@@ -30,7 +31,7 @@ object AkkaStreamAgent
    */
   protected def agent(
     config: AkkaStreamModule.All[Boolean],
-    jars: AkkaStreamModule.Jars[Version]
+    jars: AkkaStreamModule.AkkaStreamsJars[Version]
   ): (Agent, AkkaStreamModule.All[Boolean]) = {
     val runningStreamsTotalAgent     = if (config.runningStreamsTotal) runningStreamsTotal(jars) else None
     val streamActorsTotalAgent       = if (config.runningStreamsTotal) streamActorsTotal(jars) else None
@@ -58,50 +59,53 @@ object AkkaStreamAgent
     (resultantAgent, enabled)
   }
 
-  private def ifSupported(agent: => Agent)(versions: AkkaStreamModule.AkkaJar[Version]): Option[Agent] = {
+  private def ifSupported(agent: => Agent)(versions: AkkaStreamModule.Jars[Version]): Option[Agent] = {
     import versions._
     if (version26x.supports(akkaStream) && version26x.supports(akkaActorTyped) && version26x.supports(akkaActor)) {
       Some(agent)
     } else None
   }
 
-  lazy val runningStreamsTotal: AkkaStreamModule.AkkaJar[Version] => Option[Agent] = ifSupported(sharedImplementations)
+  lazy val runningStreamsTotal: AkkaStreamModule.Jars[Version] => Option[Agent] = ifSupported(sharedImplementations)
 
-  lazy val streamActorsTotal: AkkaStreamModule.AkkaJar[Version] => Option[Agent] = ifSupported(sharedImplementations)
+  lazy val streamActorsTotal: AkkaStreamModule.Jars[Version] => Option[Agent] = ifSupported(sharedImplementations)
 
-  lazy val streamProcessedMessages: AkkaStreamModule.AkkaJar[Version] => Option[Agent] = ifSupported(
+  lazy val streamProcessedMessages: AkkaStreamModule.Jars[Version] => Option[Agent] = ifSupported(
     sharedImplementations
   )
 
-  lazy val processedMessages: AkkaStreamModule.AkkaJar[Version] => Option[Agent] = ifSupported(sharedImplementations)
+  lazy val processedMessages: AkkaStreamModule.Jars[Version] => Option[Agent] = ifSupported(sharedImplementations)
 
-  lazy val operators: AkkaStreamModule.AkkaJar[Version] => Option[Agent] = ifSupported(sharedImplementations)
+  lazy val operators: AkkaStreamModule.Jars[Version] => Option[Agent] = ifSupported(sharedImplementations)
 
-  lazy val demand: AkkaStreamModule.AkkaJar[Version] => Option[Agent] = ifSupported(sharedImplementations)
+  lazy val demand: AkkaStreamModule.Jars[Version] => Option[Agent] = ifSupported(sharedImplementations)
 
   /**
    * actorOf methods is called when island decide to materialize itself
    */
   private val phasedFusingActorMaterializerAgentInstrumentation =
-    instrument(hierarchy("akka.stream.impl.ExtendedActorMaterializer".fqcn))
-      .visit(PhasedFusingActorMaterializerAdvice, method("actorOf"))
-      .deferred
+    AgentInstrumentation.deferred(
+      instrument(hierarchy("akka.stream.impl.ExtendedActorMaterializer".fqcn))
+        .visit(PhasedFusingActorMaterializerAdvice, method("actorOf"))
+    )
 
   private val connectionPushAgent = {
 
     /**
      * Add incrementing push counter on push processing
      */
-    val processPush = instrument("akka.stream.impl.fusing.GraphInterpreter".fqcnWithTags("push"))
-      .visit(GraphInterpreterPushAdvice, "processPush")
-      .deferred
+    val processPush = AgentInstrumentation.deferred(
+      instrument("akka.stream.impl.fusing.GraphInterpreter".fqcnWithTags("push"))
+        .visit(GraphInterpreterPushAdvice, "processPush")
+    )
 
     /**
      * Adds push counter to [[akka.stream.impl.fusing.GraphInterpreter.Connection]]
      */
-    val pushField = instrument("akka.stream.impl.fusing.GraphInterpreter$Connection".fqcnWithTags("push"))
-      .defineField[Long](ConnectionOps.PushCounterVarName)
-      .deferred
+    val pushField = AgentInstrumentation.deferred(
+      instrument("akka.stream.impl.fusing.GraphInterpreter$Connection".fqcnWithTags("push"))
+        .defineField[Long](ConnectionOps.PushCounterVarName)
+    )
 
     Agent(processPush, pushField)
   }
@@ -111,16 +115,18 @@ object AkkaStreamAgent
     /**
      * Add incrementing pull counter on pull processing
      */
-    val processPull = instrument("akka.stream.impl.fusing.GraphInterpreter".fqcnWithTags("pull"))
-      .visit(GraphInterpreterPullAdvice, "processPull")
-      .deferred
+    val processPull = AgentInstrumentation.deferred(
+      instrument("akka.stream.impl.fusing.GraphInterpreter".fqcnWithTags("pull"))
+        .visit(GraphInterpreterPullAdvice, "processPull")
+    )
 
     /**
      * Adds pull counter to [[akka.stream.impl.fusing.GraphInterpreter.Connection]]
      */
-    val pullField = instrument("akka.stream.impl.fusing.GraphInterpreter$Connection".fqcnWithTags("pull"))
-      .defineField[Long](ConnectionOps.PullCounterVarName)
-      .deferred
+    val pullField = AgentInstrumentation.deferred(
+      instrument("akka.stream.impl.fusing.GraphInterpreter$Connection".fqcnWithTags("pull"))
+        .defineField[Long](ConnectionOps.PullCounterVarName)
+    )
 
     Agent(processPull, pullField)
   }
@@ -130,19 +136,21 @@ object AkkaStreamAgent
    * data to EventBus and propagation of short living streams
    */
   private val actorGraphInterpreterInstrumentation =
-    instrument("akka.stream.impl.fusing.ActorGraphInterpreter".fqcn)
-      .visit[ActorGraphInterpreterAdvice]("receive")
-      .visit(ActorGraphInterpreterProcessEventAdvice, "processEvent")
-      .visit(ActorGraphInterpreterTryInitAdvice, "tryInit")
-      .deferred
+    AgentInstrumentation.deferred(
+      instrument("akka.stream.impl.fusing.ActorGraphInterpreter".fqcn)
+        .visit[ActorGraphInterpreterAdvice]("receive")
+        .visit(ActorGraphInterpreterProcessEventAdvice, "processEvent")
+        .visit(ActorGraphInterpreterTryInitAdvice, "tryInit")
+    )
 
   /**
    * Instrumentation that add additional tag to terminal Sink
    */
   private val graphStageIslandInstrumentation =
-    instrument("akka.stream.impl.GraphStageIsland".fqcn)
-      .visit[GraphStageIslandAdvice]("materializeAtomic")
-      .deferred
+    AgentInstrumentation.deferred(
+      instrument("akka.stream.impl.GraphStageIsland".fqcn)
+        .visit[GraphStageIslandAdvice]("materializeAtomic")
+    )
 
   private val sharedImplementations =
     connectionPullAgent ++ connectionPushAgent ++ actorGraphInterpreterInstrumentation ++ graphStageIslandInstrumentation ++ phasedFusingActorMaterializerAgentInstrumentation
