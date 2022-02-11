@@ -4,7 +4,7 @@ import java.lang.invoke.MethodHandle
 
 import _root_.akka.actor.typed.scaladsl.ActorContext
 import _root_.akka.persistence.typed.PersistenceId
-import net.bytebuddy.asm.Advice
+import net.bytebuddy.asm.Advice._
 
 import io.scalac.mesmer.core.event.EventBus
 import io.scalac.mesmer.core.event.PersistenceEvent.RecoveryFinished
@@ -12,12 +12,12 @@ import io.scalac.mesmer.core.model._
 import io.scalac.mesmer.core.util.ReflectionFieldUtils
 import io.scalac.mesmer.core.util.Timestamp
 
-class RecoveryCompletedAdvice
 object RecoveryCompletedAdvice {
-  @Advice.OnMethodEnter
+
+  @OnMethodEnter
   def enter(
-    @Advice.Argument(0) actorContext: ActorContext[_],
-    @Advice.This self: AnyRef
+    @Argument(0) actorContext: ActorContext[_],
+    @This self: AnyRef
   ): Unit = {
     val path = actorContext.self.path.toPath
 

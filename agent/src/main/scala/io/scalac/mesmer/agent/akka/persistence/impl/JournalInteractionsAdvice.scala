@@ -9,7 +9,6 @@ import io.scalac.mesmer.core.event.PersistenceEvent.PersistingEventStarted
 import io.scalac.mesmer.core.model._
 import io.scalac.mesmer.core.util.Timestamp
 
-class JournalInteractionsAdvice
 object JournalInteractionsAdvice {
 
   @OnMethodEnter

@@ -95,14 +95,14 @@ object AkkaPersistenceAgent
      */
     val recoveryStartedAgent =
       instrument("akka.persistence.typed.internal.ReplayingSnapshot".fqcnWithTags(recoveryTag))
-        .visit[RecoveryStartedAdvice]("onRecoveryStart")
+        .visit(RecoveryStartedAdvice, "onRecoveryStart")
 
     /**
      * Instrumentation to fire event on persistent actor recovery complete
      */
     val recoveryCompletedAgent =
       instrument("akka.persistence.typed.internal.ReplayingEvents".fqcnWithTags(recoveryTag))
-        .visit[RecoveryCompletedAdvice]("onRecoveryComplete")
+        .visit(RecoveryCompletedAdvice, "onRecoveryComplete")
 
     Agent(recoveryStartedAgent, recoveryCompletedAgent)
   }
@@ -113,8 +113,8 @@ object AkkaPersistenceAgent
   private val eventWriteSuccessAgent =
     Agent(
       instrument("akka.persistence.typed.internal.Running".fqcnWithTags("persistent_event"))
-        .visit[PersistingEventSuccessAdvice]("onWriteSuccess")
-        .visit[JournalInteractionsAdvice]("onWriteInitiated")
+        .visit(PersistingEventSuccessAdvice, "onWriteSuccess")
+        .visit(JournalInteractionsAdvice, "onWriteInitiated")
     )
 
   /**
@@ -123,6 +123,6 @@ object AkkaPersistenceAgent
   private val snapshotLoadingAgent =
     Agent(
       instrument("akka.persistence.typed.internal.Running$StoringSnapshot".fqcnWithTags("snapshot_created"))
-        .visit[StoringSnapshotAdvice]("onSaveSnapshotResponse")
+        .visit(StoringSnapshotAdvice, "onSaveSnapshotResponse")
     )
 }

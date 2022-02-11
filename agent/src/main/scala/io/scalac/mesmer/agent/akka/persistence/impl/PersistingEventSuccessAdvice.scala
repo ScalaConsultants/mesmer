@@ -9,7 +9,6 @@ import io.scalac.mesmer.core.event.PersistenceEvent.PersistingEventFinished
 import io.scalac.mesmer.core.model._
 import io.scalac.mesmer.core.util.Timestamp
 
-class PersistingEventSuccessAdvice
 object PersistingEventSuccessAdvice {
 
   @OnMethodEnter

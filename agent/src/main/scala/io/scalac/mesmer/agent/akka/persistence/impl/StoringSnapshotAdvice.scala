@@ -11,7 +11,6 @@ import io.scalac.mesmer.core.model._
 import io.scalac.mesmer.core.util.ReflectionFieldUtils
 import io.scalac.mesmer.core.util.Timestamp
 
-class StoringSnapshotAdvice
 object StoringSnapshotAdvice {
 
   @OnMethodEnter
