@@ -54,15 +54,14 @@ object AkkaPersistenceAgent
   }
 
   def agent(config: Config): Agent = {
-    def orEmpty(condition: Boolean, agent: Agent): Agent = if (condition) agent else Agent.empty
 
     val configuration = module.enabled(config)
 
-    orEmpty(configuration.recoveryTotal, recoveryAgent) ++
-    orEmpty(configuration.recoveryTime, recoveryAgent) ++
-    orEmpty(configuration.persistentEvent, eventWriteSuccessAgent) ++
-    orEmpty(configuration.persistentEventTotal, eventWriteSuccessAgent) ++
-    orEmpty(configuration.snapshot, snapshotLoadingAgent)
+    recoveryAgent.emptyOnCondition(configuration.recoveryTotal) ++
+    recoveryAgent.emptyOnCondition(configuration.recoveryTime) ++
+    eventWriteSuccessAgent.emptyOnCondition(configuration.persistentEvent) ++
+    eventWriteSuccessAgent.emptyOnCondition(configuration.persistentEventTotal) ++
+    snapshotLoadingAgent.emptyOnCondition(configuration.snapshot)
   }
 
   private def ifSupported(agent: => Agent)(versions: AkkaPersistenceModule.Jars[Version]): Option[Agent] = {

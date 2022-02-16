@@ -47,12 +47,11 @@ object AkkaHttpAgent
     )
 
   def agent(typesafeConfig: TypesafeConfig): Agent = {
-    def orEmpty(condition: Boolean, agent: Agent): Agent = if (condition) agent else Agent.empty
-    val configuration: AkkaHttpModule.Config             = module.enabled(typesafeConfig)
+    val configuration: AkkaHttpModule.Config = module.enabled(typesafeConfig)
 
-    orEmpty(configuration.connections, connectionEvents) ++
-    orEmpty(configuration.requestTime, requestEvents) ++
-    orEmpty(configuration.requestCounter, requestEvents)
+    connectionEvents.emptyOnCondition(configuration.connections) ++
+    requestEvents.emptyOnCondition(configuration.requestTime) ++
+    requestEvents.emptyOnCondition(configuration.requestCounter)
   }
 
   /**
