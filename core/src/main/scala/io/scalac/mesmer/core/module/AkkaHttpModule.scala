@@ -1,11 +1,8 @@
 package io.scalac.mesmer.core.module
 
-import com.typesafe.config.{ Config => TypesafeConfig }
-
 import io.scalac.mesmer.core.model.Version
 import io.scalac.mesmer.core.module.Module.CommonJars
-import io.scalac.mesmer.core.typeclasses.Combine
-import io.scalac.mesmer.core.typeclasses.Traverse
+import io.scalac.mesmer.core.typeclasses.{Combine, Traverse}
 import io.scalac.mesmer.core.util.LibraryInfo.LibraryInfo
 
 /**
@@ -32,11 +29,7 @@ sealed trait AkkaHttpConnectionMetricsModule extends MetricsModule {
   }
 }
 
-object AkkaHttpModule
-    extends MesmerModule
-    with RegistersGlobalConfiguration
-    with AkkaHttpRequestMetricsModule
-    with AkkaHttpConnectionMetricsModule {
+object AkkaHttpModule extends MesmerModule with AkkaHttpRequestMetricsModule with AkkaHttpConnectionMetricsModule {
 
   final case class Impl[T](requestTime: T, requestCounter: T, connections: T)
       extends AkkaHttpRequestMetricsDef[T]
@@ -50,25 +43,15 @@ object AkkaHttpModule
 
   val defaultConfig: Config = Impl[Boolean](true, true, true)
 
-  protected def extractFromConfig(config: TypesafeConfig): Config = {
+  protected def fromMap(properties: Map[String, Boolean]): AkkaHttpModule.Config = {
+    val enabled = properties.getOrElse("enabled", true)
 
-    val moduleEnabled = config
-      .tryValue("enabled")(_.getBoolean)
-      .getOrElse(true)
-
-    if (moduleEnabled) {
-      val requestTime = config
-        .tryValue("request-time")(_.getBoolean)
-        .getOrElse(defaultConfig.requestTime)
-
-      val requestCounter = config
-        .tryValue("request-counter")(_.getBoolean)
-        .getOrElse(defaultConfig.requestCounter)
-
-      val connections = config
-        .tryValue("connections")(_.getBoolean)
-        .getOrElse(defaultConfig.connections)
-      Impl[Boolean](requestTime = requestTime, requestCounter = requestCounter, connections = connections)
+    if (enabled) {
+      Impl(
+        requestTime = properties.getOrElse("request.time", defaultConfig.requestTime),
+        requestCounter = properties.getOrElse("request.counter", defaultConfig.requestCounter),
+        connections = properties.getOrElse("connections", defaultConfig.connections)
+      )
     } else Impl(false, false, false)
 
   }

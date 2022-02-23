@@ -3,8 +3,7 @@ package io.scalac.mesmer.extension.upstream
 import com.typesafe.config.Config
 import io.opentelemetry.api.common
 import io.opentelemetry.api.metrics.Meter
-
-import io.scalac.mesmer.core.config.MesmerConfiguration
+import io.scalac.mesmer.core.config.{Configuration, MesmerConfiguration}
 import io.scalac.mesmer.core.module.AkkaHttpModule
 import io.scalac.mesmer.extension.metric.HttpConnectionMetricsMonitor
 import io.scalac.mesmer.extension.metric.RegisterRoot
@@ -15,7 +14,7 @@ import io.scalac.mesmer.extension.upstream.opentelemetry._
 object OpenTelemetryHttpConnectionMetricsMonitor {
   final case class MetricNames(connectionTotal: String)
 
-  object MetricNames extends MesmerConfiguration[MetricNames] {
+  object MetricNames extends MesmerConfiguration[MetricNames] with Configuration  {
     val defaultConfig: MetricNames =
       MetricNames("akka_http_connections")
 

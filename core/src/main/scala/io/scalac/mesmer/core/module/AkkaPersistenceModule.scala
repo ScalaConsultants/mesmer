@@ -21,7 +21,7 @@ sealed trait AkkaPersistenceMetricsModule extends MetricsModule {
   }
 }
 
-object AkkaPersistenceModule extends MesmerModule with AkkaPersistenceMetricsModule with RegistersGlobalConfiguration {
+object AkkaPersistenceModule extends MesmerModule with AkkaPersistenceMetricsModule {
   override type Metrics[T] = AkkaPersistenceMetricsDef[T]
 
   val name: String = "akka-persistence"
@@ -36,32 +36,21 @@ object AkkaPersistenceModule extends MesmerModule with AkkaPersistenceMetricsMod
 
   val defaultConfig: AkkaPersistenceModule.Result = Impl(true, true, true, true, true)
 
-  protected def extractFromConfig(config: TypesafeConfig): Config = {
+  protected def fromMap(properties: Map[String, Boolean]): AkkaPersistenceModule.Config = {
+    val enabled = properties.getOrElse("enabled", true)
 
-    val moduleEnabled = config
-      .tryValue("enabled")(_.getBoolean)
-      .getOrElse(true)
-    if (moduleEnabled) {
-      val recoveryTime = config
-        .tryValue("recovery-time")(_.getBoolean)
-        .getOrElse(defaultConfig.recoveryTime)
-      val recoveryTotal = config
-        .tryValue("recovery-total")(_.getBoolean)
-        .getOrElse(defaultConfig.recoveryTotal)
-      val persistentEvent = config
-        .tryValue("persistent-event")(_.getBoolean)
-        .getOrElse(defaultConfig.persistentEvent)
-      val persistentEventTotal = config
-        .tryValue("persistent-event-total")(_.getBoolean)
-        .getOrElse(defaultConfig.persistentEventTotal)
-      val snapshot = config
-        .tryValue("snapshot")(_.getBoolean)
-        .getOrElse(defaultConfig.snapshot)
-
-      Impl[Boolean](recoveryTime, recoveryTotal, persistentEvent, persistentEventTotal, snapshot)
-    } else Impl[Boolean](false, false, false, false, false)
+    if (enabled) {
+      Impl(
+        recoveryTime = properties.getOrElse("recovery.time", defaultConfig.recoveryTime),
+        recoveryTotal = properties.getOrElse("recovery.total", defaultConfig.recoveryTotal),
+        persistentEvent = properties.getOrElse("persistent.event", defaultConfig.persistentEvent),
+        persistentEventTotal = properties.getOrElse("persistent.event.total", defaultConfig.persistentEventTotal),
+        snapshot = properties.getOrElse("snapshot", defaultConfig.snapshot)
+      )
+    } else Impl(false, false, false, false, false)
 
   }
+
 
   override type All[T]  = Metrics[T]
   override type Jars[T] = AkkaPersistenceJars[T]

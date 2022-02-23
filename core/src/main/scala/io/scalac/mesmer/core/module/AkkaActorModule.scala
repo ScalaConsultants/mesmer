@@ -1,9 +1,6 @@
 package io.scalac.mesmer.core.module
-import com.typesafe.config.{ Config => TypesafeConfig }
-
 import io.scalac.mesmer.core.model.Version
-import io.scalac.mesmer.core.typeclasses.Combine
-import io.scalac.mesmer.core.typeclasses.Traverse
+import io.scalac.mesmer.core.typeclasses.{Combine, Traverse}
 import io.scalac.mesmer.core.util.LibraryInfo.LibraryInfo
 
 sealed trait AkkaActorMetrics extends MetricsModule {
@@ -30,7 +27,7 @@ sealed trait AkkaActorMetrics extends MetricsModule {
   }
 }
 
-object AkkaActorModule extends MesmerModule with AkkaActorMetrics with RegistersGlobalConfiguration {
+object AkkaActorModule extends MesmerModule with AkkaActorMetrics {
   override type Metrics[T] = AkkaActorMetricsDef[T]
   override type All[T]     = Metrics[T]
   override type Jars[T]    = AkkaActorJars[T]
@@ -55,94 +52,30 @@ object AkkaActorModule extends MesmerModule with AkkaActorMetrics with Registers
 
   val name: String = "akka-actor"
 
-  lazy val defaultConfig: Config =
-    Impl[Boolean](true, true, true, true, true, true, true, true, true, true, true, true, true, true, true)
+  lazy val defaultConfig: Config  = Impl[Boolean](true, true, true, true, true, true, true, true, true, true, true, true, true, true, true)
 
-  protected def extractFromConfig(config: TypesafeConfig): Config = {
-    val moduleEnabled = config
-      .tryValue("enabled")(_.getBoolean)
-      .getOrElse(true)
-    if (moduleEnabled) {
-      val mailboxSize = config
-        .tryValue("mailbox-size")(_.getBoolean)
-        .getOrElse(defaultConfig.mailboxSize)
+  protected def fromMap(properties: Map[String, Boolean]): AkkaActorModule.Config = {
+    val enabled = properties.getOrElse("enabled", true) // TODO should we check enabled here?
 
-      val mailboxTimeCount = config
-        .tryValue("mailbox-time-count")(_.getBoolean)
-        .getOrElse(defaultConfig.mailboxTimeCount)
-
-      val mailboxTimeMin = config
-        .tryValue("mailbox-time-min")(_.getBoolean)
-        .getOrElse(defaultConfig.mailboxTimeMin)
-
-      val mailboxTimeMax = config
-        .tryValue("mailbox-time-max")(_.getBoolean)
-        .getOrElse(defaultConfig.mailboxTimeMax)
-
-      val mailboxTimeSum = config
-        .tryValue("mailbox-time-sum")(_.getBoolean)
-        .getOrElse(defaultConfig.mailboxTimeSum)
-
-      val stashSize = config
-        .tryValue("stash-size")(_.getBoolean)
-        .getOrElse(defaultConfig.stashedMessages)
-
-      val receivedMessages = config
-        .tryValue("received-messages")(_.getBoolean)
-        .getOrElse(defaultConfig.receivedMessages)
-
-      val processedMessages = config
-        .tryValue("processed-messages")(_.getBoolean)
-        .getOrElse(defaultConfig.processedMessages)
-
-      val failedMessages = config
-        .tryValue("failed-messages")(_.getBoolean)
-        .getOrElse(defaultConfig.failedMessages)
-
-      val processingTimeCount = config
-        .tryValue("processing-time-count")(_.getBoolean)
-        .getOrElse(defaultConfig.processingTimeCount)
-
-      val processingTimeMin = config
-        .tryValue("processing-time-min")(_.getBoolean)
-        .getOrElse(defaultConfig.processingTimeMin)
-
-      val processingTimeMax = config
-        .tryValue("processing-time-max")(_.getBoolean)
-        .getOrElse(defaultConfig.processingTimeMax)
-
-      val processingTimeSum = config
-        .tryValue("processing-time-sum")(_.getBoolean)
-        .getOrElse(defaultConfig.processingTimeSum)
-
-      val sentMessages = config
-        .tryValue("sent-messages")(_.getBoolean)
-        .getOrElse(defaultConfig.sentMessages)
-
-      val droppedMessages = config
-        .tryValue("dropped-messages")(_.getBoolean)
-        .getOrElse(defaultConfig.droppedMessages)
-
-      Impl[Boolean](
-        mailboxSize = mailboxSize,
-        mailboxTimeMin = mailboxTimeMin,
-        mailboxTimeMax = mailboxTimeMax,
-        mailboxTimeSum = mailboxTimeSum,
-        mailboxTimeCount = mailboxTimeCount,
-        stashedMessages = stashSize,
-        receivedMessages = receivedMessages,
-        processedMessages = processedMessages,
-        failedMessages = failedMessages,
-        processingTimeMin = processingTimeMin,
-        processingTimeMax = processingTimeMax,
-        processingTimeSum = processingTimeSum,
-        processingTimeCount = processingTimeCount,
-        sentMessages = sentMessages,
-        droppedMessages = droppedMessages
+    if (enabled) {
+      Impl(
+        mailboxSize = properties.getOrElse("mailbox.size", defaultConfig.mailboxSize),
+        mailboxTimeMin = properties.getOrElse("mailbox.time.min", defaultConfig.mailboxTimeMin),
+        mailboxTimeMax = properties.getOrElse("mailbox.time.max", defaultConfig.mailboxTimeMax),
+        mailboxTimeSum = properties.getOrElse("mailbox.time.sum", defaultConfig.mailboxTimeSum),
+        mailboxTimeCount = properties.getOrElse("mailbox.time.count", defaultConfig.mailboxTimeCount),
+        stashedMessages = properties.getOrElse("stash.size", defaultConfig.stashedMessages),
+        receivedMessages = properties.getOrElse("received.messages", defaultConfig.receivedMessages),
+        processedMessages = properties.getOrElse("processed.messages", defaultConfig.processedMessages),
+        failedMessages = properties.getOrElse("failed.messages", defaultConfig.failedMessages),
+        processingTimeMin = properties.getOrElse("processing.time.min", defaultConfig.processingTimeMin),
+        processingTimeMax = properties.getOrElse("processing.time.max", defaultConfig.processingTimeMax),
+        processingTimeSum = properties.getOrElse("processing.time.sum", defaultConfig.processingTimeSum),
+        processingTimeCount = properties.getOrElse("processing.time.count", defaultConfig.processingTimeCount),
+        sentMessages = properties.getOrElse("sent.messages", defaultConfig.sentMessages),
+        droppedMessages = properties.getOrElse("dropped.messages", defaultConfig.droppedMessages)
       )
-    } else
-      Impl[Boolean](false, false, false, false, false, false, false, false, false, false, false, false, false, false,
-        false)
+    } else Impl(false, false, false, false, false, false, false, false, false, false, false, false, false, false, false)
 
   }
 

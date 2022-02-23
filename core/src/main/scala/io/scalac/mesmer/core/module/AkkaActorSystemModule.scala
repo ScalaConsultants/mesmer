@@ -1,6 +1,4 @@
 package io.scalac.mesmer.core.module
-import com.typesafe.config.{ Config => TypesafeConfig }
-
 import io.scalac.mesmer.core.model.Version
 import io.scalac.mesmer.core.module.Module.CommonJars
 import io.scalac.mesmer.core.util.LibraryInfo.LibraryInfo
@@ -30,12 +28,16 @@ object AkkaActorSystemModule extends MesmerModule with AkkaActorSystemMetricsMod
 
   val defaultConfig: Config = ActorSystemModuleConfig(true, true)
 
-  protected def extractFromConfig(config: TypesafeConfig): Config = {
-    val createdActors = config.tryValue("created-actors")(_.getBoolean).getOrElse(defaultConfig.createdActors)
+  protected def fromMap(properties: Map[String, Boolean]): AkkaActorSystemModule.Config = {
+    val enabled = properties.getOrElse("enabled", true)
 
-    val terminatedActors = config.tryValue("terminated-actors")(_.getBoolean).getOrElse(defaultConfig.createdActors)
+    if (enabled) {
+      ActorSystemModuleConfig(
+        createdActors = properties.getOrElse("created.actors", defaultConfig.createdActors),
+        terminatedActors = properties.getOrElse("terminated.actors", defaultConfig.terminatedActors)
+      )
+    } else ActorSystemModuleConfig(false, false)
 
-    ActorSystemModuleConfig(createdActors, terminatedActors)
   }
 
   override type Jars[T] = ActorSystemJars[T]

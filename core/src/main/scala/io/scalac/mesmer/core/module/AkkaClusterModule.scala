@@ -1,6 +1,4 @@
 package io.scalac.mesmer.core.module
-import com.typesafe.config.{ Config => TypesafeConfig }
-
 import io.scalac.mesmer.core.model.Version
 import io.scalac.mesmer.core.module.Module.CommonJars
 import io.scalac.mesmer.core.util.LibraryInfo.LibraryInfo
@@ -39,50 +37,20 @@ object AkkaClusterModule extends MesmerModule with AkkaClusterMetricsModule {
   val defaultConfig: AkkaClusterModule.Result =
     Impl[Boolean](true, true, true, true, true, true, true)
 
-  protected def extractFromConfig(config: TypesafeConfig): AkkaClusterModule.Result = {
-    val moduleEnabled = config
-      .tryValue("enabled")(_.getBoolean)
-      .getOrElse(true)
+  protected def fromMap(properties: Map[String, Boolean]): AkkaClusterModule.Config = {
+    val enabled = properties.getOrElse("enabled", true)
 
-    if (moduleEnabled) {
-      val shardsPerRegion = config
-        .tryValue("shards-per-region")(_.getBoolean)
-        .getOrElse(defaultConfig.shardPerRegions)
-
-      val entitiesPerRegion = config
-        .tryValue("entities-per-region")(_.getBoolean)
-        .getOrElse(defaultConfig.entityPerRegion)
-
-      val shardRegionsOnNode = config
-        .tryValue("shard-regions-on-node")(_.getBoolean)
-        .getOrElse(defaultConfig.shardRegionsOnNode)
-
-      val entitiesOnNode = config
-        .tryValue("entities-on-node")(_.getBoolean)
-        .getOrElse(defaultConfig.entitiesOnNode)
-
-      val reachableNodes = config
-        .tryValue("reachable-nodes")(_.getBoolean)
-        .getOrElse(defaultConfig.reachableNodes)
-
-      val unreachableNodes = config
-        .tryValue("unreachable-nodes")(_.getBoolean)
-        .getOrElse(defaultConfig.unreachableNodes)
-
-      val nodesDown = config
-        .tryValue("node-down")(_.getBoolean)
-        .getOrElse(defaultConfig.nodeDown)
-
-      Impl[Boolean](
-        shardPerRegions = shardsPerRegion,
-        entityPerRegion = entitiesPerRegion,
-        shardRegionsOnNode = shardRegionsOnNode,
-        entitiesOnNode = entitiesOnNode,
-        reachableNodes = reachableNodes,
-        unreachableNodes = unreachableNodes,
-        nodeDown = nodesDown
+    if (enabled) {
+      Impl(
+        shardPerRegions = properties.getOrElse("shards.per.region", defaultConfig.shardPerRegions),
+        entityPerRegion = properties.getOrElse("entities.per.region", defaultConfig.entityPerRegion),
+        shardRegionsOnNode = properties.getOrElse("shard.regions.on.node", defaultConfig.shardRegionsOnNode),
+        entitiesOnNode = properties.getOrElse("entities.on.node", defaultConfig.entitiesOnNode),
+        reachableNodes = properties.getOrElse("reachable.nodes", defaultConfig.reachableNodes),
+        unreachableNodes = properties.getOrElse("unreachable.nodes", defaultConfig.unreachableNodes),
+        nodeDown = properties.getOrElse("node.down", defaultConfig.nodeDown)
       )
-    } else Impl[Boolean](false, false, false, false, false, false, false)
+    } else Impl(false, false, false, false, false, false, false)
 
   }
 

@@ -27,31 +27,37 @@ object ConfigurationUtils {
 
 }
 
-trait Configuration {
-  protected implicit def toConfigOps(config: Config): ConfigOps = new ConfigOps(config)
+trait ConfigurationBase {
+  protected val configurationBase: String
 
   type Result
 
   protected def defaultConfig: Result
+}
+
+trait Configuration extends ConfigurationBase {
+
+  protected implicit def toConfigOps(config: Config): ConfigOps = new ConfigOps(config)
 
   def fromConfig(config: Config): Result = config
-    .tryValue(absoluteBase)(_.getConfig)
+    .tryValue(configurationBase)(_.getConfig)
     .map(extractFromConfig)
     .getOrElse(defaultConfig)
-
-  protected val absoluteBase: String
 
   protected def extractFromConfig(config: Config): Result
 }
 
-trait MesmerConfigurationBase extends Configuration {
+trait MesmerConfigurationBase extends ConfigurationBase {
 
   /**
    * Absolute path for mesmer configuration in .conf file
    */
   private final val mesmerBase: String = "io.scalac.mesmer"
 
-  protected lazy val absoluteBase: String = {
+  /*
+    We explicitly make it public here
+   */
+  lazy val configurationBase: String = {
     val branch = mesmerConfig
     if (mesmerConfig.isEmpty) mesmerBase else s"$mesmerBase.$branch"
   }

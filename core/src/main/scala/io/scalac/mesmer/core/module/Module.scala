@@ -1,20 +1,20 @@
 package io.scalac.mesmer.core.module
 
-import com.typesafe.config.{ Config => TypesafeConfig }
-
 import io.scalac.mesmer.core.config.MesmerConfigurationBase
 import io.scalac.mesmer.core.model.Version
 import io.scalac.mesmer.core.module.Module.CommonJars
 import io.scalac.mesmer.core.typeclasses.Combine
 import io.scalac.mesmer.core.typeclasses.Traverse
 import io.scalac.mesmer.core.util.LibraryInfo.LibraryInfo
+import io.opentelemetry.instrumentation.api.config.{ Config => OTConfig }
+import scala.jdk.CollectionConverters._
 
 trait Module {
   def name: String
   type All[T] <: AnyRef
-  type Config = All[Boolean]
+  type Config = All[Boolean] with Product
 
-  def enabled(config: TypesafeConfig): Config
+  def enabled: Config
 
   type Jars[T] <: CommonJars[T]
 
@@ -35,10 +35,39 @@ object Module {
 }
 
 trait MesmerModule extends Module with MesmerConfigurationBase {
-  override type Result = Config
+  override type Result = Config with Product
 
-  final def enabled(config: TypesafeConfig): Config =
-    fromConfig(config)
+  lazy val enabled: Config = {
+
+    val config = OTConfig
+      .get()
+
+    val moduleConfigurations = config.getAllProperties.asScala.keys.collect {
+      case moduleKey if moduleKey.startsWith(configurationBase) =>
+        moduleKey.stripPrefix(s"$configurationBase.") -> config.getBoolean(
+          moduleKey,
+          false
+        ) // TODO should we default it to false?
+    }.toMap
+
+    val serializedConfiguration = moduleConfigurations.map { case (key, value) =>
+      s"$key: $value"
+    }.mkString("{\n", "\n", "\n}")
+
+    val message =
+      s"""
+         |---------------------------------------------
+         |MODULE: $name
+         |CONFIG" ${serializedConfiguration}
+         |---------------------------------------------
+         |""".stripMargin
+
+    println(message)
+
+    fromMap(moduleConfigurations)
+  }
+
+  protected def fromMap(properties: Map[String, Boolean]): Config
 
   def defaultConfig: Result
 
@@ -49,14 +78,4 @@ trait MetricsModule {
   this: Module =>
   override type All[T] <: Metrics[T]
   type Metrics[T]
-}
-
-trait RegistersGlobalConfiguration extends Module {
-
-  @volatile
-  private[this] var global: All[Boolean] = _
-
-  final def registerGlobal(conf: All[Boolean]): Unit = global = conf
-
-  final def globalConfiguration: Option[All[Boolean]] = if (global ne null) Some(global) else None
 }

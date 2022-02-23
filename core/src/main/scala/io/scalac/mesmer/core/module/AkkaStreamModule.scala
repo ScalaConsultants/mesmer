@@ -1,10 +1,7 @@
 package io.scalac.mesmer.core.module
-import com.typesafe.config.{ Config => TypesafeConfig }
-
 import io.scalac.mesmer.core.model.Version
 import io.scalac.mesmer.core.module.Module.CommonJars
-import io.scalac.mesmer.core.typeclasses.Combine
-import io.scalac.mesmer.core.typeclasses.Traverse
+import io.scalac.mesmer.core.typeclasses.{Combine, Traverse}
 import io.scalac.mesmer.core.util.LibraryInfo.LibraryInfo
 
 sealed trait AkkaStreamMetrics extends MetricsModule {
@@ -36,8 +33,7 @@ sealed trait AkkaStreamOperatorMetrics extends MetricsModule {
 object AkkaStreamModule
     extends MesmerModule
     with AkkaStreamMetrics
-    with AkkaStreamOperatorMetrics
-    with RegistersGlobalConfiguration {
+    with AkkaStreamOperatorMetrics {
 
   val name: String = "akka-stream"
 
@@ -56,46 +52,19 @@ object AkkaStreamModule
 
   val defaultConfig: Config = Impl(true, true, true, true, true, true)
 
-  protected def extractFromConfig(config: TypesafeConfig): Config = {
+  protected def fromMap(properties: Map[String, Boolean]): AkkaStreamModule.Config = {
+    val enabled = properties.getOrElse("enabled", true)
 
-    val moduleEnabled = config
-      .tryValue("enabled")(_.getBoolean)
-      .getOrElse(true)
-
-    if (moduleEnabled) {
-      val runningStreams = config
-        .tryValue("running-streams")(_.getBoolean)
-        .getOrElse(defaultConfig.runningStreamsTotal)
-
-      val streamActors = config
-        .tryValue("stream-actors")(_.getBoolean)
-        .getOrElse(defaultConfig.streamActorsTotal)
-
-      val streamProcessed = config
-        .tryValue("stream-processed")(_.getBoolean)
-        .getOrElse(defaultConfig.streamProcessedMessages)
-
-      val operatorProcessed = config
-        .tryValue("operator-processed")(_.getBoolean)
-        .getOrElse(defaultConfig.processedMessages)
-
-      val runningOperators = config
-        .tryValue("running-operators")(_.getBoolean)
-        .getOrElse(defaultConfig.operators)
-
-      val demand = config
-        .tryValue("operator-demand")(_.getBoolean)
-        .getOrElse(defaultConfig.demand)
-
-      Impl[Boolean](
-        runningStreamsTotal = runningStreams,
-        streamActorsTotal = streamActors,
-        streamProcessedMessages = streamProcessed,
-        processedMessages = operatorProcessed,
-        operators = runningOperators,
-        demand = demand
+    if (enabled) {
+      Impl(
+        runningStreamsTotal = properties.getOrElse("running.streams", defaultConfig.runningStreamsTotal),
+        streamActorsTotal = properties.getOrElse("stream.actors", defaultConfig.streamActorsTotal),
+        streamProcessedMessages = properties.getOrElse("stream.processed", defaultConfig.streamProcessedMessages),
+        processedMessages = properties.getOrElse("operator.processed", defaultConfig.processedMessages),
+        operators = properties.getOrElse("running.operators", defaultConfig.operators),
+        demand = properties.getOrElse("operator.demand", defaultConfig.demand)
       )
-    } else Impl[Boolean](false, false, false, false, false, false)
+    } else Impl(false, false, false, false, false, false)
 
   }
 

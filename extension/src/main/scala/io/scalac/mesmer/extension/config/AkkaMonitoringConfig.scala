@@ -1,11 +1,10 @@
 package io.scalac.mesmer.extension.config
 
 import com.typesafe.config.Config
+import io.scalac.mesmer.core.config.{Configuration, MesmerConfiguration}
 
 import scala.concurrent.duration._
 import scala.jdk.DurationConverters._
-
-import io.scalac.mesmer.core.config.MesmerConfiguration
 
 final case class AkkaMonitoringConfig(
   autoStart: AutoStartSettings,
@@ -20,7 +19,7 @@ final case class AutoStartSettings(
   akkaStream: Boolean
 )
 
-object AkkaMonitoringConfig extends MesmerConfiguration[AkkaMonitoringConfig] {
+object AkkaMonitoringConfig extends MesmerConfiguration[AkkaMonitoringConfig] with Configuration {
 
   private val autoStartDefaults =
     AutoStartSettings(
@@ -39,7 +38,7 @@ object AkkaMonitoringConfig extends MesmerConfiguration[AkkaMonitoringConfig] {
 
   val defaultConfig: AkkaMonitoringConfig = AkkaMonitoringConfig(autoStartDefaults, cleaningSettingsDefaults)
 
-  override protected def extractFromConfig(monitoringConfig: Config): AkkaMonitoringConfig = {
+  protected def extractFromConfig(monitoringConfig: Config): AkkaMonitoringConfig = {
     val autoStartSettings = monitoringConfig
       .tryValue("auto-start")(_.getConfig)
       .map { autoStartConfig =>
@@ -71,42 +70,5 @@ object AkkaMonitoringConfig extends MesmerConfiguration[AkkaMonitoringConfig] {
       cleaningSettings
     )
   }
-
-  //  def apply(config: Config): AkkaMonitoringConfig =
-  //    config
-  //      .tryValue("io.scalac.akka-monitoring")(_.getConfig)
-  //      .map { monitoringConfig =>
-  //        val autoStartSettings = monitoringConfig
-  //          .tryValue("auto-start")(_.getConfig)
-  //          .map { autoStartConfig =>
-  //            val akkaActor = autoStartConfig.tryValue("akka-actor")(_.getBoolean).getOrElse(autoStartDefaults.akkaActor)
-  //            val akkaHttp = autoStartConfig.tryValue("akka-http")(_.getBoolean).getOrElse(autoStartDefaults.akkaHttp)
-  //            val akkaPersistence =
-  //              autoStartConfig.tryValue("akka-persistence")(_.getBoolean).getOrElse(autoStartDefaults.akkaPersistence)
-  //            val akkaCluster =
-  //              autoStartConfig.tryValue("akka-cluster")(_.getBoolean).getOrElse(autoStartDefaults.akkaCluster)
-  //            val akkaStream =
-  //              autoStartConfig.tryValue("akka-stream")(_.getBoolean).getOrElse(autoStartDefaults.akkaStream)
-  //
-  //            AutoStartSettings(akkaActor, akkaHttp, akkaPersistence, akkaCluster, akkaStream)
-  //          }
-  //          .getOrElse(autoStartDefaults)
-  //
-  //        val cleaningSettings = monitoringConfig
-  //          .tryValue("cleaning")(_.getConfig)
-  //          .flatMap { cleaningConfig =>
-  //            for {
-  //              max <- cleaningConfig.tryValue("max-staleness")(_.getDuration)
-  //              every <- cleaningConfig.tryValue("every")(_.getDuration)
-  //            } yield CleaningSettings(max.toScala, every.toScala)
-  //          }
-  //          .getOrElse(cleaningSettingsDefaults)
-  //
-  //        AkkaMonitoringConfig(
-  //          autoStartSettings,
-  //          cleaningSettings
-  //        )
-  //      }
-  //      .getOrElse(akkaMonitoringDefaults)
 
 }

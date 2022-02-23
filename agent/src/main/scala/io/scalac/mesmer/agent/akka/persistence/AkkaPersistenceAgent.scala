@@ -11,7 +11,7 @@ import io.scalac.mesmer.core.module.AkkaPersistenceModule
 
 object AkkaPersistenceAgent
     extends InstrumentModuleFactory(AkkaPersistenceModule)
-    with AkkaPersistenceModule.All[AkkaPersistenceModule.Jars[Version] => Option[Agent]] {
+    with AkkaPersistenceModule.All[AkkaPersistenceModule.Jars[Version] => Agent] {
 
   /**
    * @param config
@@ -21,58 +21,51 @@ object AkkaPersistenceAgent
    * @return
    *   Resulting agent and resulting configuration based on runtime properties
    */
-  override protected def agent(
-    config: AkkaPersistenceModule.AkkaPersistenceMetricsDef[Boolean],
+  def agent(
     jars: AkkaPersistenceModule.AkkaPersistenceJars[Version]
-  ): (Agent, AkkaPersistenceModule.AkkaPersistenceMetricsDef[Boolean]) = {
+  ): Agent = {
 
-    val recoveryTimeAgent         = if (config.recoveryTime) recoveryTime(jars) else None
-    val recoveryTotalAgent        = if (config.recoveryTotal) recoveryTotal(jars) else None
-    val persistentEventAgent      = if (config.persistentEvent) persistentEvent(jars) else None
-    val persistentEventTotalAgent = if (config.persistentEventTotal) persistentEventTotal(jars) else None
-    val snapshotAgent             = if (config.snapshot) snapshot(jars) else None
+    val config = module.enabled
+
+    // TODO can we introduce some foldable and/or functor/applicative to be able to map over those without manually checking every element here
+    val recoveryTimeAgent         = if (config.recoveryTime) recoveryTime(jars) else Agent.empty
+    val recoveryTotalAgent        = if (config.recoveryTotal) recoveryTotal(jars) else Agent.empty
+    val persistentEventAgent      = if (config.persistentEvent) persistentEvent(jars) else Agent.empty
+    val persistentEventTotalAgent = if (config.persistentEventTotal) persistentEventTotal(jars) else Agent.empty
+    val snapshotAgent             = if (config.snapshot) snapshot(jars) else Agent.empty
 
     val resultantAgent =
-      recoveryTimeAgent.getOrElse(Agent.empty) ++
-        recoveryTotalAgent.getOrElse(Agent.empty) ++
-        persistentEventAgent.getOrElse(Agent.empty) ++
-        persistentEventTotalAgent.getOrElse(Agent.empty) ++
-        snapshotAgent.getOrElse(Agent.empty)
+      recoveryTimeAgent ++
+        recoveryTotalAgent ++
+        persistentEventAgent ++
+        persistentEventTotalAgent ++
+        snapshotAgent
 
-    val enabled = AkkaPersistenceModule.Impl(
-      recoveryTime = recoveryTimeAgent.isDefined,
-      recoveryTotal = recoveryTotalAgent.isDefined,
-      persistentEvent = persistentEventAgent.isDefined,
-      persistentEventTotal = persistentEventTotalAgent.isDefined,
-      snapshot = snapshotAgent.isDefined
-    )
-
-    (resultantAgent, enabled)
+    resultantAgent
   }
 
-  private def ifSupported(agent: => Agent)(versions: AkkaPersistenceModule.Jars[Version]): Option[Agent] = {
+  private def ifSupported(agent: => Agent)(versions: AkkaPersistenceModule.Jars[Version]): Agent = {
     import versions._
     if (
       version26x.supports(akkaPersistence) && version26x.supports(akkaPersistenceTyped) && version26x
         .supports(akkaActor) && version26x.supports(akkaActorTyped)
-    )
-      Some(agent)
-    else None
+    ) agent
+    else Agent.empty
   }
 
-  lazy val recoveryTime: AkkaPersistenceModule.Jars[Version] => Option[Agent] = ifSupported(recoveryAgent)
+  lazy val recoveryTime: AkkaPersistenceModule.Jars[Version] => Agent = ifSupported(recoveryAgent)
 
-  lazy val recoveryTotal: AkkaPersistenceModule.Jars[Version] => Option[Agent] = ifSupported(recoveryAgent)
+  lazy val recoveryTotal: AkkaPersistenceModule.Jars[Version] => Agent = ifSupported(recoveryAgent)
 
-  lazy val persistentEvent: AkkaPersistenceModule.Jars[Version] => Option[Agent] = ifSupported(
+  lazy val persistentEvent: AkkaPersistenceModule.Jars[Version] => Agent = ifSupported(
     Agent(eventWriteSuccessInstrumentation)
   )
 
-  lazy val persistentEventTotal: AkkaPersistenceModule.Jars[Version] => Option[Agent] = ifSupported(
+  lazy val persistentEventTotal: AkkaPersistenceModule.Jars[Version] => Agent = ifSupported(
     Agent(eventWriteSuccessInstrumentation)
   )
 
-  lazy val snapshot: AkkaPersistenceModule.Jars[Version] => Option[Agent] = ifSupported(
+  lazy val snapshot: AkkaPersistenceModule.Jars[Version] => Agent = ifSupported(
     Agent(snapshotLoadingInstrumentation)
   )
 
