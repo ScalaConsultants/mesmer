@@ -1,7 +1,4 @@
 package io.scalac.mesmer.core.module
-import io.scalac.mesmer.core.model.Version
-import io.scalac.mesmer.core.module.Module.CommonJars
-import io.scalac.mesmer.core.util.LibraryInfo.LibraryInfo
 
 sealed trait AkkaClusterMetricsModule extends MetricsModule {
   this: Module =>
@@ -54,17 +51,5 @@ object AkkaClusterModule extends MesmerModule with AkkaClusterMetricsModule {
 
   }
 
-  override type All[T]  = Metrics[T]
-  override type Jars[T] = AkkaClusterJars[T]
-
-  final case class AkkaClusterJars[T](akkaActor: T, akkaActorTyped: T, akkaCluster: T, akkaClusterTyped: T)
-      extends CommonJars[T]
-
-  override def jarsFromLibraryInfo(info: LibraryInfo): Option[Jars[Version]] =
-    for {
-      actor        <- info.get(JarNames.akkaActor)
-      actorTyped   <- info.get(JarNames.akkaActorTyped)
-      cluster      <- info.get(JarNames.akkaCluster)
-      clusterTyped <- info.get(JarNames.akkaClusterTyped)
-    } yield AkkaClusterJars(actor, actorTyped, cluster, clusterTyped)
+  override type All[T] = Metrics[T]
 }

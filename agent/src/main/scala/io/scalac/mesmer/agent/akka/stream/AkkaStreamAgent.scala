@@ -12,14 +12,12 @@ import io.scalac.mesmer.agent.akka.stream.impl.GraphInterpreterPullAdvice
 import io.scalac.mesmer.agent.akka.stream.impl.GraphInterpreterPushAdvice
 import io.scalac.mesmer.agent.akka.stream.impl.PhasedFusingActorMaterializerAdvice
 import io.scalac.mesmer.agent.util.i13n._
-import io.scalac.mesmer.core.akka.version26x
-import io.scalac.mesmer.core.model.Version
 import io.scalac.mesmer.core.module.AkkaStreamModule
 
 object AkkaStreamAgent
     extends InstrumentModuleFactory(AkkaStreamModule)
-    with AkkaStreamModule.StreamMetricsDef[AkkaStreamModule.Jars[Version] => Agent]
-    with AkkaStreamModule.StreamOperatorMetricsDef[AkkaStreamModule.Jars[Version] => Agent] {
+    with AkkaStreamModule.StreamMetricsDef[Agent]
+    with AkkaStreamModule.StreamOperatorMetricsDef[Agent] {
 
   /**
    * @param config
@@ -29,17 +27,15 @@ object AkkaStreamAgent
    * @return
    *   Resulting agent and resulting configuration based on runtime properties
    */
-   def agent(
-    jars: AkkaStreamModule.AkkaStreamsJars[Version]
-  ): Agent = {
+  def agent: Agent = {
     import module.enabled
 
-    val runningStreamsTotalAgent     = if (enabled.runningStreamsTotal) runningStreamsTotal(jars) else Agent.empty
-    val streamActorsTotalAgent       = if (enabled.runningStreamsTotal) streamActorsTotal(jars) else Agent.empty
-    val streamProcessedMessagesAgent = if (enabled.runningStreamsTotal) streamProcessedMessages(jars) else Agent.empty
-    val processedMessagesAgent       = if (enabled.runningStreamsTotal) processedMessages(jars) else Agent.empty
-    val operatorsAgent               = if (enabled.runningStreamsTotal) operators(jars) else Agent.empty
-    val demandAgent                  = if (enabled.runningStreamsTotal) demand(jars) else Agent.empty
+    val runningStreamsTotalAgent     = if (enabled.runningStreamsTotal) runningStreamsTotal else Agent.empty
+    val streamActorsTotalAgent       = if (enabled.runningStreamsTotal) streamActorsTotal else Agent.empty
+    val streamProcessedMessagesAgent = if (enabled.runningStreamsTotal) streamProcessedMessages else Agent.empty
+    val processedMessagesAgent       = if (enabled.runningStreamsTotal) processedMessages else Agent.empty
+    val operatorsAgent               = if (enabled.runningStreamsTotal) operators else Agent.empty
+    val demandAgent                  = if (enabled.runningStreamsTotal) demand else Agent.empty
 
     val resultantAgent =
       runningStreamsTotalAgent ++
@@ -52,26 +48,17 @@ object AkkaStreamAgent
     resultantAgent
   }
 
-  private def ifSupported(agent: => Agent)(versions: AkkaStreamModule.Jars[Version]): Agent = {
-    import versions._
-    if (version26x.supports(akkaStream) && version26x.supports(akkaActorTyped) && version26x.supports(akkaActor)) {
-      agent
-    } else Agent.empty
-  }
+  lazy val runningStreamsTotal: Agent = sharedImplementations
 
-  lazy val runningStreamsTotal: AkkaStreamModule.Jars[Version] => Agent = ifSupported(sharedImplementations)
+  lazy val streamActorsTotal: Agent = sharedImplementations
 
-  lazy val streamActorsTotal: AkkaStreamModule.Jars[Version] => Agent = ifSupported(sharedImplementations)
+  lazy val streamProcessedMessages: Agent = sharedImplementations
 
-  lazy val streamProcessedMessages: AkkaStreamModule.Jars[Version] => Agent = ifSupported(
-    sharedImplementations
-  )
+  lazy val processedMessages: Agent = sharedImplementations
 
-  lazy val processedMessages: AkkaStreamModule.Jars[Version] => Agent = ifSupported(sharedImplementations)
+  lazy val operators: Agent = sharedImplementations
 
-  lazy val operators: AkkaStreamModule.Jars[Version] => Agent = ifSupported(sharedImplementations)
-
-  lazy val demand: AkkaStreamModule.Jars[Version] => Agent = ifSupported(sharedImplementations)
+  lazy val demand: Agent = sharedImplementations
 
   /**
    * actorOf methods is called when island decide to materialize itself

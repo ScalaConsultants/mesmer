@@ -1,17 +1,18 @@
 package io.scalac.mesmer.agent
 
-import io.scalac.mesmer.agent.akka.actor.AkkaActorAgent
-import io.scalac.mesmer.agent.akka.http.AkkaHttpAgent
-import io.scalac.mesmer.agent.akka.persistence.AkkaPersistenceAgent
-import io.scalac.mesmer.agent.akka.stream.AkkaStreamAgent
-import io.scalac.mesmer.core.util.LibraryInfo
+import java.lang.instrument.Instrumentation
+
+import io.opentelemetry.javaagent.tooling.config.ConfigInitializer
 import net.bytebuddy.ByteBuddy
 import net.bytebuddy.agent.builder.AgentBuilder
 import net.bytebuddy.dynamic.scaffold.TypeValidation
 
-import java.lang.instrument.Instrumentation
 import scala.annotation.unused
-import io.opentelemetry.javaagent.tooling.config.ConfigInitializer
+
+import io.scalac.mesmer.agent.akka.actor.AkkaActorAgent
+import io.scalac.mesmer.agent.akka.http.AkkaHttpAgent
+import io.scalac.mesmer.agent.akka.persistence.AkkaPersistenceAgent
+import io.scalac.mesmer.agent.akka.stream.AkkaStreamAgent
 
 object Boot {
 
@@ -28,12 +29,10 @@ object Boot {
       )
       .`with`(AgentBuilder.InstallationListener.StreamWriting.toSystemOut)
 
-    val info = LibraryInfo.extractModulesInformation(Thread.currentThread().getContextClassLoader)
-
-    val allInstrumentations = AkkaPersistenceAgent.agent(info) ++
-      AkkaStreamAgent.agent(info) ++
-      AkkaHttpAgent.agent(info) ++
-      AkkaActorAgent.agent(info)
+    val allInstrumentations = AkkaPersistenceAgent.agent ++
+      AkkaStreamAgent.agent ++
+      AkkaHttpAgent.agent ++
+      AkkaActorAgent.agent
 
     allInstrumentations
       .installOnMesmerAgent(agentBuilder, instrumentation)

@@ -2,7 +2,9 @@ package io.scalac.mesmer.extension.upstream
 
 import com.typesafe.config.Config
 import io.opentelemetry.api.metrics.Meter
-import io.scalac.mesmer.core.config.{Configuration, MesmerConfiguration}
+
+import io.scalac.mesmer.core.config.Configuration
+import io.scalac.mesmer.core.config.MesmerConfiguration
 import io.scalac.mesmer.core.module.AkkaActorSystemModule
 import io.scalac.mesmer.extension.metric.ActorSystemMonitor
 import io.scalac.mesmer.extension.metric.ActorSystemMonitor.BoundMonitor

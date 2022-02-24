@@ -1,11 +1,10 @@
 package io.scalac.mesmer.core.model
 
-import io.scalac.mesmer.core.module.Module
-import io.scalac.mesmer.core.module.Module.CommonJars
-import io.scalac.mesmer.core.util.LibraryInfo.LibraryInfo
 import org.scalatest.Inspectors
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
+
+import io.scalac.mesmer.core.module.Module
 
 class SupportedModulesTest extends AnyFlatSpec with Matchers with Inspectors {
   type Id[T] = T
@@ -17,11 +16,7 @@ class SupportedModulesTest extends AnyFlatSpec with Matchers with Inspectors {
 
     override type All[T] = AnyRef
 
-    def enabled = TestConfig()
-
-    override type Jars[T] = CommonJars[T]
-
-    def jarsFromLibraryInfo(info: LibraryInfo): Option[Jars[Version]] = None
+    def enabled: TestConfig = TestConfig()
 
   }
 

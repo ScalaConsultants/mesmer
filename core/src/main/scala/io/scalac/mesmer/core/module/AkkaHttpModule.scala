@@ -1,9 +1,6 @@
 package io.scalac.mesmer.core.module
-
-import io.scalac.mesmer.core.model.Version
-import io.scalac.mesmer.core.module.Module.CommonJars
-import io.scalac.mesmer.core.typeclasses.{Combine, Traverse}
-import io.scalac.mesmer.core.util.LibraryInfo.LibraryInfo
+import io.scalac.mesmer.core.typeclasses.Combine
+import io.scalac.mesmer.core.typeclasses.Traverse
 
 /**
  * Definition of AkkHttp request related metrics
@@ -55,17 +52,6 @@ object AkkaHttpModule extends MesmerModule with AkkaHttpRequestMetricsModule wit
     } else Impl(false, false, false)
 
   }
-
-  override type Jars[T] = AkkaHttpJars[T]
-
-  final case class AkkaHttpJars[T](akkaActor: T, akkaActorTyped: T, akkaHttp: T) extends CommonJars[T]
-
-  def jarsFromLibraryInfo(info: LibraryInfo): Option[Jars[Version]] =
-    for {
-      actor      <- info.get(JarNames.akkaActor)
-      actorTyped <- info.get(JarNames.akkaActorTyped)
-      http       <- info.get(JarNames.akkaHttp)
-    } yield AkkaHttpJars(actor, actorTyped, http)
 
   implicit val combineConfig: Combine[All[Boolean]] = (first, second) =>
     Impl(

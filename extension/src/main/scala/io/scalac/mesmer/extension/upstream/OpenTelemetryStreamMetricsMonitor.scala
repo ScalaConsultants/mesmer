@@ -2,7 +2,9 @@ package io.scalac.mesmer.extension.upstream
 
 import com.typesafe.config.Config
 import io.opentelemetry.api.metrics.Meter
-import io.scalac.mesmer.core.config.{Configuration, MesmerConfiguration}
+
+import io.scalac.mesmer.core.config.Configuration
+import io.scalac.mesmer.core.config.MesmerConfiguration
 import io.scalac.mesmer.core.module.AkkaStreamModule
 import io.scalac.mesmer.extension.metric.Histogram
 import io.scalac.mesmer.extension.metric.MetricObserver
@@ -15,7 +17,7 @@ import io.scalac.mesmer.extension.upstream.opentelemetry.SynchronousInstrumentFa
 object OpenTelemetryStreamMetricsMonitor {
   final case class MetricNames(runningStreams: String, streamActors: String, streamProcessed: String)
 
-  object MetricNames extends MesmerConfiguration[MetricNames] with Configuration  {
+  object MetricNames extends MesmerConfiguration[MetricNames] with Configuration {
 
     protected val mesmerConfig: String = "metrics.stream-metrics"
 

@@ -5,13 +5,11 @@ import org.slf4j.LoggerFactory
 import io.scalac.mesmer.agent.Agent
 import io.scalac.mesmer.agent.akka.persistence.impl._
 import io.scalac.mesmer.agent.util.i13n._
-import io.scalac.mesmer.core.akka.version26x
-import io.scalac.mesmer.core.model.Version
 import io.scalac.mesmer.core.module.AkkaPersistenceModule
 
 object AkkaPersistenceAgent
     extends InstrumentModuleFactory(AkkaPersistenceModule)
-    with AkkaPersistenceModule.All[AkkaPersistenceModule.Jars[Version] => Agent] {
+    with AkkaPersistenceModule.All[Agent] {
 
   /**
    * @param config
@@ -21,18 +19,16 @@ object AkkaPersistenceAgent
    * @return
    *   Resulting agent and resulting configuration based on runtime properties
    */
-  def agent(
-    jars: AkkaPersistenceModule.AkkaPersistenceJars[Version]
-  ): Agent = {
+  def agent: Agent = {
 
     val config = module.enabled
 
     // TODO can we introduce some foldable and/or functor/applicative to be able to map over those without manually checking every element here
-    val recoveryTimeAgent         = if (config.recoveryTime) recoveryTime(jars) else Agent.empty
-    val recoveryTotalAgent        = if (config.recoveryTotal) recoveryTotal(jars) else Agent.empty
-    val persistentEventAgent      = if (config.persistentEvent) persistentEvent(jars) else Agent.empty
-    val persistentEventTotalAgent = if (config.persistentEventTotal) persistentEventTotal(jars) else Agent.empty
-    val snapshotAgent             = if (config.snapshot) snapshot(jars) else Agent.empty
+    val recoveryTimeAgent         = if (config.recoveryTime) recoveryTime else Agent.empty
+    val recoveryTotalAgent        = if (config.recoveryTotal) recoveryTotal else Agent.empty
+    val persistentEventAgent      = if (config.persistentEvent) persistentEvent else Agent.empty
+    val persistentEventTotalAgent = if (config.persistentEventTotal) persistentEventTotal else Agent.empty
+    val snapshotAgent             = if (config.snapshot) snapshot else Agent.empty
 
     val resultantAgent =
       recoveryTimeAgent ++
@@ -44,30 +40,15 @@ object AkkaPersistenceAgent
     resultantAgent
   }
 
-  private def ifSupported(agent: => Agent)(versions: AkkaPersistenceModule.Jars[Version]): Agent = {
-    import versions._
-    if (
-      version26x.supports(akkaPersistence) && version26x.supports(akkaPersistenceTyped) && version26x
-        .supports(akkaActor) && version26x.supports(akkaActorTyped)
-    ) agent
-    else Agent.empty
-  }
+  lazy val recoveryTime: Agent = recoveryAgent
 
-  lazy val recoveryTime: AkkaPersistenceModule.Jars[Version] => Agent = ifSupported(recoveryAgent)
+  lazy val recoveryTotal: Agent = recoveryAgent
 
-  lazy val recoveryTotal: AkkaPersistenceModule.Jars[Version] => Agent = ifSupported(recoveryAgent)
+  lazy val persistentEvent: Agent = Agent(eventWriteSuccessInstrumentation)
 
-  lazy val persistentEvent: AkkaPersistenceModule.Jars[Version] => Agent = ifSupported(
-    Agent(eventWriteSuccessInstrumentation)
-  )
+  lazy val persistentEventTotal: Agent = Agent(eventWriteSuccessInstrumentation)
 
-  lazy val persistentEventTotal: AkkaPersistenceModule.Jars[Version] => Agent = ifSupported(
-    Agent(eventWriteSuccessInstrumentation)
-  )
-
-  lazy val snapshot: AkkaPersistenceModule.Jars[Version] => Agent = ifSupported(
-    Agent(snapshotLoadingInstrumentation)
-  )
+  lazy val snapshot: Agent = Agent(snapshotLoadingInstrumentation)
 
   private[persistence] val logger = LoggerFactory.getLogger(AkkaPersistenceAgent.getClass)
 

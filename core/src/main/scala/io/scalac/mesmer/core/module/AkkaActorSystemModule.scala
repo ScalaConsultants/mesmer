@@ -1,7 +1,4 @@
 package io.scalac.mesmer.core.module
-import io.scalac.mesmer.core.model.Version
-import io.scalac.mesmer.core.module.Module.CommonJars
-import io.scalac.mesmer.core.util.LibraryInfo.LibraryInfo
 
 sealed trait AkkaActorSystemMetricsModule extends MetricsModule {
   this: Module =>
@@ -39,15 +36,4 @@ object AkkaActorSystemModule extends MesmerModule with AkkaActorSystemMetricsMod
     } else ActorSystemModuleConfig(false, false)
 
   }
-
-  override type Jars[T] = ActorSystemJars[T]
-
-  final case class ActorSystemJars[T](akkaActor: T, akkaActorTyped: T) extends CommonJars[T]
-
-  def jarsFromLibraryInfo(info: LibraryInfo): Option[Jars[Version]] =
-    for {
-      actor      <- info.get(JarNames.akkaActor)
-      actorTyped <- info.get(JarNames.akkaActorTyped)
-    } yield ActorSystemJars(actor, actorTyped)
-
 }

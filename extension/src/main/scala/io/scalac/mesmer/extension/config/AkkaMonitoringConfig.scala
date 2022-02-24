@@ -1,10 +1,12 @@
 package io.scalac.mesmer.extension.config
 
 import com.typesafe.config.Config
-import io.scalac.mesmer.core.config.{Configuration, MesmerConfiguration}
 
 import scala.concurrent.duration._
 import scala.jdk.DurationConverters._
+
+import io.scalac.mesmer.core.config.Configuration
+import io.scalac.mesmer.core.config.MesmerConfiguration
 
 final case class AkkaMonitoringConfig(
   autoStart: AutoStartSettings,

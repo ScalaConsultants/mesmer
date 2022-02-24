@@ -1,8 +1,7 @@
 package io.scalac.mesmer.core.module
-import io.scalac.mesmer.core.model.Version
-import io.scalac.mesmer.core.module.Module.CommonJars
-import io.scalac.mesmer.core.typeclasses.{Combine, Traverse}
-import io.scalac.mesmer.core.util.LibraryInfo.LibraryInfo
+
+import io.scalac.mesmer.core.typeclasses.Combine
+import io.scalac.mesmer.core.typeclasses.Traverse
 
 sealed trait AkkaStreamMetrics extends MetricsModule {
   this: Module =>
@@ -30,10 +29,7 @@ sealed trait AkkaStreamOperatorMetrics extends MetricsModule {
 
 }
 
-object AkkaStreamModule
-    extends MesmerModule
-    with AkkaStreamMetrics
-    with AkkaStreamOperatorMetrics {
+object AkkaStreamModule extends MesmerModule with AkkaStreamMetrics with AkkaStreamOperatorMetrics {
 
   lazy val name: String = "akkastream"
 
@@ -67,17 +63,6 @@ object AkkaStreamModule
     } else Impl(false, false, false, false, false, false)
 
   }
-
-  override type Jars[T] = AkkaStreamsJars[T]
-
-  final case class AkkaStreamsJars[T](akkaActor: T, akkaActorTyped: T, akkaStream: T) extends CommonJars[T]
-
-  def jarsFromLibraryInfo(info: LibraryInfo): Option[Jars[Version]] =
-    for {
-      actor      <- info.get(JarNames.akkaActor)
-      actorTyped <- info.get(JarNames.akkaActorTyped)
-      stream     <- info.get(JarNames.akkaStream)
-    } yield AkkaStreamsJars(actor, actorTyped, stream)
 
   implicit val combine: Combine[All[Boolean]] = (first, second) =>
     Impl(

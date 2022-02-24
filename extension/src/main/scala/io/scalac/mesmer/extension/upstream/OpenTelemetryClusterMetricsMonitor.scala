@@ -3,7 +3,9 @@ package io.scalac.mesmer.extension.upstream
 import com.typesafe.config.Config
 import io.opentelemetry.api.common.Attributes
 import io.opentelemetry.api.metrics.Meter
-import io.scalac.mesmer.core.config.{Configuration, MesmerConfiguration}
+
+import io.scalac.mesmer.core.config.Configuration
+import io.scalac.mesmer.core.config.MesmerConfiguration
 import io.scalac.mesmer.core.module.AkkaClusterModule
 import io.scalac.mesmer.extension.metric.ClusterMetricsMonitor
 import io.scalac.mesmer.extension.metric._
@@ -21,7 +23,7 @@ object OpenTelemetryClusterMetricsMonitor {
     nodeDown: String
   )
 
-  object MetricNames extends MesmerConfiguration[MetricNames] with Configuration  {
+  object MetricNames extends MesmerConfiguration[MetricNames] with Configuration {
     val defaultConfig: MetricNames =
       MetricNames(
         "akka_cluster_shards_per_region",

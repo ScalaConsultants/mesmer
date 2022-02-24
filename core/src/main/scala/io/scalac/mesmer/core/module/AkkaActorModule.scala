@@ -1,7 +1,7 @@
 package io.scalac.mesmer.core.module
-import io.scalac.mesmer.core.model.Version
-import io.scalac.mesmer.core.typeclasses.{Combine, Traverse}
-import io.scalac.mesmer.core.util.LibraryInfo.LibraryInfo
+
+import io.scalac.mesmer.core.typeclasses.Combine
+import io.scalac.mesmer.core.typeclasses.Traverse
 
 sealed trait AkkaActorMetrics extends MetricsModule {
   this: Module =>
@@ -30,7 +30,6 @@ sealed trait AkkaActorMetrics extends MetricsModule {
 object AkkaActorModule extends MesmerModule with AkkaActorMetrics {
   override type Metrics[T] = AkkaActorMetricsDef[T]
   override type All[T]     = Metrics[T]
-  override type Jars[T]    = AkkaActorJars[T]
 
   final case class Impl[T](
     mailboxSize: T,
@@ -52,7 +51,8 @@ object AkkaActorModule extends MesmerModule with AkkaActorMetrics {
 
   lazy val name: String = "akkaactor"
 
-  lazy val defaultConfig: Config  = Impl[Boolean](true, true, true, true, true, true, true, true, true, true, true, true, true, true, true)
+  lazy val defaultConfig: Config =
+    Impl[Boolean](true, true, true, true, true, true, true, true, true, true, true, true, true, true, true)
 
   protected def fromMap(properties: Map[String, Boolean]): AkkaActorModule.Config = {
     val enabled = properties.getOrElse("enabled", true) // TODO should we check enabled here?
@@ -78,14 +78,6 @@ object AkkaActorModule extends MesmerModule with AkkaActorMetrics {
     } else Impl(false, false, false, false, false, false, false, false, false, false, false, false, false, false, false)
 
   }
-
-  final case class AkkaActorJars[T](akkaActor: T, akkaActorTyped: T) extends Module.CommonJars[T]
-
-  def jarsFromLibraryInfo(info: LibraryInfo): Option[Jars[Version]] =
-    for {
-      actor      <- info.get(JarNames.akkaActor)
-      actorTyped <- info.get(JarNames.akkaActorTyped)
-    } yield AkkaActorJars(actor, actorTyped)
 
   /**
    * Combines config that with AND operator

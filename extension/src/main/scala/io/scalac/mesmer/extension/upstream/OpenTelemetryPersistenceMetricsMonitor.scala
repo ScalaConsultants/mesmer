@@ -2,7 +2,9 @@ package io.scalac.mesmer.extension.upstream
 
 import com.typesafe.config.Config
 import io.opentelemetry.api.metrics.Meter
-import io.scalac.mesmer.core.config.{Configuration, MesmerConfiguration}
+
+import io.scalac.mesmer.core.config.Configuration
+import io.scalac.mesmer.core.config.MesmerConfiguration
 import io.scalac.mesmer.core.module.AkkaPersistenceModule
 import io.scalac.mesmer.extension.metric.Counter
 import io.scalac.mesmer.extension.metric.Histogram
@@ -22,7 +24,7 @@ object OpenTelemetryPersistenceMetricsMonitor {
     snapshotTotal: String
   )
 
-  object MetricNames extends MesmerConfiguration[MetricNames] with Configuration  {
+  object MetricNames extends MesmerConfiguration[MetricNames] with Configuration {
     val defaultConfig: MetricNames =
       MetricNames(
         "akka_persistence_recovery_time",

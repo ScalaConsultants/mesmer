@@ -1,13 +1,12 @@
 package io.scalac.mesmer.agent.util.i13n
-import io.scalac.mesmer.agent.Agent
-import io.scalac.mesmer.agent.util.i13n.InstrumentationDSL.NameDSL
-import io.scalac.mesmer.agent.util.i13n.InstrumentationDetails.FQCN
-import io.scalac.mesmer.core.model.Version
-import io.scalac.mesmer.core.module.Module
-import io.scalac.mesmer.core.util.LibraryInfo.LibraryInfo
 import net.bytebuddy.description.`type`.TypeDescription
 import net.bytebuddy.description.method.MethodDescription
 import net.bytebuddy.matcher.ElementMatchers
+
+import io.scalac.mesmer.agent.Agent
+import io.scalac.mesmer.agent.util.i13n.InstrumentationDSL.NameDSL
+import io.scalac.mesmer.agent.util.i13n.InstrumentationDetails.FQCN
+import io.scalac.mesmer.core.module.Module
 object InstrumentationDSL {
   final class NameDSL(private val value: String) extends AnyVal {
     def method: MethodDesc = ElementMatchers.named[MethodDescription](value)
@@ -38,15 +37,6 @@ object InstrumentModuleFactory {
 
   }
 
-//  implicit class FactoryOps[M <: MesmerModule](
-//    private val factory: InstrumentModuleFactory[M]
-//  ) extends AnyVal {
-//
-//    def defaultAgent(jarsInfo: LibraryInfo): Agent =
-//      factory
-//        .initAgent(jarsInfo, factory.module.defaultConfig, registerGlobal = false)
-//        .getOrElse(throw new IllegalStateException("Unsupported library version found - cannot install agent"))
-//  }
 }
 
 abstract class InstrumentModuleFactory[M <: Module](val module: M) extends InstrumentationDSL {
@@ -54,30 +44,11 @@ abstract class InstrumentModuleFactory[M <: Module](val module: M) extends Instr
     Requiring all features to be a function from versions to Agent we allow there to create different instrumentations depending
     on runtime version of jars. TODO add information on which versions are supported
    */
-  this: M#All[M#Jars[Version] => Agent] =>
+  this: M#All[Agent] =>
 
   protected def instrument(t: Type): TypeInstrumentation = TypeInstrumentation.instrument(t)
 
-  def agent(info: LibraryInfo): Agent = module.jarsFromLibraryInfo(info).fold(Agent.empty)(agent)
-
-  def agent(jars: M#Jars[Version]): Agent
-
-//  private[i13n] final def agent(
-//    config: module.All[Boolean],
-//    jars: module.Jars[Version]): Agent = {
-//    val (agents, enabled) = agent(config, jars)
-//    if (registerGlobal)
-//      module.registerGlobal(enabled)
-//    agents
-//  }
-
-//  final def initAgent(jarsInfo: LibraryInfo, config: Config): Option[Agent] =
-//    initAgent(jarsInfo, module.enabled(config), registerGlobal = true)
-//
-//  final def initAgent(jarsInfo: LibraryInfo, config: module.All[Boolean], registerGlobal: Boolean): Option[Agent] =
-//    module.jarsFromLibraryInfo(jarsInfo).map { jars =>
-//      agent(config, jars, registerGlobal)
-//    }
+  def agent: Agent
 
   implicit def enrichStringDsl(value: String): InstrumentModuleFactory.StringDlsOps =
     new InstrumentModuleFactory.StringDlsOps(value -> module)
