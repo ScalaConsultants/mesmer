@@ -11,6 +11,8 @@ object AkkaPersistenceAgent
     extends InstrumentModuleFactory(AkkaPersistenceModule)
     with AkkaPersistenceModule.All[Agent] {
 
+  private[persistence] val logger = LoggerFactory.getLogger(AkkaPersistenceAgent.getClass)
+
   /**
    * @param config
    *   configuration of features that are wanted by the user
@@ -44,13 +46,11 @@ object AkkaPersistenceAgent
 
   lazy val recoveryTotal: Agent = recoveryAgent
 
-  lazy val persistentEvent: Agent = Agent(eventWriteSuccessInstrumentation)
+  lazy val persistentEvent: Agent = eventWriteSuccessAgent
 
-  lazy val persistentEventTotal: Agent = Agent(eventWriteSuccessInstrumentation)
+  lazy val persistentEventTotal: Agent = eventWriteSuccessAgent
 
-  lazy val snapshot: Agent = Agent(snapshotLoadingInstrumentation)
-
-  private[persistence] val logger = LoggerFactory.getLogger(AkkaPersistenceAgent.getClass)
+  lazy val snapshot: Agent = snapshotLoadingAgent
 
   private val recoveryAgent = {
 
@@ -61,14 +61,14 @@ object AkkaPersistenceAgent
      */
     val recoveryStartedAgent =
       instrument("akka.persistence.typed.internal.ReplayingSnapshot".fqcnWithTags(recoveryTag))
-        .intercept(RecoveryStartedInterceptor, "onRecoveryStart")
+        .visit(RecoveryStartedAdvice, "onRecoveryStart")
 
     /**
      * Instrumentation to fire event on persistent actor recovery complete
      */
     val recoveryCompletedAgent =
       instrument("akka.persistence.typed.internal.ReplayingEvents".fqcnWithTags(recoveryTag))
-        .intercept(RecoveryCompletedInterceptor, "onRecoveryComplete")
+        .visit(RecoveryCompletedAdvice, "onRecoveryComplete")
 
     Agent(recoveryStartedAgent, recoveryCompletedAgent)
   }
@@ -76,15 +76,19 @@ object AkkaPersistenceAgent
   /**
    * Instrumentation to fire events on persistent event start and stop
    */
-  private val eventWriteSuccessInstrumentation =
-    instrument("akka.persistence.typed.internal.Running".fqcnWithTags("persistent_event"))
-      .intercept(PersistingEventSuccessInterceptor, "onWriteSuccess")
-      .intercept(JournalInteractionsInterceptor, "onWriteInitiated")
+  private val eventWriteSuccessAgent =
+    Agent(
+      instrument("akka.persistence.typed.internal.Running".fqcnWithTags("persistent_event"))
+        .visit(PersistingEventSuccessAdvice, "onWriteSuccess")
+        .visit(JournalInteractionsAdvice, "onWriteInitiated")
+    )
 
   /**
    * Instrumentation to fire event when snapshot is stored
    */
-  private val snapshotLoadingInstrumentation =
-    instrument("akka.persistence.typed.internal.Running$StoringSnapshot".fqcnWithTags("snapshot_created"))
-      .intercept(StoringSnapshotInterceptor, "onSaveSnapshotResponse")
+  private val snapshotLoadingAgent =
+    Agent(
+      instrument("akka.persistence.typed.internal.Running$StoringSnapshot".fqcnWithTags("snapshot_created"))
+        .visit(StoringSnapshotAdvice, "onSaveSnapshotResponse")
+    )
 }

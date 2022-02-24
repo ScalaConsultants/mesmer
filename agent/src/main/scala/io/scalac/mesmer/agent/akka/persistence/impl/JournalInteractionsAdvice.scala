@@ -9,7 +9,7 @@ import io.scalac.mesmer.core.event.PersistenceEvent.PersistingEventStarted
 import io.scalac.mesmer.core.model._
 import io.scalac.mesmer.core.util.Timestamp
 
-object JournalInteractionsInterceptor {
+object JournalInteractionsAdvice {
 
   @OnMethodEnter
   def onWriteInitiated(@Argument(0) context: ActorContext[_], @Argument(2) event: PersistentRepr): Unit = {
