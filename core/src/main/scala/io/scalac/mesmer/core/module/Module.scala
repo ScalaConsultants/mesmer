@@ -39,30 +39,12 @@ trait MesmerModule extends Module with MesmerConfigurationBase {
 
   lazy val enabled: Config = {
 
-    val config = OTConfig
-      .get()
+    val config = OTConfig.get()
 
     val moduleConfigurations = config.getAllProperties.asScala.keys.collect {
       case moduleKey if moduleKey.startsWith(configurationBase) =>
-        moduleKey.stripPrefix(s"$configurationBase.") -> config.getBoolean(
-          moduleKey,
-          false
-        ) // TODO should we default it to false?
+        moduleKey.stripPrefix(s"$configurationBase.") -> config.getBoolean(moduleKey, false)
     }.toMap
-
-    val serializedConfiguration = moduleConfigurations.map { case (key, value) =>
-      s"$key: $value"
-    }.mkString("{\n", "\n", "\n}")
-
-    val message =
-      s"""
-         |---------------------------------------------
-         |MODULE: $name
-         |CONFIG" ${serializedConfiguration}
-         |---------------------------------------------
-         |""".stripMargin
-
-    println(message)
 
     fromMap(moduleConfigurations)
   }
@@ -71,7 +53,7 @@ trait MesmerModule extends Module with MesmerConfigurationBase {
 
   def defaultConfig: Result
 
-  val mesmerConfig: String = s"module.$name"
+  lazy val mesmerConfig: String = s"module.$name"
 }
 
 trait MetricsModule {

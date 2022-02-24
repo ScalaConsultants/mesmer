@@ -35,7 +35,7 @@ object AkkaStreamModule
     with AkkaStreamMetrics
     with AkkaStreamOperatorMetrics {
 
-  val name: String = "akka-stream"
+  lazy val name: String = "akkastream"
 
   override type Metrics[T] = StreamOperatorMetricsDef[T] with StreamMetricsDef[T]
   override type All[T]     = Metrics[T]

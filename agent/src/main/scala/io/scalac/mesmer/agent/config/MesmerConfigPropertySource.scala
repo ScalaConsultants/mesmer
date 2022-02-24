@@ -1,14 +1,11 @@
 package io.scalac.mesmer.agent.config
-import com.google.auto.service.AutoService
-import io.opentelemetry.javaagent.extension.config.ConfigPropertySource
 import io.scalac.mesmer.core.module._
 
 import java.util
 import java.util.Locale
 import scala.jdk.CollectionConverters._
 
-@AutoService(Array(classOf[ConfigPropertySource]))
-object MesmerConfigPropertySourceProvider extends ConfigPropertySource {
+object MesmerConfigPropertySourceProvider {
 
   private def modules = Seq(
     AkkaActorModule,

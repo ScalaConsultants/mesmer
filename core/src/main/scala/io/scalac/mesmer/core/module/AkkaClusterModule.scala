@@ -20,7 +20,7 @@ sealed trait AkkaClusterMetricsModule extends MetricsModule {
 
 object AkkaClusterModule extends MesmerModule with AkkaClusterMetricsModule {
 
-  val name: String = "akka-cluster"
+  lazy val name: String = "akkacluster"
 
   final case class Impl[T](
     shardPerRegions: T,

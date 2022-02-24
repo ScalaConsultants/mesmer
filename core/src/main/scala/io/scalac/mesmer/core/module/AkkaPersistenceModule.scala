@@ -24,7 +24,7 @@ sealed trait AkkaPersistenceMetricsModule extends MetricsModule {
 object AkkaPersistenceModule extends MesmerModule with AkkaPersistenceMetricsModule {
   override type Metrics[T] = AkkaPersistenceMetricsDef[T]
 
-  val name: String = "akka-persistence"
+  lazy val name: String = "akkapersistence"
 
   final case class Impl[T](
     recoveryTime: T,

@@ -58,8 +58,7 @@ trait MesmerConfigurationBase extends ConfigurationBase {
     We explicitly make it public here
    */
   lazy val configurationBase: String = {
-    val branch = mesmerConfig
-    if (mesmerConfig.isEmpty) mesmerBase else s"$mesmerBase.$branch"
+    if (mesmerConfig.isEmpty) mesmerBase else s"$mesmerBase.$mesmerConfig"
   }
 
   /**

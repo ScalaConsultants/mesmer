@@ -35,7 +35,7 @@ object AkkaHttpModule extends MesmerModule with AkkaHttpRequestMetricsModule wit
       extends AkkaHttpRequestMetricsDef[T]
       with AkkaHttpConnectionsMetricsDef[T]
 
-  val name: String = "akka-http"
+  lazy val name: String = "akkahttp"
 
   override type Metrics[T] = AkkaHttpConnectionsMetricsDef[T] with AkkaHttpRequestMetricsDef[T]
 

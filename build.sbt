@@ -3,7 +3,7 @@ import sbt.Package.{ MainClass, ManifestAttributes }
 
 inThisBuild(
   List(
-    scalaVersion := "2.13.8",
+    scalaVersion := "2.13.6",
     organization := "io.scalac",
     homepage     := Some(url("https://github.com/ScalaConsultants/mesmer-akka-agent")),
     licenses     := List("Apache-2.0" -> url("http://www.apache.org/licenses/LICENSE-2.0")),
@@ -144,9 +144,11 @@ lazy val example = (project in file("example"))
       val properties = System.getProperties
 
       import scala.collection.JavaConverters._
-      for {
+      val keys = for {
         (key, value) <- properties.asScala.toList if value.nonEmpty
       } yield s"-D$key=$value"
+
+      keys
     },
     commands += runWithMesmerAgent,
     commands += runWithOtelAgent,

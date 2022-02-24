@@ -14,7 +14,7 @@ sealed trait AkkaActorSystemMetricsModule extends MetricsModule {
 }
 
 object AkkaActorSystemModule extends MesmerModule with AkkaActorSystemMetricsModule {
-  val name: String = "akka-system"
+  lazy val name: String = "akkasystem"
 
   override type Metrics[T] = ActorSystemMetricsDef[T]
   override type All[T]     = Metrics[T]

@@ -85,11 +85,12 @@ final class AkkaMonitoring(system: ActorSystem[_])(implicit otelLoader: OpenTele
       startActorMonitor()
     }
     if (autoStartConfig.akkaHttp) {
-      log.debug("Start akka persistence service")
+      log.debug("Start akka http service")
+
       startHttpMonitor()
     }
     if (autoStartConfig.akkaPersistence) {
-      log.debug("Start akka http service")
+      log.debug("Start akka persistence service")
 
       startPersistenceMonitor()
     }

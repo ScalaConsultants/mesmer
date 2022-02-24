@@ -50,7 +50,7 @@ object AkkaActorModule extends MesmerModule with AkkaActorMetrics {
     droppedMessages: T
   ) extends AkkaActorMetricsDef[T]
 
-  val name: String = "akka-actor"
+  lazy val name: String = "akkaactor"
 
   lazy val defaultConfig: Config  = Impl[Boolean](true, true, true, true, true, true, true, true, true, true, true, true, true, true, true)
 
