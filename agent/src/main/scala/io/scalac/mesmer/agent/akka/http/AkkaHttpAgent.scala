@@ -50,9 +50,9 @@ object AkkaHttpAgent
     val configuration: AkkaHttpModule.Config = module.enabled(typesafeConfig)
 
     List(
-      connectionEvents.emptyOnCondition(configuration.connections),
-      requestEvents.emptyOnCondition(configuration.requestTime),
-      requestEvents.emptyOnCondition(configuration.requestCounter)
+      connectionEvents.onCondition(configuration.connections),
+      requestEvents.onCondition(configuration.requestTime),
+      requestEvents.onCondition(configuration.requestCounter)
     ).reduce(_ ++ _)
   }
 

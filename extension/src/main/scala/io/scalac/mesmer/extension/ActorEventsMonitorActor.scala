@@ -94,7 +94,7 @@ object ActorEventsMonitorActor {
     def read(actor: classic.ActorRef): Option[ActorMetrics] =
       for {
         cell    <- ActorRefOps.Local.cell(actor)
-        metrics <- ActorCellDecorator.get(cell)
+        metrics <- ActorCellDecorator.getMetrics(cell)
       } yield ActorMetrics(
         mailboxSize = safeRead(ActorCellOps.numberOfMessages(cell)),
         mailboxTime = metrics.mailboxTimeAgg.toOption.flatMap(_.metrics),

@@ -57,11 +57,11 @@ object AkkaPersistenceAgent
     val configuration = module.enabled(config)
 
     List(
-      recoveryAgent.emptyOnCondition(configuration.recoveryTotal),
-      recoveryAgent.emptyOnCondition(configuration.recoveryTime),
-      eventWriteSuccessAgent.emptyOnCondition(configuration.persistentEvent),
-      eventWriteSuccessAgent.emptyOnCondition(configuration.persistentEventTotal),
-      snapshotLoadingAgent.emptyOnCondition(configuration.snapshot)
+      recoveryAgent.onCondition(configuration.recoveryTotal),
+      recoveryAgent.onCondition(configuration.recoveryTime),
+      eventWriteSuccessAgent.onCondition(configuration.persistentEvent),
+      eventWriteSuccessAgent.onCondition(configuration.persistentEventTotal),
+      snapshotLoadingAgent.onCondition(configuration.snapshot)
     ).reduce(_ ++ _)
   }
 

@@ -16,7 +16,7 @@ object StashConstructorAdvice {
   @OnMethodExit
   def initStash(@This self: Actor): Unit =
     ActorCellDecorator
-      .get(ClassicActorOps.getContext(self))
+      .getMetrics(ClassicActorOps.getContext(self))
       .foreach(_.initStashedMessages())
 
 }
@@ -47,7 +47,7 @@ object ClassicStashInstrumentationStash extends StashGetters {
 
   @OnMethodExit
   def onStashExit(@This stash: AnyRef): Unit =
-    ActorCellDecorator.get(getActorCell(stash)).foreach { metrics =>
+    ActorCellDecorator.getMetrics(getActorCell(stash)).foreach { metrics =>
       if (metrics.stashedMessages.isDefined) {
         metrics.stashedMessages.get.inc()
       }
@@ -60,7 +60,7 @@ object ClassicStashInstrumentationPrepend extends StashGetters {
 
   @OnMethodExit
   def onStashExit(@This stash: AnyRef, @Argument(0) seq: Seq[_]): Unit =
-    ActorCellDecorator.get(getActorCell(stash)).foreach { metrics =>
+    ActorCellDecorator.getMetrics(getActorCell(stash)).foreach { metrics =>
       if (metrics.stashedMessages.isDefined) {
         metrics.stashedMessages.get.add(seq.size)
       }

@@ -49,6 +49,7 @@ lazy val core = (project in file("core"))
       akka ++
       openTelemetryApi ++
       openTelemetryApiMetrics ++
+      openTelemetryInstrumentation ++
       scalatest ++
       akkaTestkit
     }
