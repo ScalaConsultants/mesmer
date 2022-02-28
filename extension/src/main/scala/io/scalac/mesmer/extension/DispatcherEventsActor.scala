@@ -14,5 +14,5 @@ object DispatcherEventsActor {
     private[extension] final case class DispatcherEventWrapper(event: DispatcherEvent) extends Event
   }
 
-  def apply(httpMetricMonitor: DispatcherStaticMetricsMonitor, pathService: PathService, node: Option[Node] = None): Behavior[Event] = ???
+  def apply(dispatcherMetricMonitor: DispatcherStaticMetricsMonitor, pathService: PathService, node: Option[Node] = None): Behavior[Event] = ???
 }
