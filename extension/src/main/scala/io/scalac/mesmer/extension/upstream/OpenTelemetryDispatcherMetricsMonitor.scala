@@ -4,7 +4,6 @@ import com.typesafe.config.Config
 import io.opentelemetry.api.metrics.Meter
 import io.scalac.mesmer.core.config.MesmerConfiguration
 import io.scalac.mesmer.core.module.AkkaDispatcherModule
-import io.scalac.mesmer.extension.metric.HttpMetricsMonitor.BoundMonitor
 import io.scalac.mesmer.extension.metric.{DispatcherStaticMetricsMonitor, MetricObserver, RegisterRoot}
 import io.scalac.mesmer.extension.upstream.OpenTelemetryDispatcherMetricsMonitor.MetricNames
 import io.scalac.mesmer.extension.upstream.opentelemetry.{GaugeBuilderAdapter, SynchronousInstrumentFactory}
