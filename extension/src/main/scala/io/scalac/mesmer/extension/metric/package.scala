@@ -7,6 +7,8 @@ package object metric {
      To define the type alias here help us to reference monitors in the code instead of to invent a non-conflicting name for them inside namespaces.
      TODO In Scala 3 we'll have top-level to help us do that.
    */
+
+  type DispatcherStaticMetricsMonitor = EmptyBind[DispatcherStaticMetricsMonitor.BoundMonitor]
   type ActorMetricsMonitor = EmptyBind[ActorMetricsMonitor.BoundMonitor]
   type HttpMetricsMonitor  = Bindable[HttpMetricsMonitor.Attributes, HttpMetricsMonitor.BoundMonitor]
   type HttpConnectionMetricsMonitor =
