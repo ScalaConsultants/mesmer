@@ -17,6 +17,10 @@ package object model {
   type ShellInfo = (Array[StageInfo], Array[ConnectionStats])
 
   sealed trait ModelTag
+  sealed trait ExecutorTag      extends ModelTag
+  sealed trait MinThreadsTag    extends ModelTag
+  sealed trait MaxThreadsTag    extends ModelTag
+  sealed trait ParallelismTag   extends ModelTag
   sealed trait NodeTag          extends ModelTag
   sealed trait InterfaceTag     extends ModelTag
   sealed trait PortTag          extends ModelTag
@@ -27,6 +31,10 @@ package object model {
   sealed trait PersistenceIdTag extends ModelTag
   sealed trait ActorPathTag     extends ModelTag
 
+  type Executor      = String @@ ExecutorTag
+  type MinThreads    = Int @@ MinThreadsTag
+  type MaxThreads    = Int @@ MaxThreadsTag
+  type Parallelism   = Double @@ ParallelismTag
   type Node          = String @@ NodeTag
   type Interface     = String @@ InterfaceTag
   type Port          = Int @@ PortTag
@@ -38,6 +46,11 @@ package object model {
   type ActorPath     = String @@ ActorPathTag
   type ActorKey      = ActorPath
   type RawAttributes = Seq[(String, String)]
+
+  implicit val executorAttributeSerializer: AttributeSerializer[Executor] = executor => Seq("executor" -> executor.unwrap)
+  implicit val minThreadsAttributeSerializer: AttributeSerializer[MinThreads] = minThreads => Seq("minThreads" -> minThreads.unwrap.toString)
+  implicit val maxThreadsAttributeSerializer: AttributeSerializer[MaxThreads] = maxThreads => Seq("maxThreads" -> maxThreads.unwrap.toString)
+  implicit val parallelismAttributeSerializer: AttributeSerializer[Parallelism] = parallelism => Seq("parallelism" -> parallelism.unwrap.toString)
 
   implicit val nodeAttributeSerializer: AttributeSerializer[Node] = node => Seq("node" -> node.unwrap)
   implicit val interfaceAttributeSerializer: AttributeSerializer[Interface] = interface =>
