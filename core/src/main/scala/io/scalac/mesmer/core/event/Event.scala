@@ -10,6 +10,20 @@ sealed trait AbstractEvent extends Any { self =>
   type Service >: self.type
 }
 
+sealed trait DispatcherEvent extends AbstractEvent {
+  type Service = DispatcherEvent
+}
+
+object DispatcherEvent {
+  sealed trait ExecutorConfigEvent {
+    val minThreads: Int
+    val maxThreads: Int
+    val parallelismFactor: Double
+  }
+  case class SetForkJoinExecutorConfig(minThreads: Int, maxThreads: Int, parallelismFactor: Double) extends ExecutorConfigEvent
+  case class SetThreadPoolExecutorConfig(minThreads: Int, maxThreads: Int, parallelismFactor: Double) extends ExecutorConfigEvent
+}
+
 sealed trait ActorEvent extends Any with AbstractEvent {
   type Service = ActorEvent
 }
