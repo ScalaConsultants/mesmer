@@ -23,7 +23,12 @@ object OpenTelemetryDispatcherMetricsMonitor {
 
   object MetricNames extends MesmerConfiguration[MetricNames] {
     val defaultConfig: MetricNames =
-      MetricNames("akka_dispatcher_executor", "akka_dispatcher_min_threads", "akka_dispatcher_max_threads", "akka_dispatcher_parallelism_factor")
+      MetricNames(
+        "akka_dispatcher_executor",
+        "akka_dispatcher_min_threads",
+        "akka_dispatcher_max_threads",
+        "akka_dispatcher_parallelism_factor"
+      )
 
     protected val mesmerConfig: String = "metrics.dispatcher-metrics"
 
@@ -42,16 +47,21 @@ object OpenTelemetryDispatcherMetricsMonitor {
         .tryValue("parallelism-factor")(_.getString)
         .getOrElse(defaultConfig.parallelismFactor)
 
-      MetricNames(executor = executor, minThreads = minThreads, maxThreads = maxThreads, parallelismFactor = parallelismFactor)
+      MetricNames(
+        executor = executor,
+        minThreads = minThreads,
+        maxThreads = maxThreads,
+        parallelismFactor = parallelismFactor
+      )
     }
 
   }
 
   def apply(
-             meter: Meter,
-             moduleConfig: AkkaDispatcherModule.AkkaDispatcherConfigMetricsDef[Boolean],
-             config: Config
-           ): OpenTelemetryDispatcherMetricsMonitor =
+    meter: Meter,
+    moduleConfig: AkkaDispatcherModule.AkkaDispatcherConfigMetricsDef[Boolean],
+    config: Config
+  ): OpenTelemetryDispatcherMetricsMonitor =
     new OpenTelemetryDispatcherMetricsMonitor(meter, moduleConfig, MetricNames.fromConfig(config))
 }
 
@@ -86,12 +96,13 @@ final class OpenTelemetryDispatcherMetricsMonitor(
 
   def bind(): BoundMonitor = new DispatcherMetricsBoundMonitor
 
-  class DispatcherMetricsBoundMonitor extends DispatcherStaticMetricsMonitor.BoundMonitor
+  class DispatcherMetricsBoundMonitor
+      extends DispatcherStaticMetricsMonitor.BoundMonitor
       with RegisterRoot
       with SynchronousInstrumentFactory {
 
     val minThreads: MetricObserver[Long, DispatcherStaticMetricsMonitor.Attributes] =
-    if (moduleConfig.minThreads) minThreadsObserver.createObserver(this) else MetricObserver.noop
+      if (moduleConfig.minThreads) minThreadsObserver.createObserver(this) else MetricObserver.noop
 
     val maxThreads: MetricObserver[Long, DispatcherStaticMetricsMonitor.Attributes] =
       if (moduleConfig.maxThreads) maxThreadsObserver.createObserver(this) else MetricObserver.noop
