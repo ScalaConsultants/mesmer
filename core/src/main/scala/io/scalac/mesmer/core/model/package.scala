@@ -47,10 +47,14 @@ package object model {
   type ActorKey      = ActorPath
   type RawAttributes = Seq[(String, String)]
 
-  implicit val executorAttributeSerializer: AttributeSerializer[Executor] = executor => Seq("executor" -> executor.unwrap)
-  implicit val minThreadsAttributeSerializer: AttributeSerializer[MinThreads] = minThreads => Seq("minThreads" -> minThreads.unwrap.toString)
-  implicit val maxThreadsAttributeSerializer: AttributeSerializer[MaxThreads] = maxThreads => Seq("maxThreads" -> maxThreads.unwrap.toString)
-  implicit val parallelismAttributeSerializer: AttributeSerializer[Parallelism] = parallelism => Seq("parallelism" -> parallelism.unwrap.toString)
+  implicit val executorAttributeSerializer: AttributeSerializer[Executor] = executor =>
+    Seq("executor" -> executor.unwrap)
+  implicit val minThreadsAttributeSerializer: AttributeSerializer[MinThreads] = minThreads =>
+    Seq("minThreads" -> minThreads.unwrap.toString)
+  implicit val maxThreadsAttributeSerializer: AttributeSerializer[MaxThreads] = maxThreads =>
+    Seq("maxThreads" -> maxThreads.unwrap.toString)
+  implicit val parallelismAttributeSerializer: AttributeSerializer[Parallelism] = parallelism =>
+    Seq("parallelism" -> parallelism.unwrap.toString)
 
   implicit val nodeAttributeSerializer: AttributeSerializer[Node] = node => Seq("node" -> node.unwrap)
   implicit val interfaceAttributeSerializer: AttributeSerializer[Interface] = interface =>

@@ -1,6 +1,6 @@
 package io.scalac.mesmer.core.module
 
-import com.typesafe.config.{Config => TypesafeConfig}
+import com.typesafe.config.{ Config => TypesafeConfig }
 
 import io.scalac.mesmer.core.model.Version
 import io.scalac.mesmer.core.typeclasses.Combine
@@ -20,10 +20,12 @@ trait AkkaDispatcherConfigMetricsModule extends MetricsModule {
 
 }
 
-object AkkaDispatcherModule extends MesmerModule with RegistersGlobalConfiguration with AkkaDispatcherConfigMetricsModule {
+object AkkaDispatcherModule
+    extends MesmerModule
+    with RegistersGlobalConfiguration
+    with AkkaDispatcherConfigMetricsModule {
 
-  final case class Impl[T](minThreads: T, maxThreads: T, parallelismFactor: T)
-    extends AkkaDispatcherConfigMetricsDef[T]
+  final case class Impl[T](minThreads: T, maxThreads: T, parallelismFactor: T) extends AkkaDispatcherConfigMetricsDef[T]
 
   final case class AkkaDispatcherJars[T](akkaActor: T, akkaActorTyped: T) extends Module.CommonJars[T]
 
