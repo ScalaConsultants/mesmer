@@ -9,8 +9,8 @@ package object metric {
    */
 
   type DispatcherStaticMetricsMonitor = EmptyBind[DispatcherStaticMetricsMonitor.BoundMonitor]
-  type ActorMetricsMonitor = EmptyBind[ActorMetricsMonitor.BoundMonitor]
-  type HttpMetricsMonitor  = Bindable[HttpMetricsMonitor.Attributes, HttpMetricsMonitor.BoundMonitor]
+  type ActorMetricsMonitor            = EmptyBind[ActorMetricsMonitor.BoundMonitor]
+  type HttpMetricsMonitor             = Bindable[HttpMetricsMonitor.Attributes, HttpMetricsMonitor.BoundMonitor]
   type HttpConnectionMetricsMonitor =
     Bindable[HttpConnectionMetricsMonitor.Attributes, HttpConnectionMetricsMonitor.BoundMonitor]
   type PersistenceMetricsMonitor =
