@@ -3,6 +3,7 @@ package io.scalac.mesmer.agent.akka.actor.impl
 import java.lang.invoke.MethodHandles
 import java.lang.invoke.MethodType.methodType
 
+import akka.MesmerMirrorTypes.Cell
 import akka.actor.Actor
 import akka.actor.ActorContext
 import net.bytebuddy.asm.Advice.Argument
@@ -38,7 +39,7 @@ trait StashGetters {
   @inline final def getStashSize(stashSupport: AnyRef): Int =
     theStashMethodHandle.invoke(stashSupport).asInstanceOf[Vector[_]].length
 
-  @inline final def getActorCell(stashSupport: AnyRef): AnyRef =
+  @inline final def getActorCell(stashSupport: AnyRef): Cell =
     getContextMethodHandle.invoke(stashSupport)
 }
 
