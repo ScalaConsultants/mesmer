@@ -83,25 +83,21 @@ object AkkaActorAgent
   def agent(configuration: Config): Agent = {
     val config = module.enabled(configuration)
 
+    val mailboxEnabled =
+      config.mailboxTimeCount || config.mailboxTimeSum || config.mailboxTimeMin || config.mailboxTimeMax
+
+    val processingTimeEnabled =
+      config.processingTimeMin || config.processingTimeMax || config.processingTimeCount || config.processingTimeSum
+
     List(
       sharedInstrumentation.onCondition(config.mailboxSize),
-      (sharedInstrumentation ++ mailboxInstrumentation).onCondition(
-        config.mailboxTimeCount
-          || config.mailboxTimeSum
-          || config.mailboxTimeMin
-          || config.mailboxTimeMax
-      ),
+      (sharedInstrumentation ++ mailboxInstrumentation).onCondition(mailboxEnabled),
       (sharedInstrumentation ++ classicStashInstrumentationAgent ++ stashBufferImplementation)
         .onCondition(config.stashedMessages),
       sharedInstrumentation.onCondition(config.receivedMessages),
       sharedInstrumentation.onCondition(config.processedMessages),
       (sharedInstrumentation ++ abstractSupervisionInstrumentation).onCondition(config.failedMessages),
-      sharedInstrumentation.onCondition(
-        config.processingTimeMin
-          || config.processingTimeMax
-          || config.processingTimeCount
-          || config.processingTimeSum
-      ),
+      sharedInstrumentation.onCondition(processingTimeEnabled),
       (sharedInstrumentation ++ mailboxTimeSendMessageIncInstrumentation).onCondition(config.sentMessages),
       (sharedInstrumentation ++ boundedQueueAgent ++ initDroppedMessages).onCondition(config.droppedMessages)
     ).reduce(_ ++ _)
