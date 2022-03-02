@@ -25,8 +25,8 @@ object OpenTelemetryDispatcherMetricsMonitor {
     val defaultConfig: MetricNames =
       MetricNames(
         "akka_dispatcher_executor",
-        "akka_dispatcher_min_threads",
-        "akka_dispatcher_max_threads",
+        "akka_dispatcher_threads_min",
+        "akka_dispatcher_threads_max",
         "akka_dispatcher_parallelism_factor"
       )
 
