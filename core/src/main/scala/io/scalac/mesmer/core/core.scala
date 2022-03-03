@@ -6,6 +6,9 @@ import io.scalac.mesmer.core.event._
 
 package object core {
 
+  val dispatcherServiceKey: ServiceKey[DispatcherEvent] =
+    ServiceKey[DispatcherEvent](s"io.scalac.metric.dispatcher")
+
   val actorServiceKey: ServiceKey[ActorEvent] =
     ServiceKey[ActorEvent](s"io.scalac.metric.actor")
 
