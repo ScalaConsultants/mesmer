@@ -4,7 +4,7 @@ import akka.actor.typed.scaladsl.adapter.ClassicActorSystemOps
 import akka.dispatch.DispatcherPrerequisites
 import io.scalac.mesmer.core.event.DispatcherEvent.SetDefaultExecutorConfig
 import io.scalac.mesmer.core.event.EventBus
-import net.bytebuddy.asm.Advice.{Argument, OnMethodEnter}
+import net.bytebuddy.asm.Advice.{ Argument, OnMethodEnter }
 
 object ExecutorServiceConfiguratorConstructorAdvice {
 

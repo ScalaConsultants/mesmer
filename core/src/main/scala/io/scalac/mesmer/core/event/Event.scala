@@ -21,7 +21,7 @@ object DispatcherEvent {
     val parallelismFactor: Double
   }
   case class SetDefaultExecutorConfig(minThreads: Int, maxThreads: Int, parallelismFactor: Double)
-    extends ExecutorConfigEvent
+      extends ExecutorConfigEvent
   case class SetForkJoinExecutorConfig(minThreads: Int, maxThreads: Int, parallelismFactor: Double)
       extends ExecutorConfigEvent
   case class SetThreadPoolExecutorConfig(minThreads: Int, maxThreads: Int, parallelismFactor: Double)

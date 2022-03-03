@@ -4,7 +4,7 @@ import io.scalac.mesmer.agent.Agent
 import io.scalac.mesmer.agent.util.i13n._
 import io.scalac.mesmer.core.akka.version26x
 import io.scalac.mesmer.core.model.Version
-import io.scalac.mesmer.core.module.{AkkaActorModule, AkkaDispatcherModule}
+import io.scalac.mesmer.core.module.{ AkkaActorModule, AkkaDispatcherModule }
 
 object AkkaDispatcherAgent
     extends InstrumentModuleFactory(AkkaDispatcherModule)
@@ -29,7 +29,10 @@ object AkkaDispatcherAgent
     } else None
 
   private lazy val loadDispatcherConfigEvent =
-    Agent(instrument("akka.dispatch.ExecutorServiceConfigurator".fqcn).visit(ExecutorServiceConfiguratorConstructorAdvice, constructor))
+    Agent(
+      instrument("akka.dispatch.ExecutorServiceConfigurator".fqcn)
+        .visit(ExecutorServiceConfiguratorConstructorAdvice, constructor)
+    )
 
   val minThreads: AkkaDispatcherModule.AkkaDispatcherJars[Version] => Option[Agent] = ???
 
