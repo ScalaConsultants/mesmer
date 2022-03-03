@@ -26,6 +26,8 @@ object Service {
     val serviceKey: ServiceKey[T] = key
   }
 
+  implicit val dispatcherService: Service[DispatcherEvent] = Service(dispatcherServiceKey)
+
   implicit val actorService: Service[ActorEvent] = Service(actorServiceKey)
 
   implicit val persistenceService: Service[PersistenceEvent] = Service(persistenceServiceKey)
