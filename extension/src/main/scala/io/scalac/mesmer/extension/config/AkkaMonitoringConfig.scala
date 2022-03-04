@@ -18,7 +18,8 @@ final case class AutoStartSettings(
   akkaHttp: Boolean,
   akkaPersistence: Boolean,
   akkaCluster: Boolean,
-  akkaStream: Boolean
+  akkaStream: Boolean,
+  akkaDispatcher: Boolean
 )
 
 object AkkaMonitoringConfig extends MesmerConfiguration[AkkaMonitoringConfig] with Configuration {
@@ -29,7 +30,8 @@ object AkkaMonitoringConfig extends MesmerConfiguration[AkkaMonitoringConfig] wi
       akkaHttp = false,
       akkaCluster = false,
       akkaPersistence = false,
-      akkaStream = false
+      akkaStream = false,
+      akkaDispatcher = false
     )
   private val cleaningSettingsDefaults = CleaningSettings(20.seconds, 5.second)
 
@@ -52,8 +54,10 @@ object AkkaMonitoringConfig extends MesmerConfiguration[AkkaMonitoringConfig] wi
           autoStartConfig.tryValue("akka-cluster")(_.getBoolean).getOrElse(autoStartDefaults.akkaCluster)
         val akkaStream =
           autoStartConfig.tryValue("akka-stream")(_.getBoolean).getOrElse(autoStartDefaults.akkaStream)
+        val akkaDispatcher =
+          autoStartConfig.tryValue("akka-dispatcher")(_.getBoolean).getOrElse(autoStartDefaults.akkaDispatcher)
 
-        AutoStartSettings(akkaActor, akkaHttp, akkaPersistence, akkaCluster, akkaStream)
+        AutoStartSettings(akkaActor, akkaHttp, akkaPersistence, akkaCluster, akkaStream, akkaDispatcher)
       }
       .getOrElse(autoStartDefaults)
 
