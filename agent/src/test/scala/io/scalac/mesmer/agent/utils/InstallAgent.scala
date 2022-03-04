@@ -9,6 +9,7 @@ import org.scalatest.TestSuite
 
 import io.scalac.mesmer.agent.Agent
 import io.scalac.mesmer.agent.akka.actor.AkkaActorAgent
+import io.scalac.mesmer.agent.akka.dispatcher.AkkaDispatcherAgent
 import io.scalac.mesmer.agent.akka.http.AkkaHttpAgent
 import io.scalac.mesmer.agent.akka.persistence.AkkaPersistenceAgent
 import io.scalac.mesmer.agent.akka.stream.AkkaStreamAgent
@@ -24,7 +25,8 @@ object InstallAgent {
   def allInstrumentations(info: LibraryInfo): Agent = AkkaActorAgent.defaultAgent(info) ++
     AkkaHttpAgent.defaultAgent(info) ++
     AkkaPersistenceAgent.defaultAgent(info) ++
-    AkkaStreamAgent.defaultAgent(info)
+    AkkaStreamAgent.defaultAgent(info) ++
+    AkkaDispatcherAgent.defaultAgent(info)
 }
 
 abstract class InstallAgent extends TestSuite with BeforeAndAfterAll {
