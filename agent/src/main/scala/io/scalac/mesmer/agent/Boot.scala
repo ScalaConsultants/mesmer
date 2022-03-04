@@ -10,6 +10,7 @@ import net.bytebuddy.dynamic.scaffold.TypeValidation
 import scala.annotation.unused
 
 import io.scalac.mesmer.agent.akka.actor.AkkaActorAgent
+import io.scalac.mesmer.agent.akka.dispatcher.AkkaDispatcherAgent
 import io.scalac.mesmer.agent.akka.http.AkkaHttpAgent
 import io.scalac.mesmer.agent.akka.persistence.AkkaPersistenceAgent
 import io.scalac.mesmer.agent.akka.stream.AkkaStreamAgent
@@ -35,7 +36,8 @@ object Boot {
     val allInstrumentations = AkkaPersistenceAgent.initAgent(info, config).getOrElse(Agent.empty) ++
       AkkaStreamAgent.initAgent(info, config).getOrElse(Agent.empty) ++
       AkkaHttpAgent.initAgent(info, config).getOrElse(Agent.empty) ++
-      AkkaActorAgent.initAgent(info, config).getOrElse(Agent.empty)
+      AkkaActorAgent.initAgent(info, config).getOrElse(Agent.empty) ++
+      AkkaDispatcherAgent.initAgent(info, config).getOrElse(Agent.empty)
 
     allInstrumentations
       .installOnMesmerAgent(agentBuilder, instrumentation)
