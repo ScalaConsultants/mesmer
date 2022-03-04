@@ -48,8 +48,9 @@ object BoundedNodeMessageQueueAdvice {
   @inline
   private def incDropped(result: Boolean, cell: Cell): Unit =
     if (result && (cell ne null)) {
+      val maybeActorMetrics = ActorCellDecorator.getMetrics(cell)
       for {
-        actorMetrics <- ActorCellDecorator.get(cell) if actorMetrics.droppedMessages.isDefined
+        actorMetrics <- maybeActorMetrics if actorMetrics.droppedMessages.isDefined
 
       } actorMetrics.droppedMessages.get.inc()
     }

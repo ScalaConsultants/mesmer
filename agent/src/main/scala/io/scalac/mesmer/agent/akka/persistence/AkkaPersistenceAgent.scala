@@ -1,6 +1,6 @@
 package io.scalac.mesmer.agent.akka.persistence
 
-import com.typesafe.config.Config
+import com.typesafe.config.{ Config => TypesafeConfig }
 import org.slf4j.LoggerFactory
 
 import io.scalac.mesmer.agent.Agent
@@ -53,16 +53,16 @@ object AkkaPersistenceAgent
     (resultantAgent, enabled)
   }
 
-  def agent(config: Config): Agent = {
-    def orEmpty(condition: Boolean, agent: Agent): Agent = if (condition) agent else Agent.empty
-
+  def agent(config: TypesafeConfig): Agent = {
     val configuration = module.enabled(config)
 
-    orEmpty(configuration.recoveryTotal, recoveryAgent) ++
-    orEmpty(configuration.recoveryTime, recoveryAgent) ++
-    orEmpty(configuration.persistentEvent, eventWriteSuccessAgent) ++
-    orEmpty(configuration.persistentEventTotal, eventWriteSuccessAgent) ++
-    orEmpty(configuration.snapshot, snapshotLoadingAgent)
+    List(
+      recoveryAgent.onCondition(configuration.recoveryTotal),
+      recoveryAgent.onCondition(configuration.recoveryTime),
+      eventWriteSuccessAgent.onCondition(configuration.persistentEvent),
+      eventWriteSuccessAgent.onCondition(configuration.persistentEventTotal),
+      snapshotLoadingAgent.onCondition(configuration.snapshot)
+    ).reduce(_ ++ _)
   }
 
   private def ifSupported(agent: => Agent)(versions: AkkaPersistenceModule.Jars[Version]): Option[Agent] = {

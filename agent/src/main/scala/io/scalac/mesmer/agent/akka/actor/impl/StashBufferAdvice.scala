@@ -12,7 +12,7 @@ object StashBufferAdvice {
   def stash(
     @Advice.FieldValue("akka$actor$typed$internal$StashBufferImpl$$ctx") ctx: ActorContext[_]
   ): Unit =
-    ActorCellDecorator.get(ctx.toClassic).foreach { metrics =>
+    ActorCellDecorator.getMetrics(ctx.toClassic).foreach { metrics =>
       if (metrics.stashedMessages.isEmpty) {
         metrics.initStashedMessages()
       }

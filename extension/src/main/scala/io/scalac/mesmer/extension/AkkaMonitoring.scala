@@ -61,10 +61,13 @@ final class AkkaMonitoring(system: ActorSystem[_])(implicit otelLoader: OpenTele
    We combine global config published by agent with current config to account for actor system having
    different config file than agent. We take account only for 4 modules as those are only affected by agent.
    */
-  private val akkaActorConfig =
+  private val akkaActorConfig = {
+    reloadGlobalConfig(AkkaActorModule)
+
     AkkaActorModule.globalConfiguration.map { config =>
       config.combine(AkkaActorModule.enabled(actorSystemConfig))
     }
+  }
 
   private val openTelemetryClusterMetricsMonitor: OpenTelemetryClusterMetricsMonitor =
     OpenTelemetryClusterMetricsMonitor(meter, AkkaClusterModule.fromConfig(actorSystemConfig), actorSystemConfig)
