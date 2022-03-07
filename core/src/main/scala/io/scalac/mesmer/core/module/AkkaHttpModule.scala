@@ -1,6 +1,5 @@
 package io.scalac.mesmer.core.module
-import io.scalac.mesmer.core.typeclasses.Combine
-import io.scalac.mesmer.core.typeclasses.Traverse
+import io.scalac.mesmer.core.typeclasses.{ Combine, Traverse }
 
 /**
  * Definition of AkkHttp request related metrics
@@ -40,18 +39,12 @@ object AkkaHttpModule extends MesmerModule with AkkaHttpRequestMetricsModule wit
 
   val defaultConfig: Config = Impl[Boolean](true, true, true)
 
-  protected def fromMap(properties: Map[String, Boolean]): AkkaHttpModule.Config = {
-    val enabled = properties.getOrElse("enabled", true)
-
-    if (enabled) {
-      Impl(
-        requestTime = properties.getOrElse("request.time", defaultConfig.requestTime),
-        requestCounter = properties.getOrElse("request.counter", defaultConfig.requestCounter),
-        connections = properties.getOrElse("connections", defaultConfig.connections)
-      )
-    } else Impl(false, false, false)
-
-  }
+  protected def fromMap(properties: Map[String, Boolean]): AkkaHttpModule.Config =
+    Impl(
+      requestTime = properties.getOrElse("request.time", defaultConfig.requestTime),
+      requestCounter = properties.getOrElse("request.counter", defaultConfig.requestCounter),
+      connections = properties.getOrElse("connections", defaultConfig.connections)
+    )
 
   implicit val combineConfig: Combine[All[Boolean]] = (first, second) =>
     Impl(

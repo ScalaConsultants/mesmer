@@ -18,7 +18,6 @@ object Boot {
 
   def premain(@unused arg: String, instrumentation: Instrumentation): Unit = {
 
-    // must be called only once
     ConfigInitializer.initialize()
 
     val agentBuilder = new AgentBuilder.Default()

@@ -1,5 +1,5 @@
 import Dependencies._
-import sbt.Package.{ MainClass, ManifestAttributes }
+import sbt.Package.{MainClass, ManifestAttributes}
 
 inThisBuild(
   List(
@@ -50,7 +50,8 @@ lazy val core = (project in file("core"))
       openTelemetryApi ++
       openTelemetryApiMetrics ++
       scalatest ++
-      akkaTestkit ++ openTelemetryInstrumentationApi
+      akkaTestkit ++
+      openTelemetryInstrumentationApi
     }
   )
 

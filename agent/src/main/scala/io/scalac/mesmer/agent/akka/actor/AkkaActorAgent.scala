@@ -1,20 +1,14 @@
 package io.scalac.mesmer.agent.akka.actor
 
-import net.bytebuddy.asm.Advice
-import net.bytebuddy.dynamic.TargetType
-import net.bytebuddy.implementation.FixedValue
-import net.bytebuddy.implementation.MethodCall
-import net.bytebuddy.implementation.MethodDelegation
-import net.bytebuddy.implementation.SuperMethodCall
-
-import io.scalac.mesmer.agent.Agent
-import io.scalac.mesmer.agent.AgentInstrumentation
 import io.scalac.mesmer.agent.akka.actor.impl._
 import io.scalac.mesmer.agent.util.i13n._
-import io.scalac.mesmer.core.actor.ActorCellDecorator
-import io.scalac.mesmer.core.actor.ActorCellMetrics
+import io.scalac.mesmer.agent.{ Agent, AgentInstrumentation }
+import io.scalac.mesmer.core.actor.{ ActorCellDecorator, ActorCellMetrics }
 import io.scalac.mesmer.core.module.AkkaActorModule
 import io.scalac.mesmer.core.util.Timestamp
+import net.bytebuddy.asm.Advice
+import net.bytebuddy.dynamic.TargetType
+import net.bytebuddy.implementation.{ FixedValue, MethodCall, MethodDelegation, SuperMethodCall }
 
 object AkkaActorAgent
     extends InstrumentModuleFactory(AkkaActorModule)
@@ -31,24 +25,23 @@ object AkkaActorAgent
    */
   def agent: Agent = {
 
-    import module.enabled
+    val config = module.enabled
 
-    AkkaActorModule.enabled
-    val mailboxSizeAgent         = if (enabled.mailboxSize) mailboxSize else Agent.empty
-    val mailboxTimeMinAgent      = if (enabled.mailboxTimeMin) mailboxTimeMin else Agent.empty
-    val mailboxTimeMaxAgent      = if (enabled.mailboxTimeMax) mailboxTimeMax else Agent.empty
-    val mailboxTimeSumAgent      = if (enabled.mailboxTimeSum) mailboxTimeSum else Agent.empty
-    val mailboxTimeCountAgent    = if (enabled.mailboxTimeCount) mailboxTimeCount else Agent.empty
-    val stashedMessagesAgent     = if (enabled.stashedMessages) stashedMessages else Agent.empty
-    val receivedMessagesAgent    = if (enabled.receivedMessages) receivedMessages else Agent.empty
-    val processedMessagesAgent   = if (enabled.processedMessages) processedMessages else Agent.empty
-    val failedMessagesAgent      = if (enabled.failedMessages) failedMessages else Agent.empty
-    val processingTimeMinAgent   = if (enabled.processingTimeMin) processingTimeMin else Agent.empty
-    val processingTimeMaxAgent   = if (enabled.processingTimeMax) processingTimeMax else Agent.empty
-    val processingTimeSumAgent   = if (enabled.processingTimeSum) processingTimeSum else Agent.empty
-    val processingTimeCountAgent = if (enabled.processingTimeCount) processingTimeCount else Agent.empty
-    val sentMessagesAgent        = if (enabled.sentMessages) sentMessages else Agent.empty
-    val droppedMessagesAgent     = if (enabled.droppedMessages) droppedMessages else Agent.empty
+    val mailboxSizeAgent         = if (config.mailboxSize) mailboxSize else Agent.empty
+    val mailboxTimeMinAgent      = if (config.mailboxTimeMin) mailboxTimeMin else Agent.empty
+    val mailboxTimeMaxAgent      = if (config.mailboxTimeMax) mailboxTimeMax else Agent.empty
+    val mailboxTimeSumAgent      = if (config.mailboxTimeSum) mailboxTimeSum else Agent.empty
+    val mailboxTimeCountAgent    = if (config.mailboxTimeCount) mailboxTimeCount else Agent.empty
+    val stashedMessagesAgent     = if (config.stashedMessages) stashedMessages else Agent.empty
+    val receivedMessagesAgent    = if (config.receivedMessages) receivedMessages else Agent.empty
+    val processedMessagesAgent   = if (config.processedMessages) processedMessages else Agent.empty
+    val failedMessagesAgent      = if (config.failedMessages) failedMessages else Agent.empty
+    val processingTimeMinAgent   = if (config.processingTimeMin) processingTimeMin else Agent.empty
+    val processingTimeMaxAgent   = if (config.processingTimeMax) processingTimeMax else Agent.empty
+    val processingTimeSumAgent   = if (config.processingTimeSum) processingTimeSum else Agent.empty
+    val processingTimeCountAgent = if (config.processingTimeCount) processingTimeCount else Agent.empty
+    val sentMessagesAgent        = if (config.sentMessages) sentMessages else Agent.empty
+    val droppedMessagesAgent     = if (config.droppedMessages) droppedMessages else Agent.empty
 
     val resultantAgent =
       mailboxSizeAgent ++

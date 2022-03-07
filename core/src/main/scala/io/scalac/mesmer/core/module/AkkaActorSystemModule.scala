@@ -25,15 +25,10 @@ object AkkaActorSystemModule extends MesmerModule with AkkaActorSystemMetricsMod
 
   val defaultConfig: Config = ActorSystemModuleConfig(true, true)
 
-  protected def fromMap(properties: Map[String, Boolean]): AkkaActorSystemModule.Config = {
-    val enabled = properties.getOrElse("enabled", true)
+  protected def fromMap(properties: Map[String, Boolean]): AkkaActorSystemModule.Config =
+    ActorSystemModuleConfig(
+      createdActors = properties.getOrElse("created.actors", defaultConfig.createdActors),
+      terminatedActors = properties.getOrElse("terminated.actors", defaultConfig.terminatedActors)
+    )
 
-    if (enabled) {
-      ActorSystemModuleConfig(
-        createdActors = properties.getOrElse("created.actors", defaultConfig.createdActors),
-        terminatedActors = properties.getOrElse("terminated.actors", defaultConfig.terminatedActors)
-      )
-    } else ActorSystemModuleConfig(false, false)
-
-  }
 }

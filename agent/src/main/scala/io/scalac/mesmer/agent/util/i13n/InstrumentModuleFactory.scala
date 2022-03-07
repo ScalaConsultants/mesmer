@@ -40,10 +40,6 @@ object InstrumentModuleFactory {
 }
 
 abstract class InstrumentModuleFactory[M <: Module](val module: M) extends InstrumentationDSL {
-  /*
-    Requiring all features to be a function from versions to Agent we allow there to create different instrumentations depending
-    on runtime version of jars. TODO add information on which versions are supported
-   */
   this: M#All[Agent] =>
 
   protected def instrument(t: Type): TypeInstrumentation = TypeInstrumentation.instrument(t)

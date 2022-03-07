@@ -1,12 +1,10 @@
 package io.scalac.mesmer.core.module
 
-import io.opentelemetry.instrumentation.api.config.{ Config => OTConfig }
+import io.opentelemetry.instrumentation.api.config.{ Config => OpenTelemetryConfig }
+import io.scalac.mesmer.core.config.MesmerConfigurationBase
+import io.scalac.mesmer.core.typeclasses.{ Combine, Traverse }
 
 import scala.jdk.CollectionConverters._
-
-import io.scalac.mesmer.core.config.MesmerConfigurationBase
-import io.scalac.mesmer.core.typeclasses.Combine
-import io.scalac.mesmer.core.typeclasses.Traverse
 
 trait Module {
   def name: String
@@ -29,7 +27,7 @@ trait MesmerModule extends Module with MesmerConfigurationBase {
 
   lazy val enabled: Config = {
 
-    val config = OTConfig.get()
+    val config = OpenTelemetryConfig.get()
 
     val moduleConfigurations = config.getAllProperties.asScala.keys.collect {
       case moduleKey if moduleKey.startsWith(configurationBase) =>

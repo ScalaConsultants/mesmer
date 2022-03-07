@@ -1,7 +1,6 @@
 package io.scalac.mesmer.core.module
 
-import io.scalac.mesmer.core.typeclasses.Combine
-import io.scalac.mesmer.core.typeclasses.Traverse
+import io.scalac.mesmer.core.typeclasses.{ Combine, Traverse }
 
 sealed trait AkkaPersistenceMetricsModule extends MetricsModule {
   this: Module =>
@@ -32,20 +31,14 @@ object AkkaPersistenceModule extends MesmerModule with AkkaPersistenceMetricsMod
 
   val defaultConfig: AkkaPersistenceModule.Result = Impl(true, true, true, true, true)
 
-  protected def fromMap(properties: Map[String, Boolean]): AkkaPersistenceModule.Config = {
-    val enabled = properties.getOrElse("enabled", true)
-
-    if (enabled) {
-      Impl(
-        recoveryTime = properties.getOrElse("recovery.time", defaultConfig.recoveryTime),
-        recoveryTotal = properties.getOrElse("recovery.total", defaultConfig.recoveryTotal),
-        persistentEvent = properties.getOrElse("persistent.event", defaultConfig.persistentEvent),
-        persistentEventTotal = properties.getOrElse("persistent.event.total", defaultConfig.persistentEventTotal),
-        snapshot = properties.getOrElse("snapshot", defaultConfig.snapshot)
-      )
-    } else Impl(false, false, false, false, false)
-
-  }
+  protected def fromMap(properties: Map[String, Boolean]): AkkaPersistenceModule.Config =
+    Impl(
+      recoveryTime = properties.getOrElse("recovery.time", defaultConfig.recoveryTime),
+      recoveryTotal = properties.getOrElse("recovery.total", defaultConfig.recoveryTotal),
+      persistentEvent = properties.getOrElse("persistent.event", defaultConfig.persistentEvent),
+      persistentEventTotal = properties.getOrElse("persistent.event.total", defaultConfig.persistentEventTotal),
+      snapshot = properties.getOrElse("snapshot", defaultConfig.snapshot)
+    )
 
   override type All[T] = Metrics[T]
 

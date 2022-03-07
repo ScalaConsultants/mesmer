@@ -1,7 +1,6 @@
 package io.scalac.mesmer.core.module
 
-import io.scalac.mesmer.core.typeclasses.Combine
-import io.scalac.mesmer.core.typeclasses.Traverse
+import io.scalac.mesmer.core.typeclasses.{ Combine, Traverse }
 
 sealed trait AkkaActorMetrics extends MetricsModule {
   this: Module =>
@@ -54,30 +53,24 @@ object AkkaActorModule extends MesmerModule with AkkaActorMetrics {
   lazy val defaultConfig: Config =
     Impl[Boolean](true, true, true, true, true, true, true, true, true, true, true, true, true, true, true)
 
-  protected def fromMap(properties: Map[String, Boolean]): AkkaActorModule.Config = {
-    val enabled = properties.getOrElse("enabled", true) // TODO should we check enabled here?
-
-    if (enabled) {
-      Impl(
-        mailboxSize = properties.getOrElse("mailbox.size", defaultConfig.mailboxSize),
-        mailboxTimeMin = properties.getOrElse("mailbox.time.min", defaultConfig.mailboxTimeMin),
-        mailboxTimeMax = properties.getOrElse("mailbox.time.max", defaultConfig.mailboxTimeMax),
-        mailboxTimeSum = properties.getOrElse("mailbox.time.sum", defaultConfig.mailboxTimeSum),
-        mailboxTimeCount = properties.getOrElse("mailbox.time.count", defaultConfig.mailboxTimeCount),
-        stashedMessages = properties.getOrElse("stash.size", defaultConfig.stashedMessages),
-        receivedMessages = properties.getOrElse("received.messages", defaultConfig.receivedMessages),
-        processedMessages = properties.getOrElse("processed.messages", defaultConfig.processedMessages),
-        failedMessages = properties.getOrElse("failed.messages", defaultConfig.failedMessages),
-        processingTimeMin = properties.getOrElse("processing.time.min", defaultConfig.processingTimeMin),
-        processingTimeMax = properties.getOrElse("processing.time.max", defaultConfig.processingTimeMax),
-        processingTimeSum = properties.getOrElse("processing.time.sum", defaultConfig.processingTimeSum),
-        processingTimeCount = properties.getOrElse("processing.time.count", defaultConfig.processingTimeCount),
-        sentMessages = properties.getOrElse("sent.messages", defaultConfig.sentMessages),
-        droppedMessages = properties.getOrElse("dropped.messages", defaultConfig.droppedMessages)
-      )
-    } else Impl(false, false, false, false, false, false, false, false, false, false, false, false, false, false, false)
-
-  }
+  protected def fromMap(properties: Map[String, Boolean]): AkkaActorModule.Config =
+    Impl(
+      mailboxSize = properties.getOrElse("mailbox.size", defaultConfig.mailboxSize),
+      mailboxTimeMin = properties.getOrElse("mailbox.time.min", defaultConfig.mailboxTimeMin),
+      mailboxTimeMax = properties.getOrElse("mailbox.time.max", defaultConfig.mailboxTimeMax),
+      mailboxTimeSum = properties.getOrElse("mailbox.time.sum", defaultConfig.mailboxTimeSum),
+      mailboxTimeCount = properties.getOrElse("mailbox.time.count", defaultConfig.mailboxTimeCount),
+      stashedMessages = properties.getOrElse("stash.size", defaultConfig.stashedMessages),
+      receivedMessages = properties.getOrElse("received.messages", defaultConfig.receivedMessages),
+      processedMessages = properties.getOrElse("processed.messages", defaultConfig.processedMessages),
+      failedMessages = properties.getOrElse("failed.messages", defaultConfig.failedMessages),
+      processingTimeMin = properties.getOrElse("processing.time.min", defaultConfig.processingTimeMin),
+      processingTimeMax = properties.getOrElse("processing.time.max", defaultConfig.processingTimeMax),
+      processingTimeSum = properties.getOrElse("processing.time.sum", defaultConfig.processingTimeSum),
+      processingTimeCount = properties.getOrElse("processing.time.count", defaultConfig.processingTimeCount),
+      sentMessages = properties.getOrElse("sent.messages", defaultConfig.sentMessages),
+      droppedMessages = properties.getOrElse("dropped.messages", defaultConfig.droppedMessages)
+    )
 
   /**
    * Combines config that with AND operator

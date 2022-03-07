@@ -54,9 +54,6 @@ trait MesmerConfigurationBase extends ConfigurationBase {
    */
   private final val mesmerBase: String = "io.scalac.mesmer"
 
-  /*
-    We explicitly make it public here
-   */
   lazy val configurationBase: String =
     if (mesmerConfig.isEmpty) mesmerBase else s"$mesmerBase.$mesmerConfig"
 

@@ -37,17 +37,15 @@ object AkkaClusterModule extends MesmerModule with AkkaClusterMetricsModule {
   protected def fromMap(properties: Map[String, Boolean]): AkkaClusterModule.Config = {
     val enabled = properties.getOrElse("enabled", true)
 
-    if (enabled) {
-      Impl(
-        shardPerRegions = properties.getOrElse("shards.per.region", defaultConfig.shardPerRegions),
-        entityPerRegion = properties.getOrElse("entities.per.region", defaultConfig.entityPerRegion),
-        shardRegionsOnNode = properties.getOrElse("shard.regions.on.node", defaultConfig.shardRegionsOnNode),
-        entitiesOnNode = properties.getOrElse("entities.on.node", defaultConfig.entitiesOnNode),
-        reachableNodes = properties.getOrElse("reachable.nodes", defaultConfig.reachableNodes),
-        unreachableNodes = properties.getOrElse("unreachable.nodes", defaultConfig.unreachableNodes),
-        nodeDown = properties.getOrElse("node.down", defaultConfig.nodeDown)
-      )
-    } else Impl(false, false, false, false, false, false, false)
+    Impl(
+      shardPerRegions = properties.getOrElse("shards.per.region", defaultConfig.shardPerRegions),
+      entityPerRegion = properties.getOrElse("entities.per.region", defaultConfig.entityPerRegion),
+      shardRegionsOnNode = properties.getOrElse("shard.regions.on.node", defaultConfig.shardRegionsOnNode),
+      entitiesOnNode = properties.getOrElse("entities.on.node", defaultConfig.entitiesOnNode),
+      reachableNodes = properties.getOrElse("reachable.nodes", defaultConfig.reachableNodes),
+      unreachableNodes = properties.getOrElse("unreachable.nodes", defaultConfig.unreachableNodes),
+      nodeDown = properties.getOrElse("node.down", defaultConfig.nodeDown)
+    )
 
   }
 
