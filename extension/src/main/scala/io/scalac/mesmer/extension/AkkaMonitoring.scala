@@ -8,6 +8,7 @@ import akka.cluster.Cluster
 import akka.util.Timeout
 import com.typesafe.config.Config
 import com.typesafe.config.ConfigFactory
+import io.opentelemetry.api.GlobalOpenTelemetry
 import io.opentelemetry.api.metrics.Meter
 
 import scala.concurrent.duration._
@@ -27,7 +28,6 @@ import io.scalac.mesmer.extension.config.AkkaMonitoringConfig
 import io.scalac.mesmer.extension.config.CachingConfig
 import io.scalac.mesmer.extension.http.CleanableRequestStorage
 import io.scalac.mesmer.extension.metric.CachingMonitor
-import io.scalac.mesmer.extension.opentelemetry.OpenTelemetryLoader
 import io.scalac.mesmer.extension.persistence.CleanablePersistingStorage
 import io.scalac.mesmer.extension.persistence.CleanableRecoveryStorage
 import io.scalac.mesmer.extension.service._
@@ -37,7 +37,7 @@ object AkkaMonitoring extends ExtensionId[AkkaMonitoring] {
   def createExtension(system: ActorSystem[_]): AkkaMonitoring = new AkkaMonitoring(system)
 }
 
-final class AkkaMonitoring(system: ActorSystem[_])(implicit otelLoader: OpenTelemetryLoader) extends Extension {
+final class AkkaMonitoring(system: ActorSystem[_]) extends Extension {
   import system.log
 
   private val clusterNodeName: Option[Node] =
@@ -54,7 +54,7 @@ final class AkkaMonitoring(system: ActorSystem[_])(implicit otelLoader: OpenTele
     )
 
   private val askTimeout: Timeout          = 5 seconds
-  private val meter: Meter                 = otelLoader.load().create().getMeter("mesmer-akka")
+  private val meter: Meter                 = GlobalOpenTelemetry.getMeter("mesmer-akka")
   private val actorSystemConfig: Config    = system.settings.config
   private val config: AkkaMonitoringConfig = AkkaMonitoringConfig.fromConfig(system.settings.config)
   /*

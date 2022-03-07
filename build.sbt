@@ -206,6 +206,9 @@ def runWithOtelAgent = Command.command("runWithOtelAgent") { state =>
     Seq(
       run / javaOptions ++= Seq(
         s"-javaagent:../opentelemetry-javaagent110.jar",
+        s"-Dotel.javaagent.debug=true",
+        s"-Dotel.service.name=mesmer",
+        s"-Dotel.metrics.exporter=otlp",
         s"-Dotel.javaagent.extensions=${(otelExtension / assembly).value.absolutePath}"
       )
     ),
