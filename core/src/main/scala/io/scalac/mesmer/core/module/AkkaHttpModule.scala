@@ -1,5 +1,6 @@
 package io.scalac.mesmer.core.module
-import io.scalac.mesmer.core.typeclasses.{ Combine, Traverse }
+import io.scalac.mesmer.core.typeclasses.Combine
+import io.scalac.mesmer.core.typeclasses.Traverse
 
 /**
  * Definition of AkkHttp request related metrics

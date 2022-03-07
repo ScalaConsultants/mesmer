@@ -28,24 +28,16 @@ object AkkaStreamAgent
    *   Resulting agent and resulting configuration based on runtime properties
    */
   def agent: Agent = {
-    import module.enabled
+    val config = module.enabled
 
-    val runningStreamsTotalAgent     = if (enabled.runningStreamsTotal) runningStreamsTotal else Agent.empty
-    val streamActorsTotalAgent       = if (enabled.runningStreamsTotal) streamActorsTotal else Agent.empty
-    val streamProcessedMessagesAgent = if (enabled.runningStreamsTotal) streamProcessedMessages else Agent.empty
-    val processedMessagesAgent       = if (enabled.runningStreamsTotal) processedMessages else Agent.empty
-    val operatorsAgent               = if (enabled.runningStreamsTotal) operators else Agent.empty
-    val demandAgent                  = if (enabled.runningStreamsTotal) demand else Agent.empty
-
-    val resultantAgent =
-      runningStreamsTotalAgent ++
-        streamActorsTotalAgent ++
-        streamProcessedMessagesAgent ++
-        processedMessagesAgent ++
-        operatorsAgent ++
-        demandAgent
-
-    resultantAgent
+    List(
+      runningStreamsTotal.onCondition(config.runningStreamsTotal),
+      runningStreamsTotal.onCondition(config.runningStreamsTotal),
+      runningStreamsTotal.onCondition(config.runningStreamsTotal),
+      runningStreamsTotal.onCondition(config.runningStreamsTotal),
+      runningStreamsTotal.onCondition(config.runningStreamsTotal),
+      runningStreamsTotal.onCondition(config.runningStreamsTotal)
+    ).reduce(_ ++ _)
   }
 
   lazy val runningStreamsTotal: Agent = sharedImplementations

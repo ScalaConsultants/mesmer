@@ -1,10 +1,12 @@
 package io.scalac.mesmer.core.module
 
 import io.opentelemetry.instrumentation.api.config.{ Config => OpenTelemetryConfig }
-import io.scalac.mesmer.core.config.MesmerConfigurationBase
-import io.scalac.mesmer.core.typeclasses.{ Combine, Traverse }
 
 import scala.jdk.CollectionConverters._
+
+import io.scalac.mesmer.core.config.MesmerConfigurationBase
+import io.scalac.mesmer.core.typeclasses.Combine
+import io.scalac.mesmer.core.typeclasses.Traverse
 
 trait Module {
   def name: String

@@ -1,9 +1,9 @@
 package io.scalac.mesmer.agent.akka.actor
 
-import io.scalac.mesmer.agent.{ Agent, AgentInstrumentation }
+import io.scalac.mesmer.agent.Agent
+import io.scalac.mesmer.agent.AgentInstrumentation
 import io.scalac.mesmer.agent.akka.actor.impl._
 import io.scalac.mesmer.agent.util.i13n._
-import io.scalac.mesmer.core.actor.ActorCellMetrics
 import io.scalac.mesmer.core.module.AkkaActorModule
 
 object AkkaActorAgent
@@ -23,40 +23,23 @@ object AkkaActorAgent
 
     val config = module.enabled
 
-    val mailboxSizeAgent         = if (config.mailboxSize) mailboxSize else Agent.empty
-    val mailboxTimeMinAgent      = if (config.mailboxTimeMin) mailboxTimeMin else Agent.empty
-    val mailboxTimeMaxAgent      = if (config.mailboxTimeMax) mailboxTimeMax else Agent.empty
-    val mailboxTimeSumAgent      = if (config.mailboxTimeSum) mailboxTimeSum else Agent.empty
-    val mailboxTimeCountAgent    = if (config.mailboxTimeCount) mailboxTimeCount else Agent.empty
-    val stashedMessagesAgent     = if (config.stashedMessages) stashedMessages else Agent.empty
-    val receivedMessagesAgent    = if (config.receivedMessages) receivedMessages else Agent.empty
-    val processedMessagesAgent   = if (config.processedMessages) processedMessages else Agent.empty
-    val failedMessagesAgent      = if (config.failedMessages) failedMessages else Agent.empty
-    val processingTimeMinAgent   = if (config.processingTimeMin) processingTimeMin else Agent.empty
-    val processingTimeMaxAgent   = if (config.processingTimeMax) processingTimeMax else Agent.empty
-    val processingTimeSumAgent   = if (config.processingTimeSum) processingTimeSum else Agent.empty
-    val processingTimeCountAgent = if (config.processingTimeCount) processingTimeCount else Agent.empty
-    val sentMessagesAgent        = if (config.sentMessages) sentMessages else Agent.empty
-    val droppedMessagesAgent     = if (config.droppedMessages) droppedMessages else Agent.empty
-
-    val resultantAgent =
-      mailboxSizeAgent ++
-        mailboxTimeMinAgent ++
-        mailboxTimeMaxAgent ++
-        mailboxTimeSumAgent ++
-        mailboxTimeCountAgent ++
-        stashedMessagesAgent ++
-        receivedMessagesAgent ++
-        processedMessagesAgent ++
-        failedMessagesAgent ++
-        processingTimeMinAgent ++
-        processingTimeMaxAgent ++
-        processingTimeSumAgent ++
-        processingTimeCountAgent ++
-        sentMessagesAgent ++
-        droppedMessagesAgent
-
-    resultantAgent
+    List(
+      mailboxSize.onCondition(config.mailboxSize),
+      mailboxTimeMin.onCondition(config.mailboxTimeMin),
+      mailboxTimeMax.onCondition(config.mailboxTimeMax),
+      mailboxTimeSum.onCondition(config.mailboxTimeSum),
+      mailboxTimeCount.onCondition(config.mailboxTimeCount),
+      stashedMessages.onCondition(config.stashedMessages),
+      receivedMessages.onCondition(config.receivedMessages),
+      processedMessages.onCondition(config.processedMessages),
+      failedMessages.onCondition(config.failedMessages),
+      processingTimeMin.onCondition(config.processingTimeMin),
+      processingTimeMax.onCondition(config.processingTimeMax),
+      processingTimeSum.onCondition(config.processingTimeSum),
+      processingTimeCount.onCondition(config.processingTimeCount),
+      sentMessages.onCondition(config.sentMessages),
+      droppedMessages.onCondition(config.droppedMessages)
+    ).reduce(_ ++ _)
   }
 
   lazy val mailboxSize: Agent = sharedInstrumentation

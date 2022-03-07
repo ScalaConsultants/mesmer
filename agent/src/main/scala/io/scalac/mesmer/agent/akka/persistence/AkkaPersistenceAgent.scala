@@ -1,10 +1,11 @@
 package io.scalac.mesmer.agent.akka.persistence
 
+import org.slf4j.LoggerFactory
+
 import io.scalac.mesmer.agent.Agent
 import io.scalac.mesmer.agent.akka.persistence.impl._
 import io.scalac.mesmer.agent.util.i13n._
 import io.scalac.mesmer.core.module.AkkaPersistenceModule
-import org.slf4j.LoggerFactory
 
 object AkkaPersistenceAgent
     extends InstrumentModuleFactory(AkkaPersistenceModule)
@@ -24,21 +25,13 @@ object AkkaPersistenceAgent
 
     val config = module.enabled
 
-    // TODO can we introduce some foldable and/or functor/applicative to be able to map over those without manually checking every element here
-    val recoveryTimeAgent         = if (config.recoveryTime) recoveryTime else Agent.empty
-    val recoveryTotalAgent        = if (config.recoveryTotal) recoveryTotal else Agent.empty
-    val persistentEventAgent      = if (config.persistentEvent) persistentEvent else Agent.empty
-    val persistentEventTotalAgent = if (config.persistentEventTotal) persistentEventTotal else Agent.empty
-    val snapshotAgent             = if (config.snapshot) snapshot else Agent.empty
-
-    val resultantAgent =
-      recoveryTimeAgent ++
-        recoveryTotalAgent ++
-        persistentEventAgent ++
-        persistentEventTotalAgent ++
-        snapshotAgent
-
-    resultantAgent
+    List(
+      recoveryTime.onCondition(config.recoveryTime),
+      recoveryTotal.onCondition(config.recoveryTotal),
+      persistentEvent.onCondition(config.persistentEvent),
+      persistentEventTotal.onCondition(config.persistentEventTotal),
+      snapshot.onCondition(config.snapshot)
+    ).reduce(_ ++ _)
   }
 
   lazy val recoveryTime: Agent = recoveryAgent

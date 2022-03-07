@@ -1,6 +1,7 @@
 package io.scalac.mesmer.core.module
 
-import io.scalac.mesmer.core.typeclasses.{ Combine, Traverse }
+import io.scalac.mesmer.core.typeclasses.Combine
+import io.scalac.mesmer.core.typeclasses.Traverse
 
 sealed trait AkkaActorMetrics extends MetricsModule {
   this: Module =>
