@@ -200,12 +200,15 @@ def runWithMesmerAgent = Command.command("runWithMesmerAgent") { state =>
   s
 }
 
+val root = (project in file("."))
+
 def runWithOtelAgent = Command.command("runWithOtelAgent") { state =>
-  val extracted = Project extract state
+  val agentJarPath = file("opentelemetry-javaagent1111.jar").absolutePath
+  val extracted    = Project extract state
   val newState = extracted.appendWithSession(
     Seq(
       run / javaOptions ++= Seq(
-        s"-javaagent:../opentelemetry-javaagent110.jar",
+        s"-javaagent:$agentJarPath",
         s"-Dotel.javaagent.debug=true",
         s"-Dotel.service.name=mesmer",
         s"-Dotel.metrics.exporter=otlp",
