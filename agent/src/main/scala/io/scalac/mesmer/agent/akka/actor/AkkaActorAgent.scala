@@ -1,14 +1,10 @@
 package io.scalac.mesmer.agent.akka.actor
 
+import io.scalac.mesmer.agent.{ Agent, AgentInstrumentation }
 import io.scalac.mesmer.agent.akka.actor.impl._
 import io.scalac.mesmer.agent.util.i13n._
-import io.scalac.mesmer.agent.{ Agent, AgentInstrumentation }
-import io.scalac.mesmer.core.actor.{ ActorCellDecorator, ActorCellMetrics }
+import io.scalac.mesmer.core.actor.ActorCellMetrics
 import io.scalac.mesmer.core.module.AkkaActorModule
-import io.scalac.mesmer.core.util.Timestamp
-import net.bytebuddy.asm.Advice
-import net.bytebuddy.dynamic.TargetType
-import net.bytebuddy.implementation.{ FixedValue, MethodCall, MethodDelegation, SuperMethodCall }
 
 object AkkaActorAgent
     extends InstrumentModuleFactory(AkkaActorModule)
@@ -66,71 +62,35 @@ object AkkaActorAgent
   lazy val mailboxSize: Agent = sharedInstrumentation
 
   lazy val mailboxTimeMin: Agent =
-    sharedInstrumentation ++ mailboxInstrumentation ++ initField("mailbox-time", _.initMailboxTimeAgg())
+    sharedInstrumentation ++ mailboxInstrumentation
 
   lazy val mailboxTimeMax: Agent =
-    sharedInstrumentation ++ mailboxInstrumentation ++ initField("mailbox-time", _.initMailboxTimeAgg())
+    sharedInstrumentation ++ mailboxInstrumentation
 
   lazy val mailboxTimeSum: Agent =
-    sharedInstrumentation ++ mailboxInstrumentation ++ initField("mailbox-time", _.initMailboxTimeAgg())
+    sharedInstrumentation ++ mailboxInstrumentation
 
   lazy val mailboxTimeCount: Agent =
-    sharedInstrumentation ++ mailboxInstrumentation ++ initField("mailbox-time", _.initMailboxTimeAgg())
+    sharedInstrumentation ++ mailboxInstrumentation
 
   lazy val stashedMessages: Agent =
     sharedInstrumentation ++ classicStashInstrumentationAgent ++ stashBufferImplementation
 
-  lazy val receivedMessages: Agent = sharedInstrumentation ++ initField("received-messages", _.initReceivedMessages())
+  lazy val receivedMessages: Agent = sharedInstrumentation
 
-  lazy val processedMessages: Agent = sharedInstrumentation ++ initField(
-    "processed-messages",
-    _.initUnhandledMessages()
-  )
+  lazy val processedMessages: Agent = sharedInstrumentation
 
-  lazy val failedMessages: Agent = sharedInstrumentation ++ abstractSupervisionInstrumentation ++ initField(
-    "mailbox-size",
-    metrics => {
-      metrics.initFailedMessages()
-      metrics.initExceptionHandledMarker()
-    }
-  )
+  lazy val failedMessages: Agent = sharedInstrumentation ++ abstractSupervisionInstrumentation
 
-  lazy val processingTimeMin: Agent = sharedInstrumentation ++ initField(
-    "processing-time",
-    metrics => {
-      metrics.initProcessingTimeAgg()
-      metrics.initProcessingTimer()
-    }
-  )
+  lazy val processingTimeMin: Agent = sharedInstrumentation
 
-  lazy val processingTimeMax: Agent = sharedInstrumentation ++ initField(
-    "processing-time",
-    metrics => {
-      metrics.initProcessingTimeAgg()
-      metrics.initProcessingTimer()
-    }
-  )
+  lazy val processingTimeMax: Agent = sharedInstrumentation
 
-  lazy val processingTimeSum: Agent = sharedInstrumentation ++ initField(
-    "processing-time",
-    metrics => {
-      metrics.initProcessingTimeAgg()
-      metrics.initProcessingTimer()
-    }
-  )
+  lazy val processingTimeSum: Agent = sharedInstrumentation
 
-  lazy val processingTimeCount: Agent = sharedInstrumentation ++ initField(
-    "processing-time",
-    metrics => {
-      metrics.initProcessingTimeAgg()
-      metrics.initProcessingTimer()
-    }
-  )
+  lazy val processingTimeCount: Agent = sharedInstrumentation
 
-  lazy val sentMessages: Agent = sharedInstrumentation ++ mailboxTimeSendMessageIncInstrumentation ++ initField(
-    "sent-messages",
-    _.initSentMessages()
-  )
+  lazy val sentMessages: Agent = sharedInstrumentation ++ mailboxTimeSendMessageIncInstrumentation
 
   lazy val droppedMessages: Agent = sharedInstrumentation ++ boundedQueueAgent ++ initDroppedMessages
 
@@ -158,13 +118,6 @@ object AkkaActorAgent
     val mailboxTag = "mailbox_time"
 
     /**
-     * Instrumentation that enrich [[akka.dispatch.Envelope]] with additional timestamp field
-     */
-    val mailboxTimeTimestampInstrumentation =
-      instrument("akka.dispatch.Envelope".fqcn)
-        .defineField[Timestamp](EnvelopeDecorator.TimestampVarName)
-
-    /**
      * Instrumentation that sets envelope timestamp to current time on each dispatch
      */
     val mailboxTimeSendMessageInstrumentation =
@@ -181,7 +134,7 @@ object AkkaActorAgent
       instrument("akka.dispatch.Mailbox".fqcnWithTags(mailboxTag))
         .visit(MailboxDequeueInstrumentation, "dequeue")
 
-    Agent(mailboxTimeTimestampInstrumentation, mailboxTimeSendMessageInstrumentation, mailboxTimeDequeueInstrumentation)
+    Agent(mailboxTimeSendMessageInstrumentation, mailboxTimeDequeueInstrumentation)
 
   }
 
@@ -200,27 +153,9 @@ object AkkaActorAgent
    */
   private val actorCellInstrumentation = AgentInstrumentation.deferred(
     instrument("akka.actor.ActorCell".fqcnWithTags("metrics"))
-      .defineField[ActorCellMetrics](ActorCellDecorator.fieldName)
-      .defineMethod("setupMetrics", TargetType.DESCRIPTION, FixedValue.self())
-      .intercept(
-        named("init").method,
-        Advice
-          .to(classOf[ActorCellInitAdvice])
-          .wrap(
-            SuperMethodCall.INSTANCE.andThen(MethodCall.invoke(named("setupMetrics").method))
-          )
-      )
+      .visit(ActorMetricsInitAdvice, named("init").method)
       .visit(ActorCellReceiveMessageInstrumentation, "receiveMessage")
   )
-
-  private def initField(name: String, init: ActorCellMetrics => Unit): AgentInstrumentation =
-    AgentInstrumentation.deferred(
-      instrument("akka.actor.ActorCell".fqcnWithTags(name))
-        .intercept(
-          "setupMetrics",
-          MethodDelegation.to(new ActorCellInitializer(init)).andThen(SuperMethodCall.INSTANCE)
-        )
-    )
 
   private lazy val sharedInstrumentation: Agent =
     Agent(

@@ -36,10 +36,10 @@ object AkkaHttpAgent
    *   Some if feature can be enabled, None otherwise
    */
   def agent: Agent = {
-    import module.enabled
-    val requestCounterAgent = if (enabled.requestCounter) requestCounter else Agent.empty
-    val requestTimeAgent    = if (enabled.requestTime) requestTime else Agent.empty
-    val connectionsAgent    = if (enabled.connections) connections else Agent.empty
+    val config              = module.enabled
+    val requestCounterAgent = if (config.requestCounter) requestCounter else Agent.empty
+    val requestTimeAgent    = if (config.requestTime) requestTime else Agent.empty
+    val connectionsAgent    = if (config.connections) connections else Agent.empty
 
     val resultantAgent = requestCounterAgent ++ requestTimeAgent ++ connectionsAgent
 

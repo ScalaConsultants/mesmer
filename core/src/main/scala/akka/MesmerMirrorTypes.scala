@@ -12,7 +12,4 @@ object MesmerMirrorTypes {
   type GraphInterpreterMirror          = GraphInterpreter
   type GraphInterpreterShellMirror     = GraphInterpreterShell
   type GraphStageLogicMirror           = GraphStageLogic
-
-  val c: Cell = ???
-  c.isLocal
 }

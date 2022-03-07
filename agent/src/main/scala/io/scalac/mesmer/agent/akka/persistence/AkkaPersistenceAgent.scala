@@ -1,11 +1,10 @@
 package io.scalac.mesmer.agent.akka.persistence
 
-import org.slf4j.LoggerFactory
-
 import io.scalac.mesmer.agent.Agent
 import io.scalac.mesmer.agent.akka.persistence.impl._
 import io.scalac.mesmer.agent.util.i13n._
 import io.scalac.mesmer.core.module.AkkaPersistenceModule
+import org.slf4j.LoggerFactory
 
 object AkkaPersistenceAgent
     extends InstrumentModuleFactory(AkkaPersistenceModule)
