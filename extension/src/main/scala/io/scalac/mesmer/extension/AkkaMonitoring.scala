@@ -7,15 +7,8 @@ import akka.actor.typed.scaladsl.Behaviors
 import akka.cluster.Cluster
 import akka.util.Timeout
 import com.typesafe.config.Config
+import io.opentelemetry.api.GlobalOpenTelemetry
 import io.opentelemetry.api.metrics.Meter
-import org.slf4j.LoggerFactory
-
-import scala.concurrent.duration._
-import scala.language.postfixOps
-import scala.reflect.ClassTag
-import scala.reflect.classTag
-import scala.util.Try
-
 import io.scalac.mesmer.core.AkkaDispatcher
 import io.scalac.mesmer.core.model._
 import io.scalac.mesmer.core.module.Module._
@@ -23,22 +16,24 @@ import io.scalac.mesmer.core.module._
 import io.scalac.mesmer.core.typeclasses.Traverse
 import io.scalac.mesmer.extension.ActorEventsMonitorActor.ReflectiveActorMetricsReader
 import io.scalac.mesmer.extension.actor.MutableActorMetricStorageFactory
-import io.scalac.mesmer.extension.config.AkkaMonitoringConfig
-import io.scalac.mesmer.extension.config.CachingConfig
+import io.scalac.mesmer.extension.config.{ AkkaMonitoringConfig, CachingConfig }
 import io.scalac.mesmer.extension.http.CleanableRequestStorage
 import io.scalac.mesmer.extension.metric.CachingMonitor
-import io.scalac.mesmer.extension.opentelemetry.OpenTelemetryLoader
-import io.scalac.mesmer.extension.persistence.CleanablePersistingStorage
-import io.scalac.mesmer.extension.persistence.CleanableRecoveryStorage
+import io.scalac.mesmer.extension.persistence.{ CleanablePersistingStorage, CleanableRecoveryStorage }
 import io.scalac.mesmer.extension.service._
 import io.scalac.mesmer.extension.upstream._
+import org.slf4j.LoggerFactory
+
+import scala.concurrent.duration._
+import scala.language.postfixOps
+import scala.reflect.{ classTag, ClassTag }
+import scala.util.Try
 
 object AkkaMonitoring extends ExtensionId[AkkaMonitoring] {
-
   def createExtension(system: ActorSystem[_]): AkkaMonitoring = new AkkaMonitoring(system)
 }
 
-final class AkkaMonitoring(system: ActorSystem[_])(implicit otelLoader: OpenTelemetryLoader) extends Extension {
+final class AkkaMonitoring(system: ActorSystem[_]) extends Extension {
 
   private val log = LoggerFactory.getLogger(classOf[AkkaMonitoring])
 
@@ -56,7 +51,7 @@ final class AkkaMonitoring(system: ActorSystem[_])(implicit otelLoader: OpenTele
     )
 
   private val askTimeout: Timeout          = 5 seconds
-  private val meter: Meter                 = otelLoader.load().create().getMeter("mesmer-akka")
+  private val meter: Meter                 = GlobalOpenTelemetry.getMeter("mesmer-akka")
   private val actorSystemConfig: Config    = system.settings.config
   private val config: AkkaMonitoringConfig = AkkaMonitoringConfig.fromConfig(system.settings.config)
   /*
