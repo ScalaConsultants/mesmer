@@ -10,7 +10,8 @@ object Dependencies {
   val GoogleAutoServiceVersion       = "1.0.1"
   val LogbackVersion                 = "1.2.10"
   val OpentelemetryVersion           = "1.11.0"
-  val OpentelemetryAlphaVersion      = "1.11.0-alpha"
+  val OpentelemetryAlphaVersion      = "1.11.1-alpha"
+  val OpentelemetryAlpha1110         = "1.11.0-alpha"
   val OpentelemetryMetricsApiVersion = "1.10.0-alpha-rc.1"
   val PostgresVersion                = "42.3.1"
   val ScalatestVersion               = "3.2.10"
@@ -51,7 +52,8 @@ object Dependencies {
 
   val openTelemetryInstrumentation = Seq(
     "com.google.auto.service"    % "auto-service"                          % GoogleAutoServiceVersion,
-    "io.opentelemetry.javaagent" % "opentelemetry-javaagent-extension-api" % OpentelemetryAlphaVersion
+    "io.opentelemetry.javaagent" % "opentelemetry-javaagent-extension-api" % OpentelemetryAlphaVersion,
+    "io.opentelemetry.javaagent" % "opentelemetry-javaagent-instrumentation-api" % OpentelemetryAlphaVersion % "provided"
   )
 
   val akkaTestkit = Seq(
@@ -81,8 +83,8 @@ object Dependencies {
     "com.lightbend.akka.management" %% "akka-management"                           % AkkaManagementVersion,
     "com.lightbend.akka.management" %% "akka-management-cluster-http"              % AkkaManagementVersion,
     "com.lightbend.akka.management" %% "akka-management-cluster-bootstrap"         % AkkaManagementVersion,
-    "io.opentelemetry"               % "opentelemetry-exporter-otlp-metrics"       % OpentelemetryAlphaVersion,
-    "io.opentelemetry"               % "opentelemetry-sdk-extension-autoconfigure" % OpentelemetryAlphaVersion,
+    "io.opentelemetry"               % "opentelemetry-exporter-otlp-metrics"       % OpentelemetryAlpha1110,
+    "io.opentelemetry"               % "opentelemetry-sdk-extension-autoconfigure" % OpentelemetryAlpha1110,
     "io.opentelemetry"               % "opentelemetry-sdk"                         % OpentelemetryVersion,
     "io.grpc"                        % "grpc-netty-shaded"                         % "1.43.2",
     "org.wvlet.airframe"            %% "airframe-log"                              % AirframeVersion
