@@ -20,9 +20,6 @@ public class SyncWrapper extends AbstractFunction1<HttpRequest, HttpResponse> {
 
   @Override
   public HttpResponse apply(HttpRequest request) {
-
-    System.out.println("In Sync Wrapper");
-
     Context parentContext = currentContext();
     if (!instrumenter().shouldStart(parentContext, request)) {
       return userHandler.apply(request);

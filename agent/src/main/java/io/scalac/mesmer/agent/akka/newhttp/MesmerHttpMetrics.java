@@ -1,9 +1,11 @@
 package io.scalac.mesmer.agent.akka.newhttp;
 
+import io.opentelemetry.api.common.AttributeKey;
 import io.opentelemetry.api.common.Attributes;
 import io.opentelemetry.api.metrics.LongUpDownCounter;
 import io.opentelemetry.api.metrics.Meter;
 import io.opentelemetry.context.Context;
+import io.opentelemetry.context.ContextKey;
 import io.opentelemetry.instrumentation.api.instrumenter.RequestListener;
 import io.opentelemetry.instrumentation.api.instrumenter.RequestMetrics;
 
@@ -24,20 +26,22 @@ public class MesmerHttpMetrics implements RequestListener {
             .build();
   }
 
+  ContextKey<String> rt = ContextKey.named("target");
+
   @Override
   public Context start(Context context, Attributes startAttributes, long startNanos) {
-    activeRequests.add(1, startAttributes, context);
-
-    System.out.println("FOFOOOFOFOFOOF");
-    // That does not modify context - just passes it further. Should we do anything with the
-    // context???
-    return context;
+    String target = startAttributes.get(AttributeKey.stringKey("http.target"));
+    activeRequests.add(1, buildAttributes(target), context);
+    return context.with(rt, target);
   }
 
   @Override
   public void end(Context context, Attributes endAttributes, long endNanos) {
-    System.out.println("Oooooooooo");
+    String target = context.get(rt);
+    activeRequests.add(-1, buildAttributes(target));
+  }
 
-    activeRequests.add(-1, endAttributes);
+  private Attributes buildAttributes(String target) {
+    return Attributes.builder().put("http_request_target", target).build();
   }
 }

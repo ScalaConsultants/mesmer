@@ -8,7 +8,7 @@ exporters:
     endpoint: 0.0.0.0:8889
     namespace: promexample
   logging:
-    loglevel: info
+    loglevel: debug
   jaeger:
     endpoint: jaeger-all-in-one:14250
     tls:
@@ -30,8 +30,8 @@ service:
     metrics:
       receivers: [otlp]
       processors: [batch]
-      exporters: [prometheus]
-    traces:
-      receivers: [otlp]
-      processors: [batch]
-      exporters: [jaeger]
+      exporters: [prometheus, logging]
+#    traces:
+#      receivers: [otlp]
+#      processors: [batch]
+#      exporters: [jaeger]
