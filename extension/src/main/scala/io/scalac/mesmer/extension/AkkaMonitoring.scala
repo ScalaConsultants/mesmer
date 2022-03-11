@@ -112,6 +112,11 @@ final class AkkaMonitoring(system: ActorSystem[_])(implicit otelLoader: OpenTele
       startSelfMemberMonitor()
     }
 
+    if (autoStartConfig.akkaDispatcher) {
+      log.debug("Start akka dispatcher service")
+      startDispatcherMonitor()
+    }
+
   }
 
   private def startActorTreeService(): Unit =
@@ -311,6 +316,22 @@ final class AkkaMonitoring(system: ActorSystem[_])(implicit otelLoader: OpenTele
           )
           .onFailure[Exception](SupervisorStrategy.restart),
         "httpEventMonitor",
+        dispatcher
+      )
+    }
+  }
+
+  private def startDispatcherMonitor(): Unit = {
+    reloadGlobalConfig(AkkaDispatcherModule)
+    val akkaDispatcherConfig =
+      AkkaDispatcherModule.globalConfiguration.map { config =>
+        config.combine(AkkaDispatcherModule.enabled(actorSystemConfig))
+      }
+    startWithConfig[AkkaDispatcherModule.type](AkkaDispatcherModule, akkaDispatcherConfig) { moduleConfig =>
+      val openTelemetryDispatcherMonitor = OpenTelemetryDispatcherMetricsMonitor(meter, moduleConfig, actorSystemConfig)
+      system.systemActorOf(
+        DispatcherEventsActor.apply(openTelemetryDispatcherMonitor, clusterNodeName),
+        "dispatcherEventMonitor",
         dispatcher
       )
     }
