@@ -31,7 +31,6 @@ package object model {
   sealed trait PersistenceIdTag extends ModelTag
   sealed trait ActorPathTag     extends ModelTag
 
-  type Executor      = String @@ ExecutorTag
   type MinThreads    = Int @@ MinThreadsTag
   type MaxThreads    = Int @@ MaxThreadsTag
   type Parallelism   = Double @@ ParallelismTag
@@ -47,8 +46,6 @@ package object model {
   type ActorKey      = ActorPath
   type RawAttributes = Seq[(String, String)]
 
-  implicit val executorAttributeSerializer: AttributeSerializer[Executor] = executor =>
-    Seq("executor" -> executor.unwrap)
   implicit val minThreadsAttributeSerializer: AttributeSerializer[MinThreads] = minThreads =>
     Seq("minThreads" -> minThreads.unwrap.toString)
   implicit val maxThreadsAttributeSerializer: AttributeSerializer[MaxThreads] = maxThreads =>
