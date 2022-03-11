@@ -10,9 +10,9 @@ import io.scalac.mesmer.core.util.LibraryInfo.LibraryInfo
 trait AkkaDispatcherConfigMetricsModule extends MetricsModule {
   this: Module =>
 
-  override type Metrics[T] <: AkkaDispatcherConfigMetricsDef[T]
+  override type Metrics[T] <: AkkaDispatcherMinMaxThreadsConfigMetricsDef[T]
 
-  trait AkkaDispatcherConfigMetricsDef[T] {
+  trait AkkaDispatcherMinMaxThreadsConfigMetricsDef[T] {
     def minThreads: T
     def maxThreads: T
     def parallelismFactor: T
@@ -25,11 +25,12 @@ object AkkaDispatcherModule
     with RegistersGlobalConfiguration
     with AkkaDispatcherConfigMetricsModule {
 
-  final case class Impl[T](minThreads: T, maxThreads: T, parallelismFactor: T) extends AkkaDispatcherConfigMetricsDef[T]
+  final case class Impl[T](minThreads: T, maxThreads: T, parallelismFactor: T)
+      extends AkkaDispatcherMinMaxThreadsConfigMetricsDef[T]
 
   final case class AkkaDispatcherJars[T](akkaActor: T, akkaActorTyped: T) extends Module.CommonJars[T]
 
-  override type Metrics[T] = AkkaDispatcherConfigMetricsDef[T]
+  override type Metrics[T] = AkkaDispatcherMinMaxThreadsConfigMetricsDef[T]
   override type All[T]     = Metrics[T]
   override type Jars[T]    = AkkaDispatcherJars[T]
 
