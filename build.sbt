@@ -33,7 +33,7 @@ inThisBuild(
 addCommandAlias("fmt", "scalafmtAll; scalafixAll")
 addCommandAlias("check", "scalafixAll --check; scalafmtCheckAll")
 
-lazy val all = (project in file("."))
+lazy val all: Project = (project in file("."))
   .disablePlugins(sbtassembly.AssemblyPlugin)
   .settings(
     name           := "mesmer-all",
@@ -205,10 +205,12 @@ def runWithMesmerAgent = Command.command("runWithMesmerAgent") { state =>
 
 def runWithOtelAgent = Command.command("runWithOtelAgent") { state =>
   val extracted = Project extract state
+  val root      = all.base.absolutePath
+
   val newState = extracted.appendWithSession(
     Seq(
       run / javaOptions ++= Seq(
-        s"-javaagent:../opentelemetry-javaagent110.jar",
+        s"-javaagent:$root/opentelemetry-javaagent110.jar",
         s"-Dotel.javaagent.extensions=${(otelExtension / assembly).value.absolutePath}"
       )
     ),

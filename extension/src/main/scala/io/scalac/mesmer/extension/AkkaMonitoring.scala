@@ -8,6 +8,7 @@ import akka.cluster.Cluster
 import akka.util.Timeout
 import com.typesafe.config.Config
 import io.opentelemetry.api.metrics.Meter
+import io.opentelemetry.instrumentation.api.config.{ Config => OpenTelemetryConfig }
 
 import scala.concurrent.duration._
 import scala.language.postfixOps
@@ -33,6 +34,15 @@ import io.scalac.mesmer.extension.service._
 import io.scalac.mesmer.extension.upstream._
 
 object AkkaMonitoring extends ExtensionId[AkkaMonitoring] {
+
+  OpenTelemetryConfig.internalInitializeConfig(
+    OpenTelemetryConfig
+      .builder()
+      .readSystemProperties()
+      .readEnvironmentVariables()
+      .build()
+  )
+
   def createExtension(system: ActorSystem[_]): AkkaMonitoring = new AkkaMonitoring(system)
 }
 

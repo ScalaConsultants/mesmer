@@ -2,7 +2,7 @@ package io.scalac.mesmer.agent
 
 import java.lang.instrument.Instrumentation
 
-import io.opentelemetry.javaagent.tooling.config.ConfigInitializer
+import io.opentelemetry.instrumentation.api.config.Config
 import net.bytebuddy.ByteBuddy
 import net.bytebuddy.agent.builder.AgentBuilder
 import net.bytebuddy.dynamic.scaffold.TypeValidation
@@ -16,9 +16,15 @@ import io.scalac.mesmer.agent.akka.stream.AkkaStreamAgent
 
 object Boot {
 
-  def premain(@unused arg: String, instrumentation: Instrumentation): Unit = {
+  Config.internalInitializeConfig(
+    Config
+      .builder()
+      .readSystemProperties()
+      .readEnvironmentVariables()
+      .build()
+  )
 
-    ConfigInitializer.initialize()
+  def premain(@unused arg: String, instrumentation: Instrumentation): Unit = {
 
     val agentBuilder = new AgentBuilder.Default()
       .`with`(new ByteBuddy().`with`(TypeValidation.DISABLED))
