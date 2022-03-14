@@ -56,8 +56,7 @@ object Dependencies {
 
   val openTelemetryInstrumentation = Seq(
     "com.google.auto.service"    % "auto-service"                          % GoogleAutoServiceVersion,
-    "io.opentelemetry.javaagent" % "opentelemetry-javaagent-extension-api" % OpentelemetryInstrumentationVersion,
-    "io.opentelemetry.javaagent" % "opentelemetry-javaagent-tooling"       % OpentelemetryInstrumentationVersion
+    "io.opentelemetry.javaagent" % "opentelemetry-javaagent-extension-api" % OpentelemetryInstrumentationVersion
   )
 
   val akkaTestkit = Seq(
