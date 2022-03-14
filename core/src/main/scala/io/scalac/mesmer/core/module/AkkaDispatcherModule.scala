@@ -48,7 +48,7 @@ object AkkaDispatcherModule
         .getOrElse(defaultConfig.minThreads)
 
       val maxThreads = config
-        .tryValue("min-threads")(_.getBoolean)
+        .tryValue("max-threads")(_.getBoolean)
         .getOrElse(defaultConfig.maxThreads)
 
       val parallelismFactor = config

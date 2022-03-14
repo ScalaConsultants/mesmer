@@ -34,7 +34,6 @@ object ActorCellConstructorAdvice {
       case otherExecutor =>
         throw new RuntimeException(s"$otherExecutor is not supported")
     }
-    println(s">>>> publishing event $event")
     EventBus(system.toTyped).publishEvent(event)
   }
 }
