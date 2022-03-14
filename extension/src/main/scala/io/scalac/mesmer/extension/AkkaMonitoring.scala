@@ -310,7 +310,9 @@ final class AkkaMonitoring(system: ActorSystem[_])(implicit otelLoader: OpenTele
     startWithConfig[AkkaDispatcherModule.type](AkkaDispatcherModule, akkaDispatcherConfig) { moduleConfig =>
       val openTelemetryDispatcherMonitor = OpenTelemetryDispatcherMetricsMonitor(meter, moduleConfig, actorSystemConfig)
       system.systemActorOf(
-        DispatcherEventsActor.apply(openTelemetryDispatcherMonitor, clusterNodeName),
+        Behaviors.supervise(
+          DispatcherEventsActor.apply(openTelemetryDispatcherMonitor, clusterNodeName)
+        ).onFailure[Exception](SupervisorStrategy.restart),
         "dispatcherEventMonitor",
         dispatcher
       )
