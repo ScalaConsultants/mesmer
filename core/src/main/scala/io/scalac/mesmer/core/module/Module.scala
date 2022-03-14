@@ -44,6 +44,10 @@ object MesmerModule extends Lookup {
       .toMap
   }
 
+  /*
+    Hence OpenTelemetry shadows instrumentation.api internally simply using Config.get() will load this class second time under regular package.
+    To avoid this and to share config object with the agent we get the config object from shaded package.
+   */
   lazy val globalConfig: Map[String, String] =
     Try {
       getMapFromConfigClass(Class.forName("io.opentelemetry.javaagent.shaded.instrumentation.api.config.Config"))
