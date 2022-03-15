@@ -38,7 +38,6 @@ object AkkaHttpAgent
   def agent: Agent = {
     val config = module.enabled
 
-    println(s"=-=-=-=-=-=-=-=-=-= HTTP AGENT ${config} =-=-=-=-=-=-=-=-=-=")
     List(
       requestCounter.onCondition(config.requestCounter),
       requestTime.onCondition(config.requestTime),
