@@ -11,9 +11,9 @@ object ActorCellConstructorAdvice {
 
   @OnMethodEnter
   def constructor(
-    @Argument(0) system: akka.actor.ExtendedActorSystem,
+    @Argument(0) system: akka.actor.ExtendedActorSystem
   ): Unit = {
-    val akkaConfig = system.settings.config.getConfig("akka.actor")
+    val akkaConfig       = system.settings.config.getConfig("akka.actor")
     val dispatcherConfig = akkaConfig.getConfig("default-dispatcher")
 
     val event = dispatcherConfig.getString("executor") match {
