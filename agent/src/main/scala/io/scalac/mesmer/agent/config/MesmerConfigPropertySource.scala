@@ -23,8 +23,9 @@ object MesmerConfigPropertySourceProvider {
    */
   def getProperties: util.Map[String, String] = modules.flatMap { module =>
     module.defaultConfig.productElementNames.zip(module.defaultConfig.productIterator).map { case (key, value) =>
-      key.toLowerCase(Locale.ROOT)
-      s"${module.configurationBase}.${key.toLowerCase(Locale.ROOT)}" -> value.toString
+      // replace all camel case with dots between words
+      val normalizedKey = key.replaceAll("([a-z])([A-Z])", "$1.$2").toLowerCase(Locale.ROOT)
+      s"${module.configurationBase}.$normalizedKey" -> value.toString
     }
   }.toMap.asJava
 }

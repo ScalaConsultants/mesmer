@@ -33,7 +33,11 @@ import io.scalac.mesmer.extension.service._
 import io.scalac.mesmer.extension.upstream._
 
 object AkkaMonitoring extends ExtensionId[AkkaMonitoring] {
-  def createExtension(system: ActorSystem[_]): AkkaMonitoring = new AkkaMonitoring(system)
+  def createExtension(system: ActorSystem[_]): AkkaMonitoring = {
+    println(s"=-=-=-=-=-=-=-=-=-= EXTENSION ${AkkaHttpModule.enabled} =-=-=-=-=-=-=-=-=-=")
+
+    new AkkaMonitoring(system)
+  }
 }
 
 final class AkkaMonitoring(system: ActorSystem[_])(implicit otelLoader: OpenTelemetryLoader) extends Extension {
