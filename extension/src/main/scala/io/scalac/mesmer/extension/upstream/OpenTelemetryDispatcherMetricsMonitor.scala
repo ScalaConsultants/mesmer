@@ -3,9 +3,12 @@ package io.scalac.mesmer.extension.upstream
 import com.typesafe.config.Config
 import io.opentelemetry.api.common
 import io.opentelemetry.api.metrics.Meter
+
 import io.scalac.mesmer.core.config.MesmerConfiguration
 import io.scalac.mesmer.core.module.AkkaDispatcherModule
-import io.scalac.mesmer.extension.metric.{ DispatcherStaticMetricsMonitor, Histogram, RegisterRoot }
+import io.scalac.mesmer.extension.metric.DispatcherStaticMetricsMonitor
+import io.scalac.mesmer.extension.metric.Histogram
+import io.scalac.mesmer.extension.metric.RegisterRoot
 import io.scalac.mesmer.extension.upstream.OpenTelemetryDispatcherMetricsMonitor.MetricNames
 import io.scalac.mesmer.extension.upstream.opentelemetry.SynchronousInstrumentFactory
 

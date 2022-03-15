@@ -1,12 +1,15 @@
 package io.scalac.mesmer.extension
 
+import akka.actor.typed.Behavior
+import akka.actor.typed.PostStop
 import akka.actor.typed.receptionist.Receptionist
-import akka.actor.typed.receptionist.Receptionist.{ Deregister, Register }
-import akka.actor.typed.{ Behavior, PostStop }
+import akka.actor.typed.receptionist.Receptionist.Deregister
+import akka.actor.typed.receptionist.Receptionist.Register
 import akka.actor.typed.scaladsl.Behaviors
+
+import io.scalac.mesmer.core.dispatcherServiceKey
 import io.scalac.mesmer.core.event.DispatcherEvent
 import io.scalac.mesmer.core.event.DispatcherEvent.ExecutorConfigEvent
-import io.scalac.mesmer.core.dispatcherServiceKey
 import io.scalac.mesmer.core.model._
 import io.scalac.mesmer.extension.DispatcherEventsActor.Event.DispatcherEventWrapper
 import io.scalac.mesmer.extension.metric.DispatcherStaticMetricsMonitor
