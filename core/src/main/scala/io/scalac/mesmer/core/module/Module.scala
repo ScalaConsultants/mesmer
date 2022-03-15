@@ -71,9 +71,9 @@ trait MesmerModule extends Module with MesmerConfigurationBase {
 
   lazy val enabled: Config = {
 
-    val moduleConfigurations = MesmerModule.globalConfig.keys.collect {
-      case moduleKey if moduleKey.startsWith(configurationBase) =>
-        moduleKey.stripPrefix(s"$configurationBase.") -> MesmerModule.parseBoolean(moduleKey, false)
+    val moduleConfigurations = MesmerModule.globalConfig.collect {
+      case (moduleKey, value) if moduleKey.startsWith(configurationBase) =>
+        moduleKey.stripPrefix(s"$configurationBase.") -> MesmerModule.parseBoolean(value, false)
     }.toMap
 
     fromMap(moduleConfigurations)

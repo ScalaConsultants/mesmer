@@ -1,5 +1,5 @@
 import Dependencies._
-import sbt.Package.{MainClass, ManifestAttributes}
+import sbt.Package.{ MainClass, ManifestAttributes }
 
 inThisBuild(
   List(
