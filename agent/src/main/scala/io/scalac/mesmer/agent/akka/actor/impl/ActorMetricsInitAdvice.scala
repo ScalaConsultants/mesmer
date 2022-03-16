@@ -2,6 +2,7 @@ package io.scalac.mesmer.agent.akka.actor.impl
 
 import akka.actor.ActorContext
 import com.typesafe.config.ConfigFactory
+import io.opentelemetry.api.common.Attributes
 import net.bytebuddy.asm.Advice
 import net.bytebuddy.asm.Advice.OnMethodEnter
 
@@ -41,6 +42,17 @@ object ActorMetricsInitAdvice {
     }
 
     ActorCellDecorator.set(cell, metrics)
-  }
 
+    // Just one example of a strategy on how to aggregate metrics by path attribute. It can be more fine-grained ofc.
+    val topLevelPath: String = "/" + cell.self.path.elements.headOption.getOrElse("")
+
+    val attributes =
+      Attributes
+        .builder()
+        .put("actor_path", topLevelPath)
+        .build()
+
+    ActorCellDecorator.setAttributes(cell, attributes)
+
+  }
 }

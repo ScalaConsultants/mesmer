@@ -6,6 +6,7 @@ import net.bytebuddy.asm.Advice.OnMethodExit
 import net.bytebuddy.asm.Advice.This
 import net.bytebuddy.asm.Advice.Thrown
 
+import io.scalac.mesmer.agent.akka.actor.ActorInstruments
 import io.scalac.mesmer.core.actor.ActorCellDecorator
 import io.scalac.mesmer.core.actor.ActorCellMetrics
 
@@ -14,6 +15,9 @@ object ActorCellReceiveMessageInstrumentation {
   @OnMethodEnter
   def onEnter(@This actorCell: ActorContext): Unit = {
     val cellMetrics: Option[ActorCellMetrics] = ActorCellDecorator.getMetrics(actorCell)
+
+    val attributes = ActorCellDecorator.getCellAttributes(actorCell)
+    ActorInstruments.messagesReceivedCounter.add(1, attributes)
 
     cellMetrics.foreach { metrics =>
       import metrics._

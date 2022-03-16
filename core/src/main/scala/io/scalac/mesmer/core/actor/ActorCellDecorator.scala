@@ -2,6 +2,7 @@ package io.scalac.mesmer.core.actor
 
 import akka.MesmerMirrorTypes.Cell
 import akka.actor.ActorContext
+import io.opentelemetry.api.common.Attributes
 import io.opentelemetry.instrumentation.api.field.VirtualField
 
 object ActorCellDecorator {
@@ -15,4 +16,10 @@ object ActorCellDecorator {
 
   @inline def set(actorCell: ActorContext, metrics: ActorCellMetrics): Unit =
     VirtualField.find(classOf[ActorContext], classOf[ActorCellMetrics]).set(actorCell, metrics)
+
+  @inline def setAttributes(actorCell: ActorContext, attributes: Attributes): Unit =
+    VirtualField.find(classOf[ActorContext], classOf[Attributes]).set(actorCell, attributes)
+
+  @inline def getCellAttributes(actorCell: ActorContext): Attributes =
+    VirtualField.find(classOf[ActorContext], classOf[Attributes]).get(actorCell)
 }
