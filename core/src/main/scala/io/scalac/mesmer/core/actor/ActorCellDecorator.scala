@@ -22,4 +22,7 @@ object ActorCellDecorator {
 
   @inline def getCellAttributes(actorCell: ActorContext): Attributes =
     VirtualField.find(classOf[ActorContext], classOf[Attributes]).get(actorCell)
+
+  @inline def getCellAttributes(actorCell: Cell): Attributes =
+    getCellAttributes(actorCell.asInstanceOf[ActorContext])
 }

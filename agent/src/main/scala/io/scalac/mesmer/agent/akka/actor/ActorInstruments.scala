@@ -14,4 +14,10 @@ object ActorInstruments {
     .setUnit("messages")
     .build()
 
+  val sentMessagesCounter: LongCounter = meter
+    .counterBuilder("sent-messages")
+    .setDescription("new way of counting actor's sent messages")
+    .setUnit("messages")
+    .build()
+
 }
