@@ -20,4 +20,10 @@ object ActorInstruments {
     .setUnit("messages")
     .build()
 
+  val unhandledMessages: LongCounter = meter
+    .counterBuilder("unhandled-messages")
+    .setDescription("new way of counting actor's unhandled messages")
+    .setUnit("messages")
+    .build()
+
 }
