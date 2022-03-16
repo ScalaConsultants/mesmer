@@ -1,6 +1,7 @@
 package io.scalac.mesmer.agent.akka.actor
 
 import io.opentelemetry.api.GlobalOpenTelemetry
+import io.opentelemetry.api.metrics.DoubleHistogram
 import io.opentelemetry.api.metrics.LongCounter
 import io.opentelemetry.api.metrics.Meter
 
@@ -24,6 +25,12 @@ object ActorInstruments {
     .counterBuilder("unhandled-messages")
     .setDescription("new way of counting actor's unhandled messages")
     .setUnit("messages")
+    .build()
+
+  val mailboxTime: DoubleHistogram = meter
+    .histogramBuilder("mailbox-time")
+    .setDescription("Time spend in mailbox")
+    .setUnit("nanoseconds")
     .build()
 
 }
