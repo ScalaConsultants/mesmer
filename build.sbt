@@ -3,7 +3,7 @@ import sbt.Package.{ MainClass, ManifestAttributes }
 
 inThisBuild(
   List(
-    scalaVersion := "2.13.8",
+    scalaVersion := "2.13.6",
     organization := "io.scalac",
     homepage     := Some(url("https://github.com/ScalaConsultants/mesmer-akka-agent")),
     licenses     := List("Apache-2.0" -> url("http://www.apache.org/licenses/LICENSE-2.0")),
@@ -33,7 +33,7 @@ inThisBuild(
 addCommandAlias("fmt", "scalafmtAll; scalafixAll")
 addCommandAlias("check", "scalafixAll --check; scalafmtCheckAll")
 
-lazy val all = (project in file("."))
+lazy val all: Project = (project in file("."))
   .disablePlugins(sbtassembly.AssemblyPlugin)
   .settings(
     name           := "mesmer-all",
@@ -51,7 +51,8 @@ lazy val core = (project in file("core"))
       openTelemetryApiMetrics ++
       openTelemetryInstrumentation ++
       scalatest ++
-      akkaTestkit
+      akkaTestkit ++
+      openTelemetryInstrumentationApi
     }
   )
 
@@ -145,9 +146,11 @@ lazy val example = (project in file("example"))
       val properties = System.getProperties
 
       import scala.collection.JavaConverters._
-      for {
+      val keys = for {
         (key, value) <- properties.asScala.toList if value.nonEmpty
       } yield s"-D$key=$value"
+
+      keys
     },
     commands += runWithMesmerAgent,
     commands += runWithOtelAgent,
@@ -202,10 +205,12 @@ def runWithMesmerAgent = Command.command("runWithMesmerAgent") { state =>
 
 def runWithOtelAgent = Command.command("runWithOtelAgent") { state =>
   val extracted = Project extract state
+  val root      = all.base.absolutePath
+
   val newState = extracted.appendWithSession(
     Seq(
       run / javaOptions ++= Seq(
-        s"-javaagent:../opentelemetry-javaagent110.jar",
+        s"-javaagent:$root/opentelemetry-javaagent110.jar",
         s"-Dotel.javaagent.extensions=${(otelExtension / assembly).value.absolutePath}"
       )
     ),

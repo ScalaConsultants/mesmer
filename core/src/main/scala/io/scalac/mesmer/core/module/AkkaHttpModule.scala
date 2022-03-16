@@ -1,12 +1,6 @@
 package io.scalac.mesmer.core.module
-
-import com.typesafe.config.{ Config => TypesafeConfig }
-
-import io.scalac.mesmer.core.model.Version
-import io.scalac.mesmer.core.module.Module.CommonJars
 import io.scalac.mesmer.core.typeclasses.Combine
 import io.scalac.mesmer.core.typeclasses.Traverse
-import io.scalac.mesmer.core.util.LibraryInfo.LibraryInfo
 
 /**
  * Definition of AkkHttp request related metrics
@@ -32,17 +26,13 @@ sealed trait AkkaHttpConnectionMetricsModule extends MetricsModule {
   }
 }
 
-object AkkaHttpModule
-    extends MesmerModule
-    with RegistersGlobalConfiguration
-    with AkkaHttpRequestMetricsModule
-    with AkkaHttpConnectionMetricsModule {
+object AkkaHttpModule extends MesmerModule with AkkaHttpRequestMetricsModule with AkkaHttpConnectionMetricsModule {
 
   final case class Impl[T](requestTime: T, requestCounter: T, connections: T)
       extends AkkaHttpRequestMetricsDef[T]
       with AkkaHttpConnectionsMetricsDef[T]
 
-  val name: String = "akka-http"
+  lazy val name: String = "akkahttp"
 
   override type Metrics[T] = AkkaHttpConnectionsMetricsDef[T] with AkkaHttpRequestMetricsDef[T]
 
@@ -50,39 +40,12 @@ object AkkaHttpModule
 
   val defaultConfig: Config = Impl[Boolean](true, true, true)
 
-  protected def extractFromConfig(config: TypesafeConfig): Config = {
-
-    val moduleEnabled = config
-      .tryValue("enabled")(_.getBoolean)
-      .getOrElse(true)
-
-    if (moduleEnabled) {
-      val requestTime = config
-        .tryValue("request-time")(_.getBoolean)
-        .getOrElse(defaultConfig.requestTime)
-
-      val requestCounter = config
-        .tryValue("request-counter")(_.getBoolean)
-        .getOrElse(defaultConfig.requestCounter)
-
-      val connections = config
-        .tryValue("connections")(_.getBoolean)
-        .getOrElse(defaultConfig.connections)
-      Impl[Boolean](requestTime = requestTime, requestCounter = requestCounter, connections = connections)
-    } else Impl(false, false, false)
-
-  }
-
-  override type Jars[T] = AkkaHttpJars[T]
-
-  final case class AkkaHttpJars[T](akkaActor: T, akkaActorTyped: T, akkaHttp: T) extends CommonJars[T]
-
-  def jarsFromLibraryInfo(info: LibraryInfo): Option[Jars[Version]] =
-    for {
-      actor      <- info.get(JarNames.akkaActor)
-      actorTyped <- info.get(JarNames.akkaActorTyped)
-      http       <- info.get(JarNames.akkaHttp)
-    } yield AkkaHttpJars(actor, actorTyped, http)
+  protected def fromMap(properties: Map[String, Boolean]): AkkaHttpModule.Config =
+    Impl(
+      requestTime = properties.getOrElse("request.time", defaultConfig.requestTime),
+      requestCounter = properties.getOrElse("request.counter", defaultConfig.requestCounter),
+      connections = properties.getOrElse("connections", defaultConfig.connections)
+    )
 
   implicit val combineConfig: Combine[All[Boolean]] = (first, second) =>
     Impl(
