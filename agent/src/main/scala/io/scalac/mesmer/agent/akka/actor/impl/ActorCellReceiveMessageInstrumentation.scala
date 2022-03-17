@@ -39,6 +39,12 @@ object ActorCellReceiveMessageInstrumentation {
       ) {
         failedMessages.get.inc()
       }
+
+      ActorInstruments.processingTime.record(
+        metrics.processingTimer.get.interval().toNano,
+        ActorCellDecorator.getCellAttributes(actorCell)
+      )
+
       if (processingTimeAgg.isDefined && processingTimeAgg.isDefined) {
         processingTimeAgg.get.add(metrics.processingTimer.get.interval())
       }

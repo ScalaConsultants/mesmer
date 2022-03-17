@@ -33,4 +33,10 @@ object ActorInstruments {
     .setUnit("nanoseconds")
     .build()
 
+  val processingTime: DoubleHistogram = meter
+    .histogramBuilder("processing-time")
+    .setDescription("processing time")
+    .setUnit("nanoseconds")
+    .build()
+
 }
