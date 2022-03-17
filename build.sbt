@@ -115,7 +115,7 @@ lazy val otelExtension = (project in file("otel-extension"))
   .settings(
     name := "mesmer-otel-extension",
     libraryDependencies ++= {
-      openTelemetryInstrumentation
+      openTelemetryInstrumentation ++ openTelemetryMuzzle
     },
     assembly / test            := {},
     assembly / assemblyJarName := "mesmer-otel-extension.jar",
@@ -205,7 +205,9 @@ def runWithOtelAgent = Command.command("runWithOtelAgent") { state =>
   val newState = extracted.appendWithSession(
     Seq(
       run / javaOptions ++= Seq(
-        s"-javaagent:../opentelemetry-javaagent110.jar",
+//        "-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=*:5555",
+        s"-javaagent:/Users/piotrjosiak/scalac/mesmer-akka-agent/monitor-akka-agent.jar",
+        s"-javaagent:/Users/piotrjosiak/scalac/mesmer-akka-agent/opentelemetry-javaagent110.jar",
         s"-Dotel.javaagent.extensions=${(otelExtension / assembly).value.absolutePath}"
       )
     ),

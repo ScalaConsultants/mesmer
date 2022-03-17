@@ -32,7 +32,7 @@
     <logger name="slick" level="INFO"/>
     <logger name="io.scalac" level="INFO"/>
 
-    <logger name="akka.persistence" level="TRACE" additivity="false">
+    <logger name="io.scalac.mesmer.utils" level="DEBUG" additivity="false">
         <appender-ref ref="ASYNCFILE"/>
     </logger>
 
