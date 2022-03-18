@@ -7,6 +7,7 @@ import io.opentelemetry.javaagent.extension.instrumentation.TypeTransformer;
 import io.opentelemetry.javaagent.tooling.muzzle.InstrumentationModuleMuzzle;
 import io.opentelemetry.javaagent.tooling.muzzle.VirtualFieldMappingsBuilder;
 import io.opentelemetry.javaagent.tooling.muzzle.references.ClassRef;
+import io.scalac.mesmer.agentcopy.akka.stream.AkkaStreamAgent;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 
@@ -26,17 +27,19 @@ public class MesmerAkkaStreamInstrumentationModule extends InstrumentationModule
     @Override
     public List<TypeInstrumentation> typeInstrumentations() {
 
-        return Collections.singletonList(new TypeInstrumentation() {
-            @Override
-            public ElementMatcher<TypeDescription> typeMatcher() {
-                return named("akka.stream.impl.fusing.GraphInterpreter$Connection");
-            }
+        AkkaStreamAgent.agent()
 
-            @Override
-            public void transform(TypeTransformer transformer) {
-                transformer.applyAdviceToMethod(isConstructor(), "akka.ConnectionAdvice");
-            }
-        });
+//        return Collections.singletonList(new TypeInstrumentation() {
+//            @Override
+//            public ElementMatcher<TypeDescription> typeMatcher() {
+//                return named("akka.stream.impl.fusing.GraphInterpreter$Connection");
+//            }
+//
+//            @Override
+//            public void transform(TypeTransformer transformer) {
+//                transformer.applyAdviceToMethod(isConstructor(), "akka.ConnectionAdvice");
+//            }
+//        });
     }
 
     @Override
@@ -46,7 +49,7 @@ public class MesmerAkkaStreamInstrumentationModule extends InstrumentationModule
 
     @Override
     public void registerMuzzleVirtualFields(VirtualFieldMappingsBuilder builder) {
-        builder.register("akka.stream.impl.fusing.GraphInterpreter$Connection", "java.lang.Integer");
+        builder.register("akka.stream.impl.fusing.GraphInterpreter$Connection", "scala.Tuple2");
     }
 
     @Override
