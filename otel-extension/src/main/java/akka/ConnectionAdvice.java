@@ -6,10 +6,10 @@ import net.bytebuddy.asm.Advice;
 
 public class ConnectionAdvice {
 
-    @Advice.OnMethodEnter
+    @Advice.OnMethodExit
     public static void onEnter(@Advice.This Connection self) {
         System.out.println("Connection created");
-//        VirtualField<Connection, Integer> vf = VirtualField.find(Connection.class, Integer.class);
-//        vf.set((Connection) self, 0);
+        VirtualField<Connection, Integer> vf = VirtualField.find(Connection.class, Integer.class);
+        vf.set(self, 0);
     }
 }

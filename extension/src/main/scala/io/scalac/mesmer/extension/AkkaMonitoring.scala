@@ -15,7 +15,6 @@ import scala.language.postfixOps
 import scala.reflect.ClassTag
 import scala.reflect.classTag
 import scala.util.Try
-
 import io.scalac.mesmer.core.AkkaDispatcher
 import io.scalac.mesmer.core.model._
 import io.scalac.mesmer.core.module.Module._
@@ -32,13 +31,15 @@ import io.scalac.mesmer.extension.persistence.CleanablePersistingStorage
 import io.scalac.mesmer.extension.persistence.CleanableRecoveryStorage
 import io.scalac.mesmer.extension.service._
 import io.scalac.mesmer.extension.upstream._
+import org.slf4j.LoggerFactory
 
 object AkkaMonitoring extends ExtensionId[AkkaMonitoring] {
   def createExtension(system: ActorSystem[_]): AkkaMonitoring = new AkkaMonitoring(system)
 }
 
 final class AkkaMonitoring(system: ActorSystem[_])(implicit otelLoader: OpenTelemetryLoader) extends Extension {
-  import system.log
+
+  private val log = LoggerFactory.getLogger(classOf[AkkaMonitoring])
 
   private val clusterNodeName: Option[Node] =
     (for {

@@ -150,6 +150,7 @@ lazy val example = (project in file("example"))
       } yield s"-D$key=$value"
     },
     commands += runWithMesmerAgent,
+    commands += runWithMesmerStream,
     commands += runWithOtelAgent,
     Universal / mappings += {
       val jar = (agent / assembly).value
@@ -208,12 +209,48 @@ def runWithOtelAgent = Command.command("runWithOtelAgent") { state =>
 //        "-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=*:5555",
         s"-javaagent:/Users/piotrjosiak/scalac/mesmer-akka-agent/monitor-akka-agent.jar",
         s"-javaagent:/Users/piotrjosiak/scalac/mesmer-akka-agent/opentelemetry-javaagent110.jar",
-        s"-Dotel.javaagent.extensions=${(otelExtension / assembly).value.absolutePath}"
+        s"-Dotel.javaagent.extensions=${(otelExtension / assembly).value.absolutePath}",
+        s"-Dotel.javaagent.extensions=/Users/piotrjosiak/scalac/mesmer-akka-agent/otel-extra-extensions.jar"
       )
     ),
     state
   )
   val (s, _) =
     Project.extract(newState).runInputTask(Compile / run, "", newState)
+  s
+}
+
+def runWithOtelStream = Command.command("runWithOtelStream") { state =>
+  val extracted = Project extract state
+  val newState = extracted.appendWithSession(
+    Seq(
+      run / javaOptions ++= Seq(
+        //        "-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=*:5555",
+        s"-javaagent:/Users/piotrjosiak/scalac/mesmer-akka-agent/monitor-akka-agent.jar",
+        s"-javaagent:/Users/piotrjosiak/scalac/mesmer-akka-agent/opentelemetry-javaagent110.jar",
+        s"-Dotel.javaagent.extensions=${(otelExtension / assembly).value.absolutePath}",
+        s"-Dotel.javaagent.extensions=/Users/piotrjosiak/scalac/mesmer-akka-agent/otel-extra-extensions.jar"
+      ),
+      mainClass := Some("example.SimpleStreamExample")
+    ),
+    state
+  )
+  val (s, _) =
+    Project.extract(newState).runInputTask(Compile / run, "", newState)
+  s
+}
+
+def runWithMesmerStream = Command.command("runWithMesmerStream") { state =>
+  val extracted = Project extract state
+  val newState = extracted.appendWithSession(
+    Seq(
+      run / javaOptions ++= Seq(
+        s"-javaagent:${(agent / assembly).value.absolutePath}"
+      )
+    ),
+    state
+  )
+  val (s, _) =
+    Project.extract(newState).runInputTask(Compile / runMain, " example.SimpleStreamExample", newState)
   s
 }

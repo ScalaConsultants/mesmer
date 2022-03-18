@@ -46,7 +46,7 @@ public class MesmerAkkaStreamInstrumentationModule extends InstrumentationModule
 
     @Override
     public void registerMuzzleVirtualFields(VirtualFieldMappingsBuilder builder) {
-//        builder.register("akka.stream.impl.fusing.GraphInterpreter$Connection", "java.lang.Integer");
+        builder.register("akka.stream.impl.fusing.GraphInterpreter$Connection", "java.lang.Integer");
     }
 
     @Override

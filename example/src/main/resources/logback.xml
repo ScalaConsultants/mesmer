@@ -31,6 +31,7 @@
     <logger name="akka" level="WARN"/>
     <logger name="slick" level="INFO"/>
     <logger name="io.scalac" level="INFO"/>
+    <logger name="io.scalac.mesmer.extension.AkkaMonitoring" level="DEBUG"/>
 
     <logger name="io.scalac.mesmer.utils" level="DEBUG" additivity="false">
         <appender-ref ref="ASYNCFILE"/>
