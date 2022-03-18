@@ -43,13 +43,10 @@ object ActorMetricsInitAdvice {
 
     ActorCellDecorator.set(cell, metrics)
 
-    // Just one example of a strategy on how to aggregate metrics by path attribute. It can be more fine-grained ofc.
-    val topLevelPath: String = "/" + cell.self.path.elements.headOption.getOrElse("")
-
     val attributes =
       Attributes
         .builder()
-        .put("actor_path", topLevelPath)
+        .put("actor_path", cell.self.path.toString)
         .build()
 
     ActorCellDecorator.setAttributes(cell, attributes)
