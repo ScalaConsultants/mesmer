@@ -2,7 +2,7 @@ package io.scalac.mesmer.agent
 
 import java.lang.instrument.Instrumentation
 
-import com.typesafe.config.ConfigFactory
+import io.opentelemetry.instrumentation.api.config.Config
 import net.bytebuddy.ByteBuddy
 import net.bytebuddy.agent.builder.AgentBuilder
 import net.bytebuddy.dynamic.scaffold.TypeValidation
@@ -13,14 +13,18 @@ import io.scalac.mesmer.agent.akka.actor.AkkaActorAgent
 import io.scalac.mesmer.agent.akka.http.AkkaHttpAgent
 import io.scalac.mesmer.agent.akka.persistence.AkkaPersistenceAgent
 import io.scalac.mesmer.agent.akka.stream.AkkaStreamAgent
-import io.scalac.mesmer.core.util.LibraryInfo
 
 object Boot {
 
-  // TODO better configuration specification
-  def premain(@unused arg: String, instrumentation: Instrumentation): Unit = {
+  Config.internalInitializeConfig(
+    Config
+      .builder()
+      .readSystemProperties()
+      .readEnvironmentVariables()
+      .build()
+  )
 
-    val config = ConfigFactory.load()
+  def premain(@unused arg: String, instrumentation: Instrumentation): Unit = {
 
     val agentBuilder = new AgentBuilder.Default()
       .`with`(new ByteBuddy().`with`(TypeValidation.DISABLED))
@@ -30,12 +34,10 @@ object Boot {
       )
       .`with`(AgentBuilder.InstallationListener.StreamWriting.toSystemOut)
 
-    val info = LibraryInfo.extractModulesInformation(Thread.currentThread().getContextClassLoader)
-
-    val allInstrumentations = AkkaPersistenceAgent.initAgent(info, config).getOrElse(Agent.empty) ++
-      AkkaStreamAgent.initAgent(info, config).getOrElse(Agent.empty) ++
-      AkkaHttpAgent.initAgent(info, config).getOrElse(Agent.empty) ++
-      AkkaActorAgent.initAgent(info, config).getOrElse(Agent.empty)
+    val allInstrumentations = AkkaPersistenceAgent.agent ++
+      AkkaStreamAgent.agent ++
+      AkkaHttpAgent.agent ++
+      AkkaActorAgent.agent
 
     allInstrumentations
       .installOnMesmerAgent(agentBuilder, instrumentation)

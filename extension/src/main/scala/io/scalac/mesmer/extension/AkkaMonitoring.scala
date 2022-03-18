@@ -7,7 +7,6 @@ import akka.actor.typed.scaladsl.Behaviors
 import akka.cluster.Cluster
 import akka.util.Timeout
 import com.typesafe.config.Config
-import com.typesafe.config.ConfigFactory
 import io.opentelemetry.api.metrics.Meter
 
 import scala.concurrent.duration._
@@ -34,6 +33,7 @@ import io.scalac.mesmer.extension.upstream._
 import org.slf4j.LoggerFactory
 
 object AkkaMonitoring extends ExtensionId[AkkaMonitoring] {
+
   def createExtension(system: ActorSystem[_]): AkkaMonitoring = new AkkaMonitoring(system)
 }
 
@@ -62,16 +62,10 @@ final class AkkaMonitoring(system: ActorSystem[_])(implicit otelLoader: OpenTele
    We combine global config published by agent with current config to account for actor system having
    different config file than agent. We take account only for 4 modules as those are only affected by agent.
    */
-  private val akkaActorConfig = {
-    reloadGlobalConfig(AkkaActorModule)
-
-    AkkaActorModule.globalConfiguration.map { config =>
-      config.combine(AkkaActorModule.enabled(actorSystemConfig))
-    }
-  }
+  private val akkaActorConfig = AkkaActorModule.enabled
 
   private val openTelemetryClusterMetricsMonitor: OpenTelemetryClusterMetricsMonitor =
-    OpenTelemetryClusterMetricsMonitor(meter, AkkaClusterModule.fromConfig(actorSystemConfig), actorSystemConfig)
+    OpenTelemetryClusterMetricsMonitor(meter, AkkaClusterModule.enabled, actorSystemConfig)
   private val dispatcher = AkkaDispatcher.safeDispatcherSelector(system)
 
   private def reflectiveIsInstanceOf(fqcn: String, ref: Any): Either[String, Unit] =
@@ -97,11 +91,12 @@ final class AkkaMonitoring(system: ActorSystem[_])(implicit otelLoader: OpenTele
       startActorMonitor()
     }
     if (autoStartConfig.akkaHttp) {
-      log.debug("Start akka persistence service")
+      log.debug("Start akka http service")
+
       startHttpMonitor()
     }
     if (autoStartConfig.akkaPersistence) {
-      log.debug("Start akka http service")
+      log.debug("Start akka persistence service")
 
       startPersistenceMonitor()
     }
@@ -119,7 +114,7 @@ final class AkkaMonitoring(system: ActorSystem[_])(implicit otelLoader: OpenTele
     startWithConfig[AkkaActorModule.type](AkkaActorModule, akkaActorConfig) { _ =>
       val actorSystemMonitor = OpenTelemetryActorSystemMonitor(
         meter,
-        AkkaActorSystemModule.fromConfig(actorSystemConfig),
+        AkkaActorSystemModule.enabled,
         actorSystemConfig
       )
 
@@ -170,9 +165,7 @@ final class AkkaMonitoring(system: ActorSystem[_])(implicit otelLoader: OpenTele
 
   private def startStreamMonitor(): Unit = {
     val akkaStreamConfig =
-      AkkaStreamModule.globalConfiguration.map { config =>
-        config.combine(AkkaStreamModule.enabled(actorSystemConfig))
-      }
+      AkkaStreamModule.enabled
 
     startWithConfig[AkkaStreamModule.type](AkkaStreamModule, akkaStreamConfig) { moduleConfig =>
       log.debug("Start stream monitor")
@@ -220,12 +213,7 @@ final class AkkaMonitoring(system: ActorSystem[_])(implicit otelLoader: OpenTele
   private def startClusterRegionsMonitor(): Unit = startClusterMonitor(ClusterRegionsMonitorActor)
 
   private def startPersistenceMonitor(): Unit = {
-    reloadGlobalConfig(AkkaPersistenceModule)
-
-    val akkaPersistenceConfig =
-      AkkaPersistenceModule.globalConfiguration.map { config =>
-        config.combine(AkkaPersistenceModule.enabled(actorSystemConfig))
-      }
+    val akkaPersistenceConfig = AkkaPersistenceModule.enabled
 
     startWithConfig[AkkaPersistenceModule.type](AkkaPersistenceModule, akkaPersistenceConfig) { moduleConfig =>
       val cachingConfig = CachingConfig.fromConfig(actorSystemConfig, AkkaPersistenceModule)
@@ -261,27 +249,19 @@ final class AkkaMonitoring(system: ActorSystem[_])(implicit otelLoader: OpenTele
     }
   }
 
-  private def startWithConfig[M <: Module](module: M, config: Option[M#All[Boolean]])(startUp: M#All[Boolean] => Unit)(
-    implicit traverse: Traverse[M#All]
+  private def startWithConfig[M <: Module](module: M, config: M#All[Boolean])(startUp: M#All[Boolean] => Unit)(implicit
+    traverse: Traverse[M#All]
   ): Unit =
-    config.fold {
-      log.error("No global configuration found for {} - check if agent is installed.", module.name)
-    } { moduleConfig =>
-      if (!moduleConfig.exists(_ == true)) {
-        log.warn(s"Module {} started but no metrics are enabled / supported", module.name)
-      } else {
-        log.debug("Starting up module {}", module.name)
-        startUp(moduleConfig)
-      }
+    if (!config.exists(_ == true)) {
+      log.warn(s"Module {} started but no metrics are enabled / supported", module.name)
+    } else {
+      log.debug("Starting up module {}", module.name)
+      startUp(config)
     }
 
   private def startHttpMonitor(): Unit = {
-    reloadGlobalConfig(AkkaHttpModule)
 
-    val akkaHttpConfig =
-      AkkaHttpModule.globalConfiguration.map { config =>
-        config.combine(AkkaHttpModule.enabled(actorSystemConfig))
-      }
+    val akkaHttpConfig = AkkaHttpModule.enabled
 
     startWithConfig[AkkaHttpModule.type](AkkaHttpModule, akkaHttpConfig) { moduleConfig =>
       val cachingConfig = CachingConfig.fromConfig(actorSystemConfig, AkkaHttpModule)
@@ -316,15 +296,6 @@ final class AkkaMonitoring(system: ActorSystem[_])(implicit otelLoader: OpenTele
       )
     }
   }
-
-  /**
-   * Reloads global configuration in case it's not loaded yet. This is needed when mesmer is run with the Open Telemetry
-   * agent.
-   */
-  private def reloadGlobalConfig(module: RegistersGlobalConfiguration): Unit =
-    if (module.globalConfiguration.isEmpty) {
-      module.registerGlobal(module.enabled(ConfigFactory.load()))
-    }
 
   autoStart()
 }

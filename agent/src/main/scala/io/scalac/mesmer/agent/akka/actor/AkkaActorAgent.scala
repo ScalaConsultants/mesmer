@@ -1,18 +1,14 @@
 package io.scalac.mesmer.agent.akka.actor
 
-import com.typesafe.config.Config
-
 import io.scalac.mesmer.agent.Agent
 import io.scalac.mesmer.agent.AgentInstrumentation
 import io.scalac.mesmer.agent.akka.actor.impl._
 import io.scalac.mesmer.agent.util.i13n._
-import io.scalac.mesmer.core.akka.version26x
-import io.scalac.mesmer.core.model._
 import io.scalac.mesmer.core.module.AkkaActorModule
 
 object AkkaActorAgent
     extends InstrumentModuleFactory(AkkaActorModule)
-    with AkkaActorModule.All[AkkaActorModule.Jars[Version] => Option[Agent]]
+    with AkkaActorModule.All[Agent]
     with AkkaMailboxInstrumentations {
 
   /**
@@ -23,134 +19,63 @@ object AkkaActorAgent
    * @return
    *   Resulting agent and resulting configuration based on runtime properties
    */
-  override protected def agent(
-    config: AkkaActorModule.All[Boolean],
-    jars: AkkaActorModule.AkkaActorJars[Version]
-  ): (Agent, AkkaActorModule.All[Boolean]) = {
-    val mailboxSizeAgent         = if (config.mailboxSize) mailboxSize(jars) else None
-    val mailboxTimeMinAgent      = if (config.mailboxTimeMin) mailboxTimeMin(jars) else None
-    val mailboxTimeMaxAgent      = if (config.mailboxTimeMax) mailboxTimeMax(jars) else None
-    val mailboxTimeSumAgent      = if (config.mailboxTimeSum) mailboxTimeSum(jars) else None
-    val mailboxTimeCountAgent    = if (config.mailboxTimeCount) mailboxTimeCount(jars) else None
-    val stashedMessagesAgent     = if (config.stashedMessages) stashedMessages(jars) else None
-    val receivedMessagesAgent    = if (config.receivedMessages) receivedMessages(jars) else None
-    val processedMessagesAgent   = if (config.processedMessages) processedMessages(jars) else None
-    val failedMessagesAgent      = if (config.failedMessages) failedMessages(jars) else None
-    val processingTimeMinAgent   = if (config.processingTimeMin) processingTimeMin(jars) else None
-    val processingTimeMaxAgent   = if (config.processingTimeMax) processingTimeMax(jars) else None
-    val processingTimeSumAgent   = if (config.processingTimeSum) processingTimeSum(jars) else None
-    val processingTimeCountAgent = if (config.processingTimeCount) processingTimeCount(jars) else None
-    val sentMessagesAgent        = if (config.sentMessages) sentMessages(jars) else None
-    val droppedMessagesAgent     = if (config.droppedMessages) droppedMessages(jars) else None
+  def agent: Agent = {
 
-    val resultantAgent = mailboxSizeAgent.getOrElse(Agent.empty) ++
-      mailboxTimeMinAgent.getOrElse(Agent.empty) ++
-      mailboxTimeMaxAgent.getOrElse(Agent.empty) ++
-      mailboxTimeSumAgent.getOrElse(Agent.empty) ++
-      mailboxTimeCountAgent.getOrElse(Agent.empty) ++
-      stashedMessagesAgent.getOrElse(Agent.empty) ++
-      receivedMessagesAgent.getOrElse(Agent.empty) ++
-      processedMessagesAgent.getOrElse(Agent.empty) ++
-      failedMessagesAgent.getOrElse(Agent.empty) ++
-      processingTimeMinAgent.getOrElse(Agent.empty) ++
-      processingTimeMaxAgent.getOrElse(Agent.empty) ++
-      processingTimeSumAgent.getOrElse(Agent.empty) ++
-      processingTimeCountAgent.getOrElse(Agent.empty) ++
-      sentMessagesAgent.getOrElse(Agent.empty) ++
-      droppedMessagesAgent.getOrElse(Agent.empty)
-
-    val enabled = AkkaActorModule.Impl(
-      mailboxSize = mailboxSizeAgent.isDefined,
-      mailboxTimeMin = mailboxTimeMinAgent.isDefined,
-      mailboxTimeMax = mailboxTimeMaxAgent.isDefined,
-      mailboxTimeSum = mailboxTimeSumAgent.isDefined,
-      mailboxTimeCount = mailboxTimeCountAgent.isDefined,
-      stashedMessages = stashedMessagesAgent.isDefined,
-      receivedMessages = receivedMessagesAgent.isDefined,
-      processedMessages = processedMessagesAgent.isDefined,
-      failedMessages = failedMessagesAgent.isDefined,
-      processingTimeMin = processingTimeMinAgent.isDefined,
-      processingTimeMax = processingTimeMaxAgent.isDefined,
-      processingTimeSum = processingTimeSumAgent.isDefined,
-      processingTimeCount = processingTimeCountAgent.isDefined,
-      sentMessages = sentMessagesAgent.isDefined,
-      droppedMessages = droppedMessagesAgent.isDefined
-    )
-
-    (resultantAgent, enabled)
-  }
-
-  def agent(configuration: Config): Agent = {
-    val config = module.enabled(configuration)
-
-    val mailboxEnabled =
-      config.mailboxTimeCount || config.mailboxTimeSum || config.mailboxTimeMin || config.mailboxTimeMax
-
-    val processingTimeEnabled =
-      config.processingTimeMin || config.processingTimeMax || config.processingTimeCount || config.processingTimeSum
+    val config = module.enabled
 
     List(
-      sharedInstrumentation.onCondition(config.mailboxSize),
-      (sharedInstrumentation ++ mailboxInstrumentation).onCondition(mailboxEnabled),
-      (sharedInstrumentation ++ classicStashInstrumentationAgent ++ stashBufferImplementation)
-        .onCondition(config.stashedMessages),
-      sharedInstrumentation.onCondition(config.receivedMessages),
-      sharedInstrumentation.onCondition(config.processedMessages),
-      (sharedInstrumentation ++ abstractSupervisionInstrumentation).onCondition(config.failedMessages),
-      sharedInstrumentation.onCondition(processingTimeEnabled),
-      (sharedInstrumentation ++ mailboxTimeSendMessageIncInstrumentation).onCondition(config.sentMessages),
-      (sharedInstrumentation ++ boundedQueueAgent ++ initDroppedMessages).onCondition(config.droppedMessages)
+      mailboxSize.onCondition(config.mailboxSize),
+      mailboxTimeMin.onCondition(config.mailboxTimeMin),
+      mailboxTimeMax.onCondition(config.mailboxTimeMax),
+      mailboxTimeSum.onCondition(config.mailboxTimeSum),
+      mailboxTimeCount.onCondition(config.mailboxTimeCount),
+      stashedMessages.onCondition(config.stashedMessages),
+      receivedMessages.onCondition(config.receivedMessages),
+      processedMessages.onCondition(config.processedMessages),
+      failedMessages.onCondition(config.failedMessages),
+      processingTimeMin.onCondition(config.processingTimeMin),
+      processingTimeMax.onCondition(config.processingTimeMax),
+      processingTimeSum.onCondition(config.processingTimeSum),
+      processingTimeCount.onCondition(config.processingTimeCount),
+      sentMessages.onCondition(config.sentMessages),
+      droppedMessages.onCondition(config.droppedMessages)
     ).reduce(_ ++ _)
   }
 
-  lazy val mailboxSize: AkkaActorModule.Jars[Version] => Option[Agent] = versions =>
-    ifSupported(versions)(sharedInstrumentation)
+  lazy val mailboxSize: Agent = sharedInstrumentation
 
-  lazy val commonMailboxInstrumentation: AkkaActorModule.Jars[Version] => Option[Agent] = versions =>
-    ifSupported(versions)(sharedInstrumentation ++ mailboxInstrumentation)
+  lazy val mailboxTimeMin: Agent =
+    sharedInstrumentation ++ mailboxInstrumentation
 
-  lazy val mailboxTimeMin: AkkaActorModule.AkkaActorJars[Version] => Option[Agent] = commonMailboxInstrumentation
+  lazy val mailboxTimeMax: Agent =
+    sharedInstrumentation ++ mailboxInstrumentation
 
-  lazy val mailboxTimeMax: AkkaActorModule.AkkaActorJars[Version] => Option[Agent] = commonMailboxInstrumentation
+  lazy val mailboxTimeSum: Agent =
+    sharedInstrumentation ++ mailboxInstrumentation
 
-  lazy val mailboxTimeSum: AkkaActorModule.AkkaActorJars[Version] => Option[Agent] = commonMailboxInstrumentation
+  lazy val mailboxTimeCount: Agent =
+    sharedInstrumentation ++ mailboxInstrumentation
 
-  lazy val mailboxTimeCount: AkkaActorModule.AkkaActorJars[Version] => Option[Agent] = commonMailboxInstrumentation
+  lazy val stashedMessages: Agent =
+    sharedInstrumentation ++ classicStashInstrumentationAgent ++ stashBufferImplementation
 
-  lazy val stashedMessages: AkkaActorModule.Jars[Version] => Option[Agent] = versions =>
-    ifSupported(versions)(sharedInstrumentation ++ classicStashInstrumentationAgent ++ stashBufferImplementation)
+  lazy val receivedMessages: Agent = sharedInstrumentation
 
-  lazy val receivedMessages: AkkaActorModule.Jars[Version] => Option[Agent] = versions =>
-    ifSupported(versions)(sharedInstrumentation)
+  lazy val processedMessages: Agent = sharedInstrumentation
 
-  lazy val processedMessages: AkkaActorModule.Jars[Version] => Option[Agent] = versions =>
-    ifSupported(versions)(sharedInstrumentation)
+  lazy val failedMessages: Agent = sharedInstrumentation ++ abstractSupervisionInstrumentation
 
-  lazy val failedMessages: AkkaActorModule.Jars[Version] => Option[Agent] = versions =>
-    ifSupported(versions)(sharedInstrumentation ++ abstractSupervisionInstrumentation)
+  lazy val processingTimeMin: Agent = sharedInstrumentation
 
-  lazy val processingTimeMin: AkkaActorModule.Jars[Version] => Option[Agent] = versions =>
-    ifSupported(versions)(sharedInstrumentation)
+  lazy val processingTimeMax: Agent = sharedInstrumentation
 
-  lazy val processingTimeMax: AkkaActorModule.Jars[Version] => Option[Agent] = versions =>
-    ifSupported(versions)(sharedInstrumentation)
+  lazy val processingTimeSum: Agent = sharedInstrumentation
 
-  lazy val processingTimeSum: AkkaActorModule.Jars[Version] => Option[Agent] = versions =>
-    ifSupported(versions)(sharedInstrumentation)
+  lazy val processingTimeCount: Agent = sharedInstrumentation
 
-  lazy val processingTimeCount: AkkaActorModule.Jars[Version] => Option[Agent] = versions =>
-    ifSupported(versions)(sharedInstrumentation)
+  lazy val sentMessages: Agent = sharedInstrumentation ++ mailboxTimeSendMessageIncInstrumentation
 
-  lazy val sentMessages: AkkaActorModule.Jars[Version] => Option[Agent] = versions =>
-    ifSupported(versions)(sharedInstrumentation ++ mailboxTimeSendMessageIncInstrumentation)
-
-  lazy val droppedMessages: AkkaActorModule.Jars[Version] => Option[Agent] = versions =>
-    ifSupported(versions)(sharedInstrumentation ++ boundedQueueAgent ++ initDroppedMessages)
-
-  private def ifSupported(versions: AkkaActorModule.Jars[Version])(agent: => Agent): Option[Agent] =
-    if (version26x.supports(versions.akkaActor) && version26x.supports(versions.akkaActorTyped)) {
-      Some(agent)
-    } else None
+  lazy val droppedMessages: Agent = sharedInstrumentation ++ boundedQueueAgent ++ initDroppedMessages
 
   /**
    * Instrumentation for classic stash

@@ -1,7 +1,6 @@
 package io.scalac.mesmer.otelextension;
 
 import com.google.auto.service.AutoService;
-import com.typesafe.config.ConfigFactory;
 import io.opentelemetry.javaagent.extension.instrumentation.InstrumentationModule;
 import io.opentelemetry.javaagent.extension.instrumentation.TypeInstrumentation;
 import io.scalac.mesmer.agent.akka.persistence.AkkaPersistenceAgent;
@@ -15,6 +14,6 @@ public class MesmerAkkaPersistenceInstrumentationModule extends InstrumentationM
 
   @Override
   public List<TypeInstrumentation> typeInstrumentations() {
-    return AkkaPersistenceAgent.agent(ConfigFactory.load()).asOtelTypeInstrumentations();
+    return AkkaPersistenceAgent.agent().asOtelTypeInstrumentations();
   }
 }
