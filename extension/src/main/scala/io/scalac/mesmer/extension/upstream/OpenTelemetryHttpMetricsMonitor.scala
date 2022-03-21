@@ -2,6 +2,7 @@ package io.scalac.mesmer.extension.upstream
 
 import com.typesafe.config.Config
 import io.opentelemetry.api.common
+import io.opentelemetry.api.metrics.LongHistogram
 import io.opentelemetry.api.metrics.Meter
 
 import io.scalac.mesmer.core.config.MesmerConfiguration
@@ -57,7 +58,7 @@ final class OpenTelemetryHttpMetricsMonitor(
 
   import HttpMetricsMonitor._
 
-  private lazy val requestTimeRequest = meter
+  private lazy val requestTimeRequest: LongHistogram = meter
     .histogramBuilder(metricNames.requestDuration)
     .ofLongs()
     .setDescription("Amount of ms request took to complete")
