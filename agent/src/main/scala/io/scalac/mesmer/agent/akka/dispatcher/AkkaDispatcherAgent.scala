@@ -5,11 +5,14 @@ import io.scalac.mesmer.agent.util.i13n._
 import io.scalac.mesmer.core.akka.version26x
 import io.scalac.mesmer.core.model.Version
 import io.scalac.mesmer.core.module.AkkaDispatcherModule
+import io.scalac.mesmer.core.module.AkkaDispatcherModule.AkkaDispatcherMinMaxThreadsConfigMetricsDef
+import io.scalac.mesmer.core.module.AkkaDispatcherModule.AkkaDispatcherThreadCountMetricsDef
 import io.scalac.mesmer.core.module.AkkaDispatcherModule.Impl
 
 object AkkaDispatcherAgent
     extends InstrumentModuleFactory(AkkaDispatcherModule)
-    with AkkaDispatcherModule.Metrics[AkkaDispatcherModule.Jars[Version] => Option[Agent]] {
+    with AkkaDispatcherMinMaxThreadsConfigMetricsDef[AkkaDispatcherModule.Jars[Version] => Option[Agent]]
+    with AkkaDispatcherThreadCountMetricsDef[AkkaDispatcherModule.Jars[Version] => Option[Agent]] {
 
   /**
    * @param config
@@ -27,14 +30,20 @@ object AkkaDispatcherAgent
     val minThreadsAgent        = if (config.minThreads) minThreads(jars) else None
     val maxThreadsAgent        = if (config.maxThreads) maxThreads(jars) else None
     val parallelismFactorAgent = if (config.parallelismFactor) parallelismFactor(jars) else None
+    val totalThreadsAgent      = if (config.totalThreads) totalThreads(jars) else None
+    val activeThreadsAgent     = if (config.totalThreads) activeThreads(jars) else None
     val resultantAgent = minThreadsAgent.getOrElse(Agent.empty) ++
       maxThreadsAgent.getOrElse(Agent.empty) ++
-      parallelismFactorAgent.getOrElse(Agent.empty)
+      parallelismFactorAgent.getOrElse(Agent.empty) ++
+      totalThreadsAgent.getOrElse(Agent.empty) ++
+      activeThreadsAgent.getOrElse(Agent.empty)
 
     val enabled = Impl[Boolean](
       minThreads = minThreadsAgent.isDefined,
       maxThreads = maxThreadsAgent.isDefined,
-      parallelismFactor = parallelismFactorAgent.isDefined
+      parallelismFactor = parallelismFactorAgent.isDefined,
+      totalThreads = totalThreadsAgent.isDefined,
+      activeThreads = activeThreadsAgent.isDefined
     )
     (resultantAgent, enabled)
   }
@@ -49,6 +58,11 @@ object AkkaDispatcherAgent
       instrument("akka.dispatch.ExecutorServiceConfigurator".fqcn)
         .visit(ExecutorServiceConfiguratorConstructorAdvice, constructor)
     )
+  private lazy val dispatcherExecuteTaskEvent =
+    Agent(
+      instrument("akka.dispatch.Dispatcher".fqcnWithTags("metrics"))
+        .visit(DispatcherExecuteTaskAdvice, "executeTask")
+    )
 
   val minThreads: AkkaDispatcherModule.AkkaDispatcherJars[Version] => Option[Agent] =
     versions => ifSupported(versions)(dispatcherConfigEvent)
@@ -58,4 +72,10 @@ object AkkaDispatcherAgent
 
   val parallelismFactor: AkkaDispatcherModule.AkkaDispatcherJars[Version] => Option[Agent] =
     versions => ifSupported(versions)(dispatcherConfigEvent)
+
+  val totalThreads: AkkaDispatcherModule.AkkaDispatcherJars[Version] => Option[Agent] =
+    versions => ifSupported(versions)(dispatcherExecuteTaskEvent)
+
+  val activeThreads: AkkaDispatcherModule.AkkaDispatcherJars[Version] => Option[Agent] =
+    versions => ifSupported(versions)(dispatcherExecuteTaskEvent)
 }

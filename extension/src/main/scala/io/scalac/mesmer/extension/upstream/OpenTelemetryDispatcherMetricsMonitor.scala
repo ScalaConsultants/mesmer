@@ -6,7 +6,7 @@ import io.opentelemetry.api.metrics.Meter
 
 import io.scalac.mesmer.core.config.MesmerConfiguration
 import io.scalac.mesmer.core.module.AkkaDispatcherModule
-import io.scalac.mesmer.extension.metric.DispatcherStaticMetricsMonitor
+import io.scalac.mesmer.extension.metric.DispatcherMetricsMonitor
 import io.scalac.mesmer.extension.metric.Histogram
 import io.scalac.mesmer.extension.metric.RegisterRoot
 import io.scalac.mesmer.extension.upstream.OpenTelemetryDispatcherMetricsMonitor.MetricNames
@@ -17,7 +17,9 @@ object OpenTelemetryDispatcherMetricsMonitor {
   final case class MetricNames(
     minThreads: String,
     maxThreads: String,
-    parallelismFactor: String
+    parallelismFactor: String,
+    executorActiveThreads: String,
+    executorTotalThreads: String
   )
 
   object MetricNames extends MesmerConfiguration[MetricNames] {
@@ -25,7 +27,9 @@ object OpenTelemetryDispatcherMetricsMonitor {
       MetricNames(
         "akka_dispatcher_threads_min",
         "akka_dispatcher_threads_max",
-        "akka_dispatcher_parallelism_factor"
+        "akka_dispatcher_parallelism_factor",
+        "akka_dispatcher_executor_active_threads",
+        "akka_dispatcher_executor_total_threads"
       )
 
     protected val mesmerConfig: String = "metrics.dispatcher-metrics"
@@ -41,11 +45,19 @@ object OpenTelemetryDispatcherMetricsMonitor {
       val parallelismFactor = config
         .tryValue("parallelism-factor")(_.getString)
         .getOrElse(defaultConfig.parallelismFactor)
+      val executorActiveThreads = config
+        .tryValue("executor-active-threads")(_.getString)
+        .getOrElse(defaultConfig.executorActiveThreads)
+      val executorTotalThreads = config
+        .tryValue("executor-total-threads")(_.getString)
+        .getOrElse(defaultConfig.executorTotalThreads)
 
       MetricNames(
         minThreads = minThreads,
         maxThreads = maxThreads,
-        parallelismFactor = parallelismFactor
+        parallelismFactor = parallelismFactor,
+        executorActiveThreads = executorActiveThreads,
+        executorTotalThreads = executorTotalThreads
       )
     }
 
@@ -53,7 +65,8 @@ object OpenTelemetryDispatcherMetricsMonitor {
 
   def apply(
     meter: Meter,
-    moduleConfig: AkkaDispatcherModule.AkkaDispatcherMinMaxThreadsConfigMetricsDef[Boolean],
+    moduleConfig: AkkaDispatcherModule.AkkaDispatcherMinMaxThreadsConfigMetricsDef[Boolean]
+      with AkkaDispatcherModule.AkkaDispatcherThreadCountMetricsDef[Boolean],
     config: Config
   ): OpenTelemetryDispatcherMetricsMonitor =
     new OpenTelemetryDispatcherMetricsMonitor(meter, moduleConfig, MetricNames.fromConfig(config))
@@ -61,11 +74,12 @@ object OpenTelemetryDispatcherMetricsMonitor {
 
 final class OpenTelemetryDispatcherMetricsMonitor(
   meter: Meter,
-  moduleConfig: AkkaDispatcherModule.AkkaDispatcherMinMaxThreadsConfigMetricsDef[Boolean],
+  moduleConfig: AkkaDispatcherModule.AkkaDispatcherMinMaxThreadsConfigMetricsDef[Boolean]
+    with AkkaDispatcherModule.AkkaDispatcherThreadCountMetricsDef[Boolean],
   metricNames: MetricNames
-) extends DispatcherStaticMetricsMonitor {
+) extends DispatcherMetricsMonitor {
 
-  import DispatcherStaticMetricsMonitor._
+  import DispatcherMetricsMonitor._
 
   private lazy val minThreadsHistogram = meter
     .histogramBuilder(metricNames.minThreads)
@@ -83,6 +97,18 @@ final class OpenTelemetryDispatcherMetricsMonitor(
     .histogramBuilder(metricNames.parallelismFactor)
     .ofLongs()
     .setDescription("Factor for calculating number of threads from available processors")
+    .build()
+
+  private lazy val executorActiveThreadsHistogram = meter
+    .histogramBuilder(metricNames.executorActiveThreads)
+    .ofLongs()
+    .setDescription("Active thread count of the dispatcher executor")
+    .build()
+
+  private lazy val executorTotalThreadsHistogram = meter
+    .histogramBuilder(metricNames.executorTotalThreads)
+    .ofLongs()
+    .setDescription("Total thread count of the dispatcher executor")
     .build()
 
   def bind(attributes: Attributes): BoundMonitor = new DispatcherMetricsBoundMonitor(attributes)
@@ -104,5 +130,10 @@ final class OpenTelemetryDispatcherMetricsMonitor(
     lazy val parallelismFactor: Histogram[Long] with Instrument[Long] =
       if (moduleConfig.parallelismFactor) histogram(parallelismFactorHistogram, otAttributes) else noopHistogram[Long]
 
+    lazy val activeThreads: Histogram[Long] with Instrument[Long] =
+      if (moduleConfig.activeThreads) histogram(executorActiveThreadsHistogram, otAttributes) else noopHistogram[Long]
+
+    lazy val totalThreads: Histogram[Long] with Instrument[Long] =
+      if (moduleConfig.totalThreads) histogram(executorTotalThreadsHistogram, otAttributes) else noopHistogram[Long]
   }
 }

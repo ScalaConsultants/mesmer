@@ -15,14 +15,13 @@ sealed trait DispatcherEvent extends AbstractEvent {
 }
 
 object DispatcherEvent {
-  sealed trait ExecutorConfigEvent extends DispatcherEvent {
-    val minThreads: Int
-    val maxThreads: Int
-    val parallelismFactor: Double
+  sealed trait ExecutorEvent extends DispatcherEvent {
+    val executor: String
   }
-  case class SetDefaultExecutorConfig(minThreads: Int, maxThreads: Int, parallelismFactor: Double)
-      extends ExecutorConfigEvent
+  case class ExecutorConfigEvent(executor: String, minThreads: Int, maxThreads: Int, parallelismFactor: Double)
+      extends ExecutorEvent
 
+  case class ExecuteTaskEvent(executor: String, activeThreads: Int, totalThreads: Int) extends ExecutorEvent
 }
 
 sealed trait ActorEvent extends Any with AbstractEvent {

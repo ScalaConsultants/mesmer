@@ -21,6 +21,8 @@ package object model {
   sealed trait MinThreadsTag    extends ModelTag
   sealed trait MaxThreadsTag    extends ModelTag
   sealed trait ParallelismTag   extends ModelTag
+  sealed trait ActiveThreadsTag extends ModelTag
+  sealed trait TotalThreadsTag  extends ModelTag
   sealed trait NodeTag          extends ModelTag
   sealed trait InterfaceTag     extends ModelTag
   sealed trait PortTag          extends ModelTag
@@ -31,9 +33,12 @@ package object model {
   sealed trait PersistenceIdTag extends ModelTag
   sealed trait ActorPathTag     extends ModelTag
 
+  type ExecutorType  = String @@ ExecutorTag
   type MinThreads    = Int @@ MinThreadsTag
   type MaxThreads    = Int @@ MaxThreadsTag
   type Parallelism   = Double @@ ParallelismTag
+  type ActiveThreads = Int @@ ActiveThreadsTag
+  type TotalThreads  = Int @@ TotalThreadsTag
   type Node          = String @@ NodeTag
   type Interface     = String @@ InterfaceTag
   type Port          = Int @@ PortTag
@@ -46,12 +51,18 @@ package object model {
   type ActorKey      = ActorPath
   type RawAttributes = Seq[(String, String)]
 
+  implicit val executorAttributeSerializer: AttributeSerializer[ExecutorType] = executorType =>
+    Seq("executorType" -> executorType.unwrap)
   implicit val minThreadsAttributeSerializer: AttributeSerializer[MinThreads] = minThreads =>
     Seq("minThreads" -> minThreads.unwrap.toString)
   implicit val maxThreadsAttributeSerializer: AttributeSerializer[MaxThreads] = maxThreads =>
     Seq("maxThreads" -> maxThreads.unwrap.toString)
   implicit val parallelismAttributeSerializer: AttributeSerializer[Parallelism] = parallelism =>
     Seq("parallelism" -> parallelism.unwrap.toString)
+  implicit val activeThreadsAttributeSerializer: AttributeSerializer[ActiveThreads] = activeThreads =>
+    Seq("activeThreads" -> activeThreads.unwrap.toString)
+  implicit val totalThreadsAttributeSerializer: AttributeSerializer[TotalThreads] = totalThreads =>
+    Seq("totalThreads" -> totalThreads.unwrap.toString)
 
   implicit val nodeAttributeSerializer: AttributeSerializer[Node] = node => Seq("node" -> node.unwrap)
   implicit val interfaceAttributeSerializer: AttributeSerializer[Interface] = interface =>

@@ -8,8 +8,8 @@ package object metric {
      TODO In Scala 3 we'll have top-level to help us do that.
    */
 
-  type DispatcherStaticMetricsMonitor =
-    Bindable[DispatcherStaticMetricsMonitor.Attributes, DispatcherStaticMetricsMonitor.BoundMonitor]
+  type DispatcherMetricsMonitor =
+    Bindable[DispatcherMetricsMonitor.Attributes, DispatcherMetricsMonitor.BoundMonitor]
   type ActorMetricsMonitor = EmptyBind[ActorMetricsMonitor.BoundMonitor]
   type HttpMetricsMonitor  = Bindable[HttpMetricsMonitor.Attributes, HttpMetricsMonitor.BoundMonitor]
   type HttpConnectionMetricsMonitor =
