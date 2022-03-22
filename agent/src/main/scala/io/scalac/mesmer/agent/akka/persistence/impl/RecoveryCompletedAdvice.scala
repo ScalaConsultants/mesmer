@@ -5,9 +5,11 @@ import java.lang.invoke.MethodHandle
 import _root_.akka.actor.typed.scaladsl.ActorContext
 import _root_.akka.persistence.typed.PersistenceId
 import io.opentelemetry.api.common.Attributes
+import io.opentelemetry.instrumentation.api.field.VirtualField
 import net.bytebuddy.asm.Advice._
 
 import io.scalac.mesmer.agent.akka.persistence.PersistenceInstruments
+import io.scalac.mesmer.agent.akka.persistence.RecoveryEventStartTime
 import io.scalac.mesmer.core.event.EventBus
 import io.scalac.mesmer.core.event.PersistenceEvent.RecoveryFinished
 import io.scalac.mesmer.core.model._
@@ -34,10 +36,16 @@ object RecoveryCompletedAdvice {
 
     val persistenceId = persistenceIdHandle.invoke(self).asInstanceOf[PersistenceId]
 
+    val recoveryFinishTimestamp = Timestamp.create()
     EventBus(actorContext.system)
       .publishEvent(
-        RecoveryFinished(path, persistenceId.id, Timestamp.create())
+        RecoveryFinished(path, persistenceId.id, recoveryFinishTimestamp)
       )
+
+    val recoveryStart: RecoveryEventStartTime =
+      VirtualField.find(classOf[ActorContext[_]], classOf[RecoveryEventStartTime]).get(actorContext)
+
+    val duration = Timestamp.interval(recoveryStart.startTime, recoveryFinishTimestamp)
 
     // TODO: I'm skipping the "node" attribute here, but afaik it was optional anyway.
     val attributes = Attributes
@@ -45,7 +53,9 @@ object RecoveryCompletedAdvice {
       .put("path", path)
       .put("persistence_id", persistenceId.id)
       .build()
+
     PersistenceInstruments.recoveryTotalCounter.add(1, attributes)
+    PersistenceInstruments.recoveryTimeRecorder.record(duration.toMillis, attributes)
 
   }
 }
