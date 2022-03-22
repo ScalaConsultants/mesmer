@@ -22,8 +22,8 @@ object InstallAgent {
   def allInstrumentations: Agent = AkkaActorAgent.agent ++
     AkkaHttpAgent.agent ++
     AkkaPersistenceAgent.agent ++
-    AkkaStreamAgent.agent
-    //++ AkkaDispatcherAgent.defaultAgent(info)
+    AkkaStreamAgent.agent ++
+    AkkaDispatcherAgent.agent
 }
 
 abstract class InstallAgent extends TestSuite with BeforeAndAfterAll {

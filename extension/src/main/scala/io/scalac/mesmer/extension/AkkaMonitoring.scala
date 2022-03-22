@@ -302,11 +302,7 @@ final class AkkaMonitoring(system: ActorSystem[_])(implicit otelLoader: OpenTele
   }
 
   private def startDispatcherMonitor(): Unit = {
-    reloadGlobalConfig(AkkaDispatcherModule)
-    val akkaDispatcherConfig =
-      AkkaDispatcherModule.globalConfiguration.map { config =>
-        config.combine(AkkaDispatcherModule.enabled(actorSystemConfig))
-      }
+    val akkaDispatcherConfig = AkkaDispatcherModule.enabled
     startWithConfig[AkkaDispatcherModule.type](AkkaDispatcherModule, akkaDispatcherConfig) { moduleConfig =>
       val openTelemetryDispatcherMonitor = OpenTelemetryDispatcherMetricsMonitor(meter, moduleConfig, actorSystemConfig)
       system.systemActorOf(

@@ -1,11 +1,6 @@
 package io.scalac.mesmer.core.module
-
-import com.typesafe.config.{ Config => TypesafeConfig }
-
-import io.scalac.mesmer.core.model.Version
 import io.scalac.mesmer.core.typeclasses.Combine
 import io.scalac.mesmer.core.typeclasses.Traverse
-import io.scalac.mesmer.core.util.LibraryInfo.LibraryInfo
 
 trait AkkaDispatcherConfigMetricsModule extends MetricsModule {
   this: Module =>
@@ -34,7 +29,6 @@ trait AkkaDispatcherThreadCountMetricsModule extends MetricsModule {
 
 object AkkaDispatcherModule
     extends MesmerModule
-    with RegistersGlobalConfiguration
     with AkkaDispatcherConfigMetricsModule
     with AkkaDispatcherThreadCountMetricsModule {
 
@@ -42,58 +36,21 @@ object AkkaDispatcherModule
       extends AkkaDispatcherMinMaxThreadsConfigMetricsDef[T]
       with AkkaDispatcherThreadCountMetricsDef[T]
 
-  final case class AkkaDispatcherJars[T](akkaActor: T, akkaActorTyped: T) extends Module.CommonJars[T]
-
   override type Metrics[T] = AkkaDispatcherMinMaxThreadsConfigMetricsDef[T] with AkkaDispatcherThreadCountMetricsDef[T]
   override type All[T]     = Metrics[T]
-  override type Jars[T]    = AkkaDispatcherJars[T]
 
   override def defaultConfig: Config = Impl[Boolean](true, true, true, true, true)
 
-  override protected def extractFromConfig(config: TypesafeConfig): Config = {
-    val moduleEnabled = config
-      .tryValue("enabled")(_.getBoolean)
-      .getOrElse(true)
-
-    if (moduleEnabled) {
-
-      val minThreads = config
-        .tryValue("min-threads")(_.getBoolean)
-        .getOrElse(defaultConfig.minThreads)
-
-      val maxThreads = config
-        .tryValue("max-threads")(_.getBoolean)
-        .getOrElse(defaultConfig.maxThreads)
-
-      val parallelismFactor = config
-        .tryValue("parallelism-factor")(_.getBoolean)
-        .getOrElse(defaultConfig.parallelismFactor)
-
-      val totalThreads = config
-        .tryValue("total-threads")(_.getBoolean)
-        .getOrElse(defaultConfig.totalThreads)
-
-      val activeThreads = config
-        .tryValue("active-threads")(_.getBoolean)
-        .getOrElse(defaultConfig.activeThreads)
-
-      Impl[Boolean](
-        minThreads = minThreads,
-        maxThreads = maxThreads,
-        parallelismFactor = parallelismFactor,
-        totalThreads = totalThreads,
-        activeThreads = activeThreads
-      )
-    } else Impl(false, false, false, false, false)
-  }
+  protected def fromMap(properties: Map[String, Boolean]): AkkaDispatcherModule.Config =
+    Impl(
+      minThreads = properties.getOrElse("min-threads", defaultConfig.minThreads),
+      maxThreads = properties.getOrElse("max-threads", defaultConfig.maxThreads),
+      parallelismFactor = properties.getOrElse("parallelism-factor", defaultConfig.parallelismFactor),
+      totalThreads = properties.getOrElse("total-threads", defaultConfig.totalThreads),
+      activeThreads = properties.getOrElse("active-threads", defaultConfig.activeThreads)
+    )
 
   val name: String = "akka-dispatcher"
-
-  override def jarsFromLibraryInfo(info: LibraryInfo): Option[Jars[Version]] =
-    for {
-      actor      <- info.get(JarNames.akkaActor)
-      actorTyped <- info.get(JarNames.akkaActorTyped)
-    } yield AkkaDispatcherJars(actor, actorTyped)
 
   implicit val combineConfig: Combine[All[Boolean]] = (first, second) =>
     Impl(

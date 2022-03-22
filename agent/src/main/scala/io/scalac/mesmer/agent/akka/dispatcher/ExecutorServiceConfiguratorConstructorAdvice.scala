@@ -5,7 +5,7 @@ import akka.dispatch.DispatcherPrerequisites
 import net.bytebuddy.asm.Advice.Argument
 import net.bytebuddy.asm.Advice.OnMethodEnter
 
-import io.scalac.mesmer.core.event.DispatcherEvent.SetDefaultExecutorConfig
+import io.scalac.mesmer.core.event.DispatcherEvent.ExecutorConfigEvent
 import io.scalac.mesmer.core.event.EventBus
 
 object ExecutorServiceConfiguratorConstructorAdvice {
@@ -21,14 +21,16 @@ object ExecutorServiceConfiguratorConstructorAdvice {
       val event = config.getString("akka.default-dispatcher.executor") match {
         case "thread-pool-executor" =>
           val executorConfig = config.getConfig(s"akka.default-dispatcher.thread-pool-executor")
-          SetDefaultExecutorConfig(
+          ExecutorConfigEvent(
+            executor = "thread-pool-executor",
             minThreads = executorConfig.getInt("core-pool-size-min"),
             maxThreads = executorConfig.getInt("core-pool-size-max"),
             parallelismFactor = executorConfig.getDouble("core-pool-size-factor")
           )
         case executor =>
           val executorConfig = config.getConfig(s"akka.default-dispatcher.$executor")
-          SetDefaultExecutorConfig(
+          ExecutorConfigEvent(
+            executor = executor,
             minThreads = executorConfig.getInt("parallelism-min"),
             maxThreads = executorConfig.getInt("parallelism-max"),
             parallelismFactor = executorConfig.getDouble("parallelism-factor")

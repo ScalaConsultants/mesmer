@@ -38,8 +38,8 @@ object Boot {
     val allInstrumentations = AkkaPersistenceAgent.agent ++
       AkkaStreamAgent.agent ++
       AkkaHttpAgent.agent ++
-      AkkaActorAgent.agent
-      //++ AkkaDispatcherAgent.initAgent(info, config).getOrElse(Agent.empty)
+      AkkaActorAgent.agent ++
+      AkkaDispatcherAgent.agent
 
     allInstrumentations
       .installOnMesmerAgent(agentBuilder, instrumentation)
