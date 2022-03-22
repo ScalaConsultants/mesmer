@@ -26,8 +26,8 @@ object AkkaDispatcherAgent
 
   private lazy val dispatcherConfigEvent =
     Agent(
-      instrument("akka.dispatch.ExecutorServiceConfigurator".fqcn)
-        .visit(ExecutorServiceConfiguratorConstructorAdvice, constructor)
+      instrument("akka.actor.ActorCell".fqcn)
+        .visit(ActorCellConstructorAdvice, constructor)
     )
   private lazy val dispatcherExecuteTaskEvent =
     Agent(
