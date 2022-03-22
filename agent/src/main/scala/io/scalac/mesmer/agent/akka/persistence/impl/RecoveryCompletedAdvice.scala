@@ -4,8 +4,10 @@ import java.lang.invoke.MethodHandle
 
 import _root_.akka.actor.typed.scaladsl.ActorContext
 import _root_.akka.persistence.typed.PersistenceId
+import io.opentelemetry.api.common.Attributes
 import net.bytebuddy.asm.Advice._
 
+import io.scalac.mesmer.agent.akka.persistence.PersistenceInstruments
 import io.scalac.mesmer.core.event.EventBus
 import io.scalac.mesmer.core.event.PersistenceEvent.RecoveryFinished
 import io.scalac.mesmer.core.model._
@@ -36,6 +38,14 @@ object RecoveryCompletedAdvice {
       .publishEvent(
         RecoveryFinished(path, persistenceId.id, Timestamp.create())
       )
+
+    // TODO: I'm skipping the "node" attribute here, but afaik it was optional anyway.
+    val attributes = Attributes
+      .builder()
+      .put("path", path)
+      .put("persistence_id", persistenceId.id)
+      .build()
+    PersistenceInstruments.recoveryTotalCounter.add(1, attributes)
 
   }
 }

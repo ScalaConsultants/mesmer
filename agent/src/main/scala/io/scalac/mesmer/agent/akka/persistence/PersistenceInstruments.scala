@@ -12,4 +12,14 @@ object PersistenceInstruments {
     .counterBuilder("persistence.new.snapshot.count")
     .setDescription("Amount of snapshots created")
     .build()
+
+  val recoveryTotalCounter: LongCounter = meter
+    .counterBuilder("persistence.new.recovery.count")
+    .setDescription("Amount of recoveries")
+    .build()
+
+  lazy val persistentEventTotalCounter: LongCounter = meter
+    .counterBuilder("persistence.new.event.count")
+    .setDescription("Amount of persist events")
+    .build()
 }
