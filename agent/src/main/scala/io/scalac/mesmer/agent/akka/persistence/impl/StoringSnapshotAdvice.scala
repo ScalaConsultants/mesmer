@@ -3,8 +3,10 @@ package io.scalac.mesmer.agent.akka.persistence.impl
 import akka.actor.typed.scaladsl.AbstractBehavior
 import akka.actor.typed.scaladsl.ActorContext
 import akka.persistence.SaveSnapshotSuccess
+import io.opentelemetry.api.common.Attributes
 import net.bytebuddy.asm.Advice._
 
+import io.scalac.mesmer.agent.akka.persistence.PersistenceInstruments
 import io.scalac.mesmer.core.event.EventBus
 import io.scalac.mesmer.core.event.PersistenceEvent.SnapshotCreated
 import io.scalac.mesmer.core.model._
@@ -34,6 +36,15 @@ object StoringSnapshotAdvice {
               Timestamp.create()
             )
           )
+
+        // TODO: I'm skipping the "node" attribute here, but afaik it was optional anyway.
+        val attributes = Attributes
+          .builder()
+          .put("path", context.self.path.toPath)
+          .put("persistence_id", meta.persistenceId)
+          .build()
+
+        PersistenceInstruments.snapshotCounter.add(1, attributes)
       case _ =>
     }
   }
