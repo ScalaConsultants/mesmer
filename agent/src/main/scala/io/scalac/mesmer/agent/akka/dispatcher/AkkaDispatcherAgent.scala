@@ -31,7 +31,7 @@ object AkkaDispatcherAgent
     )
   private lazy val dispatcherExecuteTaskEvent =
     Agent(
-      instrument("akka.dispatch.Dispatcher".fqcnWithTags("metrics"))
+      instrument("akka.dispatch.Dispatcher".fqcn)
         .visit(DispatcherExecuteTaskAdvice, "executeTask")
     )
 
