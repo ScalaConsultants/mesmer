@@ -10,6 +10,8 @@ import net.bytebuddy.asm.Advice.FieldValue
 import net.bytebuddy.asm.Advice.OnMethodExit
 import net.bytebuddy.asm.Advice.This
 
+import scala.util.Try
+
 import io.scalac.mesmer.core.event.DispatcherEvent.ExecuteTaskEvent
 import io.scalac.mesmer.core.event.EventBus
 
@@ -21,7 +23,7 @@ object DispatcherExecuteTaskAdvice {
   ): Unit =
     self match {
       case dispatcher: Dispatcher if dispatcher.id == "akka.actor.default-dispatcher" =>
-        DispatcherDecorator.getActorSystem(dispatcher) match {
+        Try(DispatcherDecorator.getActorSystem(dispatcher)).toOption match {
           case Some(system) =>
             val (executor, activeThreads, totalThreads) = executorService.executor match {
               case forkJoinPool: ForkJoinPool =>
@@ -38,14 +40,14 @@ object DispatcherExecuteTaskAdvice {
             }
             val event = ExecuteTaskEvent(executor, activeThreads, totalThreads)
 
-            system.log.debug(s"Sending event: $event")
+            system.log.info(s"Sending event: $event")
             EventBus(system.toTyped).publishEvent(event)
           case None =>
             println(s"No available actor system. Unable to publish event")
         }
 
       case _ =>
-        println(s"Illegal argument: Not a dispatcher")
+      // println(s"Illegal argument: Not a dispatcher")
     }
 
 }
