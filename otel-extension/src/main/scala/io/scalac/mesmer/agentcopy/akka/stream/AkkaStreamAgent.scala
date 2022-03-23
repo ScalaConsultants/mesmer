@@ -27,7 +27,6 @@ object AkkaStreamAgent
   def agent: Agent = {
     val config = module.enabled
 
-    println(s"-=-=-=-=-=-=-=- Enabled config ${config} -=-=-=-=-=-=-=-=-")
     List(
       runningStreamsTotal.onCondition(config.runningStreamsTotal),
       streamActorsTotal.onCondition(config.streamActorsTotal),

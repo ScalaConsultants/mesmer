@@ -15,7 +15,6 @@ import net.bytebuddy.matcher.ElementMatchers;
 import java.util.*;
 
 import static net.bytebuddy.matcher.ElementMatchers.isConstructor;
-import static net.bytebuddy.matcher.ElementMatchers.named;
 
 @AutoService(InstrumentationModule.class)
 public class MesmerAkkaStreamInstrumentationModule extends InstrumentationModule implements InstrumentationModuleMuzzle {
@@ -26,7 +25,6 @@ public class MesmerAkkaStreamInstrumentationModule extends InstrumentationModule
 
     @Override
     public List<TypeInstrumentation> typeInstrumentations() {
-        System.out.println("=-=-=-=-=-=-=-=-=-=-= ADDING STEAMS INSTRUMENTSTION =-=-=-=-=-=-=-=-=-=-=");
 
         TypeInstrumentation connectionConst = new TypeInstrumentation() {
             @Override
