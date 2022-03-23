@@ -36,6 +36,8 @@ object ActorGraphInterpreterDecorator extends Lookup {
     val connections = shell.connections.dropWhile(_ eq null).map { connection =>
       val (push, pull) = ConnectionOps.getAndResetCounterValues(connection)
 
+      println(s"Connection stats: ${subStreamName.subStreamId}, push: $push, pull: $pull")
+
       val in  = connection.inOwner.stageId
       val out = connection.outOwner.stageId
       ConnectionStats(in, out, push, pull)

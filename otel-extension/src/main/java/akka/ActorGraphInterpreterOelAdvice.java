@@ -1,7 +1,7 @@
 package akka;
 
 import akka.actor.Actor;
-import io.scalac.mesmer.agent.akka.stream.impl.ActorGraphInterpreterDecorator;
+import io.scalac.mesmer.agentcopy.akka.stream.impl.ActorGraphInterpreterOtelDecorator;
 import net.bytebuddy.asm.Advice;
 import scala.PartialFunction;
 import scala.runtime.BoxedUnit;
@@ -12,6 +12,6 @@ public class ActorGraphInterpreterOelAdvice {
   public static void overrideReceive(
       @Advice.Return(readOnly = false) PartialFunction<Object, BoxedUnit> result,
       @Advice.This Object self) {
-    result = ActorGraphInterpreterDecorator.addCollectionReceive(result, (Actor) self);
+    result = ActorGraphInterpreterOtelDecorator.addCollectionReceive(result, (Actor) self);
   }
 }

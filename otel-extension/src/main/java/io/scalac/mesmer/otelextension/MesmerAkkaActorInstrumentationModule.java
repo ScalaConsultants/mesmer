@@ -14,6 +14,7 @@ public class MesmerAkkaActorInstrumentationModule extends InstrumentationModule 
 
   @Override
   public List<TypeInstrumentation> typeInstrumentations() {
+    System.out.println("LOADING TYPE INSTRUMENTAION FOR ACOTRS");
     return AkkaActorAgent.agent().asOtelTypeInstrumentations();
   }
 }

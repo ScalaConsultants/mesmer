@@ -1,13 +1,12 @@
-package io.scalac.mesmer.agentcopy.akka.stream.impl
+package akka.stream
 
 import akka.stream.impl.fusing.GraphInterpreter.Connection
 import akka.stream.stage.GraphStageLogic
-
-import io.scalac.mesmer.agent.akka.stream.impl.GraphStageIslandOps.TerminalSink
+import io.scalac.mesmer.agentcopy.akka.stream.impl.GraphStageIslandOps.TerminalSink
 import io.scalac.mesmer.core.model.Tag.StageName
 import io.scalac.mesmer.core.model.Tag.StageName.StreamUniqueStageName
 
-object GraphLogicOps {
+object GraphLogicOtelOps {
   implicit class GraphLogicEnh(private val logic: GraphStageLogic) extends AnyVal {
 
     def inConnections(): Array[Connection] =

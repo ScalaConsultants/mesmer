@@ -1,12 +1,12 @@
 package io.scalac.mesmer.agentcopy.akka.stream.impl
 
-import java.lang.invoke.MethodType.methodType
+import akka.ConnectionOtelOps
 
+import java.lang.invoke.MethodType.methodType
 import akka.MesmerMirrorTypes.GraphInterpreterShellMirror
 import akka.actor.Actor
 import akka.actor.typed.scaladsl.adapter._
-import akka.stream.GraphLogicOps._
-
+import akka.stream.GraphLogicOtelOps._
 import io.scalac.mesmer.core.akka.model.PushMetrics
 import io.scalac.mesmer.core.event.EventBus
 import io.scalac.mesmer.core.event.StreamEvent.LastStreamStats
@@ -18,14 +18,13 @@ import io.scalac.mesmer.core.model.stream.ConnectionStats
 import io.scalac.mesmer.core.model.stream.StageInfo
 import io.scalac.mesmer.core.util.stream.subStreamNameFromActorRef
 
-object ActorGraphInterpreterDecorator extends Lookup {
+object ActorGraphInterpreterOtelDecorator extends Lookup {
 
   private lazy val shells = {
     val actorInterpreter = Class.forName("akka.stream.impl.fusing.ActorGraphInterpreter")
     lookup.findVirtual(actorInterpreter, "activeInterpreters", methodType(classOf[Set[GraphInterpreterShellMirror]]))
   }
 
-  @inline
   private def statsForShell(
     shell: GraphInterpreterShellMirror,
     subStreamName: SubStreamName,
@@ -34,12 +33,16 @@ object ActorGraphInterpreterDecorator extends Lookup {
     var localTerminalFound = terminalFound
 
     val connections = shell.connections.dropWhile(_ eq null).map { connection =>
-      val (push, pull) = ConnectionOps.getAndResetCounterValues(connection)
+      val (push, pull) = ConnectionOtelOps.getAndResetCounterValues(connection)
+
+      println(s"Connection stats: ${subStreamName.subStreamId}, push: $push, pull: $pull")
 
       val in  = connection.inOwner.stageId
       val out = connection.outOwner.stageId
       ConnectionStats(in, out, push, pull)
     }
+
+    println("--------------------------------------")
 
     val stageInfo = new Array[StageInfo](shell.logics.length)
 
@@ -61,7 +64,6 @@ object ActorGraphInterpreterDecorator extends Lookup {
     (stageInfo -> connections, localTerminalFound)
   }
 
-  @inline
   def collectStats(shells: Set[GraphInterpreterShellMirror], subStreamName: SubStreamName): Set[ShellInfo] = {
     var terminalFound = false
 
@@ -72,7 +74,6 @@ object ActorGraphInterpreterDecorator extends Lookup {
     }
   }
 
-  @inline
   def addCollectionReceive(
     receive: Actor.Receive,
     self: Actor

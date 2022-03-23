@@ -155,6 +155,7 @@ lazy val example = (project in file("example"))
     commands += runWithMesmerAgent,
     commands += runWithMesmerStream,
     commands += runWithOtelAgent,
+    commands += runWithOtelStream,
     Universal / mappings += {
       val jar = (agent / assembly).value
       jar -> "mesmer.agent.jar"
@@ -214,8 +215,8 @@ def runWithOtelAgent = Command.command("runWithOtelAgent") { state =>
 //        "-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=*:5555",
         s"-javaagent:/Users/piotrjosiak/scalac/mesmer-akka-agent/monitor-akka-agent.jar",
         s"-javaagent:/Users/piotrjosiak/scalac/mesmer-akka-agent/opentelemetry-javaagent110.jar",
-        s"-Dotel.javaagent.extensions=${(otelExtension / assembly).value.absolutePath}",
-        s"-Dotel.javaagent.extensions=/Users/piotrjosiak/scalac/mesmer-akka-agent/otel-extra-extensions.jar"
+        s"-Dotel.javaagent.extensions=${(otelExtension / assembly).value.absolutePath}"
+//        s"-Dotel.javaagent.extensions=/Users/piotrjosiak/scalac/mesmer-akka-agent/otel-extra-extensions.jar"
       )
     ),
     state
@@ -233,15 +234,16 @@ def runWithOtelStream = Command.command("runWithOtelStream") { state =>
         //        "-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=*:5555",
         s"-javaagent:/Users/piotrjosiak/scalac/mesmer-akka-agent/monitor-akka-agent.jar",
         s"-javaagent:/Users/piotrjosiak/scalac/mesmer-akka-agent/opentelemetry-javaagent110.jar",
-        s"-Dotel.javaagent.extensions=${(otelExtension / assembly).value.absolutePath}",
-        s"-Dotel.javaagent.extensions=/Users/piotrjosiak/scalac/mesmer-akka-agent/otel-extra-extensions.jar"
+        s"-Dotel.javaagent.extensions=${(otelExtension / assembly).value.absolutePath}"
+//        s"-Dotel.javaagent.extensions=/Users/piotrjosiak/scalac/mesmer-akka-agent/otel-extra-extensions.jar"
       ),
-      mainClass := Some("example.SimpleStreamExample")
+      Runtime / unmanagedJars += (file("/Users/piotrjosiak/scalac/mesmer-akka-agent/otel-extra-extensions.jar")),
+      Compile / unmanagedJars += (file("/Users/piotrjosiak/scalac/mesmer-akka-agent/otel-extra-extensions.jar"))
     ),
     state
   )
   val (s, _) =
-    Project.extract(newState).runInputTask(Compile / run, "", newState)
+    Project.extract(newState).runInputTask(Compile / runMain, " example.SimpleStreamExample", newState)
   s
 }
 
