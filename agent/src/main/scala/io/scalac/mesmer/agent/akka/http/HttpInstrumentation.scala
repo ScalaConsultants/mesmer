@@ -11,6 +11,7 @@ import akka.stream.scaladsl.Flow
 import akka.stream.scaladsl.GraphDSL
 import akka.stream.scaladsl.Source
 import akka.stream.scaladsl.Zip
+import io.opentelemetry.api.common.Attributes
 
 import io.scalac.mesmer.core.akka.stream.BidiFlowForward
 import io.scalac.mesmer.core.event.EventBus
@@ -55,8 +56,8 @@ object HttpInstrumentation {
             .repeat(())
             .map(_ => local.get.next())
 
-          val zipRequest = builder.add(Zip[HttpRequest, String]())
-          val zipRespone = builder.add(Zip[HttpResponse, String]())
+          val zipRequest  = builder.add(Zip[HttpRequest, String]())
+          val zipResponse = builder.add(Zip[HttpResponse, String]())
 
           val idBroadcast = builder.add(Broadcast[String](2))
 
@@ -72,16 +73,16 @@ object HttpInstrumentation {
             request
           }
 
-          idBroadcast ~> zipRespone.in1
+          idBroadcast ~> zipResponse.in1
 
-          zipRespone.out.map { case (response, id) =>
+          zipResponse.out.map { case (response, id) =>
             EventBus(system).publishEvent(
               RequestCompleted(id, Timestamp.create(), response.status.intValue().toString)
             )
             response
           } ~> outerResponse.in
 
-          BidiShape(outerRequest.in, outerRequestOut.outlet, zipRespone.in0, outerResponse.out)
+          BidiShape(outerRequest.in, outerRequestOut.outlet, zipResponse.in0, outerResponse.out)
       })
 
     requestIdFlow
@@ -97,9 +98,21 @@ object HttpInstrumentation {
   ): Flow[HttpRequest, HttpResponse, Any] = {
     val system = self.system.toTyped
 
+    val attributes = Attributes
+      .builder()
+      .put("interface", interface)
+      .put("port", port.toLong)
+      .build()
+
     val connectionsCountFlow = BidiFlowForward[HttpRequest, HttpResponse](
-      onPreStart = () => EventBus(system).publishEvent(ConnectionStarted(interface, port)),
-      onPostStop = () => EventBus(system).publishEvent(ConnectionCompleted(interface, port))
+      onPreStart = () => {
+        HttpInstruments.connectionTotalCounter.add(1, attributes)
+        EventBus(system).publishEvent(ConnectionStarted(interface, port))
+      },
+      onPostStop = () => {
+        HttpInstruments.connectionTotalCounter.add(-1, attributes)
+        EventBus(system).publishEvent(ConnectionCompleted(interface, port))
+      }
     )
     connectionsCountFlow.join(handler)
   }
