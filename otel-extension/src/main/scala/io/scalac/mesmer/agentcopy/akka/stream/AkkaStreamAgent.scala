@@ -1,6 +1,6 @@
 package io.scalac.mesmer.agentcopy.akka.stream
 
-import akka.ActorGraphInterpreterOelAdvice
+import akka.ActorGraphInterpreterOtelAdvice
 import akka.ActorGraphInterpreterProcessEventOtelAdvice
 import akka.ActorGraphInterpreterTryInitOtelAdvice
 import akka.stream.GraphInterpreterOtelPullAdvice
@@ -93,7 +93,7 @@ object AkkaStreamAgent
   private val actorGraphInterpreterInstrumentation =
     AgentInstrumentation.deferred(
       instrument("akka.stream.impl.fusing.ActorGraphInterpreter".fqcn)
-        .visit[ActorGraphInterpreterOelAdvice]("receive")
+        .visit[ActorGraphInterpreterOtelAdvice]("receive")
         .visit(ActorGraphInterpreterProcessEventOtelAdvice, "processEvent")
         .visit(ActorGraphInterpreterTryInitOtelAdvice, "tryInit")
     )

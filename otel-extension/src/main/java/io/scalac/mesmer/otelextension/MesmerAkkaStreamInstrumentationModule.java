@@ -56,7 +56,7 @@ public class MesmerAkkaStreamInstrumentationModule extends InstrumentationModule
 
     @Override
     public void registerMuzzleVirtualFields(VirtualFieldMappingsBuilder builder) {
-        builder.register("akka.stream.impl.fusing.GraphInterpreter$Connection", "scala.Tuple2");
+        builder.register("akka.stream.impl.fusing.GraphInterpreter$Connection", "io.scalac.mesmer.agentcopy.akka.stream.impl.ConnectionCounters");
     }
 
     @Override
@@ -68,6 +68,7 @@ public class MesmerAkkaStreamInstrumentationModule extends InstrumentationModule
     @Override
     public List<String> getAdditionalHelperClassNames() {
         return Arrays.asList(
+                "io.scalac.mesmer.agentcopy.akka.stream.impl.ConnectionCounters",
                 "akka.stream.GraphInterpreterOtelPushAdvice$",
                 "akka.stream.GraphInterpreterOtelPullAdvice$",
                 "akka.stream.GraphLogicOtelOps",

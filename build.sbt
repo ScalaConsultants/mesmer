@@ -152,10 +152,10 @@ lazy val example = (project in file("example"))
 
       keys
     },
-    commands += runWithMesmerAgent,
-    commands += runWithMesmerStream,
-    commands += runWithOtelAgent,
-    commands += runWithOtelStream,
+    commands += runExampleWithMesmerAgent,
+    commands += runExampleWithOtelAgent,
+    commands += runStreamExampleWithMesmerAgent,
+    commands += runStreamExampleWithOtelAgent,
     Universal / mappings += {
       val jar = (agent / assembly).value
       jar -> "mesmer.agent.jar"
@@ -190,7 +190,7 @@ lazy val benchmark = (project in file("benchmark"))
   }
   .dependsOn(extension)
 
-def runWithMesmerAgent = Command.command("runWithMesmerAgent") { state =>
+def runExampleWithMesmerAgent = Command.command("runExampleWithMesmerAgent") { state =>
   val extracted = Project extract state
   val newState = extracted.appendWithSession(
     Seq(
@@ -205,7 +205,7 @@ def runWithMesmerAgent = Command.command("runWithMesmerAgent") { state =>
   s
 }
 
-def runWithOtelAgent = Command.command("runWithOtelAgent") { state =>
+def runExampleWithOtelAgent = Command.command("runExampleWithOtelAgent") { state =>
   val extracted = Project extract state
   val root      = all.base.absolutePath
 
@@ -223,7 +223,7 @@ def runWithOtelAgent = Command.command("runWithOtelAgent") { state =>
   s
 }
 
-def runWithOtelStream = Command.command("runWithOtelStream") { state =>
+def runStreamExampleWithOtelAgent = Command.command("runStreamExampleWithOtelAgent") { state =>
   val extracted = Project extract state
   val root      = all.base.absolutePath
 
@@ -241,7 +241,7 @@ def runWithOtelStream = Command.command("runWithOtelStream") { state =>
   s
 }
 
-def runWithMesmerStream = Command.command("runWithMesmerStream") { state =>
+def runStreamExampleWithMesmerAgent = Command.command("runStreamExampleWithMesmerAgent") { state =>
   val extracted = Project extract state
   val newState = extracted.appendWithSession(
     Seq(

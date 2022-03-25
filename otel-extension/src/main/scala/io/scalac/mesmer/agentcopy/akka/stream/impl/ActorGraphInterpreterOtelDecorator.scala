@@ -34,7 +34,7 @@ object ActorGraphInterpreterOtelDecorator extends Lookup {
     var localTerminalFound = terminalFound
 
     val connections = shell.connections.dropWhile(_ eq null).map { connection =>
-      val (push, pull) = ConnectionOtelOps.getAndResetCounterValues(connection)
+      val (push, pull) = ConnectionOtelOps.getCounterValues(connection)
 
       val in  = connection.inOwner.stageId
       val out = connection.outOwner.stageId
