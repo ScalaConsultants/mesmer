@@ -159,9 +159,7 @@ lazy val example = (project in file("example"))
     Universal / mappings += {
       val jar = (agent / assembly).value
       jar -> "mesmer.agent.jar"
-    },
-    Runtime / unmanagedJars += (file("/Users/piotrjosiak/scalac/mesmer-akka-agent/otel-extra-extensions.jar")),
-    Compile / unmanagedJars += (file("/Users/piotrjosiak/scalac/mesmer-akka-agent/otel-extra-extensions.jar"))
+    }
   )
   .dependsOn(extension, agent)
 
@@ -214,8 +212,7 @@ def runWithOtelAgent = Command.command("runWithOtelAgent") { state =>
   val newState = extracted.appendWithSession(
     Seq(
       run / javaOptions ++= Seq(
-        s"-javaagent:/Users/piotrjosiak/scalac/mesmer-akka-agent/monitor-akka-agent.jar",
-        s"-javaagent:/Users/piotrjosiak/scalac/mesmer-akka-agent/opentelemetry-javaagent110.jar",
+        s"-javaagent:$root/opentelemetry-javaagent110.jar",
         s"-Dotel.javaagent.extensions=${(otelExtension / assembly).value.absolutePath}"
       )
     ),
@@ -228,11 +225,12 @@ def runWithOtelAgent = Command.command("runWithOtelAgent") { state =>
 
 def runWithOtelStream = Command.command("runWithOtelStream") { state =>
   val extracted = Project extract state
+  val root      = all.base.absolutePath
+
   val newState = extracted.appendWithSession(
     Seq(
       run / javaOptions ++= Seq(
-        s"-javaagent:/Users/piotrjosiak/scalac/mesmer-akka-agent/monitor-akka-agent.jar",
-        s"-javaagent:/Users/piotrjosiak/scalac/mesmer-akka-agent/opentelemetry-javaagent110.jar",
+        s"-javaagent:$root/opentelemetry-javaagent110.jar",
         s"-Dotel.javaagent.extensions=${(otelExtension / assembly).value.absolutePath}"
       )
     ),
