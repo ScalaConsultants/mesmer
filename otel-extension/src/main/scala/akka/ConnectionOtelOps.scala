@@ -1,8 +1,8 @@
 package akka
 
 import _root_.io.opentelemetry.instrumentation.api.field.VirtualField
+import _root_.io.scalac.mesmer.otelextension.instrumentations.akka.stream.impl.ConnectionCounters
 import akka.stream.impl.fusing.GraphInterpreter.Connection
-import _root_.io.scalac.mesmer.agentcopy.akka.stream.impl.ConnectionCounters
 
 object ConnectionOtelOps {
 

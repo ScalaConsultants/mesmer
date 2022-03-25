@@ -1,6 +1,6 @@
 package akka
 
-import _root_.io.scalac.mesmer.agentcopy.akka.stream.impl.ActorGraphInterpreterOtelDecorator
+import _root_.io.scalac.mesmer.otelextension.instrumentations.akka.stream.impl.ActorGraphInterpreterOtelDecorator
 import akka.MesmerMirrorTypes.GraphInterpreterShellMirror
 import akka.actor.Actor
 import akka.stream.impl.fusing.ActorGraphInterpreter.BoundaryEvent

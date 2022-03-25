@@ -1,4 +1,4 @@
-package io.scalac.mesmer.agentcopy.akka.stream
+package io.scalac.mesmer.otelextension.instrumentations.akka.stream
 
 import akka.ActorGraphInterpreterOtelAdvice
 import akka.ActorGraphInterpreterProcessEventOtelAdvice
@@ -10,8 +10,8 @@ import akka.stream.GraphStageIslandOtelAdvice
 import io.scalac.mesmer.agent.Agent
 import io.scalac.mesmer.agent.AgentInstrumentation
 import io.scalac.mesmer.agent.util.i13n._
-import io.scalac.mesmer.agentcopy.akka.stream.impl.PhasedFusingActorMaterializerAdvice
 import io.scalac.mesmer.core.module.AkkaStreamModule
+import io.scalac.mesmer.otelextension.instrumentations.akka.stream.impl.PhasedFusingActorMaterializerAdvice
 
 object AkkaStreamAgent
     extends InstrumentModuleFactory(AkkaStreamModule)

@@ -7,7 +7,7 @@ import io.opentelemetry.javaagent.extension.instrumentation.TypeTransformer;
 import io.opentelemetry.javaagent.tooling.muzzle.InstrumentationModuleMuzzle;
 import io.opentelemetry.javaagent.tooling.muzzle.VirtualFieldMappingsBuilder;
 import io.opentelemetry.javaagent.tooling.muzzle.references.ClassRef;
-import io.scalac.mesmer.agentcopy.akka.stream.AkkaStreamAgent;
+import io.scalac.mesmer.otelextension.instrumentations.akka.stream.AkkaStreamAgent;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 import net.bytebuddy.matcher.ElementMatchers;
@@ -56,7 +56,7 @@ public class MesmerAkkaStreamInstrumentationModule extends InstrumentationModule
 
     @Override
     public void registerMuzzleVirtualFields(VirtualFieldMappingsBuilder builder) {
-        builder.register("akka.stream.impl.fusing.GraphInterpreter$Connection", "io.scalac.mesmer.agentcopy.akka.stream.impl.ConnectionCounters");
+        builder.register("akka.stream.impl.fusing.GraphInterpreter$Connection", "io.scalac.mesmer.otelextension.instrumentations.akka.stream.impl.ConnectionCounters");
     }
 
     @Override
@@ -68,7 +68,7 @@ public class MesmerAkkaStreamInstrumentationModule extends InstrumentationModule
     @Override
     public List<String> getAdditionalHelperClassNames() {
         return Arrays.asList(
-                "io.scalac.mesmer.agentcopy.akka.stream.impl.ConnectionCounters",
+                "io.scalac.mesmer.otelextension.instrumentations.akka.stream.impl.ConnectionCounters",
                 "akka.stream.GraphInterpreterOtelPushAdvice$",
                 "akka.stream.GraphInterpreterOtelPullAdvice$",
                 "akka.stream.GraphLogicOtelOps",
@@ -77,15 +77,15 @@ public class MesmerAkkaStreamInstrumentationModule extends InstrumentationModule
                 "akka.stream.GraphLogicOtelOps$GraphLogicEnh$",
                 "akka.ConnectionOtelOps",
                 "akka.ConnectionOtelOps$",
-                "io.scalac.mesmer.agentcopy.akka.stream.impl.ActorGraphInterpreterOtelDecorator",
-                "io.scalac.mesmer.agentcopy.akka.stream.impl.ActorGraphInterpreterOtelDecorator$",
-                "io.scalac.mesmer.agentcopy.akka.stream.impl.ActorGraphInterpreterOtelDecorator$$anonfun$addCollectionReceive$1",
+                "io.scalac.mesmer.otelextension.instrumentations.akka.stream.impl.ActorGraphInterpreterOtelDecorator",
+                "io.scalac.mesmer.otelextension.instrumentations.akka.stream.impl.ActorGraphInterpreterOtelDecorator$",
+                "io.scalac.mesmer.otelextension.instrumentations.akka.stream.impl.ActorGraphInterpreterOtelDecorator$$anonfun$addCollectionReceive$1",
                 "akka.ActorGraphInterpreterProcessEventOtelAdvice$",
                 "akka.ActorGraphInterpreterTryInitOtelAdvice$",
-                "io.scalac.mesmer.agentcopy.akka.stream.impl.GraphStageIslandOps",
-                "io.scalac.mesmer.agentcopy.akka.stream.impl.GraphStageIslandOps$",
-                "io.scalac.mesmer.agentcopy.akka.stream.impl.GraphStageIslandOps$TerminalSink$",
-                "io.scalac.mesmer.agentcopy.akka.stream.impl.PhasedFusingActorMaterializerAdvice$"
+                "io.scalac.mesmer.otelextension.instrumentations.akka.stream.impl.GraphStageIslandOps",
+                "io.scalac.mesmer.otelextension.instrumentations.akka.stream.impl.GraphStageIslandOps$",
+                "io.scalac.mesmer.otelextension.instrumentations.akka.stream.impl.GraphStageIslandOps$TerminalSink$",
+                "io.scalac.mesmer.otelextension.instrumentations.akka.stream.impl.PhasedFusingActorMaterializerAdvice$"
         );
     }
 }

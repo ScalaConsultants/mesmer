@@ -3,7 +3,7 @@ package akka.stream;
 import akka.stream.impl.fusing.GraphInterpreter;
 import io.opentelemetry.instrumentation.api.field.VirtualField;
 import net.bytebuddy.asm.Advice;
-import io.scalac.mesmer.agentcopy.akka.stream.impl.ConnectionCounters;
+import io.scalac.mesmer.otelextension.instrumentations.akka.stream.impl.ConnectionCounters;
 import scala.Tuple2;
 
 public class ConnectionConstructorAdvice {

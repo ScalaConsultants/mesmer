@@ -1,4 +1,4 @@
-package io.scalac.mesmer.agentcopy.akka.stream.impl
+package io.scalac.mesmer.otelextension.instrumentations.akka.stream.impl
 
 import java.lang.invoke.MethodType.methodType
 
