@@ -6,7 +6,7 @@ import net.bytebuddy.asm.Advice;
 import scala.PartialFunction;
 import scala.runtime.BoxedUnit;
 
-public class ActorGraphInterpreterOelAdvice {
+public class ActorGraphInterpreterOtelAdvice {
 
   @Advice.OnMethodExit
   public static void overrideReceive(

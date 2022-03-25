@@ -109,6 +109,5 @@ object AkkaStreamAgent
 
   private val sharedImplementations =
     connectionPushAgent ++ connectionPullAgent ++ actorGraphInterpreterInstrumentation ++ graphStageIslandInstrumentation ++ phasedFusingActorMaterializerAgentInstrumentation
-//    connectionPullAgent ++ connectionPushAgent ++ actorGraphInterpreterInstrumentation ++ graphStageIslandInstrumentation ++ phasedFusingActorMaterializerAgentInstrumentation
 
 }

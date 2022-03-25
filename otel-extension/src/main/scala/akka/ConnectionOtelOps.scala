@@ -51,10 +51,6 @@ object ConnectionOtelOps {
       .find(classOf[Connection], classOf[(Long, Long)])
       .get(connection)
 
-//    VirtualField
-//      .find(classOf[Connection], classOf[(Long, Long)])
-//      .set(connection, (0L, 0L))
-
     (push, pull)
 
   }
