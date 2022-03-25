@@ -1,11 +1,10 @@
 package akka
 
+import _root_.io.scalac.mesmer.agentcopy.akka.stream.impl.ActorGraphInterpreterOtelDecorator
 import akka.MesmerMirrorTypes.GraphInterpreterShellMirror
 import akka.actor.Actor
 import akka.stream.impl.fusing.ActorGraphInterpreter.BoundaryEvent
 import net.bytebuddy.asm.Advice
-
-import _root_.io.scalac.mesmer.agentcopy.akka.stream.impl.ActorGraphInterpreterOtelDecorator
 
 object ActorGraphInterpreterProcessEventOtelAdvice {
 

@@ -1,12 +1,14 @@
 package io.scalac.mesmer.agentcopy.akka.stream
 
-import akka.{
-  ActorGraphInterpreterOelAdvice,
-  ActorGraphInterpreterProcessEventOtelAdvice,
-  ActorGraphInterpreterTryInitOtelAdvice
-}
-import akka.stream.{ GraphInterpreterOtelPullAdvice, GraphInterpreterOtelPushAdvice, GraphStageIslandOtelAdvice }
-import io.scalac.mesmer.agent.{ Agent, AgentInstrumentation }
+import akka.ActorGraphInterpreterOelAdvice
+import akka.ActorGraphInterpreterProcessEventOtelAdvice
+import akka.ActorGraphInterpreterTryInitOtelAdvice
+import akka.stream.GraphInterpreterOtelPullAdvice
+import akka.stream.GraphInterpreterOtelPushAdvice
+import akka.stream.GraphStageIslandOtelAdvice
+
+import io.scalac.mesmer.agent.Agent
+import io.scalac.mesmer.agent.AgentInstrumentation
 import io.scalac.mesmer.agent.util.i13n._
 import io.scalac.mesmer.agentcopy.akka.stream.impl.PhasedFusingActorMaterializerAdvice
 import io.scalac.mesmer.core.module.AkkaStreamModule
@@ -81,7 +83,6 @@ object AkkaStreamAgent
         .visit(GraphInterpreterOtelPullAdvice, "processPull")
     )
 
-
     Agent(processPull)
   }
 
@@ -106,7 +107,8 @@ object AkkaStreamAgent
         .visit[GraphStageIslandOtelAdvice]("materializeAtomic")
     )
 
-  private val sharedImplementations = connectionPushAgent ++ connectionPullAgent ++ actorGraphInterpreterInstrumentation ++ graphStageIslandInstrumentation ++ phasedFusingActorMaterializerAgentInstrumentation
+  private val sharedImplementations =
+    connectionPushAgent ++ connectionPullAgent ++ actorGraphInterpreterInstrumentation ++ graphStageIslandInstrumentation ++ phasedFusingActorMaterializerAgentInstrumentation
 //    connectionPullAgent ++ connectionPushAgent ++ actorGraphInterpreterInstrumentation ++ graphStageIslandInstrumentation ++ phasedFusingActorMaterializerAgentInstrumentation
 
 }

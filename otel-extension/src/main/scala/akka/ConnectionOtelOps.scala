@@ -5,8 +5,6 @@ import akka.stream.impl.fusing.GraphInterpreter.Connection
 
 object ConnectionOtelOps {
 
-
-
   def incrementPushCounter(connection: Connection): Unit = {
     val (push, pull) = VirtualField
       .find(classOf[Connection], classOf[(Long, Long)])

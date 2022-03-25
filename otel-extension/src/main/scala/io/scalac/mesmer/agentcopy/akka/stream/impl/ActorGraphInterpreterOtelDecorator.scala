@@ -1,12 +1,13 @@
 package io.scalac.mesmer.agentcopy.akka.stream.impl
 
-import akka.ConnectionOtelOps
-
 import java.lang.invoke.MethodType.methodType
+
+import akka.ConnectionOtelOps
 import akka.MesmerMirrorTypes.GraphInterpreterShellMirror
 import akka.actor.Actor
 import akka.actor.typed.scaladsl.adapter._
 import akka.stream.GraphLogicOtelOps._
+
 import io.scalac.mesmer.core.akka.model.PushMetrics
 import io.scalac.mesmer.core.event.EventBus
 import io.scalac.mesmer.core.event.StreamEvent.LastStreamStats
@@ -35,12 +36,10 @@ object ActorGraphInterpreterOtelDecorator extends Lookup {
     val connections = shell.connections.dropWhile(_ eq null).map { connection =>
       val (push, pull) = ConnectionOtelOps.getAndResetCounterValues(connection)
 
-
       val in  = connection.inOwner.stageId
       val out = connection.outOwner.stageId
       ConnectionStats(in, out, push, pull)
     }
-
 
     val stageInfo = new Array[StageInfo](shell.logics.length)
 

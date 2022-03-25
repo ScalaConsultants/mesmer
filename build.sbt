@@ -138,7 +138,7 @@ lazy val example = (project in file("example"))
       exampleDependencies
     },
     assemblyMergeStrategySettings,
-    assembly / mainClass       := Some("io.scalac.Boot"),
+    mainClass                  := Some("example.Boot"),
     assembly / assemblyJarName := "mesmer-akka-example.jar",
     resolvers += "Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots",
     run / fork := true,
@@ -159,7 +159,9 @@ lazy val example = (project in file("example"))
     Universal / mappings += {
       val jar = (agent / assembly).value
       jar -> "mesmer.agent.jar"
-    }
+    },
+    Runtime / unmanagedJars += (file("/Users/piotrjosiak/scalac/mesmer-akka-agent/otel-extra-extensions.jar")),
+    Compile / unmanagedJars += (file("/Users/piotrjosiak/scalac/mesmer-akka-agent/otel-extra-extensions.jar"))
   )
   .dependsOn(extension, agent)
 
@@ -212,11 +214,9 @@ def runWithOtelAgent = Command.command("runWithOtelAgent") { state =>
   val newState = extracted.appendWithSession(
     Seq(
       run / javaOptions ++= Seq(
-//        "-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=*:5555",
         s"-javaagent:/Users/piotrjosiak/scalac/mesmer-akka-agent/monitor-akka-agent.jar",
         s"-javaagent:/Users/piotrjosiak/scalac/mesmer-akka-agent/opentelemetry-javaagent110.jar",
         s"-Dotel.javaagent.extensions=${(otelExtension / assembly).value.absolutePath}"
-//        s"-Dotel.javaagent.extensions=/Users/piotrjosiak/scalac/mesmer-akka-agent/otel-extra-extensions.jar"
       )
     ),
     state
@@ -231,14 +231,10 @@ def runWithOtelStream = Command.command("runWithOtelStream") { state =>
   val newState = extracted.appendWithSession(
     Seq(
       run / javaOptions ++= Seq(
-        //        "-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=*:5555",
         s"-javaagent:/Users/piotrjosiak/scalac/mesmer-akka-agent/monitor-akka-agent.jar",
         s"-javaagent:/Users/piotrjosiak/scalac/mesmer-akka-agent/opentelemetry-javaagent110.jar",
         s"-Dotel.javaagent.extensions=${(otelExtension / assembly).value.absolutePath}"
-//        s"-Dotel.javaagent.extensions=/Users/piotrjosiak/scalac/mesmer-akka-agent/otel-extra-extensions.jar"
-      ),
-      Runtime / unmanagedJars += (file("/Users/piotrjosiak/scalac/mesmer-akka-agent/otel-extra-extensions.jar")),
-      Compile / unmanagedJars += (file("/Users/piotrjosiak/scalac/mesmer-akka-agent/otel-extra-extensions.jar"))
+      )
     ),
     state
   )
