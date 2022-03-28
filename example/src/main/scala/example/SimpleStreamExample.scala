@@ -1,17 +1,22 @@
 package example
 
-import akka.Done
 import akka.actor.typed.ActorSystem
 import akka.actor.typed.scaladsl.Behaviors
+import akka.stream.KillSwitches
+import akka.stream.UniqueKillSwitch
 import akka.stream.scaladsl._
 import com.typesafe.config.Config
 import com.typesafe.config.ConfigFactory
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
-import scala.concurrent.Future
 import scala.concurrent.duration._
 
+/**
+ * Another example useful to testing if stream instrumentation work. It's a simple example that prints amount of process
+ * elements roughly in 5 seconds intervals and after shutdown. Data should be compared with information that can be
+ * found in prometheus.
+ */
 object SimpleStreamExample extends App {
 
   val logger: Logger = LoggerFactory.getLogger(SimpleStreamExample.getClass)
@@ -21,9 +26,10 @@ object SimpleStreamExample extends App {
   implicit val system: ActorSystem[Nothing] =
     ActorSystem[Nothing](Behaviors.empty, "stream-simple", config)
 
-  val done: Future[Done] = Source
+  val ks: UniqueKillSwitch = Source
     .repeat(())
     .throttle(100, 1.second)
+    .viaMat(KillSwitches.single)(Keep.right)
     .groupedWithin(1000, 5.seconds)
     .statefulMapConcat { () =>
       var timestamp         = System.nanoTime()
@@ -37,9 +43,11 @@ object SimpleStreamExample extends App {
         Some(())
       }
     }
-    .runWith(Sink.ignore)
+    .toMat(Sink.ignore)(Keep.left)
+    .run()
 
   sys.addShutdownHook {
-    system.terminate()
+    ks.shutdown()
   }
+
 }
