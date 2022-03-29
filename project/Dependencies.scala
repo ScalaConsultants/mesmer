@@ -59,6 +59,9 @@ object Dependencies {
     "io.opentelemetry.javaagent" % "opentelemetry-javaagent-extension-api" % OpentelemetryInstrumentationVersion
   )
 
+  val openTelemetryMuzzle = Seq(
+    "io.opentelemetry.javaagent" % "opentelemetry-muzzle" % OpentelemetryInstrumentationVersion
+  )
   val akkaTestkit = Seq(
     "com.typesafe.akka" %% "akka-actor-testkit-typed" % AkkaVersion     % Test,
     "com.typesafe.akka" %% "akka-persistence-testkit" % AkkaVersion     % Test,

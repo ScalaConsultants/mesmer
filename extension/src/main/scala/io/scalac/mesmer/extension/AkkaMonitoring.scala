@@ -8,6 +8,7 @@ import akka.cluster.Cluster
 import akka.util.Timeout
 import com.typesafe.config.Config
 import io.opentelemetry.api.metrics.Meter
+import org.slf4j.LoggerFactory
 
 import scala.concurrent.duration._
 import scala.language.postfixOps
@@ -38,7 +39,8 @@ object AkkaMonitoring extends ExtensionId[AkkaMonitoring] {
 }
 
 final class AkkaMonitoring(system: ActorSystem[_])(implicit otelLoader: OpenTelemetryLoader) extends Extension {
-  import system.log
+
+  private val log = LoggerFactory.getLogger(classOf[AkkaMonitoring])
 
   private val clusterNodeName: Option[Node] =
     (for {
