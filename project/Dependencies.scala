@@ -35,8 +35,11 @@ object Dependencies {
     "com.typesafe.akka"  %% "akka-persistence-query" % AkkaVersion
   )
 
-  val byteBuddy = Seq(
+  lazy val byteBuddy = Seq(
     "net.bytebuddy" % "byte-buddy"       % "1.12.7",
+  ) ++ byteBuddyAgent
+
+  lazy val byteBuddyAgent = Seq(
     "net.bytebuddy" % "byte-buddy-agent" % "1.12.7"
   )
 
@@ -69,7 +72,7 @@ object Dependencies {
     "com.typesafe.akka" %% "akka-http-testkit"        % AkkaHttpVersion % Test
   )
 
-  val scalatest = Seq("org.scalatest" %% "scalatest" % ScalatestVersion % Test)
+  val scalatest = Seq("org.scalatest" %% "scalatest" % ScalatestVersion % "provided")
 
   val akkaMultiNodeTestKit = Seq("com.typesafe.akka" %% "akka-multi-node-testkit" % AkkaVersion % Test)
 

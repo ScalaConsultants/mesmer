@@ -42,17 +42,20 @@ lazy val all: Project = (project in file("."))
   .aggregate(extension, agent, otelExtension, example, core)
 
 lazy val core = (project in file("core"))
-  .disablePlugins(sbtassembly.AssemblyPlugin)
+//  .disablePlugins(sbtassembly.AssemblyPlugin)
   .settings(
     name := "mesmer-akka-core",
+    assembly / test            := {},
+    assembly / assemblyJarName := "mesmer-akka-core.jar",
+    assemblyMergeStrategySettings,
     libraryDependencies ++= {
       akka ++
-      openTelemetryApi ++
-      openTelemetryApiMetrics ++
-      openTelemetryInstrumentation ++
+      openTelemetryApi.map(_ % "provided") ++
+      openTelemetryApiMetrics.map(_ % "provided") ++
+      openTelemetryInstrumentation.map(_ % "provided") ++
       scalatest ++
       akkaTestkit ++
-      openTelemetryInstrumentationApi
+      openTelemetryInstrumentationApi.map(_ % "provided")
     }
   )
 
@@ -116,13 +119,24 @@ lazy val otelExtension = (project in file("otel-extension"))
   .settings(
     name := "mesmer-otel-extension",
     libraryDependencies ++= {
-      openTelemetryInstrumentation ++ openTelemetryMuzzle
+      openTelemetryInstrumentation.map(_ % "provided") ++
+      openTelemetryMuzzle.map(_          % "provided") ++
+      akkaTestkit ++
+      scalatest ++ byteBuddyAgent.map(_ % Test)
     },
     assembly / test            := {},
     assembly / assemblyJarName := "mesmer-otel-extension.jar",
-    assemblyMergeStrategySettings
+    assemblyMergeStrategySettings,
+    Test / fork              := true,
+    Test / parallelExecution := true,
+    Test / testGrouping := ((Test / testGrouping).value flatMap { group =>
+      group.tests.map { test =>
+        Tests.Group(name = test.name, tests = Seq(test), runPolicy = group.runPolicy)
+      }
+    }),
+    Test / testOnly / testGrouping := (Test / testGrouping).value
   )
-  .dependsOn(core, agent)
+  .dependsOn(core % "provided;test->test,provided")
 
 lazy val example = (project in file("example"))
   .enablePlugins(JavaAppPackaging, UniversalPlugin)
