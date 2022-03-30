@@ -44,3 +44,10 @@ services:
     - ./dashboards:/etc/dashboards
     ports:
     - 3000:3000
+
+  jaeger-all-in-one:
+    image: jaegertracing/all-in-one:latest
+    ports:
+    - 16686:16686
+    - '14268'
+    - '14250'

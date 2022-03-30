@@ -1,22 +1,21 @@
 package io.scalac.mesmer.core.module
 
-import com.typesafe.config.{ Config => TypesafeConfig }
+import org.slf4j.LoggerFactory
+
+import scala.jdk.CollectionConverters._
+import scala.util.Try
 
 import io.scalac.mesmer.core.config.MesmerConfigurationBase
-import io.scalac.mesmer.core.model.Version
-import io.scalac.mesmer.core.module.Module.CommonJars
-import io.scalac.mesmer.core.util.LibraryInfo.LibraryInfo
+import io.scalac.mesmer.core.invoke.Lookup
+import io.scalac.mesmer.core.typeclasses.Combine
+import io.scalac.mesmer.core.typeclasses.Traverse
 
 trait Module {
   def name: String
   type All[T] <: AnyRef
-  type Config = All[Boolean]
+  type Config = All[Boolean] with Product
 
-  def enabled(config: TypesafeConfig): Config
-
-  type AkkaJar[T] <: CommonJars[T]
-
-  def jarsFromLibraryInfo(info: LibraryInfo): Option[AkkaJar[Version]]
+  def enabled: Config
 }
 
 object Module {
@@ -25,63 +24,70 @@ object Module {
     def combine(other: M[T])(implicit combine: Combine[M[T]]): M[T]          = combine.combine(value, other)
     def exists(check: T => Boolean)(implicit traverse: Traverse[M]): Boolean = traverse.sequence(value).exists(check)
   }
+}
 
-  // TODO is there a standard type class?
-  trait Combine[T] {
-    def combine(first: T, second: T): T
+object MesmerModule extends Lookup {
+
+  import java.lang.invoke.MethodHandles._
+  import java.lang.invoke.MethodType._
+
+  private val logger = LoggerFactory.getLogger(MesmerModule.getClass)
+
+  private def getMapFromConfigClass(clazz: Class[_]): Map[String, String] = {
+    val configInstanceHandle = lookup.findStatic(clazz, "get", methodType(clazz))
+    val allPropertiesHandle  = lookup.findVirtual(clazz, "getAllProperties", methodType(classOf[java.util.Map[_, _]]))
+
+    foldArguments(allPropertiesHandle, configInstanceHandle)
+      .invoke()
+      .asInstanceOf[java.util.Map[String, String]]
+      .asScala
+      .toMap
   }
 
-  trait Traverse[F[_]] {
-    def sequence[T](obj: F[T]): Seq[T]
-  }
+  /*
+    Hence OpenTelemetry shadows instrumentation.api internally simply using Config.get() will load this class second time under regular package.
+    To avoid this and to share config object with the agent we get the config object from shaded package.
+   */
+  lazy val globalConfig: Map[String, String] =
+    Try {
+      getMapFromConfigClass(Class.forName("io.opentelemetry.javaagent.shaded.instrumentation.api.config.Config"))
+    }.orElse(Try {
+      getMapFromConfigClass(Class.forName("io.opentelemetry.instrumentation.api.config.Config"))
+    }).getOrElse {
+      logger.warn("No configuration found. Make sure that OpenTelemetry or Mesmer agent is installed.")
+      Map.empty
+    }
 
-  trait CommonJars[T] {
-    def akkaActor: T
-    def akkaActorTyped: T
-  }
-
-  object JarsNames {
-    final val akkaActor            = "akka-actor"
-    final val akkaActorTyped       = "akka-actor-typed"
-    final val akkaPersistence      = "akka-persistence"
-    final val akkaPersistenceTyped = "akka-persistence-typed"
-    final val akkaStream           = "akka-stream"
-    final val akkaHttp             = "akka-http"
-    final val akkaCluster          = "akka-cluster"
-    final val akkaClusterTyped     = "akka-cluster-typed"
+  private def parseBoolean(value: String, default: Boolean): Boolean = value.toLowerCase() match {
+    case "t" | "true" | "1"  => true
+    case "f" | "false" | "0" => false
+    case _                   => default
   }
 
 }
 
 trait MesmerModule extends Module with MesmerConfigurationBase {
-  override type Result = Config
+  override type Result = Config with Product
 
-  final def enabled(config: TypesafeConfig): Config = fromConfig(config)
+  lazy val enabled: Config = {
+
+    val moduleConfigurations = MesmerModule.globalConfig.collect {
+      case (moduleKey, value) if moduleKey.startsWith(configurationBase) =>
+        moduleKey.stripPrefix(s"$configurationBase.") -> MesmerModule.parseBoolean(value, false)
+    }.toMap
+
+    fromMap(moduleConfigurations)
+  }
+
+  protected def fromMap(properties: Map[String, Boolean]): Config
 
   def defaultConfig: Result
 
-  val mesmerConfig: String = s"module.$name"
+  lazy val mesmerConfig: String = s"module.$name"
 }
 
 trait MetricsModule {
   this: Module =>
   override type All[T] <: Metrics[T]
   type Metrics[T]
-}
-
-trait TracesModule {
-  this: Module =>
-  override type All[T] <: Traces[T]
-  type Traces[T]
-}
-
-trait RegisterGlobalConfiguration extends Module {
-
-  @volatile
-  private[this] var global: All[Boolean] = _
-
-  final def registerGlobal(conf: All[Boolean]): Unit =
-    global = conf
-
-  final def globalConfiguration: Option[All[Boolean]] = if (global ne null) Some(global) else None
 }
