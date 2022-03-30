@@ -18,7 +18,6 @@ import io.scalac.mesmer.core.event.HttpEvent._
 import io.scalac.mesmer.core.model._
 import io.scalac.mesmer.core.util.Timestamp
 
-class HttpInstrumentation
 object HttpInstrumentation {
 
   final class RandomIdGenerator(val prefix: String) {
@@ -29,7 +28,7 @@ object HttpInstrumentation {
         .append(prefix)
         .append(id)
         .toString()
-      id += 1L // TODO check for overflow
+      id += 1L
       value
     }
   }
@@ -38,8 +37,7 @@ object HttpInstrumentation {
     handler: Flow[HttpRequest, HttpResponse, Any],
     self: HttpExt
   ): Flow[HttpRequest, HttpResponse, Any] = {
-
-    val system = self.asInstanceOf[HttpExt].system.toTyped
+    val system = self.system.toTyped
 
     val requestIdFlow =
       BidiFlow.fromGraph[HttpRequest, HttpRequest, HttpResponse, HttpResponse, Any](GraphDSL.create() {
@@ -97,14 +95,12 @@ object HttpInstrumentation {
     port: java.lang.Integer,
     self: HttpExt
   ): Flow[HttpRequest, HttpResponse, Any] = {
-
-    val system = self.asInstanceOf[HttpExt].system.toTyped
+    val system = self.system.toTyped
 
     val connectionsCountFlow = BidiFlowForward[HttpRequest, HttpResponse](
       onPreStart = () => EventBus(system).publishEvent(ConnectionStarted(interface, port)),
       onPostStop = () => EventBus(system).publishEvent(ConnectionCompleted(interface, port))
     )
-
     connectionsCountFlow.join(handler)
   }
 }
