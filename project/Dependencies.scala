@@ -4,7 +4,7 @@ object Dependencies {
 
   val AirframeVersion                = "22.1.0"
   val AkkaHttpVersion                = "10.2.7"
-  val AkkaManagementVersion          = "1.1.2"
+  val AkkaManagementVersion          = "1.1.3"
   val AkkaVersion                    = "2.6.18"
   val CirceVersion                   = "0.14.1"
   val GoogleAutoServiceVersion       = "1.0.1"
