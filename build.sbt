@@ -3,7 +3,7 @@ import sbt.Package.{ MainClass, ManifestAttributes }
 
 inThisBuild(
   List(
-    scalaVersion := "2.13.8",
+    scalaVersion := "2.13.6",
     organization := "io.scalac",
     homepage     := Some(url("https://github.com/ScalaConsultants/mesmer-akka-agent")),
     licenses     := List("Apache-2.0" -> url("http://www.apache.org/licenses/LICENSE-2.0")),
@@ -33,13 +33,13 @@ inThisBuild(
 addCommandAlias("fmt", "scalafmtAll; scalafixAll")
 addCommandAlias("check", "scalafixAll --check; scalafmtCheckAll")
 
-lazy val all = (project in file("."))
+lazy val all: Project = (project in file("."))
   .disablePlugins(sbtassembly.AssemblyPlugin)
   .settings(
     name           := "mesmer-all",
     publish / skip := true
   )
-  .aggregate(extension, agent, example, core)
+  .aggregate(extension, agent, otelExtension, example, core)
 
 lazy val core = (project in file("core"))
   .disablePlugins(sbtassembly.AssemblyPlugin)
@@ -49,8 +49,10 @@ lazy val core = (project in file("core"))
       akka ++
       openTelemetryApi ++
       openTelemetryApiMetrics ++
+      openTelemetryInstrumentation ++
       scalatest ++
-      akkaTestkit
+      akkaTestkit ++
+      openTelemetryInstrumentationApi
     }
   )
 
@@ -77,7 +79,8 @@ lazy val agent = (project in file("agent"))
   .settings(
     name := "mesmer-akka-agent",
     libraryDependencies ++= {
-      akka.map(_    % "provided") ++
+      openTelemetryInstrumentation ++
+      akka.map(_ % "provided") ++
       logback.map(_ % Test) ++
       byteBuddy ++
       scalatest ++
@@ -107,9 +110,19 @@ lazy val agent = (project in file("agent"))
     Test / testOnly / testGrouping := (Test / testGrouping).value
   )
   .settings(addArtifact(Compile / assembly / artifact, assembly).settings: _*)
-  .dependsOn(
-    core % "provided->compile;test->test"
+  .dependsOn(core % "provided->compile;test->test")
+
+lazy val otelExtension = (project in file("otel-extension"))
+  .settings(
+    name := "mesmer-otel-extension",
+    libraryDependencies ++= {
+      openTelemetryInstrumentation ++ openTelemetryMuzzle
+    },
+    assembly / test            := {},
+    assembly / assemblyJarName := "mesmer-otel-extension.jar",
+    assemblyMergeStrategySettings
   )
+  .dependsOn(core, agent)
 
 lazy val example = (project in file("example"))
   .enablePlugins(JavaAppPackaging, UniversalPlugin)
@@ -125,7 +138,7 @@ lazy val example = (project in file("example"))
       exampleDependencies
     },
     assemblyMergeStrategySettings,
-    assembly / mainClass       := Some("io.scalac.Boot"),
+    mainClass                  := Some("example.Boot"),
     assembly / assemblyJarName := "mesmer-akka-example.jar",
     resolvers += "Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots",
     run / fork := true,
@@ -133,17 +146,22 @@ lazy val example = (project in file("example"))
       val properties = System.getProperties
 
       import scala.collection.JavaConverters._
-      for {
+      val keys = for {
         (key, value) <- properties.asScala.toList if value.nonEmpty
       } yield s"-D$key=$value"
+
+      keys
     },
-    commands += runWithAgent,
+    commands += runExampleWithMesmerAgent,
+    commands += runExampleWithOtelAgent,
+    commands += runStreamExampleWithMesmerAgent,
+    commands += runStreamExampleWithOtelAgent,
     Universal / mappings += {
       val jar = (agent / assembly).value
       jar -> "mesmer.agent.jar"
     }
   )
-  .dependsOn(extension)
+  .dependsOn(extension, agent)
 
 lazy val assemblyMergeStrategySettings = assembly / assemblyMergeStrategy := {
   case PathList("META-INF", "services", _ @_*)           => MergeStrategy.concat
@@ -172,7 +190,7 @@ lazy val benchmark = (project in file("benchmark"))
   }
   .dependsOn(extension)
 
-def runWithAgent = Command.command("runWithAgent") { state =>
+def runExampleWithMesmerAgent = Command.command("runExampleWithMesmerAgent") { state =>
   val extracted = Project extract state
   val newState = extracted.appendWithSession(
     Seq(
@@ -184,5 +202,64 @@ def runWithAgent = Command.command("runWithAgent") { state =>
   )
   val (s, _) =
     Project.extract(newState).runInputTask(Compile / run, "", newState)
+  s
+}
+
+def runExampleWithOtelAgent = Command.command("runExampleWithOtelAgent") { state =>
+  val extracted = Project extract state
+  val root      = all.base.absolutePath
+
+  val newState = extracted.appendWithSession(
+    Seq(
+      run / javaOptions ++= Seq(
+        s"-javaagent:$root/opentelemetry-javaagent110.jar",
+        s"-Dotel.javaagent.debug=true",
+        s"-Dotel.service.name=mesmer-example",
+        s"-Dotel.metrics.exporter=otlp",
+        s"-Dotel.metric.export.interval=10000",
+        s"-Dotel.javaagent.extensions=${(otelExtension / assembly).value.absolutePath}"
+      )
+    ),
+    state
+  )
+  val (s, _) =
+    Project.extract(newState).runInputTask(Compile / run, "", newState)
+  s
+}
+
+def runStreamExampleWithOtelAgent = Command.command("runStreamExampleWithOtelAgent") { state =>
+  val extracted = Project extract state
+  val root      = all.base.absolutePath
+
+  val newState = extracted.appendWithSession(
+    Seq(
+      run / javaOptions ++= Seq(
+        s"-javaagent:$root/opentelemetry-javaagent110.jar",
+        s"-Dotel.javaagent.debug=true",
+        s"-Dotel.service.name=mesmer-stream-example",
+        s"-Dotel.metrics.exporter=otlp",
+        s"-Dotel.metric.export.interval=10000",
+        s"-Dotel.javaagent.extensions=${(otelExtension / assembly).value.absolutePath}"
+      )
+    ),
+    state
+  )
+  val (s, _) =
+    Project.extract(newState).runInputTask(Compile / runMain, " example.SimpleStreamExample", newState)
+  s
+}
+
+def runStreamExampleWithMesmerAgent = Command.command("runStreamExampleWithMesmerAgent") { state =>
+  val extracted = Project extract state
+  val newState = extracted.appendWithSession(
+    Seq(
+      run / javaOptions ++= Seq(
+        s"-javaagent:${(agent / assembly).value.absolutePath}"
+      )
+    ),
+    state
+  )
+  val (s, _) =
+    Project.extract(newState).runInputTask(Compile / runMain, " example.SimpleStreamExample", newState)
   s
 }

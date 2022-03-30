@@ -4,6 +4,8 @@ import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
 import io.scalac.mesmer.agent.Agent.LoadingResult
+import io.scalac.mesmer.agent.util.i13n.InstrumentationDetails._
+import io.scalac.mesmer.agent.util.i13n.TypeInstrumentation._
 
 class AgentInstrumentationTest extends AnyFlatSpec with Matchers {
 
@@ -12,34 +14,30 @@ class AgentInstrumentationTest extends AnyFlatSpec with Matchers {
   private def returning(result: LoadingResult): (Any, Any) => LoadingResult = (_, _) => result
 
   it should "be equal if tags and name are the same" in {
-    val name = "some.class"
-    val tags = Set("tag1", "tag2")
 
-    val agent  = AgentInstrumentation(name, tags, deferred = false)(returning(LoadingResult.empty))
-    val agent2 = AgentInstrumentation(name, tags, deferred = false)(returning(LoadingResult.empty))
+    val typeInstrumentation = instrument(fqcn("some.class", Set("tag1", "tag2")))
+
+    val agent  = AgentInstrumentation(typeInstrumentation)
+    val agent2 = AgentInstrumentation(typeInstrumentation)
 
     agent should be(agent2)
   }
 
   it should "be not be equal if tags are different" in {
-    val name  = "some.class"
-    val tags1 = Set("tag1", "tag2")
-    val tags2 = Set("tag2", "tag3")
+    val name = "some.class"
 
-    val agent  = AgentInstrumentation(name, tags1, deferred = false)(returning(LoadingResult.empty))
-    val agent2 = AgentInstrumentation(name, tags2, deferred = false)(returning(LoadingResult.empty))
+    val agent  = AgentInstrumentation(instrument(fqcn(name, Set("tag1", "tag2"))))
+    val agent2 = AgentInstrumentation(instrument(fqcn(name, Set("tag2", "tag3"))))
 
-    agent should not be (agent2)
+    agent should not be agent2
   }
 
   it should "be not be equal if names are different" in {
-    val name  = "some.class"
-    val name2 = "other.class"
-    val tags  = Set("tag1", "tag2")
+    val tags = Set("tag1", "tag2")
 
-    val agent  = AgentInstrumentation(name, tags, deferred = false)(returning(LoadingResult.empty))
-    val agent2 = AgentInstrumentation(name2, tags, deferred = false)(returning(LoadingResult.empty))
+    val agent  = AgentInstrumentation(instrument(fqcn("some.class", tags)))
+    val agent2 = AgentInstrumentation(instrument(fqcn("other.class", tags)))
 
-    agent should not be (agent2)
+    agent should not be agent2
   }
 }
