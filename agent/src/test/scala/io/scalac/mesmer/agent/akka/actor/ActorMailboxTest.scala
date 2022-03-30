@@ -148,7 +148,7 @@ class ActorMailboxTest
       props
     )
     eventually {
-      val metrics = ActorCellDecorator.get(context.toClassic).get
+      val metrics = ActorCellDecorator.getMetrics(context.toClassic).get
       metrics.droppedMessages.toOption.map(_.get()) should be(Some(expectedValue))
     }
     sut.unsafeUpcast[Any] ! PoisonPill
@@ -185,7 +185,7 @@ class ActorMailboxTest
   it should "not have dropped messages defined for default typed configuration" in {
     val (sut, context) = actorRefWithContext(Props.empty)
 
-    val metrics = ActorCellDecorator.get(context.toClassic).get
+    val metrics = ActorCellDecorator.getMetrics(context.toClassic).get
     metrics.droppedMessages.toOption should be(None)
 
     sut.unsafeUpcast ! PoisonPill
@@ -194,7 +194,7 @@ class ActorMailboxTest
   it should "not have dropped messages defined for default classic configuration" in {
     val (sut, context) = classicActorRefWithContext(classic.Props.empty)
 
-    val metrics = ActorCellDecorator.get(context).get
+    val metrics = ActorCellDecorator.getMetrics(context).get
     metrics.droppedMessages.toOption should be(None)
 //    assertThrows[ClassCastException] {
 //      metrics.asInstanceOf[ActorCellMetrics with DroppedMessagesCellMetrics]

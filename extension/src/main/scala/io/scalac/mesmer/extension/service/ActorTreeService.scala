@@ -126,7 +126,6 @@ final class ActorTreeService(
   import ActorTreeService._
   import Command._
   import Event._
-  import ActorTreeService._
   import context._
 
   private[this] implicit val refPartialOrdering: TreeOrdering[classic.ActorRef] =
