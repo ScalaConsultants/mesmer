@@ -3,10 +3,12 @@ package io.scalac.mesmer.otelextension.instrumentations.akka.stream
 import akka.ActorGraphInterpreterOtelAdvice
 import akka.ActorGraphInterpreterProcessEventOtelAdvice
 import akka.ActorGraphInterpreterTryInitOtelAdvice
-import akka.stream.GraphInterpreterOtelPullAdvice
-import akka.stream.GraphInterpreterOtelPushAdvice
-import akka.stream.GraphStageIslandOtelAdvice
-
+import akka.stream.{
+  ConnectionConstructorAdvice,
+  GraphInterpreterOtelPullAdvice,
+  GraphInterpreterOtelPushAdvice,
+  GraphStageIslandOtelAdvice
+}
 import io.scalac.mesmer.agent.Agent
 import io.scalac.mesmer.agent.AgentInstrumentation
 import io.scalac.mesmer.agent.util.i13n._
@@ -60,6 +62,19 @@ object AkkaStreamAgent
         .visit(PhasedFusingActorMaterializerAdvice, method("actorOf"))
     )
 
+  private val connectionConstuctorAdvice = {
+
+    /**
+     * Add incrementing push counter on push processing
+     */
+    val processPush = AgentInstrumentation.deferred(
+      instrument("akka.stream.impl.fusing.GraphInterpreter$Connection".fqcn)
+        .visit[ConnectionConstructorAdvice](constructor)
+    )
+
+    Agent(processPush)
+  }
+
   private val connectionPushAgent = {
 
     /**
@@ -108,6 +123,6 @@ object AkkaStreamAgent
     )
 
   private val sharedImplementations =
-    connectionPushAgent ++ connectionPullAgent ++ actorGraphInterpreterInstrumentation ++ graphStageIslandInstrumentation ++ phasedFusingActorMaterializerAgentInstrumentation
+    connectionConstuctorAdvice ++ connectionPushAgent ++ connectionPullAgent ++ actorGraphInterpreterInstrumentation ++ graphStageIslandInstrumentation ++ phasedFusingActorMaterializerAgentInstrumentation
 
 }
