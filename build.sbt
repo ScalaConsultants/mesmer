@@ -116,7 +116,7 @@ lazy val otelExtension = (project in file("otel-extension"))
   .settings(
     name := "mesmer-otel-extension",
     libraryDependencies ++= {
-      openTelemetryInstrumentation
+      openTelemetryInstrumentation ++ openTelemetryMuzzle
     },
     assembly / test            := {},
     assembly / assemblyJarName := "mesmer-otel-extension.jar",
@@ -138,7 +138,7 @@ lazy val example = (project in file("example"))
       exampleDependencies
     },
     assemblyMergeStrategySettings,
-    assembly / mainClass       := Some("io.scalac.Boot"),
+    mainClass                  := Some("example.Boot"),
     assembly / assemblyJarName := "mesmer-akka-example.jar",
     resolvers += "Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots",
     run / fork := true,
@@ -152,8 +152,10 @@ lazy val example = (project in file("example"))
 
       keys
     },
-    commands += runWithMesmerAgent,
-    commands += runWithOtelAgent,
+    commands += runExampleWithMesmerAgent,
+    commands += runExampleWithOtelAgent,
+    commands += runStreamExampleWithMesmerAgent,
+    commands += runStreamExampleWithOtelAgent,
     Universal / mappings += {
       val jar = (agent / assembly).value
       jar -> "mesmer.agent.jar"
@@ -188,7 +190,7 @@ lazy val benchmark = (project in file("benchmark"))
   }
   .dependsOn(extension)
 
-def runWithMesmerAgent = Command.command("runWithMesmerAgent") { state =>
+def runExampleWithMesmerAgent = Command.command("runExampleWithMesmerAgent") { state =>
   val extracted = Project extract state
   val newState = extracted.appendWithSession(
     Seq(
@@ -203,7 +205,7 @@ def runWithMesmerAgent = Command.command("runWithMesmerAgent") { state =>
   s
 }
 
-def runWithOtelAgent = Command.command("runWithOtelAgent") { state =>
+def runExampleWithOtelAgent = Command.command("runExampleWithOtelAgent") { state =>
   val extracted = Project extract state
   val root      = all.base.absolutePath
 
@@ -211,6 +213,10 @@ def runWithOtelAgent = Command.command("runWithOtelAgent") { state =>
     Seq(
       run / javaOptions ++= Seq(
         s"-javaagent:$root/opentelemetry-javaagent110.jar",
+        s"-Dotel.javaagent.debug=true",
+        s"-Dotel.service.name=mesmer-example",
+        s"-Dotel.metrics.exporter=otlp",
+        s"-Dotel.metric.export.interval=10000",
         s"-Dotel.javaagent.extensions=${(otelExtension / assembly).value.absolutePath}"
       )
     ),
@@ -218,5 +224,42 @@ def runWithOtelAgent = Command.command("runWithOtelAgent") { state =>
   )
   val (s, _) =
     Project.extract(newState).runInputTask(Compile / run, "", newState)
+  s
+}
+
+def runStreamExampleWithOtelAgent = Command.command("runStreamExampleWithOtelAgent") { state =>
+  val extracted = Project extract state
+  val root      = all.base.absolutePath
+
+  val newState = extracted.appendWithSession(
+    Seq(
+      run / javaOptions ++= Seq(
+        s"-javaagent:$root/opentelemetry-javaagent110.jar",
+        s"-Dotel.javaagent.debug=true",
+        s"-Dotel.service.name=mesmer-stream-example",
+        s"-Dotel.metrics.exporter=otlp",
+        s"-Dotel.metric.export.interval=10000",
+        s"-Dotel.javaagent.extensions=${(otelExtension / assembly).value.absolutePath}"
+      )
+    ),
+    state
+  )
+  val (s, _) =
+    Project.extract(newState).runInputTask(Compile / runMain, " example.SimpleStreamExample", newState)
+  s
+}
+
+def runStreamExampleWithMesmerAgent = Command.command("runStreamExampleWithMesmerAgent") { state =>
+  val extracted = Project extract state
+  val newState = extracted.appendWithSession(
+    Seq(
+      run / javaOptions ++= Seq(
+        s"-javaagent:${(agent / assembly).value.absolutePath}"
+      )
+    ),
+    state
+  )
+  val (s, _) =
+    Project.extract(newState).runInputTask(Compile / runMain, " example.SimpleStreamExample", newState)
   s
 }
