@@ -3,6 +3,8 @@ package io.scalac.mesmer.core.util
 import java.lang.invoke.MethodHandles
 import java.lang.invoke.MethodType.methodType
 
+import akka.MesmerMirrorTypes.Cell
+
 object ActorCellOps {
 
   private[util] final val cellClass = Class.forName("akka.actor.Cell")
@@ -15,10 +17,10 @@ object ActorCellOps {
     )
   }
 
-  @inline final def isLocal(cell: Object): Boolean =
+  @inline final def isLocal(cell: Cell): Boolean =
     isLocalMethodHandler.invoke(cell).asInstanceOf[Boolean]
 
-  @inline final def numberOfMessages(cell: Object): Int =
+  @inline final def numberOfMessages(cell: Cell): Int =
     numberOfMessagesMethodHandler.invoke(cell).asInstanceOf[Int]
 
 }

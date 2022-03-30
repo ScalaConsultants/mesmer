@@ -4,6 +4,7 @@ import com.typesafe.config.Config
 import io.opentelemetry.api.common
 import io.opentelemetry.api.metrics.Meter
 
+import io.scalac.mesmer.core.config.Configuration
 import io.scalac.mesmer.core.config.MesmerConfiguration
 import io.scalac.mesmer.core.module.AkkaHttpModule
 import io.scalac.mesmer.extension.metric.Counter
@@ -19,7 +20,7 @@ object OpenTelemetryHttpMetricsMonitor {
     requestTotal: String
   )
 
-  object MetricNames extends MesmerConfiguration[MetricNames] {
+  object MetricNames extends MesmerConfiguration[MetricNames] with Configuration {
 
     protected val mesmerConfig: String = "metrics.http-metrics"
 
