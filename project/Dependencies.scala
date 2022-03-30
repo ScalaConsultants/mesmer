@@ -2,19 +2,19 @@ import sbt._
 
 object Dependencies {
 
-  val AkkaHttpVersion                     = "10.2.7"
-  val AkkaManagementVersion               = "1.1.2"
-  val AkkaVersion                         = "2.6.18"
-  val CirceVersion                        = "0.14.1"
-  val GoogleAutoServiceVersion            = "1.0.1"
-  val LogbackVersion                      = "1.2.10"
-  val OpentelemetryVersion                = "1.10.0"
-  val OpentelemetryMetricsApiVersion      = "1.10.0-alpha-rc.1"
-  val OpentelemetryMetricsExporterVersion = "1.10.0-alpha"
-  val OpentelemetryInstrumentationVersion = "1.10.0-alpha"
-  val PostgresVersion                     = "42.3.1"
-  val ScalatestVersion                    = "3.2.10"
-  val SlickVersion                        = "3.3.3"
+  val AirframeVersion                = "22.1.0"
+  val AkkaHttpVersion                = "10.2.7"
+  val AkkaManagementVersion          = "1.1.2"
+  val AkkaVersion                    = "2.6.18"
+  val CirceVersion                   = "0.14.1"
+  val GoogleAutoServiceVersion       = "1.0.1"
+  val LogbackVersion                 = "1.2.10"
+  val OpentelemetryVersion           = "1.10.0"
+  val OpentelemetryAlphaVersion      = "1.10.0-alpha"
+  val OpentelemetryMetricsApiVersion = "1.10.0-alpha-rc.1"
+  val PostgresVersion                = "42.3.1"
+  val ScalatestVersion               = "3.2.10"
+  val SlickVersion                   = "3.3.3"
 
   val akka = Seq(
     "com.typesafe.akka" %% "akka-http"                   % AkkaHttpVersion,
@@ -49,11 +49,18 @@ object Dependencies {
     "io.opentelemetry" % "opentelemetry-api-metrics" % OpentelemetryMetricsApiVersion
   )
 
-  val openTelemetryInstrumentation = Seq(
-    "com.google.auto.service"    % "auto-service"                          % GoogleAutoServiceVersion,
-    "io.opentelemetry.javaagent" % "opentelemetry-javaagent-extension-api" % OpentelemetryInstrumentationVersion
+  val openTelemetryInstrumentationApi = Seq(
+    "io.opentelemetry.javaagent" % "opentelemetry-javaagent-instrumentation-api" % OpentelemetryAlphaVersion
   )
 
+  val openTelemetryInstrumentation = Seq(
+    "com.google.auto.service"    % "auto-service"                          % GoogleAutoServiceVersion,
+    "io.opentelemetry.javaagent" % "opentelemetry-javaagent-extension-api" % OpentelemetryAlphaVersion
+  )
+
+  val openTelemetryMuzzle = Seq(
+    "io.opentelemetry.javaagent" % "opentelemetry-muzzle" % OpentelemetryAlphaVersion
+  )
   val akkaTestkit = Seq(
     "com.typesafe.akka" %% "akka-actor-testkit-typed" % AkkaVersion     % Test,
     "com.typesafe.akka" %% "akka-persistence-testkit" % AkkaVersion     % Test,
@@ -70,19 +77,21 @@ object Dependencies {
   val reflection: String => Seq[ModuleID] = version => Seq("org.scala-lang" % "scala-reflect" % version)
 
   val exampleDependencies = Seq(
-    "io.circe"                      %% "circe-core"                          % CirceVersion,
-    "io.circe"                      %% "circe-generic"                       % CirceVersion,
-    "io.circe"                      %% "circe-parser"                        % CirceVersion,
-    "de.heikoseeberger"             %% "akka-http-circe"                     % "1.39.2",
-    "org.postgresql"                 % "postgresql"                          % PostgresVersion,
-    "com.typesafe.slick"            %% "slick"                               % SlickVersion,
-    "com.typesafe.slick"            %% "slick-hikaricp"                      % SlickVersion,
-    "com.typesafe.akka"             %% "akka-discovery"                      % AkkaVersion,
-    "com.lightbend.akka.management" %% "akka-management"                     % AkkaManagementVersion,
-    "com.lightbend.akka.management" %% "akka-management-cluster-http"        % AkkaManagementVersion,
-    "com.lightbend.akka.management" %% "akka-management-cluster-bootstrap"   % AkkaManagementVersion,
-    "io.opentelemetry"               % "opentelemetry-exporter-otlp-metrics" % OpentelemetryMetricsExporterVersion,
-    "io.opentelemetry"               % "opentelemetry-sdk"                   % OpentelemetryVersion,
-    "io.grpc"                        % "grpc-netty-shaded"                   % "1.43.2"
+    "io.circe"                      %% "circe-core"                                % CirceVersion,
+    "io.circe"                      %% "circe-generic"                             % CirceVersion,
+    "io.circe"                      %% "circe-parser"                              % CirceVersion,
+    "de.heikoseeberger"             %% "akka-http-circe"                           % "1.39.2",
+    "org.postgresql"                 % "postgresql"                                % PostgresVersion,
+    "com.typesafe.slick"            %% "slick"                                     % SlickVersion,
+    "com.typesafe.slick"            %% "slick-hikaricp"                            % SlickVersion,
+    "com.typesafe.akka"             %% "akka-discovery"                            % AkkaVersion,
+    "com.lightbend.akka.management" %% "akka-management"                           % AkkaManagementVersion,
+    "com.lightbend.akka.management" %% "akka-management-cluster-http"              % AkkaManagementVersion,
+    "com.lightbend.akka.management" %% "akka-management-cluster-bootstrap"         % AkkaManagementVersion,
+    "io.opentelemetry"               % "opentelemetry-exporter-otlp-metrics"       % OpentelemetryAlphaVersion,
+    "io.opentelemetry"               % "opentelemetry-sdk-extension-autoconfigure" % OpentelemetryAlphaVersion,
+    "io.opentelemetry"               % "opentelemetry-sdk"                         % OpentelemetryVersion,
+    "io.grpc"                        % "grpc-netty-shaded"                         % "1.43.2",
+    "org.wvlet.airframe"            %% "airframe-log"                              % AirframeVersion
   )
 }

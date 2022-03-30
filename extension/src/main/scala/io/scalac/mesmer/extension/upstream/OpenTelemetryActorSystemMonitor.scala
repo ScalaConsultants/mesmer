@@ -3,6 +3,7 @@ package io.scalac.mesmer.extension.upstream
 import com.typesafe.config.Config
 import io.opentelemetry.api.metrics.Meter
 
+import io.scalac.mesmer.core.config.Configuration
 import io.scalac.mesmer.core.config.MesmerConfiguration
 import io.scalac.mesmer.core.module.AkkaActorSystemModule
 import io.scalac.mesmer.extension.metric.ActorSystemMonitor
@@ -19,7 +20,7 @@ object OpenTelemetryActorSystemMonitor {
     terminatedActors: String
   )
 
-  object MetricNames extends MesmerConfiguration[MetricNames] {
+  object MetricNames extends MesmerConfiguration[MetricNames] with Configuration {
     val defaultConfig: MetricNames =
       MetricNames("akka_system_created_actors_total", "akka_system_terminated_actors_total")
 
