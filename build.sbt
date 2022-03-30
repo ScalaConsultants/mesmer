@@ -213,6 +213,10 @@ def runExampleWithOtelAgent = Command.command("runExampleWithOtelAgent") { state
     Seq(
       run / javaOptions ++= Seq(
         s"-javaagent:$root/opentelemetry-javaagent110.jar",
+        s"-Dotel.javaagent.debug=true",
+        s"-Dotel.service.name=mesmer-example",
+        s"-Dotel.metrics.exporter=otlp",
+        s"-Dotel.metric.export.interval=10000",
         s"-Dotel.javaagent.extensions=${(otelExtension / assembly).value.absolutePath}"
       )
     ),
@@ -231,6 +235,10 @@ def runStreamExampleWithOtelAgent = Command.command("runStreamExampleWithOtelAge
     Seq(
       run / javaOptions ++= Seq(
         s"-javaagent:$root/opentelemetry-javaagent110.jar",
+        s"-Dotel.javaagent.debug=true",
+        s"-Dotel.service.name=mesmer-stream-example",
+        s"-Dotel.metrics.exporter=otlp",
+        s"-Dotel.metric.export.interval=10000",
         s"-Dotel.javaagent.extensions=${(otelExtension / assembly).value.absolutePath}"
       )
     ),
