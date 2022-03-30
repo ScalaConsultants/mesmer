@@ -10,7 +10,7 @@ object SupervisorHandleReceiveExceptionInstrumentation {
 
   @OnMethodExit(onThrowable = classOf[Throwable])
   def onExit(@Argument(0) context: TypedActorContext[_]): Unit =
-    ActorCellDecorator.get(ClassicActorContextProviderOps.classicActorContext(context)).foreach { metrics =>
+    ActorCellDecorator.getMetrics(ClassicActorContextProviderOps.classicActorContext(context)).foreach { metrics =>
       import metrics._
       if (failedMessages.isDefined && exceptionHandledMarker.isDefined) {
 

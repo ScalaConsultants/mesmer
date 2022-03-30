@@ -1,5 +1,6 @@
 package io.scalac.mesmer.agent.akka.actor.impl
 
+import akka.actor.ActorContext
 import akka.dispatch.MailboxType
 import akka.dispatch.SingleConsumerOnlyUnboundedMailbox
 import akka.dispatch.UnboundedMailbox
@@ -12,12 +13,12 @@ import io.scalac.mesmer.core.actor.ActorCellDecorator
 object ActorCellDroppedMessagesAdvice {
 
   @OnMethodExit
-  def init(@This actorCell: Object, @Argument(1) mailboxType: MailboxType): Unit =
+  def init(@This actorCell: ActorContext, @Argument(1) mailboxType: MailboxType): Unit =
     mailboxType match {
       case _: UnboundedMailbox | _: SingleConsumerOnlyUnboundedMailbox =>
 
       case _ =>
-        ActorCellDecorator.get(actorCell).foreach { metrics =>
+        ActorCellDecorator.getMetrics(actorCell).foreach { metrics =>
           metrics.initDroppedMessages()
         }
     }

@@ -109,7 +109,7 @@ class AkkaActorAgentTest
     testEffect[T](_ => ())(messages: _*)(checks: _*)
 
   private def check[T](extr: ActorCellMetrics => T)(checkFunc: T => Any): classic.ActorContext => Any = ctx =>
-    checkFunc(ActorCellDecorator.get(ctx).map(extr).value)
+    checkFunc(ActorCellDecorator.getMetrics(ctx).map(extr).value)
 
   "AkkaActorAgent" should "record mailbox time properly" in {
     val idle            = 100.milliseconds
@@ -119,7 +119,7 @@ class AkkaActorAgentTest
     val check: classic.ActorContext => Any = ctx => {
 
       val metrics = (for {
-        cellMetrics <- ActorCellDecorator.get(ctx) if cellMetrics.mailboxTimeAgg.isDefined
+        cellMetrics <- ActorCellDecorator.getMetrics(ctx) if cellMetrics.mailboxTimeAgg.isDefined
         agg         <- cellMetrics.mailboxTimeAgg.get.metrics
       } yield agg).value
 
@@ -144,7 +144,7 @@ class AkkaActorAgentTest
 
     val check: classic.ActorContext => Any = ctx => {
       val metrics = (for {
-        cellMetrics <- ActorCellDecorator.get(ctx) if cellMetrics.processingTimeAgg.isDefined
+        cellMetrics <- ActorCellDecorator.getMetrics(ctx) if cellMetrics.processingTimeAgg.isDefined
         agg         <- cellMetrics.processingTimeAgg.get.metrics
       } yield agg).value
       metrics.count should be(messages)
@@ -350,7 +350,7 @@ class AkkaActorAgentTest
     metricProvider: ActorCellMetrics => Counter
   ): Long => Unit = {
     val metric = eventually {
-      metricProvider(ActorCellDecorator.get(ctx).value)
+      metricProvider(ActorCellDecorator.getMetrics(ctx).value)
     }
     test =>
       eventually {
@@ -377,7 +377,7 @@ object AkkaActorAgentTest {
 
     protected def inspectStashSize(ref: classic.ActorRef, ctx: classic.ActorContext): Unit = {
       val size = for {
-        cellMetrics <- ActorCellDecorator.get(ctx) if cellMetrics.stashedMessages.isDefined
+        cellMetrics <- ActorCellDecorator.getMetrics(ctx) if cellMetrics.stashedMessages.isDefined
       } yield cellMetrics.stashedMessages.get.get()
       ref ! StashSize(size)
     }

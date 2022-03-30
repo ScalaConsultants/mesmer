@@ -1,15 +1,18 @@
 package io.scalac.mesmer.core.actor
 
-import io.scalac.mesmer.core.util.ReflectionFieldUtils
+import akka.MesmerMirrorTypes.Cell
+import akka.actor.ActorContext
+import io.opentelemetry.instrumentation.api.field.VirtualField
 
 object ActorCellDecorator {
 
-  final val fieldName = "_actorCellMetrics"
+  @inline def getMetrics(actorCell: ActorContext): Option[ActorCellMetrics] = Option(
+    VirtualField.find(classOf[ActorContext], classOf[ActorCellMetrics]).get(actorCell)
+  )
 
-  private lazy val (getter, _) = ReflectionFieldUtils.getHandlers("akka.actor.ActorCell", fieldName)
+  @inline def getMetrics(actorCell: Cell): Option[ActorCellMetrics] =
+    getMetrics(actorCell.asInstanceOf[ActorContext])
 
-  // TODO this shouldn't fail when agent is not present - None should be returned
-  def get(actorCell: Object): Option[ActorCellMetrics] =
-    Option(getter.invoke(actorCell)).map(_.asInstanceOf[ActorCellMetrics])
-
+  @inline def set(actorCell: ActorContext, metrics: ActorCellMetrics): Unit =
+    VirtualField.find(classOf[ActorContext], classOf[ActorCellMetrics]).set(actorCell, metrics)
 }
