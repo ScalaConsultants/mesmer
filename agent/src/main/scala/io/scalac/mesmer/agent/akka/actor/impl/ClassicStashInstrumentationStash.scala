@@ -3,6 +3,7 @@ package io.scalac.mesmer.agent.akka.actor.impl
 import java.lang.invoke.MethodHandles
 import java.lang.invoke.MethodType.methodType
 
+import akka.MesmerMirrorTypes.Cell
 import akka.actor.Actor
 import akka.actor.ActorContext
 import net.bytebuddy.asm.Advice.Argument
@@ -16,7 +17,7 @@ object StashConstructorAdvice {
   @OnMethodExit
   def initStash(@This self: Actor): Unit =
     ActorCellDecorator
-      .get(ClassicActorOps.getContext(self))
+      .getMetrics(ClassicActorOps.getContext(self))
       .foreach(_.initStashedMessages())
 
 }
@@ -38,7 +39,7 @@ trait StashGetters {
   @inline final def getStashSize(stashSupport: AnyRef): Int =
     theStashMethodHandle.invoke(stashSupport).asInstanceOf[Vector[_]].length
 
-  @inline final def getActorCell(stashSupport: AnyRef): AnyRef =
+  @inline final def getActorCell(stashSupport: AnyRef): Cell =
     getContextMethodHandle.invoke(stashSupport)
 }
 
@@ -47,7 +48,7 @@ object ClassicStashInstrumentationStash extends StashGetters {
 
   @OnMethodExit
   def onStashExit(@This stash: AnyRef): Unit =
-    ActorCellDecorator.get(getActorCell(stash)).foreach { metrics =>
+    ActorCellDecorator.getMetrics(getActorCell(stash)).foreach { metrics =>
       if (metrics.stashedMessages.isDefined) {
         metrics.stashedMessages.get.inc()
       }
@@ -60,7 +61,7 @@ object ClassicStashInstrumentationPrepend extends StashGetters {
 
   @OnMethodExit
   def onStashExit(@This stash: AnyRef, @Argument(0) seq: Seq[_]): Unit =
-    ActorCellDecorator.get(getActorCell(stash)).foreach { metrics =>
+    ActorCellDecorator.getMetrics(getActorCell(stash)).foreach { metrics =>
       if (metrics.stashedMessages.isDefined) {
         metrics.stashedMessages.get.add(seq.size)
       }

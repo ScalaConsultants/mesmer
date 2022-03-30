@@ -11,16 +11,16 @@ import io.scalac.mesmer.core.model._
 import io.scalac.mesmer.core.util.ReflectionFieldUtils
 import io.scalac.mesmer.core.util.Timestamp
 
-object StoringSnapshotInterceptor extends PersistenceUtils {
-
-  private lazy val contextGetter =
-    ReflectionFieldUtils.getGetter("akka.actor.typed.scaladsl.AbstractBehavior", "context")
+object StoringSnapshotAdvice {
 
   @OnMethodEnter
   def onSaveSnapshotResponse(
     @Argument(0) response: AnyRef,
     @This self: AbstractBehavior[_]
   ): Unit = {
+
+    val contextGetter = ReflectionFieldUtils.getGetter("akka.actor.typed.scaladsl.AbstractBehavior", "context")
+
     val context = contextGetter.invoke(self).asInstanceOf[ActorContext[_]]
     response match {
       case SaveSnapshotSuccess(meta) =>
@@ -36,7 +36,5 @@ object StoringSnapshotInterceptor extends PersistenceUtils {
           )
       case _ =>
     }
-
   }
-
 }

@@ -20,9 +20,9 @@ final case class Agent private (private[agent] val instrumentations: Set[AgentIn
 
   def ++(other: Agent): Agent = Agent(instrumentations ++ other.instrumentations)
 
-  def plus(other: Agent): Agent = ++(other)
-
   def ++(other: AgentInstrumentation): Agent = Agent(instrumentations + other)
+
+  def onCondition(condition: Boolean): Agent = if (condition) this else Agent.empty
 
   def installOnMesmerAgent(builder: AgentBuilder, instrumentation: Instrumentation): LoadingResult = {
 

@@ -69,7 +69,7 @@ object PersistenceEventsActor {
               }
 
           case PersistentEventWrapper(pes @ PersistingEventStarted(path, persistenceId, sequenceNr, _)) =>
-            ctx.log.trace("Persit event initiated for actor {}/{}:{}", path, persistenceId, sequenceNr)
+            ctx.log.trace("Persist event initiated for actor {}/{}:{}", path, persistenceId, sequenceNr)
             running(recoveryStorage, persistStorage.persistEventStarted(pes))
           case PersistentEventWrapper(finished @ PersistingEventFinished(path, persistenceId, _, _)) =>
             persistStorage

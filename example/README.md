@@ -13,18 +13,30 @@ This will set up everything needed by the application:
 
 ## Run the application
 
-### Running the application with the Mesmer Agent:
+### Running the example applications with the Mesmer Agent:
 ```
-sbt "project example" runWithMesmerAgent
+sbt "project example" runExampleWithMesmerAgent
+```
+
+or (for Akka Streaming example)
+
+```
+sbt "project example" runStreamExampleWithMesmerAgent
 ```
 
 ### Running the application with the Open Telemetry Agent:
 
 ```
-sbt "project example" runWithOtelAgent
+sbt "project example" runExampleWithOtelAgent
 ```
 
-## Call the endpoints
+or (for Akka Streaming example)
+
+```
+sbt "project example" runStreamExampleWithOtelAgent
+```
+
+## In case you are running the non-streaming example: call the endpoints
 
 You can now interact with the application to generate some traffic and metrics:
 1. Get account balance:

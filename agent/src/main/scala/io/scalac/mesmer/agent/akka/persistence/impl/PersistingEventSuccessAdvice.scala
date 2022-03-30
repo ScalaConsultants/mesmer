@@ -9,11 +9,11 @@ import io.scalac.mesmer.core.event.PersistenceEvent.PersistingEventFinished
 import io.scalac.mesmer.core.model._
 import io.scalac.mesmer.core.util.Timestamp
 
-object PersistingEventSuccessInterceptor {
+object PersistingEventSuccessAdvice {
 
   @OnMethodEnter
   def onWriteSuccess(@Argument(0) context: ActorContext[_], @Argument(1) event: PersistentRepr): Unit = {
-    val path = context.self.path.toPath
+    val path: Path = context.self.path.toPath
 
     EventBus(context.system)
       .publishEvent(
