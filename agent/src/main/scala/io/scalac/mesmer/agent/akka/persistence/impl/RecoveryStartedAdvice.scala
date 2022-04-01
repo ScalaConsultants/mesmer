@@ -19,6 +19,8 @@ object RecoveryStartedAdvice {
     @Argument(0) context: ActorContext[_],
     @This self: AnyRef
   ): Unit = {
+
+    println("recovery started agent")
     val path = context.self.path.toPath
 
     val replayingSnapshotsSetupGetter: MethodHandle =

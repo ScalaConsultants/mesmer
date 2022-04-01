@@ -1,25 +1,22 @@
-package io.scalac.mesmer.agent.akka.persistence.impl
+package io.scalac.mesmer.otelextension.instrumentations.akka.persistence.impl
 
-import java.lang.invoke.MethodHandle
-
-import _root_.akka.actor.typed.scaladsl.ActorContext
-import _root_.akka.persistence.typed.PersistenceId
-import net.bytebuddy.asm.Advice._
-
+import akka.actor.typed.scaladsl.ActorContext
+import akka.persistence.typed.PersistenceId
 import io.scalac.mesmer.core.event.EventBus
 import io.scalac.mesmer.core.event.PersistenceEvent.RecoveryFinished
+import io.scalac.mesmer.core.util.{ ReflectionFieldUtils, Timestamp }
+
+import java.lang.invoke.MethodHandle
 import io.scalac.mesmer.core.model._
-import io.scalac.mesmer.core.util.ReflectionFieldUtils
-import io.scalac.mesmer.core.util.Timestamp
 
-object RecoveryCompletedAdvice {
+object RecoveryCompletedImpl {
 
-  @OnMethodEnter
   def enter(
-    @Argument(0) actorContext: ActorContext[_],
-    @This self: AnyRef
+    actorContext: ActorContext[_],
+    self: AnyRef
   ): Unit = {
-    println("Recovery completed agent")
+    println("RECOVERY COMPLETED EXTENSION")
+
     val path = actorContext.self.path.toPath
 
     val replayingEventsSetupGetter: MethodHandle =

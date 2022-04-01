@@ -4,17 +4,23 @@ import io.scalac.mesmer.agent.Agent
 import io.scalac.mesmer.agent.util.i13n.InstrumentModuleFactory
 import io.scalac.mesmer.agent.utils.InstallAgent.allInstrumentations
 import io.scalac.mesmer.core.module.MesmerModule
+import io.scalac.mesmer.otelextension.instrumentations.akka.persistence.AkkaPersistenceAgent
 import io.scalac.mesmer.otelextension.instrumentations.akka.stream.AkkaStreamAgent
 import net.bytebuddy.ByteBuddy
 import net.bytebuddy.agent.ByteBuddyAgent
 import net.bytebuddy.agent.builder.AgentBuilder
 import net.bytebuddy.agent.builder.AgentBuilder.TypeStrategy
+import net.bytebuddy.description.`type`.TypeDescription
+import net.bytebuddy.dynamic.DynamicType
 import net.bytebuddy.dynamic.scaffold.TypeValidation
+import net.bytebuddy.utility.JavaModule
 import org.scalatest.{BeforeAndAfterAll, TestSuite}
+
+import java.io.File
 
 object InstallAgent {
 
-  def allInstrumentations: Agent =  AkkaStreamAgent.agent
+  def allInstrumentations: Agent =  AkkaStreamAgent.agent ++ AkkaPersistenceAgent.agent
 }
 
 abstract class InstallAgent extends TestSuite with BeforeAndAfterAll {
@@ -25,12 +31,24 @@ abstract class InstallAgent extends TestSuite with BeforeAndAfterAll {
     new ByteBuddy()
       .`with`(TypeValidation.DISABLED)
   )
-    .`with`(AgentBuilder.RedefinitionStrategy.REDEFINITION)
-    .`with`(TypeStrategy.Default.REDEFINE)
+    .`with`(AgentBuilder.RedefinitionStrategy.RETRANSFORMATION)
     .`with`(new AgentBuilder.InitializationStrategy.SelfInjection.Eager())
     .`with`(
       AgentBuilder.Listener.StreamWriting.toSystemOut().withTransformationsOnly()
     )
+    .`with`(new AgentBuilder.Listener {
+      override def onDiscovery(typeName: String, classLoader: ClassLoader, module: JavaModule, loaded: Boolean): Unit = ()
+
+      override def onTransformation(typeDescription: TypeDescription, classLoader: ClassLoader, module: JavaModule, loaded: Boolean, dynamicType: DynamicType): Unit = {
+        dynamicType.saveIn(new File("/Users/piotrjosiak/scalac/mesmer-akka-agent/test-classes"))
+      }
+
+      override def onIgnored(typeDescription: TypeDescription, classLoader: ClassLoader, module: JavaModule, loaded: Boolean): Unit = ()
+
+      override def onError(typeName: String, classLoader: ClassLoader, module: JavaModule, loaded: Boolean, throwable: Throwable): Unit = ()
+
+      override def onComplete(typeName: String, classLoader: ClassLoader, module: JavaModule, loaded: Boolean): Unit = ()
+    })
 
   override protected def beforeAll(): Unit = {
     super.beforeAll()

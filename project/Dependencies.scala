@@ -72,7 +72,7 @@ object Dependencies {
     "com.typesafe.akka" %% "akka-http-testkit"        % AkkaHttpVersion % Test
   )
 
-  val scalatest = Seq("org.scalatest" %% "scalatest" % ScalatestVersion % "provided")
+  val scalatest = Seq("org.scalatest" %% "scalatest" % ScalatestVersion % Test)
 
   val akkaMultiNodeTestKit = Seq("com.typesafe.akka" %% "akka-multi-node-testkit" % AkkaVersion % Test)
 

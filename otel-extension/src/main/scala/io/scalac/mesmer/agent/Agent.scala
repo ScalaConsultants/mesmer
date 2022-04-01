@@ -15,7 +15,7 @@ import scala.jdk.CollectionConverters.SeqHasAsJava
 import io.scalac.mesmer.agent.util.i13n
 import io.scalac.mesmer.agent.util.i13n.InstrumentationDetails
 
-final case class Agent private (private[agent] val instrumentations: Set[AgentInstrumentation]) extends {
+final case class Agent private (private[mesmer] val instrumentations: Set[AgentInstrumentation]) extends {
   import Agent._
 
   def ++(other: Agent): Agent = Agent(instrumentations ++ other.instrumentations)

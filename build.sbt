@@ -122,7 +122,7 @@ lazy val otelExtension = (project in file("otel-extension"))
       openTelemetryInstrumentation.map(_ % "provided") ++
       openTelemetryMuzzle.map(_          % "provided") ++
       akkaTestkit ++
-      scalatest ++ byteBuddyAgent.map(_ % Test)
+      scalatest ++ byteBuddy
     },
     assembly / test            := {},
     assembly / assemblyJarName := "mesmer-otel-extension.jar",
@@ -136,7 +136,7 @@ lazy val otelExtension = (project in file("otel-extension"))
     }),
     Test / testOnly / testGrouping := (Test / testGrouping).value
   )
-  .dependsOn(core % "provided;test->test,provided")
+  .dependsOn(core % "provided->compile;test->test")
 
 lazy val example = (project in file("example"))
   .enablePlugins(JavaAppPackaging, UniversalPlugin)
@@ -175,7 +175,7 @@ lazy val example = (project in file("example"))
       jar -> "mesmer.agent.jar"
     }
   )
-  .dependsOn(extension, agent)
+  .dependsOn(extension)
 
 lazy val assemblyMergeStrategySettings = assembly / assemblyMergeStrategy := {
   case PathList("META-INF", "services", _ @_*)           => MergeStrategy.concat
