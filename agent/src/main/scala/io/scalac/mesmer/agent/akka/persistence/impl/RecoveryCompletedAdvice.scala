@@ -19,7 +19,6 @@ object RecoveryCompletedAdvice {
     @Argument(0) actorContext: ActorContext[_],
     @This self: AnyRef
   ): Unit = {
-    println("Recovery completed agent")
     val path = actorContext.self.path.toPath
 
     val replayingEventsSetupGetter: MethodHandle =

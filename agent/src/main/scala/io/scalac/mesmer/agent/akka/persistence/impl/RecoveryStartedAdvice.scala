@@ -20,7 +20,6 @@ object RecoveryStartedAdvice {
     @This self: AnyRef
   ): Unit = {
 
-    println("recovery started agent")
     val path = context.self.path.toPath
 
     val replayingSnapshotsSetupGetter: MethodHandle =

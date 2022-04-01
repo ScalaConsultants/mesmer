@@ -4,10 +4,10 @@ import akka.actor.typed.scaladsl.ActorContext
 import akka.persistence.typed.PersistenceId
 import io.scalac.mesmer.core.event.EventBus
 import io.scalac.mesmer.core.event.PersistenceEvent.RecoveryFinished
+import io.scalac.mesmer.core.model._
 import io.scalac.mesmer.core.util.{ ReflectionFieldUtils, Timestamp }
 
 import java.lang.invoke.MethodHandle
-import io.scalac.mesmer.core.model._
 
 object RecoveryCompletedImpl {
 
@@ -15,7 +15,6 @@ object RecoveryCompletedImpl {
     actorContext: ActorContext[_],
     self: AnyRef
   ): Unit = {
-    println("RECOVERY COMPLETED EXTENSION")
 
     val path = actorContext.self.path.toPath
 
