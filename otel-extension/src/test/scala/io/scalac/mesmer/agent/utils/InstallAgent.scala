@@ -36,19 +36,7 @@ abstract class InstallAgent extends TestSuite with BeforeAndAfterAll {
     .`with`(
       AgentBuilder.Listener.StreamWriting.toSystemOut().withTransformationsOnly()
     )
-    .`with`(new AgentBuilder.Listener {
-      override def onDiscovery(typeName: String, classLoader: ClassLoader, module: JavaModule, loaded: Boolean): Unit = ()
 
-      override def onTransformation(typeDescription: TypeDescription, classLoader: ClassLoader, module: JavaModule, loaded: Boolean, dynamicType: DynamicType): Unit = {
-        dynamicType.saveIn(new File("/Users/piotrjosiak/scalac/mesmer-akka-agent/test-classes"))
-      }
-
-      override def onIgnored(typeDescription: TypeDescription, classLoader: ClassLoader, module: JavaModule, loaded: Boolean): Unit = ()
-
-      override def onError(typeName: String, classLoader: ClassLoader, module: JavaModule, loaded: Boolean, throwable: Throwable): Unit = ()
-
-      override def onComplete(typeName: String, classLoader: ClassLoader, module: JavaModule, loaded: Boolean): Unit = ()
-    })
 
   override protected def beforeAll(): Unit = {
     super.beforeAll()
