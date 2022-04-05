@@ -133,7 +133,7 @@ lazy val otelExtension = (project in file("otel-extension"))
     }),
     Test / testOnly / testGrouping := (Test / testGrouping).value
   )
-  .dependsOn(core % "provided->compile;test->test")
+  .dependsOn(core % "provided->compile;test->test", agent)
 
 lazy val example = (project in file("example"))
   .enablePlugins(JavaAppPackaging, UniversalPlugin)
