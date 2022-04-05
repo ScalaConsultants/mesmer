@@ -76,7 +76,6 @@ object ActorGraphInterpreterOtelDecorator extends Lookup {
     self: Actor
   ): Actor.Receive =
     receive.orElse { case PushMetrics =>
-      println("PUSHED METRICS COLLECTION")
       val subStreamName = subStreamNameFromActorRef(self.context.self)
 
       val currentShells = shells
