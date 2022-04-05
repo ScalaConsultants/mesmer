@@ -12,7 +12,6 @@ public class ActorGraphInterpreterOtelAdvice {
   public static void overrideReceive(
       @Advice.Return(readOnly = false) PartialFunction<Object, BoxedUnit> result,
       @Advice.This Object self) {
-    System.out.println("OVERRIDING RECEIVE");
     result = ActorGraphInterpreterOtelDecorator.addCollectionReceive(result, (Actor) self);
   }
 }

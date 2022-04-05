@@ -8,13 +8,8 @@ import net.bytebuddy.asm.Advice;
 public class ConnectionConstructorAdvice {
 
     @Advice.OnMethodExit
-    public static void initCounters(@Advice.This GraphInterpreter.Connection self) {
-        System.out.println("Created a connection");
-        try {
-            VirtualField.find(GraphInterpreter.Connection.class, ConnectionCounters.class).set(self, new ConnectionCounters());
-        } catch(Exception ex) {
-            ex.printStackTrace();
-            System.out.println("Failed initializing counters for streams");
-        }
+    public static void initCounters(@Advice.This Object self) {
+        VirtualField.find(GraphInterpreter.Connection.class, ConnectionCounters.class).set((GraphInterpreter.Connection) self, new ConnectionCounters());
+
     }
 }

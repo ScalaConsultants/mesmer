@@ -8,13 +8,8 @@ import scala.util.Try
 object GraphInterpreterOtelPushAdvice {
 
   @OnMethodEnter
-  def onPush(@Argument(0) currentConnection: Connection): Unit = {
-    println("PUSHING")
-    Try(ConnectionOtelOps.incrementPushCounter(currentConnection)).failed.foreach { ex =>
-      ex.printStackTrace()
-      println(s"Exception ${ex.getMessage}")
-    }
-
+  def onPush(@Argument(0) currentConnection: Any): Unit = {
+    ConnectionOtelOps.incrementPushCounter(currentConnection.asInstanceOf[Connection])
   }
 
 }
@@ -22,12 +17,10 @@ object GraphInterpreterOtelPushAdvice {
 object GraphInterpreterOtelPullAdvice {
 
   @OnMethodEnter
-  def onPull(@Argument(0) currentConnection: Connection): Unit = {
-    println("PULLING")
+  def onPull(@Argument(0) currentConnection: Any): Unit = {
 
-    Try(ConnectionOtelOps.incrementPullCounter(currentConnection)).failed.foreach(ex =>
-      println(s"Exception ${ex.getMessage}")
-    )
+    ConnectionOtelOps.incrementPullCounter(currentConnection.asInstanceOf[Connection])
+
 
   }
 

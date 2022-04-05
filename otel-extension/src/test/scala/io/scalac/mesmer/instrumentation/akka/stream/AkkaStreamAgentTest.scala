@@ -29,7 +29,8 @@ import scala.concurrent.{ ExecutionContext, Future }
 import scala.concurrent.duration._
 
 class AkkaStreamAgentTest
-    extends AnyFlatSpec
+    extends InstallModule(AkkaStreamAgent)
+    with AnyFlatSpecLike
     with Matchers
     with SafeLoadSystem
     with BeforeAndAfterAll

@@ -62,7 +62,7 @@ object AkkaStreamAgent
         .visit(PhasedFusingActorMaterializerAdvice, method("actorOf"))
     )
 
-  private val connectionConstuctorAdvice = {
+  private val connectionConstructorAdvice = {
 
     /**
      * Add incrementing push counter on push processing
@@ -123,6 +123,6 @@ object AkkaStreamAgent
     )
 
   private val sharedImplementations =
-    connectionConstuctorAdvice ++ connectionPushAgent ++ connectionPullAgent ++ actorGraphInterpreterInstrumentation ++ graphStageIslandInstrumentation ++ phasedFusingActorMaterializerAgentInstrumentation
+    connectionConstructorAdvice ++ connectionPushAgent ++ connectionPullAgent ++ actorGraphInterpreterInstrumentation ++ graphStageIslandInstrumentation ++ phasedFusingActorMaterializerAgentInstrumentation
 
 }
