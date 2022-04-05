@@ -1,20 +1,22 @@
 package io.scalac.mesmer.agent.utils
 
-import io.scalac.mesmer.agent.Agent
-import io.scalac.mesmer.agent.util.i13n.InstrumentModuleFactory
-import io.scalac.mesmer.agent.utils.InstallAgent.allInstrumentations
-import io.scalac.mesmer.core.module.MesmerModule
-import io.scalac.mesmer.otelextension.instrumentations.akka.stream.AkkaStreamAgent
 import net.bytebuddy.ByteBuddy
 import net.bytebuddy.agent.ByteBuddyAgent
 import net.bytebuddy.agent.builder.AgentBuilder
 import net.bytebuddy.agent.builder.AgentBuilder.TypeStrategy
 import net.bytebuddy.dynamic.scaffold.TypeValidation
-import org.scalatest.{BeforeAndAfterAll, TestSuite}
+import org.scalatest.BeforeAndAfterAll
+import org.scalatest.TestSuite
+
+import io.scalac.mesmer.agent.Agent
+import io.scalac.mesmer.agent.util.i13n.InstrumentModuleFactory
+import io.scalac.mesmer.agent.utils.InstallAgent.allInstrumentations
+import io.scalac.mesmer.core.module.MesmerModule
+import io.scalac.mesmer.otelextension.instrumentations.akka.stream.AkkaStreamAgent
 
 object InstallAgent {
 
-  def allInstrumentations: Agent =  AkkaStreamAgent.agent
+  def allInstrumentations: Agent = AkkaStreamAgent.agent
 }
 
 abstract class InstallAgent extends TestSuite with BeforeAndAfterAll {

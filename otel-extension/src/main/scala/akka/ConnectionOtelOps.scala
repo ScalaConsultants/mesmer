@@ -6,19 +6,17 @@ import akka.stream.impl.fusing.GraphInterpreter.Connection
 
 object ConnectionOtelOps {
 
-  def incrementPushCounter(connection: Connection): Unit = {
+  def incrementPushCounter(connection: Connection): Unit =
     VirtualField
       .find(classOf[Connection], classOf[ConnectionCounters])
       .get(connection)
       .incrementPush
-  }
 
-  def incrementPullCounter(connection: Connection): Unit = {
+  def incrementPullCounter(connection: Connection): Unit =
     VirtualField
       .find(classOf[Connection], classOf[ConnectionCounters])
       .get(connection)
       .incrementPull
-  }
 
   /**
    * Use method handles to extract values stored in synthetic fields

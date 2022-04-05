@@ -42,20 +42,17 @@ lazy val all: Project = (project in file("."))
   .aggregate(extension, agent, otelExtension, example, core)
 
 lazy val core = (project in file("core"))
-//  .disablePlugins(sbtassembly.AssemblyPlugin)
+  .disablePlugins(sbtassembly.AssemblyPlugin)
   .settings(
     name := "mesmer-akka-core",
-    assembly / test            := {},
-    assembly / assemblyJarName := "mesmer-akka-core.jar",
-    assemblyMergeStrategySettings,
     libraryDependencies ++= {
       akka ++
-      openTelemetryApi.map(_ % "provided") ++
-      openTelemetryApiMetrics.map(_ % "provided") ++
-      openTelemetryInstrumentation.map(_ % "provided") ++
+      openTelemetryApi ++
+      openTelemetryApiMetrics ++
+      openTelemetryInstrumentation ++
       scalatest ++
       akkaTestkit ++
-      openTelemetryInstrumentationApi.map(_ % "provided")
+      openTelemetryInstrumentationApi
     }
   )
 
@@ -119,10 +116,10 @@ lazy val otelExtension = (project in file("otel-extension"))
   .settings(
     name := "mesmer-otel-extension",
     libraryDependencies ++= {
-      openTelemetryInstrumentation.map(_ % "provided") ++
-      openTelemetryMuzzle.map(_          % "provided") ++
+      openTelemetryInstrumentation ++
+      openTelemetryMuzzle ++
       akkaTestkit ++
-      scalatest ++ byteBuddyAgent.map(_ % Test)
+      scalatest ++ byteBuddy
     },
     assembly / test            := {},
     assembly / assemblyJarName := "mesmer-otel-extension.jar",
@@ -136,7 +133,7 @@ lazy val otelExtension = (project in file("otel-extension"))
     }),
     Test / testOnly / testGrouping := (Test / testGrouping).value
   )
-  .dependsOn(core % "provided;test->test,provided")
+  .dependsOn(core % "provided->compile;test->test")
 
 lazy val example = (project in file("example"))
   .enablePlugins(JavaAppPackaging, UniversalPlugin)
