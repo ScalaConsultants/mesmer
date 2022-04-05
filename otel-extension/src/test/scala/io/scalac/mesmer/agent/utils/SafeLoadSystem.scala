@@ -5,9 +5,11 @@ import akka.actor.testkit.typed.scaladsl.TestProbe
 import akka.actor.typed.ActorSystem
 import akka.actor.typed.scaladsl.adapter._
 import akka.util.Timeout
-import akka.{actor => classic}
-import com.typesafe.config.{Config, ConfigFactory}
-import org.scalatest.{BeforeAndAfterAll, Suite}
+import akka.{ actor => classic }
+import com.typesafe.config.Config
+import com.typesafe.config.ConfigFactory
+import org.scalatest.BeforeAndAfterAll
+import org.scalatest.Suite
 
 import scala.concurrent.duration._
 

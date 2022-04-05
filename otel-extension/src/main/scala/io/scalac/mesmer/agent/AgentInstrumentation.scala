@@ -2,11 +2,11 @@ package io.scalac.mesmer.agent
 import io.scalac.mesmer.agent.util.i13n.TypeInstrumentation
 
 final case class AgentInstrumentation(
-                                       typeInstrumentation: TypeInstrumentation,
-                                       deferred: Boolean,
-                                       load: Seq[String] = Seq.empty[String]
-                                     ) extends Equals
-  with Ordered[AgentInstrumentation] {
+  typeInstrumentation: TypeInstrumentation,
+  deferred: Boolean,
+  load: Seq[String] = Seq.empty[String]
+) extends Equals
+    with Ordered[AgentInstrumentation] {
 
   override def hashCode(): Int = typeInstrumentation.`type`.name.name.hashCode
 
