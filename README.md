@@ -77,12 +77,6 @@ Mesmer currently supports the following Akka modules:
 
 For a detailed list of metrics go to [metrics](metrics.md)
 
-# Architecture
-
-See [overview](https://github.com/ScalaConsultants/mesmer-akka-agent/blob/main/extension_overview.png).
-
-//TODO
-
 # Local testing
 
 `example` subproject contains a test application that uses Akka Cluster sharding with Mesmer Akka Agent extension.
