@@ -10,7 +10,6 @@ object MesmerConfigPropertySourceProvider {
 
   private def modules = Seq(
     AkkaActorModule,
-    AkkaHttpModule,
     AkkaStreamModule,
     AkkaClusterModule,
     AkkaPersistenceModule,

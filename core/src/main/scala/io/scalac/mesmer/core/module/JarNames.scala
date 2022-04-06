@@ -6,7 +6,6 @@ object JarNames {
   final val akkaPersistence      = "akka-persistence"
   final val akkaPersistenceTyped = "akka-persistence-typed"
   final val akkaStream           = "akka-stream"
-  final val akkaHttp             = "akka-http"
   final val akkaCluster          = "akka-cluster"
   final val akkaClusterTyped     = "akka-cluster-typed"
 }
