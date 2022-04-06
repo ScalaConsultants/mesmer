@@ -119,7 +119,8 @@ lazy val otelExtension = (project in file("otel-extension"))
       openTelemetryInstrumentation ++
       openTelemetryMuzzle ++
       akkaTestkit ++
-      scalatest ++ byteBuddy
+      scalatest ++
+      byteBuddy
     },
     assembly / test            := {},
     assembly / assemblyJarName := "mesmer-otel-extension.jar",
@@ -133,7 +134,7 @@ lazy val otelExtension = (project in file("otel-extension"))
     }),
     Test / testOnly / testGrouping := (Test / testGrouping).value
   )
-  .dependsOn(core % "provided->compile;test->test", agent)
+  .dependsOn(core % "provided->compile;test->test;compile->compile", agent)
 
 lazy val example = (project in file("example"))
   .enablePlugins(JavaAppPackaging, UniversalPlugin)
