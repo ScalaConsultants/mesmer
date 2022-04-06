@@ -3,9 +3,9 @@
 ## Supported metrics
 
 In mesmer we support 3 types of metrics:
-* gauge - counter that goes up and down
+* gauge - for sampled values
 * counter - monotonic counter
-* recorder - values are recorded with aggregation. Due to OpenTelemetry limitation currently only supported aggregation is MinMaxAvgSumCount aggregator.
+* histograms - for recording value distributions
 
 ### Akka core
 
@@ -27,35 +27,11 @@ In mesmer we support 3 types of metrics:
 - Entities on node - gauge
 - Nodes down - counter
 
-### Akka HTTP
-
-- Connections - gauge
-- Requests - counter
-- Responses - recorder (for all responses status)
-- Responses 2xx
-- Responses 3xx
-- Responses 4xx
-- Responses 5xx
-- Response time 
-- Response time 2xx
-- Response time 3xx
-- Response time 4xx
-- Response time 5xx
-- Endpoint responses
-- Endpoint responses 2xx 
-- Endpoint responses 3xx 
-- Endpoint responses 4xx 
-- Endpoint responses 5xx 
-- Endpoint response time 2xx
-- Endpoint response time 3xx
-- Endpoint response time 4xx
-- Endpoint response time 5xx
-
 ### Akka Persistence
 
 - Persisted events - recorder
 - Event persistence time - recorder
-- Recovery total - counter 
+- Recovery total - counter
 - Recovery time - recorder
 - Snapshots - counter
 

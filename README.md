@@ -13,7 +13,6 @@ Mesmer has been tested with:
 
 - Scala: 2.13.x
 - Akka Actors: 2.6.8, 2.6.9, 2.6.10, 2.6.11, 2.6.12, 2.6.13, 2.6.14
-- Akka HTTP: 10.1.8, 10.2.0, 10.2.1, 10.2.2, 10.2.3, 10.2.4
 - JVM: 1.8+
 
 ## Getting started
