@@ -21,206 +21,209 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "iteration": 1648724507412,
+  "iteration": 1649259284064,
   "links": [],
   "liveNow": false,
   "panels": [
     {
-      "collapsed": true,
+      "collapsed": false,
       "gridPos": {
-        "h": 9,
+        "h": 1,
         "w": 24,
         "x": 0,
         "y": 0
       },
       "id": 2,
-      "panels": [
-        {
-          "aliasColors": {},
-          "bars": false,
-          "dashLength": 10,
-          "dashes": false,
-          "description": "Global amount of rps experienced by entire cluster",
-          "fieldConfig": {
-            "defaults": {
-              "displayName": "Global",
-              "unit": "reqps"
-            },
-            "overrides": []
-          },
-          "fill": 1,
-          "fillGradient": 0,
-          "gridPos": {
-            "h": 9,
-            "w": 24,
-            "x": 0,
-            "y": 2
-          },
-          "hiddenSeries": false,
-          "id": 4,
-          "legend": {
-            "avg": false,
-            "current": false,
-            "max": false,
-            "min": false,
-            "show": true,
-            "total": false,
-            "values": false
-          },
-          "lines": true,
-          "linewidth": 1,
-          "nullPointMode": "null",
-          "options": {
-            "alertThreshold": true
-          },
-          "percentage": false,
-          "pluginVersion": "7.5.7",
-          "pointradius": 2,
-          "points": false,
-          "renderer": "flot",
-          "seriesOverrides": [],
-          "spaceLength": 10,
-          "stack": false,
-          "steppedLine": false,
-          "targets": [
-            {
-              "exemplar": true,
-              "expr": "sum(rate(promexample_akka_http_request_total[$__rate_interval]))",
-              "interval": "",
-              "legendFormat": "",
-              "refId": "A"
-            }
-          ],
-          "thresholds": [],
-          "timeRegions": [],
-          "title": "Akka http global rps",
-          "tooltip": {
-            "shared": true,
-            "sort": 0,
-            "value_type": "individual"
-          },
-          "type": "graph",
-          "xaxis": {
-            "mode": "time",
-            "show": true,
-            "values": []
-          },
-          "yaxes": [
-            {
-              "$$hashKey": "object:68",
-              "format": "reqps",
-              "logBase": 1,
-              "show": true
-            },
-            {
-              "$$hashKey": "object:69",
-              "format": "short",
-              "logBase": 1,
-              "show": true
-            }
-          ],
-          "yaxis": {
-            "align": false
-          }
-        },
-        {
-          "aliasColors": {},
-          "bars": false,
-          "dashLength": 10,
-          "dashes": false,
-          "fieldConfig": {
-            "defaults": {
-              "unit": "reqps"
-            },
-            "overrides": []
-          },
-          "fill": 1,
-          "fillGradient": 0,
-          "gridPos": {
-            "h": 9,
-            "w": 12,
-            "x": 0,
-            "y": 11
-          },
-          "hiddenSeries": false,
-          "id": 6,
-          "legend": {
-            "avg": false,
-            "current": false,
-            "max": false,
-            "min": false,
-            "show": true,
-            "total": false,
-            "values": false
-          },
-          "lines": true,
-          "linewidth": 1,
-          "maxPerRow": 2,
-          "nullPointMode": "null",
-          "options": {
-            "alertThreshold": true
-          },
-          "percentage": false,
-          "pluginVersion": "7.5.7",
-          "pointradius": 2,
-          "points": false,
-          "renderer": "flot",
-          "repeat": "http_label",
-          "repeatDirection": "h",
-          "seriesOverrides": [],
-          "spaceLength": 10,
-          "stack": false,
-          "steppedLine": false,
-          "targets": [
-            {
-              "exemplar": true,
-              "expr": "sum by($http_label) (rate(promexample_akka_http_request_total[$__rate_interval]))",
-              "interval": "",
-              "legendFormat": "Rps by $http_labels ",
-              "refId": "A"
-            }
-          ],
-          "thresholds": [],
-          "timeRegions": [],
-          "title": "$http_label",
-          "tooltip": {
-            "shared": true,
-            "sort": 0,
-            "value_type": "individual"
-          },
-          "type": "graph",
-          "xaxis": {
-            "mode": "time",
-            "show": true,
-            "values": []
-          },
-          "yaxes": [
-            {
-              "format": "reqps",
-              "logBase": 1,
-              "show": true
-            },
-            {
-              "format": "short",
-              "logBase": 1,
-              "show": true
-            }
-          ],
-          "yaxis": {
-            "align": false
-          }
-        }
-      ],
+      "panels": [],
       "title": "Rps",
       "type": "row"
     },
     {
-      "collapsed": false,
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "description": "Global amount of rps experienced by entire cluster",
+      "fieldConfig": {
+        "defaults": {
+          "displayName": "Global",
+          "unit": "reqps"
+        },
+        "overrides": []
+      },
+      "fill": 1,
+      "fillGradient": 0,
       "gridPos": {
-        "h": 9,
+        "h": 8,
         "w": 24,
         "x": 0,
         "y": 1
+      },
+      "hiddenSeries": false,
+      "id": 4,
+      "legend": {
+        "avg": false,
+        "current": false,
+        "max": false,
+        "min": false,
+        "show": true,
+        "total": false,
+        "values": false
+      },
+      "lines": true,
+      "linewidth": 1,
+      "nullPointMode": "null",
+      "options": {
+        "alertThreshold": true
+      },
+      "percentage": false,
+      "pluginVersion": "8.3.1",
+      "pointradius": 2,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "exemplar": true,
+          "expr": "sum(rate(promexample_http_server_duration_count[$__rate_interval]))",
+          "interval": "",
+          "legendFormat": "",
+          "refId": "A"
+        }
+      ],
+      "thresholds": [],
+      "timeRegions": [],
+      "title": "Akka http global rps",
+      "tooltip": {
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "xaxis": {
+        "mode": "time",
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "$$hashKey": "object:68",
+          "format": "reqps",
+          "logBase": 1,
+          "show": true
+        },
+        {
+          "$$hashKey": "object:69",
+          "format": "short",
+          "logBase": 1,
+          "show": true
+        }
+      ],
+      "yaxis": {
+        "align": false
+      }
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps"
+        },
+        "overrides": []
+      },
+      "fill": 1,
+      "fillGradient": 0,
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 9
+      },
+      "hiddenSeries": false,
+      "id": 6,
+      "legend": {
+        "avg": false,
+        "current": false,
+        "max": false,
+        "min": false,
+        "show": true,
+        "total": false,
+        "values": false
+      },
+      "lines": true,
+      "linewidth": 1,
+      "maxPerRow": 2,
+      "nullPointMode": "null",
+      "options": {
+        "alertThreshold": true
+      },
+      "percentage": false,
+      "pluginVersion": "8.3.1",
+      "pointradius": 2,
+      "points": false,
+      "renderer": "flot",
+      "repeat": "http_label",
+      "repeatDirection": "h",
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "PCF20F3AB9C3C68CE"
+          },
+          "exemplar": false,
+          "expr": "sum by($http_label) (rate(promexample_http_server_duration_count[$__rate_interval]))",
+          "interval": "",
+          "legendFormat": "{{$http_label}}",
+          "refId": "A"
+        }
+      ],
+      "thresholds": [],
+      "timeRegions": [],
+      "title": "Rps by $http_label",
+      "tooltip": {
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "xaxis": {
+        "mode": "time",
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "format": "reqps",
+          "logBase": 1,
+          "show": true
+        },
+        {
+          "format": "short",
+          "logBase": 1,
+          "show": true
+        }
+      ],
+      "yaxis": {
+        "align": false
+      }
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 33
       },
       "id": 12,
       "panels": [],
@@ -242,10 +245,10 @@
       "fill": 1,
       "fillGradient": 0,
       "gridPos": {
-        "h": 9,
+        "h": 7,
         "w": 24,
         "x": 0,
-        "y": 2
+        "y": 34
       },
       "hiddenSeries": false,
       "id": 23,
@@ -276,7 +279,7 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "sum(rate(promexample_akka_http_request_duration_sum[$__rate_interval])) / sum(rate(promexample_akka_http_request_duration_count[$__rate_interval]) > 0)",
+          "expr": "sum(rate(promexample_http_server_duration_sum[$__rate_interval])) / sum(rate(promexample_http_server_duration_count[$__rate_interval]) > 0)",
           "interval": "",
           "legendFormat": "Avg",
           "refId": "A"
@@ -327,10 +330,10 @@
       "fill": 1,
       "fillGradient": 0,
       "gridPos": {
-        "h": 9,
-        "w": 6,
+        "h": 8,
+        "w": 24,
         "x": 0,
-        "y": 9
+        "y": 41
       },
       "hiddenSeries": false,
       "id": 25,
@@ -364,7 +367,7 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "sum by($http_label)(rate(promexample_akka_http_request_duration_sum[$__rate_interval])) / sum by($http_label)(rate(promexample_akka_http_request_duration_count[$__rate_interval]) > 0)",
+          "expr": "sum by($http_label)(rate(promexample_http_server_duration_sum[$__rate_interval])) / sum by($http_label)(rate(promexample_http_server_duration_count[$__rate_interval]) > 0)",
           "interval": "",
           "legendFormat": "{{$http_label}}",
           "refId": "A"
@@ -403,14 +406,14 @@
     {
       "collapsed": false,
       "gridPos": {
-        "h": 9,
+        "h": 1,
         "w": 24,
         "x": 0,
-        "y": 27
+        "y": 81
       },
       "id": 18,
       "panels": [],
-      "title": "Connections",
+      "title": "Active requests",
       "type": "row"
     },
     {
@@ -418,20 +421,20 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "description": "Http connections across whole cluster",
+      "description": "Active http requests across whole cluster",
       "fieldConfig": {
         "defaults": {
-          "unit": "connections"
+          "unit": "active requests"
         },
         "overrides": []
       },
       "fill": 1,
       "fillGradient": 0,
       "gridPos": {
-        "h": 9,
-        "w": 12,
+        "h": 8,
+        "w": 24,
         "x": 0,
-        "y": 28
+        "y": 82
       },
       "hiddenSeries": false,
       "id": 40,
@@ -462,7 +465,7 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "sum(promexample_akka_http_connections)",
+          "expr": "sum(promexample_http_server_active_requests)",
           "interval": "",
           "legendFormat": "global",
           "refId": "A"
@@ -470,7 +473,7 @@
       ],
       "thresholds": [],
       "timeRegions": [],
-      "title": "Connections",
+      "title": "Active requests",
       "tooltip": {
         "shared": true,
         "sort": 0,
@@ -484,92 +487,7 @@
       },
       "yaxes": [
         {
-          "format": "connections",
-          "logBase": 1,
-          "show": true
-        },
-        {
-          "format": "short",
-          "logBase": 1,
-          "show": true
-        }
-      ],
-      "yaxis": {
-        "align": false
-      }
-    },
-    {
-      "aliasColors": {},
-      "bars": false,
-      "dashLength": 10,
-      "dashes": false,
-      "description": "",
-      "fieldConfig": {
-        "defaults": {
-          "unit": "connections"
-        },
-        "overrides": []
-      },
-      "fill": 1,
-      "fillGradient": 0,
-      "gridPos": {
-        "h": 9,
-        "w": 12,
-        "x": 12,
-        "y": 28
-      },
-      "hiddenSeries": false,
-      "id": 42,
-      "legend": {
-        "avg": false,
-        "current": false,
-        "max": false,
-        "min": false,
-        "show": true,
-        "total": false,
-        "values": false
-      },
-      "lines": true,
-      "linewidth": 1,
-      "nullPointMode": "null",
-      "options": {
-        "alertThreshold": true
-      },
-      "percentage": false,
-      "pluginVersion": "8.3.1",
-      "pointradius": 2,
-      "points": false,
-      "renderer": "flot",
-      "seriesOverrides": [],
-      "spaceLength": 10,
-      "stack": false,
-      "steppedLine": false,
-      "targets": [
-        {
-          "exemplar": true,
-          "expr": "sum by(node) (promexample_akka_http_connections)",
-          "interval": "",
-          "legendFormat": "{{node}}",
-          "refId": "A"
-        }
-      ],
-      "thresholds": [],
-      "timeRegions": [],
-      "title": "Connections by node",
-      "tooltip": {
-        "shared": true,
-        "sort": 0,
-        "value_type": "individual"
-      },
-      "type": "graph",
-      "xaxis": {
-        "mode": "time",
-        "show": true,
-        "values": []
-      },
-      "yaxes": [
-        {
-          "format": "connections",
+          "format": "active requests",
           "logBase": 1,
           "show": true
         },
@@ -592,7 +510,7 @@
     "list": [
       {
         "current": {
-          "selected": false,
+          "selected": true,
           "text": "All",
           "value": "$__all"
         },
@@ -610,31 +528,31 @@
           },
           {
             "selected": false,
-            "text": "node",
-            "value": "node"
+            "text": "http_method",
+            "value": "http_method"
           },
           {
             "selected": false,
-            "text": "method",
-            "value": "method"
+            "text": "http_status_code",
+            "value": "http_status_code"
           },
           {
             "selected": false,
-            "text": "path",
-            "value": "path"
+            "text": "http_flavor",
+            "value": "http_flavor"
           },
           {
             "selected": false,
-            "text": "status",
-            "value": "status"
+            "text": "http_host",
+            "value": "http_host"
           },
           {
             "selected": false,
-            "text": "status_group",
-            "value": "status_group"
+            "text": "http_scheme",
+            "value": "http_scheme"
           }
         ],
-        "query": "node,method,path,status,status_group",
+        "query": "http_method,http_status_code,http_flavor,http_host,http_scheme",
         "queryValue": "",
         "skipUrlSync": false,
         "type": "custom"
@@ -649,6 +567,6 @@
   "timezone": "",
   "title": "Akka http",
   "uid": "tsTUhI3Gz",
-  "version": 1,
+  "version": 3,
   "weekStart": ""
 }
