@@ -12,7 +12,6 @@ import scala.annotation.unused
 import io.scalac.mesmer.agent.akka.actor.AkkaActorAgent
 import io.scalac.mesmer.agent.akka.http.AkkaHttpAgent
 import io.scalac.mesmer.agent.akka.persistence.AkkaPersistenceAgent
-import io.scalac.mesmer.agent.akka.stream.AkkaStreamAgent
 
 object Boot {
 
@@ -34,10 +33,7 @@ object Boot {
       )
       .`with`(AgentBuilder.InstallationListener.StreamWriting.toSystemOut)
 
-    val allInstrumentations = AkkaPersistenceAgent.agent ++
-      AkkaStreamAgent.agent ++
-      AkkaHttpAgent.agent ++
-      AkkaActorAgent.agent
+    val allInstrumentations = AkkaPersistenceAgent.agent ++ AkkaHttpAgent.agent ++ AkkaActorAgent.agent
 
     allInstrumentations
       .installOnMesmerAgent(agentBuilder, instrumentation)
