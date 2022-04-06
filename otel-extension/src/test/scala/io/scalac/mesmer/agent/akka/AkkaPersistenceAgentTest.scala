@@ -14,7 +14,6 @@ import org.scalatest.matchers.should.Matchers
 
 import scala.concurrent.duration._
 
-import io.scalac.mesmer.agent.akka.persistence.AkkaPersistenceAgent
 import io.scalac.mesmer.agent.utils.DummyEventSourcedActor
 import io.scalac.mesmer.agent.utils.DummyEventSourcedActor.DoNothing
 import io.scalac.mesmer.agent.utils.DummyEventSourcedActor.Persist
@@ -24,6 +23,7 @@ import io.scalac.mesmer.core.event.PersistenceEvent
 import io.scalac.mesmer.core.event.PersistenceEvent._
 import io.scalac.mesmer.core.persistenceServiceKey
 import io.scalac.mesmer.core.util.ReceptionistOps
+import io.scalac.mesmer.otelextension.instrumentations.akka.persistence.AkkaPersistenceAgent
 
 class AkkaPersistenceAgentTest
     extends InstallModule(AkkaPersistenceAgent)
