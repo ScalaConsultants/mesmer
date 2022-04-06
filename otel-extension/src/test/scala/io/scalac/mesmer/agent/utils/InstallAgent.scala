@@ -3,7 +3,6 @@ package io.scalac.mesmer.agent.utils
 import net.bytebuddy.ByteBuddy
 import net.bytebuddy.agent.ByteBuddyAgent
 import net.bytebuddy.agent.builder.AgentBuilder
-import net.bytebuddy.agent.builder.AgentBuilder.TypeStrategy
 import net.bytebuddy.dynamic.scaffold.TypeValidation
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.TestSuite
@@ -27,8 +26,7 @@ abstract class InstallAgent extends TestSuite with BeforeAndAfterAll {
     new ByteBuddy()
       .`with`(TypeValidation.DISABLED)
   )
-    .`with`(AgentBuilder.RedefinitionStrategy.REDEFINITION)
-    .`with`(TypeStrategy.Default.REDEFINE)
+    .`with`(AgentBuilder.RedefinitionStrategy.RETRANSFORMATION)
     .`with`(new AgentBuilder.InitializationStrategy.SelfInjection.Eager())
     .`with`(
       AgentBuilder.Listener.StreamWriting.toSystemOut().withTransformationsOnly()
