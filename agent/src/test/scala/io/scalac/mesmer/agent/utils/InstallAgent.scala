@@ -8,44 +8,42 @@ import org.scalatest.BeforeAndAfterAll
 import org.scalatest.TestSuite
 
 import io.scalac.mesmer.agent.Agent
-import io.scalac.mesmer.agent.akka.persistence.AkkaPersistenceAgent
 import io.scalac.mesmer.agent.util.i13n.InstrumentModuleFactory
-import io.scalac.mesmer.agent.utils.InstallAgent.allInstrumentations
 import io.scalac.mesmer.core.module.MesmerModule
 
 object InstallAgent {
-  def allInstrumentations: Agent = AkkaPersistenceAgent.agent
-}
+  def allInstrumentations: Agent = Agent.empty
 
-abstract class InstallAgent extends TestSuite with BeforeAndAfterAll {
+  abstract class InstallAgent extends TestSuite with BeforeAndAfterAll {
 
-  protected def agent: Agent = allInstrumentations
+    protected def agent: Agent = allInstrumentations
 
-  private val builder = new AgentBuilder.Default(
-    new ByteBuddy()
-      .`with`(TypeValidation.DISABLED)
-  )
-    .`with`(AgentBuilder.RedefinitionStrategy.RETRANSFORMATION)
-    .`with`(new AgentBuilder.InitializationStrategy.SelfInjection.Eager())
-    .`with`(
-      AgentBuilder.Listener.StreamWriting.toSystemOut().withTransformationsOnly()
+    private val builder = new AgentBuilder.Default(
+      new ByteBuddy()
+        .`with`(TypeValidation.DISABLED)
     )
+      .`with`(AgentBuilder.RedefinitionStrategy.RETRANSFORMATION)
+      .`with`(new AgentBuilder.InitializationStrategy.SelfInjection.Eager())
+      .`with`(
+        AgentBuilder.Listener.StreamWriting.toSystemOut().withTransformationsOnly()
+      )
 
-  override protected def beforeAll(): Unit = {
-    super.beforeAll()
+    override protected def beforeAll(): Unit = {
+      super.beforeAll()
 
-    val instrumentation = ByteBuddyAgent.install()
+      val instrumentation = ByteBuddyAgent.install()
 
-    agent
-      .installOnMesmerAgent(builder, instrumentation)
-      .eagerLoad()
+      agent
+        .installOnMesmerAgent(builder, instrumentation)
+        .eagerLoad()
+    }
   }
-}
 
-abstract class InstallModule[M <: MesmerModule](
-  moduleFactory: InstrumentModuleFactory[M]
-) extends InstallAgent {
+  abstract class InstallModule[M <: MesmerModule](
+    moduleFactory: InstrumentModuleFactory[M]
+  ) extends InstallAgent {
 
-  override protected def agent: Agent = moduleFactory.agent
+    override protected def agent: Agent = moduleFactory.agent
 
+  }
 }
