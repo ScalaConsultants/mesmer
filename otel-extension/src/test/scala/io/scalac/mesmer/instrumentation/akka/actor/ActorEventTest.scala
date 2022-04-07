@@ -1,4 +1,4 @@
-package io.scalac.mesmer.agent.akka.actor
+package io.scalac.mesmer.instrumentation.akka.actor
 
 import akka.actor.PoisonPill
 import akka.actor.testkit.typed.scaladsl.FishingOutcomes
@@ -24,6 +24,7 @@ import io.scalac.mesmer.core.model.ActorRefTags
 import io.scalac.mesmer.core.util.TestBehaviors
 import io.scalac.mesmer.core.util.TestBehaviors.Pass
 import io.scalac.mesmer.core.util.TestCase.CommonMonitorTestFactory
+import io.scalac.mesmer.otelextension.instrumentations.akka.actor.AkkaActorAgent
 
 class ActorEventTest
     extends InstallModule(AkkaActorAgent)

@@ -1,4 +1,4 @@
-package io.scalac.mesmer.agent.akka.actor.impl
+package io.scalac.mesmer.otelextension.instrumentations.akka.actor.impl
 
 import java.lang.invoke.MethodHandles
 

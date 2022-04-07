@@ -1,12 +1,12 @@
-package io.scalac.mesmer.agent.akka.actor.impl
+package io.scalac.mesmer.otelextension.instrumentations.akka.actor.impl
 
 import akka.actor.ActorContext
 import net.bytebuddy.asm.Advice
 import net.bytebuddy.asm.Advice.OnMethodEnter
 
-import io.scalac.mesmer.agent.akka.actor.AkkaActorAgent
 import io.scalac.mesmer.core.actor.ActorCellDecorator
 import io.scalac.mesmer.core.actor.ActorCellMetrics
+import io.scalac.mesmer.otelextension.instrumentations.akka.actor.AkkaActorAgent
 
 object ActorMetricsInitAdvice {
 

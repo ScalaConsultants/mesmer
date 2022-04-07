@@ -1,4 +1,4 @@
-package io.scalac.mesmer.agent.akka.actor
+package io.scalac.mesmer.instrumentation.akka.actor
 
 import java.util.Comparator
 
@@ -25,12 +25,13 @@ import scala.annotation.unused
 import scala.concurrent.duration.Duration
 import scala.jdk.DurationConverters._
 
-import io.scalac.mesmer.agent.akka.actor.ActorMailboxTest.ClassicContextPublish
 import io.scalac.mesmer.agent.utils.InstallModule
 import io.scalac.mesmer.agent.utils.SafeLoadSystem
 import io.scalac.mesmer.core.actor.ActorCellDecorator
 import io.scalac.mesmer.core.config.AkkaPatienceConfig
 import io.scalac.mesmer.core.util.TestOps
+import io.scalac.mesmer.instrumentation.akka.actor.ActorMailboxTest.ClassicContextPublish
+import io.scalac.mesmer.otelextension.instrumentations.akka.actor.AkkaActorAgent
 
 final class HashCodePriorityMailbox(
   capacity: Int,
@@ -68,40 +69,42 @@ class ActorMailboxTest
   override def config: Config = {
 
     val mailboxConfig =
-      ConfigFactory.parseString("""
-                                  |single-thread-dispatcher {
-                                  |  type = Dispatcher
-                                  |  executor = "thread-pool-executor"
-                                  |
-                                  |  thread-pool-executor {
-                                  |    fixed-pool-size = 1
-                                  |  }
-                                  |  throughput = 10
-                                  |}
-                                  |
-                                  |bounded-node-queue {
-                                  |  mailbox-type = "akka.dispatch.NonBlockingBoundedMailbox"
-                                  |  mailbox-capacity = 5
-                                  |}
-                                  |
-                                  |bounded-queue {
-                                  |  mailbox-type = "akka.dispatch.BoundedMailbox"
-                                  |   mailbox-push-timeout-time=0
-                                  |  mailbox-capacity = 5
-                                  |}
-                                  |
-                                  |bounded-priority-queue {
-                                  |  mailbox-type = "io.scalac.mesmer.agent.akka.actor.HashCodePriorityMailbox"
-                                  |  mailbox-push-timeout-time=1
-                                  |  mailbox-capacity = 5
-                                  |}
-                                  |
-                                  |bounded-stable-priority-queue {
-                                  |  mailbox-type = "io.scalac.mesmer.agent.akka.actor.StableHashCodePriorityMailbox"
-                                  |  mailbox-push-timeout-time=1
-                                  |  mailbox-capacity = 5
-                                  |}
-                                  |""".stripMargin)
+      ConfigFactory.parseString(
+        """
+          |single-thread-dispatcher {
+          |  type = Dispatcher
+          |  executor = "thread-pool-executor"
+          |
+          |  thread-pool-executor {
+          |    fixed-pool-size = 1
+          |  }
+          |  throughput = 10
+          |}
+          |
+          |bounded-node-queue {
+          |  mailbox-type = "akka.dispatch.NonBlockingBoundedMailbox"
+          |  mailbox-capacity = 5
+          |}
+          |
+          |bounded-queue {
+          |  mailbox-type = "akka.dispatch.BoundedMailbox"
+          |   mailbox-push-timeout-time=0
+          |  mailbox-capacity = 5
+          |}
+          |
+          |bounded-priority-queue {
+          |  mailbox-type = "io.scalac.mesmer.instrumentation.akka.actor.HashCodePriorityMailbox"
+          |  mailbox-push-timeout-time=1
+          |  mailbox-capacity = 5
+          |}
+          |
+          |bounded-stable-priority-queue {
+          |  mailbox-type = "io.scalac.mesmer.instrumentation.akka.actor.StableHashCodePriorityMailbox"
+          |  mailbox-push-timeout-time=1
+          |  mailbox-capacity = 5
+          |}
+          |""".stripMargin
+      )
     mailboxConfig.withFallback(super.config)
   }
 
@@ -196,9 +199,6 @@ class ActorMailboxTest
 
     val metrics = ActorCellDecorator.getMetrics(context).get
     metrics.droppedMessages.toOption should be(None)
-//    assertThrows[ClassCastException] {
-//      metrics.asInstanceOf[ActorCellMetrics with DroppedMessagesCellMetrics]
-//    }
     sut.unsafeUpcast ! PoisonPill
   }
 

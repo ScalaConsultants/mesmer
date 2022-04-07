@@ -3,7 +3,7 @@ package io.scalac.mesmer.otelextension;
 import com.google.auto.service.AutoService;
 import io.opentelemetry.javaagent.extension.instrumentation.InstrumentationModule;
 import io.opentelemetry.javaagent.extension.instrumentation.TypeInstrumentation;
-import io.scalac.mesmer.agent.akka.actor.AkkaActorAgent;
+import io.scalac.mesmer.otelextension.instrumentations.akka.actor.AkkaActorAgent;
 import java.util.List;
 
 @AutoService(InstrumentationModule.class)

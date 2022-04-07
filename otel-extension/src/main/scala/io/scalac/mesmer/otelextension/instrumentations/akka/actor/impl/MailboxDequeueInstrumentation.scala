@@ -1,14 +1,14 @@
-package io.scalac.mesmer.agent.akka.actor.impl
+package io.scalac.mesmer.otelextension.instrumentations.akka.actor.impl
 
 import akka.dispatch.Envelope
 import net.bytebuddy.asm.Advice.OnMethodExit
 import net.bytebuddy.asm.Advice.Return
 import net.bytebuddy.asm.Advice.This
 
-import io.scalac.mesmer.agent.akka.actor.EnvelopeDecorator
 import io.scalac.mesmer.core.actor.ActorCellDecorator
 import io.scalac.mesmer.core.actor.ActorCellMetrics
 import io.scalac.mesmer.core.util.Interval
+import io.scalac.mesmer.otelextension.instrumentations.akka.actor.EnvelopeDecorator
 
 object MailboxDequeueInstrumentation {
 

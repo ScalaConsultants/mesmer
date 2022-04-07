@@ -1,12 +1,12 @@
-package io.scalac.mesmer.agent.akka.actor.impl
+package io.scalac.mesmer.otelextension.instrumentations.akka.actor.impl
 
 import akka.actor.Actor
 import akka.dispatch.Envelope
 import net.bytebuddy.asm.Advice._
 
-import io.scalac.mesmer.agent.akka.actor.EnvelopeDecorator
 import io.scalac.mesmer.core.actor.ActorCellDecorator
 import io.scalac.mesmer.core.util.ActorRefOps
+import io.scalac.mesmer.otelextension.instrumentations.akka.actor.EnvelopeDecorator
 
 object ActorCellSendMessageMetricInstrumentation {
 

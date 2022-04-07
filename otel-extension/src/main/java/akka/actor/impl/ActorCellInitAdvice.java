@@ -1,4 +1,4 @@
-package io.scalac.mesmer.agent.akka.actor.impl;
+package akka.actor.impl;
 
 import io.scalac.mesmer.core.actor.ActorCellMetrics;
 import net.bytebuddy.asm.Advice;
