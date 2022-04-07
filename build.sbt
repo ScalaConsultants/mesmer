@@ -116,13 +116,25 @@ lazy val otelExtension = (project in file("otel-extension"))
   .settings(
     name := "mesmer-otel-extension",
     libraryDependencies ++= {
-      openTelemetryInstrumentation ++ openTelemetryMuzzle
+      openTelemetryInstrumentation ++
+      openTelemetryMuzzle ++
+      akkaTestkit ++
+      scalatest ++
+      byteBuddy
     },
     assembly / test            := {},
     assembly / assemblyJarName := "mesmer-otel-extension.jar",
-    assemblyMergeStrategySettings
+    assemblyMergeStrategySettings,
+    Test / fork              := true,
+    Test / parallelExecution := true,
+    Test / testGrouping := ((Test / testGrouping).value flatMap { group =>
+      group.tests.map { test =>
+        Tests.Group(name = test.name, tests = Seq(test), runPolicy = group.runPolicy)
+      }
+    }),
+    Test / testOnly / testGrouping := (Test / testGrouping).value
   )
-  .dependsOn(core, agent)
+  .dependsOn(core % "provided->compile;test->test;compile->compile", agent)
 
 lazy val example = (project in file("example"))
   .enablePlugins(JavaAppPackaging, UniversalPlugin)

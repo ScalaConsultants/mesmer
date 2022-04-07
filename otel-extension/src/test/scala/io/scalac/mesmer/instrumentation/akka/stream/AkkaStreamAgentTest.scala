@@ -1,4 +1,4 @@
-package io.scalac.mesmer.agent.akka.stream
+package io.scalac.mesmer.instrumentation.akka.stream
 
 import akka.Done
 import akka.actor.ActorRef
@@ -13,7 +13,11 @@ import akka.stream.BufferOverflowException
 import akka.stream.OverflowStrategy
 import akka.stream.QueueOfferResult
 import akka.stream.scaladsl._
-import org.scalatest._
+import org.scalatest.BeforeAndAfter
+import org.scalatest.BeforeAndAfterAll
+import org.scalatest.Inside
+import org.scalatest.Inspectors
+import org.scalatest.LoneElement
 import org.scalatest.concurrent.Futures
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.flatspec.AnyFlatSpecLike
@@ -37,6 +41,7 @@ import io.scalac.mesmer.core.model.ActorRefTags
 import io.scalac.mesmer.core.model.Tag.stream
 import io.scalac.mesmer.core.util.TestBehaviors.Pass
 import io.scalac.mesmer.core.util.TestCase.CommonMonitorTestFactory
+import io.scalac.mesmer.otelextension.instrumentations.akka.stream.AkkaStreamAgent
 
 class AkkaStreamAgentTest
     extends InstallModule(AkkaStreamAgent)

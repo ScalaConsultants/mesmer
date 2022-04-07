@@ -8,15 +8,14 @@ import org.scalatest.BeforeAndAfterAll
 import org.scalatest.TestSuite
 
 import io.scalac.mesmer.agent.Agent
-import io.scalac.mesmer.agent.akka.actor.AkkaActorAgent
-import io.scalac.mesmer.agent.akka.http.AkkaHttpAgent
-import io.scalac.mesmer.agent.akka.persistence.AkkaPersistenceAgent
 import io.scalac.mesmer.agent.util.i13n.InstrumentModuleFactory
 import io.scalac.mesmer.agent.utils.InstallAgent.allInstrumentations
 import io.scalac.mesmer.core.module.MesmerModule
+import io.scalac.mesmer.otelextension.instrumentations.akka.stream.AkkaStreamAgent
 
 object InstallAgent {
-  def allInstrumentations: Agent = AkkaActorAgent.agent ++ AkkaHttpAgent.agent ++ AkkaPersistenceAgent.agent
+
+  def allInstrumentations: Agent = AkkaStreamAgent.agent
 }
 
 abstract class InstallAgent extends TestSuite with BeforeAndAfterAll {
