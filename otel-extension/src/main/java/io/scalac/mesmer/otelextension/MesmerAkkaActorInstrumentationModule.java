@@ -7,6 +7,7 @@ import io.opentelemetry.javaagent.tooling.muzzle.InstrumentationModuleMuzzle;
 import io.opentelemetry.javaagent.tooling.muzzle.VirtualFieldMappingsBuilder;
 import io.opentelemetry.javaagent.tooling.muzzle.references.ClassRef;
 import io.scalac.mesmer.otelextension.instrumentations.akka.actor.AkkaActorAgent;
+
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -65,21 +66,12 @@ public class MesmerAkkaActorInstrumentationModule extends InstrumentationModule
         "io.scalac.mesmer.otelextension.instrumentations.akka.actor.impl.MailboxOps$",
         "io.scalac.mesmer.otelextension.instrumentations.akka.actor.impl.StashBufferAdvice$",
         "io.scalac.mesmer.otelextension.instrumentations.akka.actor.impl.SupervisorHandleReceiveExceptionInstrumentation$",
-        "io.scalac.mesmer.otelextension.instrumentations.akka.actor.BoundedNodeMessageQueueAdvice",
         "io.scalac.mesmer.otelextension.instrumentations.akka.actor.BoundedNodeMessageQueueAdvice$",
-        "io.scalac.mesmer.otelextension.instrumentations.akka.actor.LastEnqueueResult",
-        "io.scalac.mesmer.otelextension.instrumentations.akka.actor.LastEnqueueResult$",
-        "io.scalac.mesmer.otelextension.instrumentations.akka.actor.AbstractBoundedQueueDecorator",
-        "io.scalac.mesmer.otelextension.instrumentations.akka.actor.AbstractBoundedQueueDecorator$",
-        "io.scalac.mesmer.otelextension.instrumentations.akka.actor.LinkedBlockingQueueDecorator",
-        "io.scalac.mesmer.otelextension.instrumentations.akka.actor.LinkedBlockingQueueDecorator$",
-        "io.scalac.mesmer.otelextension.instrumentations.akka.actor.BoundedBlockingQueueDecorator",
-        "io.scalac.mesmer.otelextension.instrumentations.akka.actor.BoundedBlockingQueueDecorator$",
-        "io.scalac.mesmer.otelextension.instrumentations.akka.actor.BoundedBlockingQueueDecorator$",
-        "io.scalac.mesmer.otelextension.instrumentations.akka.actor.AbstractBoundedNodeQueueAdvice",
+        "io.scalac.mesmer.otelextension.instrumentations.akka.actor.AbstractBoundedNodeQueueAdvice$",
         "io.scalac.mesmer.otelextension.instrumentations.akka.actor.AkkaMailboxInstrumentations",
         "io.scalac.mesmer.otelextension.instrumentations.akka.actor.AkkaActorAgent$",
         "io.scalac.mesmer.otelextension.instrumentations.akka.actor.EnvelopeDecorator$",
+        "io.scalac.mesmer.instrumentation.actor.impl.BoundedQueueBasedMessageQueueAdvice",
         "io.scalac.mesmer.core.actor.ActorCellDecorator",
         "akka.actor.impl.ActorCellInitAdvice",
         "akka.actor.ProxiedQueue",
