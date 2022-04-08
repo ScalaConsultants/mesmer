@@ -1,9 +1,11 @@
-package io.scalac.mesmer.agent.akka.persistence.impl
+package io.scalac.mesmer.otelextension.instrumentations.akka.persistence.impl
 
 import akka.actor.typed.scaladsl.AbstractBehavior
 import akka.actor.typed.scaladsl.ActorContext
 import akka.persistence.SaveSnapshotSuccess
-import net.bytebuddy.asm.Advice._
+import net.bytebuddy.asm.Advice.Argument
+import net.bytebuddy.asm.Advice.OnMethodEnter
+import net.bytebuddy.asm.Advice.This
 
 import io.scalac.mesmer.core.event.EventBus
 import io.scalac.mesmer.core.event.PersistenceEvent.SnapshotCreated
@@ -24,7 +26,6 @@ object StoringSnapshotAdvice {
     val context = contextGetter.invoke(self).asInstanceOf[ActorContext[_]]
     response match {
       case SaveSnapshotSuccess(meta) =>
-        context.log.trace("Snapshot for {} created", meta.persistenceId)
         EventBus(context.system)
           .publishEvent(
             SnapshotCreated(
