@@ -1,4 +1,4 @@
-package io.scalac.mesmer.agent.akka.actor;
+package akka.actor;
 
 import java.util.Collection;
 import java.util.Iterator;

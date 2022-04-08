@@ -1,4 +1,4 @@
-package io.scalac.mesmer.agent.akka.actor
+package io.scalac.mesmer.otelextension.instrumentations.akka.actor
 
 import akka.dispatch.Envelope
 import io.opentelemetry.instrumentation.api.field.VirtualField

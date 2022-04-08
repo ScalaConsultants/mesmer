@@ -1,4 +1,4 @@
-package io.scalac.mesmer.agent.akka
+package io.scalac.mesmer.instrumentation.akka.actor
 
 import akka.actor.PoisonPill
 import akka.actor.Props
@@ -19,7 +19,6 @@ import org.scalatest.matchers.should.Matchers
 import scala.concurrent.duration._
 import scala.util.control.NoStackTrace
 
-import io.scalac.mesmer.agent.akka.actor.AkkaActorAgent
 import io.scalac.mesmer.agent.utils.InstallModule
 import io.scalac.mesmer.agent.utils.SafeLoadSystem
 import io.scalac.mesmer.core.actor.ActorCellDecorator
@@ -27,6 +26,7 @@ import io.scalac.mesmer.core.actor.ActorCellMetrics
 import io.scalac.mesmer.core.event.ActorEvent
 import io.scalac.mesmer.core.util.MetricsToolKit.Counter
 import io.scalac.mesmer.core.util.ReceptionistOps
+import io.scalac.mesmer.otelextension.instrumentations.akka.actor.AkkaActorAgent
 
 class AkkaActorAgentTest
     extends InstallModule(AkkaActorAgent)

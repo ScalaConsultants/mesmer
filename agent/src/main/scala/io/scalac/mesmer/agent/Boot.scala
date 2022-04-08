@@ -9,7 +9,6 @@ import net.bytebuddy.dynamic.scaffold.TypeValidation
 
 import scala.annotation.unused
 
-import io.scalac.mesmer.agent.akka.actor.AkkaActorAgent
 import io.scalac.mesmer.agent.akka.persistence.AkkaPersistenceAgent
 
 object Boot {
@@ -32,7 +31,7 @@ object Boot {
       )
       .`with`(AgentBuilder.InstallationListener.StreamWriting.toSystemOut)
 
-    val allInstrumentations = AkkaPersistenceAgent.agent ++ AkkaActorAgent.agent
+    val allInstrumentations = AkkaPersistenceAgent.agent
 
     allInstrumentations
       .installOnMesmerAgent(agentBuilder, instrumentation)

@@ -1,10 +1,10 @@
-package io.scalac.mesmer.agent.akka.actor
+package io.scalac.mesmer.otelextension.instrumentations.akka.actor
 
 import io.scalac.mesmer.agent.Agent
 import io.scalac.mesmer.agent.AgentInstrumentation
-import io.scalac.mesmer.agent.akka.actor.impl._
 import io.scalac.mesmer.agent.util.i13n._
 import io.scalac.mesmer.core.module.AkkaActorModule
+import io.scalac.mesmer.otelextension.instrumentations.akka.actor.impl._
 
 object AkkaActorAgent
     extends InstrumentModuleFactory(AkkaActorModule)

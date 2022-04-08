@@ -1,7 +1,7 @@
-package io.scalac.mesmer.agent.akka.actor.impl
+package io.scalac.mesmer.otelextension.instrumentations.akka.actor.impl
 
 import akka.actor.typed.scaladsl.ActorContext
-import akka.actor.typed.scaladsl.adapter._
+import akka.actor.typed.scaladsl.adapter.TypedActorContextOps
 import net.bytebuddy.asm.Advice
 
 import io.scalac.mesmer.core.actor.ActorCellDecorator

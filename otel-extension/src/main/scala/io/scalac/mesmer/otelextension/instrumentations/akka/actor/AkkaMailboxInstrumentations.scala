@@ -1,30 +1,23 @@
-package io.scalac.mesmer.agent.akka.actor
-
-import java.util.concurrent.BlockingQueue
-import java.util.concurrent.Callable
-import java.util.concurrent.LinkedBlockingQueue
+package io.scalac.mesmer.otelextension.instrumentations.akka.actor
 
 import akka.MesmerMirrorTypes.ActorRefWithCell
 import akka.MesmerMirrorTypes.Cell
+import akka.actor.BoundedQueueProxy
+import akka.actor.ProxiedQueue
 import akka.dispatch._
-import akka.util.BoundedBlockingQueue
 import akka.{ actor => classic }
+import io.opentelemetry.instrumentation.api.field.VirtualField
 import net.bytebuddy.asm.Advice
+import net.bytebuddy.asm.Advice.OnMethodExit
+import net.bytebuddy.asm.Advice.Return
 import net.bytebuddy.description.`type`.TypeDescription
-import net.bytebuddy.implementation.FieldAccessor
-import net.bytebuddy.implementation.MethodDelegation
-import net.bytebuddy.implementation.bind.annotation.SuperCall
-import net.bytebuddy.implementation.bind.annotation.This
 import net.bytebuddy.matcher.ElementMatchers
-
-import scala.reflect.ClassTag
-import scala.reflect.classTag
 
 import io.scalac.mesmer.agent.Agent
 import io.scalac.mesmer.agent.AgentInstrumentation
 import io.scalac.mesmer.agent.util.i13n._
 import io.scalac.mesmer.core.actor.ActorCellDecorator
-import io.scalac.mesmer.core.util.ReflectionFieldUtils
+import io.scalac.mesmer.instrumentation.actor.impl.BoundedQueueBasedMessageQueueAdvice
 
 object BoundedNodeMessageQueueAdvice {
 
@@ -36,7 +29,12 @@ object BoundedNodeMessageQueueAdvice {
     val withCell = ref.asInstanceOf[ActorRefWithCell]
     self match {
       case _: BoundedNodeMessageQueue =>
-        incDropped(AbstractBoundedQueueDecorator.getResult(self), withCell.underlying)
+        incDropped(
+          VirtualField
+            .find(classOf[AbstractBoundedNodeQueue[_]], classOf[Boolean])
+            .get(self.asInstanceOf[AbstractBoundedNodeQueue[_]]),
+          withCell.underlying
+        )
 
       case bm: BoundedQueueBasedMessageQueue =>
         val result = bm.queue.asInstanceOf[BoundedQueueProxy[_]].getResult
@@ -56,33 +54,13 @@ object BoundedNodeMessageQueueAdvice {
     }
 }
 
-object LastEnqueueResult {
-  final val lastResultFieldName = "_lastEnqueueResult"
-}
+object AbstractBoundedNodeQueueAdvice {
 
-abstract class LastEnqueueResult[T: ClassTag] {
-
-  lazy val (lastResultGetter, lastResultSetter) =
-    ReflectionFieldUtils.getHandlers(classTag[T].runtimeClass, LastEnqueueResult.lastResultFieldName)
-
-  def setResult(queue: Object, result: Boolean): Unit = lastResultSetter.invoke(queue, result)
-
-  def getResult(queue: Object): Boolean = lastResultGetter.invoke(queue)
-}
-
-object AbstractBoundedQueueDecorator extends LastEnqueueResult[AbstractBoundedNodeQueue[_]]
-object LinkedBlockingQueueDecorator  extends LastEnqueueResult[LinkedBlockingQueue[_]]
-object BoundedBlockingQueueDecorator extends LastEnqueueResult[BoundedBlockingQueue[_]]
-
-class AbstractBoundedNodeQueueAdvice(lastEnqueueResult: => LastEnqueueResult[_]) {
-
-  private lazy val ler = lastEnqueueResult
-
-  def add(@This self: Object, @SuperCall impl: Callable[Boolean]): Boolean = {
-    val result = impl.call()
-    ler.setResult(self, result)
-    result
-  }
+  @OnMethodExit
+  def add(@Return result: Boolean, @Advice.This self: Object): Unit =
+    VirtualField
+      .find(classOf[AbstractBoundedNodeQueue[_]], classOf[Boolean])
+      .set(self.asInstanceOf[AbstractBoundedNodeQueue[_]], result)
 
 }
 
@@ -95,12 +73,7 @@ private[actor] trait AkkaMailboxInstrumentations {
   private val boundedQueueBasesMailbox: AgentInstrumentation =
     instrument(
       "akka.dispatch.AbstractBoundedNodeQueue".fqcn
-    )
-      .defineField[Boolean](LastEnqueueResult.lastResultFieldName)
-      .intercept(
-        "add",
-        MethodDelegation.to(new AbstractBoundedNodeQueueAdvice(AbstractBoundedQueueDecorator))
-      )
+    ).visit(AbstractBoundedNodeQueueAdvice, "add")
 
   /**
    * Instrumentation that add proxy to mailbox queue
@@ -121,9 +94,8 @@ private[actor] trait AkkaMailboxInstrumentations {
         .and(ElementMatchers.not[TypeDescription](ElementMatchers.isAbstract[TypeDescription]))
     )
   )
-    .defineField[BlockingQueue[_]](ProxiedQueue.queueFieldName)
     .visit[ProxiedQueue](constructor)
-    .intercept(named("queue").method, FieldAccessor.ofField(ProxiedQueue.queueFieldName))
+    .visit[BoundedQueueBasedMessageQueueAdvice]("queue")
 
   /**
    * Instrumentation that increase dropped messages if enqueue was a failure and bounded queue is in use
