@@ -69,7 +69,6 @@ public class MesmerAkkaActorInstrumentationModule extends InstrumentationModule
         "io.scalac.mesmer.otelextension.instrumentations.akka.actor.BoundedNodeMessageQueueAdvice$",
         "io.scalac.mesmer.otelextension.instrumentations.akka.actor.AbstractBoundedNodeQueueAdvice$",
         "io.scalac.mesmer.otelextension.instrumentations.akka.actor.AkkaMailboxInstrumentations",
-        "io.scalac.mesmer.otelextension.instrumentations.akka.actor.AkkaActorAgent$",
         "io.scalac.mesmer.otelextension.instrumentations.akka.actor.EnvelopeDecorator$",
         "io.scalac.mesmer.instrumentation.actor.impl.BoundedQueueBasedMessageQueueAdvice",
         "io.scalac.mesmer.core.actor.ActorCellDecorator",

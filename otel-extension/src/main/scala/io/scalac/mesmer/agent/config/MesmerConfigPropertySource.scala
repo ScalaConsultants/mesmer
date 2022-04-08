@@ -1,10 +1,9 @@
 package io.scalac.mesmer.agent.config
+import io.scalac.mesmer.core.module._
+
 import java.util
 import java.util.Locale
-
 import scala.jdk.CollectionConverters._
-
-import io.scalac.mesmer.core.module._
 
 object MesmerConfigPropertySourceProvider {
 
