@@ -79,11 +79,11 @@ lazy val otelExtension = (project in file("otel-extension"))
   .settings(
     name := "mesmer-otel-extension",
     libraryDependencies ++= {
-      openTelemetryInstrumentation ++
-      openTelemetryMuzzle ++
+      openTelemetryInstrumentation.map(_ % "provided") ++
+      openTelemetryMuzzle.map(_          % "provided") ++
+      byteBuddy.map(_ % "provided") ++
       akkaTestkit ++
-      scalatest ++
-      byteBuddy
+      scalatest
     },
     assembly / test            := {},
     assembly / assemblyJarName := "mesmer-otel-extension.jar",
