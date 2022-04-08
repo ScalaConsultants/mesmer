@@ -10,8 +10,8 @@ Projects is comprised of 3 major parts:
 - application that is being instrumented - in repo we have the "example" app, but this in theory this could be any application that uses akka.
 
 The most interesting parts are java agent and akka extension. They have to work in tandem - `agent` creates a foundation on which `extension` can build and calculate metrics.
-It's good to use an example to get a better understanding - `agent` allows to trigger an event whenever http request starts and completes
-We've found places where those events should be triggered by looking at Akka source code and then modified necessary classes during load). 
+It's good to use an example to get a better understanding: `agent` allows to trigger an event whenever akka persistence query starts and completes.
+We've found places where those events should be triggered by looking at Akka source code and then modified necessary classes during load).
 `extension` then captures those events, calculates the duration between the two, and passes this calculated metric (request time) in opentelemetry instrument. There will be more about opentelemetry role in the product later in this document.
 
 
@@ -21,7 +21,7 @@ It's a part that is responsible for calculating and exporting metrics. The fact 
 Akka extensions are plugins that grant additional functionality to Akka and can be enabled with configuration - this is the approach that we took.
 At the start up of the extension we check for configured metrics that were enabled and start only those monitors that are required.
 In our example monitors are akka system actors, but this is also an implementation detail.
-As an example `io.scalac.mesmer.extension.HttpEventsActor` is a monitor that listens for AkkaHttp events.
+As an example `io.scalac.mesmer.extension.PersistenceEventsActor$` is a monitor that listens for Akka Persistence events.
 For conveyor of messages we use Reception
 
 
