@@ -26,7 +26,6 @@ object StoringSnapshotAdvice {
     val context = contextGetter.invoke(self).asInstanceOf[ActorContext[_]]
     response match {
       case SaveSnapshotSuccess(meta) =>
-        context.log.trace("Snapshot for {} created", meta.persistenceId)
         EventBus(context.system)
           .publishEvent(
             SnapshotCreated(
