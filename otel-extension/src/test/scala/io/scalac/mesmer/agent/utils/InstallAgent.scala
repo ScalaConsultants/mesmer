@@ -11,11 +11,12 @@ import io.scalac.mesmer.agent.Agent
 import io.scalac.mesmer.agent.util.i13n.InstrumentModuleFactory
 import io.scalac.mesmer.agent.utils.InstallAgent.allInstrumentations
 import io.scalac.mesmer.core.module.MesmerModule
+import io.scalac.mesmer.otelextension.instrumentations.akka.actor.AkkaActorAgent
+import io.scalac.mesmer.otelextension.instrumentations.akka.persistence.AkkaPersistenceAgent
 import io.scalac.mesmer.otelextension.instrumentations.akka.stream.AkkaStreamAgent
 
 object InstallAgent {
-
-  def allInstrumentations: Agent = AkkaStreamAgent.agent
+  def allInstrumentations: Agent = AkkaStreamAgent.agent ++ AkkaActorAgent.agent ++ AkkaPersistenceAgent.agent
 }
 
 abstract class InstallAgent extends TestSuite with BeforeAndAfterAll {
