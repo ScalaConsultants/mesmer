@@ -1,13 +1,12 @@
-# Mesmer Akka Agent
-
-## Supported metrics
+# Supported metrics
 
 In mesmer we support 3 types of metrics:
+
 * gauge - for sampled values
 * counter - monotonic counter
 * histograms - for recording value distributions
 
-### Akka core
+## Akka core
 
 - Running actors - gauge
 - Mailbox size - gauge
@@ -17,7 +16,7 @@ In mesmer we support 3 types of metrics:
 - Processing time - recorder
 - Sent messages - counter
 
-### Akka Cluster
+## Akka Cluster
 
 - Shards per region - gauge
 - Reachable nodes - gauge
@@ -27,7 +26,7 @@ In mesmer we support 3 types of metrics:
 - Entities on node - gauge
 - Nodes down - counter
 
-### Akka Persistence
+## Akka Persistence
 
 - Persisted events - recorder
 - Event persistence time - recorder
@@ -35,7 +34,7 @@ In mesmer we support 3 types of metrics:
 - Recovery time - recorder
 - Snapshots - counter
 
-### Akka Streams (experimental)
+## Akka Streams (experimental)
 
 - Running streams - gauge
 - Running operators per stream - gauge

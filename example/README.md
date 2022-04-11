@@ -1,6 +1,4 @@
-# Mesmer Example Application
-
-Example application using Akka HTTP and Akka Persistence with Mesmer instrumentation.
+# Mesmer Example Applications
 
 ## Setup
 
@@ -8,7 +6,7 @@ Run `docker-compose up` in the `docker` directory.
 
 This will set up everything needed by the application:
 
-- PostgreSQL database with Akka Persistence Journal
+- PostgresSQL database with Akka Persistence Journal
 - OpenTelemetry Collector that will receive metrics from the application
 - Prometheus that will receive the metrics from the collector and will allow to display them in the simplest form
 - Grafana. It's an extra dashboard that uses metrics gathered in Prometheus to display something more useful than bare
@@ -16,20 +14,6 @@ This will set up everything needed by the application:
   Metrics) and OpenTelemetry-provided metrics (Akka Http).
 
 ## Run the application
-
-### Running the example applications with the Mesmer Agent:
-
-```
-sbt "project example" runExampleWithMesmerAgent
-```
-
-or (for Akka Streaming example)
-
-```
-sbt "project example" runStreamExampleWithMesmerAgent
-```
-
-### Running the application with the Open Telemetry Agent:
 
 ```
 sbt "project example" runExampleWithOtelAgent
