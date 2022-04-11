@@ -6,7 +6,7 @@ import net.bytebuddy.asm.Advice.OnMethodEnter
 
 import io.scalac.mesmer.core.actor.ActorCellDecorator
 import io.scalac.mesmer.core.actor.ActorCellMetrics
-import io.scalac.mesmer.otelextension.instrumentations.akka.actor.AkkaActorAgent
+import io.scalac.mesmer.core.module.AkkaActorModule
 
 object ActorMetricsInitAdvice {
 
@@ -14,7 +14,7 @@ object ActorMetricsInitAdvice {
   def initializeMetrics(@Advice.This cell: ActorContext): Unit = {
 
     val metrics = new ActorCellMetrics()
-    val config  = AkkaActorAgent.module.enabled
+    val config  = AkkaActorModule.enabled
 
     if (config.receivedMessages) metrics.initReceivedMessages()
     if (config.processedMessages) metrics.initUnhandledMessages()
