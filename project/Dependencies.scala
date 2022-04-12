@@ -72,10 +72,6 @@ object Dependencies {
 
   val akkaMultiNodeTestKit = Seq("com.typesafe.akka" %% "akka-multi-node-testkit" % AkkaVersion % Test)
 
-  val slf4jApi = Seq("org.slf4j" % "slf4j-api" % "1.7.33")
-
-  val reflection: String => Seq[ModuleID] = version => Seq("org.scala-lang" % "scala-reflect" % version)
-
   val exampleDependencies = Seq(
     "io.circe"                      %% "circe-core"                                % CirceVersion,
     "io.circe"                      %% "circe-generic"                             % CirceVersion,

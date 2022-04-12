@@ -19,6 +19,12 @@ inThisBuild(
         "Piotr Jósiak",
         "piotr.josiak@gmail.com",
         url("https://github.com/worekleszczy")
+      ),
+      Developer(
+        "lgajowy",
+        "Łukasz Gajowy",
+        "lukasz.gajowy@gmail.com",
+        url("https://github.com/lgajowy")
       )
     ),
     scalacOptions ++= Seq("-deprecation", "-feature"),
