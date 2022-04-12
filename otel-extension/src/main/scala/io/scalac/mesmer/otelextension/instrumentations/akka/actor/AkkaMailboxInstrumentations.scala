@@ -1,5 +1,7 @@
 package io.scalac.mesmer.otelextension.instrumentations.akka.actor
 
+import java.lang.{ Boolean => JBoolean }
+
 import akka.MesmerMirrorTypes.ActorRefWithCell
 import akka.MesmerMirrorTypes.Cell
 import akka.actor.BoundedQueueProxy
@@ -31,7 +33,7 @@ object BoundedNodeMessageQueueAdvice {
       case _: BoundedNodeMessageQueue =>
         incDropped(
           VirtualField
-            .find(classOf[AbstractBoundedNodeQueue[_]], classOf[Boolean])
+            .find(classOf[AbstractBoundedNodeQueue[_]], classOf[JBoolean])
             .get(self.asInstanceOf[AbstractBoundedNodeQueue[_]]),
           withCell.underlying
         )
@@ -45,11 +47,10 @@ object BoundedNodeMessageQueueAdvice {
 
   @inline
   private def incDropped(result: Boolean, cell: Cell): Unit =
-    if (result && (cell ne null)) {
+    if (!result && (cell ne null)) {
       val maybeActorMetrics = ActorCellDecorator.getMetrics(cell)
       for {
         actorMetrics <- maybeActorMetrics if actorMetrics.droppedMessages.isDefined
-
       } actorMetrics.droppedMessages.get.inc()
     }
 }
@@ -59,7 +60,7 @@ object AbstractBoundedNodeQueueAdvice {
   @OnMethodExit
   def add(@Return result: Boolean, @Advice.This self: Object): Unit =
     VirtualField
-      .find(classOf[AbstractBoundedNodeQueue[_]], classOf[Boolean])
+      .find(classOf[AbstractBoundedNodeQueue[_]], classOf[JBoolean])
       .set(self.asInstanceOf[AbstractBoundedNodeQueue[_]], result)
 
 }

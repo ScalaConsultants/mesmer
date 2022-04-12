@@ -83,25 +83,25 @@ class ActorMailboxTest
           |
           |bounded-node-queue {
           |  mailbox-type = "akka.dispatch.NonBlockingBoundedMailbox"
-          |  mailbox-capacity = 5
+          |  mailbox-capacity = 3
           |}
           |
           |bounded-queue {
           |  mailbox-type = "akka.dispatch.BoundedMailbox"
           |   mailbox-push-timeout-time=0
-          |  mailbox-capacity = 5
+          |  mailbox-capacity = 3
           |}
           |
           |bounded-priority-queue {
           |  mailbox-type = "io.scalac.mesmer.instrumentation.akka.actor.HashCodePriorityMailbox"
           |  mailbox-push-timeout-time=1
-          |  mailbox-capacity = 5
+          |  mailbox-capacity = 3
           |}
           |
           |bounded-stable-priority-queue {
           |  mailbox-type = "io.scalac.mesmer.instrumentation.akka.actor.StableHashCodePriorityMailbox"
           |  mailbox-push-timeout-time=1
-          |  mailbox-capacity = 5
+          |  mailbox-capacity = 3
           |}
           |""".stripMargin
       )
@@ -135,7 +135,7 @@ class ActorMailboxTest
     (sut, context)
   }
 
-  private def testWithProps(props: Props, amountOfMessages: Int = 10, expectedValue: Long = 5): Any = {
+  private def testWithProps(props: Props, amountOfMessages: Int = 10, expectedValue: Long = 7): Any = {
 
     val (sut, context) = actorRefWithContext(props)
 
