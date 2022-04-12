@@ -38,12 +38,11 @@ Add this entry to your `application.conf`:
 
 ### OpenTelemetry Extension:
 
-Download the latest OTEL Extension jar from https://github.com/ScalaConsultants/mesmer/releases and add a parameter when
-running your JVM:
+Download the latest OTEL Extension fat jar from Maven repository and add a parameter when running your JVM:
 
 ```
     java -javaagent:opentelemetry-javaagent110.jar \ -- this is the OpenTelemetry Agent
-    -Dotel.javaagent.extensions=mesmer-otel-extension.jar -- this is our OTEL Agent Extension
+    -Dotel.javaagent.extensions=mesmer-otel-extension-assembly.jar -- this is our OTEL Agent Extension fat jar
 ```
 
 ### Exporter:

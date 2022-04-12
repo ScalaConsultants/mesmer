@@ -1,5 +1,7 @@
 import Dependencies._
-import sbt.Package.{ MainClass, ManifestAttributes }
+
+
+lazy val scala213 = "2.13"
 
 inThisBuild(
   List(
@@ -92,7 +94,7 @@ lazy val otelExtension = (project in file("otel-extension"))
       scalatest
     },
     assembly / test            := {},
-    assembly / assemblyJarName := "mesmer-otel-extension.jar",
+    assembly / assemblyJarName := s"${name.value}_${scalaBinaryVersion.value}-${version.value}-assembly.jar",
     assemblyMergeStrategySettings,
     Test / fork              := true,
     Test / parallelExecution := true,
@@ -101,7 +103,12 @@ lazy val otelExtension = (project in file("otel-extension"))
         Tests.Group(name = test.name, tests = Seq(test), runPolicy = group.runPolicy)
       }
     }),
-    Test / testOnly / testGrouping := (Test / testGrouping).value
+    Test / testOnly / testGrouping := (Test / testGrouping).value,
+    assembly / artifact := {
+      val art = (assembly / artifact).value
+      art.withClassifier(Some("assembly"))
+    },
+    addArtifact(assembly / artifact, assembly)
   )
   .dependsOn(core % "provided->compile;test->test;compile->compile")
 
