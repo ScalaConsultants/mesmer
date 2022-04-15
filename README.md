@@ -71,6 +71,31 @@ Go [here](example/README.md) for more information.
     - Download "google-java-format" plugin and use it
     - Go to "Editor" -> "Code Style" -> "YAML". Uncheck "Indent sequence value" and "Brackets" (in the "Spaces" menu)
 
+## Documentation
+
+Mesmer project uses [Docusaurus v2](https://docusaurus.io/) with [mdoc](https://scalameta.org/mdoc/) to produce typechecked documentation. All is configured with the [sbt-mdoc](https://scalameta.org/mdoc/docs/installation.html#sbt) plugin according to this [document](https://scalameta.org/mdoc/docs/docusaurus.html).
+
+There are 3 directories relevant to the process:
+- `website/` - Docusaurus application
+- `docs/` - markdown pages with the documentation
+- `mesmer-docs/` - markdown pages compiled by mdoc
+
+To run Docusaurus locally:
+
+```sh
+cd website
+yarn run start
+```
+
+To see the changes in your running Docusaurus you need to compile them with:
+```sh
+sbt docs/mdoc
+```
+
+This will put them into `mesmer-docs/target/mdoc` where the Docusaurus can pick them up (the location where Docusaurus looks for these pages is configured in `website/docusaurus.config.js`)
+
+The homepage (in case you need to make changes to it) resides in `website/src/pages/index.js`.
+
 [Badge-CI]: https://github.com/ScalaConsultants/mesmer/workflows/Scala%20CI/badge.svg
 
 [badge-releases]: https://img.shields.io/nexus/r/https/oss.sonatype.org/io.scalac/mesmer-akka-extension_2.13 "Sonatype Releases"

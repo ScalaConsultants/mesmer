@@ -145,6 +145,14 @@ lazy val example = (project in file("example"))
   )
   .dependsOn(extension)
 
+lazy val docs = project
+  .in(file("mesmer-docs")) // important: it must not be docs/
+  .settings(
+    moduleName := "mesmer-docs",
+  )
+  .dependsOn(extension, agent, otelExtension)
+  .enablePlugins(MdocPlugin, DocusaurusPlugin)
+
 lazy val assemblyMergeStrategySettings = assembly / assemblyMergeStrategy := {
   case PathList("META-INF", "services", _ @_*)           => MergeStrategy.concat
   case PathList("META-INF", _ @_*)                       => MergeStrategy.discard
