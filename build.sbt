@@ -150,7 +150,7 @@ lazy val docs = project
   .settings(
     moduleName := "mesmer-docs",
   )
-  .dependsOn(extension, agent, otelExtension)
+  .dependsOn(extension, otelExtension)
   .enablePlugins(MdocPlugin, DocusaurusPlugin)
 
 lazy val assemblyMergeStrategySettings = assembly / assemblyMergeStrategy := {
