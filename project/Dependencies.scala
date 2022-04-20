@@ -2,7 +2,7 @@ import sbt._
 
 object Dependencies {
 
-  val AirframeVersion                = "22.1.0"
+  val AirframeVersion                = "22.4.2"
   val AkkaHttpVersion                = "10.2.7"
   val AkkaManagementVersion          = "1.1.2"
   val AkkaVersion                    = "2.6.18"
@@ -12,7 +12,7 @@ object Dependencies {
   val OpentelemetryVersion           = "1.10.0"
   val OpentelemetryAlphaVersion      = "1.10.0-alpha"
   val OpentelemetryMetricsApiVersion = "1.10.0-alpha-rc.1"
-  val PostgresVersion                = "42.3.1"
+  val PostgresVersion                = "42.3.4"
   val ScalatestVersion               = "3.2.10"
   val SlickVersion                   = "3.3.3"
 
@@ -71,10 +71,6 @@ object Dependencies {
   val scalatest = Seq("org.scalatest" %% "scalatest" % ScalatestVersion % Test)
 
   val akkaMultiNodeTestKit = Seq("com.typesafe.akka" %% "akka-multi-node-testkit" % AkkaVersion % Test)
-
-  val slf4jApi = Seq("org.slf4j" % "slf4j-api" % "1.7.33")
-
-  val reflection: String => Seq[ModuleID] = version => Seq("org.scala-lang" % "scala-reflect" % version)
 
   val exampleDependencies = Seq(
     "io.circe"                      %% "circe-core"                                % CirceVersion,
