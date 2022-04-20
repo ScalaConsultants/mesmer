@@ -65,9 +65,13 @@ Go [here](example/README.md) for more information.
 
 # Contributor setup
 
-1. Install [pre-commit](https://pre-commit.com/)
-2. Run `pre-commit install`
-3. If you're using Intelij Idea:
+1. You're encouraged to use
+   the [sbt native client](https://www.scala-sbt.org/1.x/docs/sbt-1.4-Release-Notes.html#Native+thin+client). It will
+   speed up your builds and your pre-commit checks (below). Just set ` export SBT_NATIVE_CLIENT=true` and sbt will use
+   the native client.
+2. Install [pre-commit](https://pre-commit.com/)
+3. Run `pre-commit install`
+4. If you're using Intelij Idea:
     - Download "google-java-format" plugin and use it
     - Go to "Editor" -> "Code Style" -> "YAML". Uncheck "Indent sequence value" and "Brackets" (in the "Spaces" menu)
 
