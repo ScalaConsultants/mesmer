@@ -8,9 +8,6 @@ package object metric {
      TODO In Scala 3 we'll have top-level to help us do that.
    */
   type ActorMetricsMonitor = EmptyBind[ActorMetricsMonitor.BoundMonitor]
-  type HttpMetricsMonitor  = Bindable[HttpMetricsMonitor.Attributes, HttpMetricsMonitor.BoundMonitor]
-  type HttpConnectionMetricsMonitor =
-    Bindable[HttpConnectionMetricsMonitor.Attributes, HttpConnectionMetricsMonitor.BoundMonitor]
   type PersistenceMetricsMonitor =
     Bindable[PersistenceMetricsMonitor.Attributes, PersistenceMetricsMonitor.BoundMonitor]
   type ClusterMetricsMonitor = Bindable[ClusterMetricsMonitor.Attributes, ClusterMetricsMonitor.BoundMonitor]
