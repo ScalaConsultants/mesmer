@@ -11,9 +11,9 @@ In mesmer we support 3 types of metrics:
 - Running actors - gauge
 - Mailbox size - gauge
 - Stashed messaged - counter
-- Mailbox time - recorder
+- Mailbox time - gauge
 - Processed messages - counter
-- Processing time - recorder
+- Processing time - gauge
 - Sent messages - counter
 
 ## Akka Cluster
@@ -28,10 +28,10 @@ In mesmer we support 3 types of metrics:
 
 ## Akka Persistence
 
-- Persisted events - recorder
-- Event persistence time - recorder
+- Persisted events - histogram
+- Event persistence time - histogram
 - Recovery total - counter
-- Recovery time - recorder
+- Recovery time - histogram
 - Snapshots - counter
 
 ## Akka Streams (experimental)
