@@ -7,14 +7,6 @@
 Mesmer is an [OpenTelemetry](https://opentelemetry.io/) instrumentation library for [Akka](https://akka.io/)
 applications.
 
-## Compatibility
-
-Mesmer has been tested with:
-
-- Scala: 2.13.x
-- Akka Actors: 2.6.8, 2.6.9, 2.6.10, 2.6.11, 2.6.12, 2.6.13, 2.6.14
-- JVM: 1.8+
-
 ## Getting started
 
 Mesmer consists of two parts:
@@ -58,12 +50,12 @@ will provide you with sensible default settings for it.
 
 For a detailed list of supported metrics go to [supported_metrics.md](supported_metrics.md)
 
-# Local testing
+## Local testing
 
 `example` subproject contains a test application that uses Akka Cluster sharding with Mesmer Akka extension.
 Go [here](example/README.md) for more information.
 
-# Contributor setup
+## Contributor setup
 
 1. You're encouraged to use
    the [sbt native client](https://www.scala-sbt.org/1.x/docs/sbt-1.4-Release-Notes.html#Native+thin+client). It will
@@ -113,6 +105,11 @@ This will put them into `mesmer-docs/target/mdoc` where the Docusaurus can pick 
 looks for these pages is configured in `website/docusaurus.config.js`)
 
 The homepage (in case you need to make changes to it) resides in `website/src/pages/index.js`.
+
+## Compatibility
+
+- Scala: 2.13.x
+- JVM: 1.11+
 
 [Badge-CI]: https://github.com/ScalaConsultants/mesmer/workflows/Scala%20CI/badge.svg
 
