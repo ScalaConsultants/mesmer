@@ -87,7 +87,7 @@ object Dependencies {
     "io.opentelemetry"               % "opentelemetry-exporter-otlp-metrics"       % OpentelemetryAlphaVersion,
     "io.opentelemetry"               % "opentelemetry-sdk-extension-autoconfigure" % OpentelemetryAlphaVersion,
     "io.opentelemetry"               % "opentelemetry-sdk"                         % OpentelemetryVersion,
-    "io.grpc"                        % "grpc-netty-shaded"                         % "1.43.2",
+    "io.grpc"                        % "grpc-netty-shaded"                         % "1.45.1",
     "org.wvlet.airframe"            %% "airframe-log"                              % AirframeVersion
   )
 }
