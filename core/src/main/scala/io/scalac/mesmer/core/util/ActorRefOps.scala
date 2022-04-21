@@ -3,6 +3,7 @@ package io.scalac.mesmer.core.util
 import java.lang.invoke.MethodHandles
 import java.lang.invoke.MethodType.methodType
 
+import akka.MesmerMirrorTypes.Cell
 import akka.actor.ActorRef
 
 import scala.collection.immutable
@@ -21,8 +22,8 @@ object ActorRefOps {
 
   @inline final def isLocal(actorRef: ActorRef): Boolean = Local.cell(actorRef).nonEmpty
 
-  @inline final def cell(actorRef: ActorRef): Object = underlying(actorRef) // alias
-  @inline final def underlying(actorRef: ActorRef): Object =
+  @inline final def cell(actorRef: ActorRef): Cell = underlying(actorRef) // alias
+  @inline final def underlying(actorRef: ActorRef): Cell =
     underlyingMethodHandler.invoke(actorRef)
 
   @inline final def children(actorRef: ActorRef): immutable.Iterable[ActorRef] =
@@ -33,10 +34,10 @@ object ActorRefOps {
 
   object Local { // optional accessors
 
-    @inline final def cell(actorRef: ActorRef): Option[Object]       = underlying(actorRef) // alias
-    @inline final def underlying(actorRef: ActorRef): Option[Object] = ifLocal(actorRef)(identity)
+    @inline final def cell(actorRef: ActorRef): Option[Cell]       = underlying(actorRef) // alias
+    @inline final def underlying(actorRef: ActorRef): Option[Cell] = ifLocal(actorRef)(identity)
 
-    @inline final private def ifLocal[T](actorRef: ActorRef)(value: Object => T): Option[T] = {
+    @inline final private def ifLocal[T](actorRef: ActorRef)(value: Cell => T): Option[T] = {
       lazy val cell = ActorRefOps.cell(actorRef)
       Option.when(isWithCell(actorRef) && ActorCellOps.isLocal(cell))(value(cell))
     }
