@@ -1,5 +1,7 @@
 import Dependencies._
-import sbt.Package.{ MainClass, ManifestAttributes }
+
+
+lazy val scala213 = "2.13"
 
 inThisBuild(
   List(
@@ -19,6 +21,12 @@ inThisBuild(
         "Piotr Jósiak",
         "piotr.josiak@gmail.com",
         url("https://github.com/worekleszczy")
+      ),
+      Developer(
+        "lgajowy",
+        "Łukasz Gajowy",
+        "lukasz.gajowy@gmail.com",
+        url("https://github.com/lgajowy")
       )
     ),
     scalacOptions ++= Seq("-deprecation", "-feature"),
@@ -39,7 +47,7 @@ lazy val all: Project = (project in file("."))
     name           := "mesmer-all",
     publish / skip := true
   )
-  .aggregate(extension, agent, otelExtension, example, core)
+  .aggregate(extension, otelExtension, example, core)
 
 lazy val core = (project in file("core"))
   .disablePlugins(sbtassembly.AssemblyPlugin)
@@ -75,30 +83,18 @@ lazy val extension = (project in file("extension"))
   )
   .dependsOn(core % "compile->compile;test->test")
 
-lazy val agent = (project in file("agent"))
+lazy val otelExtension = (project in file("otel-extension"))
   .settings(
-    name := "mesmer-akka-agent",
+    name := "mesmer-otel-extension",
     libraryDependencies ++= {
-      openTelemetryInstrumentation ++
-      akka.map(_ % "provided") ++
-      logback.map(_ % Test) ++
-      byteBuddy ++
-      scalatest ++
+      openTelemetryInstrumentation.map(_ % "provided") ++
+      openTelemetryMuzzle.map(_          % "provided") ++
+      byteBuddy.map(_ % "provided") ++
       akkaTestkit ++
-      slf4jApi ++
-      reflection(scalaVersion.value)
-    },
-    Compile / mainClass := Some("io.scalac.mesmer.agent.Boot"),
-    Compile / packageBin / packageOptions := {
-      (Compile / packageBin / packageOptions).value.map {
-        case MainClass(mainClassName) =>
-          ManifestAttributes(List("Premain-Class" -> mainClassName): _*)
-        case other => other
-      }
+      scalatest
     },
     assembly / test            := {},
-    assembly / assemblyJarName := "mesmer-akka-agent.jar",
-    assembly / assemblyOption ~= { _.withIncludeScala(false) },
+    assembly / assemblyJarName := s"${name.value}_${scalaBinaryVersion.value}-${version.value}-assembly.jar",
     assemblyMergeStrategySettings,
     Test / fork              := true,
     Test / parallelExecution := true,
@@ -107,22 +103,14 @@ lazy val agent = (project in file("agent"))
         Tests.Group(name = test.name, tests = Seq(test), runPolicy = group.runPolicy)
       }
     }),
-    Test / testOnly / testGrouping := (Test / testGrouping).value
-  )
-  .settings(addArtifact(Compile / assembly / artifact, assembly).settings: _*)
-  .dependsOn(core % "provided->compile;test->test")
-
-lazy val otelExtension = (project in file("otel-extension"))
-  .settings(
-    name := "mesmer-otel-extension",
-    libraryDependencies ++= {
-      openTelemetryInstrumentation ++ openTelemetryMuzzle
+    Test / testOnly / testGrouping := (Test / testGrouping).value,
+    assembly / artifact := {
+      val art = (assembly / artifact).value
+      art.withClassifier(Some("assembly"))
     },
-    assembly / test            := {},
-    assembly / assemblyJarName := "mesmer-otel-extension.jar",
-    assemblyMergeStrategySettings
+    addArtifact(assembly / artifact, assembly)
   )
-  .dependsOn(core, agent)
+  .dependsOn(core % "provided->compile;test->test;compile->compile")
 
 lazy val example = (project in file("example"))
   .enablePlugins(JavaAppPackaging, UniversalPlugin)
@@ -152,16 +140,10 @@ lazy val example = (project in file("example"))
 
       keys
     },
-    commands += runExampleWithMesmerAgent,
     commands += runExampleWithOtelAgent,
-    commands += runStreamExampleWithMesmerAgent,
-    commands += runStreamExampleWithOtelAgent,
-    Universal / mappings += {
-      val jar = (agent / assembly).value
-      jar -> "mesmer.agent.jar"
-    }
+    commands += runStreamExampleWithOtelAgent
   )
-  .dependsOn(extension, agent)
+  .dependsOn(extension)
 
 lazy val assemblyMergeStrategySettings = assembly / assemblyMergeStrategy := {
   case PathList("META-INF", "services", _ @_*)           => MergeStrategy.concat
@@ -190,21 +172,6 @@ lazy val benchmark = (project in file("benchmark"))
   }
   .dependsOn(extension)
 
-def runExampleWithMesmerAgent = Command.command("runExampleWithMesmerAgent") { state =>
-  val extracted = Project extract state
-  val newState = extracted.appendWithSession(
-    Seq(
-      run / javaOptions ++= Seq(
-        s"-javaagent:${(agent / assembly).value.absolutePath}"
-      )
-    ),
-    state
-  )
-  val (s, _) =
-    Project.extract(newState).runInputTask(Compile / run, "", newState)
-  s
-}
-
 def runExampleWithOtelAgent = Command.command("runExampleWithOtelAgent") { state =>
   val extracted = Project extract state
   val root      = all.base.absolutePath
@@ -213,10 +180,9 @@ def runExampleWithOtelAgent = Command.command("runExampleWithOtelAgent") { state
     Seq(
       run / javaOptions ++= Seq(
         s"-javaagent:$root/opentelemetry-javaagent110.jar",
-        s"-Dotel.javaagent.debug=true",
         s"-Dotel.service.name=mesmer-example",
         s"-Dotel.metrics.exporter=otlp",
-        s"-Dotel.metric.export.interval=10000",
+        s"-Dotel.metric.export.interval=5000",
         s"-Dotel.javaagent.extensions=${(otelExtension / assembly).value.absolutePath}"
       )
     ),
@@ -235,26 +201,10 @@ def runStreamExampleWithOtelAgent = Command.command("runStreamExampleWithOtelAge
     Seq(
       run / javaOptions ++= Seq(
         s"-javaagent:$root/opentelemetry-javaagent110.jar",
-        s"-Dotel.javaagent.debug=true",
         s"-Dotel.service.name=mesmer-stream-example",
         s"-Dotel.metrics.exporter=otlp",
-        s"-Dotel.metric.export.interval=10000",
+        s"-Dotel.metric.export.interval=5000",
         s"-Dotel.javaagent.extensions=${(otelExtension / assembly).value.absolutePath}"
-      )
-    ),
-    state
-  )
-  val (s, _) =
-    Project.extract(newState).runInputTask(Compile / runMain, " example.SimpleStreamExample", newState)
-  s
-}
-
-def runStreamExampleWithMesmerAgent = Command.command("runStreamExampleWithMesmerAgent") { state =>
-  val extracted = Project extract state
-  val newState = extracted.appendWithSession(
-    Seq(
-      run / javaOptions ++= Seq(
-        s"-javaagent:${(agent / assembly).value.absolutePath}"
       )
     ),
     state
