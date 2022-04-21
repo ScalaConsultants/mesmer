@@ -8,7 +8,7 @@ object Dependencies {
   val AkkaVersion                    = "2.6.18"
   val CirceVersion                   = "0.14.1"
   val GoogleAutoServiceVersion       = "1.0.1"
-  val LogbackVersion                 = "1.2.10"
+  val LogbackVersion                 = "1.2.11"
   val OpentelemetryVersion           = "1.10.0"
   val OpentelemetryAlphaVersion      = "1.10.0-alpha"
   val OpentelemetryMetricsApiVersion = "1.10.0-alpha-rc.1"
@@ -35,8 +35,8 @@ object Dependencies {
   )
 
   val byteBuddy = Seq(
-    "net.bytebuddy" % "byte-buddy"       % "1.12.7",
-    "net.bytebuddy" % "byte-buddy-agent" % "1.12.7"
+    "net.bytebuddy" % "byte-buddy"       % "1.12.9",
+    "net.bytebuddy" % "byte-buddy-agent" % "1.12.9"
   )
 
   val logback = Seq("ch.qos.logback" % "logback-classic" % LogbackVersion)
@@ -87,7 +87,7 @@ object Dependencies {
     "io.opentelemetry"               % "opentelemetry-exporter-otlp-metrics"       % OpentelemetryAlphaVersion,
     "io.opentelemetry"               % "opentelemetry-sdk-extension-autoconfigure" % OpentelemetryAlphaVersion,
     "io.opentelemetry"               % "opentelemetry-sdk"                         % OpentelemetryVersion,
-    "io.grpc"                        % "grpc-netty-shaded"                         % "1.43.2",
+    "io.grpc"                        % "grpc-netty-shaded"                         % "1.45.1",
     "org.wvlet.airframe"            %% "airframe-log"                              % AirframeVersion
   )
 }
