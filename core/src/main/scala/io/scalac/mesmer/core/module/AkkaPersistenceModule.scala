@@ -1,11 +1,7 @@
 package io.scalac.mesmer.core.module
-import com.typesafe.config.{ Config => TypesafeConfig }
 
-import io.scalac.mesmer.core.model.Version
-import io.scalac.mesmer.core.module.Module.CommonJars
 import io.scalac.mesmer.core.typeclasses.Combine
 import io.scalac.mesmer.core.typeclasses.Traverse
-import io.scalac.mesmer.core.util.LibraryInfo.LibraryInfo
 
 sealed trait AkkaPersistenceMetricsModule extends MetricsModule {
   this: Module =>
@@ -21,10 +17,10 @@ sealed trait AkkaPersistenceMetricsModule extends MetricsModule {
   }
 }
 
-object AkkaPersistenceModule extends MesmerModule with AkkaPersistenceMetricsModule with RegistersGlobalConfiguration {
+object AkkaPersistenceModule extends MesmerModule with AkkaPersistenceMetricsModule {
   override type Metrics[T] = AkkaPersistenceMetricsDef[T]
 
-  val name: String = "akka-persistence"
+  lazy val name: String = "akkapersistence"
 
   final case class Impl[T](
     recoveryTime: T,
@@ -36,46 +32,16 @@ object AkkaPersistenceModule extends MesmerModule with AkkaPersistenceMetricsMod
 
   val defaultConfig: AkkaPersistenceModule.Result = Impl(true, true, true, true, true)
 
-  protected def extractFromConfig(config: TypesafeConfig): Config = {
+  protected def fromMap(properties: Map[String, Boolean]): AkkaPersistenceModule.Config =
+    Impl(
+      recoveryTime = properties.getOrElse("recovery.time", defaultConfig.recoveryTime),
+      recoveryTotal = properties.getOrElse("recovery.total", defaultConfig.recoveryTotal),
+      persistentEvent = properties.getOrElse("persistent.event", defaultConfig.persistentEvent),
+      persistentEventTotal = properties.getOrElse("persistent.event.total", defaultConfig.persistentEventTotal),
+      snapshot = properties.getOrElse("snapshot", defaultConfig.snapshot)
+    )
 
-    val moduleEnabled = config
-      .tryValue("enabled")(_.getBoolean)
-      .getOrElse(true)
-    if (moduleEnabled) {
-      val recoveryTime = config
-        .tryValue("recovery-time")(_.getBoolean)
-        .getOrElse(defaultConfig.recoveryTime)
-      val recoveryTotal = config
-        .tryValue("recovery-total")(_.getBoolean)
-        .getOrElse(defaultConfig.recoveryTotal)
-      val persistentEvent = config
-        .tryValue("persistent-event")(_.getBoolean)
-        .getOrElse(defaultConfig.persistentEvent)
-      val persistentEventTotal = config
-        .tryValue("persistent-event-total")(_.getBoolean)
-        .getOrElse(defaultConfig.persistentEventTotal)
-      val snapshot = config
-        .tryValue("snapshot")(_.getBoolean)
-        .getOrElse(defaultConfig.snapshot)
-
-      Impl[Boolean](recoveryTime, recoveryTotal, persistentEvent, persistentEventTotal, snapshot)
-    } else Impl[Boolean](false, false, false, false, false)
-
-  }
-
-  override type All[T]  = Metrics[T]
-  override type Jars[T] = AkkaPersistenceJars[T]
-
-  final case class AkkaPersistenceJars[T](akkaActor: T, akkaActorTyped: T, akkaPersistence: T, akkaPersistenceTyped: T)
-      extends CommonJars[T]
-
-  def jarsFromLibraryInfo(info: LibraryInfo): Option[Jars[Version]] =
-    for {
-      actor            <- info.get(JarNames.akkaActor)
-      actorTyped       <- info.get(JarNames.akkaActorTyped)
-      persistence      <- info.get(JarNames.akkaPersistence)
-      persistenceTyped <- info.get(JarNames.akkaPersistenceTyped)
-    } yield AkkaPersistenceJars(actor, actorTyped, persistence, persistenceTyped)
+  override type All[T] = Metrics[T]
 
   implicit val combineConfig: Combine[All[Boolean]] = (first, second) =>
     Impl(
