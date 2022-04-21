@@ -1,6 +1,5 @@
 import Dependencies._
 
-
 lazy val scala213 = "2.13"
 
 inThisBuild(
@@ -88,7 +87,7 @@ lazy val otelExtension = (project in file("otel-extension"))
     name := "mesmer-otel-extension",
     libraryDependencies ++= {
       openTelemetryInstrumentation.map(_ % "provided") ++
-      openTelemetryMuzzle.map(_          % "provided") ++
+      openTelemetryMuzzle.map(_ % "provided") ++
       byteBuddy.map(_ % "provided") ++
       akkaTestkit ++
       scalatest
@@ -148,7 +147,7 @@ lazy val example = (project in file("example"))
 lazy val docs = project
   .in(file("mesmer-docs")) // important: it must not be docs/
   .settings(
-    moduleName := "mesmer-docs",
+    moduleName := "mesmer-docs"
   )
   .dependsOn(extension, otelExtension)
   .enablePlugins(MdocPlugin, DocusaurusPlugin)
