@@ -9,6 +9,10 @@ exporters:
     namespace: promexample
   logging:
     loglevel: info
+  jaeger:
+    endpoint: jaeger-all-in-one:14250
+    tls:
+      insecure: true
 
 processors:
   batch:
@@ -27,3 +31,7 @@ service:
       receivers: [otlp]
       processors: [batch]
       exporters: [prometheus]
+    traces:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [jaeger]

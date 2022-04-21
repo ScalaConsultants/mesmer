@@ -39,26 +39,6 @@ object PersistenceEvent {
       extends PersistEvent
 }
 
-sealed trait HttpEvent extends AbstractEvent {
-  type Service = HttpEvent
-}
-
-object HttpEvent {
-  sealed trait ConnectionEvent extends HttpEvent {
-    def interface: String
-    def port: Int
-  }
-  case class ConnectionStarted(interface: String, port: Int)   extends ConnectionEvent
-  case class ConnectionCompleted(interface: String, port: Int) extends ConnectionEvent
-
-  sealed trait RequestEvent extends HttpEvent {
-    def id: String
-  }
-  case class RequestStarted(id: String, timestamp: Timestamp, path: Path, method: Method) extends RequestEvent
-  case class RequestCompleted(id: String, timestamp: Timestamp, status: Status)           extends RequestEvent
-  case class RequestFailed(id: String, timestamp: Timestamp)                              extends RequestEvent
-}
-
 sealed trait StreamEvent extends AbstractEvent {
   type Service = StreamEvent
 }
