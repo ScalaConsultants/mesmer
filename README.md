@@ -73,26 +73,40 @@ Go [here](example/README.md) for more information.
 
 ## Documentation
 
-Mesmer project uses [Docusaurus v2](https://docusaurus.io/) with [mdoc](https://scalameta.org/mdoc/) to produce typechecked documentation. All is configured with the [sbt-mdoc](https://scalameta.org/mdoc/docs/installation.html#sbt) plugin according to this [document](https://scalameta.org/mdoc/docs/docusaurus.html).
+Mesmer project uses [Docusaurus v2](https://docusaurus.io/) with [mdoc](https://scalameta.org/mdoc/) to produce
+type-checked documentation. All is configured with the [sbt-mdoc](https://scalameta.org/mdoc/docs/installation.html#sbt)
+plugin according to this [document](https://scalameta.org/mdoc/docs/docusaurus.html).
 
 There are 3 directories relevant to the process:
+
 - `website/` - Docusaurus application
 - `docs/` - markdown pages with the documentation
 - `mesmer-docs/` - markdown pages compiled by mdoc
 
 To run Docusaurus locally:
 
+- install node (version >= 14) and yarn
+- go to the "website" directory:
+
 ```sh
 cd website
+```
+
+- run the following:
+
+```sh
+yarn
 yarn run start
 ```
 
-To see the changes in your running Docusaurus you need to compile them with:
+To see the documentation changes in your running Docusaurus instance you need to recompile with the following command:
+
 ```sh
 sbt docs/mdoc
 ```
 
-This will put them into `mesmer-docs/target/mdoc` where the Docusaurus can pick them up (the location where Docusaurus looks for these pages is configured in `website/docusaurus.config.js`)
+This will put them into `mesmer-docs/target/mdoc` where the Docusaurus can pick them up (the location where Docusaurus
+looks for these pages is configured in `website/docusaurus.config.js`)
 
 The homepage (in case you need to make changes to it) resides in `website/src/pages/index.js`.
 
