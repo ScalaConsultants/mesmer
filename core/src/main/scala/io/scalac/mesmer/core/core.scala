@@ -12,9 +12,5 @@ package object core {
   val persistenceServiceKey: ServiceKey[PersistenceEvent] =
     ServiceKey[PersistenceEvent](s"io.scalac.metric.persistence")
 
-  val httpServiceKey: ServiceKey[HttpEvent] =
-    ServiceKey[HttpEvent](s"io.scalac.metric.http")
-
   val streamServiceKey: ServiceKey[StreamEvent] = ServiceKey[StreamEvent]("io.scalac.metric.stream")
-
 }
