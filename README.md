@@ -7,14 +7,6 @@
 Mesmer is an [OpenTelemetry](https://opentelemetry.io/) instrumentation library for [Akka](https://akka.io/)
 applications.
 
-## Compatibility
-
-Mesmer has been tested with:
-
-- Scala: 2.13.x
-- Akka Actors: 2.6.8, 2.6.9, 2.6.10, 2.6.11, 2.6.12, 2.6.13, 2.6.14
-- JVM: 1.8+
-
 ## Getting started
 
 Mesmer consists of two parts:
@@ -58,18 +50,66 @@ will provide you with sensible default settings for it.
 
 For a detailed list of supported metrics go to [supported_metrics.md](supported_metrics.md)
 
-# Local testing
+## Local testing
 
 `example` subproject contains a test application that uses Akka Cluster sharding with Mesmer Akka extension.
 Go [here](example/README.md) for more information.
 
-# Contributor setup
+## Contributor setup
 
-1. Install [pre-commit](https://pre-commit.com/)
-2. Run `pre-commit install`
-3. If you're using Intelij Idea:
+1. You're encouraged to use
+   the [sbt native client](https://www.scala-sbt.org/1.x/docs/sbt-1.4-Release-Notes.html#Native+thin+client). It will
+   speed up your builds and your pre-commit checks (below). Just set ` export SBT_NATIVE_CLIENT=true` and sbt will use
+   the native client.
+2. Install [pre-commit](https://pre-commit.com/)
+3. Run `pre-commit install`
+4. If you're using Intelij Idea:
     - Download "google-java-format" plugin and use it
     - Go to "Editor" -> "Code Style" -> "YAML". Uncheck "Indent sequence value" and "Brackets" (in the "Spaces" menu)
+
+## Documentation
+
+Mesmer project uses [Docusaurus v2](https://docusaurus.io/) with [mdoc](https://scalameta.org/mdoc/) to produce
+type-checked documentation. All is configured with the [sbt-mdoc](https://scalameta.org/mdoc/docs/installation.html#sbt)
+plugin according to this [document](https://scalameta.org/mdoc/docs/docusaurus.html).
+
+There are 3 directories relevant to the process:
+
+- `website/` - Docusaurus application
+- `docs/` - markdown pages with the documentation
+- `mesmer-docs/` - markdown pages compiled by mdoc
+
+To run Docusaurus locally:
+
+- install node (version >= 14) and yarn
+- go to the "website" directory:
+
+```sh
+cd website
+```
+
+- run the following:
+
+```sh
+yarn
+yarn run start
+```
+
+To see the documentation changes in your running Docusaurus instance you need to recompile with the following command:
+
+```sh
+sbt docs/mdoc
+```
+
+This will put them into `mesmer-docs/target/mdoc` where the Docusaurus can pick them up (the location where Docusaurus
+looks for these pages is configured in `website/docusaurus.config.js`)
+
+The homepage (in case you need to make changes to it) resides in `website/src/pages/index.js`.
+
+## Compatibility
+
+- Scala: 2.13.x
+- JVM: 1.11+
 
 [Badge-CI]: https://github.com/ScalaConsultants/mesmer/workflows/Scala%20CI/badge.svg
 
