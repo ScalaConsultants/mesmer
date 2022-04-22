@@ -26,26 +26,27 @@ public class MesmerAkkaStreamInstrumentationModule extends InstrumentationModule
     @Override
     public List<TypeInstrumentation> typeInstrumentations() {
 
-        TypeInstrumentation connectionConst = new TypeInstrumentation() {
-            @Override
-            public ElementMatcher<TypeDescription> typeMatcher() {
-                return ElementMatchers.named("akka.stream.impl.fusing.GraphInterpreter$Connection");
-            }
+//        TypeInstrumentation connectionConst = new TypeInstrumentation() {
+//            @Override
+//            public ElementMatcher<TypeDescription> typeMatcher() {
+//                return ElementMatchers.named("akka.stream.impl.fusing.GraphInterpreter$Connection");
+//            }
+//
+//            @Override
+//            public void transform(TypeTransformer transformer) {
+//                transformer.applyAdviceToMethod(isConstructor(), "akka.stream.ConnectionConstructorAdvice");
+//            }
+//        };
 
-            @Override
-            public void transform(TypeTransformer transformer) {
-                transformer.applyAdviceToMethod(isConstructor(), "akka.stream.ConnectionConstructorAdvice");
-            }
-        };
 
-
-        List<TypeInstrumentation> streamInstrumentations = new ArrayList<>();
-
-        streamInstrumentations.add(connectionConst);
-
-        streamInstrumentations.addAll(AkkaStreamAgent.agent().asOtelTypeInstrumentations());
-
-        return streamInstrumentations;
+//        List<TypeInstrumentation> streamInstrumentations = new ArrayList<>();
+//
+//        streamInstrumentations.add(connectionConst);
+//
+//        streamInstrumentations.addAll(AkkaStreamAgent.agent().asOtelTypeInstrumentations());
+//
+//        return streamInstrumentations;
+        return AkkaStreamAgent.agent().asOtelTypeInstrumentations();
 
     }
 

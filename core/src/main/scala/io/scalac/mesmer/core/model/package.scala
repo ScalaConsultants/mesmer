@@ -2,8 +2,6 @@ package io.scalac.mesmer.core
 
 import _root_.akka.actor.{ ActorPath => AkkaActorPath }
 import _root_.akka.cluster.UniqueAddress
-import _root_.akka.http.scaladsl.model.HttpMethod
-import _root_.akka.http.scaladsl.model.Uri.{ Path => AkkaPath }
 
 import scala.language.implicitConversions
 
@@ -64,14 +62,6 @@ package object model {
 
   implicit class AkkaNodeOps(private val value: UniqueAddress) extends AnyVal {
     def toNode: Node = value.address.toString.taggedWith[NodeTag] // @todo change to some meaningful name
-  }
-
-  implicit class AkkaHttpPathOps(private val path: AkkaPath) extends AnyVal {
-    def toPath: Path = path.toString.taggedWith[PathTag]
-  }
-
-  implicit class AkkaHttpMethodOps(private val method: HttpMethod) extends AnyVal {
-    def toMethod: Method = method.value.taggedWith[MethodTag]
   }
 
   implicit class AkkaActorPathOps(private val path: AkkaActorPath) extends AnyVal {

@@ -26,7 +26,6 @@ import io.scalac.mesmer.extension.ActorEventsMonitorActor.ReflectiveActorMetrics
 import io.scalac.mesmer.extension.actor.MutableActorMetricStorageFactory
 import io.scalac.mesmer.extension.config.AkkaMonitoringConfig
 import io.scalac.mesmer.extension.config.CachingConfig
-import io.scalac.mesmer.extension.http.CleanableRequestStorage
 import io.scalac.mesmer.extension.metric.CachingMonitor
 import io.scalac.mesmer.extension.persistence.CleanablePersistingStorage
 import io.scalac.mesmer.extension.persistence.CleanableRecoveryStorage
@@ -90,11 +89,6 @@ final class AkkaMonitoring(system: ActorSystem[_]) extends Extension {
       log.debug("Start akka actor service")
       startActorMonitor()
     }
-    if (autoStartConfig.akkaHttp) {
-      log.debug("Start akka http service")
-
-      startHttpMonitor()
-    }
     if (autoStartConfig.akkaPersistence) {
       log.debug("Start akka persistence service")
 
@@ -107,7 +101,6 @@ final class AkkaMonitoring(system: ActorSystem[_]) extends Extension {
       startClusterRegionsMonitor()
       startSelfMemberMonitor()
     }
-
   }
 
   private def startActorTreeService(): Unit =
@@ -258,44 +251,6 @@ final class AkkaMonitoring(system: ActorSystem[_]) extends Extension {
       log.debug("Starting up module {}", module.name)
       startUp(config)
     }
-
-  private def startHttpMonitor(): Unit = {
-
-    val akkaHttpConfig = AkkaHttpModule.enabled
-
-    startWithConfig[AkkaHttpModule.type](AkkaHttpModule, akkaHttpConfig) { moduleConfig =>
-      val cachingConfig = CachingConfig.fromConfig(actorSystemConfig, AkkaHttpModule)
-
-      val openTelemetryHttpMonitor =
-        CachingMonitor(OpenTelemetryHttpMetricsMonitor(meter, moduleConfig, actorSystemConfig), cachingConfig)
-
-      val openTelemetryHttpConnectionMonitor =
-        CachingMonitor(OpenTelemetryHttpConnectionMetricsMonitor(meter, moduleConfig, actorSystemConfig), cachingConfig)
-
-      val pathService = new CachingPathService(cachingConfig)
-
-      system.systemActorOf(
-        Behaviors
-          .supervise(
-            WithSelfCleaningState
-              .clean(CleanableRequestStorage.withConfig(config.cleaning))
-              .every(config.cleaning.every)(rs =>
-                HttpEventsActor
-                  .apply(
-                    openTelemetryHttpMonitor,
-                    openTelemetryHttpConnectionMonitor,
-                    rs,
-                    pathService,
-                    clusterNodeName
-                  )(askTimeout)
-              )
-          )
-          .onFailure[Exception](SupervisorStrategy.restart),
-        "httpEventMonitor",
-        dispatcher
-      )
-    }
-  }
 
   autoStart()
 }
