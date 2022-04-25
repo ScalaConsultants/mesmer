@@ -54,12 +54,9 @@ lazy val core = (project in file("core"))
     name := "mesmer-akka-core",
     libraryDependencies ++= {
       akka ++
-      openTelemetryApi ++
-      openTelemetryApiMetrics ++
       openTelemetryInstrumentation ++
       scalatest ++
-      akkaTestkit ++
-      openTelemetryInstrumentationApi
+      akkaTestkit
     }
   )
 
@@ -73,7 +70,6 @@ lazy val extension = (project in file("extension"))
     libraryDependencies ++= {
       akka ++
       openTelemetryApi ++
-      openTelemetryApiMetrics ++
       akkaTestkit ++
       scalatest ++
       akkaMultiNodeTestKit ++
@@ -86,7 +82,7 @@ lazy val otelExtension = (project in file("otel-extension"))
   .settings(
     name := "mesmer-otel-extension",
     libraryDependencies ++= {
-      openTelemetryInstrumentation.map(_ % "provided") ++
+      openTelemetryExtension.map(_ % "provided") ++
       openTelemetryMuzzle.map(_ % "provided") ++
       byteBuddy.map(_ % "provided") ++
       akkaTestkit ++
@@ -186,9 +182,8 @@ def runExampleWithOtelAgent = Command.command("runExampleWithOtelAgent") { state
   val newState = extracted.appendWithSession(
     Seq(
       run / javaOptions ++= Seq(
-        s"-javaagent:$root/opentelemetry-javaagent110.jar",
+        s"-javaagent:$root/opentelemetry-javaagent-1.13.1.jar",
         s"-Dotel.service.name=mesmer-example",
-        s"-Dotel.metrics.exporter=otlp",
         s"-Dotel.metric.export.interval=5000",
         s"-Dotel.javaagent.extensions=${(otelExtension / assembly).value.absolutePath}"
       )
@@ -207,9 +202,8 @@ def runStreamExampleWithOtelAgent = Command.command("runStreamExampleWithOtelAge
   val newState = extracted.appendWithSession(
     Seq(
       run / javaOptions ++= Seq(
-        s"-javaagent:$root/opentelemetry-javaagent110.jar",
+        s"-javaagent:$root/opentelemetry-javaagent-1.13.1.jar",
         s"-Dotel.service.name=mesmer-stream-example",
-        s"-Dotel.metrics.exporter=otlp",
         s"-Dotel.metric.export.interval=5000",
         s"-Dotel.javaagent.extensions=${(otelExtension / assembly).value.absolutePath}"
       )
