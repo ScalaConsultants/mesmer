@@ -11,9 +11,11 @@ import io.scalac.mesmer.agent.Agent
 import io.scalac.mesmer.agent.util.i13n.InstrumentModuleFactory
 import io.scalac.mesmer.core.module.MesmerModule
 
-abstract class InstallAgent extends TestSuite with BeforeAndAfterAll {
+abstract class InstallModule[M <: MesmerModule](moduleFactory: InstrumentModuleFactory[M])
+    extends TestSuite
+    with BeforeAndAfterAll {
 
-  protected def agent: Agent
+  protected def agent: Agent = moduleFactory.agent
 
   private val builder = new AgentBuilder.Default(
     new ByteBuddy()
@@ -32,12 +34,5 @@ abstract class InstallAgent extends TestSuite with BeforeAndAfterAll {
 
     AgentInstaller.make(builder, instrumentation).install(agent).eagerLoad()
   }
-}
-
-abstract class InstallModule[M <: MesmerModule](
-  moduleFactory: InstrumentModuleFactory[M]
-) extends InstallAgent {
-
-  override protected def agent: Agent = moduleFactory.agent
 
 }

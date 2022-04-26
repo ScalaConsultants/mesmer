@@ -30,13 +30,10 @@ final case class Agent private (private[mesmer] val instrumentations: Set[AgentI
           }
       }
     }
-
     instrumentations.toSeq.sorted.map(toOtelAgentTypeInstrumentation).asJava
-
   }
 }
 object Agent {
-
   def apply(head: AgentInstrumentation, tail: AgentInstrumentation*): Agent = new Agent(Set.from(head +: tail))
 
   val empty: Agent = new Agent(Set.empty[AgentInstrumentation])
