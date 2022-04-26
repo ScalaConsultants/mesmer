@@ -13,7 +13,7 @@ object Dependencies {
   val OpentelemetryAlphaVersion131 = "1.13.1-alpha"
   val OpentelemetryAlphaVersion130 = "1.13.0-alpha"
   val PostgresVersion              = "42.3.4"
-  val ScalatestVersion             = "3.2.11"
+  val ScalatestVersion             = "3.2.12"
   val SlickVersion                 = "3.3.3"
 
   val akka = Seq(
@@ -81,7 +81,7 @@ object Dependencies {
     "com.lightbend.akka.management" %% "akka-management-cluster-http"              % AkkaManagementVersion,
     "com.lightbend.akka.management" %% "akka-management-cluster-bootstrap"         % AkkaManagementVersion,
     "io.opentelemetry"               % "opentelemetry-sdk-extension-autoconfigure" % OpentelemetryAlphaVersion130,
-    "io.grpc"                        % "grpc-netty-shaded"                         % "1.45.1",
+    "io.grpc"                        % "grpc-netty-shaded"                         % "1.46.0",
     "org.wvlet.airframe"            %% "airframe-log"                              % AirframeVersion
   )
 }
