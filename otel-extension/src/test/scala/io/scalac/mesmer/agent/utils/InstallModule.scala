@@ -32,7 +32,7 @@ abstract class InstallModule[M <: MesmerModule](moduleFactory: InstrumentModuleF
 
     val instrumentation = ByteBuddyAgent.install()
 
-    AgentInstaller.make(builder, instrumentation).install(agent).eagerLoad()
+    AgentInstaller.make(builder, instrumentation).install(agent)
   }
 
 }

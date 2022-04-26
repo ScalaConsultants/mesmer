@@ -1,14 +1,13 @@
 package io.scalac.mesmer.agent
 
-import net.bytebuddy.agent.ByteBuddyAgent
-import net.bytebuddy.agent.builder.AgentBuilder
+import java.util
+
+import io.opentelemetry.javaagent.extension.instrumentation.{ TypeInstrumentation => OtelTypeInstrumentation }
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
 import io.scalac.mesmer.agent.util.i13n.InstrumentationDetails.fqcn
 import io.scalac.mesmer.agent.util.i13n.TypeInstrumentation.instrument
-import io.scalac.mesmer.agent.utils.AgentInstaller
-import io.scalac.mesmer.agent.utils.AgentInstaller.LoadingResult
 
 class AgentTest extends AnyFlatSpec with Matchers {
 
@@ -27,20 +26,18 @@ class AgentTest extends AnyFlatSpec with Matchers {
   }
 
   it should "combine result from different agent instrumentations" in {
-
     val one   = "test_name_one"
     val two   = "test_name_two"
     val three = "test_name_three"
 
-    val agentInstrumentationOne   = AgentInstrumentation(instrument(fqcn(one, Set("tag"))))
-    val agentInstrumentationTwo   = AgentInstrumentation(instrument(fqcn(two, Set("tag"))))
-    val agentInstrumentationThree = AgentInstrumentation(instrument(fqcn(three, Set("tag"))))
-
-    val expectedResult = LoadingResult(Seq(one, two, three))
+    val agentInstrumentationOne: AgentInstrumentation = AgentInstrumentation(instrument(fqcn(one, Set("tag"))))
+    val agentInstrumentationTwo                       = AgentInstrumentation(instrument(fqcn(two, Set("tag"))))
+    val agentInstrumentationThree                     = AgentInstrumentation(instrument(fqcn(three, Set("tag"))))
 
     val agent = Agent(agentInstrumentationOne, agentInstrumentationTwo, agentInstrumentationThree)
 
-    AgentInstaller.make(new AgentBuilder.Default(), ByteBuddyAgent.install()).install(agent) should be(expectedResult)
-  }
+    val instrumentations: util.List[OtelTypeInstrumentation] = agent.asOtelTypeInstrumentations
 
+    new util.HashSet(instrumentations) should have size 3
+  }
 }
