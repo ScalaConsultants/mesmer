@@ -16,12 +16,13 @@ object AgentInstaller {
 
   def make(agentBuilder: AgentBuilder, instrumentation: Instrumentation): AgentInstaller =
     new AgentInstaller {
-      override def install(agent: Agent): Unit = installOnMesmerAgent(agent, agentBuilder, instrumentation)
+      override def install(agent: Agent): Unit = installAgent(agent, agentBuilder, instrumentation)
     }
 
-  private def installOnMesmerAgent(agent: Agent, builder: AgentBuilder, instrumentation: Instrumentation): Unit = {
+  private def installAgent(agent: Agent, builder: AgentBuilder, instrumentation: Instrumentation): Unit = {
 
-    def mesmerAgentInstallation(agentInstrumentation: AgentInstrumentation): Unit = {
+    // TODO: This code is different that what we would do in the OTEL Agent. Use otel TypeInstrumentation instead
+    def agentInstallation(agentInstrumentation: AgentInstrumentation): Unit = {
       val typeInstrumentation: i13n.TypeInstrumentation = agentInstrumentation.typeInstrumentation
       builder
         .`type`(typeInstrumentation.`type`.desc)
@@ -31,6 +32,6 @@ object AgentInstaller {
 
     // Sorting a set is very brittle when it comes to determining the installation order.
     // See more: https://github.com/ScalaConsultants/mesmer-akka-agent/issues/294
-    agent.instrumentations.toSeq.sorted.foreach(mesmerAgentInstallation)
+    agent.instrumentations.toSeq.sorted.foreach(agentInstallation)
   }
 }
