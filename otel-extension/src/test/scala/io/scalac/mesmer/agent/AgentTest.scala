@@ -1,19 +1,16 @@
 package io.scalac.mesmer.agent
 
-import java.lang.instrument.Instrumentation
-
 import net.bytebuddy.agent.ByteBuddyAgent
 import net.bytebuddy.agent.builder.AgentBuilder
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
-import io.scalac.mesmer.agent.Agent.LoadingResult
 import io.scalac.mesmer.agent.util.i13n.InstrumentationDetails.fqcn
 import io.scalac.mesmer.agent.util.i13n.TypeInstrumentation.instrument
+import io.scalac.mesmer.agent.utils.AgentInstaller
+import io.scalac.mesmer.agent.utils.AgentInstaller.LoadingResult
 
 class AgentTest extends AnyFlatSpec with Matchers {
-
-  def returning(result: LoadingResult): (AgentBuilder, Instrumentation) => LoadingResult = (_, _) => result
 
   behavior of "Agent"
 
@@ -43,7 +40,7 @@ class AgentTest extends AnyFlatSpec with Matchers {
 
     val agent = Agent(agentInstrumentationOne, agentInstrumentationTwo, agentInstrumentationThree)
 
-    agent.installOnMesmerAgent(new AgentBuilder.Default(), ByteBuddyAgent.install()) should be(expectedResult)
+    AgentInstaller.make(new AgentBuilder.Default(), ByteBuddyAgent.install()).install(agent) should be(expectedResult)
   }
 
 }

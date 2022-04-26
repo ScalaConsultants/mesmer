@@ -9,19 +9,11 @@ import org.scalatest.TestSuite
 
 import io.scalac.mesmer.agent.Agent
 import io.scalac.mesmer.agent.util.i13n.InstrumentModuleFactory
-import io.scalac.mesmer.agent.utils.InstallAgent.allInstrumentations
 import io.scalac.mesmer.core.module.MesmerModule
-import io.scalac.mesmer.otelextension.instrumentations.akka.actor.AkkaActorAgent
-import io.scalac.mesmer.otelextension.instrumentations.akka.persistence.AkkaPersistenceAgent
-import io.scalac.mesmer.otelextension.instrumentations.akka.stream.AkkaStreamAgent
-
-object InstallAgent {
-  def allInstrumentations: Agent = AkkaStreamAgent.agent ++ AkkaActorAgent.agent ++ AkkaPersistenceAgent.agent
-}
 
 abstract class InstallAgent extends TestSuite with BeforeAndAfterAll {
 
-  protected def agent: Agent = allInstrumentations
+  protected def agent: Agent
 
   private val builder = new AgentBuilder.Default(
     new ByteBuddy()
@@ -38,9 +30,7 @@ abstract class InstallAgent extends TestSuite with BeforeAndAfterAll {
 
     val instrumentation = ByteBuddyAgent.install()
 
-    agent
-      .installOnMesmerAgent(builder, instrumentation)
-      .eagerLoad()
+    AgentInstaller.make(builder, instrumentation).install(agent).eagerLoad()
   }
 }
 
