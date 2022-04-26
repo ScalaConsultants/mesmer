@@ -36,104 +36,71 @@ object OpenTelemetryActorMetricsMonitor {
 
     protected val mesmerConfig: String = "mesmer.metrics.actor-metrics"
 
-    protected def extractFromConfig(config: Config): MetricNames = {
-      val mailboxSize = config
+    protected def extractFromConfig(config: Config): MetricNames = MetricNames(
+      mailboxSize = config
         .tryValue("mailbox-size")(_.getString)
-        .getOrElse(defaultConfig.mailboxSize)
-
-      val mailboxTimeCount = config
-        .tryValue("mailbox-time-count")(_.getString)
-        .getOrElse(defaultConfig.mailboxTimeCount)
-
-      val mailboxTimeMin = config
+        .getOrElse(defaultConfig.mailboxSize),
+      mailboxTimeMin = config
         .tryValue("mailbox-time-min")(_.getString)
-        .getOrElse(defaultConfig.mailboxTimeMin)
-
-      val mailboxTimeMax = config
+        .getOrElse(defaultConfig.mailboxTimeMin),
+      mailboxTimeMax = config
         .tryValue("mailbox-time-max")(_.getString)
-        .getOrElse(defaultConfig.mailboxTimeMax)
-
-      val mailboxTimeSum = config
+        .getOrElse(defaultConfig.mailboxTimeMax),
+      mailboxTimeSum = config
         .tryValue("mailbox-time-sum")(_.getString)
-        .getOrElse(defaultConfig.mailboxTimeSum)
-
-      val stashSize = config
+        .getOrElse(defaultConfig.mailboxTimeSum),
+      mailboxTimeCount = config
+        .tryValue("mailbox-time-count")(_.getString)
+        .getOrElse(defaultConfig.mailboxTimeCount),
+      stashedMessages = config
         .tryValue("stash-size")(_.getString)
-        .getOrElse(defaultConfig.stashedMessages)
-
-      val receivedMessages = config
+        .getOrElse(defaultConfig.stashedMessages),
+      receivedMessages = config
         .tryValue("received-messages")(_.getString)
-        .getOrElse(defaultConfig.receivedMessages)
-
-      val processedMessages = config
+        .getOrElse(defaultConfig.receivedMessages),
+      processedMessages = config
         .tryValue("processed-messages")(_.getString)
-        .getOrElse(defaultConfig.processedMessages)
-
-      val failedMessages = config
+        .getOrElse(defaultConfig.processedMessages),
+      failedMessages = config
         .tryValue("failed-messages")(_.getString)
-        .getOrElse(defaultConfig.failedMessages)
-
-      val processingTimeCount = config
-        .tryValue("processing-time-count")(_.getString)
-        .getOrElse(defaultConfig.processingTimeCount)
-
-      val processingTimeMin = config
+        .getOrElse(defaultConfig.failedMessages),
+      processingTimeMin = config
         .tryValue("processing-time-min")(_.getString)
-        .getOrElse(defaultConfig.processingTimeMin)
-
-      val processingTimeMax = config
+        .getOrElse(defaultConfig.processingTimeMin),
+      processingTimeMax = config
         .tryValue("processing-time-max")(_.getString)
-        .getOrElse(defaultConfig.processingTimeMax)
-
-      val processingTimeSum = config
+        .getOrElse(defaultConfig.processingTimeMax),
+      processingTimeSum = config
         .tryValue("processing-time-sum")(_.getString)
-        .getOrElse(defaultConfig.processingTimeSum)
-
-      val sentMessages = config
+        .getOrElse(defaultConfig.processingTimeSum),
+      processingTimeCount = config
+        .tryValue("processing-time-count")(_.getString)
+        .getOrElse(defaultConfig.processingTimeCount),
+      sentMessages = config
         .tryValue("sent-messages")(_.getString)
-        .getOrElse(defaultConfig.sentMessages)
-
-      val droppedMessages = config
+        .getOrElse(defaultConfig.sentMessages),
+      droppedMessages = config
         .tryValue("dropped-messages")(_.getString)
         .getOrElse(defaultConfig.droppedMessages)
+    )
 
-      MetricNames(
-        mailboxSize = mailboxSize,
-        mailboxTimeMin = mailboxTimeMin,
-        mailboxTimeMax = mailboxTimeMax,
-        mailboxTimeSum = mailboxTimeSum,
-        mailboxTimeCount = mailboxTimeCount,
-        stashedMessages = stashSize,
-        receivedMessages = receivedMessages,
-        processedMessages = processedMessages,
-        failedMessages = failedMessages,
-        processingTimeMin = processingTimeMin,
-        processingTimeMax = processingTimeMax,
-        processingTimeSum = processingTimeSum,
-        processingTimeCount = processingTimeCount,
-        sentMessages = sentMessages,
-        droppedMessages = droppedMessages
-      )
-    }
-
-    val defaultConfig: MetricNames =
-      MetricNames(
-        "akka_actor_mailbox_size",
-        "akka_actor_mailbox_time_min",
-        "akka_actor_mailbox_time_max",
-        "akka_actor_mailbox_time_sum",
-        "akka_actor_mailbox_time_count",
-        "akka_actor_stashed_total",
-        "akka_actor_received_messages_total",
-        "akka_actor_processed_messages_total",
-        "akka_actor_failed_messages",
-        "akka_actor_processing_time_min",
-        "akka_actor_processing_time_max",
-        "akka_actor_processing_time_sum",
-        "akka_actor_processing_time_count",
-        "akka_actor_sent_messages_total",
-        "akka_actor_dropped_messages_total"
-      )
+    val defaultConfig: MetricNames = MetricNames(
+      mailboxSize = "akka_actor_mailbox_size",
+      mailboxTimeMin = "akka_actor_mailbox_time_min",
+      mailboxTimeMax = "akka_actor_mailbox_time_max",
+      mailboxTimeSum = "akka_actor_mailbox_time_sum",
+      mailboxTimeCount = "akka_actor_mailbox_time_count",
+      stashedMessages = "akka_actor_stashed_total",
+      receivedMessages = "akka_actor_received_messages_total",
+      processedMessages = "akka_actor_processed_messages_total",
+      failedMessages = "akka_actor_failed_messages",
+      processingTimeMin = "akka_actor_processing_time_min",
+      processingTimeMax = "akka_actor_processing_time_max",
+      processingTimeSum = "akka_actor_processing_time_sum",
+      processingTimeCount = "akka_actor_processing_time_count",
+      sentMessages = "akka_actor_sent_messages_total",
+      droppedMessages = "akka_actor_dropped_messages_total"
+    )
   }
 
   def apply(
@@ -221,7 +188,7 @@ final class OpenTelemetryActorMetricsMonitor(
     meter
       .gaugeBuilder(metricNames.processingTimeMin)
       .ofLongs()
-      .setDescription("Tracks the miminum processing time of an message in an Actor's receive handler")
+      .setDescription("Tracks the minimum processing time of an message in an Actor's receive handler")
   )
 
   private lazy val processingTimeMaxObserver = new GaugeBuilderAdapter[ActorMetricsMonitor.Attributes](

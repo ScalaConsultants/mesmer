@@ -7,7 +7,6 @@ import io.opentelemetry.api.metrics.Meter
 import io.scalac.mesmer.core.config.Configuration
 import io.scalac.mesmer.core.config.MesmerConfiguration
 import io.scalac.mesmer.core.module.AkkaClusterModule
-import io.scalac.mesmer.extension.metric.ClusterMetricsMonitor
 import io.scalac.mesmer.extension.metric._
 import io.scalac.mesmer.extension.upstream.OpenTelemetryClusterMetricsMonitor.MetricNames
 import io.scalac.mesmer.extension.upstream.opentelemetry._
@@ -24,58 +23,41 @@ object OpenTelemetryClusterMetricsMonitor {
   )
 
   object MetricNames extends MesmerConfiguration[MetricNames] with Configuration {
-    val defaultConfig: MetricNames =
-      MetricNames(
-        "akka_cluster_shards_per_region",
-        "akka_cluster_entities_per_region",
-        "akka_cluster_shard_regions_on_node",
-        "akka_cluster_entities_on_node",
-        "akka_cluster_reachable_nodes",
-        "akka_cluster_unreachable_nodes",
-        "akka_cluster_node_down_total"
-      )
+    val defaultConfig: MetricNames = MetricNames(
+      shardPerEntity = "akka_cluster_shards_per_region",
+      entityPerRegion = "akka_cluster_entities_per_region",
+      shardRegionsOnNode = "akka_cluster_shard_regions_on_node",
+      entitiesOnNode = "akka_cluster_entities_on_node",
+      reachableNodes = "akka_cluster_reachable_nodes",
+      unreachableNodes = "akka_cluster_unreachable_nodes",
+      nodeDown = "akka_cluster_node_down_total"
+    )
 
     protected val mesmerConfig: String = "metrics.cluster-metrics"
 
-    protected def extractFromConfig(config: Config): MetricNames = {
-      val shardsPerRegion = config
+    protected def extractFromConfig(config: Config): MetricNames = MetricNames(
+      shardPerEntity = config
         .tryValue("shards-per-region")(_.getString)
-        .getOrElse(defaultConfig.shardPerEntity)
-
-      val entitiesPerRegion = config
+        .getOrElse(defaultConfig.shardPerEntity),
+      entityPerRegion = config
         .tryValue("entities-per-region")(_.getString)
-        .getOrElse(defaultConfig.entityPerRegion)
-
-      val shardRegionsOnNode = config
+        .getOrElse(defaultConfig.entityPerRegion),
+      shardRegionsOnNode = config
         .tryValue("shard-regions-on-node")(_.getString)
-        .getOrElse(defaultConfig.shardRegionsOnNode)
-
-      val entitiesOnNode = config
+        .getOrElse(defaultConfig.shardRegionsOnNode),
+      entitiesOnNode = config
         .tryValue("entities-on-node")(_.getString)
-        .getOrElse(defaultConfig.entitiesOnNode)
-
-      val reachableNodes = config
+        .getOrElse(defaultConfig.entitiesOnNode),
+      reachableNodes = config
         .tryValue("reachable-nodes")(_.getString)
-        .getOrElse(defaultConfig.reachableNodes)
-
-      val unreachableNodes = config
+        .getOrElse(defaultConfig.reachableNodes),
+      unreachableNodes = config
         .tryValue("unreachable-nodes")(_.getString)
-        .getOrElse(defaultConfig.unreachableNodes)
-
-      val nodesDown = config
+        .getOrElse(defaultConfig.unreachableNodes),
+      nodeDown = config
         .tryValue("node-down")(_.getString)
         .getOrElse(defaultConfig.nodeDown)
-
-      MetricNames(
-        shardsPerRegion,
-        entitiesPerRegion,
-        shardRegionsOnNode,
-        entitiesOnNode,
-        reachableNodes,
-        unreachableNodes,
-        nodesDown
-      )
-    }
+    )
   }
 
   def apply(
