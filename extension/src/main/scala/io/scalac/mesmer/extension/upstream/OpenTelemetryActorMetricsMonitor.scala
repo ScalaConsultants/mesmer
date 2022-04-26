@@ -119,22 +119,21 @@ object OpenTelemetryActorMetricsMonitor {
     val defaultConfig: MetricNames =
       MetricNames(
         "akka_actor_mailbox_size",
-        "akka_actor_mailbox_time_avg",
         "akka_actor_mailbox_time_min",
         "akka_actor_mailbox_time_max",
         "akka_actor_mailbox_time_sum",
+        "akka_actor_mailbox_time_count",
         "akka_actor_stashed_total",
         "akka_actor_received_messages_total",
         "akka_actor_processed_messages_total",
         "akka_actor_failed_messages",
-        "akka_actor_processing_time_avg",
         "akka_actor_processing_time_min",
         "akka_actor_processing_time_max",
         "akka_actor_processing_time_sum",
+        "akka_actor_processing_time_count",
         "akka_actor_sent_messages_total",
         "akka_actor_dropped_messages_total"
       )
-
   }
 
   def apply(
