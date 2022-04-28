@@ -15,7 +15,7 @@ import org.scalatest.time.Span
 
 import scala.concurrent.duration._
 
-import io.scalac.mesmer.agent.utils.InstallModule
+import io.scalac.mesmer.agent.utils.OtelAgentTest
 import io.scalac.mesmer.agent.utils.SafeLoadSystem
 import io.scalac.mesmer.core.event.ActorEvent
 import io.scalac.mesmer.core.event.ActorEvent.ActorCreated
@@ -24,10 +24,9 @@ import io.scalac.mesmer.core.model.ActorRefTags
 import io.scalac.mesmer.core.util.TestBehaviors
 import io.scalac.mesmer.core.util.TestBehaviors.Pass
 import io.scalac.mesmer.core.util.TestCase.CommonMonitorTestFactory
-import io.scalac.mesmer.otelextension.instrumentations.akka.actor.AkkaActorAgent
 
 class ActorEventTest
-    extends InstallModule(AkkaActorAgent)
+    extends OtelAgentTest
     with SafeLoadSystem
     with AnyFlatSpecLike
     with Matchers

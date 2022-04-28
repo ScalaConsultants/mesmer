@@ -78,15 +78,19 @@ lazy val extension = (project in file("extension"))
   )
   .dependsOn(core % "compile->compile;test->test")
 
+// TODO: assembly  - how to set up assembly plugin so that it creates a fat jar for testing properly?
+
 lazy val otelExtension = (project in file("otel-extension"))
   .settings(
-    name := "mesmer-otel-extension",
+    name                                               := "mesmer-otel-extension",
+    excludeDependencies += "io.opentelemetry.javaagent" % "opentelemetry-javaagent-bootstrap",
     libraryDependencies ++= {
       openTelemetryExtension.map(_ % "provided") ++
       openTelemetryMuzzle.map(_ % "provided") ++
       byteBuddy.map(_ % "provided") ++
       akkaTestkit ++
-      scalatest
+      scalatest ++
+      openTelemetryTesting
     },
     assembly / test            := {},
     assembly / assemblyJarName := s"${name.value}_${scalaBinaryVersion.value}-${version.value}-assembly.jar",
@@ -98,6 +102,23 @@ lazy val otelExtension = (project in file("otel-extension"))
         Tests.Group(name = test.name, tests = Seq(test), runPolicy = group.runPolicy)
       }
     }),
+    Test / javaOptions += "-Dotel.javaagent.extensions=/Users/lg/projects/mesmer/otel-extension/target/scala-2.13/mesmer-otel-extension_2.13-0.6.0+92-b1751a8e+20220428-1722-SNAPSHOT-assembly.jar",
+    //Test / javaOptions += "-Dotel.javaagent.experimental.initializer.jar=/Users/lg/projects/mesmer/otel-extension/target/scala-2.13/mesmer-otel-extension_2.13-0.6.0+92-b1751a8e+20220428-1634-SNAPSHOT-assembly.jar",
+    Test / javaOptions += "-javaagent:/Users/lg/projects/mesmer/opentelemetry-agent-for-testing-1.10.0-alpha.jar",
+    Test / javaOptions += "-Dotel.javaagent.debug=true",
+    Test / javaOptions += "-Dotel.javaagent.testing.fail-on-context-leak=true",
+    Test / javaOptions += "-Dotel.javaagent.testing.transform-safe-logging.enabled=true",
+    Test / javaOptions += "-Dotel.metrics.exporter=otlp",
+
+    // suppress repeated logging of "No metric data to export - skipping export."
+    // since PeriodicMetricReader is configured with a short interval
+    Test / javaOptions += "-Dio.opentelemetry.javaagent.slf4j.simpleLogger.log.io.opentelemetry.sdk.metrics.export.PeriodicMetricReader=INFO",
+
+    // suppress a couple of verbose ClassNotFoundException stack traces logged at debug level
+    Test / javaOptions += "-Dio.opentelemetry.javaagent.slf4j.simpleLogger.log.io.grpc.internal.ServerImplBuilder=INFO",
+    Test / javaOptions += "-Dio.opentelemetry.javaagent.slf4j.simpleLogger.log.io.grpc.internal.ManagedChannelImplBuilder=INFO",
+    Test / javaOptions += "-Dio.opentelemetry.javaagent.slf4j.simpleLogger.log.io.perfmark.PerfMark=INFO",
+    Test / javaOptions += "-Dio.opentelemetry.javaagent.slf4j.simpleLogger.log.io.grpc.Context=INFO",
     Test / testOnly / testGrouping := (Test / testGrouping).value,
     assembly / artifact := {
       val art = (assembly / artifact).value

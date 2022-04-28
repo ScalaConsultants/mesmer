@@ -25,13 +25,12 @@ import scala.annotation.unused
 import scala.concurrent.duration.Duration
 import scala.jdk.DurationConverters._
 
-import io.scalac.mesmer.agent.utils.InstallModule
+import io.scalac.mesmer.agent.utils.OtelAgentTest
 import io.scalac.mesmer.agent.utils.SafeLoadSystem
 import io.scalac.mesmer.core.actor.ActorCellDecorator
 import io.scalac.mesmer.core.config.AkkaPatienceConfig
 import io.scalac.mesmer.core.util.TestOps
 import io.scalac.mesmer.instrumentation.akka.actor.ActorMailboxTest.ClassicContextPublish
-import io.scalac.mesmer.otelextension.instrumentations.akka.actor.AkkaActorAgent
 
 final class HashCodePriorityMailbox(
   capacity: Int,
@@ -58,7 +57,7 @@ final class StableHashCodePriorityMailbox(
 }
 
 class ActorMailboxTest
-    extends InstallModule(AkkaActorAgent)
+    extends OtelAgentTest
     with SafeLoadSystem
     with AnyFlatSpecLike
     with Matchers

@@ -17,16 +17,15 @@ import scala.concurrent.duration._
 import io.scalac.mesmer.agent.utils.DummyEventSourcedActor
 import io.scalac.mesmer.agent.utils.DummyEventSourcedActor.DoNothing
 import io.scalac.mesmer.agent.utils.DummyEventSourcedActor.Persist
-import io.scalac.mesmer.agent.utils.InstallModule
+import io.scalac.mesmer.agent.utils.OtelAgentTest
 import io.scalac.mesmer.agent.utils.SafeLoadSystem
 import io.scalac.mesmer.core.event.PersistenceEvent
 import io.scalac.mesmer.core.event.PersistenceEvent._
 import io.scalac.mesmer.core.persistenceServiceKey
 import io.scalac.mesmer.core.util.ReceptionistOps
-import io.scalac.mesmer.otelextension.instrumentations.akka.persistence.AkkaPersistenceAgent
 
 class AkkaPersistenceAgentTest
-    extends InstallModule(AkkaPersistenceAgent)
+    extends OtelAgentTest
     with AnyFlatSpecLike
     with Matchers
     with ScalaFutures
@@ -47,7 +46,6 @@ class AkkaPersistenceAgentTest
   }
 
   "AkkaPersistenceAgent" should "generate only recovery events" in test { monitor =>
-    agent.instrumentations should have size (4)
     val id = UUID.randomUUID()
     Receptionist(system).ref ! Register(persistenceServiceKey, monitor.ref)
 

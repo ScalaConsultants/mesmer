@@ -57,6 +57,22 @@ object Dependencies {
   val openTelemetryMuzzle = Seq(
     "io.opentelemetry.javaagent" % "opentelemetry-muzzle" % OpentelemetryAlphaVersion131
   )
+
+  val openTelemetryTesting = Seq(
+    "io.opentelemetry.javaagent" % "opentelemetry-testing-common" % OpentelemetryAlphaVersion,
+    "io.opentelemetry"           % "opentelemetry-sdk-testing"    % OpentelemetryVersion,
+    "io.opentelemetry"           % "opentelemetry-exporter-otlp"  % OpentelemetryVersion,
+
+//    // TODO Why do I even need it here???
+    "io.grpc" % "grpc-api"          % "1.46.0",
+    "io.grpc" % "grpc-core"         % "1.46.0",
+    "io.grpc" % "grpc-netty-shaded" % "1.46.0",
+    "io.grpc" % "grpc-stub"         % "1.46.0",
+    "io.grpc" % "grpc-services"     % "1.46.0",
+    "io.grpc" % "grpc-protobuf"     % "1.46.0",
+    "io.grpc" % "grpc-census"       % "1.46.0"
+  )
+
   val akkaTestkit = Seq(
     "com.typesafe.akka" %% "akka-actor-testkit-typed" % AkkaVersion     % Test,
     "com.typesafe.akka" %% "akka-persistence-testkit" % AkkaVersion     % Test,
