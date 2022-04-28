@@ -58,10 +58,12 @@ object BoundedNodeMessageQueueAdvice {
 object AbstractBoundedNodeQueueAdvice {
 
   @OnMethodExit
-  def add(@Return result: Boolean, @Advice.This self: Object): Unit =
-    VirtualField
+  def add(@Return result: Boolean, @Advice.This self: Object): Unit = {
+    val field: VirtualField[AbstractBoundedNodeQueue[_], JBoolean] = VirtualField
       .find(classOf[AbstractBoundedNodeQueue[_]], classOf[JBoolean])
-      .set(self.asInstanceOf[AbstractBoundedNodeQueue[_]], result)
+
+    field.set(self.asInstanceOf[AbstractBoundedNodeQueue[_]], result)
+  }
 
 }
 
