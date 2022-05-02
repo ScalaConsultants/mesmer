@@ -21,18 +21,17 @@ object OpenTelemetryActorSystemMonitor {
   )
 
   object MetricNames extends MesmerConfiguration[MetricNames] with Configuration {
-    val defaultConfig: MetricNames =
-      MetricNames("akka_system_created_actors_total", "akka_system_terminated_actors_total")
+    val defaultConfig: MetricNames = MetricNames(
+      createdActors = "akka_system_created_actors_total",
+      terminatedActors = "akka_system_terminated_actors_total"
+    )
 
     protected val mesmerConfig: String = "metrics.actor-system-metrics"
 
-    protected def extractFromConfig(config: Config): MetricNames = {
-      val createdActors = config.tryValue("created-actors")(_.getString).getOrElse(defaultConfig.createdActors)
-
-      val terminatedActors = config.tryValue("terminated-actors")(_.getString).getOrElse(defaultConfig.createdActors)
-
-      MetricNames(createdActors, terminatedActors)
-    }
+    protected def extractFromConfig(config: Config): MetricNames = MetricNames(
+      createdActors = config.tryValue("created-actors")(_.getString).getOrElse(defaultConfig.createdActors),
+      terminatedActors = config.tryValue("terminated-actors")(_.getString).getOrElse(defaultConfig.createdActors)
+    )
   }
 
   def apply(

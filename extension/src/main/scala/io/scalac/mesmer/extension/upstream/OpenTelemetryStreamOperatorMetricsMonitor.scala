@@ -22,32 +22,26 @@ object OpenTelemetryStreamOperatorMetricsMonitor {
     protected val mesmerConfig: String = "metrics.stream-metrics"
 
     val defaultConfig: MetricNames = MetricNames(
-      "akka_streams_operator_processed_total",
-      "akka_streams_operator_connections",
-      "akka_streams_running_operators",
-      "akka_streams_operator_demand"
+      operatorProcessed = "akka_streams_operator_processed_total",
+      connections = "akka_streams_operator_connections",
+      runningOperators = "akka_streams_running_operators",
+      demand = "akka_streams_operator_demand"
     )
 
-    protected def extractFromConfig(config: Config): MetricNames = {
-      val operatorProcessed = config
+    protected def extractFromConfig(config: Config): MetricNames = MetricNames(
+      operatorProcessed = config
         .tryValue("operator-processed")(_.getString)
-        .getOrElse(defaultConfig.operatorProcessed)
-
-      val operatorConnections = config
+        .getOrElse(defaultConfig.operatorProcessed),
+      connections = config
         .tryValue("operator-connections")(_.getString)
-        .getOrElse(defaultConfig.connections)
-
-      val runningOperators = config
+        .getOrElse(defaultConfig.connections),
+      runningOperators = config
         .tryValue("running-operators")(_.getString)
-        .getOrElse(defaultConfig.runningOperators)
-
-      val demand = config
+        .getOrElse(defaultConfig.runningOperators),
+      demand = config
         .tryValue("operator-demand")(_.getString)
         .getOrElse(defaultConfig.demand)
-
-      MetricNames(operatorProcessed, operatorConnections, runningOperators, demand)
-    }
-
+    )
   }
 
   def apply(

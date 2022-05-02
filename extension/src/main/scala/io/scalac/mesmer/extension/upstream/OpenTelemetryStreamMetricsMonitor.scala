@@ -21,24 +21,23 @@ object OpenTelemetryStreamMetricsMonitor {
 
     protected val mesmerConfig: String = "metrics.stream-metrics"
 
-    val defaultConfig: MetricNames =
-      MetricNames("akka_streams_running_streams", "akka_streams_actors", "akka_stream_processed_messages")
+    val defaultConfig: MetricNames = MetricNames(
+      runningStreams = "akka_streams_running_streams",
+      streamActors = "akka_streams_actors",
+      streamProcessed = "akka_stream_processed_messages"
+    )
 
-    protected def extractFromConfig(config: Config): MetricNames = {
-      val runningStreams = config
+    protected def extractFromConfig(config: Config): MetricNames = MetricNames(
+      runningStreams = config
         .tryValue("running-streams")(_.getString)
-        .getOrElse(defaultConfig.runningStreams)
-
-      val streamActors = config
+        .getOrElse(defaultConfig.runningStreams),
+      streamActors = config
         .tryValue("stream-actors")(_.getString)
-        .getOrElse(defaultConfig.streamActors)
-
-      val streamProcessed = config
+        .getOrElse(defaultConfig.streamActors),
+      streamProcessed = config
         .tryValue("stream-processed")(_.getString)
         .getOrElse(defaultConfig.streamProcessed)
-
-      MetricNames(runningStreams, streamActors, streamProcessed)
-    }
+    )
   }
 
   def apply(

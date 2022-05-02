@@ -15,7 +15,6 @@ import io.scalac.mesmer.extension.upstream.opentelemetry._
 
 object OpenTelemetryPersistenceMetricsMonitor {
 
-  // TODO remove DRY
   final case class MetricNames(
     recoveryTime: String,
     recoveryTotal: String,
@@ -25,39 +24,35 @@ object OpenTelemetryPersistenceMetricsMonitor {
   )
 
   object MetricNames extends MesmerConfiguration[MetricNames] with Configuration {
-    val defaultConfig: MetricNames =
-      MetricNames(
-        "akka_persistence_recovery_time",
-        "akka_persistence_recovery_total",
-        "akka_persistence_persistent_event",
-        "akka_persistence_persistent_event_total",
-        "akka_persistence_snapshot_total"
-      )
+    val defaultConfig: MetricNames = MetricNames(
+      recoveryTime = "akka_persistence_recovery_time",
+      recoveryTotal = "akka_persistence_recovery_total",
+      persistentEvent = "akka_persistence_persistent_event",
+      persistentEventTotal = "akka_persistence_persistent_event_total",
+      snapshotTotal = "akka_persistence_snapshot_total"
+    )
 
     protected val mesmerConfig: String = "metrics.persistence-metrics"
 
-    protected def extractFromConfig(config: Config): MetricNames = {
-      val recoveryTime = config
+    protected def extractFromConfig(config: Config): MetricNames = MetricNames(
+      recoveryTime = config
         .tryValue("recovery-time")(_.getString)
-        .getOrElse(defaultConfig.recoveryTime)
-      val recoveryTotal = config
+        .getOrElse(defaultConfig.recoveryTime),
+      recoveryTotal = config
         .tryValue("recovery-total")(_.getString)
-        .getOrElse(defaultConfig.recoveryTotal)
-      val persistentEvent = config
+        .getOrElse(defaultConfig.recoveryTotal),
+      persistentEvent = config
         .tryValue("persistent-event")(_.getString)
-        .getOrElse(defaultConfig.persistentEvent)
-      val persistentEventTotal = config
+        .getOrElse(defaultConfig.persistentEvent),
+      persistentEventTotal = config
         .tryValue("persistent-event-total")(_.getString)
-        .getOrElse(defaultConfig.persistentEventTotal)
-      val snapshotTotal = config
+        .getOrElse(defaultConfig.persistentEventTotal),
+      snapshotTotal = config
         .tryValue("snapshot")(_.getString)
         .getOrElse(defaultConfig.snapshotTotal)
-
-      MetricNames(recoveryTime, recoveryTotal, persistentEvent, persistentEventTotal, snapshotTotal)
-
-    }
-
+    )
   }
+
   def apply(
     meter: Meter,
     moduleConfig: AkkaPersistenceModule.All[Boolean],
