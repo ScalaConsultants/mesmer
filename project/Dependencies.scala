@@ -9,7 +9,8 @@ object Dependencies {
   val CirceVersion                 = "0.14.1"
   val GoogleAutoServiceVersion     = "1.0.1"
   val LogbackVersion               = "1.2.11"
-  val OpentelemetryVersion         = "1.13.0"
+  val OpentelemetryLatestVersion   = "1.13.1"
+  val OpentelemetryApiVersion      = "1.13.0"
   val OpentelemetryAlphaVersion131 = "1.13.1-alpha"
   val OpentelemetryAlphaVersion130 = "1.13.0-alpha"
   val PostgresVersion              = "42.3.4"
@@ -42,7 +43,7 @@ object Dependencies {
   val logback = Seq("ch.qos.logback" % "logback-classic" % LogbackVersion)
 
   val openTelemetryApi = Seq(
-    "io.opentelemetry" % "opentelemetry-api" % OpentelemetryVersion
+    "io.opentelemetry" % "opentelemetry-api" % OpentelemetryApiVersion
   )
 
   val openTelemetryInstrumentation = Seq(
@@ -59,18 +60,7 @@ object Dependencies {
   )
 
   val openTelemetryTesting = Seq(
-    "io.opentelemetry.javaagent" % "opentelemetry-testing-common" % OpentelemetryAlphaVersion131,
-    "io.opentelemetry"           % "opentelemetry-sdk-testing"    % OpentelemetryVersion,
-    "io.opentelemetry"           % "opentelemetry-exporter-otlp"  % OpentelemetryVersion,
-
-//    // TODO Why do I even need it here???
-    "io.grpc" % "grpc-api"          % "1.46.0",
-    "io.grpc" % "grpc-core"         % "1.46.0",
-    "io.grpc" % "grpc-netty-shaded" % "1.46.0",
-    "io.grpc" % "grpc-stub"         % "1.46.0",
-    "io.grpc" % "grpc-services"     % "1.46.0",
-    "io.grpc" % "grpc-protobuf"     % "1.46.0",
-    "io.grpc" % "grpc-census"       % "1.46.0"
+    "io.opentelemetry.javaagent" % "opentelemetry-testing-common" % OpentelemetryAlphaVersion131
   )
 
   val akkaTestkit = Seq(

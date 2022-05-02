@@ -111,10 +111,9 @@ lazy val otelExtension = (project in file("otel-extension"))
       }
     },
     Test / testOnly / testGrouping := (Test / testGrouping).value,
-
     IntegrationTest / fork         := true,
     IntegrationTest / javaOptions ++= Seq(
-      s"-javaagent:${projectRootDir}/opentelemetry-agent-for-testing-1.13.1-alpha.jar",
+      s"-javaagent:$projectRootDir/opentelemetry-agent-for-testing-$OpentelemetryAlphaVersion131.jar",
       s"-Dotel.javaagent.extensions=${assembly.value.absolutePath}",
       "-Dotel.javaagent.debug=true",
       "-Dotel.javaagent.testing.fail-on-context-leak=true",
@@ -204,12 +203,10 @@ lazy val benchmark = (project in file("benchmark"))
 
 def runExampleWithOtelAgent = Command.command("runExampleWithOtelAgent") { state =>
   val extracted = Project extract state
-  val root      = all.base.absolutePath
-
   val newState = extracted.appendWithSession(
     Seq(
       run / javaOptions ++= Seq(
-        s"-javaagent:$root/opentelemetry-javaagent-1.13.1.jar",
+        s"-javaagent:$projectRootDir/opentelemetry-javaagent-$OpentelemetryLatestVersion.jar",
         s"-Dotel.service.name=mesmer-example",
         s"-Dotel.metric.export.interval=5000",
         s"-Dotel.javaagent.extensions=${(otelExtension / assembly).value.absolutePath}"
@@ -224,12 +221,10 @@ def runExampleWithOtelAgent = Command.command("runExampleWithOtelAgent") { state
 
 def runStreamExampleWithOtelAgent = Command.command("runStreamExampleWithOtelAgent") { state =>
   val extracted = Project extract state
-  val root      = all.base.absolutePath
-
   val newState = extracted.appendWithSession(
     Seq(
       run / javaOptions ++= Seq(
-        s"-javaagent:$root/opentelemetry-javaagent-1.13.1.jar",
+        s"-javaagent:$projectRootDir/opentelemetry-javaagent-$OpentelemetryLatestVersion.jar",
         s"-Dotel.service.name=mesmer-stream-example",
         s"-Dotel.metric.export.interval=5000",
         s"-Dotel.javaagent.extensions=${(otelExtension / assembly).value.absolutePath}"
