@@ -114,7 +114,7 @@ lazy val otelExtension = (project in file("otel-extension"))
 
     IntegrationTest / fork         := true,
     IntegrationTest / javaOptions ++= Seq(
-      s"-javaagent:${projectRootDir}/opentelemetry-agent-for-testing-1.10.0-alpha.jar",
+      s"-javaagent:${projectRootDir}/opentelemetry-agent-for-testing-1.13.1-alpha.jar",
       s"-Dotel.javaagent.extensions=${assembly.value.absolutePath}",
       "-Dotel.javaagent.debug=true",
       "-Dotel.javaagent.testing.fail-on-context-leak=true",
