@@ -78,9 +78,8 @@ lazy val extension = (project in file("extension"))
   )
   .dependsOn(core % "compile->compile;test->test")
 
-// TODO: assembly  - how to set up assembly plugin so that it creates a fat jar for testing properly?
-
 lazy val otelExtension = (project in file("otel-extension"))
+  .enablePlugins(JavaAgent)
   .settings(
     name                                               := "mesmer-otel-extension",
     excludeDependencies += "io.opentelemetry.javaagent" % "opentelemetry-javaagent-bootstrap",
@@ -102,9 +101,8 @@ lazy val otelExtension = (project in file("otel-extension"))
         Tests.Group(name = test.name, tests = Seq(test), runPolicy = group.runPolicy)
       }
     }),
-    Test / javaOptions += "-Dotel.javaagent.extensions=/Users/lg/projects/mesmer/otel-extension/target/scala-2.13/mesmer-otel-extension_2.13-0.6.0+92-b1751a8e+20220428-1722-SNAPSHOT-assembly.jar",
-    //Test / javaOptions += "-Dotel.javaagent.experimental.initializer.jar=/Users/lg/projects/mesmer/otel-extension/target/scala-2.13/mesmer-otel-extension_2.13-0.6.0+92-b1751a8e+20220428-1634-SNAPSHOT-assembly.jar",
-    Test / javaOptions += "-javaagent:/Users/lg/projects/mesmer/opentelemetry-agent-for-testing-1.10.0-alpha.jar",
+    javaAgents += "io.opentelemetry.javaagent" % "opentelemetry-agent-for-testing" % "1.10.0-alpha" % Test,
+    Test / javaOptions += s"-Dotel.javaagent.extensions=${assembly.value.absolutePath}",
     Test / javaOptions += "-Dotel.javaagent.debug=true",
     Test / javaOptions += "-Dotel.javaagent.testing.fail-on-context-leak=true",
     Test / javaOptions += "-Dotel.javaagent.testing.transform-safe-logging.enabled=true",

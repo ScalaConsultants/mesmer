@@ -13,3 +13,5 @@ addSbtPlugin("pl.project13.scala" % "sbt-jmh" % "0.4.3")
 addSbtPlugin("com.github.sbt" % "sbt-ci-release" % "1.5.10")
 
 addSbtPlugin("org.scalameta" % "sbt-mdoc" % "2.3.2")
+
+addSbtPlugin("com.lightbend.sbt" % "sbt-javaagent" % "0.1.6")
