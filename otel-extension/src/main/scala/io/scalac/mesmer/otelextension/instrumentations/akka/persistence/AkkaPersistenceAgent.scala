@@ -23,7 +23,7 @@ object AkkaPersistenceAgent
    */
   def agent: Agent = {
 
-    val config = module.enabled
+    val config: AkkaPersistenceModule.Config = module.enabled
 
     List(
       recoveryTime.onCondition(config.recoveryTime),
