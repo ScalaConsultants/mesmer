@@ -22,6 +22,7 @@ public class MesmerAkkaHttpInstrumentationModule extends InstrumentationModule {
   public List<String> getAdditionalHelperClassNames() {
     return Arrays.asList(
         "io.scalac.mesmer.otelextension.instrumentations.akka.http.AkkaHttpConnectionsInstrumentation$",
+        "io.scalac.mesmer.otelextension.instrumentations.akka.http.AkkaHttpConnectionsInstrumentation$HttpConnectionInstruments$",
         "io.scalac.mesmer.otelextension.instrumentations.akka.http.AkkaHttpConnectionsInstrumentation",
         "io.scalac.mesmer.instrumentation.http.HttpExtConnectionAdvice");
   }

@@ -1,9 +1,13 @@
 package io.scalac.mesmer.otelextension.instrumentations.akka.http
 
 import io.scalac.mesmer.agent.Agent
-import io.scalac.mesmer.agent.util.i13n.{ InstrumentModuleFactory, _ }
-import io.scalac.mesmer.core.module.{ MesmerModule, MetricsModule, Module }
-import io.scalac.mesmer.core.typeclasses.{ Combine, Traverse }
+import io.scalac.mesmer.agent.util.i13n.InstrumentModuleFactory
+import io.scalac.mesmer.agent.util.i13n._
+import io.scalac.mesmer.core.module.MesmerModule
+import io.scalac.mesmer.core.module.MetricsModule
+import io.scalac.mesmer.core.module.Module
+import io.scalac.mesmer.core.typeclasses.Combine
+import io.scalac.mesmer.core.typeclasses.Traverse
 import io.scalac.mesmer.instrumentation.http.HttpExtConnectionAdvice
 
 object AkkaHttpAgent extends InstrumentModuleFactory(AkkaHttpModule) with AkkaHttpModule.All[Agent] {
