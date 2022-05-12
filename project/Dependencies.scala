@@ -50,9 +50,14 @@ object Dependencies {
     "io.opentelemetry.javaagent" % "opentelemetry-javaagent-instrumentation-api" % OpentelemetryAlphaVersion131
   )
 
+  val openTelemetryInstrumentationApiSemanticConventions = Seq(
+    "io.opentelemetry.instrumentation" % "opentelemetry-instrumentation-api-semconv" % OpentelemetryAlphaVersion131
+  )
+
   val openTelemetryExtension = Seq(
     "com.google.auto.service"    % "auto-service"                          % GoogleAutoServiceVersion,
-    "io.opentelemetry.javaagent" % "opentelemetry-javaagent-extension-api" % OpentelemetryAlphaVersion131
+    "io.opentelemetry.javaagent" % "opentelemetry-javaagent-extension-api" % OpentelemetryAlphaVersion131,
+    "io.opentelemetry.javaagent" % "opentelemetry-javaagent-tooling"       % OpentelemetryAlphaVersion131
   )
 
   val openTelemetryMuzzle = Seq(
