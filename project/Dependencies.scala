@@ -9,7 +9,8 @@ object Dependencies {
   val CirceVersion                 = "0.14.1"
   val GoogleAutoServiceVersion     = "1.0.1"
   val LogbackVersion               = "1.2.11"
-  val OpentelemetryVersion         = "1.13.0"
+  val OpentelemetryLatestVersion   = "1.13.1"
+  val OpentelemetryApiVersion      = "1.13.0"
   val OpentelemetryAlphaVersion131 = "1.13.1-alpha"
   val OpentelemetryAlphaVersion130 = "1.13.0-alpha"
   val PostgresVersion              = "42.3.5"
@@ -42,7 +43,7 @@ object Dependencies {
   val logback = Seq("ch.qos.logback" % "logback-classic" % LogbackVersion)
 
   val openTelemetryApi = Seq(
-    "io.opentelemetry" % "opentelemetry-api" % OpentelemetryVersion
+    "io.opentelemetry" % "opentelemetry-api" % OpentelemetryApiVersion
   )
 
   val openTelemetryInstrumentation = Seq(
@@ -57,16 +58,21 @@ object Dependencies {
   val openTelemetryMuzzle = Seq(
     "io.opentelemetry.javaagent" % "opentelemetry-muzzle" % OpentelemetryAlphaVersion131
   )
-  val akkaTestkit = Seq(
-    "com.typesafe.akka" %% "akka-actor-testkit-typed" % AkkaVersion     % Test,
-    "com.typesafe.akka" %% "akka-persistence-testkit" % AkkaVersion     % Test,
-    "com.typesafe.akka" %% "akka-stream-testkit"      % AkkaVersion     % Test,
-    "com.typesafe.akka" %% "akka-http-testkit"        % AkkaHttpVersion % Test
+
+  val openTelemetryTesting = Seq(
+    "io.opentelemetry.javaagent" % "opentelemetry-testing-common" % OpentelemetryAlphaVersion131
   )
 
-  val scalatest = Seq("org.scalatest" %% "scalatest" % ScalatestVersion % Test)
+  val akkaTestkit = Seq(
+    "com.typesafe.akka" %% "akka-actor-testkit-typed" % AkkaVersion,
+    "com.typesafe.akka" %% "akka-persistence-testkit" % AkkaVersion,
+    "com.typesafe.akka" %% "akka-stream-testkit"      % AkkaVersion,
+    "com.typesafe.akka" %% "akka-http-testkit"        % AkkaHttpVersion
+  )
 
-  val akkaMultiNodeTestKit = Seq("com.typesafe.akka" %% "akka-multi-node-testkit" % AkkaVersion % Test)
+  val scalatest = Seq("org.scalatest" %% "scalatest" % ScalatestVersion)
+
+  val akkaMultiNodeTestKit = Seq("com.typesafe.akka" %% "akka-multi-node-testkit" % AkkaVersion)
 
   val exampleDependencies = Seq(
     "io.circe"                      %% "circe-core"                                % CirceVersion,
