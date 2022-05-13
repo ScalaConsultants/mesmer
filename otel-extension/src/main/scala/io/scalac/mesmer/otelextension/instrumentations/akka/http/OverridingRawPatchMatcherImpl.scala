@@ -1,13 +1,13 @@
 package io.scalac.mesmer.otelextension.instrumentations.akka.http
 
 import akka.http.javadsl.server.Rejected
+import akka.http.scaladsl.server.Directive
 import akka.http.scaladsl.server.Directives._
-import akka.http.scaladsl.server.{ Directive, PathMatcher }
-import akka.http.scaladsl.server.PathMatcher.{ Matched, Matching, Unmatched }
-import io.opentelemetry.context.{ Context, ContextKey }
+import akka.http.scaladsl.server.PathMatcher
+import akka.http.scaladsl.server.PathMatcher.Matched
+import akka.http.scaladsl.server.PathMatcher.Unmatched
+import io.opentelemetry.context.Context
 import io.opentelemetry.instrumentation.api.field.VirtualField
-
-import java.util.concurrent.atomic.AtomicReference
 
 object OverridingRawPatchMatcherImpl {
 
@@ -52,17 +52,4 @@ object OverridingRawPatchMatcherImpl {
     }
   }
 
-}
-
-object RouteContext {
-  val routeKey: ContextKey[RouteTemplateWrapper] =
-    ContextKey.named[RouteTemplateWrapper]("mesmer-akka-http-route-template")
-}
-
-final class RouteTemplateWrapper() {
-  private val template = new AtomicReference[String]("")
-
-  def append(value: String): String = template.getAndUpdate(_ + value)
-  def set(value: String): Unit      = template.set(value)
-  def get(): String                 = template.get()
 }

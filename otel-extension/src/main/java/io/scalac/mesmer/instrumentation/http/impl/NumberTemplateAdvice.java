@@ -4,7 +4,7 @@ import akka.http.scaladsl.server.PathMatcher;
 import io.opentelemetry.instrumentation.api.field.VirtualField;
 import net.bytebuddy.asm.Advice;
 
-public class IntNumberTemplateAdvice {
+public class NumberTemplateAdvice {
 
   @Advice.OnMethodExit
   public static void onExit(@Advice.This PathMatcher<?> self) {

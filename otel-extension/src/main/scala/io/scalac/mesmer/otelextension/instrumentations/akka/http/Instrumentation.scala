@@ -70,7 +70,6 @@ object Instrumentation {
       )
   }
 
-
   val segmentPathMatcher: TypeInstrumentation = new TypeInstrumentation {
     val typeMatcher: ElementMatcher[TypeDescription] = ElementMatchers
       .named[TypeDescription]("akka.http.scaladsl.server.PathMatchers$Segment$")
@@ -79,6 +78,21 @@ object Instrumentation {
       transformer.applyAdviceToMethod(
         ElementMatchers.isConstructor[MethodDescription],
         "io.scalac.mesmer.instrumentation.http.impl.SegmentPathTemplateAdvice"
+      )
+  }
+
+  val numberPathMatcher: TypeInstrumentation = new TypeInstrumentation {
+    val typeMatcher: ElementMatcher[TypeDescription] = ElementMatchers
+      .named[TypeDescription]("akka.http.scaladsl.server.PathMatchers$IntNumber$")
+      .or[TypeDescription](
+        ElementMatchers
+          .named[TypeDescription]("akka.http.scaladsl.server.PathMatchers$LongNumber$")
+      )
+
+    def transform(transformer: TypeTransformer): Unit =
+      transformer.applyAdviceToMethod(
+        ElementMatchers.isConstructor[MethodDescription],
+        "io.scalac.mesmer.instrumentation.http.impl.NumberTemplateAdvice"
       )
   }
 
@@ -106,11 +120,6 @@ object Instrumentation {
       )
   }
 
-
-
-
-
-
   val applyPathMatcher: TypeInstrumentation = new TypeInstrumentation {
     val typeMatcher: ElementMatcher[TypeDescription] = ElementMatchers.hasSuperType[TypeDescription](
       ElementMatchers
@@ -132,7 +141,9 @@ object Instrumentation {
 
     def transform(transformer: TypeTransformer): Unit =
       transformer.applyAdviceToMethod(
-        ElementMatchers.named[MethodDescription]("map").or[MethodDescription](ElementMatchers.named[MethodDescription]("flatMap")),
+        ElementMatchers
+          .named[MethodDescription]("map")
+          .or[MethodDescription](ElementMatchers.named[MethodDescription]("flatMap")),
         "io.scalac.mesmer.instrumentation.http.impl.MapMatchedMatchingAdvice"
       )
   }

@@ -10,16 +10,18 @@ import scala.concurrent.ExecutionContext
 import scala.concurrent.Future
 import scala.util.Using
 
-final class UpdateHttpRouteWrapper(inner: HttpRequest => Future[HttpResponse])(implicit executionContext: ExecutionContext)
-    extends (HttpRequest => Future[HttpResponse]) {
+final class UpdateHttpRouteWrapper(inner: HttpRequest => Future[HttpResponse])(implicit
+  executionContext: ExecutionContext
+) extends (HttpRequest => Future[HttpResponse]) {
   def apply(v1: HttpRequest): Future[HttpResponse] = {
 
-    val wrapper = new RouteTemplateWrapper
+    val wrapper = new RouteTemplateHolder
     val newContext = Context
       .current()
       .`with`(RouteContext.routeKey, wrapper)
 
     Using.resource(newContext.makeCurrent()) { _ =>
+      println("!+!+!+!+!+!+!+!+!+!+! Wrapping a request !+!+!+!+!+!+!+!+!+!+!")
       inner(v1).andThen { case _ =>
         val template = wrapper.get()
         HttpRouteHolder.updateHttpRoute(newContext, HttpRouteSource.CONTROLLER, template)

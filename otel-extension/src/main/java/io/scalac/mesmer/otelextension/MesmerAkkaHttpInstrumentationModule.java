@@ -39,6 +39,7 @@ public class MesmerAkkaHttpInstrumentationModule extends InstrumentationModule
         Instrumentation.andThenMatchedMatching(),
         Instrumentation.applyPathMatcher(),
         Instrumentation.segmentPathMatcher(),
+        Instrumentation.numberPathMatcher(),
         Instrumentation.remainingPathMatcher(),
         Instrumentation.rawMatcher());
   }
@@ -64,9 +65,9 @@ public class MesmerAkkaHttpInstrumentationModule extends InstrumentationModule
     return Arrays.asList(
         "io.scalac.mesmer.otelextension.instrumentations.akka.http.RouteContext$",
         "io.scalac.mesmer.otelextension.instrumentations.akka.http.RouteContext",
-        "io.scalac.mesmer.otelextension.instrumentations.akka.http.RouteTemplateWrapper",
-        "io.scalac.mesmer.otelextension.instrumentations.akka.http.RouteWrapper$$anonfun$$nestedInanonfun$apply$1$1",
-        "io.scalac.mesmer.otelextension.instrumentations.akka.http.RouteWrapper",
+        "io.scalac.mesmer.otelextension.instrumentations.akka.http.RouteTemplateHolder",
+        "io.scalac.mesmer.otelextension.instrumentations.akka.http.UpdateHttpRouteWrapper$$anonfun$$nestedInanonfun$apply$1$1",
+        "io.scalac.mesmer.otelextension.instrumentations.akka.http.UpdateHttpRouteWrapper",
         "io.scalac.mesmer.otelextension.instrumentations.akka.http.OverridingRawPatchMatcherImpl$",
         "io.scalac.mesmer.otelextension.instrumentations.akka.http.OverridingRawPatchMatcherImpl");
   }
