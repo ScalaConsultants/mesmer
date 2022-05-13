@@ -39,6 +39,9 @@ inThisBuild(
 
 addCommandAlias("fmt", "scalafmtAll; scalafixAll")
 addCommandAlias("check", "scalafixAll --check; scalafmtCheckAll")
+addCommandAlias("testAll", "test; IntegrationTest/test")
+
+val projectRootDir = all.base.absolutePath
 
 lazy val all: Project = (project in file("."))
   .disablePlugins(sbtassembly.AssemblyPlugin)
@@ -55,8 +58,8 @@ lazy val core = (project in file("core"))
     libraryDependencies ++= {
       akka ++
       openTelemetryInstrumentation ++
-      scalatest ++
-      akkaTestkit
+      scalatest.map(_ % "test") ++
+      akkaTestkit.map(_ % "test")
     }
   )
 
@@ -70,42 +73,65 @@ lazy val extension = (project in file("extension"))
     libraryDependencies ++= {
       akka ++
       openTelemetryApi ++
-      akkaTestkit ++
-      scalatest ++
-      akkaMultiNodeTestKit ++
+      akkaTestkit.map(_ % "test") ++
+      scalatest.map(_ % "test") ++
+      akkaMultiNodeTestKit.map(_ % "test") ++
       logback.map(_ % Test)
     }
   )
   .dependsOn(core % "compile->compile;test->test")
 
 lazy val otelExtension = (project in file("otel-extension"))
+  .configs(IntegrationTest)
   .settings(
-    name := "mesmer-otel-extension",
+    Defaults.itSettings,
+    name                                               := "mesmer-otel-extension",
+    excludeDependencies += "io.opentelemetry.javaagent" % "opentelemetry-javaagent-bootstrap",
     libraryDependencies ++= {
       openTelemetryExtension.map(_ % "provided") ++
       openTelemetryMuzzle.map(_ % "provided") ++
       byteBuddy.map(_ % "provided") ++
-      akkaTestkit ++
-      scalatest
+      akkaTestkit.map(_ % "it,test") ++
+      scalatest.map(_ % "it,test") ++
+      openTelemetryTesting.map(_ % "it,test")
     },
     assembly / test            := {},
     assembly / assemblyJarName := s"${name.value}_${scalaBinaryVersion.value}-${version.value}-assembly.jar",
     assemblyMergeStrategySettings,
-    Test / fork              := true,
-    Test / parallelExecution := true,
-    Test / testGrouping := ((Test / testGrouping).value flatMap { group =>
-      group.tests.map { test =>
-        Tests.Group(name = test.name, tests = Seq(test), runPolicy = group.runPolicy)
-      }
-    }),
-    Test / testOnly / testGrouping := (Test / testGrouping).value,
     assembly / artifact := {
       val art = (assembly / artifact).value
       art.withClassifier(Some("assembly"))
     },
-    addArtifact(assembly / artifact, assembly)
+    addArtifact(assembly / artifact, assembly),
+    Test / fork              := true,
+    Test / parallelExecution := true,
+    Test / testGrouping := ((Test / testGrouping).value) flatMap { group =>
+      group.tests.map { test =>
+        Tests.Group(name = test.name, tests = Seq(test), runPolicy = group.runPolicy)
+      }
+    },
+    Test / testOnly / testGrouping := (Test / testGrouping).value,
+    IntegrationTest / fork         := true,
+    IntegrationTest / javaOptions ++= Seq(
+      s"-javaagent:$projectRootDir/opentelemetry-agent-for-testing-$OpentelemetryAlphaVersion131.jar",
+      s"-Dotel.javaagent.extensions=${assembly.value.absolutePath}",
+      "-Dotel.javaagent.debug=true",
+      "-Dotel.javaagent.testing.fail-on-context-leak=true",
+      "-Dotel.javaagent.testing.transform-safe-logging.enabled=true",
+      "-Dotel.metrics.exporter=otlp",
+
+      // suppress repeated logging of "No metric data to export - skipping export."
+      // since PeriodicMetricReader is configured with a short interval
+      "-Dio.opentelemetry.javaagent.slf4j.simpleLogger.log.io.opentelemetry.sdk.metrics.export.PeriodicMetricReader=INFO",
+
+      // suppress a couple of verbose ClassNotFoundException stack traces logged at debug level
+      "-Dio.opentelemetry.javaagent.slf4j.simpleLogger.log.io.grpc.internal.ServerImplBuilder=INFO",
+      "-Dio.opentelemetry.javaagent.slf4j.simpleLogger.log.io.grpc.internal.ManagedChannelImplBuilder=INFO",
+      "-Dio.opentelemetry.javaagent.slf4j.simpleLogger.log.io.perfmark.PerfMark=INFO",
+      "-Dio.opentelemetry.javaagent.slf4j.simpleLogger.log.io.grpc.Context=INFO"
+    )
   )
-  .dependsOn(core % "provided->compile;test->test;compile->compile")
+  .dependsOn(core % "provided->compile;test->test;compile->compile;it->test")
 
 lazy val example = (project in file("example"))
   .enablePlugins(JavaAppPackaging, UniversalPlugin)
@@ -114,8 +140,8 @@ lazy val example = (project in file("example"))
     publish / skip := true,
     libraryDependencies ++= {
       akka ++
-      scalatest ++
-      akkaTestkit ++
+      scalatest.map(_ % "test") ++
+      akkaTestkit.map(_ % "test") ++
       akkaPersistance ++
       logback ++
       exampleDependencies
@@ -177,12 +203,10 @@ lazy val benchmark = (project in file("benchmark"))
 
 def runExampleWithOtelAgent = Command.command("runExampleWithOtelAgent") { state =>
   val extracted = Project extract state
-  val root      = all.base.absolutePath
-
   val newState = extracted.appendWithSession(
     Seq(
       run / javaOptions ++= Seq(
-        s"-javaagent:$root/opentelemetry-javaagent-1.13.1.jar",
+        s"-javaagent:$projectRootDir/opentelemetry-javaagent-$OpentelemetryLatestVersion.jar",
         s"-Dotel.service.name=mesmer-example",
         s"-Dotel.metric.export.interval=5000",
         s"-Dotel.javaagent.extensions=${(otelExtension / assembly).value.absolutePath}"
@@ -197,12 +221,10 @@ def runExampleWithOtelAgent = Command.command("runExampleWithOtelAgent") { state
 
 def runStreamExampleWithOtelAgent = Command.command("runStreamExampleWithOtelAgent") { state =>
   val extracted = Project extract state
-  val root      = all.base.absolutePath
-
   val newState = extracted.appendWithSession(
     Seq(
       run / javaOptions ++= Seq(
-        s"-javaagent:$root/opentelemetry-javaagent-1.13.1.jar",
+        s"-javaagent:$projectRootDir/opentelemetry-javaagent-$OpentelemetryLatestVersion.jar",
         s"-Dotel.service.name=mesmer-stream-example",
         s"-Dotel.metric.export.interval=5000",
         s"-Dotel.javaagent.extensions=${(otelExtension / assembly).value.absolutePath}"

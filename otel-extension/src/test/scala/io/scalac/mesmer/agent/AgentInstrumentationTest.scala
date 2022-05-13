@@ -3,15 +3,12 @@ package io.scalac.mesmer.agent
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
-import io.scalac.mesmer.agent.Agent.LoadingResult
 import io.scalac.mesmer.agent.util.i13n.InstrumentationDetails._
 import io.scalac.mesmer.agent.util.i13n.TypeInstrumentation._
 
 class AgentInstrumentationTest extends AnyFlatSpec with Matchers {
 
   behavior of "AgentInstrumentation"
-
-  private def returning(result: LoadingResult): (Any, Any) => LoadingResult = (_, _) => result
 
   it should "be equal if tags and name are the same" in {
 
