@@ -6,7 +6,7 @@ import io.opentelemetry.javaagent.extension.instrumentation.TypeInstrumentation;
 import io.opentelemetry.javaagent.tooling.muzzle.InstrumentationModuleMuzzle;
 import io.opentelemetry.javaagent.tooling.muzzle.VirtualFieldMappingsBuilder;
 import io.opentelemetry.javaagent.tooling.muzzle.references.ClassRef;
-import io.scalac.mesmer.otelextension.instrumentations.akka.http.Instrumentation;
+import io.scalac.mesmer.otelextension.instrumentations.akka.http.PathMatching;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -28,20 +28,20 @@ public class MesmerAkkaHttpInstrumentationModule extends InstrumentationModule
   @Override
   public List<TypeInstrumentation> typeInstrumentations() {
     return Arrays.asList(
-        Instrumentation.asyncHandler(),
-        Instrumentation.uuidPathMatcher(),
-        Instrumentation.doublePathMatcher(),
-        Instrumentation.neutralPathMatcher(),
-        Instrumentation.slashPathMatcher(),
-        Instrumentation.pathEndMatcher(),
-        Instrumentation.segmentRoute(),
-        Instrumentation.mapMatchedMatching(),
-        Instrumentation.andThenMatchedMatching(),
-        Instrumentation.applyPathMatcher(),
-        Instrumentation.segmentPathMatcher(),
-        Instrumentation.numberPathMatcher(),
-        Instrumentation.remainingPathMatcher(),
-        Instrumentation.rawMatcher());
+        PathMatching.asyncHandler(),
+        PathMatching.uuidPathMatcher(),
+        PathMatching.doublePathMatcher(),
+        PathMatching.neutralPathMatcher(),
+        PathMatching.slashPathMatcher(),
+        PathMatching.pathEndMatcher(),
+        PathMatching.segmentRoute(),
+        PathMatching.mapMatchedMatching(),
+        PathMatching.andThenMatchedMatching(),
+        PathMatching.applyPathMatcher(),
+        PathMatching.segmentPathMatcher(),
+        PathMatching.numberPathMatcher(),
+        PathMatching.remainingPathMatcher(),
+        PathMatching.rawMatcher());
   }
 
   @Override

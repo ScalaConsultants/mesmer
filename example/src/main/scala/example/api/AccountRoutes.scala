@@ -71,20 +71,10 @@ class AccountRoutes(
               complete(StatusCodes.Created, Account(uuid, balance))
             }
           }
-        } ~
-        (pathPrefix("poligon") {
-          (pathPrefix(DoubleNumber | JavaUUID)) { _ =>
-            complete(StatusCodes.OK)
-          } ~ (pathPrefix(matcher | matcher2) & pathEndOrSingleSlash) { (_, _, _) =>
-            complete(StatusCodes.OK)
-          }
-        })
+        }
       }
     }
   )
-
-  lazy val matcher: PathMatcher[(String, Double, String)]  = (Segment / DoubleNumber / Segment)
-  lazy val matcher2: PathMatcher[(Double, String, Double)] = (DoubleNumber / Segment / DoubleNumber)
 
 }
 

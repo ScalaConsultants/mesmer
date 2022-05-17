@@ -1,17 +1,14 @@
 package io.scalac.mesmer.otelextension.instrumentations.akka.http
 
-import io.opentelemetry.javaagent.extension.instrumentation.TypeInstrumentation
-import io.opentelemetry.javaagent.extension.instrumentation.TypeTransformer
+import io.opentelemetry.javaagent.extension.instrumentation.{TypeInstrumentation, TypeTransformer}
+import io.scalac.mesmer.instrumentation.http.impl.OverridingRawPathMatcher
 import net.bytebuddy.asm.Advice
 import net.bytebuddy.description.`type`.TypeDescription
 import net.bytebuddy.description.method.MethodDescription
 import net.bytebuddy.implementation.SuperMethodCall
-import net.bytebuddy.matcher.ElementMatcher
-import net.bytebuddy.matcher.ElementMatchers
+import net.bytebuddy.matcher.{ElementMatcher, ElementMatchers}
 
-import io.scalac.mesmer.instrumentation.http.impl.OverridingRawPathMatcher
-
-object Instrumentation {
+object PathMatching {
   val uuidPathMatcher: TypeInstrumentation = new TypeInstrumentation {
     val typeMatcher: ElementMatcher[TypeDescription] = ElementMatchers
       .named[TypeDescription]("akka.http.scaladsl.server.PathMatchers$")
@@ -66,7 +63,7 @@ object Instrumentation {
     def transform(transformer: TypeTransformer): Unit =
       transformer.applyAdviceToMethod(
         ElementMatchers.isConstructor[MethodDescription],
-        "io.scalac.mesmer.instrumentation.http.impl.PathEndTemplateAdvice"
+        "io.scalac.mesmer.instrumentation.http.impl.EmptyTemplateAdvice"
       )
   }
 
@@ -77,7 +74,7 @@ object Instrumentation {
     def transform(transformer: TypeTransformer): Unit =
       transformer.applyAdviceToMethod(
         ElementMatchers.isConstructor[MethodDescription],
-        "io.scalac.mesmer.instrumentation.http.impl.SegmentPathTemplateAdvice"
+        "io.scalac.mesmer.instrumentation.http.impl.WildcardTemplateAdvice"
       )
   }
 
@@ -87,6 +84,14 @@ object Instrumentation {
       .or[TypeDescription](
         ElementMatchers
           .named[TypeDescription]("akka.http.scaladsl.server.PathMatchers$LongNumber$")
+      )
+      .or[TypeDescription](
+        ElementMatchers
+          .named[TypeDescription]("akka.http.scaladsl.server.PathMatchers$HexIntNumber$")
+      )
+      .or[TypeDescription](
+        ElementMatchers
+          .named[TypeDescription]("akka.http.scaladsl.server.PathMatchers$HexLongNumber$")
       )
 
     def transform(transformer: TypeTransformer): Unit =
@@ -103,7 +108,7 @@ object Instrumentation {
     def transform(transformer: TypeTransformer): Unit =
       transformer.applyAdviceToMethod(
         ElementMatchers.isConstructor[MethodDescription],
-        "io.scalac.mesmer.instrumentation.http.impl.RemainingStringTemplateAdvice"
+        "io.scalac.mesmer.instrumentation.http.impl.WildcardTemplateAdvice"
       )
   }
 

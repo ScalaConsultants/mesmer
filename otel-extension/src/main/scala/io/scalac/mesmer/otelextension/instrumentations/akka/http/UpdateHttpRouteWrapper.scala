@@ -21,7 +21,6 @@ final class UpdateHttpRouteWrapper(inner: HttpRequest => Future[HttpResponse])(i
       .`with`(RouteContext.routeKey, wrapper)
 
     Using.resource(newContext.makeCurrent()) { _ =>
-      println("!+!+!+!+!+!+!+!+!+!+! Wrapping a request !+!+!+!+!+!+!+!+!+!+!")
       inner(v1).andThen { case _ =>
         val template = wrapper.get()
         HttpRouteHolder.updateHttpRoute(newContext, HttpRouteSource.CONTROLLER, template)
