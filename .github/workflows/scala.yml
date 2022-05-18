@@ -9,9 +9,6 @@ on:
     types:
     - published
 
-env:
-  SBT_NATIVE_CLIENT: true
-
 jobs:
   lint:
     runs-on: ubuntu-latest
