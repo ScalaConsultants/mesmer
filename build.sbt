@@ -90,6 +90,8 @@ lazy val otelExtension = (project in file("otel-extension"))
     libraryDependencies ++= {
       openTelemetryExtension.map(_ % "provided") ++
       openTelemetryMuzzle.map(_ % "provided") ++
+      openTelemetryInstrumentation.map(_ % "provided") ++
+      openTelemetryInstrumentationApiSemanticConventions ++
       byteBuddy.map(_ % "provided") ++
       akkaTestkit.map(_ % "it,test") ++
       scalatest.map(_ % "it,test") ++

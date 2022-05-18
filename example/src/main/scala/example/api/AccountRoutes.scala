@@ -35,39 +35,41 @@ class AccountRoutes(
   }
 
   val routes: Route = Route.seal(
-    pathPrefix("api" / "v1" / "account" / JavaUUID) { uuid =>
-      (pathPrefix("balance") & pathEndOrSingleSlash & get) {
-        import AccountStateActor.Command._
-        import AccountStateActor.Reply._
-        onComplete(
-          shardedRef.ask[AccountStateActor.Reply](ref => ShardingEnvelope(uuid.toString, GetBalance(ref)))
-        ) map { case CurrentBalance(balance) =>
-          complete(StatusCodes.OK, Account(uuid, balance))
-        }
-      } ~
-      (pathPrefix("withdraw" / DoubleNumber) & pathEndOrSingleSlash) { amount =>
-        (put | post) {
+    pathPrefix("api" / "v1" / "account") {
+      pathPrefix(JavaUUID) { uuid =>
+        (pathPrefix("balance") & pathEndOrSingleSlash & get) {
           import AccountStateActor.Command._
           import AccountStateActor.Reply._
           onComplete(
-            shardedRef.ask[AccountStateActor.Reply](ref => ShardingEnvelope(uuid.toString, Withdraw(ref, amount)))
-          ) map {
-            case CurrentBalance(balance) =>
-              complete(StatusCodes.Created, Account(uuid, balance))
-            case InsufficientFunds =>
-              complete(StatusCodes.Conflict, ApplicationError("insufficient funds"))
-          }
-        }
-      } ~
-      (pathPrefix("deposit" / DoubleNumber) & pathEndOrSingleSlash) { amount =>
-        (put | post) {
-          import AccountStateActor.Command._
-          import AccountStateActor.Reply._
-
-          onComplete(
-            shardedRef.ask[AccountStateActor.Reply](ref => ShardingEnvelope(uuid.toString, Deposit(ref, amount)))
+            shardedRef.ask[AccountStateActor.Reply](ref => ShardingEnvelope(uuid.toString, GetBalance(ref)))
           ) map { case CurrentBalance(balance) =>
-            complete(StatusCodes.Created, Account(uuid, balance))
+            complete(StatusCodes.OK, Account(uuid, balance))
+          }
+        } ~
+        (pathPrefix("withdraw" / DoubleNumber) & pathEndOrSingleSlash) { amount =>
+          (put | post) {
+            import AccountStateActor.Command._
+            import AccountStateActor.Reply._
+            onComplete(
+              shardedRef.ask[AccountStateActor.Reply](ref => ShardingEnvelope(uuid.toString, Withdraw(ref, amount)))
+            ) map {
+              case CurrentBalance(balance) =>
+                complete(StatusCodes.Created, Account(uuid, balance))
+              case InsufficientFunds =>
+                complete(StatusCodes.Conflict, ApplicationError("insufficient funds"))
+            }
+          }
+        } ~
+        (pathPrefix("deposit" / DoubleNumber) & pathEndOrSingleSlash) { amount =>
+          (put | post) {
+            import AccountStateActor.Command._
+            import AccountStateActor.Reply._
+
+            onComplete(
+              shardedRef.ask[AccountStateActor.Reply](ref => ShardingEnvelope(uuid.toString, Deposit(ref, amount)))
+            ) map { case CurrentBalance(balance) =>
+              complete(StatusCodes.Created, Account(uuid, balance))
+            }
           }
         }
       }

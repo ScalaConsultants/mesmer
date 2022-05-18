@@ -84,23 +84,25 @@ object OpenTelemetryActorMetricsMonitor {
         .getOrElse(defaultConfig.droppedMessages)
     )
 
-    val defaultConfig: MetricNames = MetricNames(
-      mailboxSize = "akka_actor_mailbox_size",
-      mailboxTimeMin = "akka_actor_mailbox_time_min",
-      mailboxTimeMax = "akka_actor_mailbox_time_max",
-      mailboxTimeSum = "akka_actor_mailbox_time_sum",
-      mailboxTimeCount = "akka_actor_mailbox_time_count",
-      stashedMessages = "akka_actor_stashed_total",
-      receivedMessages = "akka_actor_received_messages_total",
-      processedMessages = "akka_actor_processed_messages_total",
-      failedMessages = "akka_actor_failed_messages",
-      processingTimeMin = "akka_actor_processing_time_min",
-      processingTimeMax = "akka_actor_processing_time_max",
-      processingTimeSum = "akka_actor_processing_time_sum",
-      processingTimeCount = "akka_actor_processing_time_count",
-      sentMessages = "akka_actor_sent_messages_total",
-      droppedMessages = "akka_actor_dropped_messages_total"
-    )
+    val defaultConfig: MetricNames =
+      MetricNames(
+        mailboxSize = "akka_actor_mailbox_size",
+        mailboxTimeMin = "akka_actor_mailbox_time_min",
+        mailboxTimeMax = "akka_actor_mailbox_time_max",
+        mailboxTimeSum = "akka_actor_mailbox_time_sum",
+        mailboxTimeCount = "akka_actor_mailbox_time_count",
+        stashedMessages = "akka_actor_stashed_total",
+        receivedMessages = "akka_actor_received_messages_total",
+        processedMessages = "akka_actor_processed_messages_total",
+        failedMessages = "akka_actor_failed_messages",
+        processingTimeMin = "akka_actor_processing_time_min",
+        processingTimeMax = "akka_actor_processing_time_max",
+        processingTimeSum = "akka_actor_processing_time_sum",
+        processingTimeCount = "akka_actor_processing_time_count",
+        sentMessages = "akka_actor_sent_messages_total",
+        droppedMessages = "akka_actor_dropped_messages_total"
+      )
+
   }
 
   def apply(
