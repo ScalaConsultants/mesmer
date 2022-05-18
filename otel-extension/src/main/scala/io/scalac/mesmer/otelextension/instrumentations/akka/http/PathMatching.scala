@@ -1,12 +1,15 @@
 package io.scalac.mesmer.otelextension.instrumentations.akka.http
 
-import io.opentelemetry.javaagent.extension.instrumentation.{TypeInstrumentation, TypeTransformer}
-import io.scalac.mesmer.instrumentation.http.impl.OverridingRawPathMatcher
+import io.opentelemetry.javaagent.extension.instrumentation.TypeInstrumentation
+import io.opentelemetry.javaagent.extension.instrumentation.TypeTransformer
 import net.bytebuddy.asm.Advice
 import net.bytebuddy.description.`type`.TypeDescription
 import net.bytebuddy.description.method.MethodDescription
 import net.bytebuddy.implementation.SuperMethodCall
-import net.bytebuddy.matcher.{ElementMatcher, ElementMatchers}
+import net.bytebuddy.matcher.ElementMatcher
+import net.bytebuddy.matcher.ElementMatchers
+
+import io.scalac.mesmer.instrumentation.http.impl.OverridingRawPathMatcher
 
 object PathMatching {
   val uuidPathMatcher: TypeInstrumentation = new TypeInstrumentation {
