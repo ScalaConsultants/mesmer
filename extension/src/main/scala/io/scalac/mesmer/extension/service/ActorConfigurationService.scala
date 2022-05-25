@@ -30,7 +30,7 @@ final class ConfigBasedConfigurationService(config: Config) extends ActorConfigu
       .toOption
       .map { rawValue =>
         ActorConfiguration.Reporting.parse(rawValue).getOrElse {
-          logger.warn(s"Value {} is not a proper setting for reporting - default is set to disabled", rawValue)
+          logger.warn(s"Value {} is not a proper setting for reporting - applying default disabled strategy", rawValue)
           ActorConfiguration.Reporting.disabled
         }
       }
@@ -46,7 +46,7 @@ final class ConfigBasedConfigurationService(config: Config) extends ActorConfigu
           if (value.valueType() == ConfigValueType.STRING && raw.isInstanceOf[String]) {
             for {
               value   <- ActorConfiguration.Reporting.parse(raw.asInstanceOf[String])
-              matcher <- PathMatcher.parse(key, value)
+              matcher <- PathMatcher.parse(key, value).toOption
             } yield matcher
           } else None
 

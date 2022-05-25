@@ -225,6 +225,7 @@ private[extension] class ActorEventsMonitorActor private[extension] (
 
   private def setTimeout(): Unit = scheduler.startSingleTimer(noAckStartMeasurement, pingOffset)
 
+  // TODO this needs proper tests
   private def update(refs: Tree[ActorRefDetails]): Unit = {
 
     val storage = refs.unfix.foldRight[storageFactory.Storage] { case TreeF(details, childrenMetrics) =>
@@ -242,7 +243,7 @@ private[extension] class ActorEventsMonitorActor private[extension] (
         storage.save(actorKey, currentMetrics, visible)
         if (aggregate) {
           val (metrics, builder) = terminatedActorsMetrics.removeAfter(actorKey) // get all terminated information
-          terminatedActorsMetrics = builder //
+          terminatedActorsMetrics = builder
           metrics.foreach { case (key, metric) =>
             storage.save(key, metric, persistent = false)
           }

@@ -1,28 +1,14 @@
 package io.scalac.mesmer.core
 
 sealed trait PathMatcher[T] extends (String => Boolean) with Ordered[PathMatcher[T]] {
-  import PathMatcher._
 
   def value: T
 
   final def apply(path: String): Boolean = matches(path)
 
-  def matches(path: String): Boolean = this match {
-    case Exact(base, _) if path == base || path == s"$base/" => true
-    case Prefix(base, _) if path.startsWith(base)            => true
-    case _                                                   => false
-  }
+  def matches(path: String): Boolean
 
-  def compare(that: PathMatcher[T]): Int = (this, that) match {
-    case (Exact(_, _), Prefix(_, _)) => 1
-    case (Prefix(_, _), Exact(_, _)) => -1
-    case (Prefix(first, _), Prefix(second, _)) =>
-      comparePath(first, second)
-    case (Exact(first, _), Exact(second, _)) =>
-      comparePath(first, second)
-  }
-
-  private def comparePath(first: String, second: String): Int =
+  protected def comparePath(first: String, second: String): Int =
     if (first.startsWith(second)) 1
     else if (second.startsWith(first)) -1
     else 0
@@ -30,22 +16,69 @@ sealed trait PathMatcher[T] extends (String => Boolean) with Ordered[PathMatcher
 
 object PathMatcher {
 
-  private[core] final case class Prefix[T](base: String, value: T) extends PathMatcher[T]
+  private[core] final case class Prefix[T](base: String, recursive: Boolean, value: T) extends PathMatcher[T] {
+    def matches(path: String): Boolean =
+      path.startsWith(base) && (recursive || !path.substring(base.length).contains('/'))
 
-  private[core] final case class Exact[T](path: String, value: T) extends PathMatcher[T]
+    def compare(that: PathMatcher[T]): Int = that match {
+      case _: Exact[_] => -1
+      case another: Prefix[_] if another.recursive == recursive =>
+        if (recursive) {
+          if (base.startsWith(another.base)) {
+            base.length - another.base.length // 0 when equal
+          } else if (another.base.startsWith(base)) {
+            -1
+          } else 0
+        } else 0
 
-  def parse[T](path: String, value: T): Option[PathMatcher[T]] = if (path.startsWith("/")) {
+      case Prefix(recursiveBase, true, _) =>
+        if (base.startsWith(recursiveBase) || recursiveBase.startsWith(base)) {
+          1
+        } else 0
+
+      case Prefix(nonRecursiveBase, false, _) =>
+        if (base.startsWith(nonRecursiveBase) || nonRecursiveBase.startsWith(base)) {
+          -1
+        } else 0
+    }
+  }
+
+  private[core] final case class Exact[T](base: String, value: T) extends PathMatcher[T] {
+    def matches(path: String): Boolean = path == base || s"$path/" == base
+
+    def compare(that: PathMatcher[T]): Int = that match {
+      case _: Prefix[_]          => 1
+      case Exact(anotherBase, _) => comparePath(base, anotherBase)
+    }
+  }
+
+  sealed trait Error {
+    def message: String
+  }
+
+  object Error {
+    case object InvalidWildcardError extends Error {
+      val message = "Wildcard is permitted only at end of the path"
+    }
+
+    case object MissingSlashError extends Error {
+      val message = "Path must start with a slash"
+    }
+  }
+
+  def parse[T](path: String, value: T): Either[Error, PathMatcher[T]] = if (path.startsWith("/")) {
     path match {
-      case _ if path.endsWith("/*") => Some(Prefix(path.substring(0, path.length - 2), value))
+      case _ if path.endsWith("/*")  => Right(Prefix(path.substring(0, path.length - 1), recursive = false, value))
+      case _ if path.endsWith("/**") => Right(Prefix(path.substring(0, path.length - 2), recursive = true, value))
       case _ if !path.contains("*") =>
-        Some(
+        Right(
           Exact(
-            if (path.endsWith("/")) path.substring(0, path.length - 1) else path,
+            if (path.endsWith("/")) path else s"$path/",
             value
           )
         )
-      case _ => None
+      case _ => Left(Error.InvalidWildcardError)
     }
-  } else None
+  } else Left(Error.MissingSlashError)
 
 }
