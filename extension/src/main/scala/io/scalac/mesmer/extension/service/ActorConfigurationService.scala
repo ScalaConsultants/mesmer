@@ -36,7 +36,10 @@ final class ConfigBasedConfigurationService(config: Config) extends ActorConfigu
       }
       .getOrElse(ActorConfiguration.Reporting.disabled)
 
-  private lazy val matchers: List[PathMatcher[ActorConfiguration.Reporting]] =
+  implicit private lazy val matcherReversed: Ordering[PathMatcher[ActorConfiguration.Reporting]] =
+    Ordering.ordered[PathMatcher[ActorConfiguration.Reporting]].reverse
+
+  lazy val matchers: List[PathMatcher[ActorConfiguration.Reporting]] =
     config
       .tryValue(s"$actorConfigRoot.rules")(_.getObject)
       .toOption
@@ -50,18 +53,14 @@ final class ConfigBasedConfigurationService(config: Config) extends ActorConfigu
             } yield matcher
           } else None
 
-        }
+        }.sorted
+
       }
       .getOrElse(Nil)
 
-  implicit private lazy val matcherReversed: Ordering[PathMatcher[ActorConfiguration.Reporting]] =
-    Ordering.ordered[PathMatcher[ActorConfiguration.Reporting]].reverse
-
   def forActorPath(ref: classic.ActorPath): ActorConfiguration = {
     val reporting = matchers
-      .filter(_.matches(ref.toStringWithoutAddress))
-      .sorted
-      .headOption
+      .find(_.matches(ref.toStringWithoutAddress))
       .map(_.value)
       .getOrElse(reportingDefault)
     ActorConfiguration(reporting)
