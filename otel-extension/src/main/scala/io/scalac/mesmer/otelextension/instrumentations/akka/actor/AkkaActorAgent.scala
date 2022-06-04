@@ -36,6 +36,12 @@ object AkkaActorAgent
         "akka.actor.impl.ClassicActorSystemProviderAdvice"
       )
 
+    val actorCellInit: TypeInstrumentation =
+      typeInstrumentation(matchers.named("akka.actor.ActorCell"))(
+        matchers.isConstructor,
+        "akka.actor.impl.ActorCellInitAdvice"
+      )
+
   }
   import io.scalac.mesmer.agent.util.i13n._
 

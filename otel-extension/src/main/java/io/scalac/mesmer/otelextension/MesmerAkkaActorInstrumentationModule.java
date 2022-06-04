@@ -21,7 +21,9 @@ public class MesmerAkkaActorInstrumentationModule extends InstrumentationModule
 
   @Override
   public List<TypeInstrumentation> typeInstrumentations() {
-    return AkkaActorAgent.agent().asOtelTypeInstrumentations();
+    return Arrays.asList(
+        AkkaActorAgent.otel$.MODULE$.actorSystemConfig(),
+        AkkaActorAgent.otel$.MODULE$.actorCellInit());
   }
 
   @Override
@@ -73,7 +75,6 @@ public class MesmerAkkaActorInstrumentationModule extends InstrumentationModule
         "io.scalac.mesmer.otelextension.instrumentations.akka.actor.EnvelopeDecorator$",
         "io.scalac.mesmer.instrumentation.actor.impl.BoundedQueueBasedMessageQueueAdvice",
         "io.scalac.mesmer.core.actor.ActorCellDecorator",
-        "akka.actor.impl.ActorCellInitAdvice",
         "akka.actor.ProxiedQueue",
         "akka.actor.BoundedQueueProxy");
   }
