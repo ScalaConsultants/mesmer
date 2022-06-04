@@ -1,8 +1,10 @@
 package io.scalac.mesmer.otelextension.instrumentations.akka.actor
+import io.opentelemetry.javaagent.extension.instrumentation.TypeInstrumentation
 
 import io.scalac.mesmer.agent.Agent
 import io.scalac.mesmer.agent.AgentInstrumentation
-import io.scalac.mesmer.agent.util.i13n._
+import io.scalac.mesmer.agent.util.dsl._
+import io.scalac.mesmer.agent.util.i13n.InstrumentModuleFactory
 import io.scalac.mesmer.core.module.AkkaActorModule
 import io.scalac.mesmer.otelextension.instrumentations.akka.actor.impl._
 
@@ -23,24 +25,19 @@ object AkkaActorAgent
 
     val config = module.enabled
 
-    List(
-      mailboxSize.onCondition(config.mailboxSize),
-      mailboxTimeMin.onCondition(config.mailboxTimeMin),
-      mailboxTimeMax.onCondition(config.mailboxTimeMax),
-      mailboxTimeSum.onCondition(config.mailboxTimeSum),
-      mailboxTimeCount.onCondition(config.mailboxTimeCount),
-      stashedMessages.onCondition(config.stashedMessages),
-      receivedMessages.onCondition(config.receivedMessages),
-      processedMessages.onCondition(config.processedMessages),
-      failedMessages.onCondition(config.failedMessages),
-      processingTimeMin.onCondition(config.processingTimeMin),
-      processingTimeMax.onCondition(config.processingTimeMax),
-      processingTimeSum.onCondition(config.processingTimeSum),
-      processingTimeCount.onCondition(config.processingTimeCount),
-      sentMessages.onCondition(config.sentMessages),
-      droppedMessages.onCondition(config.droppedMessages)
-    ).reduce(_ ++ _)
+    Agent.empty
   }
+
+  object otel {
+
+    val actorSystemConfig: TypeInstrumentation =
+      typeInstrumentation(matchers.hasSuperType(matchers.named("akka.actor.ClassicActorSystemProvider")))(
+        matchers.isConstructor,
+        "akka.actor.impl.ClassicActorSystemProviderAdvice"
+      )
+
+  }
+  import io.scalac.mesmer.agent.util.i13n._
 
   lazy val mailboxSize: Agent = sharedInstrumentation
 

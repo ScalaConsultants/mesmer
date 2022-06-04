@@ -7,7 +7,6 @@ import io.opentelemetry.javaagent.tooling.muzzle.InstrumentationModuleMuzzle;
 import io.opentelemetry.javaagent.tooling.muzzle.VirtualFieldMappingsBuilder;
 import io.opentelemetry.javaagent.tooling.muzzle.references.ClassRef;
 import io.scalac.mesmer.otelextension.instrumentations.akka.actor.AkkaActorAgent;
-
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -35,6 +34,8 @@ public class MesmerAkkaActorInstrumentationModule extends InstrumentationModule
     builder
         .register("akka.dispatch.Envelope", "io.scalac.mesmer.core.util.Timestamp")
         .register("akka.actor.ActorContext", "io.scalac.mesmer.core.actor.ActorCellMetrics")
+        .register("akka.actor.ActorContext", "io.opentelemetry.api.common.Attributes")
+        .register("akka.actor.ClassicActorSystemProvider", "io.opentelemetry.api.common.Attributes")
         .register(
             "akka.dispatch.BoundedQueueBasedMessageQueue", "java.util.concurrent.BlockingQueue")
         .register("akka.dispatch.AbstractBoundedNodeQueue", "java.lang.Boolean");
