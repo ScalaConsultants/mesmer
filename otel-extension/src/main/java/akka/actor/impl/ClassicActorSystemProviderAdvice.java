@@ -12,7 +12,6 @@ public class ClassicActorSystemProviderAdvice {
   @Advice.OnMethodExit
   public static void init(@Advice.This ClassicActorSystemProvider system) {
 
-    System.out.println("Initializing actor system");
     VirtualField.find(ClassicActorSystemProvider.class, ActorRefConfiguration.class)
         .set(
             system,

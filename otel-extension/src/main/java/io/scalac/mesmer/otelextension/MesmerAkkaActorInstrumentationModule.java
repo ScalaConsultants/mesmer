@@ -36,8 +36,12 @@ public class MesmerAkkaActorInstrumentationModule extends InstrumentationModule
     builder
         .register("akka.dispatch.Envelope", "io.scalac.mesmer.core.util.Timestamp")
         .register("akka.actor.ActorContext", "io.scalac.mesmer.core.actor.ActorCellMetrics")
-        .register("akka.actor.ActorContext", "io.opentelemetry.api.common.Attributes")
-        .register("akka.actor.ClassicActorSystemProvider", "io.opentelemetry.api.common.Attributes")
+        .register(
+            "akka.actor.ActorContext",
+            "io.opentelemetry.javaagent.shaded.io.opentelemetry.api.common.Attributes")
+        .register(
+            "akka.actor.ClassicActorSystemProvider",
+            "io.scalac.mesmer.core.actor.ActorRefConfiguration")
         .register(
             "akka.dispatch.BoundedQueueBasedMessageQueue", "java.util.concurrent.BlockingQueue")
         .register("akka.dispatch.AbstractBoundedNodeQueue", "java.lang.Boolean");
@@ -75,6 +79,11 @@ public class MesmerAkkaActorInstrumentationModule extends InstrumentationModule
         "io.scalac.mesmer.otelextension.instrumentations.akka.actor.EnvelopeDecorator$",
         "io.scalac.mesmer.instrumentation.actor.impl.BoundedQueueBasedMessageQueueAdvice",
         "io.scalac.mesmer.core.actor.ActorCellDecorator",
+        "io.scalac.mesmer.core.actor.ActorRefConfiguration",
+        "io.scalac.mesmer.core.actor.DefaultActorRefConfiguration",
+        "io.scalac.mesmer.core.actor.DefaultActorRefConfiguration$",
+        "io.scalac.mesmer.core.actor.WithSystemActorRefConfigurator",
+        "akka.actor.impl.TestImpl",
         "akka.actor.ProxiedQueue",
         "akka.actor.BoundedQueueProxy");
   }
