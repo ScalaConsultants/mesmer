@@ -23,7 +23,8 @@ public class MesmerAkkaActorInstrumentationModule extends InstrumentationModule
   public List<TypeInstrumentation> typeInstrumentations() {
     return Arrays.asList(
         AkkaActorAgent.otel$.MODULE$.actorSystemConfig(),
-        AkkaActorAgent.otel$.MODULE$.actorCellInit());
+        AkkaActorAgent.otel$.MODULE$.actorCellInit(),
+        AkkaActorAgent.otel$.MODULE$.actorCellReceived());
   }
 
   @Override
@@ -83,7 +84,8 @@ public class MesmerAkkaActorInstrumentationModule extends InstrumentationModule
         "io.scalac.mesmer.core.actor.DefaultActorRefConfiguration",
         "io.scalac.mesmer.core.actor.DefaultActorRefConfiguration$",
         "io.scalac.mesmer.core.actor.WithSystemActorRefConfigurator",
-        "akka.actor.impl.TestImpl",
+        "io.scalac.mesmer.otelextension.instrumentations.akka.actor.Instruments",
+        "io.scalac.mesmer.otelextension.instrumentations.akka.actor.Instruments$",
         "akka.actor.ProxiedQueue",
         "akka.actor.BoundedQueueProxy");
   }

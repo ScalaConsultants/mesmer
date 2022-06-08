@@ -36,11 +36,17 @@ object AkkaActorAgent
         "akka.actor.impl.ClassicActorSystemProviderAdvice"
       )
 
+    // TODO check if here we can define many transformations
     val actorCellInit: TypeInstrumentation =
       typeInstrumentation(matchers.named("akka.actor.ActorCell"))(
         matchers.isConstructor,
         "akka.actor.impl.ActorCellInitAdvice"
       )
+
+    val actorCellReceived: TypeInstrumentation = typeInstrumentation(matchers.named("akka.actor.ActorCell"))(
+      matchers.named("receiveMessage"),
+      "akka.actor.impl.ActorCellReceiveMessageAdvice"
+    )
 
   }
   import io.scalac.mesmer.agent.util.i13n._
