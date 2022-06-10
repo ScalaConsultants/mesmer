@@ -13,7 +13,7 @@ const config = {
   onBrokenLinks: 'throw',
   onBrokenMarkdownLinks: 'warn',
   favicon: 'img/favicon.ico',
-  organizationName: 'scalac', // Usually your GitHub org/user name.
+  organizationName: 'ScalaConsultants', // Usually your GitHub org/user name.
   projectName: 'mesmer', // Usually your repo name.
 
   presets: [
