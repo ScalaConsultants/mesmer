@@ -64,6 +64,10 @@ object Dependencies {
     "io.opentelemetry.javaagent" % "opentelemetry-muzzle" % OpentelemetryAlphaVersion131
   )
 
+  val zio = Seq(
+    "dev.zio" %% "zio" % "2.0.0-RC6"
+  )
+
   val openTelemetryTesting = Seq(
     "io.opentelemetry.javaagent" % "opentelemetry-testing-common" % OpentelemetryAlphaVersion131
   )
