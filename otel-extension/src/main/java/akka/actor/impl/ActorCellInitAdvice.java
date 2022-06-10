@@ -5,6 +5,7 @@ import akka.actor.ClassicActorSystemProvider;
 import io.opentelemetry.api.common.Attributes;
 import io.opentelemetry.instrumentation.api.field.VirtualField;
 import io.scalac.mesmer.core.actor.ActorRefConfiguration;
+import io.scalac.mesmer.otelextension.instrumentations.akka.actor.impl.otel.ActorCellInstrumentationState;
 import net.bytebuddy.asm.Advice;
 
 public class ActorCellInitAdvice {
@@ -22,5 +23,7 @@ public class ActorCellInitAdvice {
 
       VirtualField.find(ActorContext.class, Attributes.class).set(self, attributes);
     }
+    VirtualField.find(ActorContext.class, ActorCellInstrumentationState.class)
+        .set(self, new ActorCellInstrumentationState());
   }
 }

@@ -1,4 +1,5 @@
 package io.scalac.mesmer.otelextension.instrumentations.akka.actor
+
 import io.opentelemetry.javaagent.extension.instrumentation.TypeInstrumentation
 
 import io.scalac.mesmer.agent.Agent
@@ -45,7 +46,7 @@ object AkkaActorAgent
 
     val actorCellReceived: TypeInstrumentation = typeInstrumentation(matchers.named("akka.actor.ActorCell"))(
       matchers.named("receiveMessage"),
-      "akka.actor.impl.ActorCellReceiveMessageAdvice"
+      "akka.actor.impl.ActorCellReceivedAdvice"
     )
 
   }

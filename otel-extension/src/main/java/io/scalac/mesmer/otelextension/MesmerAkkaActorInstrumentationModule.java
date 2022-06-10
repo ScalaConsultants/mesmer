@@ -39,6 +39,9 @@ public class MesmerAkkaActorInstrumentationModule extends InstrumentationModule
         .register("akka.actor.ActorContext", "io.scalac.mesmer.core.actor.ActorCellMetrics")
         .register(
             "akka.actor.ActorContext",
+            "io.scalac.mesmer.otelextension.instrumentations.akka.actor.impl.otel.ActorCellInstrumentationState")
+        .register(
+            "akka.actor.ActorContext",
             "io.opentelemetry.javaagent.shaded.io.opentelemetry.api.common.Attributes")
         .register(
             "akka.actor.ClassicActorSystemProvider",
@@ -86,6 +89,7 @@ public class MesmerAkkaActorInstrumentationModule extends InstrumentationModule
         "io.scalac.mesmer.core.actor.WithSystemActorRefConfigurator",
         "io.scalac.mesmer.otelextension.instrumentations.akka.actor.Instruments",
         "io.scalac.mesmer.otelextension.instrumentations.akka.actor.Instruments$",
+        "io.scalac.mesmer.otelextension.instrumentations.akka.actor.impl.otel.ActorCellInstrumentationState",
         "akka.actor.ProxiedQueue",
         "akka.actor.BoundedQueueProxy");
   }
