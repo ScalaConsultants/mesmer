@@ -30,6 +30,7 @@ public class ZIOInstrumentationModule extends InstrumentationModule
   public List<String> getAdditionalHelperClassNames() {
     return List.of(
         "io.scalac.mesmer.zio.ZioRuntimeJavaAdvice",
+        "io.scalac.mesmer.zio.ZioRuntimeJavaAdvice2",
         "io.scalac.mesmer.zio.ZIOMetricsInstrumenter",
         "io.scalac.mesmer.zio.ZIOMetricsInstrumenter$");
   }
