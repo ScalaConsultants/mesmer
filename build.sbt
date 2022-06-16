@@ -112,12 +112,13 @@ lazy val otelExtension = (project in file("otel-extension"))
         Tests.Group(name = test.name, tests = Seq(test), runPolicy = group.runPolicy)
       }
     },
-    Test / testOnly / testGrouping := (Test / testGrouping).value,
-    IntegrationTest / fork         := true,
+    Test / testOnly / testGrouping      := (Test / testGrouping).value,
+    IntegrationTest / parallelExecution := false,
+    IntegrationTest / fork              := true,
     IntegrationTest / javaOptions ++= Seq(
       s"-javaagent:$projectRootDir/opentelemetry-agent-for-testing-$OpentelemetryAlphaVersion131.jar",
       s"-Dotel.javaagent.extensions=${assembly.value.absolutePath}",
-      "-Dotel.javaagent.debug=true",
+      "-Dotel.javaagent.debug=false",
       "-Dotel.javaagent.testing.fail-on-context-leak=true",
       "-Dotel.javaagent.testing.transform-safe-logging.enabled=true",
       "-Dotel.metrics.exporter=otlp",

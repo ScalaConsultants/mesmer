@@ -44,8 +44,8 @@ public class MesmerAkkaActorInstrumentationModule extends InstrumentationModule
             "akka.actor.ActorContext",
             "io.opentelemetry.javaagent.shaded.io.opentelemetry.api.common.Attributes")
         .register(
-            "akka.actor.ClassicActorSystemProvider",
-            "io.scalac.mesmer.core.actor.ActorRefConfiguration")
+            "akka.actor.ActorSystem",
+            "io.scalac.mesmer.otelextension.instrumentations.akka.actor.Instruments")
         .register(
             "akka.dispatch.BoundedQueueBasedMessageQueue", "java.util.concurrent.BlockingQueue")
         .register("akka.dispatch.AbstractBoundedNodeQueue", "java.lang.Boolean");

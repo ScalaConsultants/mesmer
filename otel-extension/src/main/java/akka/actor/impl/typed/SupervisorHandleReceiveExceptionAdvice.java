@@ -1,6 +1,7 @@
 package akka.actor.impl.typed;
 
 import akka.actor.ActorContext;
+import akka.actor.ActorSystem;
 import io.opentelemetry.api.common.Attributes;
 import io.opentelemetry.instrumentation.api.field.VirtualField;
 import io.scalac.mesmer.otelextension.instrumentations.akka.actor.Instruments;
@@ -24,11 +25,12 @@ public class SupervisorHandleReceiveExceptionAdvice {
     ActorCellInstrumentationState state =
         VirtualField.find(ActorContext.class, ActorCellInstrumentationState.class).get(self);
     Attributes attributes = VirtualField.find(ActorContext.class, Attributes.class).get(self);
+    Instruments instruments =
+        VirtualField.find(ActorSystem.class, Instruments.class).get(self.system());
 
-    if (Objects.nonNull(state) && Objects.nonNull(attributes)) {
-
+    if (Objects.nonNull(instruments) && Objects.nonNull(state) && Objects.nonNull(attributes)) {
       state.setFailed();
-      Instruments.failedMessages().add(1, attributes);
+      instruments.failedMessages().add(1, attributes);
     } else {
       // this should never happen
       self.system().log().warning("Couldn't find mesmer actor cell state inside ActorCell");
