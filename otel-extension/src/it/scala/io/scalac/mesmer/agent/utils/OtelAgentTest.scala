@@ -79,8 +79,6 @@ trait OtelAgentTest extends TestSuite with BeforeAndAfterAll with Eventually wit
       case (boundary, index) if boundary >= highestBoundary => index
     }.getOrElse(point.getBoundaries.size() - 1)
 
-    println((lowestIndex to highestIndex).map(point.getBoundaries.asScala).mkString(", "))
-
     (lowestIndex to highestIndex).flatMap(point.getCounts.asScala.lift).map(_.longValue()).sum
 
   }

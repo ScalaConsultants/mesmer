@@ -88,7 +88,6 @@ public class MesmerAkkaActorInstrumentationModule extends InstrumentationModule
         "io.scalac.mesmer.core.actor.DefaultActorRefConfiguration$",
         "io.scalac.mesmer.core.actor.WithSystemActorRefConfigurator",
         "io.scalac.mesmer.otelextension.instrumentations.akka.actor.Instruments",
-        "io.scalac.mesmer.otelextension.instrumentations.akka.actor.Instruments$",
         "io.scalac.mesmer.otelextension.instrumentations.akka.actor.impl.otel.ActorCellInstrumentationState",
         "akka.actor.ProxiedQueue",
         "akka.actor.BoundedQueueProxy");

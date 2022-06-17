@@ -18,14 +18,12 @@ public class ClassicActorSystemProviderAdvice {
     Instruments instruments =
         VirtualField.find(ActorSystem.class, Instruments.class).get(provider.classicSystem());
     if (Objects.isNull(instruments)) {
-      System.out.println("Setting up instruments ");
       Instruments concreteInstruments =
           new Instruments(
               new WithSystemActorRefConfigurator(provider, DefaultActorRefConfiguration.self()),
               GlobalOpenTelemetry.getMeterProvider());
       VirtualField.find(ActorSystem.class, Instruments.class)
           .set(provider.classicSystem(), concreteInstruments);
-      concreteInstruments.printVF();
     }
   }
 }

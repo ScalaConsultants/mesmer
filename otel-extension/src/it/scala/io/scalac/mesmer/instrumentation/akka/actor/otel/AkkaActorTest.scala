@@ -7,7 +7,7 @@ import akka.actor.typed.{ ActorRef, Behavior, SupervisorStrategy }
 import akka.actor.{ PoisonPill, Props }
 import akka.{ actor => classic }
 import io.opentelemetry.api.common.AttributeKey
-import io.opentelemetry.sdk.metrics.data.{ MetricDataType, PointData }
+import io.opentelemetry.sdk.metrics.data.MetricDataType
 import io.scalac.mesmer.agent.utils.{ OtelAgentTest, SafeLoadSystem }
 import io.scalac.mesmer.core.actor.{ ActorCellDecorator, ActorCellMetrics }
 import io.scalac.mesmer.core.akka.model.AttributeNames
@@ -15,11 +15,10 @@ import io.scalac.mesmer.core.event.ActorEvent
 import io.scalac.mesmer.core.util.MetricsToolKit.Counter
 import io.scalac.mesmer.core.util.ReceptionistOps
 import org.scalatest.concurrent.Eventually
-import org.scalatest.flatspec.{ AnyFlatSpec, AnyFlatSpecLike }
+import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
-import org.scalatest.{ BeforeAndAfterEach, OptionValues }
+import org.scalatest.{ BeforeAndAfterEach, Inspectors, OptionValues }
 
-import java.util
 import scala.concurrent.duration._
 import scala.jdk.CollectionConverters._
 import scala.util.control.NoStackTrace
@@ -32,11 +31,13 @@ final class AkkaActorTest
     with Eventually
     with Matchers
     with SafeLoadSystem
-    with BeforeAndAfterEach {
+    with BeforeAndAfterEach
+    with Inspectors {
+
+  private val Tolerance: Double = scaled(25.millis).toMillis.toDouble
 
   override protected def beforeEach() {
     super.beforeEach()
-    println("Before AkkaActorTest")
   }
 
   import AkkaActorAgentTest._
@@ -157,8 +158,10 @@ final class AkkaActorTest
             )
 
           points.map(_.getCount) should contain(3L)
-
-          points.map(getBoundaryCountsWithToleration(_, expectedValue.toDouble)) should contain(workingMessages)
+          points.map(getBoundaryCountsWithToleration(_, expectedValue.toDouble, Tolerance)) should contain(
+            workingMessages
+          )
+          forAtLeast(1, points.map(_.getSum))(_ should be(200.0 +- Tolerance))
 
       }
 
