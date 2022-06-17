@@ -18,4 +18,10 @@ final class Instruments(val config: ActorRefConfiguration, provider: MeterProvid
     .histogramBuilder("mesmer_akka_processing_time")
     .ofLongs()
     .build()
+
+  lazy val mailboxTime: LongHistogram = provider
+    .get("mesmer")
+    .histogramBuilder("mesmer_akka_mailbox_time")
+    .ofLongs()
+    .build()
 }

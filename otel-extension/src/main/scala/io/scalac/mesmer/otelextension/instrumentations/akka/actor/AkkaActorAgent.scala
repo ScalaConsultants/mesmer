@@ -49,6 +49,16 @@ object AkkaActorAgent
       "akka.actor.impl.ActorCellReceivedAdvice"
     )
 
+    val dispatchSendMessage: TypeInstrumentation = typeInstrumentation(matchers.named("akka.actor.dungeon.Dispatch"))(
+      matchers.named("sendMessage").and(matchers.takesArgument(0, matchers.named("akka.dispatch.Envelope"))),
+      "akka.actor.impl.DispatchSendMessageAdvice"
+    )
+
+    val mailboxDequeue: TypeInstrumentation = typeInstrumentation(matchers.named("akka.dispatch.Mailbox"))(
+      matchers.named("dequeue"),
+      "akka.actor.impl.MailboxDequeueAdvice"
+    )
+
   }
   import io.scalac.mesmer.agent.util.i13n._
 

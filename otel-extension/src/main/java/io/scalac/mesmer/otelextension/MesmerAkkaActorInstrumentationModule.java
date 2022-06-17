@@ -24,6 +24,8 @@ public class MesmerAkkaActorInstrumentationModule extends InstrumentationModule
     return Arrays.asList(
         AkkaActorAgent.otel$.MODULE$.actorSystemConfig(),
         AkkaActorAgent.otel$.MODULE$.actorCellInit(),
+        AkkaActorAgent.otel$.MODULE$.dispatchSendMessage(),
+        AkkaActorAgent.otel$.MODULE$.mailboxDequeue(),
         AkkaActorAgent.otel$.MODULE$.actorCellReceived());
   }
 
@@ -36,6 +38,9 @@ public class MesmerAkkaActorInstrumentationModule extends InstrumentationModule
   public void registerMuzzleVirtualFields(VirtualFieldMappingsBuilder builder) {
     builder
         .register("akka.dispatch.Envelope", "io.scalac.mesmer.core.util.Timestamp")
+        .register(
+            "akka.dispatch.Envelope",
+            "io.scalac.mesmer.otelextension.instrumentations.akka.actor.util.EnvelopeContext")
         .register("akka.actor.ActorContext", "io.scalac.mesmer.core.actor.ActorCellMetrics")
         .register(
             "akka.actor.ActorContext",
@@ -88,6 +93,8 @@ public class MesmerAkkaActorInstrumentationModule extends InstrumentationModule
         "io.scalac.mesmer.core.actor.DefaultActorRefConfiguration$",
         "io.scalac.mesmer.core.actor.WithSystemActorRefConfigurator",
         "io.scalac.mesmer.otelextension.instrumentations.akka.actor.Instruments",
+        "io.scalac.mesmer.otelextension.instrumentations.akka.actor.util.EnvelopeContext",
+        "io.scalac.mesmer.otelextension.instrumentations.akka.actor.util.EnvelopeContext$",
         "io.scalac.mesmer.otelextension.instrumentations.akka.actor.impl.otel.ActorCellInstrumentationState",
         "akka.actor.ProxiedQueue",
         "akka.actor.BoundedQueueProxy");

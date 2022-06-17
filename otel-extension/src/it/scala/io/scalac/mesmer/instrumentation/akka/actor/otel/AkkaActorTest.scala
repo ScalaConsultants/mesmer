@@ -118,19 +118,33 @@ final class AkkaActorTest
     val idle            = 100.milliseconds
     val messages        = 3
     val waitingMessages = messages - 1
+    val expectedValue   = idle.toMillis.toDouble
 
-    val check: classic.ActorContext => Any = ctx => {
+    val check: classic.ActorContext => Any = ctx =>
+      assertMetrics("mesmer_akka_mailbox_time") {
+        case data if data.getType == MetricDataType.HISTOGRAM =>
+          val points = data.getHistogramData.getPoints.asScala
+            .filter(point =>
+              Option(point.getAttributes.get(AttributeKey.stringKey(AttributeNames.ActorPath)))
+                .contains(ctx.self.path.toStringWithoutAddress)
+            )
 
-      val metrics = (for {
-        cellMetrics <- ActorCellDecorator.getMetrics(ctx) if cellMetrics.mailboxTimeAgg.isDefined
-        agg         <- cellMetrics.mailboxTimeAgg.get.metrics
-      } yield agg).value
+          points.map(_.getCount) should contain(3L)
+          points.map(getBoundaryCountsWithToleration(_, expectedValue, Tolerance)) should contain(
+            waitingMessages
+          )
+          forAtLeast(1, points.map(_.getSum))(_ should be(200.0 +- Tolerance))
 
-      metrics.count should be(messages)
-      metrics.sum should be((waitingMessages * idle.toNanos) +- ToleranceNanos)
-      metrics.min should be(0L +- ToleranceNanos)
-      metrics.max should be(idle.toNanos +- ToleranceNanos)
-    }
+      }
+//      val metrics = (for {
+//        cellMetrics <- ActorCellDecorator.getMetrics(ctx) if cellMetrics.mailboxTimeAgg.isDefined
+//        agg         <- cellMetrics.mailboxTimeAgg.get.metrics
+//      } yield agg).value
+//
+//      metrics.count should be(messages)
+//      metrics.sum should be((waitingMessages * idle.toNanos) +- ToleranceNanos)
+//      metrics.min should be(0L +- ToleranceNanos)
+//      metrics.max should be(idle.toNanos +- ToleranceNanos)
 
     testEffect[String] {
       case "idle" =>
@@ -172,6 +186,7 @@ final class AkkaActorTest
     }("", "work", "work")(messages -> check)
   }
 
+  // TODO migrate to otel
   it should "record stash operation from actors beginning" in {
     val stashActor      = system.classicSystem.actorOf(ClassicStashActor.props(), createUniqueId)
     val inspectionProbe = createTestProbe[StashSize]
@@ -197,6 +212,8 @@ final class AkkaActorTest
     expectStashSize(StashMessageCount * 3)
   }
 
+  // TODO migrate to otel
+
   it should "return no stash data for actors without stash" in {
     val sut             = system.classicSystem.actorOf(ClassicNoStashActor.props, createUniqueId)
     val inspectionProbe = createTestProbe[StashSize]
@@ -207,6 +224,7 @@ final class AkkaActorTest
     inspectionProbe.expectMessage(StashSize(None))
   }
 
+  // TODO migrate to otel
   it should "record stash operation from actors beginning for typed actors" in {
     val stashActor      = system.systemActorOf(TypedStash(StashMessageCount * 4), "typedStashActor")
     val inspectionProbe = createTestProbe[StashSize]
@@ -232,6 +250,7 @@ final class AkkaActorTest
     expectStashSize(StashMessageCount * 3)
   }
 
+  // TODO migrate to otel
   it should "record the amount of received messages" in {
     testWithoutEffect[Unit]((), (), ())(
       (0, check(_.receivedMessages)(_.get.get() should be(0))),
@@ -241,6 +260,7 @@ final class AkkaActorTest
     )
   }
 
+  // TODO migrate to otel
   it should "record the amount of failed messages without supervision" in {
 
     testEffect[String](
@@ -259,6 +279,7 @@ final class AkkaActorTest
     )
   }
 
+  // TODO migrate to otel
   it should "record the amount of failed messages with supervision" in {
 
     def testForStrategy(strategy: SupervisorStrategy): Any =
@@ -282,6 +303,7 @@ final class AkkaActorTest
     testForStrategy(SupervisorStrategy.stop)
   }
 
+  // TODO migrate to otel
   it should "record the amount of unhandled messages" in {
 
     testBehavior[String] {
@@ -297,6 +319,7 @@ final class AkkaActorTest
 
   }
 
+  // TODO migrate to otel
   it should "record the amount of sent messages properly in classic akka" in {
 
     var senderContext: Option[classic.ActorContext] = None
@@ -333,6 +356,7 @@ final class AkkaActorTest
     receiver ! PoisonPill
   }
 
+  // TODO migrate to otel
   it should "record the amount of sent messages properly in typed akka" in {
 
     testWithChecks(

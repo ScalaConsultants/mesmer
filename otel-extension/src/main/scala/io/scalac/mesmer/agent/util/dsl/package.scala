@@ -21,14 +21,18 @@ package object dsl {
     /*
       Maket ElementMacher type cast with variance?
      */
-    def named[T >: Nothing0 <: NamedElement](name: String): ElementMatcher[T] = ElementMatchers.named[T](name)
+    def named[T >: Nothing0 <: NamedElement](name: String): ElementMatcher.Junction[T] = ElementMatchers.named[T](name)
 
     def hasSuperType[T >: Nothing0 <: TypeDescription](
       matcher: ElementMatcher[_ >: TypeDescription]
-    ): ElementMatcher[T] =
+    ): ElementMatcher.Junction[T] =
       ElementMatchers.hasSuperType(matcher)
 
-    def isConstructor[T >: Nothing0 <: MethodDescription]: ElementMatcher[T] = ElementMatchers.isConstructor[T]
+    def isConstructor[T >: Nothing0 <: MethodDescription]: ElementMatcher.Junction[T] = ElementMatchers.isConstructor[T]
+    def takesArgument[T >: Nothing0 <: MethodDescription, E >: TypeDescription](
+      pos: Int,
+      typeDesc: ElementMatcher[E]
+    ): ElementMatcher.Junction[T] = ElementMatchers.takesArgument[T](pos, typeDesc)
   }
 
   /**
