@@ -9,6 +9,7 @@ public class ZioRuntimeJavaAdvice2 {
   public static <R> Runtime<R> apply(@Advice.Return(readOnly = false) Runtime<R> newRuntime) {
     ZIOMetricsInstrumenter.registerExecutionMetrics(newRuntime);
     ZIOMetricsInstrumenter.setFiberSupervisor(newRuntime);
+    ZIOMetricsInstrumenter.superviseLikeZMXDoes(newRuntime);
     return newRuntime;
   }
 }

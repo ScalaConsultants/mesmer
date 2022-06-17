@@ -1,6 +1,7 @@
 package io.scalac.mesmer.zio
 
 import io.opentelemetry.api.GlobalOpenTelemetry
+import io.opentelemetry.api.metrics.Meter
 import io.opentelemetry.api.metrics.ObservableLongGauge
 import zio._
 
@@ -8,7 +9,7 @@ object ZIOMetricsInstrumenter {
 
   val meterName = "mesmer"
 
-  val meter = GlobalOpenTelemetry
+  val meter: Meter = GlobalOpenTelemetry
     .getMeter(meterName)
 
   def trackZIOFiberCount[R, E, A](zio: ZIO[R, E, A]): ZIO[R, E, A] = {
@@ -21,6 +22,18 @@ object ZIOMetricsInstrumenter {
       appResult <- supervisedEffect.join
     } yield appResult
   }
+
+  def superviseLikeZMXDoes[R](newRuntime: zio.Runtime[R]): Unit =
+    meter
+      .gaugeBuilder("mesmer.zio.fiber-count")
+      .ofLongs()
+      .buildWithCallback { measurement =>
+        val c = for {
+          fibers <- diagnostics.ZMXSupervisor.value
+        } yield fibers.size
+        val countOfFibers = newRuntime.unsafeRun(c)
+        measurement.record(countOfFibers)
+      }
 
   def registerFiberCountGauge[R, E, A](
     supervisor: Supervisor[Chunk[Fiber.Runtime[_, _]]],
@@ -55,7 +68,7 @@ object ZIOMetricsInstrumenter {
     registerOtelGauge(zioMetricName("dequeued_count"), maybeMetrics.map(_.dequeuedCount))
   }
 
-  def registerOtelGauge(name: String, metricAccessor: => Option[Long]) =
+  def registerOtelGauge(name: String, metricAccessor: => Option[Long]): ObservableLongGauge =
     meter
       .gaugeBuilder(name)
       .ofLongs()
