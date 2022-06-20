@@ -28,11 +28,21 @@ package object dsl {
     ): ElementMatcher.Junction[T] =
       ElementMatchers.hasSuperType(matcher)
 
+    def declaresMethod[T >: Nothing0 <: TypeDescription](
+      method: ElementMatcher[_ >: MethodDescription]
+    ): ElementMatcher.Junction[T] =
+      ElementMatchers.declaresMethod[T](method)
+
+    def isOverriddenFrom[T >: Nothing0 <: MethodDescription](
+      base: ElementMatcher[_ >: TypeDescription]
+    ): ElementMatcher.Junction[T] = ElementMatchers.isOverriddenFrom[T](base)
+
     def isConstructor[T >: Nothing0 <: MethodDescription]: ElementMatcher.Junction[T] = ElementMatchers.isConstructor[T]
-    def takesArgument[T >: Nothing0 <: MethodDescription, E >: TypeDescription](
+    def takesArgument[T >: Nothing0 <: MethodDescription](
       pos: Int,
-      typeDesc: ElementMatcher[E]
+      typeDesc: ElementMatcher[_ >: TypeDescription]
     ): ElementMatcher.Junction[T] = ElementMatchers.takesArgument[T](pos, typeDesc)
+
   }
 
   /**

@@ -59,6 +59,46 @@ object AkkaActorAgent
       "akka.actor.impl.MailboxDequeueAdvice"
     )
 
+    val classicStashSupportStashAdvice: TypeInstrumentation =
+      typeInstrumentation(matchers.named("akka.actor.StashSupport"))(
+        matchers.named("stash"),
+        "akka.actor.impl.StashSupportStashAdvice"
+      )
+
+    val classicStashSupportPrependAdvice: TypeInstrumentation =
+      typeInstrumentation(matchers.named("akka.actor.StashSupport"))(
+        matchers.named("prepend"),
+        "akka.actor.impl.StashSupportPrependAdvice"
+      )
+
+    val typedStashBufferAdvice: TypeInstrumentation =
+      typeInstrumentation(
+        matchers
+          .hasSuperType(matchers.named("akka.actor.typed.internal.StashBufferImpl"))
+      )(
+        matchers.named("stash"),
+        "akka.actor.impl.typed.StashBufferImplStashAdvice"
+      )
+
+    val typedAbstractSupervisorHandleReceiveExceptionAdvice: TypeInstrumentation =
+      typeInstrumentation(
+        matchers
+          .hasSuperType(
+            matchers
+              .named("akka.actor.typed.internal.AbstractSupervisor")
+          )
+          .and(
+            matchers.declaresMethod(
+              matchers
+                .named("handleReceiveException")
+                .and(matchers.isOverriddenFrom(matchers.named("akka.actor.typed.internal.AbstractSupervisor")))
+            )
+          )
+      )(
+        matchers.named("handleReceiveException"),
+        "akka.actor.impl.typed.SupervisorHandleReceiveExceptionAdvice"
+      )
+
   }
   import io.scalac.mesmer.agent.util.i13n._
 

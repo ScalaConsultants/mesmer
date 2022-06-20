@@ -1,7 +1,8 @@
 package io.scalac.mesmer.agent.utils
 
 import io.opentelemetry.instrumentation.testing.AgentTestRunner
-import io.opentelemetry.sdk.metrics.data.{ Data, HistogramPointData, MetricData, MetricDataType }
+import io.opentelemetry.sdk.metrics.data.{ HistogramPointData, MetricData }
+import io.opentelemetry.sdk.metrics.internal.aggregator.EmptyMetricData
 import org.scalatest.concurrent.Eventually
 import org.scalatest.{ BeforeAndAfterAll, BeforeAndAfterEach, OptionValues, TestSuite }
 
@@ -21,9 +22,9 @@ trait OtelAgentTest extends TestSuite with BeforeAndAfterAll with Eventually wit
     testRunner.clearAllExportedData()
   }
 
-  protected def assertMetrics(metricName: String)(
+  protected def assertMetrics(metricName: String, successOnEmpty: Boolean = false)(
     testFunction: PartialFunction[MetricData, Unit]
-  ): Unit = assertMetrics("mesmer", metricName)(testFunction)
+  ): Unit = assertMetrics("mesmer", metricName, successOnEmpty)(testFunction)
 
   /**
    * @param instrumentationName
@@ -35,7 +36,7 @@ trait OtelAgentTest extends TestSuite with BeforeAndAfterAll with Eventually wit
    *   of test duration. It should return normally only when data pass the tests
    *   - usage of matchers inside is expected!
    */
-  protected def assertMetrics(instrumentationName: String, metricName: String)(
+  protected def assertMetrics(instrumentationName: String, metricName: String, successOnEmpty: Boolean)(
     testFunction: PartialFunction[MetricData, Unit]
   ): Unit =
     eventually {
@@ -48,7 +49,7 @@ trait OtelAgentTest extends TestSuite with BeforeAndAfterAll with Eventually wit
 
       if (!result.exists(_.isSuccess)) {
         result.lastOption
-          .fold(fail("No data matching found"))(
+          .fold(if (!successOnEmpty) fail("No matching data point found"))(
             _.failed.foreach(ex => throw ex)
           ) // last series found is presented as an error
       }

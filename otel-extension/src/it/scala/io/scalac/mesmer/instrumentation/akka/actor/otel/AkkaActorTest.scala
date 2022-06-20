@@ -12,7 +12,6 @@ import io.scalac.mesmer.agent.utils.{ OtelAgentTest, SafeLoadSystem }
 import io.scalac.mesmer.core.actor.{ ActorCellDecorator, ActorCellMetrics }
 import io.scalac.mesmer.core.akka.model.AttributeNames
 import io.scalac.mesmer.core.event.ActorEvent
-import io.scalac.mesmer.core.util.MetricsToolKit.Counter
 import io.scalac.mesmer.core.util.ReceptionistOps
 import org.scalatest.concurrent.Eventually
 import org.scalatest.flatspec.AnyFlatSpec
@@ -186,7 +185,6 @@ final class AkkaActorTest
     }("", "work", "work")(messages -> check)
   }
 
-  // TODO migrate to otel
   it should "record stash operation from actors beginning" in {
     val stashActor      = system.classicSystem.actorOf(ClassicStashActor.props(), createUniqueId)
     val inspectionProbe = createTestProbe[StashSize]
@@ -194,10 +192,17 @@ final class AkkaActorTest
     def sendMessage(count: Int): Unit =
       List.fill(count)(Message).foreach(m => stashActor ! m)
 
-    def expectStashSize(size: Int): Unit = {
-      stashActor ! Inspect(inspectionProbe.ref.toClassic)
-      inspectionProbe.expectMessage(StashSize(Some(size)))
-    }
+    def expectStashSize(size: Int): Unit =
+      assertMetrics("mesmer_akka_stashed_total") {
+        case data if data.getType == MetricDataType.LONG_SUM =>
+          val points = data.getLongSumData.getPoints.asScala
+            .filter(point =>
+              Option(point.getAttributes.get(AttributeKey.stringKey(AttributeNames.ActorPath)))
+                .contains(stashActor.path.toStringWithoutAddress)
+            )
+            .toVector
+          points.map(_.getValue) should contain(size)
+      }
 
     sendMessage(StashMessageCount)
     expectStashSize(StashMessageCount)
@@ -212,19 +217,6 @@ final class AkkaActorTest
     expectStashSize(StashMessageCount * 3)
   }
 
-  // TODO migrate to otel
-
-  it should "return no stash data for actors without stash" in {
-    val sut             = system.classicSystem.actorOf(ClassicNoStashActor.props, createUniqueId)
-    val inspectionProbe = createTestProbe[StashSize]
-
-    List.fill(StashMessageCount)(Message).foreach(m => sut ! m)
-
-    sut ! Inspect(inspectionProbe.ref.toClassic)
-    inspectionProbe.expectMessage(StashSize(None))
-  }
-
-  // TODO migrate to otel
   it should "record stash operation from actors beginning for typed actors" in {
     val stashActor      = system.systemActorOf(TypedStash(StashMessageCount * 4), "typedStashActor")
     val inspectionProbe = createTestProbe[StashSize]
@@ -232,10 +224,17 @@ final class AkkaActorTest
     def sendMessage(count: Int): Unit =
       List.fill(count)(Message).foreach(stashActor.tell)
 
-    def expectStashSize(number: Int): Unit = {
-      stashActor ! Inspect(inspectionProbe.ref.toClassic)
-      inspectionProbe.expectMessage(StashSize(Some(number)))
-    }
+    def expectStashSize(size: Int): Unit =
+      assertMetrics("mesmer_akka_stashed_total") {
+        case data if data.getType == MetricDataType.LONG_SUM =>
+          val points = data.getLongSumData.getPoints.asScala
+            .filter(point =>
+              Option(point.getAttributes.get(AttributeKey.stringKey(AttributeNames.ActorPath)))
+                .contains(stashActor.path.toStringWithoutAddress)
+            )
+            .toVector
+          points.map(_.getValue) should contain(size)
+      }
 
     sendMessage(StashMessageCount)
     expectStashSize(StashMessageCount)
@@ -250,8 +249,8 @@ final class AkkaActorTest
     expectStashSize(StashMessageCount * 3)
   }
 
-  // TODO migrate to otel
-  it should "record the amount of received messages" in {
+  // TODO I don't see why we should support received messages anymore - this is the same information as processed messages
+  it should "record the amount of received messages" ignore {
     testWithoutEffect[Unit]((), (), ())(
       (0, check(_.receivedMessages)(_.get.get() should be(0))),
       (1, check(_.receivedMessages)(_.get.get() should be(1))),
@@ -260,8 +259,19 @@ final class AkkaActorTest
     )
   }
 
-  // TODO migrate to otel
   it should "record the amount of failed messages without supervision" in {
+
+    def expect(assert: Vector[Long] => Any)(context: classic.ActorContext): Any =
+      assertMetrics("mesmer_akka_failed_total", successOnEmpty = true) {
+        case data if data.getType == MetricDataType.LONG_SUM =>
+          val points = data.getLongSumData.getPoints.asScala
+            .filter(point =>
+              Option(point.getAttributes.get(AttributeKey.stringKey(AttributeNames.ActorPath)))
+                .contains(context.self.path.toStringWithoutAddress)
+            )
+            .toVector
+          assert(points.map(_.getValue))
+      }
 
     testEffect[String](
       {
@@ -270,17 +280,28 @@ final class AkkaActorTest
       },
       false
     )("fail", "", "fail")(
-      (0, check(_.failedMessages)(_.get.get() should be(0))),
-      (1, check(_.failedMessages)(_.get.get() should be(1))),
-      (0, check(_.failedMessages)(_.get.get() should be(1))),
-      (1, check(_.failedMessages)(_.get.get() should be(1))),
+      (0, expect(_ should be(empty))),
+      (1, expect(_ should contain(1L))),
+      (0, expect(_ should contain(1L))),
+      (1, expect(_ should contain(1L))),
       // why zero? because akka suspend any further message processing after an unsupervisioned failure
-      (1, check(_.failedMessages)(_.get.get() should be(1)))
+      (1, expect(_ should contain(1L)))
     )
   }
 
-  // TODO migrate to otel
   it should "record the amount of failed messages with supervision" in {
+
+    def expect(assert: Vector[Long] => Any)(context: classic.ActorContext): Any =
+      assertMetrics("mesmer_akka_failed_total", successOnEmpty = true) {
+        case data if data.getType == MetricDataType.LONG_SUM =>
+          val points = data.getLongSumData.getPoints.asScala
+            .filter(point =>
+              Option(point.getAttributes.get(AttributeKey.stringKey(AttributeNames.ActorPath)))
+                .contains(context.self.path.toStringWithoutAddress)
+            )
+            .toVector
+          assert(points.map(_.getValue))
+      }
 
     def testForStrategy(strategy: SupervisorStrategy): Any =
       testEffectWithSupervision[String](
@@ -291,11 +312,11 @@ final class AkkaActorTest
         strategy,
         probes = false
       )("fail", "", "fail", "fail")(
-        (0, check(_.failedMessages)(_.get.get() should be(0))),
-        (1, check(_.failedMessages)(_.get.get() should be(1))),
-        (0, check(_.failedMessages)(_.get.get() should be(1))),
-        (1, check(_.failedMessages)(_.get.get() should be(1))),
-        (2, check(_.failedMessages)(_.get.get() should be(if (strategy != SupervisorStrategy.stop) 3 else 1)))
+        (0, expect(_ should be(empty))),
+        (1, expect(_ should contain(1L))),
+        (0, expect(_ should contain(1L))),
+        (1, expect(_ should contain(1L))),
+        (2, expect(_ should contain(if (strategy != SupervisorStrategy.stop) 3 else 1)))
       )
 
     testForStrategy(SupervisorStrategy.restart)
@@ -305,6 +326,8 @@ final class AkkaActorTest
 
   // TODO migrate to otel
   it should "record the amount of unhandled messages" in {
+
+    def expectMetrics(): Any = {}
 
     testBehavior[String] {
       case "unhandled" => Behaviors.unhandled
@@ -319,12 +342,9 @@ final class AkkaActorTest
 
   }
 
-  // TODO migrate to otel
   it should "record the amount of sent messages properly in classic akka" in {
 
-    var senderContext: Option[classic.ActorContext] = None
     class Sender(receiver: classic.ActorRef) extends classic.Actor {
-      senderContext = Some(context)
       def receive: Receive = { case "forward" =>
         receiver ! "forwarded"
       }
@@ -340,24 +360,42 @@ final class AkkaActorTest
     val receiver      = classicSystem.actorOf(classic.Props(new Receiver), createUniqueId)
     val sender        = system.classicSystem.actorOf(classic.Props(new Sender(receiver)), createUniqueId)
 
-    val sent = createCounterChecker(senderContext.get, _.sentMessages.get)
+    def expectedSendMessages(num: Int): Any = assertMetrics("mesmer_akka_sent_total") {
+      case data if data.getType == MetricDataType.LONG_SUM =>
+        val points = data.getLongSumData.getPoints.asScala
+          .filter(point =>
+            Option(point.getAttributes.get(AttributeKey.stringKey(AttributeNames.ActorPath)))
+              .contains(sender.path.toStringWithoutAddress)
+          )
+          .toVector
+        points.map(_.getValue) should contain(num)
+    }
 
     sender ! "forward"
-    sent(1)
-    sent(0)
+    expectedSendMessages(1)
+    expectedSendMessages(1)
     sender ! "something else"
-    sent(0)
+    expectedSendMessages(1)
     sender ! "forward"
     sender ! "forward"
-    sent(2)
-    sent(0)
+    expectedSendMessages(3)
 
     sender ! PoisonPill
     receiver ! PoisonPill
   }
 
-  // TODO migrate to otel
   it should "record the amount of sent messages properly in typed akka" in {
+
+    def expectedEmpty(context: classic.ActorContext): Any = assertMetrics("mesmer_akka_sent_total") {
+      case data if data.getType == MetricDataType.LONG_SUM =>
+        val points = data.getLongSumData.getPoints.asScala
+          .filter(point =>
+            Option(point.getAttributes.get(AttributeKey.stringKey(AttributeNames.ActorPath)))
+              .contains(context.self.path.toStringWithoutAddress)
+          )
+          .toVector
+        points.map(_.getValue) should be(empty)
+    }
 
     testWithChecks(
       _ =>
@@ -373,26 +411,12 @@ final class AkkaActorTest
         },
       false
     )("forward", "", "forward", "forward")(
-      (0, check(_.sentMessages)(_.get.get() should be(0))),
-      (1, check(_.sentMessages)(_.get.get() should be(0))),
-      (0, check(_.sentMessages)(_.get.get() should be(0))),
-      (2, check(_.sentMessages)(_.get.get() should be(0)))
+      (0, expectedEmpty),
+      (1, expectedEmpty),
+      (0, expectedEmpty),
+      (2, expectedEmpty)
     )
 
-  }
-
-  private def createCounterChecker[T](
-    ctx: => classic.ActorContext,
-    metricProvider: ActorCellMetrics => Counter
-  ): Long => Unit = {
-    val metric = eventually {
-      metricProvider(ActorCellDecorator.getMetrics(ctx).value)
-    }
-    test =>
-      eventually {
-        metric.get() should be(test)
-      }
-      metric.reset()
   }
 
 }
@@ -402,27 +426,16 @@ object AkkaActorAgentTest {
   type Fixture = TestProbe[ActorEvent]
 
   sealed trait Command
-  final case object Open                              extends Command
-  final case object Close                             extends Command
-  final case object Message                           extends Command
-  final case class Inspect(replyTo: classic.ActorRef) extends Command
+  final case object Open    extends Command
+  final case object Close   extends Command
+  final case object Message extends Command
   // replies
   final case class StashSize(stash: Option[Long])
-
-  trait Inspectable {
-
-    protected def inspectStashSize(ref: classic.ActorRef, ctx: classic.ActorContext): Unit = {
-      val size = for {
-        cellMetrics <- ActorCellDecorator.getMetrics(ctx) if cellMetrics.stashedMessages.isDefined
-      } yield cellMetrics.stashedMessages.get.get()
-      ref ! StashSize(size)
-    }
-  }
 
   object ClassicStashActor {
     def props(): Props = Props(new ClassicStashActor)
   }
-  class ClassicStashActor extends classic.Actor with classic.Stash with classic.ActorLogging with Inspectable {
+  class ClassicStashActor extends classic.Actor with classic.Stash with classic.ActorLogging {
     def receive: Receive = closed
 
     private val closed: Receive = {
@@ -432,15 +445,11 @@ object AkkaActorAgentTest {
           .become(opened)
       case Message =>
         stash()
-      case Inspect(ref) =>
-        inspectStashSize(ref, context)
     }
 
     private val opened: Receive = {
       case Close =>
         context.become(closed)
-      case Inspect(ref) =>
-        inspectStashSize(ref, context)
       case other => log.debug("Got message {}", other)
     }
   }
@@ -449,11 +458,9 @@ object AkkaActorAgentTest {
     def props: Props = Props(new ClassicNoStashActor)
   }
 
-  class ClassicNoStashActor extends classic.Actor with classic.ActorLogging with Inspectable {
-    def receive: Receive = {
-      case Inspect(ref) => inspectStashSize(ref, context)
-      case message =>
-        log.debug("Received message {}", message)
+  class ClassicNoStashActor extends classic.Actor with classic.ActorLogging {
+    def receive: Receive = { case message =>
+      log.debug("Received message {}", message)
     }
   }
 
@@ -462,7 +469,7 @@ object AkkaActorAgentTest {
       Behaviors.setup(ctx => Behaviors.withStash(capacity)(buffer => new TypedStash(ctx, buffer).closed()))
   }
 
-  class TypedStash(ctx: ActorContext[Command], buffer: StashBuffer[Command]) extends Inspectable {
+  class TypedStash(ctx: ActorContext[Command], buffer: StashBuffer[Command]) {
     private def closed(): Behavior[Command] =
       Behaviors.receiveMessagePartial {
         case Open =>
@@ -470,18 +477,12 @@ object AkkaActorAgentTest {
         case m @ Message =>
           buffer.stash(m)
           Behaviors.same
-        case Inspect(ref) =>
-          inspectStashSize(ref, ctx.toClassic)
-          Behaviors.same
       }
     private def open(): Behavior[Command] =
       Behaviors.receiveMessagePartial {
         case Close =>
           closed()
         case Message =>
-          Behaviors.same
-        case Inspect(ref) =>
-          inspectStashSize(ref, ctx.toClassic)
           Behaviors.same
       }
 

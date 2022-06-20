@@ -2,6 +2,7 @@ package akka.actor.impl.typed;
 
 import akka.actor.ActorContext;
 import akka.actor.ActorSystem;
+import akka.actor.typed.TypedActorContext;
 import io.opentelemetry.api.common.Attributes;
 import io.opentelemetry.instrumentation.api.field.VirtualField;
 import io.scalac.mesmer.otelextension.instrumentations.akka.actor.Instruments;
@@ -21,19 +22,25 @@ public class SupervisorHandleReceiveExceptionAdvice {
    * cases.
    */
   @Advice.OnMethodExit(onThrowable = Throwable.class)
-  public static void enter(@Advice.This ActorContext self) {
+  public static void exit(@Advice.Argument(0) TypedActorContext<?> typedContext) {
+    ActorContext classicContext = typedContext.asScala().classicActorContext();
     ActorCellInstrumentationState state =
-        VirtualField.find(ActorContext.class, ActorCellInstrumentationState.class).get(self);
-    Attributes attributes = VirtualField.find(ActorContext.class, Attributes.class).get(self);
+        VirtualField.find(ActorContext.class, ActorCellInstrumentationState.class)
+            .get(classicContext);
+    Attributes attributes =
+        VirtualField.find(ActorContext.class, Attributes.class).get(classicContext);
     Instruments instruments =
-        VirtualField.find(ActorSystem.class, Instruments.class).get(self.system());
+        VirtualField.find(ActorSystem.class, Instruments.class).get(classicContext.system());
 
     if (Objects.nonNull(instruments) && Objects.nonNull(state) && Objects.nonNull(attributes)) {
       state.setFailed();
-      instruments.failedMessages().add(1, attributes);
+      instruments.failedMessages().add(1L, attributes);
     } else {
       // this should never happen
-      self.system().log().warning("Couldn't find mesmer actor cell state inside ActorCell");
+      classicContext
+          .system()
+          .log()
+          .warning("Couldn't find mesmer actor cell state inside ActorCell");
     }
   }
 }

@@ -10,7 +10,7 @@ final class Instruments(val config: ActorRefConfiguration, provider: MeterProvid
 
   lazy val failedMessages: LongCounter = provider
     .get("mesmer")
-    .counterBuilder("mesmer_akka_failed_messages")
+    .counterBuilder("mesmer_akka_failed_total")
     .build()
 
   lazy val processingTime: LongHistogram = provider
@@ -19,9 +19,24 @@ final class Instruments(val config: ActorRefConfiguration, provider: MeterProvid
     .ofLongs()
     .build()
 
+  lazy val unhandled: LongCounter = provider
+    .get("mesmer")
+    .counterBuilder("mesmer_akka_unhandled_total")
+    .build()
+
   lazy val mailboxTime: LongHistogram = provider
     .get("mesmer")
     .histogramBuilder("mesmer_akka_mailbox_time")
     .ofLongs()
+    .build()
+
+  lazy val stashed: LongCounter = provider
+    .get("mesmer")
+    .counterBuilder("mesmer_akka_stashed_total")
+    .build()
+
+  lazy val sent: LongCounter = provider
+    .get("mesmer")
+    .counterBuilder("mesmer_akka_sent_total")
     .build()
 }

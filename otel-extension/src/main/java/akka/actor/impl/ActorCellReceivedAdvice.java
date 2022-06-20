@@ -37,6 +37,7 @@ public class ActorCellReceivedAdvice {
          Here we check it there was an exception and if TypedInstrumentation already taken care of this
       */
       if (Objects.nonNull(exception) && !state.getAndResetFailed()) {
+
         instruments.failedMessages().add(1L, attrs);
       }
     }
