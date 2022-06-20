@@ -10,6 +10,7 @@ import io.opentelemetry.javaagent.tooling.muzzle.InstrumentationModuleMuzzle;
 import io.opentelemetry.javaagent.tooling.muzzle.VirtualFieldMappingsBuilder;
 import io.opentelemetry.javaagent.tooling.muzzle.references.ClassRef;
 import io.scalac.mesmer.zio.ZIORuntimeInstrumentations;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
@@ -23,7 +24,11 @@ public class ZIOInstrumentationModule extends InstrumentationModule
 
   @Override
   public List<TypeInstrumentation> typeInstrumentations() {
-    return List.of(ZIORuntimeInstrumentations.runMethodInstrumentation());
+    return Arrays.asList(
+        ZIORuntimeInstrumentations.counterInstrumentation(),
+        ZIORuntimeInstrumentations.gaugeInstrumentation(),
+        ZIORuntimeInstrumentations.histogramInstrumentation(),
+        ZIORuntimeInstrumentations.runMethodInstrumentation());
   }
 
   @Override
