@@ -327,7 +327,6 @@ final class AkkaActorTest
                 .contains(context.self.path.toStringWithoutAddress)
             )
             .toVector
-          println(points)
 
           check(points)
       }
