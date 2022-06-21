@@ -24,6 +24,11 @@ final class Instruments(val config: ActorRefConfiguration, provider: MeterProvid
     .counterBuilder("mesmer_akka_unhandled_total")
     .build()
 
+  lazy val dropped: LongCounter = provider
+    .get("mesmer")
+    .counterBuilder("mesmer_akka_dropped_total")
+    .build()
+
   lazy val mailboxTime: LongHistogram = provider
     .get("mesmer")
     .histogramBuilder("mesmer_akka_mailbox_time")

@@ -2,6 +2,7 @@ package io.scalac.mesmer.agent.util
 
 import io.opentelemetry.javaagent.extension.instrumentation.TypeInstrumentation
 import io.opentelemetry.javaagent.extension.instrumentation.TypeTransformer
+import net.bytebuddy.description.ModifierReviewable
 import net.bytebuddy.description.NamedElement
 import net.bytebuddy.description.`type`.TypeDescription
 import net.bytebuddy.description.method.MethodDescription
@@ -38,6 +39,10 @@ package object dsl {
     ): ElementMatcher.Junction[T] = ElementMatchers.isOverriddenFrom[T](base)
 
     def isConstructor[T >: Nothing0 <: MethodDescription]: ElementMatcher.Junction[T] = ElementMatchers.isConstructor[T]
+    def isAbstract[T >: Nothing0 <: ModifierReviewable.OfAbstraction]: ElementMatcher.Junction[T] =
+      ElementMatchers.isAbstract[T]
+    def not[T >: Nothing0](matcher: ElementMatcher[T]): ElementMatcher.Junction[T] = ElementMatchers.not[T](matcher)
+
     def takesArgument[T >: Nothing0 <: MethodDescription](
       pos: Int,
       typeDesc: ElementMatcher[_ >: TypeDescription]

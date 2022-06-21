@@ -1,6 +1,7 @@
 package io.scalac.mesmer.otelextension.instrumentations.akka.actor
 
 import io.opentelemetry.javaagent.extension.instrumentation.TypeInstrumentation
+import net.bytebuddy.description.`type`.TypeDescription
 
 import io.scalac.mesmer.agent.Agent
 import io.scalac.mesmer.agent.AgentInstrumentation
@@ -106,6 +107,51 @@ object AkkaActorAgent
         matchers.named("unhandled"),
         "akka.actor.impl.ActorUnhandledAdvice"
       )
+
+    // mailbox
+
+    val abstractBoundedNodeQueueAdvice: TypeInstrumentation =
+      typeInstrumentation(
+        matchers.named("akka.dispatch.AbstractBoundedNodeQueue")
+      )(
+        matchers.named("add"),
+        "akka.actor.impl.AbstractBoundedNodeQueueAddAdvice"
+      )
+
+    val boundedQueueBasedMessageQueueConstructorAdvice: TypeInstrumentation =
+      typeInstrumentation(
+        matchers
+          .hasSuperType[TypeDescription](matchers.named("akka.dispatch.BoundedQueueBasedMessageQueue"))
+          .and[TypeDescription](
+            matchers.hasSuperType[TypeDescription](matchers.named("java.util.concurrent.BlockingQueue"))
+          )
+          .and[TypeDescription](matchers.not[TypeDescription](matchers.isAbstract))
+      )(
+        matchers.isConstructor,
+        "akka.actor.impl.BoundedQueueBasedMessageQueueConstructorAdvice"
+      )
+
+    val boundedQueueBasedMessageQueueQueueAdvice: TypeInstrumentation =
+      typeInstrumentation(
+        matchers
+          .hasSuperType[TypeDescription](matchers.named("akka.dispatch.BoundedQueueBasedMessageQueue"))
+          .and[TypeDescription](
+            matchers.hasSuperType[TypeDescription](matchers.named("java.util.concurrent.BlockingQueue"))
+          )
+          .and[TypeDescription](matchers.not[TypeDescription](matchers.isAbstract))
+      )(
+        matchers.named("queue"),
+        "akka.actor.impl.BoundedQueueBasedMessageQueueQueueAdvice"
+      )
+
+    val boundedMessageQueueSemanticsEnqueueAdvice: TypeInstrumentation = typeInstrumentation(
+      matchers
+        .hasSuperType(matchers.named("akka.dispatch.BoundedMessageQueueSemantics"))
+        .and(matchers.not(matchers.isAbstract))
+    )(
+      matchers.named("enqueue"),
+      "akka.actor.impl.BoundedMessageQueueSemanticsEnqueueAdvice"
+    )
 
   }
   import io.scalac.mesmer.agent.util.i13n._

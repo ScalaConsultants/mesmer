@@ -31,6 +31,10 @@ public class MesmerAkkaActorInstrumentationModule extends InstrumentationModule
         AkkaActorAgent.otel$.MODULE$.typedStashBufferAdvice(),
         AkkaActorAgent.otel$.MODULE$.typedAbstractSupervisorHandleReceiveExceptionAdvice(),
         AkkaActorAgent.otel$.MODULE$.actorUnhandledAdvice(),
+        AkkaActorAgent.otel$.MODULE$.abstractBoundedNodeQueueAdvice(),
+        AkkaActorAgent.otel$.MODULE$.boundedQueueBasedMessageQueueConstructorAdvice(),
+        AkkaActorAgent.otel$.MODULE$.boundedQueueBasedMessageQueueQueueAdvice(),
+        AkkaActorAgent.otel$.MODULE$.boundedMessageQueueSemanticsEnqueueAdvice(),
         AkkaActorAgent.otel$.MODULE$.actorCellReceived());
   }
 

@@ -135,15 +135,6 @@ final class AkkaActorTest
           forAtLeast(1, points.map(_.getSum))(_ should be(200.0 +- Tolerance))
 
       }
-//      val metrics = (for {
-//        cellMetrics <- ActorCellDecorator.getMetrics(ctx) if cellMetrics.mailboxTimeAgg.isDefined
-//        agg         <- cellMetrics.mailboxTimeAgg.get.metrics
-//      } yield agg).value
-//
-//      metrics.count should be(messages)
-//      metrics.sum should be((waitingMessages * idle.toNanos) +- ToleranceNanos)
-//      metrics.min should be(0L +- ToleranceNanos)
-//      metrics.max should be(idle.toNanos +- ToleranceNanos)
 
     testEffect[String] {
       case "idle" =>
@@ -186,8 +177,7 @@ final class AkkaActorTest
   }
 
   it should "record stash operation from actors beginning" in {
-    val stashActor      = system.classicSystem.actorOf(ClassicStashActor.props(), createUniqueId)
-    val inspectionProbe = createTestProbe[StashSize]
+    val stashActor = system.classicSystem.actorOf(ClassicStashActor.props(), createUniqueId)
 
     def sendMessage(count: Int): Unit =
       List.fill(count)(Message).foreach(m => stashActor ! m)
