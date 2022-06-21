@@ -7,7 +7,7 @@ import akka.actor.typed.{ ActorRef, Behavior, SupervisorStrategy }
 import akka.actor.{ PoisonPill, Props }
 import akka.{ actor => classic }
 import io.opentelemetry.api.common.AttributeKey
-import io.opentelemetry.sdk.metrics.data.MetricDataType
+import io.opentelemetry.sdk.metrics.data.{ LongPointData, MetricDataType }
 import io.scalac.mesmer.agent.utils.{ OtelAgentTest, SafeLoadSystem }
 import io.scalac.mesmer.core.actor.{ ActorCellDecorator, ActorCellMetrics }
 import io.scalac.mesmer.core.akka.model.AttributeNames
@@ -324,20 +324,33 @@ final class AkkaActorTest
     testForStrategy(SupervisorStrategy.stop)
   }
 
-  // TODO migrate to otel
   it should "record the amount of unhandled messages" in {
 
-    def expectMetrics(): Any = {}
+    def expectedEmpty(check: Vector[LongPointData] => Any, successOnEmpty: Boolean = false)(
+      context: classic.ActorContext
+    ): Any =
+      assertMetrics("mesmer_akka_unhandled_total", successOnEmpty) {
+        case data if data.getType == MetricDataType.LONG_SUM =>
+          val points = data.getLongSumData.getPoints.asScala
+            .filter(point =>
+              Option(point.getAttributes.get(AttributeKey.stringKey(AttributeNames.ActorPath)))
+                .contains(context.self.path.toStringWithoutAddress)
+            )
+            .toVector
+          println(points)
+
+          check(points)
+      }
 
     testBehavior[String] {
       case "unhandled" => Behaviors.unhandled
       case _           => Behaviors.same
     }("unhandled", "unhandled", "unhandled", "other")(
-      (0, check(_.unhandledMessages)(_.get.get() should be(0))),
-      (1, check(_.unhandledMessages)(_.get.get() should be(1))),
-      (0, check(_.unhandledMessages)(_.get.get() should be(1))),
-      (2, check(_.unhandledMessages)(_.get.get() should be(3))),
-      (1, check(_.unhandledMessages)(_.get.get() should be(3)))
+      (0, expectedEmpty(_.map(_.getValue) should be(empty), successOnEmpty = true)),
+      (1, expectedEmpty(_.map(_.getValue) should contain(1))),
+      (0, expectedEmpty(_.map(_.getValue) should contain(1))),
+      (2, expectedEmpty(_.map(_.getValue) should contain(3))),
+      (1, expectedEmpty(_.map(_.getValue) should contain(3)))
     )
 
   }

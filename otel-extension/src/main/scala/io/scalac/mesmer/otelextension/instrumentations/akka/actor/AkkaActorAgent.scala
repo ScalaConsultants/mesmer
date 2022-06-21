@@ -99,6 +99,14 @@ object AkkaActorAgent
         "akka.actor.impl.typed.SupervisorHandleReceiveExceptionAdvice"
       )
 
+    val actorUnhandledAdvice: TypeInstrumentation =
+      typeInstrumentation(
+        matchers.named("akka.actor.Actor")
+      )(
+        matchers.named("unhandled"),
+        "akka.actor.impl.ActorUnhandledAdvice"
+      )
+
   }
   import io.scalac.mesmer.agent.util.i13n._
 
