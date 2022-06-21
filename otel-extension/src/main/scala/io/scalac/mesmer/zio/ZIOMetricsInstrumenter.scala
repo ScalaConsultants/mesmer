@@ -10,56 +10,13 @@ import zio.metrics.MetricState
 
 object ZIOMetricsInstrumenter {
 
-  val meterName = "mesmer"
+  private val meterName = "mesmer"
 
-  val meter: Meter = GlobalOpenTelemetry
-    .getMeter(meterName)
-
-  def trackZIOFiberCount[R, E, A](zio: ZIO[R, E, A]): ZIO[R, E, A] = {
-    val runtime = Runtime.default
-
-    for {
-      supervisor       <- Supervisor.track(true)
-      supervisedEffect <- zio.supervised(supervisor).fork
-      _ = registerFiberCountGauge(supervisor, runtime)
-      appResult <- supervisedEffect.join
-    } yield appResult
-  }
-
-  def superviseLikeZMXDoes[R](newRuntime: zio.Runtime[R]): Unit =
-    meter
-      .gaugeBuilder("mesmer.zio.fiber-count")
-      .ofLongs()
-      .buildWithCallback { measurement =>
-        val c = for {
-          fibers <- diagnostics.ZMXSupervisor.value
-        } yield fibers.size
-        val countOfFibers = newRuntime.unsafeRun(c)
-        measurement.record(countOfFibers)
-      }
-
-  def registerFiberCountGauge[R, E, A](
-    supervisor: Supervisor[Chunk[Fiber.Runtime[_, _]]],
-    runtime: Runtime[_]
-  ): ObservableLongGauge =
-    meter
-      .gaugeBuilder("mesmer.zio.fiber-count")
-      .ofLongs()
-      .buildWithCallback { measurement =>
-        val fiberCount: ZIO[Any, Nothing, Int] = supervisor.value.map(_.length)
-        // TODO: Is there a nicer way to do this???
-        val count = runtime.unsafeRun(fiberCount)
-        measurement.record(count)
-      }
-
-  def setFiberSupervisor[R](newRuntime: zio.Runtime[R]): Unit = {
-    val supervisor: Supervisor[Chunk[Fiber.Runtime[Any, Any]]] = newRuntime.unsafeRun(Supervisor.track(true))
-    println("WORKING")
-    Runtime.addSupervisor(supervisor)
-    ZIOMetricsInstrumenter.registerFiberCountGauge(supervisor, newRuntime)
-  }
+  private val meter: Meter = GlobalOpenTelemetry.getMeter(meterName)
 
   def registerExecutionMetrics(runtime: Runtime[_]): Unit = {
+    println("Registering execution metrics")
+
     val maybeMetrics  = runtime.executor.unsafeMetrics
     val zioMetricName = (suffix: String) => s"mesmer.zio.execution.$suffix"
 
@@ -71,11 +28,20 @@ object ZIOMetricsInstrumenter {
     registerOtelGauge(zioMetricName("dequeued_count"), maybeMetrics.map(_.dequeuedCount))
   }
 
+  // There we have the async instruments for corresponding ZIO instruments.
+  // We should also have a list of metrics that we don't want to instrument.
+  // This is based on the following assumptions:
+  // - if a user uses mesmer with with their zio app, they for sure want to instrument it. So let's give them all we have at the start.
+  // - if some metrics are problematic, redundant, they can be excluded from otel collection.
+  // - ofc still, the user can turn off metrics collection completely by using the `mesmer.zio.metrics.enabled` config flag
+
+  // Opt-in is a worse solution imho:
+  // - it's not "all the metrics outside the box"
+  // - it requires some deeper knowledge about the whole app
   def registerAsyncCounterForZIOMetrics(metricName: String, metric: Metric[_, _, MetricState.Counter]): Unit = {
     println(s"Registering an OTEL counter for $metricName.")
 
     // We can reach the otel config for a list of metrics that we wish not to report with otel.
-
     meter.counterBuilder(metricName).buildWithCallback { measurement =>
       val value: MetricState.Counter = Runtime.default.unsafeRun(metric.value)
       measurement.record(value.count.longValue())
@@ -84,13 +50,13 @@ object ZIOMetricsInstrumenter {
 
   def registerAsyncGaugeForZIOMetrics(metricName: String, metric: Metric[_, _, MetricState.Gauge]): Unit = {
     println(s"Registering an OTEL gauge for $metricName.")
-
-    meter.gaugeBuilder(metricName).buildWithCallback { measurement =>
-      val value: MetricState.Gauge = Runtime.default.unsafeRun(metric.value)
-      measurement.record(value.value)
-    }
+    registerOtelGauge(metricName, Some(Runtime.default.unsafeRun(metric.value).value.longValue()))
   }
 
+  // This just proves that I can have a fiber dedicated for reading from the ZIO histogram to fetch the values.
+  // Then we can pass them to a synchronous otel histogram (as there is no async version of it).
+  // Note that the way I'm extracting the values is probably wrong but I still get the data in Prometheus
+  // which is the thing I wanted to test.
   def registerAsyncHistogramForZIO(metricName: String, metric: Metric[_, _, MetricState.Histogram]): Unit = {
     println(s"Registering an OTEL histogram for $metricName.")
 
@@ -100,24 +66,21 @@ object ZIOMetricsInstrumenter {
 
     val metricsPeriodicCollection = for {
       value <- metric.value
-      // TODO: just take the longs and record all??
+      // TODO: probably the wrong way to do this??
       _ = value.buckets.map(_._2).map(histogram.record)
       _ <- Console.printLine(value.buckets.toList)
       _ <- Console.printLine("I'm alive!!!!")
     } yield ()
 
     val repeated = metricsPeriodicCollection repeat Schedule.fixed(1.second)
-
-    // Todo: does this break RT of the instrumented zio app? Is this even a problem in case of metrics?
     Runtime.default.unsafeRun(repeated.fork)
   }
 
-  def registerOtelGauge(name: String, metricAccessor: => Option[Long]): ObservableLongGauge =
+  private def registerOtelGauge(name: String, metricAccessor: => Option[Long]): ObservableLongGauge =
     meter
       .gaugeBuilder(name)
       .ofLongs()
       .buildWithCallback { measurement =>
-        metricAccessor
-          .fold(println(s"Didn't find the metric: $name"))(measurement.record)
+        metricAccessor.fold(println(s"Didn't find the metric: $name"))(measurement.record)
       }
 }

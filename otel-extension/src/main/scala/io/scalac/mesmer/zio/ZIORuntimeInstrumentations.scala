@@ -17,7 +17,7 @@ object ZIORuntimeInstrumentations {
       transformer
         .applyAdviceToMethod(
           ElementMatchers.named[MethodDescription]("apply"),
-          "io.scalac.mesmer.zio.ZioRuntimeJavaAdvice2"
+          "io.scalac.mesmer.zio.ZIORuntimeAdvice"
         )
   }
 
