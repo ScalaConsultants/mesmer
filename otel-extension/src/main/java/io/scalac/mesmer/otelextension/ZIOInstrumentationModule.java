@@ -25,16 +25,22 @@ public class ZIOInstrumentationModule extends InstrumentationModule
   @Override
   public List<TypeInstrumentation> typeInstrumentations() {
     return Arrays.asList(
+        ZIORuntimeInstrumentations.supervision(),
         ZIORuntimeInstrumentations.counterInstrumentation(),
         ZIORuntimeInstrumentations.gaugeInstrumentation(),
         ZIORuntimeInstrumentations.histogramInstrumentation(),
         ZIORuntimeInstrumentations.runMethodInstrumentation());
+    // ZIORuntimeInstrumentations.fiberContextInstrumentation());
   }
 
   @Override
   public List<String> getAdditionalHelperClassNames() {
     return List.of(
         "io.scalac.mesmer.zio.ZIORuntimeAdvice",
+        "io.scalac.mesmer.zio.ZIOSupervision$",
+        "io.scalac.mesmer.zio.ZIOSupervision",
+        "io.scalac.mesmer.zio.MesmerSupervisor",
+        "io.scalac.mesmer.zio.MesmerFiberInstrumentation$",
         "io.scalac.mesmer.zio.ZIOMetricsInstrumenter",
         "io.scalac.mesmer.zio.ZIOMetricsInstrumenter$");
   }

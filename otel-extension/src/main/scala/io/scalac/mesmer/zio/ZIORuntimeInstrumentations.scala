@@ -9,6 +9,18 @@ import net.bytebuddy.matcher.ElementMatchers
 
 object ZIORuntimeInstrumentations {
 
+  val supervision: TypeInstrumentation = new TypeInstrumentation {
+    override def typeMatcher(): ElementMatcher[TypeDescription] = ElementMatchers
+      .named[TypeDescription]("zio.Runtime")
+
+    override def transform(transformer: TypeTransformer): Unit =
+      transformer
+        .applyAdviceToMethod(
+          ElementMatchers.named[MethodDescription]("unsafeRunWithRefs"),
+          "io.scalac.mesmer.zio.ZIOUnsafeRunAdvice"
+        )
+  }
+
   val runMethodInstrumentation: TypeInstrumentation = new TypeInstrumentation {
     override def typeMatcher(): ElementMatcher[TypeDescription] = ElementMatchers
       .named[TypeDescription]("zio.Runtime$")
@@ -48,6 +60,16 @@ object ZIORuntimeInstrumentations {
     override def transform(transformer: TypeTransformer): Unit = transformer.applyAdviceToMethod(
       ElementMatchers.named[MethodDescription]("histogram"),
       "io.scalac.mesmer.zio.ZIOHistogramMetricAdvice"
+    )
+  }
+
+  val fiberContextInstrumentation: TypeInstrumentation = new TypeInstrumentation {
+    override def typeMatcher(): ElementMatcher[TypeDescription] =
+      ElementMatchers.named[TypeDescription]("zio.internal.FiberContext")
+
+    override def transform(transformer: TypeTransformer): Unit = transformer.applyAdviceToMethod(
+      ElementMatchers.named[MethodDescription]("runUntil"),
+      "io.scalac.mesmer.zio.FiberContextAdvice"
     )
   }
 }
