@@ -8,12 +8,12 @@ const darkCodeTheme = require('prism-react-renderer/themes/dracula');
 const config = {
   title: 'Mesmer',
   tagline: 'OpenTelemetry Agent extension for Scala applications',
-  url: 'https://your-docusaurus-test-site.com',
-  baseUrl: '/',
+  url: 'https://scalaconsultants.github.io/mesmer/',
+  baseUrl: '/mesmer/',
   onBrokenLinks: 'throw',
   onBrokenMarkdownLinks: 'warn',
   favicon: 'img/favicon.ico',
-  organizationName: 'scalac', // Usually your GitHub org/user name.
+  organizationName: 'ScalaConsultants', // Usually your GitHub org/user name.
   projectName: 'mesmer', // Usually your repo name.
 
   presets: [
