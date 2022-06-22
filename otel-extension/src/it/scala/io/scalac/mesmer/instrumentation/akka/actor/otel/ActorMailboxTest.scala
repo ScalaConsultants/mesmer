@@ -1,27 +1,24 @@
 package io.scalac.mesmer.instrumentation.akka.actor.otel
 
-import akka.actor.{ ActorSystem, PoisonPill }
-import akka.actor.typed.{ ActorRef, Behavior, MailboxSelector, Props }
 import akka.actor.typed.scaladsl.{ ActorContext, Behaviors }
-import akka.actor.typed.scaladsl.adapter._
+import akka.actor.typed.{ ActorRef, Behavior, MailboxSelector, Props }
+import akka.actor.{ ActorSystem, PoisonPill }
 import akka.dispatch.{ BoundedPriorityMailbox, BoundedStablePriorityMailbox, Envelope }
-import akka.{ actor => classic }
 import com.typesafe.config.{ Config, ConfigFactory }
 import io.opentelemetry.api.common.AttributeKey
 import io.opentelemetry.sdk.metrics.data.MetricDataType
 import io.scalac.mesmer.agent.utils.{ OtelAgentTest, SafeLoadSystem }
-import io.scalac.mesmer.core.actor.ActorCellDecorator
 import io.scalac.mesmer.core.akka.model.AttributeNames
 import io.scalac.mesmer.core.config.AkkaPatienceConfig
 import io.scalac.mesmer.core.util.TestOps
-import io.scalac.mesmer.instrumentation.akka.actor.ActorMailboxTest.ClassicContextPublish
 import org.scalatest.concurrent.Eventually
 import org.scalatest.flatspec.{ AnyFlatSpec, AnyFlatSpecLike }
 import org.scalatest.matchers.should.Matchers
-import scala.jdk.CollectionConverters._
+
 import java.util.Comparator
 import scala.annotation.unused
 import scala.concurrent.duration.Duration
+import scala.jdk.CollectionConverters._
 import scala.jdk.DurationConverters._
 
 final class HashCodePriorityMailbox(
@@ -85,13 +82,13 @@ class ActorMailboxTest
           |}
           |
           |bounded-priority-queue {
-          |  mailbox-type = "io.scalac.mesmer.instrumentation.akka.actor.HashCodePriorityMailbox"
+          |  mailbox-type = "io.scalac.mesmer.instrumentation.akka.actor.otel.HashCodePriorityMailbox"
           |  mailbox-push-timeout-time=1
           |  mailbox-capacity = 3
           |}
           |
           |bounded-stable-priority-queue {
-          |  mailbox-type = "io.scalac.mesmer.instrumentation.akka.actor.StableHashCodePriorityMailbox"
+          |  mailbox-type = "io.scalac.mesmer.instrumentation.akka.actor.otel.StableHashCodePriorityMailbox"
           |  mailbox-push-timeout-time=1
           |  mailbox-capacity = 3
           |}
@@ -109,18 +106,6 @@ class ActorMailboxTest
     val probe = createTestProbe[ActorContext[Unit]]
 
     val sut = system.systemActorOf(publishActorContext(probe.ref), createUniqueId, props)
-
-    val context = probe.receiveMessage()
-
-    (sut, context)
-  }
-
-  private def classicActorRefWithContext(props: classic.Props): (classic.ActorRef, classic.ActorContext) = {
-    val probe = createTestProbe[classic.ActorContext]
-
-    val sut = system.toClassic.actorOf(
-      ClassicContextPublish.props(probe.ref).withMailbox(props.mailbox).withDispatcher(props.dispatcher)
-    )
 
     val context = probe.receiveMessage()
 
@@ -184,16 +169,5 @@ class ActorMailboxTest
       .fromConfig("bounded-stable-priority-queue")
       .withDispatcherFromConfig("single-thread-dispatcher")
     testWithProps(props)
-  }
-}
-
-object ActorMailboxTest {
-
-  object ClassicContextPublish {
-    def props(ref: ActorRef[classic.ActorContext]): classic.Props = classic.Props(new ClassicContextPublish(ref))
-  }
-  class ClassicContextPublish(ref: ActorRef[classic.ActorContext]) extends classic.Actor {
-    ref ! context
-    val receive: Receive = Function.const[Any, Unit](()) _
   }
 }
