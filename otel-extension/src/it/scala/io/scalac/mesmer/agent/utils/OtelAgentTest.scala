@@ -32,9 +32,8 @@ trait OtelAgentTest extends TestSuite with BeforeAndAfterAll with Eventually wit
    * @param metricName
    *   metric name used for preliminary filtration
    * @param testFunction
-   *   test function used the assert data. This will be executed once for every exported data roughly once every 100ms
-   *   of test duration. It should return normally only when data pass the tests
-   *   - usage of matchers inside is expected!
+   *   test function used the assert data. This will be executed once for every exported data (roughly every 100ms
+   *   during test duration). It should return normally only when found data is correct.
    */
   protected def assertMetrics(instrumentationName: String, metricName: String, successOnEmpty: Boolean)(
     testFunction: PartialFunction[MetricData, Unit]
@@ -43,7 +42,6 @@ trait OtelAgentTest extends TestSuite with BeforeAndAfterAll with Eventually wit
       val result = testRunner.getExportedMetrics.asScala
         .filter(data => data.getInstrumentationScopeInfo.getName == instrumentationName && data.getName == metricName)
         .collect {
-          // this will be executed once for every exported services - roughly once for every 100ms of test duration
           case data if testFunction.isDefinedAt(data) => Try(testFunction.apply(data))
         }
 
@@ -58,11 +56,10 @@ trait OtelAgentTest extends TestSuite with BeforeAndAfterAll with Eventually wit
   /*
     This might make your test flaky! Remember to adjust toleration for CI.
 
-    Here we calculate which buckets counts should we take into consideration depending on boundary and
-    toleration - count in each bucket mean that an action took LESS that this counter boundary. We
+    Here we calculate which bucket counts should we take into consideration, depending on boundary and
+    toleration. Count in each bucket means that an action took LESS than this counter boundary. We
     take toleration into the mix to mitigate flakiness when things start to take longer than anticipated
    */
-  // TODO add tests for this
   protected def getBoundaryCountsWithToleration(
     point: HistogramPointData,
     boundary: Double,
