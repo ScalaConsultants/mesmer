@@ -20,7 +20,7 @@ object ZIOMetricsInstrumenter {
 
   private val meter: Meter = GlobalOpenTelemetry.getMeter(meterName)
 
-  def registerExecutionMetrics(executor: Executor): Unit =
+  def registerExecutionMetrics(executor: Executor): Unit = {
     try
       Unsafe.unsafe { implicit u =>
         val maybeMetrics = executor.metrics
@@ -35,13 +35,14 @@ object ZIOMetricsInstrumenter {
         registerOtelGauge(zioMetricName("enqueued_count"), maybeMetrics.map(_.enqueuedCount), attributes)
         registerOtelGauge(zioMetricName("dequeued_count"), maybeMetrics.map(_.dequeuedCount), attributes)
       }
+  }
 
   // There we have the async instruments for corresponding ZIO instruments.
-  // We should also have a list of maybeWorkersCount that we don't want to instrument.
+  // We should also have a list of metrics that we don't want to instrument.
   // This is based on the following assumptions:
   // - if a user uses mesmer with with their zio app, they for sure want to instrument it. So let's give them all we have at the start.
-  // - if some maybeWorkersCount are problematic, redundant, they can be excluded from otel collection.
-  // - ofc still, the user can turn off maybeWorkersCount collection completely by using the `mesmer.zio.maybeWorkersCount.enabled` config flag
+  // - if some metrics are problematic, redundant, they can be excluded from otel collection.
+  // - ofc still, the user can turn off metrics collection completely by using the `mesmer.zio.metrics.enabled` config flag
 
   // Opt-in is a worse solution imho:
   // - it's not "all the maybeWorkersCount outside the box"
