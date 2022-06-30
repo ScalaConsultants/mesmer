@@ -23,13 +23,13 @@ object ZIORuntimeInstrumentations {
 
   val runMethodInstrumentation: TypeInstrumentation = new TypeInstrumentation {
     override def typeMatcher(): ElementMatcher[TypeDescription] = ElementMatchers
-      .named[TypeDescription]("zio.Runtime$")
+      .named[TypeDescription]("zio.Executor")
 
     override def transform(transformer: TypeTransformer): Unit =
       transformer
         .applyAdviceToMethod(
-          ElementMatchers.named[MethodDescription]("apply"),
-          "io.scalac.mesmer.zio.ZIORuntimeAdvice"
+          ElementMatchers.isConstructor[MethodDescription],
+          "io.scalac.mesmer.zio.ZIOExecutorAdvice"
         )
   }
 
@@ -60,16 +60,6 @@ object ZIORuntimeInstrumentations {
     override def transform(transformer: TypeTransformer): Unit = transformer.applyAdviceToMethod(
       ElementMatchers.named[MethodDescription]("histogram"),
       "io.scalac.mesmer.zio.ZIOHistogramMetricAdvice"
-    )
-  }
-
-  val fiberContextInstrumentation: TypeInstrumentation = new TypeInstrumentation {
-    override def typeMatcher(): ElementMatcher[TypeDescription] =
-      ElementMatchers.named[TypeDescription]("zio.internal.FiberContext")
-
-    override def transform(transformer: TypeTransformer): Unit = transformer.applyAdviceToMethod(
-      ElementMatchers.named[MethodDescription]("runUntil"),
-      "io.scalac.mesmer.zio.FiberContextAdvice"
     )
   }
 }

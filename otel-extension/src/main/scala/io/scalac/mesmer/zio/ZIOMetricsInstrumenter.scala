@@ -5,7 +5,12 @@ import io.opentelemetry.api.common.Attributes
 import io.opentelemetry.api.metrics.LongHistogram
 import io.opentelemetry.api.metrics.Meter
 import io.opentelemetry.api.metrics.ObservableLongGauge
-import zio._
+import zio.Console
+import zio.Executor
+import zio.Runtime
+import zio.Schedule
+import zio.Unsafe
+import zio.durationInt
 import zio.metrics.Metric
 import zio.metrics.MetricState
 
@@ -15,19 +20,21 @@ object ZIOMetricsInstrumenter {
 
   private val meter: Meter = GlobalOpenTelemetry.getMeter(meterName)
 
-  def registerExecutionMetrics(runtime: Runtime[_], threadId: Long): Unit = {
-    println("Registering execution maybeWorkersCount")
+  def registerExecutionMetrics(executor: Executor): Unit =
+    try
+      Unsafe.unsafe { implicit u =>
+        val maybeMetrics = executor.metrics
+        val attributes =
+          Attributes.builder().put("executor", executor.toString).build() // This is just to distinguish them
+        val zioMetricName = (suffix: String) => s"mesmer.zio.execution.$suffix"
 
-    val maybeMetrics  = runtime.executor.unsafeMetrics
-    val zioMetricName = (suffix: String) => s"mesmer.zio.execution.$suffix"
-
-    registerOtelGauge(zioMetricName("workers_count"), maybeMetrics.map(_.workersCount), threadId)
-    registerOtelGauge(zioMetricName("concurrency"), maybeMetrics.map(_.concurrency), threadId)
-    registerOtelGauge(zioMetricName("executor_capacity"), maybeMetrics.map(_.capacity), threadId)
-    registerOtelGauge(zioMetricName("task_queue_size"), maybeMetrics.map(_.size), threadId)
-    registerOtelGauge(zioMetricName("enqueued_count"), maybeMetrics.map(_.enqueuedCount), threadId)
-    registerOtelGauge(zioMetricName("dequeued_count"), maybeMetrics.map(_.dequeuedCount), threadId)
-  }
+        registerOtelGauge(zioMetricName("workers_count"), maybeMetrics.map(_.workersCount), attributes)
+        registerOtelGauge(zioMetricName("concurrency"), maybeMetrics.map(_.concurrency), attributes)
+        registerOtelGauge(zioMetricName("executor_capacity"), maybeMetrics.map(_.capacity), attributes)
+        registerOtelGauge(zioMetricName("task_queue_size"), maybeMetrics.map(_.size), attributes)
+        registerOtelGauge(zioMetricName("enqueued_count"), maybeMetrics.map(_.enqueuedCount), attributes)
+        registerOtelGauge(zioMetricName("dequeued_count"), maybeMetrics.map(_.dequeuedCount), attributes)
+      }
 
   // There we have the async instruments for corresponding ZIO instruments.
   // We should also have a list of maybeWorkersCount that we don't want to instrument.
@@ -41,21 +48,16 @@ object ZIOMetricsInstrumenter {
   // - it requires some deeper knowledge about the whole app
   def registerAsyncCounterForZIOMetrics(
     metricName: String,
-    metric: Metric[_, _, MetricState.Counter],
-    threadId: Long
+    metric: Metric[_, _, MetricState.Counter]
   ): Unit = {
     println(s"Registering an OTEL counter for $metricName.")
 
     // We can reach the otel config for a list of maybeWorkersCount that we wish not to report with otel.
     meter.counterBuilder(metricName).buildWithCallback { measurement =>
-      val value: MetricState.Counter = Runtime.default.unsafeRun(metric.value)
-      val attributes = Attributes
-        .builder()
-        .put("creating_thread_id", threadId)
-        .put("current_thread_id", Thread.currentThread().getId)
-        .build()
-
-      measurement.record(value.count.longValue())
+      Unsafe.unsafe { implicit u =>
+        val value = Runtime.default.unsafe.run(metric.value).getOrThrowFiberFailure()
+        measurement.record(value.count.longValue())
+      }
     }
   }
 
@@ -66,7 +68,15 @@ object ZIOMetricsInstrumenter {
   ): Unit = {
     println(s"Registering an OTEL gauge for $metricName.")
 
-    registerOtelGauge(metricName, Some(Runtime.default.unsafeRun(metric.value).value.longValue()), threadId)
+    registerOtelGauge(
+      metricName,
+      Some(
+        Unsafe.unsafe { implicit u =>
+          Runtime.default.unsafe.run(metric.value).getOrThrowFiberFailure().value.longValue()
+        }
+      ),
+      Attributes.empty()
+    )
   }
 
   // This just proves that I can have a fiber dedicated for reading from the ZIO histogram to fetch the values.
@@ -89,19 +99,21 @@ object ZIOMetricsInstrumenter {
     } yield ()
 
     val repeated = metricsPeriodicCollection repeat Schedule.fixed(1.second)
-    Runtime.default.unsafeRun(repeated.fork)
+
+    Unsafe.unsafe { implicit u =>
+      Runtime.default.unsafe.run(repeated.fork).getOrThrowFiberFailure()
+    }
   }
 
-  private def registerOtelGauge(name: String, metricAccessor: => Option[Long], threadId: Long): ObservableLongGauge =
+  private def registerOtelGauge(
+    name: String,
+    metricAccessor: => Option[Long],
+    attributes: Attributes
+  ): ObservableLongGauge =
     meter
       .gaugeBuilder(name)
       .ofLongs()
       .buildWithCallback { measurement =>
-        val atr = Attributes
-          .builder()
-          .put("creating_thread_id", threadId)
-          .put("current_thread_id", Thread.currentThread().getId)
-          .build()
-        metricAccessor.fold(println(s"Didn't find the metric: $name"))(measurement.record)
+        metricAccessor.fold(println(s"Didn't find the metric: $name"))(measurement.record(_, attributes))
       }
 }

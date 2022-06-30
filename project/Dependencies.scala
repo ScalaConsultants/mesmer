@@ -65,7 +65,7 @@ object Dependencies {
   )
 
   val zio = Seq(
-    "dev.zio" %% "zio" % "2.0.0-RC6"
+    "dev.zio" %% "zio" % "2.0.0"
   )
 
   val openTelemetryTesting = Seq(

@@ -36,7 +36,7 @@ public class ZIOInstrumentationModule extends InstrumentationModule
   @Override
   public List<String> getAdditionalHelperClassNames() {
     return List.of(
-        "io.scalac.mesmer.zio.ZIORuntimeAdvice",
+        "io.scalac.mesmer.zio.ZIOExecutorAdvice",
         "io.scalac.mesmer.zio.ZIOSupervision$",
         "io.scalac.mesmer.zio.ZIOSupervision",
         "io.scalac.mesmer.zio.MesmerSupervisor",

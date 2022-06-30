@@ -18,8 +18,8 @@ object MesmerFiberInstrumentation {
   def witnessFiberEnd(fiber: Fiber.Runtime[_, _]): Unit = {
     runningFiberCounter.add(-1)
 
-    val endTimeSeconds = java.lang.System.currentTimeMillis() / 1000
-    val lifetime       = endTimeSeconds - fiber.id.startTimeSeconds
+    val endTimeSeconds = java.lang.System.currentTimeMillis()
+    val lifetime       = endTimeSeconds - fiber.id.startTimeMillis
     fiberLifetime.record(lifetime)
 
   }
