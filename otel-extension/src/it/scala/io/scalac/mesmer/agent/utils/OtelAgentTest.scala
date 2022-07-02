@@ -64,6 +64,17 @@ trait OtelAgentTest extends TestSuite with BeforeAndAfterAll with Eventually wit
     point: HistogramPointData,
     boundary: Double,
     toleration: Double = 20
+  ): Long =
+    OtelAgentHelpers.getBoundaryCountsWithToleration(point, boundary, toleration)
+
+}
+
+object OtelAgentHelpers {
+
+  private[utils] def getBoundaryCountsWithToleration(
+    point: HistogramPointData,
+    boundary: Double,
+    toleration: Double = 20
   ): Long = {
 
     val lowestBoundary  = math.max(0.0, boundary - toleration)

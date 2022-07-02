@@ -23,6 +23,7 @@ object DefaultActorRefConfiguration extends ActorRefConfiguration {
     .builder()
     .put(AttributeNames.ActorPath, ref.path.toStringWithoutAddress)
 
+  def self: ActorRefConfiguration = this
 }
 
 final class WithSystemActorRefConfigurator(system: ClassicActorSystemProvider, underlying: ActorRefConfiguration)

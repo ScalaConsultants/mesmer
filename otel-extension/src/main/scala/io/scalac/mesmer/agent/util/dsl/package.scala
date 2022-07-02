@@ -54,10 +54,19 @@ package object dsl {
    * Factory method but with that will result in proper type inference - here we make more strict requirements for types
    * of matchers but is should not limit any capabilities of [[ElementMatchers]]
    */
-  def typeInstrumentation(`type`: TypeMatcher)(method: MethodMatcher, advice: String): TypeInstrumentation =
-    new TypeInstrumentation {
+  def typeInstrumentation(`type`: TypeMatcher): TypeAppliedInstrumentation = new TypeAppliedInstrumentation(`type`)
+
+  final class TypeAppliedInstrumentation(val `type`: TypeMatcher) extends AnyVal {
+    def apply(method: MethodMatcher, advice: String): TypeInstrumentation = new TypeInstrumentation {
       val typeMatcher: ElementMatcher[TypeDescription] = `type`
 
       def transform(transformer: TypeTransformer): Unit = transformer.applyAdviceToMethod(method, advice)
     }
+
+    def apply(transformer: TypeTransformer => Unit): TypeInstrumentation = new TypeInstrumentation {
+      val typeMatcher: ElementMatcher[TypeDescription] = `type`
+
+      def transform(trans: TypeTransformer): Unit = transformer(trans)
+    }
+  }
 }
