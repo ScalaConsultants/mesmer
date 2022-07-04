@@ -1,4 +1,4 @@
-package io.scalac.mesmer.otelextension;
+package io.scalac.mesmer.otelextension.akka;
 
 import com.google.auto.service.AutoService;
 import io.opentelemetry.javaagent.extension.instrumentation.InstrumentationModule;
