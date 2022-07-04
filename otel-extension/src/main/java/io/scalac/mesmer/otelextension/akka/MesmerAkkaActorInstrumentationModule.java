@@ -1,4 +1,4 @@
-package io.scalac.mesmer.otelextension;
+package io.scalac.mesmer.otelextension.akka;
 
 import com.google.auto.service.AutoService;
 import io.opentelemetry.javaagent.extension.instrumentation.InstrumentationModule;
@@ -7,7 +7,6 @@ import io.opentelemetry.javaagent.tooling.muzzle.InstrumentationModuleMuzzle;
 import io.opentelemetry.javaagent.tooling.muzzle.VirtualFieldMappingsBuilder;
 import io.opentelemetry.javaagent.tooling.muzzle.references.ClassRef;
 import io.scalac.mesmer.otelextension.instrumentations.akka.actor.AkkaActorAgent;
-
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
