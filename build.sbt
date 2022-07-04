@@ -88,6 +88,7 @@ lazy val otelExtension = (project in file("otel-extension"))
     name                                               := "mesmer-otel-extension",
     excludeDependencies += "io.opentelemetry.javaagent" % "opentelemetry-javaagent-bootstrap",
     libraryDependencies ++= {
+      zio.map(_ % "provided") ++
       openTelemetryExtension.map(_ % "provided") ++
       openTelemetryMuzzle.map(_ % "provided") ++
       openTelemetryInstrumentation.map(_ % "provided") ++
