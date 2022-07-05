@@ -5,6 +5,8 @@ import io.opentelemetry.javaagent.extension.instrumentation.TypeTransformer
 import net.bytebuddy.description.`type`.TypeDescription
 import net.bytebuddy.matcher.ElementMatcher
 
+import scala.language.implicitConversions
+
 import io.scalac.mesmer.core.typeclasses.Encode
 
 case class OtelTypeInstrumentation private (
@@ -21,7 +23,7 @@ object OtelTypeInstrumentation {
   implicit val toOtelTypeInstrumentation: Encode[OtelTypeInstrumentation, TypeInstrumentation] =
     new Encode[OtelTypeInstrumentation, TypeInstrumentation] {
       override def encode(input: OtelTypeInstrumentation): TypeInstrumentation = new TypeInstrumentation {
-        override def typeMatcher(): ElementMatcher[TypeDescription] = input.instrumentedType
+        override val typeMatcher: ElementMatcher[TypeDescription] = input.instrumentedType
 
         override def transform(transformer: TypeTransformer): Unit =
           input.adviceSet.foreach { it: AdviceApplication =>
@@ -30,7 +32,7 @@ object OtelTypeInstrumentation {
       }
     }
 
-  implicit class OtelTypeInstrumentationEncodeOps(i: OtelTypeInstrumentation) {
+  implicit class OtelTypeInstrumentationEncodeOps(private val i: OtelTypeInstrumentation) extends AnyVal {
     def encode(): TypeInstrumentation = toOtelTypeInstrumentation.encode(i)
   }
 
