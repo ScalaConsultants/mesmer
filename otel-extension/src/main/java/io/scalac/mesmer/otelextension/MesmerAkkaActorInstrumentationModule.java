@@ -55,9 +55,7 @@ public class MesmerAkkaActorInstrumentationModule extends InstrumentationModule
         .register(
             "akka.actor.ActorContext",
             "io.opentelemetry.javaagent.shaded.io.opentelemetry.api.common.Attributes")
-        .register(
-            "akka.actor.ActorSystem",
-            "io.scalac.mesmer.otelextension.instrumentations.akka.actor.Instruments")
+        .register("akka.actor.ActorSystem", "io.scalac.mesmer.core.actor.ActorRefConfiguration")
         .register(
             "akka.dispatch.BoundedQueueBasedMessageQueue", "java.util.concurrent.BlockingQueue")
         .register("akka.dispatch.AbstractBoundedNodeQueue", "java.lang.Boolean");
@@ -75,7 +73,11 @@ public class MesmerAkkaActorInstrumentationModule extends InstrumentationModule
         "io.scalac.mesmer.core.actor.DefaultActorRefConfiguration",
         "io.scalac.mesmer.core.actor.DefaultActorRefConfiguration$",
         "io.scalac.mesmer.core.actor.WithSystemActorRefConfigurator",
+        "io.scalac.mesmer.otelextension.instrumentations.akka.actor.Instruments$$anon$1",
         "io.scalac.mesmer.otelextension.instrumentations.akka.actor.Instruments",
+        "io.scalac.mesmer.otelextension.instrumentations.akka.actor.Instruments$",
+        "io.scalac.mesmer.otelextension.instrumentations.akka.actor.InstrumentsProvider",
+        "io.scalac.mesmer.otelextension.instrumentations.akka.actor.InstrumentsProvider$",
         "io.scalac.mesmer.otelextension.instrumentations.akka.actor.util.EnvelopeContext",
         "io.scalac.mesmer.otelextension.instrumentations.akka.actor.util.EnvelopeContext$",
         "io.scalac.mesmer.otelextension.instrumentations.akka.actor.impl.otel.ActorCellInstrumentationState",

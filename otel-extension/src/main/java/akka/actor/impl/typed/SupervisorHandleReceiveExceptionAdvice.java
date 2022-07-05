@@ -1,11 +1,11 @@
 package akka.actor.impl.typed;
 
 import akka.actor.ActorContext;
-import akka.actor.ActorSystem;
 import akka.actor.typed.TypedActorContext;
 import io.opentelemetry.api.common.Attributes;
 import io.opentelemetry.instrumentation.api.field.VirtualField;
 import io.scalac.mesmer.otelextension.instrumentations.akka.actor.Instruments;
+import io.scalac.mesmer.otelextension.instrumentations.akka.actor.InstrumentsProvider;
 import io.scalac.mesmer.otelextension.instrumentations.akka.actor.impl.otel.ActorCellInstrumentationState;
 import java.util.Objects;
 import net.bytebuddy.asm.Advice;
@@ -29,10 +29,9 @@ public class SupervisorHandleReceiveExceptionAdvice {
             .get(classicContext);
     Attributes attributes =
         VirtualField.find(ActorContext.class, Attributes.class).get(classicContext);
-    Instruments instruments =
-        VirtualField.find(ActorSystem.class, Instruments.class).get(classicContext.system());
+    Instruments instruments = InstrumentsProvider.instance();
 
-    if (Objects.nonNull(instruments) && Objects.nonNull(state) && Objects.nonNull(attributes)) {
+    if (Objects.nonNull(state) && Objects.nonNull(attributes)) {
       state.setFailed();
       instruments.failedMessages().add(1L, attributes);
     } else {

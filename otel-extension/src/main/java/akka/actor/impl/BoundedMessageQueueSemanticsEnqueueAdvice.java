@@ -8,6 +8,7 @@ import akka.dispatch.BoundedQueueBasedMessageQueue;
 import io.opentelemetry.api.common.Attributes;
 import io.opentelemetry.instrumentation.api.field.VirtualField;
 import io.scalac.mesmer.otelextension.instrumentations.akka.actor.Instruments;
+import io.scalac.mesmer.otelextension.instrumentations.akka.actor.InstrumentsProvider;
 import io.scalac.mesmer.otelextension.instrumentations.akka.actor.impl.otel.ActorCellInstrumentationState;
 import java.util.Objects;
 import net.bytebuddy.asm.Advice;
@@ -22,12 +23,11 @@ public class BoundedMessageQueueSemanticsEnqueueAdvice {
       ActorContext context = (ActorCell) ((ActorRefWithCell) ref).underlying();
 
       Attributes attrs = VirtualField.find(ActorContext.class, Attributes.class).get(context);
-      Instruments instruments =
-          VirtualField.find(ActorSystem.class, Instruments.class).get(context.system());
+      Instruments instruments = InstrumentsProvider.instance();
       ActorCellInstrumentationState state =
           VirtualField.find(ActorContext.class, ActorCellInstrumentationState.class).get(context);
 
-      if (Objects.nonNull(attrs) && Objects.nonNull(state) && Objects.nonNull(instruments)) {
+      if (Objects.nonNull(attrs) && Objects.nonNull(state)) {
         if (self instanceof BoundedNodeMessageQueue) {
           if (Boolean.FALSE.equals(
               VirtualField.find(AbstractBoundedNodeQueue.class, Boolean.class)

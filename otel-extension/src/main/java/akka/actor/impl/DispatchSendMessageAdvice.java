@@ -5,6 +5,7 @@ import akka.dispatch.Envelope;
 import io.opentelemetry.api.common.Attributes;
 import io.opentelemetry.instrumentation.api.field.VirtualField;
 import io.scalac.mesmer.otelextension.instrumentations.akka.actor.Instruments;
+import io.scalac.mesmer.otelextension.instrumentations.akka.actor.InstrumentsProvider;
 import io.scalac.mesmer.otelextension.instrumentations.akka.actor.impl.otel.ActorCellInstrumentationState;
 import io.scalac.mesmer.otelextension.instrumentations.akka.actor.util.EnvelopeContext;
 import java.util.Objects;
@@ -23,12 +24,11 @@ public class DispatchSendMessageAdvice {
       if (sender != Actor.noSender() && sender instanceof ActorRefWithCell) {
         ActorContext context = (ActorCell) ((ActorRefWithCell) sender).underlying();
         Attributes attrs = VirtualField.find(ActorContext.class, Attributes.class).get(context);
-        Instruments instruments =
-            VirtualField.find(ActorSystem.class, Instruments.class).get(context.system());
+        Instruments instruments = InstrumentsProvider.instance();
         ActorCellInstrumentationState state =
             VirtualField.find(ActorContext.class, ActorCellInstrumentationState.class).get(context);
 
-        if (Objects.nonNull(attrs) && Objects.nonNull(state) && Objects.nonNull(instruments)) {
+        if (Objects.nonNull(attrs) && Objects.nonNull(state)) {
           instruments.sent().add(1L, attrs);
         }
       }

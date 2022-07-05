@@ -1,13 +1,13 @@
 package akka.actor.impl;
 
 import akka.actor.ActorContext;
-import akka.actor.ActorSystem;
 import akka.dispatch.Envelope;
 import akka.dispatch.Mailbox;
 import io.opentelemetry.api.common.Attributes;
 import io.opentelemetry.instrumentation.api.field.VirtualField;
 import io.scalac.mesmer.core.util.Interval$;
 import io.scalac.mesmer.otelextension.instrumentations.akka.actor.Instruments;
+import io.scalac.mesmer.otelextension.instrumentations.akka.actor.InstrumentsProvider;
 import io.scalac.mesmer.otelextension.instrumentations.akka.actor.util.EnvelopeContext;
 import java.util.Objects;
 import net.bytebuddy.asm.Advice;
@@ -22,10 +22,9 @@ public class MailboxDequeueAdvice {
       EnvelopeContext context =
           VirtualField.find(Envelope.class, EnvelopeContext.class).get(envelope);
       Attributes attrs = VirtualField.find(ActorContext.class, Attributes.class).get(self.actor());
-      Instruments instruments =
-          VirtualField.find(ActorSystem.class, Instruments.class).get(self.actor().getSystem());
+      Instruments instruments = InstrumentsProvider.instance();
 
-      if (Objects.nonNull(instruments) && Objects.nonNull(context) && Objects.nonNull(attrs)) {
+      if (Objects.nonNull(context) && Objects.nonNull(attrs)) {
         long interval = Interval$.MODULE$.toMillis(System.nanoTime() - context.sentTime());
         instruments.mailboxTime().record(interval, attrs);
       }
