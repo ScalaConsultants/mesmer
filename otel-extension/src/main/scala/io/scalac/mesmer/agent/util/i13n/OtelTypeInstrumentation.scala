@@ -8,6 +8,7 @@ import net.bytebuddy.matcher.ElementMatcher
 import scala.language.implicitConversions
 
 import io.scalac.mesmer.core.typeclasses.Encode
+import io.scalac.mesmer.core.typeclasses.Encode._
 
 case class OtelTypeInstrumentation private (
   private[i13n] val instrumentedType: TypeDesc,
@@ -20,24 +21,17 @@ case class OtelTypeInstrumentation private (
 object OtelTypeInstrumentation {
   def instrument(instrumentedType: TypeDesc): OtelTypeInstrumentation = this(instrumentedType, Set())
 
-  implicit val toOtelTypeInstrumentation: Encode[OtelTypeInstrumentation, TypeInstrumentation] =
-    new Encode[OtelTypeInstrumentation, TypeInstrumentation] {
-      override def encode(input: OtelTypeInstrumentation): TypeInstrumentation = new TypeInstrumentation {
-        override val typeMatcher: ElementMatcher[TypeDescription] = input.instrumentedType
+  implicit val toOtelTypeInstrumentation: Encode[OtelTypeInstrumentation, TypeInstrumentation] = input =>
+    new TypeInstrumentation {
+      val typeMatcher: ElementMatcher[TypeDescription] = input.instrumentedType
 
-        override def transform(transformer: TypeTransformer): Unit =
-          input.adviceSet.foreach { it: AdviceApplication =>
-            transformer.applyAdviceToMethod(it.instrumentedMethod, it.adviceName)
-          }
-      }
+      def transform(transformer: TypeTransformer): Unit =
+        input.adviceSet.foreach { it: AdviceApplication =>
+          transformer.applyAdviceToMethod(it.instrumentedMethod, it.adviceName)
+        }
     }
 
-  implicit class OtelTypeInstrumentationEncodeOps(private val i: OtelTypeInstrumentation) extends AnyVal {
-    def encode(): TypeInstrumentation = toOtelTypeInstrumentation.encode(i)
-  }
-
-  implicit def convertToOtel(instrumentation: OtelTypeInstrumentation): TypeInstrumentation =
-    instrumentation.encode()
+  implicit def convertToOtel(instrumentation: OtelTypeInstrumentation): TypeInstrumentation = instrumentation.encode
 }
 
 case class AdviceApplication private (
