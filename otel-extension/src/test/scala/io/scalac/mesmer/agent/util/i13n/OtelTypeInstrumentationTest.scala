@@ -1,10 +1,12 @@
 package io.scalac.mesmer.agent.util.i13n
 
+import io.opentelemetry.javaagent.extension.instrumentation.TypeInstrumentation
 import net.bytebuddy.matcher.ElementMatchers
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
 import io.scalac.mesmer.agent.util.i13n.AdviceApplication.advice
+import io.scalac.mesmer.core.typeclasses.Encode._
 
 class OtelTypeInstrumentationTest extends AnyFlatSpec with Matchers {
 
@@ -41,7 +43,7 @@ class OtelTypeInstrumentationTest extends AnyFlatSpec with Matchers {
     val instrumentation =
       OtelTypeInstrumentation.instrument(instrumentedType).using(adviceExample)
 
-    instrumentation.encode()
+    instrumentation.encode[TypeInstrumentation]
   }
 
   it should "not add two the same advice twice" in {
@@ -65,7 +67,7 @@ class OtelTypeInstrumentationTest extends AnyFlatSpec with Matchers {
     val instrumentation =
       OtelTypeInstrumentation.instrument(instrumentedType).using(adviceExample)
 
-    val encoded = instrumentation.encode()
+    val encoded = instrumentation.encode[TypeInstrumentation]
 
     encoded.typeMatcher() should be(instrumentedType)
   }
