@@ -33,6 +33,9 @@ object OtelTypeInstrumentation {
   implicit class OtelTypeInstrumentationEncodeOps(i: OtelTypeInstrumentation) {
     def encode(): TypeInstrumentation = toOtelTypeInstrumentation.encode(i)
   }
+
+  implicit def convertToOtel(instrumentation: OtelTypeInstrumentation): TypeInstrumentation =
+    instrumentation.encode()
 }
 
 case class AdviceApplication private (
