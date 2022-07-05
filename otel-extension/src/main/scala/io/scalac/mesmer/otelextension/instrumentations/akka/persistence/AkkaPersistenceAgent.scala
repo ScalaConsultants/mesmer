@@ -1,5 +1,4 @@
 package io.scalac.mesmer.otelextension.instrumentations.akka.persistence
-
 import org.slf4j.LoggerFactory
 
 import io.scalac.mesmer.agent.Agent
