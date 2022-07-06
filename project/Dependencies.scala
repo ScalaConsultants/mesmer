@@ -35,6 +35,10 @@ object Dependencies {
     "com.typesafe.akka"  %% "akka-persistence-query" % AkkaVersion
   )
 
+  val zio = Seq(
+    "dev.zio" %% "zio" % "2.0.0"
+  )
+
   val byteBuddy = Seq(
     "net.bytebuddy" % "byte-buddy"       % "1.12.10",
     "net.bytebuddy" % "byte-buddy-agent" % "1.12.10"
