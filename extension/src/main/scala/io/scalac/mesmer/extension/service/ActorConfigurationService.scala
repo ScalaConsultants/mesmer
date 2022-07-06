@@ -30,13 +30,16 @@ final class ConfigBasedConfigurationService(config: Config) extends ActorConfigu
       .toOption
       .map { rawValue =>
         ActorConfiguration.Reporting.parse(rawValue).getOrElse {
-          logger.warn(s"Value {} is not a proper setting for reporting - default is set to disabled", rawValue)
+          logger.warn(s"Value {} is not a proper setting for reporting - applying default disabled strategy", rawValue)
           ActorConfiguration.Reporting.disabled
         }
       }
       .getOrElse(ActorConfiguration.Reporting.disabled)
 
-  private lazy val matchers: List[PathMatcher[ActorConfiguration.Reporting]] =
+  implicit private lazy val matcherReversed: Ordering[PathMatcher[ActorConfiguration.Reporting]] =
+    Ordering.ordered[PathMatcher[ActorConfiguration.Reporting]].reverse
+
+  lazy val matchers: List[PathMatcher[ActorConfiguration.Reporting]] =
     config
       .tryValue(s"$actorConfigRoot.rules")(_.getObject)
       .toOption
@@ -46,22 +49,18 @@ final class ConfigBasedConfigurationService(config: Config) extends ActorConfigu
           if (value.valueType() == ConfigValueType.STRING && raw.isInstanceOf[String]) {
             for {
               value   <- ActorConfiguration.Reporting.parse(raw.asInstanceOf[String])
-              matcher <- PathMatcher.parse(key, value)
+              matcher <- PathMatcher.parse(key, value).toOption
             } yield matcher
           } else None
 
-        }
+        }.sorted
+
       }
       .getOrElse(Nil)
 
-  implicit private lazy val matcherReversed: Ordering[PathMatcher[ActorConfiguration.Reporting]] =
-    Ordering.ordered[PathMatcher[ActorConfiguration.Reporting]].reverse
-
   def forActorPath(ref: classic.ActorPath): ActorConfiguration = {
     val reporting = matchers
-      .filter(_.matches(ref.toStringWithoutAddress))
-      .sorted
-      .headOption
+      .find(_.matches(ref.toStringWithoutAddress))
       .map(_.value)
       .getOrElse(reportingDefault)
     ActorConfiguration(reporting)

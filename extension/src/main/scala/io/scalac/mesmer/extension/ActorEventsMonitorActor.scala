@@ -135,7 +135,7 @@ private[extension] class ActorEventsMonitorActor private[extension] (
     Tree.builder[
       ActorKey,
       (ActorKey, ActorMetrics)
-    ] // we aggregate only ActorMetrics to not prevent actor cell to be GC'd
+    ] // we aggregate only ActorMetrics to not prevent actor cell to be GCed
 
   private[this] val boundMonitor = monitor.bind()
 
@@ -225,6 +225,24 @@ private[extension] class ActorEventsMonitorActor private[extension] (
 
   private def setTimeout(): Unit = scheduler.startSingleTimer(noAckStartMeasurement, pingOffset)
 
+  // TODO this needs proper tests
+  /*
+    Here we traverse snapshot of actor try bottom up and calculate metrics to export.
+    Steps:
+     - reduce metrics known from children or empty storage if none exists
+     - read metrics of currently processed actor
+     - if actor is set to aggregate data (compute metrics based on current actor and it's children)
+      - extract metrics from all known terminated actors that where children of the current actor
+        and remove those from terminatedActors tree. This is mostly important for shortly leaved actors otherwise it's metrics will be lost
+      - compute metrics based for the current actor
+    - otherwise pass current storage downstream
+
+    Rules for calualting metris
+     - disabled - metric will not be exported, but will be used for calculating aggregation of a parent
+     - instance - metric will be exported individually for the actor and will be used for aggregation of a parent
+     - group - metric will use all children metrics and itself and report it as it's own. It can be used also for calculating aggregation of a parent
+
+   */
   private def update(refs: Tree[ActorRefDetails]): Unit = {
 
     val storage = refs.unfix.foldRight[storageFactory.Storage] { case TreeF(details, childrenMetrics) =>
@@ -242,7 +260,7 @@ private[extension] class ActorEventsMonitorActor private[extension] (
         storage.save(actorKey, currentMetrics, visible)
         if (aggregate) {
           val (metrics, builder) = terminatedActorsMetrics.removeAfter(actorKey) // get all terminated information
-          terminatedActorsMetrics = builder //
+          terminatedActorsMetrics = builder
           metrics.foreach { case (key, metric) =>
             storage.save(key, metric, persistent = false)
           }

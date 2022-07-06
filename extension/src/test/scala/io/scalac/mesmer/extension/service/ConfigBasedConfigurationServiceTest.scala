@@ -58,12 +58,12 @@ class ConfigBasedConfigurationServiceTest extends AnyFlatSpec with Matchers {
   it should "apply specific value for all values in wildcard" in {
     val config = ConfigFactory.parseString("""
                                              |io.scalac.mesmer.actor.rules {
-                                             |  "/user/testactor/*" = instance
+                                             |  "/user/testactor/**" = instance
                                              |}
                                              |""".stripMargin)
     val sut = new ConfigBasedConfigurationService(config)
 
-    sut.forActorPath(actorPath("/user/testactor")) should be(instanceConfig)
+    sut.forActorPath(actorPath("/user/testactor")) should be(disabledConfig)
     sut.forActorPath(actorPath("/user/testactor/a")) should be(instanceConfig)
     sut.forActorPath(actorPath("/user/testactor/b/c/")) should be(instanceConfig)
     sut.forActorPath(actorPath("/user/otheractor")) should be(disabledConfig)
@@ -86,8 +86,8 @@ class ConfigBasedConfigurationServiceTest extends AnyFlatSpec with Matchers {
 
     val config = ConfigFactory.parseString("""
                                              |io.scalac.mesmer.actor.rules {
-                                             |  "/user/*" = group
-                                             |  "/user/more/specific/actor/*" = instance
+                                             |  "/user/**" = group
+                                             |  "/user/more/specific/actor/**" = instance
                                              |}
                                              |""".stripMargin)
     val sut = new ConfigBasedConfigurationService(config)
