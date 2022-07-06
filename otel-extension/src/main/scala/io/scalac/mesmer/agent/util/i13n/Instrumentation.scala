@@ -14,7 +14,7 @@ case class Instrumentation private (
   private[i13n] val instrumentedType: TypeDesc,
   private[i13n] val adviceSet: Set[Advice]
 ) {
-  def withAdvice(advice: Advice): Instrumentation =
+  def `with`(advice: Advice): Instrumentation =
     new Instrumentation(instrumentedType, adviceSet + advice)
 }
 
