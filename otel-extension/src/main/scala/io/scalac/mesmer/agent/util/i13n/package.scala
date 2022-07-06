@@ -1,6 +1,6 @@
 package io.scalac.mesmer.agent.util
 
-import net.bytebuddy.asm.Advice
+import net.bytebuddy.asm.{ Advice => ByteBuddyAdvice }
 import net.bytebuddy.description.`type`.TypeDefinition
 import net.bytebuddy.description.`type`.TypeDescription
 import net.bytebuddy.description.method.MethodDescription
@@ -67,16 +67,16 @@ package object i13n {
   ) {
 
     def visit[T](method: MethodDesc)(implicit ct: ClassTag[T]): TypeInstrumentation =
-      chain(_.visit(Advice.to(ct.runtimeClass).on(method)))
+      chain(_.visit(ByteBuddyAdvice.to(ct.runtimeClass).on(method)))
 
     def visit[A](advice: A, method: MethodDesc)(implicit isObject: A <:< Singleton): TypeInstrumentation =
-      chain(_.visit(Advice.to(typeFromModule(advice.getClass)).on(method)))
+      chain(_.visit(ByteBuddyAdvice.to(typeFromModule(advice.getClass)).on(method)))
 
     def intercept[A](advice: A, method: MethodDesc)(implicit isObject: A <:< Singleton): TypeInstrumentation =
-      chain(_.method(method).intercept(Advice.to(typeFromModule(advice.getClass))))
+      chain(_.method(method).intercept(ByteBuddyAdvice.to(typeFromModule(advice.getClass))))
 
     def intercept[T](method: MethodDesc)(implicit ct: ClassTag[T]): TypeInstrumentation =
-      chain(_.method(method).intercept(Advice.to(ct.runtimeClass)))
+      chain(_.method(method).intercept(ByteBuddyAdvice.to(ct.runtimeClass)))
 
     def intercept(method: MethodDesc, implementation: Implementation): TypeInstrumentation =
       chain(_.method(method).intercept(implementation))
