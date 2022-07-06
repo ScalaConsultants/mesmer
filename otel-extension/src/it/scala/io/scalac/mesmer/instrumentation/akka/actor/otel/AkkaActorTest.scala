@@ -7,12 +7,15 @@ import akka.actor.typed.{ ActorRef, Behavior, SupervisorStrategy }
 import akka.actor.{ PoisonPill, Props }
 import akka.{ actor => classic }
 import io.opentelemetry.api.common.AttributeKey
+import io.opentelemetry.sdk.metrics.SdkMeterProvider
 import io.opentelemetry.sdk.metrics.data.{ LongPointData, MetricDataType }
+import io.opentelemetry.sdk.testing.exporter.InMemoryMetricReader
 import io.scalac.mesmer.agent.utils.{ OtelAgentTest, SafeLoadSystem }
 import io.scalac.mesmer.core.actor.{ ActorCellDecorator, ActorCellMetrics }
 import io.scalac.mesmer.core.akka.model.AttributeNames
 import io.scalac.mesmer.core.event.ActorEvent
 import io.scalac.mesmer.core.util.ReceptionistOps
+import io.scalac.mesmer.otelextension.instrumentations.akka.actor.{ Instruments, InstrumentsProvider }
 import org.scalatest.concurrent.Eventually
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
@@ -35,7 +38,16 @@ final class AkkaActorTest
 
   private val Tolerance: Double = scaled(25.millis).toMillis.toDouble
 
+  @volatile
+  private var instruments: Instruments = _
+  @volatile
+  private var reader: InMemoryMetricReader = _
+
   override protected def beforeEach() {
+    reader = InMemoryMetricReader.create()
+    val provider = SdkMeterProvider.builder().registerMetricReader(reader).build()
+    instruments = InstrumentsProvider.setInstruments(Instruments(provider))
+
     super.beforeEach()
   }
 
