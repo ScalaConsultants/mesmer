@@ -27,7 +27,8 @@ public class MesmerZIOExecutionMetricsInstrumentationModule extends Instrumentat
   public List<String> getAdditionalHelperClassNames() {
     return List.of(
         "io.scalac.mesmer.otelextension.instrumentations.zio.advice.ZIOExecutorAdvice$",
-        "io.scalac.mesmer.otelextension.instrumentations.zio.ZIOInstrumentations$");
+        "io.scalac.mesmer.otelextension.instrumentations.zio.ZIOInstrumentations$",
+        "io.scalac.mesmer.otelextension.instrumentations.zio.ExecutorMetricsProvider$");
   }
 
   @Override
