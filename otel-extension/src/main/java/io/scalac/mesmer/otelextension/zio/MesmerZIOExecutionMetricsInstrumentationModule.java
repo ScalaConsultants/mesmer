@@ -20,15 +20,15 @@ public class MesmerZIOExecutionMetricsInstrumentationModule extends Instrumentat
 
   @Override
   public List<TypeInstrumentation> typeInstrumentations() {
-    return Collections.singletonList(ZIOInstrumentations.executorAdvice());
+    return Collections.singletonList(ZIOInstrumentations.executorMetricsAdvice());
   }
 
   @Override
   public List<String> getAdditionalHelperClassNames() {
     return List.of(
         "io.scalac.mesmer.otelextension.instrumentations.zio.advice.ZIOExecutorAdvice$",
-        "io.scalac.mesmer.otelextension.instrumentations.zio.ZIOInstrumentations$",
-        "io.scalac.mesmer.otelextension.instrumentations.zio.ExecutorMetricsProvider$");
+        "io.scalac.mesmer.otelextension.instrumentations.zio.ZIOExecutorMetrics$",
+        "io.scalac.mesmer.otelextension.instrumentations.zio.ZIOInstrumentations$");
   }
 
   @Override
