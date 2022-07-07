@@ -11,7 +11,7 @@ import zio.Executor
 import zio.Unsafe
 import zio.internal.ExecutionMetrics
 
-object ExecutorMetricsProvider {
+object ZIOExecutorMetrics {
 
   private val meter: Meter = GlobalOpenTelemetry.getMeter("mesmer")
 
