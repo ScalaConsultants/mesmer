@@ -5,18 +5,16 @@ import net.bytebuddy.description.`type`.TypeDescription
 import net.bytebuddy.description.method.MethodDescription
 import net.bytebuddy.matcher.ElementMatchers._
 
-import io.scalac.mesmer.agent.util.i13n.AdviceApplication.advice
-import io.scalac.mesmer.agent.util.i13n.OtelTypeInstrumentation
+import io.scalac.mesmer.agent.util.i13n.Advice
+import io.scalac.mesmer.agent.util.i13n.Instrumentation
 
 object ZIOInstrumentations {
 
   val executorAdvice: TypeInstrumentation =
-    OtelTypeInstrumentation
-      .instrument(named[TypeDescription]("zio.Executor"))
-      .using(
-        advice(
-          isConstructor[MethodDescription],
-          "io.scalac.mesmer.otelextension.instrumentations.zio.advice.ZIOExecutorAdvice"
-        )
+    Instrumentation(named[TypeDescription]("zio.Executor")).`with`(
+      Advice(
+        isConstructor[MethodDescription],
+        "io.scalac.mesmer.otelextension.instrumentations.zio.advice.ZIOExecutorAdvice"
       )
+    )
 }
