@@ -96,7 +96,7 @@ object Dependencies {
     "com.lightbend.akka.management" %% "akka-management-cluster-http"              % AkkaManagementVersion,
     "com.lightbend.akka.management" %% "akka-management-cluster-bootstrap"         % AkkaManagementVersion,
     "io.opentelemetry"               % "opentelemetry-sdk-extension-autoconfigure" % OpentelemetryAlphaVersion130,
-    "io.grpc"                        % "grpc-netty-shaded"                         % "1.46.0",
+    "io.grpc"                        % "grpc-netty-shaded"                         % "1.47.0",
     "org.wvlet.airframe"            %% "airframe-log"                              % AirframeVersion
   )
 }
