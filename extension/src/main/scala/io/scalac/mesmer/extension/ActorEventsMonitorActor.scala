@@ -99,12 +99,12 @@ object ActorEventsMonitorActor {
         mailboxSize = safeRead(ActorCellOps.numberOfMessages(cell)),
         mailboxTime = metrics.mailboxTimeAgg.toOption.flatMap(_.metrics),
         processingTime = metrics.processingTimeAgg.toOption.flatMap(_.metrics),
-        receivedMessages = metrics.receivedMessages.toOption.map(_.take),
-        unhandledMessages = metrics.unhandledMessages.toOption.map(_.take),
-        failedMessages = metrics.failedMessages.toOption.map(_.take),
-        sentMessages = metrics.sentMessages.toOption.map(_.take),
-        stashSize = metrics.stashedMessages.toOption.map(_.take),
-        droppedMessages = metrics.droppedMessages.toOption.map(_.take)
+        receivedMessages = metrics.receivedMessages.toOption.map(_.take()),
+        unhandledMessages = metrics.unhandledMessages.toOption.map(_.take()),
+        failedMessages = metrics.failedMessages.toOption.map(_.take()),
+        sentMessages = metrics.sentMessages.toOption.map(_.take()),
+        stashSize = metrics.stashedMessages.toOption.map(_.take()),
+        droppedMessages = metrics.droppedMessages.toOption.map(_.take())
       )
 
     private def safeRead[T](value: => T): Option[T] =
