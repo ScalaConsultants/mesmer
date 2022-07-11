@@ -27,7 +27,6 @@ class ZIOExecutorMetricsTest extends OtelAgentTest with AnyFlatSpecLike with Mat
       assertGaugeIsCollected("mesmer_zio_executor_enqueued_count")
       assertGaugeIsCollected("mesmer_zio_executor_size")
       assertGaugeIsCollected("mesmer_zio_executor_capacity")
-      assertGaugeIsCollected("mesmer_zio_executor_capacity")
     }
 
     def assertGaugeIsCollected(name: String): Unit = assertMetrics(metricName = name) { case _ => () }
@@ -60,13 +59,43 @@ class ZIOExecutorMetricsTest extends OtelAgentTest with AnyFlatSpecLike with Mat
       assertMetrics("mesmer_zio_executor_worker_count") {
         case data if data.getType == MetricDataType.LONG_GAUGE =>
           val customExecutorData = findGaugeDataSeriesWithStaticValue(corePoolSize, data)
-          customExecutorData.size should be(1)
+          customExecutorData.size should be(2)
       }
     }
   }
 
-  private def createCustomExecutor(corePoolSize: RuntimeFlags, maxPoolSize: RuntimeFlags) = {
-    val executor: ThreadPoolExecutor = new ThreadPoolExecutor(
+  "Executor's enqueued_count" should "should report a non-zero value of enqueued messages" in {
+    val executor: ThreadPoolExecutor = createCustomExecutor(10, 10)
+
+    Unsafe.unsafe { implicit u =>
+      val customExecutor = Runtime.setExecutor(Executor.fromThreadPoolExecutor(executor))
+      Runtime.default.unsafe.runToFuture(testProgram.provide(customExecutor))
+
+      assertMetrics("mesmer_zio_executor_enqueued_count") {
+        case data if data.getType == MetricDataType.LONG_GAUGE =>
+          val points: Iterable[Long] = data.getLongGaugeData.getPoints.asScala.map(_.getValue)
+          points.sum should not be 0
+      }
+    }
+  }
+
+  "Executor's dequeued_count" should "should report a non-zero value of dequeued messages" in {
+    val executor: ThreadPoolExecutor = createCustomExecutor(10, 10)
+
+    Unsafe.unsafe { implicit u =>
+      val customExecutor = Runtime.setExecutor(Executor.fromThreadPoolExecutor(executor))
+      Runtime.default.unsafe.runToFuture(testProgram.provide(customExecutor))
+
+      assertMetrics("mesmer_zio_executor_dequeued_count") {
+        case data if data.getType == MetricDataType.LONG_GAUGE =>
+          val points: Iterable[Long] = data.getLongGaugeData.getPoints.asScala.map(_.getValue)
+          points.sum should not be 0
+      }
+    }
+  }
+
+  private def createCustomExecutor(corePoolSize: RuntimeFlags, maxPoolSize: RuntimeFlags) =
+    new ThreadPoolExecutor(
       corePoolSize,
       maxPoolSize,
       60000L,
@@ -74,8 +103,6 @@ class ZIOExecutorMetricsTest extends OtelAgentTest with AnyFlatSpecLike with Mat
       new SynchronousQueue[Runnable](),
       (r: Runnable) => new Thread(r)
     )
-    executor
-  }
 
   private def findGaugeDataSeriesWithStaticValue(value: RuntimeFlags, data: MetricData): Map[String, Iterable[Long]] =
     data.getLongGaugeData.getPoints.asScala
@@ -84,5 +111,4 @@ class ZIOExecutorMetricsTest extends OtelAgentTest with AnyFlatSpecLike with Mat
       .mapValues(_.map(_.getValue))
       .filter(_._2.toList.forall(_ == value))
       .toMap
-
 }
