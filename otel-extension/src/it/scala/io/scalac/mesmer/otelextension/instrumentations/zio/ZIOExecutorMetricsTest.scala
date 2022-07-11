@@ -17,7 +17,7 @@ class ZIOExecutorMetricsTest extends OtelAgentTest with AnyFlatSpecLike with Mat
   } yield ())
     .repeat(Schedule.forever)
 
-  "ZIOExecutorMetrics" should "produce worker_count metric" in {
+  "ZIOExecutorMetrics" should "collect all execution metrics" in {
     Unsafe.unsafe { implicit u =>
       Runtime.default.unsafe.runToFuture(testProgram)
 
@@ -32,9 +32,9 @@ class ZIOExecutorMetricsTest extends OtelAgentTest with AnyFlatSpecLike with Mat
     def assertGaugeIsCollected(name: String): Unit = assertMetrics(metricName = name) { case _ => () }
   }
 
-  "Executor's maxPoolSize" should "be discovered as mesmer_zio_executor_concurrency" in {
-    val maxPoolSize                  = 7
-    val executor: ThreadPoolExecutor = createCustomExecutor(0, maxPoolSize)
+  "There" should "be only one executor that has the given concurrency" in {
+    val concurrency: Int             = 17
+    val executor: ThreadPoolExecutor = createCustomExecutor(concurrency)
 
     Unsafe.unsafe { implicit u =>
       val customExecutor = Runtime.setExecutor(Executor.fromThreadPoolExecutor(executor))
@@ -42,30 +42,27 @@ class ZIOExecutorMetricsTest extends OtelAgentTest with AnyFlatSpecLike with Mat
 
       assertMetrics("mesmer_zio_executor_concurrency") {
         case data if data.getType == MetricDataType.LONG_GAUGE =>
-          val customExecutorData = findGaugeDataSeriesWithStaticValue(maxPoolSize, data)
-          customExecutorData.size should be(1)
+          val concurrencySeries = findGaugeDataSeriesWithStaticValue(concurrency, data)
+          concurrencySeries.size should be(1)
+          all(concurrencySeries.values.last) should be(concurrency)
       }
     }
   }
 
-  "Executor's corePoolSize" should "be discovered as mesmer_zio_executor_worker_count" in {
-    val corePoolSize                 = 2
-    val executor: ThreadPoolExecutor = createCustomExecutor(corePoolSize, 10)
-
+  "Worker count metric" should "not be 0 (at least one executor has workers that are live at least for a while)" in {
     Unsafe.unsafe { implicit u =>
-      val customExecutor = Runtime.setExecutor(Executor.fromThreadPoolExecutor(executor))
-      Runtime.default.unsafe.runToFuture(testProgram.provide(customExecutor))
+      Runtime.default.unsafe.runToFuture(testProgram)
 
       assertMetrics("mesmer_zio_executor_worker_count") {
         case data if data.getType == MetricDataType.LONG_GAUGE =>
-          val customExecutorData = findGaugeDataSeriesWithStaticValue(corePoolSize, data)
-          customExecutorData.size should be(2)
+          val workerCountPerExecutor = data.getLongGaugeData.getPoints.asScala.map(_.getValue)
+          workerCountPerExecutor.sum should not be 0
       }
     }
   }
 
   "Executor's enqueued_count" should "should report a non-zero value of enqueued messages" in {
-    val executor: ThreadPoolExecutor = createCustomExecutor(10, 10)
+    val executor: ThreadPoolExecutor = createCustomExecutor(10)
 
     Unsafe.unsafe { implicit u =>
       val customExecutor = Runtime.setExecutor(Executor.fromThreadPoolExecutor(executor))
@@ -80,7 +77,7 @@ class ZIOExecutorMetricsTest extends OtelAgentTest with AnyFlatSpecLike with Mat
   }
 
   "Executor's dequeued_count" should "should report a non-zero value of dequeued messages" in {
-    val executor: ThreadPoolExecutor = createCustomExecutor(10, 10)
+    val executor: ThreadPoolExecutor = createCustomExecutor(10)
 
     Unsafe.unsafe { implicit u =>
       val customExecutor = Runtime.setExecutor(Executor.fromThreadPoolExecutor(executor))
@@ -94,9 +91,9 @@ class ZIOExecutorMetricsTest extends OtelAgentTest with AnyFlatSpecLike with Mat
     }
   }
 
-  private def createCustomExecutor(corePoolSize: RuntimeFlags, maxPoolSize: RuntimeFlags) =
+  private def createCustomExecutor(maxPoolSize: Int) =
     new ThreadPoolExecutor(
-      corePoolSize,
+      10,
       maxPoolSize,
       60000L,
       TimeUnit.MILLISECONDS,
@@ -104,7 +101,7 @@ class ZIOExecutorMetricsTest extends OtelAgentTest with AnyFlatSpecLike with Mat
       (r: Runnable) => new Thread(r)
     )
 
-  private def findGaugeDataSeriesWithStaticValue(value: RuntimeFlags, data: MetricData): Map[String, Iterable[Long]] =
+  private def findGaugeDataSeriesWithStaticValue(value: Long, data: MetricData): Map[String, Iterable[Long]] =
     data.getLongGaugeData.getPoints.asScala
       .groupBy(_.getAttributes.get(AttributeKey.stringKey("executor")))
       .view
