@@ -218,7 +218,7 @@ def runExampleWithOtelAgent = Command.command("runExampleWithOtelAgent") { state
     state
   )
   val (s, _) =
-    Project.extract(newState).runInputTask(Compile / run, "", newState)
+    Project.extract(newState).runInputTask(Compile / runMain, " example.Boot", newState)
   s
 }
 
