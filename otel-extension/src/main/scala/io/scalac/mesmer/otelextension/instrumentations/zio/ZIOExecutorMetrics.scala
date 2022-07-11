@@ -39,7 +39,7 @@ object ZIOExecutorMetrics {
 
       registerAsyncLongGauge(
         executionMetricName("size"),
-        "Task number",
+        "Task count",
         "The number of tasks remaining to be executed."
       )(extract(_.size))
 
@@ -51,13 +51,13 @@ object ZIOExecutorMetrics {
 
       registerAsyncLongGauge(
         executionMetricName("dequeued_count"),
-        "Count",
+        "Task count",
         "The number of tasks that have been dequeued, over all time."
       )(extract(_.dequeuedCount))
 
       registerAsyncLongGauge(
         executionMetricName("enqueued_count"),
-        "Count",
+        "Task count",
         "The number of tasks that have been enqueued, over all time."
       )(extract(_.enqueuedCount))
     }
