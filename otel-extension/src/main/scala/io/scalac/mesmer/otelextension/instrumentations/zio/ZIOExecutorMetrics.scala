@@ -15,7 +15,7 @@ object ZIOExecutorMetrics {
 
   private val meter: Meter = GlobalOpenTelemetry.getMeter("mesmer")
 
-  private val executionMetricName: String => String = (suffix: String) => s"mesmer.zio.execution.$suffix"
+  private val executionMetricName: String => String = (suffix: String) => s"mesmer_zio_executor_$suffix"
 
   def registerExecutorMetrics(executor: Executor): Unit =
     Unsafe.unsafe { implicit u =>
