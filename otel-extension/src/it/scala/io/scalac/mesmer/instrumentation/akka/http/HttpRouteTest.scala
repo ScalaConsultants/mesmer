@@ -1,7 +1,8 @@
 package io.scalac.mesmer.instrumentation.akka.http
 
 import akka.http.scaladsl.model.StatusCodes
-import io.scalac.mesmer.agent.utils.{ OtelAgentTest, SafeLoadSystem }
+import io.scalac.mesmer.agent.utils.OtelAgentTest
+//import io.scalac.mesmer.agent.utils.OtelAgentTestSafeLoadSystem
 import io.scalac.mesmer.core.util.ReceptionistOps
 import org.scalatest.OptionValues
 import org.scalatest.concurrent.ScalaFutures
@@ -11,9 +12,10 @@ import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server._
 import akka.http.scaladsl.testkit.ScalatestRouteTest
 import akka.util.Timeout
-import scala.util.Try
-import io.opentelemetry.context.{ Context, ContextKey }
-import io.scalac.mesmer.otelextension.instrumentations.akka.http.{ RouteContext, RouteTemplateHolder }
+//import scala.util.Try
+//import io.opentelemetry.context.{ Context, ContextKey }
+import io.scalac.mesmer.otelextension.instrumentations.akka.http.RouteContext
+//import io.scalac.mesmer.otelextension.instrumentations.akka.http.RouteTemplateHolder
 
 import scala.concurrent.Promise
 import scala.concurrent.duration._
