@@ -9,5 +9,4 @@ object ZIOExecutorAdvice {
   @Advice.OnMethodExit
   def constructExecutor(@Advice.This executor: Executor): Unit =
     ZIOExecutorMetrics.registerExecutorMetrics(executor)
-
 }
