@@ -26,7 +26,8 @@ public class MesmerAkkaPersistenceInstrumentationModule extends InstrumentationM
         AkkaPersistenceAgent.replayingSnapshotOnRecoveryStart(),
         AkkaPersistenceAgent.runningOnWriteInitiatedInstrumentation(),
         AkkaPersistenceAgent.runningOnWriteSuccessInstrumentation(),
-        AkkaPersistenceAgent.storingSnapshotonWriteInitiated());
+        AkkaPersistenceAgent.abstractBehaviorSubstituteTest(),
+        AkkaPersistenceAgent.storingSnapshotOnWriteInitiated());
   }
 
   @Override

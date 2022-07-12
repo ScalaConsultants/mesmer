@@ -1,6 +1,10 @@
 package io.scalac.mesmer.otelextension.instrumentations.akka.persistence
-
 import io.opentelemetry.javaagent.extension.instrumentation.TypeInstrumentation
+import io.opentelemetry.javaagent.tooling.Utils
+import io.opentelemetry.javaagent.tooling.bytebuddy.ExceptionHandlers
+import net.bytebuddy.agent.builder.AgentBuilder
+import net.bytebuddy.asm.MemberSubstitution
+import net.bytebuddy.description.method.MethodDescription
 
 import io.scalac.mesmer.agent.util.dsl._
 import io.scalac.mesmer.agent.util.dsl.matchers._
@@ -30,59 +34,60 @@ object AkkaPersistenceAgent {
       "akka.persistence.typed.RunningOnWriteInitiatedAdvice"
     )
 
-  val storingSnapshotonWriteInitiated: TypeInstrumentation =
-    typeInstrumentation(named("akka.persistence.typed.internal.Running$StoringSnapshot"))(
-      named("onSaveSnapshotResponse"),
-      "akka.persistence.typed.StoringSnapshotOnSaveSnapshotResponseAdvice"
-    )
-//
-//  lazy val recoveryTime: Agent = recoveryAgent
-//
-//  lazy val recoveryTotal: Agent = recoveryAgent
-//
-//  lazy val persistentEvent: Agent = eventWriteSuccessAgent
-//
-//  lazy val persistentEventTotal: Agent = eventWriteSuccessAgent
-//
-//  lazy val snapshot: Agent = snapshotLoadingAgent
-//
-//  private val recoveryAgent = {
-//
-//    val recoveryTag = "recovery"
-//
-//    /**
-//     * Instrumentation to fire event on persistent actor recovery start
-//     */
-//    val recoveryStartedAgent =
-//      instrument("akka.persistence.typed.internal.ReplayingSnapshot".fqcnWithTags(recoveryTag))
-//        .visit(RecoveryStartedAdvice, "onRecoveryStart")
-//
-//    /**
-//     * Instrumentation to fire event on persistent actor recovery complete
-//     */
-//    val recoveryCompletedAgent =
-//      instrument("akka.persistence.typed.internal.ReplayingEvents".fqcnWithTags(recoveryTag))
-//        .visit(RecoveryCompletedAdvice, "onRecoveryComplete")
-//
-//    Agent(recoveryStartedAgent, recoveryCompletedAgent)
-//  }
-//
-//  /**
-//   * Instrumentation to fire events on persistent event start and stop
-//   */
-//  private val eventWriteSuccessAgent =
-//    Agent(
-//      instrument("akka.persistence.typed.internal.Running".fqcnWithTags("persistent_event"))
-//        .visit(PersistingEventSuccessAdvice, "onWriteSuccess")
-//        .visit(JournalInteractionsAdvice, "onWriteInitiated")
-//    )
-//
-//  /**
-//   * Instrumentation to fire event when snapshot is stored
-//   */
-//  private val snapshotLoadingAgent =
-//    Agent(
-//      instrument("akka.persistence.typed.internal.Running$StoringSnapshot".fqcnWithTags("snapshot_created"))
-//        .visit(StoringSnapshotAdvice, "onSaveSnapshotResponse")
-//    )
+  val storingSnapshotOnWriteInitiated: TypeInstrumentation =
+    typeInstrumentation(named("akka.persistence.typed.internal.Running$StoringSnapshot")) { transformer =>
+      // order of transformations matters
+
+      transformer.applyTransformer { (dynamic, _, _, _) =>
+        dynamic
+          .visit(
+            MemberSubstitution
+              .relaxed()
+              .method(matchers.named("dummyContext"))
+              .replaceWithMethod(matchers.named("context"))
+              .on(matchers.named[MethodDescription]("onSaveSnapshotResponse"))
+          )
+      }
+
+      transformer.applyTransformer(
+        new AgentBuilder.Transformer.ForAdvice()
+          // for some reason direct access result in compilation errors
+          .include(classOf[Utils].getDeclaredMethod("getBootstrapProxy").invoke(null).asInstanceOf[ClassLoader])
+          .include(Utils.getAgentClassLoader)
+          .include(Utils.getExtensionsClassLoader)
+          .withExceptionHandler(ExceptionHandlers.defaultExceptionHandler())
+          .advice(
+            matchers.named[MethodDescription]("onSaveSnapshotResponse"),
+            "akka.persistence.typed.StoringSnapshotOnSaveSnapshotResponseAdvice"
+          )
+      )
+
+    }
+
+  val abstractBehaviorSubstituteTest: TypeInstrumentation =
+    typeInstrumentation(named("example.TestBehavior")) { transformer =>
+      // order of transformations matters
+
+      transformer.applyTransformer { (dynamic, _, _, _) =>
+        dynamic
+          .visit(
+            MemberSubstitution
+              .relaxed()
+              .method(matchers.named("dummyContext"))
+              .replaceWithMethod(matchers.named("context"))
+              .on(matchers.named[MethodDescription]("onMessage"))
+          )
+      }
+
+      transformer.applyTransformer(
+        new AgentBuilder.Transformer.ForAdvice()
+          // for some reason direct access result in compilation errors
+          .include(classOf[Utils].getDeclaredMethod("getBootstrapProxy").invoke(null).asInstanceOf[ClassLoader])
+          .include(Utils.getAgentClassLoader)
+          .include(Utils.getExtensionsClassLoader)
+          .withExceptionHandler(ExceptionHandlers.defaultExceptionHandler())
+          .advice(matchers.named[MethodDescription]("onMessage"), "akka.persistence.typed.TestAbstractBehaviorAdvice")
+      )
+
+    }
 }
