@@ -1,8 +1,11 @@
 package io.scalac.mesmer.agent.utils
 
 import io.opentelemetry.instrumentation.testing.AgentTestRunner
+import io.opentelemetry.sdk.common.InstrumentationScopeInfo
 import io.opentelemetry.sdk.metrics.data.{ HistogramPointData, MetricData }
 import io.opentelemetry.sdk.metrics.internal.aggregator.EmptyMetricData
+import io.opentelemetry.sdk.metrics.internal.data.ImmutableMetricData
+import io.opentelemetry.sdk.resources.Resource
 import org.scalatest.concurrent.Eventually
 import org.scalatest.{ BeforeAndAfterAll, BeforeAndAfterEach, OptionValues, TestSuite }
 
@@ -22,35 +25,42 @@ trait OtelAgentTest extends TestSuite with BeforeAndAfterAll with Eventually wit
     testRunner.clearAllExportedData()
   }
 
-  protected def assertMetrics(metricName: String, successOnEmpty: Boolean = false)(
-    testFunction: PartialFunction[MetricData, Unit]
-  ): Unit = assertMetrics("mesmer", metricName, successOnEmpty)(testFunction)
+  protected def assertMetric(metricName: String)(
+    testFunction: MetricData => Unit
+  ): Unit = assertMetrics("mesmer")(metricName -> testFunction)
 
   /**
    * @param instrumentationName
    *   intrumentation name used for preliminary filtration
-   * @param metricName
+   * @param tests
    *   metric name used for preliminary filtration
    * @param testFunction
    *   test function used the assert data. This will be executed once for every exported data (roughly every 100ms
    *   during test duration). It should return normally only when found data is correct.
    */
-  protected def assertMetrics(instrumentationName: String, metricName: String, successOnEmpty: Boolean)(
-    testFunction: PartialFunction[MetricData, Unit]
-  ): Unit =
+  protected def assertMetrics(
+    instrumentationName: String
+  )(tests: (String, MetricData => Unit)*): Unit =
     eventually {
-      val result = testRunner.getExportedMetrics.asScala
-        .filter(data => data.getInstrumentationScopeInfo.getName == instrumentationName && data.getName == metricName)
-        .collect {
-          case data if testFunction.isDefinedAt(data) => Try(testFunction.apply(data))
-        }
+      val exported = testRunner.getExportedMetrics.asScala
 
-      if (!result.exists(_.isSuccess)) {
-        result.lastOption
-          .fold(if (!successOnEmpty) fail("No matching data point found"))(
-            _.failed.foreach(ex => throw ex)
-          ) // last series found is presented as an error
+      val results = tests.map { case (metricName, test) =>
+        val selectedMetrics = exported
+          .filter(data => data.getInstrumentationScopeInfo.getName == instrumentationName && data.getName == metricName)
+
+        val testData = if (selectedMetrics.isEmpty) EmptyMetricData.getInstance() :: Nil else selectedMetrics
+
+        testData.map(data => Try(test.apply(data))).toList
       }
+
+      val success = results.forall(_.exists(_.isSuccess))
+
+      if (!success) {
+        results.flatten
+          .findLast(_.isFailure)
+          .fold(fail("No matching data point found"))(_.failed.foreach(ex => throw ex))
+      }
+
     }
 
   /*
