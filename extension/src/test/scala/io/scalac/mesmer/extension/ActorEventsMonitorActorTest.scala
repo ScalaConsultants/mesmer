@@ -102,7 +102,7 @@ final class ActorEventsMonitorActorTest
   )
 
   private val addRandomMetrics: Tree[ActorRefDetails] => Tree[(classic.ActorRef, ActorMetrics)] =
-    _.unfix.mapValues(details => (details.ref, randomActorMetrics))
+    _.unfix.mapValues(details => (details.ref, randomActorMetrics()))
 
   private val constRefsActorServiceTree: Tree[ActorRefDetails] => Behavior[ActorTreeService.Command] = refs =>
     Behaviors.receiveMessagePartial {
@@ -310,7 +310,7 @@ final class ActorEventsMonitorActorTest
       testCaseWithSetupAndContext { ctx =>
         ctx.copy(actorTreeService = actorService, actorMetricReader = actorDataReader(metricsService))
       } { implicit setup => implicit context =>
-        val ackProbe = TestProbe[Done]
+        val ackProbe = TestProbe[Done]()
 
         collectActorMetrics(ackProbe)
 
@@ -343,7 +343,7 @@ final class ActorEventsMonitorActorTest
       testCaseWithSetupAndContext { ctx =>
         ctx.copy(actorTreeService = actorService, actorMetricReader = treeDataReader(refsWithMetrics))
       } { implicit setup => implicit context =>
-        val ackProbe = TestProbe[Done]
+        val ackProbe = TestProbe[Done]()
 
         collectActorMetrics(ackProbe)
         runUpdaters()
@@ -377,7 +377,7 @@ final class ActorEventsMonitorActorTest
       testCaseWithSetupAndContext { ctx =>
         ctx.copy(actorTreeService = actorService, actorMetricReader = treeDataReader(refsWithMetrics))
       } { implicit setup => implicit context =>
-        val ackProbe = TestProbe[Done]
+        val ackProbe = TestProbe[Done]()
 
         collectActorMetrics(ackProbe)
         runUpdaters()
@@ -399,7 +399,7 @@ final class ActorEventsMonitorActorTest
       testCaseWithSetupAndContext { ctx =>
         ctx.copy(actorTreeService = actorService, actorMetricReader = treeDataReader(refsWithMetrics))
       } { implicit setup => implicit context =>
-        val ackProbe = TestProbe[Done]
+        val ackProbe = TestProbe[Done]()
 
         collectActorMetrics(ackProbe)
         runUpdaters()
@@ -423,7 +423,7 @@ final class ActorEventsMonitorActorTest
       testCaseWithSetupAndContext { ctx =>
         ctx.copy(actorTreeService = actorService, actorMetricReader = treeDataReader(refsWithMetrics))
       } { implicit setup => implicit context =>
-        val ackProbe = TestProbe[Done]
+        val ackProbe = TestProbe[Done]()
 
         collectActorMetrics(ackProbe)
         runUpdaters()
@@ -442,14 +442,14 @@ final class ActorEventsMonitorActorTest
       testCaseWithSetupAndContext { ctx =>
         ctx.copy(actorTreeService = actorService, actorMetricReader = treeDataReader(refsWithMetrics))
       } { implicit setup => implicit context =>
-        val ackProbe = TestProbe[Done]
+        val ackProbe = TestProbe[Done]()
 
         collectActorMetrics(ackProbe)
         runUpdaters()
 
         val probe = selectProbe(context.monitor)
 
-        inside(probe.receiveMessage) { case MetricObserved(_, l) =>
+        inside(probe.receiveMessage()) { case MetricObserved(_, l) =>
           l should be(attributes)
         }
         probe.expectNoMessage()
@@ -477,7 +477,7 @@ final class ActorEventsMonitorActorTest
       testCaseWithSetupAndContext { ctx =>
         ctx.copy(actorTreeService = actorService, actorMetricReader = treeDataReader(refsWithMetrics))
       } { implicit setup => implicit context =>
-        val ackProbe = TestProbe[Done]
+        val ackProbe = TestProbe[Done]()
 
         collectActorMetrics(ackProbe)
         runUpdaters()
@@ -517,7 +517,7 @@ final class ActorEventsMonitorActorTest
       testCaseWithSetupAndContext { ctx =>
         ctx.copy(actorTreeService = actorService, actorMetricReader = treeDataReader(refsWithMetrics))
       } { implicit setup => implicit context =>
-        val ackProbe = TestProbe[Done]
+        val ackProbe = TestProbe[Done]()
 
         collectActorMetrics(ackProbe)
         runUpdaters()
@@ -661,7 +661,7 @@ final class ActorEventsMonitorActorTest
 
   it should "not produce any metrics until actorTreeService is available" in {
     val refs         = actorConfiguration(spawnTree(3), ActorConfiguration.instanceConfig)
-    val ackProbe     = TestProbe[Done]
+    val ackProbe     = TestProbe[Done]()
     val actorService = system.systemActorOf(countingRefsActorServiceTree(ackProbe.ref)(refs), createUniqueId)
 
     testCaseWithSetupAndContext(
@@ -675,7 +675,7 @@ final class ActorEventsMonitorActorTest
   }
 
   it should "retry to get actor refs" in {
-    val ackProbe     = TestProbe[Done]
+    val ackProbe     = TestProbe[Done]()
     val actorService = system.systemActorOf(noReplyActorServiceTree(ackProbe.ref), createUniqueId)
 
     testCaseWithSetupAndContext(

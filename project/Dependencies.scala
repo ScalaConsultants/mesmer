@@ -2,7 +2,7 @@ import sbt._
 
 object Dependencies {
 
-  val AirframeVersion              = "22.5.0"
+  val AirframeVersion              = "22.7.1"
   val AkkaHttpVersion              = "10.2.9"
   val AkkaManagementVersion        = "1.1.3"
   val AkkaVersion                  = "2.6.19"
@@ -13,7 +13,7 @@ object Dependencies {
   val OpentelemetryApiVersion      = "1.13.0"
   val OpentelemetryAlphaVersion131 = "1.13.1-alpha"
   val OpentelemetryAlphaVersion130 = "1.13.0-alpha"
-  val PostgresVersion              = "42.3.6"
+  val PostgresVersion              = "42.4.0"
   val ScalatestVersion             = "3.2.12"
   val SlickVersion                 = "3.3.3"
 
@@ -35,9 +35,13 @@ object Dependencies {
     "com.typesafe.akka"  %% "akka-persistence-query" % AkkaVersion
   )
 
+  val zio = Seq(
+    "dev.zio" %% "zio" % "2.0.0"
+  )
+
   val byteBuddy = Seq(
-    "net.bytebuddy" % "byte-buddy"       % "1.12.10",
-    "net.bytebuddy" % "byte-buddy-agent" % "1.12.10"
+    "net.bytebuddy" % "byte-buddy"       % "1.12.12",
+    "net.bytebuddy" % "byte-buddy-agent" % "1.12.12"
   )
 
   val logback = Seq("ch.qos.logback" % "logback-classic" % LogbackVersion)
@@ -92,7 +96,7 @@ object Dependencies {
     "com.lightbend.akka.management" %% "akka-management-cluster-http"              % AkkaManagementVersion,
     "com.lightbend.akka.management" %% "akka-management-cluster-bootstrap"         % AkkaManagementVersion,
     "io.opentelemetry"               % "opentelemetry-sdk-extension-autoconfigure" % OpentelemetryAlphaVersion130,
-    "io.grpc"                        % "grpc-netty-shaded"                         % "1.46.0",
+    "io.grpc"                        % "grpc-netty-shaded"                         % "1.47.0",
     "org.wvlet.airframe"            %% "airframe-log"                              % AirframeVersion
   )
 }

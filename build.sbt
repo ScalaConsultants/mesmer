@@ -88,6 +88,7 @@ lazy val otelExtension = (project in file("otel-extension"))
     name                                               := "mesmer-otel-extension",
     excludeDependencies += "io.opentelemetry.javaagent" % "opentelemetry-javaagent-bootstrap",
     libraryDependencies ++= {
+      zio.map(_ % "provided") ++
       openTelemetryExtension.map(_ % "provided") ++
       openTelemetryMuzzle.map(_ % "provided") ++
       openTelemetryInstrumentation.map(_ % "provided") ++
@@ -219,7 +220,7 @@ def runExampleWithOtelAgent = Command.command("runExampleWithOtelAgent") { state
     state
   )
   val (s, _) =
-    Project.extract(newState).runInputTask(Compile / run, "", newState)
+    Project.extract(newState).runInputTask(Compile / runMain, " example.Boot", newState)
   s
 }
 
