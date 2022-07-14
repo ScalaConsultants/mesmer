@@ -18,4 +18,12 @@ object ZIOInstrumentations {
         "io.scalac.mesmer.otelextension.instrumentations.zio.advice.ZIOExecutorAdvice"
       )
     )
+
+  val counterMetricAdvice: TypeInstrumentation =
+    Instrumentation(named[TypeDescription]("zio.metrics.Metric$")).`with`(
+      Advice(
+        named[MethodDescription]("counterDouble"),
+        "io.scalac.mesmer.otelextension.instrumentations.zio.advice.ZIOCounterAdvice"
+      )
+    )
 }
