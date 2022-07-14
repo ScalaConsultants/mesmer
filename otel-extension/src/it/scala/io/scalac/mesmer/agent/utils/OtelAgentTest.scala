@@ -52,4 +52,9 @@ trait OtelAgentTest extends TestSuite with BeforeAndAfterAll with Eventually wit
       }
     }
 
+  protected def assertMetricIsCollected(metricName: String): Unit = assertMetricIsCollected("mesmer", metricName)
+
+  protected def assertMetricIsCollected(instrumentationName: String, metricName: String): Unit =
+    assertMetrics(instrumentationName, metricName, false) { case _ => () }
+
 }
