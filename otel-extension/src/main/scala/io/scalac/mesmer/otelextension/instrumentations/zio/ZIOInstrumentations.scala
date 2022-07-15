@@ -26,4 +26,12 @@ object ZIOInstrumentations {
         "io.scalac.mesmer.otelextension.instrumentations.zio.advice.ZIOCounterAdvice"
       )
     )
+
+  val gaugeMetricAdvice: TypeInstrumentation =
+    Instrumentation(named[TypeDescription]("zio.metrics.Metric$")).`with`(
+      Advice(
+        named[MethodDescription]("gauge"),
+        "io.scalac.mesmer.otelextension.instrumentations.zio.advice.ZIOGaugeAdvice"
+      )
+    )
 }
