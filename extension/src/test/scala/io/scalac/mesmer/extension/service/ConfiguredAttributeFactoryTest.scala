@@ -1,13 +1,50 @@
 package io.scalac.mesmer.extension.service
 
 import akka.actor.ActorPath
+import akka.actor.ActorSystem
 import com.typesafe.config.ConfigFactory
+import io.opentelemetry.api.common.Attributes
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
-import io.scalac.mesmer.core.model.ActorConfiguration._
+import scala.jdk.CollectionConverters._
 
-class ConfigBasedConfigurationServiceTest extends AnyFlatSpec with Matchers {
+import io.scalac.mesmer.core.actor.ConfiguredAttributeFactory
+import io.scalac.mesmer.core.akka.model.AttributeNames
+
+object ConfiguredAttributeFactoryTest extends Matchers {
+  val SystemName = "ConfigSystemName"
+
+  implicit final class AttributeOps(private val attributes: Attributes) extends AnyVal {
+
+    def haveActorPath(value: String): Unit = {
+
+      attributesMap.get(AttributeNames.ActorSystem) should be(Some(SystemName))
+      attributesMap.get(AttributeNames.ActorPath) should be(Some(value))
+    }
+
+    def haveOnlySystem(): Unit = {
+
+      attributesMap.get(AttributeNames.ActorSystem) should be(Some(SystemName))
+      attributesMap.get(AttributeNames.ActorPath) should be(None)
+    }
+
+    private def attributesMap: Map[String, String] = attributes
+      .asMap()
+      .asScala
+      .map { case (key, value) =>
+        key.getKey -> value.toString
+      }
+      .toMap
+
+  }
+}
+
+class ConfiguredAttributeFactoryTest extends AnyFlatSpec with Matchers {
+  import ConfiguredAttributeFactoryTest._
+
+  implicit val system: ActorSystem = ActorSystem(SystemName)
+
   val TestConfig: String =
     """|
        |.rules {
@@ -16,21 +53,21 @@ class ConfigBasedConfigurationServiceTest extends AnyFlatSpec with Matchers {
        |}
        |""".stripMargin
 
-  def actorPath(path: String): ActorPath = ActorPath.fromString(s"akka://testsystem${path}")
+  def actorPath(path: String): ActorPath = ActorPath.fromString(s"akka://$SystemName$path")
 
   "ConfigBasedConfigurationService" should "return default value for empty config" in {
-    val sut  = new ConfigBasedConfigurationService(ConfigFactory.empty())
+    val sut  = new ConfiguredAttributeFactory(ConfigFactory.empty())
     val path = actorPath("/user/testactor")
-    sut.forActorPath(path) should be(disabledConfig)
+    sut.forActorPath(path).haveOnlySystem()
   }
 
   it should "change default value" in {
     val config = ConfigFactory.parseString("""
-                                             |io.scalac.mesmer.actor.reporting-default=group
+                                             |io.scalac.mesmer.actor.reporting-default=instance
                                              |""".stripMargin)
-    val sut  = new ConfigBasedConfigurationService(config)
+    val sut  = new ConfiguredAttributeFactory(config)
     val path = actorPath("/user/testactor")
-    sut.forActorPath(path) should be(groupingConfig)
+    sut.forActorPath(path).haveActorPath("/user/testactor")
   }
 
   it should "apply default value for not configured path" in {
@@ -39,9 +76,9 @@ class ConfigBasedConfigurationServiceTest extends AnyFlatSpec with Matchers {
                                              |  "/user/nonexistent" = instance
                                              |}
                                              |""".stripMargin)
-    val sut  = new ConfigBasedConfigurationService(config)
+    val sut  = new ConfiguredAttributeFactory(config)
     val path = actorPath("/user/testactor")
-    sut.forActorPath(path) should be(disabledConfig)
+    sut.forActorPath(path).haveOnlySystem()
   }
 
   it should "apply specified value for exactly configured path" in {
@@ -50,9 +87,9 @@ class ConfigBasedConfigurationServiceTest extends AnyFlatSpec with Matchers {
                                              |  "/user/testactor" = instance
                                              |}
                                              |""".stripMargin)
-    val sut  = new ConfigBasedConfigurationService(config)
+    val sut  = new ConfiguredAttributeFactory(config)
     val path = actorPath("/user/testactor")
-    sut.forActorPath(path) should be(instanceConfig)
+    sut.forActorPath(path).haveActorPath("/user/testactor")
   }
 
   it should "apply specific value for all values in wildcard" in {
@@ -61,12 +98,12 @@ class ConfigBasedConfigurationServiceTest extends AnyFlatSpec with Matchers {
                                              |  "/user/testactor/**" = instance
                                              |}
                                              |""".stripMargin)
-    val sut = new ConfigBasedConfigurationService(config)
+    val sut = new ConfiguredAttributeFactory(config)
 
-    sut.forActorPath(actorPath("/user/testactor")) should be(disabledConfig)
-    sut.forActorPath(actorPath("/user/testactor/a")) should be(instanceConfig)
-    sut.forActorPath(actorPath("/user/testactor/b/c/")) should be(instanceConfig)
-    sut.forActorPath(actorPath("/user/otheractor")) should be(disabledConfig)
+    sut.forActorPath(actorPath("/user/testactor")).haveOnlySystem()
+    sut.forActorPath(actorPath("/user/testactor/a")).haveActorPath("/user/testactor/a")
+    sut.forActorPath(actorPath("/user/testactor/b/c")).haveActorPath("/user/testactor/b/c")
+    sut.forActorPath(actorPath("/user/otheractor")).haveOnlySystem()
   }
 
   it should "prefer exact rule over prefix" in {
@@ -77,9 +114,9 @@ class ConfigBasedConfigurationServiceTest extends AnyFlatSpec with Matchers {
                                              |  "/user/testactor" = instance
                                              |}
                                              |""".stripMargin)
-    val sut = new ConfigBasedConfigurationService(config)
+    val sut = new ConfiguredAttributeFactory(config)
 
-    sut.forActorPath(actorPath("/user/testactor")) should be(instanceConfig)
+    sut.forActorPath(actorPath("/user/testactor")).haveActorPath("/user/testactor")
   }
 
   it should "more specifix prefix rules" in {
@@ -90,10 +127,12 @@ class ConfigBasedConfigurationServiceTest extends AnyFlatSpec with Matchers {
                                              |  "/user/more/specific/actor/**" = instance
                                              |}
                                              |""".stripMargin)
-    val sut = new ConfigBasedConfigurationService(config)
+    val sut = new ConfiguredAttributeFactory(config)
 
-    sut.forActorPath(actorPath("/user/more/specific/actor/some/name")) should be(instanceConfig)
-    sut.forActorPath(actorPath("/user/other/actor/name")) should be(groupingConfig)
+    sut
+      .forActorPath(actorPath("/user/more/specific/actor/some/name"))
+      .haveActorPath("/user/more/specific/actor/some/name")
+    sut.forActorPath(actorPath("/user/other/actor/name")).haveActorPath("/user")
   }
 
   it should "ignore incorrect rules" in {
@@ -103,10 +142,10 @@ class ConfigBasedConfigurationServiceTest extends AnyFlatSpec with Matchers {
                                                       |  "user/more/specific/actor/" = instance
                                                       |}
                                                       |""".stripMargin)
-    val sut = new ConfigBasedConfigurationService(incorrectConfig)
+    val sut = new ConfiguredAttributeFactory(incorrectConfig)
 
-    sut.forActorPath(actorPath("/user/more/specific/actor/some/name")) should be(disabledConfig)
-    sut.forActorPath(actorPath("/user/other/actor/name")) should be(disabledConfig)
+    sut.forActorPath(actorPath("/user/more/specific/actor/some/name")).haveOnlySystem()
+    sut.forActorPath(actorPath("/user/other/actor/name")).haveOnlySystem()
 
   }
 }

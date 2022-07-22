@@ -7,13 +7,7 @@ import akka.{ actor => classic }
  *   classic actor ref
  * @param tags
  *   tags for respective actor ref
- * @param configuration
- *   mesmer configuration for specific actor ref
  */
-private[scalac] final case class ActorRefDetails(
-  ref: classic.ActorRef,
-  tags: Set[Tag],
-  configuration: ActorConfiguration
-) {
+private[scalac] final case class ActorRefDetails(ref: classic.ActorRef, tags: Set[Tag]) {
   def withTag(tag: Tag): ActorRefDetails = copy(tags = tags + tag)
 }

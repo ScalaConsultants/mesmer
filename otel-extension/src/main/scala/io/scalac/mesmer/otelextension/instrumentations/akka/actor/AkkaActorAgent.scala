@@ -12,7 +12,7 @@ import io.scalac.mesmer.agent.util.i13n.Instrumentation._
 object AkkaActorAgent {
 
   val actorSystemConfig: TypeInstrumentation =
-    Instrumentation(hasSuperType(named("akka.actor.ClassicActorSystemProvider")))
+    Instrumentation(named("akka.actor.ActorSystemImpl"))
       .`with`(Advice(isConstructor, "akka.actor.impl.ClassicActorSystemProviderAdvice"))
 
   val actorCellInit: TypeInstrumentation = Instrumentation(named("akka.actor.ActorCell"))

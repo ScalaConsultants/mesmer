@@ -2,7 +2,6 @@ package io.scalac.mesmer.agent.utils
 
 import io.opentelemetry.instrumentation.testing.AgentTestRunner
 import io.opentelemetry.sdk.metrics.data.{ HistogramPointData, MetricData }
-import io.opentelemetry.sdk.metrics.internal.aggregator.EmptyMetricData
 import org.scalatest.concurrent.Eventually
 import org.scalatest.{ BeforeAndAfterAll, BeforeAndAfterEach, OptionValues, TestSuite }
 

@@ -1,55 +1,98 @@
 package io.scalac.mesmer.core
 
-sealed trait PathMatcher[T] extends (String => Boolean) with Ordered[PathMatcher[T]] {
+sealed trait PathMatcher extends (String => Boolean) with Ordered[PathMatcher] {
 
-  def value: T
+  // must not contain trailing slash
+  protected def base: String
+
+  protected def priority: Int
 
   final def apply(path: String): Boolean = matches(path)
 
   def matches(path: String): Boolean
 
-  protected def comparePath(first: String, second: String): Int =
-    if (first.startsWith(second)) 1
-    else if (second.startsWith(first)) -1
-    else 0
+  /**
+   * Return Some with a result of map function called with part that passed the matcher
+   * @param map
+   * @param path
+   * @tparam T
+   * @return
+   */
+  def withPassing[T](map: String => T)(path: String): Option[T]
+
+  def compare(that: PathMatcher): Int =
+    if (sameBase(that)) {
+      priority - that.priority
+    } else if (startsWith(that)) {
+      1
+    } else if (that.startsWith(this)) {
+      -1
+    } else 0
+
+  protected def startsWith(other: PathMatcher): Boolean = {
+    val otherBase = if (other.base.endsWith("/")) other.base else s"${other.base}/"
+    base.startsWith(otherBase)
+  }
+
+  protected def sameBase(other: PathMatcher): Boolean = {
+    val otherBase = if (other.base.endsWith("/")) other.base else s"${other.base}/"
+    val selfBase  = if (base.endsWith("/")) base else s"$base/"
+    selfBase == otherBase
+  }
 }
 
 object PathMatcher {
 
-  private[core] final case class Prefix[T](base: String, recursive: Boolean, value: T) extends PathMatcher[T] {
-    def matches(path: String): Boolean =
-      path.startsWith(base) && (recursive || !path.substring(base.length).contains('/'))
+  // prefix match everything with a prefix
+  private[core] final case class Prefix(base: String, withExactBase: Boolean) extends PathMatcher {
+    protected val priority: Int = if (withExactBase) 3 else 0
 
-    def compare(that: PathMatcher[T]): Int = that match {
-      case _: Exact[_] => -1
-      case another: Prefix[_] if another.recursive == recursive =>
-        if (recursive) {
-          if (base.startsWith(another.base)) {
-            base.length - another.base.length // 0 when equal
-          } else if (another.base.startsWith(base)) {
-            -1
-          } else 0
-        } else 0
-
-      case Prefix(recursiveBase, true, _) =>
-        if (base.startsWith(recursiveBase) || recursiveBase.startsWith(base)) {
-          1
-        } else 0
-
-      case Prefix(nonRecursiveBase, false, _) =>
-        if (base.startsWith(nonRecursiveBase) || nonRecursiveBase.startsWith(base)) {
-          -1
-        } else 0
+    def matches(path: String): Boolean = {
+      val baseTrailing = if (base.endsWith("/")) base else s"$base/"
+      val pathTrailing = if (path.endsWith("/")) path else s"$path/"
+      pathTrailing.startsWith(baseTrailing) && (withExactBase || pathTrailing.substring(baseTrailing.length).nonEmpty)
     }
+
+    def withPassing[T](map: String => T)(path: String): Option[T] = if (matches(path)) {
+      if (withExactBase) {
+        Some(map(base))
+      } else {
+        val baseTrailing = if (base.endsWith("/")) base else s"$base/"
+        val next         = path.indexOf("/", baseTrailing.length)
+        if (next < 0) {
+          Some(map(path))
+        } else Some(map(path.substring(0, next)))
+      }
+    } else None
   }
 
-  private[core] final case class Exact[T](base: String, value: T) extends PathMatcher[T] {
+  private[core] final case class Exact(base: String) extends PathMatcher {
+
+    protected val priority = 2
+
     def matches(path: String): Boolean = path == base || s"$path/" == base
 
-    def compare(that: PathMatcher[T]): Int = that match {
-      case _: Prefix[_]          => 1
-      case Exact(anotherBase, _) => comparePath(base, anotherBase)
+    def withPassing[T](map: String => T)(path: String): Option[T] = if (matches(path)) {
+      Some(map(path))
+    } else None
+  }
+
+  private[core] final case class SingleVariable(base: String) extends PathMatcher {
+    protected val priority = 1
+
+    def matches(path: String): Boolean = {
+      val trailingSlash = if (base.endsWith("/")) base else s"$base/"
+      path.startsWith(trailingSlash) && !path.substring(trailingSlash.length).contains('/')
     }
+
+    def withPassing[T](map: String => T)(path: String): Option[T] = if (matches(path)) {
+      val baseTrailing = if (base.endsWith("/")) base else s"$base/"
+      val next         = path.indexOf("/", baseTrailing.length)
+      if (next < 0) {
+        Some(map(path))
+      } else Some(map(path.substring(0, next)))
+    } else None
+
   }
 
   sealed trait Error {
@@ -57,28 +100,23 @@ object PathMatcher {
   }
 
   object Error {
-    case object InvalidWildcardError extends Error {
-      val message = "Wildcard is permitted only at end of the path"
-    }
 
     case object MissingSlashError extends Error {
       val message = "Path must start with a slash"
     }
   }
 
-  def parse[T](path: String, value: T): Either[Error, PathMatcher[T]] = if (path.startsWith("/")) {
-    path match {
-      case _ if path.endsWith("/*")  => Right(Prefix(path.substring(0, path.length - 1), recursive = false, value))
-      case _ if path.endsWith("/**") => Right(Prefix(path.substring(0, path.length - 2), recursive = true, value))
-      case _ if !path.contains("*") =>
-        Right(
-          Exact(
-            if (path.endsWith("/")) path else s"$path/",
-            value
-          )
-        )
-      case _ => Left(Error.InvalidWildcardError)
-    }
+  def prefix(path: String, withExact: Boolean): Either[Error, PathMatcher] =
+    withValidPath(path, Prefix(path, withExact))
+
+  def singleVariable(path: String): Either[Error, PathMatcher] = withValidPath(path, SingleVariable(path))
+
+  def exact(path: String): Either[Error, PathMatcher] = withValidPath(path, Exact(path))
+
+  private def withValidPath(path: String, const: => PathMatcher): Either[Error, PathMatcher] = if (
+    path.startsWith("/")
+  ) {
+    Right(const)
   } else Left(Error.MissingSlashError)
 
 }

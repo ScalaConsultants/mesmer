@@ -2,7 +2,6 @@ package io.scalac.mesmer.extension
 
 import akka.actor.ExtendedActorSystem
 import akka.actor.typed._
-import akka.actor.typed.receptionist.Receptionist.Register
 import akka.actor.typed.scaladsl.Behaviors
 import akka.cluster.Cluster
 import akka.util.Timeout
@@ -22,8 +21,6 @@ import io.scalac.mesmer.core.model._
 import io.scalac.mesmer.core.module.Module._
 import io.scalac.mesmer.core.module._
 import io.scalac.mesmer.core.typeclasses.Traverse
-import io.scalac.mesmer.extension.ActorEventsMonitorActor.ReflectiveActorMetricsReader
-import io.scalac.mesmer.extension.actor.MutableActorMetricStorageFactory
 import io.scalac.mesmer.extension.config.AkkaMonitoringConfig
 import io.scalac.mesmer.extension.config.CachingConfig
 import io.scalac.mesmer.extension.metric.CachingMonitor
@@ -76,19 +73,12 @@ final class AkkaMonitoring(system: ActorSystem[_]) extends Extension {
   private def autoStart(): Unit = {
     import config.{ autoStart => autoStartConfig }
 
-    if (autoStartConfig.akkaActor || autoStartConfig.akkaStream) {
-      log.debug("Start actor tree service")
-      startActorTreeService()
-    }
     if (autoStartConfig.akkaStream) {
       log.debug("Start akka stream service")
 
       startStreamMonitor()
     }
-    if (autoStartConfig.akkaActor) {
-      log.debug("Start akka actor service")
-      startActorMonitor()
-    }
+
     if (autoStartConfig.akkaPersistence) {
       log.debug("Start akka persistence service")
 
@@ -100,59 +90,6 @@ final class AkkaMonitoring(system: ActorSystem[_]) extends Extension {
       startClusterEventsMonitor()
       startClusterRegionsMonitor()
       startSelfMemberMonitor()
-    }
-  }
-
-  private def startActorTreeService(): Unit =
-    startWithConfig[AkkaActorModule.type](AkkaActorModule, akkaActorConfig) { _ =>
-      val actorSystemMonitor = OpenTelemetryActorSystemMonitor(
-        meter,
-        AkkaActorSystemModule.enabled,
-        actorSystemConfig
-      )
-
-      val actorConfigurationService = new ConfigBasedConfigurationService(system.settings.config)
-
-      val serviceRef = system.systemActorOf(
-        Behaviors
-          .supervise(
-            ActorTreeService(
-              actorSystemMonitor,
-              clusterNodeName,
-              ReflectiveActorTreeTraverser,
-              actorConfigurationService
-            )
-          )
-          .onFailure(SupervisorStrategy.restart),
-        "mesmerActorTreeService"
-      )
-
-      // publish service
-      system.receptionist ! Register(actorTreeServiceKey, serviceRef.narrow[ActorTreeService.Command])
-    }
-
-  private def startActorMonitor(): Unit = {
-    val exportInterval: FiniteDuration = 5.seconds
-
-    startWithConfig[AkkaActorModule.type](AkkaActorModule, akkaActorConfig) { moduleConfig =>
-      val actorMonitor =
-        OpenTelemetryActorMetricsMonitor(meter, moduleConfig, actorSystemConfig)
-
-      system.systemActorOf(
-        Behaviors
-          .supervise(
-            ActorEventsMonitorActor(
-              actorMonitor,
-              clusterNodeName,
-              exportInterval,
-              new MutableActorMetricStorageFactory[ActorKey],
-              ReflectiveActorMetricsReader
-            )(askTimeout)
-          )
-          .onFailure(SupervisorStrategy.restart),
-        "mesmerActorMonitor",
-        dispatcher
-      )
     }
   }
 
