@@ -59,7 +59,7 @@ class OtelAkkaPersistenceAgentTest
     Function.untupled(body)(id.toString, ref)
   }
 
-  "AkkaPersistenceAgent" should "generate only recovery events" in test { case (id, actor) =>
+  "AkkaPersistenceAgent" should "generate only recovery metric" in test { case (id, actor) =>
     actor ! DoNothing
 
     val checkRecovery = checkCount(id)(1)
@@ -70,34 +70,35 @@ class OtelAkkaPersistenceAgentTest
       }
 
     assertMetrics("mesmer")(
-      "persistence_recovery" -> checkRecovery,
-      "persistence_event"    -> checkMetricEmpty,
-      "persistence_snapshot" -> checkMetricEmpty
+      "`mesmer_akka_persistence_recovery_time`" -> checkRecovery,
+      "mesmer_akka_persistence_event_time"      -> checkMetricEmpty,
+      "mesmer_akka_persistence_event_total"     -> checkMetricEmpty
     )
   }
 
-  it should "generate recovery, persisting and snapshot events for single persist event" in test { case (id, actor) =>
+  it should "generate recovery, persisting and snapshot metrics for single persist event" in test { case (id, actor) =>
     actor ! Persist
 
     val check: MetricData => Unit = checkCount(id)(1)
 
     assertMetrics("mesmer")(
-      "persistence_recovery" -> check,
-      "persistence_event"    -> check,
-      "persistence_snapshot" -> check
+      "mesmer_akka_persistence_recovery_time" -> check,
+      "mesmer_akka_persistence_event_time"    -> check,
+      "mesmer_akka_persistence_event_total"   -> check
     )
   }
 
-  it should "generate recovery, persisting and snapshot events for multiple persist event" in test { case (id, actor) =>
-    List.fill(5)(Persist).foreach(actor.tell)
+  it should "generate recovery, persisting and snapshot metrics for multiple persist event" in test {
+    case (id, actor) =>
+      List.fill(5)(Persist).foreach(actor.tell)
 
-    def check(num: Int) = checkCount(id)(num)
+      def check(num: Int) = checkCount(id)(num)
 
-    assertMetrics("mesmer")(
-      "persistence_recovery" -> check(1),
-      "persistence_event"    -> check(5),
-      "persistence_snapshot" -> check(5)
-    )
+      assertMetrics("mesmer")(
+        "mesmer_akka_persistence_recovery_time" -> check(1),
+        "mesmer_akka_persistence_event_time"    -> check(5),
+        "mesmer_akka_persistence_event_total"   -> check(5)
+      )
   }
 
 }

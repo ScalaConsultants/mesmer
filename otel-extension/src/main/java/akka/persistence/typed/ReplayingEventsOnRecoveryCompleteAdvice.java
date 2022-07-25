@@ -18,7 +18,7 @@ public class ReplayingEventsOnRecoveryCompleteAdvice {
         VirtualField.find(ActorContext.class, PersistenceContext.class).get(context);
     if (Objects.nonNull(persistenceContext)) {
       long millis = persistenceContext.stopTimer();
-      InstrumentsProvider.instance().recovery().record(millis, persistenceContext.attributes());
+      InstrumentsProvider.instance().recoveryTime().record(millis, persistenceContext.attributes());
     }
   }
 }

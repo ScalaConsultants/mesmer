@@ -20,7 +20,7 @@ public class StoringSnapshotOnSaveSnapshotResponseAdvice {
 
     if (Objects.nonNull(persistenceContext)) {
 
-      InstrumentsProvider.instance().snapshot().add(1L, persistenceContext.attributes());
+      InstrumentsProvider.instance().snapshots().add(1L, persistenceContext.attributes());
     }
   }
 }

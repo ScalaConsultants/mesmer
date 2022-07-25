@@ -6,11 +6,11 @@ import io.opentelemetry.api.metrics.LongHistogram
 
 trait Instruments {
 
-  def recovery: LongHistogram
+  def recoveryTime: LongHistogram
 
-  def persistentEvent: LongHistogram
+  def persistentEventTime: LongHistogram
 
-  def snapshot: LongCounter
+  def snapshots: LongCounter
 
 }
 
@@ -24,21 +24,21 @@ object InstrumentsProvider {
       val provider = GlobalOpenTelemetry.get().getMeterProvider
 
       setInstruments(new Instruments {
-        val recovery: LongHistogram = provider
+        val recoveryTime: LongHistogram = provider
           .get("mesmer")
-          .histogramBuilder("persistence_recovery")
+          .histogramBuilder("mesmer_akka_persistence_recovery_time")
           .ofLongs()
           .build()
 
-        val persistentEvent: LongHistogram = provider
+        val persistentEventTime: LongHistogram = provider
           .get("mesmer")
-          .histogramBuilder("persistence_event")
+          .histogramBuilder("mesmer_akka_persistence_event_time")
           .ofLongs()
           .build()
 
-        val snapshot: LongCounter = provider
+        val snapshots: LongCounter = provider
           .get("mesmer")
-          .counterBuilder("persistence_snapshot")
+          .counterBuilder("mesmer_akka_persistence_event_total")
           .build()
       })
     } else _instance

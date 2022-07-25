@@ -21,7 +21,7 @@ public class RunningOnWriteSuccessAdvice {
       long millis = persistenceContext.stopTimer();
 
       InstrumentsProvider.instance()
-          .persistentEvent()
+          .persistentEventTime()
           .record(millis, persistenceContext.attributes());
     }
   }
