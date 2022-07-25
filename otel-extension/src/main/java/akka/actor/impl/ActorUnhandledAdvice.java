@@ -21,7 +21,7 @@ public class ActorUnhandledAdvice {
         VirtualField.find(ActorContext.class, ActorCellInstrumentationState.class).get(context);
 
     if (Objects.nonNull(attrs) && Objects.nonNull(state)) {
-      instruments.unhandled().add(1L, attrs);
+      instruments.unhandledMessages().add(1L, attrs);
     }
   }
 }

@@ -5,7 +5,7 @@ import akka.dispatch.Envelope;
 import akka.dispatch.Mailbox;
 import io.opentelemetry.api.common.Attributes;
 import io.opentelemetry.instrumentation.api.field.VirtualField;
-import io.scalac.mesmer.core.util.Interval$;
+import io.scalac.mesmer.core.util.Interval;
 import io.scalac.mesmer.otelextension.instrumentations.akka.actor.Instruments;
 import io.scalac.mesmer.otelextension.instrumentations.akka.actor.InstrumentsProvider;
 import io.scalac.mesmer.otelextension.instrumentations.akka.actor.util.EnvelopeContext;
@@ -25,7 +25,8 @@ public class MailboxDequeueAdvice {
       Instruments instruments = InstrumentsProvider.instance();
 
       if (Objects.nonNull(context) && Objects.nonNull(attrs)) {
-        long interval = Interval$.MODULE$.toMillis(System.nanoTime() - context.sentTime());
+
+        long interval = new Interval(System.nanoTime() - context.sentTime()).toMillis();
         instruments.mailboxTime().record(interval, attrs);
       }
     }

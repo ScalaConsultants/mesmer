@@ -10,10 +10,6 @@ final class Interval(private val nanos: Long) extends AnyVal {
   def toNano: Long   = nanos
 }
 
-object Interval {
-  def toMillis(nanos: Long): Long = math.floorDiv(nanos, 1_000_000)
-}
-
 /**
  * For performance and testing reasons [[Timestamp]] is implemented as value class but should be treated as abstract
  * type with its only public member being interval method. No direct access of [[value]] is recommended.

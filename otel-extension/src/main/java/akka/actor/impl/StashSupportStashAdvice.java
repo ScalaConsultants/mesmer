@@ -21,7 +21,7 @@ public class StashSupportStashAdvice {
         VirtualField.find(ActorContext.class, ActorCellInstrumentationState.class).get(context);
 
     if (Objects.nonNull(attrs) && Objects.nonNull(state)) {
-      instruments.stashed().add(1L, attrs);
+      instruments.stashedMessages().add(1L, attrs);
     }
   }
 }
