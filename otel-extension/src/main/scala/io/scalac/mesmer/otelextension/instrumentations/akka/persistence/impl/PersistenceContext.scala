@@ -11,7 +11,7 @@ final class PersistenceContext private (val attributes: Attributes) {
   private[this] var nanos: Long = _
 
   def startTimer(): Unit = nanos = System.nanoTime()
-  def stopTimer(): Long  = Interval.toMillis(System.nanoTime() - nanos)
+  def stopTimer(): Long  = new Interval(System.nanoTime() - nanos).toNano
 }
 
 object PersistenceContext {

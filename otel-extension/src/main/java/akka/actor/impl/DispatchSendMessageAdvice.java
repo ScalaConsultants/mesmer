@@ -29,7 +29,7 @@ public class DispatchSendMessageAdvice {
             VirtualField.find(ActorContext.class, ActorCellInstrumentationState.class).get(context);
 
         if (Objects.nonNull(attrs) && Objects.nonNull(state)) {
-          instruments.sent().add(1L, attrs);
+          instruments.sentMessages().add(1L, attrs);
         }
       }
     }

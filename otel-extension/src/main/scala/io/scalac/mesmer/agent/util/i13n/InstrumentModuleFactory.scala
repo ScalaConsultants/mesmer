@@ -46,6 +46,8 @@ abstract class InstrumentModuleFactory[M <: Module](val module: M) extends Instr
 
   def agent: Agent
 
+  import scala.language.implicitConversions
+
   implicit def enrichStringDsl(value: String): InstrumentModuleFactory.StringDlsOps =
     new InstrumentModuleFactory.StringDlsOps(value -> module)
 

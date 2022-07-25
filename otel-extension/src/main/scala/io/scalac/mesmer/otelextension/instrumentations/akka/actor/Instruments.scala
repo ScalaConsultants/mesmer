@@ -10,15 +10,15 @@ trait Instruments {
 
   def processingTime: LongHistogram
 
-  def unhandled: LongCounter
+  def unhandledMessages: LongCounter
 
-  def dropped: LongCounter
+  def droppedMessages: LongCounter
 
   def mailboxTime: LongHistogram
 
-  def stashed: LongCounter
+  def stashedMessages: LongCounter
 
-  def sent: LongCounter
+  def sentMessages: LongCounter
 }
 
 object Instruments {
@@ -26,21 +26,21 @@ object Instruments {
 
     lazy val failedMessages: LongCounter = provider
       .get("mesmer")
-      .counterBuilder("mesmer_akka_failed_total")
+      .counterBuilder("mesmer_akka_failed_messages_total")
       .build()
 
     lazy val processingTime: LongHistogram = provider
       .get("mesmer")
-      .histogramBuilder("mesmer_akka_processing_time")
+      .histogramBuilder("mesmer_akka_message_processing_time")
       .ofLongs()
       .build()
 
-    lazy val unhandled: LongCounter = provider
+    lazy val unhandledMessages: LongCounter = provider
       .get("mesmer")
-      .counterBuilder("mesmer_akka_unhandled_total")
+      .counterBuilder("mesmer_akka_unhandled_messages_total")
       .build()
 
-    lazy val dropped: LongCounter = provider
+    lazy val droppedMessages: LongCounter = provider
       .get("mesmer")
       .counterBuilder("mesmer_akka_dropped_total")
       .build()
@@ -51,14 +51,14 @@ object Instruments {
       .ofLongs()
       .build()
 
-    lazy val stashed: LongCounter = provider
+    lazy val stashedMessages: LongCounter = provider
       .get("mesmer")
-      .counterBuilder("mesmer_akka_stashed_total")
+      .counterBuilder("mesmer_akka_stashed_messages_total")
       .build()
 
-    lazy val sent: LongCounter = provider
+    lazy val sentMessages: LongCounter = provider
       .get("mesmer")
-      .counterBuilder("mesmer_akka_sent_total")
+      .counterBuilder("mesmer_akka_sent_messages_total")
       .build()
   }
 }

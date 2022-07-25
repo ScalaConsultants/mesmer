@@ -1,4 +1,4 @@
-package io.scalac.mesmer.otelextension;
+package io.scalac.mesmer.otelextension.akka;
 
 import static java.util.Collections.emptyList;
 import static java.util.Collections.emptyMap;

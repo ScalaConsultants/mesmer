@@ -14,7 +14,7 @@ package object dsl {
   type MethodMatcher = ElementMatcher[MethodDescription]
   type TypeMatcher   = ElementMatcher[TypeDescription]
 
-  // THIS IS A HACK BUT IT FORCES TYPE BOUND TO EVALUATE TO THE LOWEST POSSIBLE TYPE AND NOT NOTHING
+  // this is a hack but it forces type bound to evaluate to the lowest possible type and not nothing
   type Nothing0 = Nothing forSome { type T }
 
   object matchers {

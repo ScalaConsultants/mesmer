@@ -21,7 +21,7 @@ class OtelAgentHelpersTest extends AnyFlatSpec with Matchers {
       util.Arrays.asList(3, 5, 7, 13, 21)
     )
 
-    val result = OtelAgentHelpers.getBoundaryCountsWithToleration(point, 90, 5)
+    val result = OtelAgentHelpers.getExpectedCountWithToleration(point, 90, 5)
 
     result should be(5)
   }
@@ -38,7 +38,7 @@ class OtelAgentHelpersTest extends AnyFlatSpec with Matchers {
       util.Arrays.asList(3, 5, 7, 13, 21)
     )
 
-    val result = OtelAgentHelpers.getBoundaryCountsWithToleration(point, 100, 49)
+    val result = OtelAgentHelpers.getExpectedCountWithToleration(point, 100, 49)
 
     result should be(12)
   }
@@ -55,7 +55,7 @@ class OtelAgentHelpersTest extends AnyFlatSpec with Matchers {
       util.Arrays.asList(0, 1, 1, 2, 3, 5, 8, 13, 21, 34, 55)
     )
 
-    val result = OtelAgentHelpers.getBoundaryCountsWithToleration(point, 150, 90)
+    val result = OtelAgentHelpers.getExpectedCountWithToleration(point, 150, 90)
 
     result should be(50)
   }

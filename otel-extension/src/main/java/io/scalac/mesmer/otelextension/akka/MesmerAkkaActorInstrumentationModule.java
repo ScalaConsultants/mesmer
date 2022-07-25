@@ -1,4 +1,4 @@
-package io.scalac.mesmer.otelextension;
+package io.scalac.mesmer.otelextension.akka;
 
 import com.google.auto.service.AutoService;
 import io.opentelemetry.javaagent.extension.instrumentation.InstrumentationModule;
@@ -55,7 +55,7 @@ public class MesmerAkkaActorInstrumentationModule extends InstrumentationModule
         .register(
             "akka.actor.ActorContext",
             "io.opentelemetry.javaagent.shaded.io.opentelemetry.api.common.Attributes")
-        .register("akka.actor.ActorSystem", "io.scalac.mesmer.core.actor.ActorRefConfiguration")
+        .register("akka.actor.ActorSystem", "io.scalac.mesmer.core.actor.ActorRefAttributeFactory")
         .register(
             "akka.dispatch.BoundedQueueBasedMessageQueue", "java.util.concurrent.BlockingQueue")
         .register("akka.dispatch.AbstractBoundedNodeQueue", "java.lang.Boolean");
@@ -69,10 +69,8 @@ public class MesmerAkkaActorInstrumentationModule extends InstrumentationModule
   @Override
   public List<String> getAdditionalHelperClassNames() {
     return Arrays.asList(
-        "io.scalac.mesmer.core.actor.ActorRefConfiguration",
-        "io.scalac.mesmer.core.actor.DefaultActorRefConfiguration",
-        "io.scalac.mesmer.core.actor.DefaultActorRefConfiguration$",
-        "io.scalac.mesmer.core.actor.WithSystemActorRefConfigurator",
+        "io.scalac.mesmer.core.actor.ActorRefAttributeFactory",
+        "io.scalac.mesmer.core.actor.ConfiguredAttributeFactory",
         "io.scalac.mesmer.otelextension.instrumentations.akka.actor.Instruments$$anon$1",
         "io.scalac.mesmer.otelextension.instrumentations.akka.actor.Instruments",
         "io.scalac.mesmer.otelextension.instrumentations.akka.actor.Instruments$",

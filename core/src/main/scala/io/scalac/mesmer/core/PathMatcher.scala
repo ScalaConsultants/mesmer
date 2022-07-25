@@ -1,51 +1,122 @@
 package io.scalac.mesmer.core
 
-sealed trait PathMatcher[T] extends (String => Boolean) with Ordered[PathMatcher[T]] {
-  import PathMatcher._
+sealed trait PathMatcher extends (String => Boolean) with Ordered[PathMatcher] {
 
-  def value: T
+  // must not contain trailing slash
+  protected def base: String
+
+  protected def priority: Int
 
   final def apply(path: String): Boolean = matches(path)
 
-  def matches(path: String): Boolean = this match {
-    case Exact(base, _) if path == base || path == s"$base/" => true
-    case Prefix(base, _) if path.startsWith(base)            => true
-    case _                                                   => false
+  def matches(path: String): Boolean
+
+  /**
+   * Return Some with a result of map function called with part that passed the matcher
+   * @param map
+   * @param path
+   * @tparam T
+   * @return
+   */
+  def withPassing[T](map: String => T)(path: String): Option[T]
+
+  def compare(that: PathMatcher): Int =
+    if (sameBase(that)) {
+      priority - that.priority
+    } else if (startsWith(that)) {
+      1
+    } else if (that.startsWith(this)) {
+      -1
+    } else 0
+
+  protected def startsWith(other: PathMatcher): Boolean = {
+    val otherBase = if (other.base.endsWith("/")) other.base else s"${other.base}/"
+    base.startsWith(otherBase)
   }
 
-  def compare(that: PathMatcher[T]): Int = (this, that) match {
-    case (Exact(_, _), Prefix(_, _)) => 1
-    case (Prefix(_, _), Exact(_, _)) => -1
-    case (Prefix(first, _), Prefix(second, _)) =>
-      comparePath(first, second)
-    case (Exact(first, _), Exact(second, _)) =>
-      comparePath(first, second)
+  protected def sameBase(other: PathMatcher): Boolean = {
+    val otherBase = if (other.base.endsWith("/")) other.base else s"${other.base}/"
+    val selfBase  = if (base.endsWith("/")) base else s"$base/"
+    selfBase == otherBase
   }
-
-  private def comparePath(first: String, second: String): Int =
-    if (first.startsWith(second)) 1
-    else if (second.startsWith(first)) -1
-    else 0
 }
 
 object PathMatcher {
 
-  private[core] final case class Prefix[T](base: String, value: T) extends PathMatcher[T]
+  // prefix match everything with a prefix
+  private[core] final case class Prefix(base: String, withExactBase: Boolean) extends PathMatcher {
+    protected val priority: Int = if (withExactBase) 3 else 0
 
-  private[core] final case class Exact[T](path: String, value: T) extends PathMatcher[T]
-
-  def parse[T](path: String, value: T): Option[PathMatcher[T]] = if (path.startsWith("/")) {
-    path match {
-      case _ if path.endsWith("/*") => Some(Prefix(path.substring(0, path.length - 2), value))
-      case _ if !path.contains("*") =>
-        Some(
-          Exact(
-            if (path.endsWith("/")) path.substring(0, path.length - 1) else path,
-            value
-          )
-        )
-      case _ => None
+    def matches(path: String): Boolean = {
+      val baseTrailing = if (base.endsWith("/")) base else s"$base/"
+      val pathTrailing = if (path.endsWith("/")) path else s"$path/"
+      pathTrailing.startsWith(baseTrailing) && (withExactBase || pathTrailing.substring(baseTrailing.length).nonEmpty)
     }
-  } else None
+
+    def withPassing[T](map: String => T)(path: String): Option[T] = if (matches(path)) {
+      if (withExactBase) {
+        Some(map(base))
+      } else {
+        val baseTrailing = if (base.endsWith("/")) base else s"$base/"
+        val next         = path.indexOf("/", baseTrailing.length)
+        if (next < 0) {
+          Some(map(path))
+        } else Some(map(path.substring(0, next)))
+      }
+    } else None
+  }
+
+  private[core] final case class Exact(base: String) extends PathMatcher {
+
+    protected val priority = 2
+
+    def matches(path: String): Boolean = path == base || s"$path/" == base
+
+    def withPassing[T](map: String => T)(path: String): Option[T] = if (matches(path)) {
+      Some(map(path))
+    } else None
+  }
+
+  private[core] final case class SingleVariable(base: String) extends PathMatcher {
+    protected val priority = 1
+
+    def matches(path: String): Boolean = {
+      val trailingSlash = if (base.endsWith("/")) base else s"$base/"
+      path.startsWith(trailingSlash) && !path.substring(trailingSlash.length).contains('/')
+    }
+
+    def withPassing[T](map: String => T)(path: String): Option[T] = if (matches(path)) {
+      val baseTrailing = if (base.endsWith("/")) base else s"$base/"
+      val next         = path.indexOf("/", baseTrailing.length)
+      if (next < 0) {
+        Some(map(path))
+      } else Some(map(path.substring(0, next)))
+    } else None
+
+  }
+
+  sealed trait Error {
+    def message: String
+  }
+
+  object Error {
+
+    case object MissingSlashError extends Error {
+      val message = "Path must start with a slash"
+    }
+  }
+
+  def prefix(path: String, withExact: Boolean): Either[Error, PathMatcher] =
+    withValidPath(path, Prefix(path, withExact))
+
+  def singleVariable(path: String): Either[Error, PathMatcher] = withValidPath(path, SingleVariable(path))
+
+  def exact(path: String): Either[Error, PathMatcher] = withValidPath(path, Exact(path))
+
+  private def withValidPath(path: String, const: => PathMatcher): Either[Error, PathMatcher] = if (
+    path.startsWith("/")
+  ) {
+    Right(const)
+  } else Left(Error.MissingSlashError)
 
 }

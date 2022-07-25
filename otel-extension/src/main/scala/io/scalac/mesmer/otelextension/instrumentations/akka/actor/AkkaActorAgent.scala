@@ -4,127 +4,150 @@ import io.opentelemetry.javaagent.extension.instrumentation.TypeInstrumentation
 import net.bytebuddy.description.`type`.TypeDescription
 
 import io.scalac.mesmer.agent.util.dsl._
+import io.scalac.mesmer.agent.util.dsl.matchers._
+import io.scalac.mesmer.agent.util.i13n.Advice
+import io.scalac.mesmer.agent.util.i13n.Instrumentation
+import io.scalac.mesmer.agent.util.i13n.Instrumentation._
 
 object AkkaActorAgent {
 
   val actorSystemConfig: TypeInstrumentation =
-    typeInstrumentation(matchers.hasSuperType(matchers.named("akka.actor.ClassicActorSystemProvider")))(
-      matchers.isConstructor,
-      "akka.actor.impl.ClassicActorSystemProviderAdvice"
+    Instrumentation(named("akka.actor.ActorSystemImpl"))
+      .`with`(Advice(isConstructor, "akka.actor.impl.ClassicActorSystemProviderAdvice"))
+
+  val actorCellInit: TypeInstrumentation = Instrumentation(named("akka.actor.ActorCell"))
+    .`with`(Advice(isConstructor, "akka.actor.impl.ActorCellInitAdvice"))
+
+  val actorCellReceived: TypeInstrumentation = Instrumentation(named("akka.actor.ActorCell"))
+    .`with`(Advice(named("receiveMessage"), "akka.actor.impl.ActorCellReceivedAdvice"))
+
+  val dispatchSendMessage: TypeInstrumentation = Instrumentation(named("akka.actor.dungeon.Dispatch"))
+    .`with`(
+      Advice(
+        named("sendMessage").and(takesArgument(0, named("akka.dispatch.Envelope"))),
+        "akka.actor.impl.DispatchSendMessageAdvice"
+      )
     )
 
-  val actorCellInit: TypeInstrumentation =
-    typeInstrumentation(matchers.named("akka.actor.ActorCell"))(
-      matchers.isConstructor,
-      "akka.actor.impl.ActorCellInitAdvice"
+  val mailboxDequeue: TypeInstrumentation = Instrumentation(named("akka.dispatch.Mailbox"))
+    .`with`(
+      Advice(
+        named("dequeue"),
+        "akka.actor.impl.MailboxDequeueAdvice"
+      )
     )
-
-  val actorCellReceived: TypeInstrumentation = typeInstrumentation(matchers.named("akka.actor.ActorCell"))(
-    matchers.named("receiveMessage"),
-    "akka.actor.impl.ActorCellReceivedAdvice"
-  )
-
-  val dispatchSendMessage: TypeInstrumentation = typeInstrumentation(matchers.named("akka.actor.dungeon.Dispatch"))(
-    matchers.named("sendMessage").and(matchers.takesArgument(0, matchers.named("akka.dispatch.Envelope"))),
-    "akka.actor.impl.DispatchSendMessageAdvice"
-  )
-
-  val mailboxDequeue: TypeInstrumentation = typeInstrumentation(matchers.named("akka.dispatch.Mailbox"))(
-    matchers.named("dequeue"),
-    "akka.actor.impl.MailboxDequeueAdvice"
-  )
 
   val classicStashSupportStashAdvice: TypeInstrumentation =
-    typeInstrumentation(matchers.named("akka.actor.StashSupport"))(
-      matchers.named("stash"),
-      "akka.actor.impl.StashSupportStashAdvice"
-    )
+    Instrumentation(named("akka.actor.StashSupport"))
+      .`with`(
+        Advice(
+          named("stash"),
+          "akka.actor.impl.StashSupportStashAdvice"
+        )
+      )
 
   val classicStashSupportPrependAdvice: TypeInstrumentation =
-    typeInstrumentation(matchers.named("akka.actor.StashSupport"))(
-      matchers.named("prepend"),
-      "akka.actor.impl.StashSupportPrependAdvice"
-    )
+    Instrumentation(named("akka.actor.StashSupport"))
+      .`with`(
+        Advice(
+          named("prepend"),
+          "akka.actor.impl.StashSupportPrependAdvice"
+        )
+      )
 
   val typedStashBufferAdvice: TypeInstrumentation =
-    typeInstrumentation(
+    Instrumentation(
       matchers
-        .hasSuperType(matchers.named("akka.actor.typed.internal.StashBufferImpl"))
-    )(
-      matchers.named("stash"),
-      "akka.actor.impl.typed.StashBufferImplStashAdvice"
+        .hasSuperType(named("akka.actor.typed.internal.StashBufferImpl"))
+    ).`with`(
+      Advice(
+        named("stash"),
+        "akka.actor.impl.typed.StashBufferImplStashAdvice"
+      )
     )
 
   val typedAbstractSupervisorHandleReceiveExceptionAdvice: TypeInstrumentation =
-    typeInstrumentation(
+    Instrumentation(
       matchers
         .hasSuperType(
           matchers
             .named("akka.actor.typed.internal.AbstractSupervisor")
         )
         .and(
-          matchers.declaresMethod(
+          declaresMethod(
             matchers
               .named("handleReceiveException")
-              .and(matchers.isOverriddenFrom(matchers.named("akka.actor.typed.internal.AbstractSupervisor")))
+              .and(isOverriddenFrom(named("akka.actor.typed.internal.AbstractSupervisor")))
           )
         )
-    )(
-      matchers.named("handleReceiveException"),
-      "akka.actor.impl.typed.SupervisorHandleReceiveExceptionAdvice"
+    ).`with`(
+      Advice(
+        named("handleReceiveException"),
+        "akka.actor.impl.typed.SupervisorHandleReceiveExceptionAdvice"
+      )
     )
 
   val actorUnhandledAdvice: TypeInstrumentation =
-    typeInstrumentation(
-      matchers.named("akka.actor.Actor")
-    )(
-      matchers.named("unhandled"),
-      "akka.actor.impl.ActorUnhandledAdvice"
+    Instrumentation(
+      named("akka.actor.Actor")
+    ).`with`(
+      Advice(
+        named("unhandled"),
+        "akka.actor.impl.ActorUnhandledAdvice"
+      )
     )
 
   // mailbox
 
   val abstractBoundedNodeQueueAdvice: TypeInstrumentation =
-    typeInstrumentation(
-      matchers.named("akka.dispatch.AbstractBoundedNodeQueue")
-    )(
-      matchers.named("add"),
-      "akka.actor.impl.AbstractBoundedNodeQueueAddAdvice"
+    Instrumentation(
+      named("akka.dispatch.AbstractBoundedNodeQueue")
+    ).`with`(
+      Advice(
+        named("add"),
+        "akka.actor.impl.AbstractBoundedNodeQueueAddAdvice"
+      )
     )
 
   val boundedQueueBasedMessageQueueConstructorAdvice: TypeInstrumentation =
-    typeInstrumentation(
+    Instrumentation(
       matchers
-        .hasSuperType[TypeDescription](matchers.named("akka.dispatch.BoundedQueueBasedMessageQueue"))
+        .hasSuperType[TypeDescription](named("akka.dispatch.BoundedQueueBasedMessageQueue"))
         .and[TypeDescription](
-          matchers.hasSuperType[TypeDescription](matchers.named("java.util.concurrent.BlockingQueue"))
+          hasSuperType[TypeDescription](named("java.util.concurrent.BlockingQueue"))
         )
-        .and[TypeDescription](matchers.not[TypeDescription](matchers.isAbstract))
-    )(
-      matchers.isConstructor,
-      "akka.actor.impl.BoundedQueueBasedMessageQueueConstructorAdvice"
+        .and[TypeDescription](not[TypeDescription](isAbstract))
+    ).`with`(
+      Advice(
+        isConstructor,
+        "akka.actor.impl.BoundedQueueBasedMessageQueueConstructorAdvice"
+      )
     )
 
   val boundedQueueBasedMessageQueueQueueAdvice: TypeInstrumentation =
-    typeInstrumentation(
+    Instrumentation(
       matchers
-        .hasSuperType[TypeDescription](matchers.named("akka.dispatch.BoundedQueueBasedMessageQueue"))
+        .hasSuperType[TypeDescription](named("akka.dispatch.BoundedQueueBasedMessageQueue"))
         .and[TypeDescription](
-          matchers.hasSuperType[TypeDescription](matchers.named("java.util.concurrent.BlockingQueue"))
+          hasSuperType[TypeDescription](named("java.util.concurrent.BlockingQueue"))
         )
-        .and[TypeDescription](matchers.not[TypeDescription](matchers.isAbstract))
-    )(
-      matchers.named("queue"),
-      "akka.actor.impl.BoundedQueueBasedMessageQueueQueueAdvice"
+        .and[TypeDescription](not[TypeDescription](isAbstract))
+    ).`with`(
+      Advice(
+        named("queue"),
+        "akka.actor.impl.BoundedQueueBasedMessageQueueQueueAdvice"
+      )
     )
 
-  val boundedMessageQueueSemanticsEnqueueAdvice: TypeInstrumentation = typeInstrumentation(
+  val boundedMessageQueueSemanticsEnqueueAdvice: TypeInstrumentation = Instrumentation(
     matchers
-      .hasSuperType(matchers.named("akka.dispatch.BoundedMessageQueueSemantics"))
-      .and(matchers.not(matchers.isAbstract))
-  )(
-    matchers.named("enqueue"),
-    "akka.actor.impl.BoundedMessageQueueSemanticsEnqueueAdvice"
+      .hasSuperType(named("akka.dispatch.BoundedMessageQueueSemantics"))
+      .and(not(isAbstract))
+  ).`with`(
+    Advice(
+      named("enqueue"),
+      "akka.actor.impl.BoundedMessageQueueSemanticsEnqueueAdvice"
+    )
   )
 
 }

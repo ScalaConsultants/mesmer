@@ -32,7 +32,7 @@ public class BoundedMessageQueueSemanticsEnqueueAdvice {
           if (Boolean.FALSE.equals(
               VirtualField.find(AbstractBoundedNodeQueue.class, Boolean.class)
                   .get((AbstractBoundedNodeQueue<?>) self))) {
-            instruments.dropped().add(1L, attrs);
+            instruments.droppedMessages().add(1L, attrs);
           }
 
         } else if (self instanceof BoundedQueueBasedMessageQueue) {
@@ -40,7 +40,7 @@ public class BoundedMessageQueueSemanticsEnqueueAdvice {
               (BoundedQueueProxy<?>) ((BoundedQueueBasedMessageQueue) self).queue();
 
           if (!proxy.getResult()) {
-            instruments.dropped().add(1L, attrs);
+            instruments.droppedMessages().add(1L, attrs);
           }
         }
       }

@@ -9,5 +9,8 @@ target/
 .vscode/
 .metals/
 .bloop/
+project/project
+project/target
+project/metals.sbt
 
 !opentelemetry-javaagent110.jar

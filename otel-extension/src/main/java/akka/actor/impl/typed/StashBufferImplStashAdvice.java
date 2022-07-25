@@ -25,7 +25,7 @@ public class StashBufferImplStashAdvice {
             .get(classicContext);
 
     if (Objects.nonNull(attrs) && Objects.nonNull(state)) {
-      instruments.stashed().add(1L, attrs);
+      instruments.stashedMessages().add(1L, attrs);
     }
   }
 }
