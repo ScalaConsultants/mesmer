@@ -22,6 +22,7 @@ public class MesmerAkkaPersistenceInstrumentationModule extends InstrumentationM
   @Override
   public List<TypeInstrumentation> typeInstrumentations() {
     return Arrays.asList(
+        AkkaPersistenceAgent.actorSystemPersistenceProvider(),
         AkkaPersistenceAgent.replayingEventsOnRecoveryComplete(),
         AkkaPersistenceAgent.replayingSnapshotOnRecoveryStart(),
         AkkaPersistenceAgent.runningOnWriteInitiatedInstrumentation(),
@@ -38,7 +39,9 @@ public class MesmerAkkaPersistenceInstrumentationModule extends InstrumentationM
         "io.scalac.mesmer.otelextension.instrumentations.akka.persistence.InstrumentsProvider",
         "io.scalac.mesmer.otelextension.instrumentations.akka.persistence.InstrumentsProvider$",
         "io.scalac.mesmer.otelextension.instrumentations.akka.persistence.impl.PersistenceContext",
-        "io.scalac.mesmer.otelextension.instrumentations.akka.persistence.impl.PersistenceContext$");
+        "io.scalac.mesmer.otelextension.instrumentations.akka.persistence.impl.PersistenceContextProvider",
+        "io.scalac.mesmer.otelextension.instrumentations.akka.persistence.impl.TemplatingPersistenceContextProvider",
+        "io.scalac.mesmer.otelextension.instrumentations.akka.persistence.impl.IdentityPersistenceContextProvider");
   }
 
   @Override
@@ -48,9 +51,13 @@ public class MesmerAkkaPersistenceInstrumentationModule extends InstrumentationM
 
   @Override
   public void registerMuzzleVirtualFields(VirtualFieldMappingsBuilder builder) {
-    builder.register(
-        "akka.actor.ActorContext",
-        "io.scalac.mesmer.otelextension.instrumentations.akka.persistence.impl.PersistenceContext");
+    builder
+        .register(
+            "akka.actor.ActorContext",
+            "io.scalac.mesmer.otelextension.instrumentations.akka.persistence.impl.PersistenceContext")
+        .register(
+            "akka.actor.ActorSystem",
+            "io.scalac.mesmer.otelextension.instrumentations.akka.persistence.impl.PersistenceContextProvider");
   }
 
   @Override

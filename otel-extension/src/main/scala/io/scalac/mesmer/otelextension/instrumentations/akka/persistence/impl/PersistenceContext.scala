@@ -7,18 +7,23 @@ import io.opentelemetry.api.common.Attributes
 import io.scalac.mesmer.core.akka.model.AttributeNames
 import io.scalac.mesmer.core.util.Interval
 
-final class PersistenceContext private (val attributes: Attributes) {
+final class PersistenceContext private[impl] (val attributes: Attributes) {
   private[this] var nanos: Long = _
 
   def startTimer(): Unit = nanos = System.nanoTime()
   def stopTimer(): Long  = new Interval(System.nanoTime() - nanos).toNano
 }
 
-object PersistenceContext {
+trait PersistenceContextProvider {
+  def create(ref: ActorRef, persitenceId: PersistenceId): PersistenceContext
+}
+
+/**
+ * Provider that substitute persistence id with {id}
+ */
+final class TemplatingPersistenceContextProvider extends PersistenceContextProvider {
   def create(ref: ActorRef, persitenceId: PersistenceId): PersistenceContext = {
-    // TODO we need to disable this for tests somehow
-//    val path = ref.path.toStringWithoutAddress.replace(s"/${persitenceId.id}", "/{id}")
-    val path = ref.path.toStringWithoutAddress
+    val path = ref.path.toStringWithoutAddress.replace(s"/${persitenceId.id}", "/{id}")
 
     new PersistenceContext(
       Attributes
@@ -27,4 +32,17 @@ object PersistenceContext {
         .build()
     )
   }
+}
+
+/**
+ * Only recommended for tests
+ */
+final class IdentityPersistenceContextProvider extends PersistenceContextProvider {
+  def create(ref: ActorRef, persitenceId: PersistenceId): PersistenceContext =
+    new PersistenceContext(
+      Attributes
+        .builder()
+        .put(AttributeNames.EntityPath, ref.path.toStringWithoutAddress)
+        .build()
+    )
 }

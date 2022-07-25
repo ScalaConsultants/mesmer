@@ -123,6 +123,7 @@ lazy val otelExtension = (project in file("otel-extension"))
       "-Dotel.javaagent.testing.fail-on-context-leak=true",
       "-Dotel.javaagent.testing.transform-safe-logging.enabled=true",
       "-Dotel.metrics.exporter=otlp",
+      "-Dmesmer.akka.persistence.templated=false",
 
       // suppress repeated logging of "No metric data to export - skipping export."
       // since PeriodicMetricReader is configured with a short interval

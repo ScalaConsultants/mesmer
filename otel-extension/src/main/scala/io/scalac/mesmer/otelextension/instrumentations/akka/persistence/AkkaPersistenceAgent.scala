@@ -8,8 +8,14 @@ import net.bytebuddy.description.method.MethodDescription
 
 import io.scalac.mesmer.agent.util.dsl._
 import io.scalac.mesmer.agent.util.dsl.matchers._
+import io.scalac.mesmer.agent.util.i13n.Advice
+import io.scalac.mesmer.agent.util.i13n.Instrumentation
 
 object AkkaPersistenceAgent {
+
+  val actorSystemPersistenceProvider: TypeInstrumentation =
+    Instrumentation(named("akka.actor.ActorSystemImpl"))
+      .`with`(Advice(isConstructor, "akka.persistence.typed.ActorSystemImplInitPersistenceContextProviderAdvice"))
 
   val replayingSnapshotOnRecoveryStart: TypeInstrumentation =
     typeInstrumentation(named("akka.persistence.typed.internal.ReplayingSnapshot"))(
