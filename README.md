@@ -7,55 +7,19 @@
 Mesmer is an [OpenTelemetry](https://opentelemetry.io/) instrumentation library for [Akka](https://akka.io/)
 applications.
 
-## Getting started
+Compatibility:
+- Scala: 2.13.x
+- JVM: 1.11+
+  
+See the [docs](https://scalaconsultants.github.io/mesmer/) for more information.
 
-Mesmer consists of two parts:
-
-- Akka Extension - that runs in the background and is responsible for exporting the metrics to your chosen backend
-- OpenTelemetry Agent Extension - that instruments Akka classes to expose metrics for the Extension
-
-Both parts need to be included in the application for Mesmer to work.
-
-### Akka extension:
-
-Add the following dependency to your `build.sbt` file:
-
-```
-libraryDependencies += "io.scalac" %% "mesmer-akka-extension" % "<version>"
-```
-
-Add this entry to your `application.conf`:
-
-    akka.actor.typed.extensions= ["io.scalac.mesmer.extension.AkkaMonitoring"]
-
-### OpenTelemetry Extension:
-
-Download the latest OTEL Extension fat jar from Maven repository and add a parameter when running your JVM:
-
-```
-    java -javaagent:opentelemetry-javaagent110.jar \ -- this is the OpenTelemetry Agent
-    -Dotel.javaagent.extensions=mesmer-otel-extension-assembly.jar -- this is our OTEL Agent Extension fat jar
-```
-
-### Exporter:
-
-Mesmer itself uses only OpenTelemetry API - it's the user's responsibility to setup the OpenTelemetry SDK.
-
-We highly recommend using
-the [OpenTelemetry Sdk Autoconfigure](https://github.com/open-telemetry/opentelemetry-java/tree/main/sdk-extensions/autoconfigure)
-artifact. We use it in our example application too. It will set up the OpenTelemetry SDK and an Exporter for you and
-will provide you with sensible default settings for it.
-
-## Supported metrics
-
-For a detailed list of supported metrics go to [supported_metrics.md](supported_metrics.md)
-
-## Local testing
+## Contributors
+### Local testing
 
 `example` subproject contains a test application that uses Akka Cluster sharding with Mesmer Akka extension.
 Go [here](example/README.md) for more information.
 
-## Contributor setup
+### Contributor setup
 
 1. You're encouraged to use
    the [sbt native client](https://www.scala-sbt.org/1.x/docs/sbt-1.4-Release-Notes.html#Native+thin+client). It will
@@ -67,7 +31,7 @@ Go [here](example/README.md) for more information.
     - Download "google-java-format" plugin and use it
     - Go to "Editor" -> "Code Style" -> "YAML". Uncheck "Indent sequence value" and "Brackets" (in the "Spaces" menu)
 
-## Documentation
+### Documentation
 
 Mesmer project uses [Docusaurus v2](https://docusaurus.io/) with [mdoc](https://scalameta.org/mdoc/) to produce
 type-checked documentation. All is configured with the [sbt-mdoc](https://scalameta.org/mdoc/docs/installation.html#sbt)
@@ -105,11 +69,6 @@ This will put them into `mesmer-docs/target/mdoc` where the Docusaurus can pick 
 looks for these pages is configured in `website/docusaurus.config.js`)
 
 The homepage (in case you need to make changes to it) resides in `website/src/pages/index.js`.
-
-## Compatibility
-
-- Scala: 2.13.x
-- JVM: 1.11+
 
 [Badge-CI]: https://github.com/ScalaConsultants/mesmer/workflows/Scala%20CI/badge.svg
 
