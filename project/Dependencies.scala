@@ -2,7 +2,7 @@ import sbt._
 
 object Dependencies {
 
-  val AirframeVersion              = "22.7.2"
+  val AirframeVersion              = "22.7.3"
   val AkkaHttpVersion              = "10.2.9"
   val AkkaManagementVersion        = "1.1.3"
   val AkkaVersion                  = "2.6.19"
@@ -96,7 +96,7 @@ object Dependencies {
     "com.lightbend.akka.management" %% "akka-management-cluster-http"              % AkkaManagementVersion,
     "com.lightbend.akka.management" %% "akka-management-cluster-bootstrap"         % AkkaManagementVersion,
     "io.opentelemetry"               % "opentelemetry-sdk-extension-autoconfigure" % OpentelemetryAlphaVersion130,
-    "io.grpc"                        % "grpc-netty-shaded"                         % "1.47.0",
+    "io.grpc"                        % "grpc-netty-shaded"                         % "1.48.0",
     "org.wvlet.airframe"            %% "airframe-log"                              % AirframeVersion
   )
 }
