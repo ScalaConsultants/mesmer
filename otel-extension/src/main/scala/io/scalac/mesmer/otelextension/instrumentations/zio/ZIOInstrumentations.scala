@@ -19,11 +19,11 @@ object ZIOInstrumentations {
       )
     )
 
-  val counterMetricAdvice: TypeInstrumentation =
+  val fromMetricKeyAdvice: TypeInstrumentation =
     Instrumentation(named[TypeDescription]("zio.metrics.Metric$")).`with`(
       Advice(
-        named[MethodDescription]("counterDouble"),
-        "io.scalac.mesmer.otelextension.instrumentations.zio.advice.ZIOCounterAdvice"
+        named[MethodDescription]("fromMetricKey"),
+        "io.scalac.mesmer.otelextension.instrumentations.zio.advice.ZIOFromMetricKeyAdvice"
       )
     )
 }

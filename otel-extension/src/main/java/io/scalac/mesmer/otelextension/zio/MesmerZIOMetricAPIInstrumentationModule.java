@@ -20,13 +20,13 @@ public class MesmerZIOMetricAPIInstrumentationModule extends InstrumentationModu
 
   @Override
   public List<TypeInstrumentation> typeInstrumentations() {
-    return Collections.singletonList(ZIOInstrumentations.counterMetricAdvice());
+    return Collections.singletonList(ZIOInstrumentations.fromMetricKeyAdvice());
   }
 
   @Override
   public List<String> getAdditionalHelperClassNames() {
     return List.of(
-        "io.scalac.mesmer.otelextension.instrumentations.zio.advice.ZIOCounterAdvice$",
+        "io.scalac.mesmer.otelextension.instrumentations.zio.advice.ZIOFromMetricKeyAdvice$",
         "io.scalac.mesmer.otelextension.instrumentations.zio.ZIOInstrumentations$",
         "io.scalac.mesmer.otelextension.instrumentations.zio.ZIOMetrics$");
   }
