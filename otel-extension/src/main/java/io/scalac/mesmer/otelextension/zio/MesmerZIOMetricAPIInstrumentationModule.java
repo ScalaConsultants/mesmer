@@ -20,13 +20,14 @@ public class MesmerZIOMetricAPIInstrumentationModule extends InstrumentationModu
 
   @Override
   public List<TypeInstrumentation> typeInstrumentations() {
-    return Collections.singletonList(ZIOInstrumentations.fromMetricKeyAdvice());
+    return List.of(ZIOInstrumentations.fromMetricKeyAdvice(), ZIOInstrumentations.taggedAdvice());
   }
 
   @Override
   public List<String> getAdditionalHelperClassNames() {
     return List.of(
         "io.scalac.mesmer.otelextension.instrumentations.zio.advice.ZIOFromMetricKeyAdvice$",
+        "io.scalac.mesmer.otelextension.instrumentations.zio.advice.ZIOMetricsTaggedAdvice$",
         "io.scalac.mesmer.otelextension.instrumentations.zio.ZIOInstrumentations$",
         "io.scalac.mesmer.otelextension.instrumentations.zio.ZIOMetrics$");
   }
@@ -37,7 +38,12 @@ public class MesmerZIOMetricAPIInstrumentationModule extends InstrumentationModu
   }
 
   @Override
-  public void registerMuzzleVirtualFields(VirtualFieldMappingsBuilder builder) {}
+  public void registerMuzzleVirtualFields(VirtualFieldMappingsBuilder builder) {
+    builder.register("zio.metrics.Metric", "java.lang.String");
+    builder.register(
+        "zio.metrics.Metric",
+        "io.opentelemetry.javaagent.shaded.io.opentelemetry.api.common.Attributes");
+  }
 
   @Override
   public List<String> getMuzzleHelperClassNames() {
