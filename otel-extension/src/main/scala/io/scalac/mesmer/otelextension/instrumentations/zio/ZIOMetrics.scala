@@ -16,16 +16,16 @@ object ZIOMetrics {
 
   private val metricName: String => String = (suffix: String) => s"mesmer_zio_forwarded_$suffix"
 
-  def registerCounterAsyncMetric(zioMetricName: String, counter: Counter[_], labels: Set[MetricLabel]): Unit =
+  def registerCounterAsyncMetric(zioMetricName: String, counter: Counter[_], attributes: Attributes): Unit =
     meter
       .counterBuilder(metricName(zioMetricName))
       .ofDoubles()
-      .buildWithCallback(_.record(unsafeGetCount(counter), buildAttributes(labels)))
+      .buildWithCallback(_.record(unsafeGetCount(counter), attributes))
 
-  def registerGaugeAsyncMetric(zioMetricName: String, counter: Gauge[_], labels: Set[MetricLabel]): Unit =
+  def registerGaugeAsyncMetric(zioMetricName: String, counter: Gauge[_], attributes: Attributes): Unit =
     meter
       .gaugeBuilder(metricName(zioMetricName))
-      .buildWithCallback(_.record(unsafeGetGaugeValue(counter), buildAttributes(labels)))
+      .buildWithCallback(_.record(unsafeGetGaugeValue(counter), attributes))
 
   def buildAttributes(metricLabels: Set[MetricLabel]): Attributes = {
     val builder = Attributes.builder()
