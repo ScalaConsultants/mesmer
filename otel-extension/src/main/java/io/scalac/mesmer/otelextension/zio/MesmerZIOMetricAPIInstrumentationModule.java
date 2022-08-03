@@ -40,9 +40,17 @@ public class MesmerZIOMetricAPIInstrumentationModule extends InstrumentationModu
   @Override
   public void registerMuzzleVirtualFields(VirtualFieldMappingsBuilder builder) {
     builder.register("zio.metrics.Metric", "java.lang.String");
+    builder.register("zio.metrics.Metric", "java.lang.String");
+    builder.register(
+        "zio.metrics.Metric",
+        "io.opentelemetry.javaagent.shaded.io.opentelemetry.api.metrics.ObservableDoubleCounter");
+    builder.register(
+        "zio.metrics.Metric",
+        "io.opentelemetry.javaagent.shaded.io.opentelemetry.api.metrics.ObservableDoubleGauge");
     builder.register(
         "zio.metrics.Metric",
         "io.opentelemetry.javaagent.shaded.io.opentelemetry.api.common.Attributes");
+    builder.register("zio.metrics.Metric", "java.lang.AutoCloseable");
   }
 
   @Override

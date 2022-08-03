@@ -1,6 +1,8 @@
 package io.scalac.mesmer.otelextension.instrumentations.zio.advice
 
 import io.opentelemetry.api.common.Attributes
+import io.opentelemetry.api.metrics.ObservableDoubleCounter
+import io.opentelemetry.api.metrics.ObservableDoubleGauge
 import io.opentelemetry.instrumentation.api.field.VirtualField
 import net.bytebuddy.asm.Advice
 import zio.metrics.Metric
@@ -19,11 +21,15 @@ object ZIOMetricsTaggedAdvice {
     @Advice.This oldMetric: Metric[Type, _, _],
     @Advice.Return newMetric: Metric[Type, _, _]
   ): Unit = {
+    Option(
+      VirtualField
+        .find(classOf[Metric[Type, _, _]], classOf[AutoCloseable])
+        .get(oldMetric)
+    ).foreach { instrument: AutoCloseable => instrument.close() }
+
     val name: String = VirtualField
       .find(classOf[Metric[Type, _, _]], classOf[String])
       .get(oldMetric)
-
-    println(name)
 
     val attributesSoFar: Option[Attributes] = Option(
       VirtualField
@@ -41,9 +47,20 @@ object ZIOMetricsTaggedAdvice {
 
     oldMetric.keyType match {
       case _: MetricKeyType.Counter =>
-        registerCounterAsyncMetric(name, newMetric.asInstanceOf[Counter[_]], newAttributes)
+        val newOtelCounter: ObservableDoubleCounter =
+          registerCounterAsyncMetric(name, newMetric.asInstanceOf[Counter[_]], newAttributes)
+
+        VirtualField
+          .find(classOf[Metric[Type, _, _]], classOf[ObservableDoubleCounter])
+          .set(newMetric, newOtelCounter)
+
       case _: MetricKeyType.Gauge =>
-        registerGaugeAsyncMetric(name, newMetric.asInstanceOf[Gauge[_]], newAttributes)
+        val newOtelGauge = registerGaugeAsyncMetric(name, newMetric.asInstanceOf[Gauge[_]], newAttributes)
+
+        VirtualField
+          .find(classOf[Metric[Type, _, _]], classOf[ObservableDoubleGauge])
+          .set(newMetric, newOtelGauge)
+
       case _ => ()
     }
 

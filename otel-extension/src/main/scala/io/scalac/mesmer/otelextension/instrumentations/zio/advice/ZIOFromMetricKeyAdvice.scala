@@ -23,9 +23,15 @@ object ZIOFromMetricKeyAdvice {
 
     key.keyType match {
       case _: MetricKeyType.Counter =>
-        registerCounterAsyncMetric(key.name, metric.asInstanceOf[Counter[_]], attributes)
+        val counter = registerCounterAsyncMetric(key.name, metric.asInstanceOf[Counter[_]], attributes)
+        VirtualField
+          .find(classOf[Metric[Type, _, _]], classOf[AutoCloseable])
+          .set(metric, counter)
       case _: MetricKeyType.Gauge =>
-        registerGaugeAsyncMetric(key.name, metric.asInstanceOf[Gauge[_]], attributes)
+        val gauge = registerGaugeAsyncMetric(key.name, metric.asInstanceOf[Gauge[_]], attributes)
+        VirtualField
+          .find(classOf[Metric[Type, _, _]], classOf[AutoCloseable])
+          .set(metric, gauge)
       case _ => ()
     }
 

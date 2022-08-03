@@ -3,6 +3,8 @@ import io.opentelemetry.api.GlobalOpenTelemetry
 import io.opentelemetry.api.common.AttributeKey
 import io.opentelemetry.api.common.Attributes
 import io.opentelemetry.api.metrics.Meter
+import io.opentelemetry.api.metrics.ObservableDoubleCounter
+import io.opentelemetry.api.metrics.ObservableDoubleGauge
 import zio.Unsafe
 import zio.metrics.Metric
 import zio.metrics.Metric.Counter
@@ -16,13 +18,21 @@ object ZIOMetrics {
 
   private val metricName: String => String = (suffix: String) => s"mesmer_zio_forwarded_$suffix"
 
-  def registerCounterAsyncMetric(zioMetricName: String, counter: Counter[_], attributes: Attributes): Unit =
+  def registerCounterAsyncMetric(
+    zioMetricName: String,
+    counter: Counter[_],
+    attributes: Attributes
+  ): ObservableDoubleCounter =
     meter
       .counterBuilder(metricName(zioMetricName))
       .ofDoubles()
       .buildWithCallback(_.record(unsafeGetCount(counter), attributes))
 
-  def registerGaugeAsyncMetric(zioMetricName: String, counter: Gauge[_], attributes: Attributes): Unit =
+  def registerGaugeAsyncMetric(
+    zioMetricName: String,
+    counter: Gauge[_],
+    attributes: Attributes
+  ): ObservableDoubleGauge =
     meter
       .gaugeBuilder(metricName(zioMetricName))
       .buildWithCallback(_.record(unsafeGetGaugeValue(counter), attributes))
