@@ -21,15 +21,14 @@ class ZIOExecutorMetricsTest extends OtelAgentTest with AnyFlatSpecLike with Mat
     Unsafe.unsafe { implicit u =>
       Runtime.default.unsafe.runToFuture(testProgram)
 
-      assertGaugeIsCollected("mesmer_zio_executor_worker_count")
-      assertGaugeIsCollected("mesmer_zio_executor_concurrency")
-      assertGaugeIsCollected("mesmer_zio_executor_dequeued_count")
-      assertGaugeIsCollected("mesmer_zio_executor_enqueued_count")
-      assertGaugeIsCollected("mesmer_zio_executor_size")
-      assertGaugeIsCollected("mesmer_zio_executor_capacity")
+      assertMetricIsCollected("mesmer_zio_executor_worker_count")
+      assertMetricIsCollected("mesmer_zio_executor_concurrency")
+      assertMetricIsCollected("mesmer_zio_executor_dequeued_count")
+      assertMetricIsCollected("mesmer_zio_executor_enqueued_count")
+      assertMetricIsCollected("mesmer_zio_executor_enqueued_count")
+      assertMetricIsCollected("mesmer_zio_executor_size")
+      assertMetricIsCollected("mesmer_zio_executor_capacity")
     }
-
-    def assertGaugeIsCollected(name: String): Unit = assertMetrics(metricName = name) { case _ => () }
   }
 
   "There" should "be only one executor that has the given concurrency" in {
