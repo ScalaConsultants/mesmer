@@ -51,6 +51,16 @@ class ZIOMetricsTest extends OtelAgentTest with AnyFlatSpecLike with Matchers {
     assertCounterMetricValue("mesmer_zio_forwarded_zio_fiber_failures", 2)
   }
 
+  "OTEL gauge" should "be registered and working for a custom ZIO Gauge" in {
+    val gauge = Metric.gauge("my_custom_zio_gauge")
+
+    val testProgram = for { _ <- ZIO.succeed(42.0) @@ gauge } yield ()
+
+    runUnsafely(testProgram, runtimeMetrics = false)
+
+    assertGaugeLastMetricValue("mesmer_zio_forwarded_my_custom_zio_gauge", 42)
+  }
+
   private def runUnsafely[E <: Throwable, A](
     testProgram: ZIO[Any, E, A],
     runtimeMetrics: Boolean
@@ -58,6 +68,14 @@ class ZIOMetricsTest extends OtelAgentTest with AnyFlatSpecLike with Matchers {
     val program = if (runtimeMetrics) testProgram.provide(Runtime.enableRuntimeMetrics) else testProgram
     Unsafe.unsafe(implicit u => Runtime.default.unsafe.runToFuture(program))
   }
+
+  private def assertGaugeLastMetricValue(metricName: String, value: Double): Unit =
+    assertMetrics(metricName) {
+      case data if data.getType == MetricDataType.DOUBLE_GAUGE => getGaugeValue(data).get should be(value)
+    }
+
+  private def getGaugeValue(data: MetricData): Option[Double] =
+    data.getDoubleGaugeData.getPoints.asScala.map(_.getValue).toList.lastOption
 
   private def assertCounterMetricValue(metricName: String, value: Double): Unit =
     assertMetrics(metricName) {
