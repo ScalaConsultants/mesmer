@@ -40,11 +40,10 @@ class ZIOExecutorMetricsTest extends OtelAgentTest with AnyFlatSpecLike with Mat
       val customExecutor = Runtime.setExecutor(Executor.fromThreadPoolExecutor(executor))
       Runtime.default.unsafe.runToFuture(testProgram.provide(customExecutor))
 
-      assertMetrics("mesmer_zio_executor_concurrency") {
-        case data if data.getType == MetricDataType.LONG_GAUGE =>
-          val concurrencySeries = findGaugeDataSeriesWithStaticValue(concurrency, data)
-          concurrencySeries.size should be(1)
-          all(concurrencySeries.values.last) should be(concurrency)
+      assertMetric("mesmer_zio_executor_concurrency") { data =>
+        val concurrencySeries = findGaugeDataSeriesWithStaticValue(concurrency, data)
+        concurrencySeries.size should be(1)
+        all(concurrencySeries.values.last) should be(concurrency)
       }
     }
   }
@@ -53,10 +52,9 @@ class ZIOExecutorMetricsTest extends OtelAgentTest with AnyFlatSpecLike with Mat
     Unsafe.unsafe { implicit u =>
       Runtime.default.unsafe.runToFuture(testProgram)
 
-      assertMetrics("mesmer_zio_executor_worker_count") {
-        case data if data.getType == MetricDataType.LONG_GAUGE =>
-          val workerCountPerExecutor = data.getLongGaugeData.getPoints.asScala.map(_.getValue)
-          workerCountPerExecutor.sum should not be 0
+      assertMetric("mesmer_zio_executor_worker_count") { data =>
+        val workerCountPerExecutor = data.getLongGaugeData.getPoints.asScala.map(_.getValue)
+        workerCountPerExecutor.sum should not be 0
       }
     }
   }
@@ -68,10 +66,9 @@ class ZIOExecutorMetricsTest extends OtelAgentTest with AnyFlatSpecLike with Mat
       val customExecutor = Runtime.setExecutor(Executor.fromThreadPoolExecutor(executor))
       Runtime.default.unsafe.runToFuture(testProgram.provide(customExecutor))
 
-      assertMetrics("mesmer_zio_executor_enqueued_count") {
-        case data if data.getType == MetricDataType.LONG_GAUGE =>
-          val points: Iterable[Long] = data.getLongGaugeData.getPoints.asScala.map(_.getValue)
-          points.sum should not be 0
+      assertMetric("mesmer_zio_executor_enqueued_count") { data =>
+        val points: Iterable[Long] = data.getLongGaugeData.getPoints.asScala.map(_.getValue)
+        points.sum should not be 0
       }
     }
   }
@@ -83,7 +80,7 @@ class ZIOExecutorMetricsTest extends OtelAgentTest with AnyFlatSpecLike with Mat
       val customExecutor = Runtime.setExecutor(Executor.fromThreadPoolExecutor(executor))
       Runtime.default.unsafe.runToFuture(testProgram.provide(customExecutor))
 
-      assertMetrics("mesmer_zio_executor_dequeued_count") {
+      assertMetric("mesmer_zio_executor_dequeued_count") {
         case data if data.getType == MetricDataType.LONG_GAUGE =>
           val points: Iterable[Long] = data.getLongGaugeData.getPoints.asScala.map(_.getValue)
           points.sum should not be 0

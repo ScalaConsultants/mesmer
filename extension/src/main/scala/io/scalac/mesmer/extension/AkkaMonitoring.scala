@@ -24,9 +24,6 @@ import io.scalac.mesmer.core.typeclasses.Traverse
 import io.scalac.mesmer.extension.config.AkkaMonitoringConfig
 import io.scalac.mesmer.extension.config.CachingConfig
 import io.scalac.mesmer.extension.metric.CachingMonitor
-import io.scalac.mesmer.extension.persistence.CleanablePersistingStorage
-import io.scalac.mesmer.extension.persistence.CleanableRecoveryStorage
-import io.scalac.mesmer.extension.service._
 import io.scalac.mesmer.extension.upstream._
 
 object AkkaMonitoring extends ExtensionId[AkkaMonitoring] {
@@ -77,12 +74,6 @@ final class AkkaMonitoring(system: ActorSystem[_]) extends Extension {
       log.debug("Start akka stream service")
 
       startStreamMonitor()
-    }
-
-    if (autoStartConfig.akkaPersistence) {
-      log.debug("Start akka persistence service")
-
-      startPersistenceMonitor()
     }
 
     if (autoStartConfig.akkaCluster) {
@@ -141,43 +132,6 @@ final class AkkaMonitoring(system: ActorSystem[_]) extends Extension {
   }
 
   private def startClusterRegionsMonitor(): Unit = startClusterMonitor(ClusterRegionsMonitorActor)
-
-  private def startPersistenceMonitor(): Unit = {
-    val akkaPersistenceConfig = AkkaPersistenceModule.enabled
-
-    startWithConfig[AkkaPersistenceModule.type](AkkaPersistenceModule, akkaPersistenceConfig) { moduleConfig =>
-      val cachingConfig = CachingConfig.fromConfig(actorSystemConfig, AkkaPersistenceModule)
-      val openTelemetryPersistenceMonitor = CachingMonitor(
-        OpenTelemetryPersistenceMetricsMonitor(meter, moduleConfig, actorSystemConfig),
-        cachingConfig
-      )
-      val pathService = new CachingPathService(cachingConfig)
-
-      system.systemActorOf(
-        Behaviors
-          .supervise(
-            WithSelfCleaningState
-              .clean(CleanableRecoveryStorage.withConfig(config.cleaning))
-              .every(config.cleaning.every)(rs =>
-                WithSelfCleaningState
-                  .clean(CleanablePersistingStorage.withConfig(config.cleaning))
-                  .every(config.cleaning.every) { ps =>
-                    PersistenceEventsActor.apply(
-                      openTelemetryPersistenceMonitor,
-                      rs,
-                      ps,
-                      pathService,
-                      clusterNodeName
-                    )
-                  }
-              )
-          )
-          .onFailure[Exception](SupervisorStrategy.restart),
-        "persistenceAgentMonitor",
-        dispatcher
-      )
-    }
-  }
 
   private def startWithConfig[M <: Module](module: M, config: M#All[Boolean])(startUp: M#All[Boolean] => Unit)(implicit
     traverse: Traverse[M#All]

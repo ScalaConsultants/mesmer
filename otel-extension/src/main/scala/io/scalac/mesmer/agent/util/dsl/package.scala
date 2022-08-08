@@ -48,6 +48,16 @@ package object dsl {
       typeDesc: ElementMatcher[_ >: TypeDescription]
     ): ElementMatcher.Junction[T] = ElementMatchers.takesArgument[T](pos, typeDesc)
 
+    def takesNoArguments[T >: Nothing0 <: MethodDescription]: ElementMatcher.Junction[T] =
+      ElementMatchers.takesNoArguments[T]()
+
+    def isDeclaredBy[T >: Nothing0 <: MethodDescription](
+      typeDesc: ElementMatcher[_ >: TypeDescription]
+    ): ElementMatcher.Junction[T] =
+      ElementMatchers.isDeclaredBy[T](typeDesc)
+
+    def any[T >: Nothing0 <: NamedElement]: ElementMatcher.Junction[T] = ElementMatchers.any[T]()
+
   }
 
   /**

@@ -128,16 +128,15 @@ class ActorMailboxTest
       props
     )
 
-    assertMetrics("mesmer_akka_dropped_total") {
-      case data if data.getType == MetricDataType.LONG_SUM =>
-        val points = data.getLongSumData.getPoints.asScala
-          .filter(point =>
-            Option(point.getAttributes.get(AttributeKey.stringKey(AttributeNames.ActorPath)))
-              .contains(context.self.path.toStringWithoutAddress)
-          )
-          .toVector
+    assertMetric("mesmer_akka_dropped_total") { data =>
+      val points = data.getLongSumData.getPoints.asScala
+        .filter(point =>
+          Option(point.getAttributes.get(AttributeKey.stringKey(AttributeNames.ActorPath)))
+            .contains(context.self.path.toStringWithoutAddress)
+        )
+        .toVector
 
-        points.map(_.getValue) should contain(expectedValue)
+      points.map(_.getValue) should contain(expectedValue)
     }
 
     sut.unsafeUpcast[Any] ! PoisonPill

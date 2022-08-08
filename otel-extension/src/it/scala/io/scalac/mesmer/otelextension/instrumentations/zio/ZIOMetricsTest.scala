@@ -71,17 +71,13 @@ class ZIOMetricsTest extends OtelAgentTest with AnyFlatSpecLike with Matchers wi
   }
 
   private def assertGaugeLastMetricValue(metricName: String, value: Double): Unit =
-    assertMetrics(metricName) {
-      case data if data.getType == MetricDataType.DOUBLE_GAUGE => getGaugeValue(data).get should be(value)
-    }
+    assertMetric(metricName)(data => getGaugeValue(data).get should be(value))
 
   private def getGaugeValue(data: MetricData): Option[Double] =
     data.getDoubleGaugeData.getPoints.asScala.map(_.getValue).toList.lastOption
 
   private def assertCounterMetricValue(metricName: String, value: Double): Unit =
-    assertMetrics(metricName) {
-      case data if data.getType == MetricDataType.DOUBLE_SUM => getCounterValue(data).get should be(value)
-    }
+    assertMetric(metricName)(data => getCounterValue(data).get should be(value))
 
   private def getCounterValue(data: MetricData): Option[Double] =
     data.getDoubleSumData.getPoints.asScala.map(_.getValue).toList.headOption
