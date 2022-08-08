@@ -70,9 +70,9 @@ class OtelAkkaPersistenceAgentTest
       }
 
     assertMetrics("mesmer")(
-      "`mesmer_akka_persistence_recovery_time`" -> checkRecovery,
-      "mesmer_akka_persistence_event_time"      -> checkMetricEmpty,
-      "mesmer_akka_persistence_event_total"     -> checkMetricEmpty
+      "mesmer_akka_persistence_recovery_time" -> checkRecovery,
+      "mesmer_akka_persistence_event_time"    -> checkMetricEmpty,
+      "mesmer_akka_persistence_event_total"   -> checkMetricEmpty
     )
   }
 
