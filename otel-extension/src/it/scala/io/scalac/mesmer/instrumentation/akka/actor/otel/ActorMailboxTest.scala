@@ -9,7 +9,7 @@ import io.opentelemetry.api.common.AttributeKey
 import io.opentelemetry.sdk.metrics.data.MetricDataType
 import io.scalac.mesmer.agent.utils.{ OtelAgentTest, SafeLoadSystem }
 import io.scalac.mesmer.core.akka.model.AttributeNames
-import io.scalac.mesmer.core.config.AkkaPatienceConfig
+import io.scalac.mesmer.core.config.MesmerPatienceConfig
 import io.scalac.mesmer.core.util.TestOps
 import org.scalatest.concurrent.Eventually
 import org.scalatest.flatspec.{ AnyFlatSpec, AnyFlatSpecLike }
@@ -53,7 +53,7 @@ class ActorMailboxTest
     with Matchers
     with TestOps
     with Eventually
-    with AkkaPatienceConfig {
+    with MesmerPatienceConfig {
 
   override def config: Config = {
 

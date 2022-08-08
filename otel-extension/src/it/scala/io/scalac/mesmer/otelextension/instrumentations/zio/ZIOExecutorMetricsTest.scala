@@ -3,6 +3,7 @@ package io.scalac.mesmer.otelextension.instrumentations.zio
 import io.opentelemetry.api.common.AttributeKey
 import io.opentelemetry.sdk.metrics.data.{ MetricData, MetricDataType }
 import io.scalac.mesmer.agent.utils.OtelAgentTest
+import io.scalac.mesmer.core.config.MesmerPatienceConfig
 import org.scalatest.flatspec.AnyFlatSpecLike
 import org.scalatest.matchers.should.Matchers
 import zio._
@@ -10,7 +11,7 @@ import zio._
 import java.util.concurrent.{ SynchronousQueue, ThreadPoolExecutor, TimeUnit }
 import scala.jdk.CollectionConverters._
 
-class ZIOExecutorMetricsTest extends OtelAgentTest with AnyFlatSpecLike with Matchers {
+class ZIOExecutorMetricsTest extends OtelAgentTest with AnyFlatSpecLike with Matchers with MesmerPatienceConfig {
 
   val testProgram: ZIO[Any, Nothing, Long] = (for {
     _ <- Random.nextInt

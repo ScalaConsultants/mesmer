@@ -5,7 +5,7 @@ import org.scalatest.time.Span
 
 import scala.concurrent.duration._
 
-trait AkkaPatienceConfig {
+trait MesmerPatienceConfig {
   this: PatienceConfiguration =>
 
   val reasonableInterval: Span = scaled(100.millis)
