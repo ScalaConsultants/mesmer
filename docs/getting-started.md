@@ -4,39 +4,63 @@ sidebar_position: 2
 
 # Getting started
 
-Mesmer consists of two parts:
+Here you will find instructions on how to add OpenTelemetry Agent with Mesmer extension to your application and make it export metrics in a Prometheus format.
+
+In addition to OpenTelemetry components Mesmer consists of two parts:
 
 - **Akka Extension** - that runs in the background and is responsible for exporting the metrics to your chosen backend
 - **OpenTelemetry Agent Extension** - that instruments Akka classes to expose metrics for the Extension
 
 Both parts need to be included in the application for Mesmer to work.
 
-### Akka extension
+## Step by step guide
 
-Add the following dependency to your `build.sbt` file:
+1. Add Mesmer Akka extension:
 
-```
-libraryDependencies += "io.scalac" %% "mesmer-akka-extension" % "<version>"
-```
+   Add the following dependency to your `build.sbt` file:
+   ```scala
+   libraryDependencies += "io.scalac" %% "mesmer-akka-extension" % "0.7.0"
+   ```
 
-Add this entry to your `application.conf`:
+   Add this entry to your `application.conf`:
+   ```
+   akka.actor.typed.extensions = ["io.scalac.mesmer.extension.AkkaMonitoring"]
+   ```
 
-    akka.actor.typed.extensions= ["io.scalac.mesmer.extension.AkkaMonitoring"]
+2. Download [opentelemetry-javaagent.jar](https://github.com/open-telemetry/opentelemetry-java-instrumentation/releases/download/v1.12.0/opentelemetry-javaagent.jar) from `opentelemetry-java` Releases.
 
-### OpenTelemetry Extension
+3. Download [mesmer-otel-extension.jar](https://github.com/ScalaConsultants/mesmer/releases/download/v0.7.0/mesmer-otel-extension.jar) from `mesmer` Releases.
 
-Download the latest OTEL Extension fat jar from Maven repository and add a parameter when running your JVM:
+4. Enable Prometheus exporter by adding the following dependencies to your `build.sbt` file:
+   ```scala
+   libraryDependencies ++= Seq(
+     "io.opentelemetry" % "opentelemetry-sdk-extension-autoconfigure" % "1.13.0-alpha",
+     "io.opentelemetry" % "opentelemetry-exporters-prometheus"        % "0.9.1"
+   )
+   ```
 
-```
-    java -javaagent:opentelemetry-javaagent110.jar \ -- this is the OpenTelemetry Agent
-    -Dotel.javaagent.extensions=mesmer-otel-extension-assembly.jar -- this is our OTEL Agent Extension fat jar
-```
+5. Run the application with the following options:
+   ```sh
+   -javaagent:path/to/opentelemetry-javaagent.jar
+   -Dotel.javaagent.extensions=mesmer-otel-extension.jar
+   ```
+   Eg. if you're running the application with `sbt run` add this to `build.sbt` file:
+   ```scala
+   run / fork := true
+   run / javaOptions ++= Seq(
+     "-javaagent:path/to/opentelemetry-javaagent.jar",
+     "-Dotel.javaagent.extensions=path/to/mesmer-otel-extension.jar"
+   )
+   ```
+   or if you're running your application as a `jar` from command line:
+   ```sh
+   java \
+     -javaagent:path/to/opentelemetry-javaagent.jar \
+     -Dotel.javaagent.extensions=path/to/mesmer-otel-extension.jar \
+     -jar your-app.jar
+   ```
 
-### Exporter
-
-Mesmer itself uses only OpenTelemetry API - it's the user's responsibility to setup the OpenTelemetry SDK.
-
-We highly recommend using
-the [OpenTelemetry Sdk Autoconfigure](https://github.com/open-telemetry/opentelemetry-java/tree/main/sdk-extensions/autoconfigure)
-artifact. We use it in our example application too. It will set up the OpenTelemetry SDK and an Exporter for you and
-will provide you with sensible default settings for it.
+6. Test the Prometheus endpoint:
+   ```sh
+   curl -i http://localhost:9464
+   ```
