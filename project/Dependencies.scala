@@ -65,7 +65,8 @@ object Dependencies {
   )
 
   val openTelemetryMuzzle = Seq(
-    "io.opentelemetry.javaagent" % "opentelemetry-muzzle" % OpentelemetryAlphaVersion131
+    "io.opentelemetry.javaagent" % "opentelemetry-muzzle" % OpentelemetryAlphaVersion131,
+    "io.opentelemetry.javaagent" % "opentelemetry-javaagent-bootstrap" % OpentelemetryAlphaVersion131
   )
 
   val openTelemetryTesting = Seq(

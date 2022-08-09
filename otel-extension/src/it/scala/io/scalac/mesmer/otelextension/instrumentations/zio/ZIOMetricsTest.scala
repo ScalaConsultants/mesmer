@@ -2,6 +2,7 @@ package io.scalac.mesmer.otelextension.instrumentations.zio
 
 import io.opentelemetry.sdk.metrics.data.{ MetricData, MetricDataType }
 import io.scalac.mesmer.agent.utils.OtelAgentTest
+import io.scalac.mesmer.core.config.MesmerPatienceConfig
 import org.scalatest.flatspec.AnyFlatSpecLike
 import org.scalatest.matchers.should.Matchers
 import zio._
@@ -9,7 +10,7 @@ import zio.metrics.Metric
 
 import scala.jdk.CollectionConverters.CollectionHasAsScala
 
-class ZIOMetricsTest extends OtelAgentTest with AnyFlatSpecLike with Matchers {
+class ZIOMetricsTest extends OtelAgentTest with AnyFlatSpecLike with Matchers with MesmerPatienceConfig {
 
   "OTEL counter" should "be registered and working for a custom ZIO Counter" in {
     val counter = Metric.counter("my_custom_zio_counter").fromConst(1)
@@ -70,17 +71,13 @@ class ZIOMetricsTest extends OtelAgentTest with AnyFlatSpecLike with Matchers {
   }
 
   private def assertGaugeLastMetricValue(metricName: String, value: Double): Unit =
-    assertMetrics(metricName) {
-      case data if data.getType == MetricDataType.DOUBLE_GAUGE => getGaugeValue(data).get should be(value)
-    }
+    assertMetric(metricName)(data => getGaugeValue(data).get should be(value))
 
   private def getGaugeValue(data: MetricData): Option[Double] =
     data.getDoubleGaugeData.getPoints.asScala.map(_.getValue).toList.lastOption
 
   private def assertCounterMetricValue(metricName: String, value: Double): Unit =
-    assertMetrics(metricName) {
-      case data if data.getType == MetricDataType.DOUBLE_SUM => getCounterValue(data).get should be(value)
-    }
+    assertMetric(metricName)(data => getCounterValue(data).get should be(value))
 
   private def getCounterValue(data: MetricData): Option[Double] =
     data.getDoubleSumData.getPoints.asScala.map(_.getValue).toList.headOption

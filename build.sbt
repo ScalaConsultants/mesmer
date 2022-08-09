@@ -113,16 +113,18 @@ lazy val otelExtension = (project in file("otel-extension"))
         Tests.Group(name = test.name, tests = Seq(test), runPolicy = group.runPolicy)
       }
     },
-    Test / testOnly / testGrouping := (Test / testGrouping).value,
-    IntegrationTest / fork         := true,
+    Test / testOnly / testGrouping      := (Test / testGrouping).value,
+    IntegrationTest / parallelExecution := false,
+    IntegrationTest / fork              := true,
     IntegrationTest / javaOptions ++= Seq(
       s"-javaagent:$projectRootDir/opentelemetry-agent-for-testing-$OpentelemetryAlphaVersion131.jar",
       s"-Dotel.javaagent.extensions=${assembly.value.absolutePath}",
-      "-Dotel.javaagent.debug=true",
+      "-Dotel.javaagent.debug=false",
       "-Dotel.metric.export.interval=100", // 100 ms so that the "eventually" assertions could catch up
       "-Dotel.javaagent.testing.fail-on-context-leak=true",
       "-Dotel.javaagent.testing.transform-safe-logging.enabled=true",
       "-Dotel.metrics.exporter=otlp",
+      "-Dmesmer.akka.persistence.templated=false",
 
       // suppress repeated logging of "No metric data to export - skipping export."
       // since PeriodicMetricReader is configured with a short interval
@@ -213,7 +215,8 @@ def runExampleWithOtelAgent = Command.command("runExampleWithOtelAgent") { state
         s"-javaagent:$projectRootDir/opentelemetry-javaagent-$OpentelemetryLatestVersion.jar",
         s"-Dotel.service.name=mesmer-example",
         s"-Dotel.metric.export.interval=5000",
-        s"-Dotel.javaagent.extensions=${(otelExtension / assembly).value.absolutePath}"
+        s"-Dotel.javaagent.extensions=${(otelExtension / assembly).value.absolutePath}",
+        "-Dotel.javaagent.debug=false"
       )
     ),
     state
