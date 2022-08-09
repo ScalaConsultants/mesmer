@@ -1,4 +1,5 @@
 import Dependencies._
+import sbtassembly.AssemblyOption
 
 lazy val scala213 = "2.13"
 
@@ -56,8 +57,8 @@ lazy val core = (project in file("core"))
   .settings(
     name := "mesmer-akka-core",
     libraryDependencies ++= {
-      akka ++
-      openTelemetryInstrumentation ++
+      akka.map(_ % "provided") ++
+      openTelemetryInstrumentation.map(_ % "provided") ++
       scalatest.map(_ % "test") ++
       akkaTestkit.map(_ % "test")
     }
@@ -89,10 +90,11 @@ lazy val otelExtension = (project in file("otel-extension"))
     excludeDependencies += "io.opentelemetry.javaagent" % "opentelemetry-javaagent-bootstrap",
     libraryDependencies ++= {
       zio.map(_ % "provided") ++
+      akka.map(_ % "provided") ++
       openTelemetryExtension.map(_ % "provided") ++
       openTelemetryMuzzle.map(_ % "provided") ++
       openTelemetryInstrumentation.map(_ % "provided") ++
-      openTelemetryInstrumentationApiSemanticConventions ++
+      openTelemetryInstrumentationApiSemanticConventions.map(_ % "provided") ++
       byteBuddy.map(_ % "provided") ++
       akkaTestkit.map(_ % "it,test") ++
       scalatest.map(_ % "it,test") ++
@@ -101,6 +103,7 @@ lazy val otelExtension = (project in file("otel-extension"))
     assembly / test            := {},
     assembly / assemblyJarName := s"${name.value}_${scalaBinaryVersion.value}-${version.value}-assembly.jar",
     assemblyMergeStrategySettings,
+    assembly / assemblyOption ~= { _.withIncludeScala(false) },
     assembly / artifact := {
       val art = (assembly / artifact).value
       art.withClassifier(Some("assembly"))
@@ -137,7 +140,7 @@ lazy val otelExtension = (project in file("otel-extension"))
       "-Dio.opentelemetry.javaagent.slf4j.simpleLogger.log.io.grpc.Context=INFO"
     )
   )
-  .dependsOn(core % "provided->compile;test->test;compile->compile;it->test")
+  .dependsOn(core % "provided->provided;test->test;compile->compile;it->test")
 
 lazy val example = (project in file("example"))
   .enablePlugins(JavaAppPackaging, UniversalPlugin)
