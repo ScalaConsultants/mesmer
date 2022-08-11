@@ -9,9 +9,12 @@ import net.bytebuddy.asm.Advice
 object ActorGraphInterpreterProcessEventOtelAdvice {
 
   @Advice.OnMethodExit
-  def processEvent(@Advice.This self: AnyRef, @Advice.Argument(0) boundaryEvent: BoundaryEvent): Unit =
-    if (boundaryEvent.shell.isTerminated) {
-      ActorGraphInterpreterOtelDecorator.shellFinished(boundaryEvent.shell, self.asInstanceOf[Actor])
+  def processEvent(@Advice.This self: AnyRef, @Advice.Argument(0) boundaryEvent: Object): Unit =
+    if (boundaryEvent.asInstanceOf[BoundaryEvent].shell.isTerminated) {
+      ActorGraphInterpreterOtelDecorator.shellFinished(
+        boundaryEvent.asInstanceOf[BoundaryEvent].shell,
+        self.asInstanceOf[Actor]
+      )
     }
 
 }
@@ -25,11 +28,14 @@ object ActorGraphInterpreterTryInitOtelAdvice {
   @Advice.OnMethodExit
   def tryInit(
     @Advice.This self: AnyRef,
-    @Advice.Argument(0) shell: GraphInterpreterShellMirror,
+    @Advice.Argument(0) shell: Object,
     @Advice.Return initialized: Boolean
   ): Unit =
     if (!initialized) {
-      ActorGraphInterpreterOtelDecorator.shellFinished(shell, self.asInstanceOf[Actor])
+      ActorGraphInterpreterOtelDecorator.shellFinished(
+        shell.asInstanceOf[GraphInterpreterShellMirror],
+        self.asInstanceOf[Actor]
+      )
     }
 
 }

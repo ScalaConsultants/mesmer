@@ -103,7 +103,7 @@ lazy val otelExtension = (project in file("otel-extension"))
     assembly / test            := {},
     assembly / assemblyJarName := s"${name.value}_${scalaBinaryVersion.value}-${version.value}-assembly.jar",
     assemblyMergeStrategySettings,
-    assembly / assemblyOption ~= { _.withIncludeScala(false) },
+    assembly / assemblyOption ~= { _.withIncludeScala(true) },
     assembly / artifact := {
       val art = (assembly / artifact).value
       art.withClassifier(Some("assembly"))
@@ -173,7 +173,7 @@ lazy val example = (project in file("example"))
     commands += runExampleWithOtelAgent,
     commands += runStreamExampleWithOtelAgent
   )
-  .dependsOn(extension)
+  .dependsOn(core)
 
 lazy val docs = project
   .in(file("mesmer-docs")) // important: it must not be docs/

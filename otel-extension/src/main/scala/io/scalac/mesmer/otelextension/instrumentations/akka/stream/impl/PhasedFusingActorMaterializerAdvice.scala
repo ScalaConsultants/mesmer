@@ -12,7 +12,7 @@ import io.scalac.mesmer.core.model.Tag
 object PhasedFusingActorMaterializerAdvice {
 
   @OnMethodExit
-  def actorOf(@Return ref: ActorRef, @This self: Object): Unit =
+  def actorOf(@Return ref: Object, @This self: Object): Unit =
     EventBus(self.asInstanceOf[akka.MesmerMirrorTypes.ExtendedActorMaterializerMirror].system.toTyped)
-      .publishEvent(ActorEvent.TagsSet(ActorRefTags(ref, Set(Tag.stream))))
+      .publishEvent(ActorEvent.TagsSet(ActorRefTags(ref.asInstanceOf[ActorRef], Set(Tag.stream))))
 }
