@@ -13,5 +13,8 @@ project/project
 project/target
 project/metals.sbt
 .DS_Store
+.gradle/
+**/build/
+!src/**/build/
 
 !opentelemetry-javaagent110.jar
