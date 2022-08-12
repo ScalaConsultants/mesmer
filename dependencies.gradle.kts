@@ -1,9 +1,19 @@
 val akkaHttpVersion = "10.2.9"
 val akkaVersion = "2.6.19"
+val autoServiceVersion = "1.0.1"
+val byteBuddyVersion = "1.12.13"
 val opentelemetryVersion = "1.13.0"
+val opentelemetryAlphaVersion = "1.13.1-alpha"
 val scalaVersion = "2.13.6"
 
-val opentelemetryAlphaVersion = "1.13.1-alpha"
+val zioVersion = "2.0.0"
+
+val zio = mapOf(
+    "zio-core" to "dev.zio:zio_3:$zioVersion"
+)
+val google = mapOf(
+    "google-auto-service" to "com.google.auto.service:auto-service:$autoServiceVersion"
+)
 
 val akka = mapOf(
     "akka-http" to "com.typesafe.akka:akka-http_2.13:$akkaHttpVersion",
@@ -17,9 +27,19 @@ val akka = mapOf(
     "akka-cluster-sharding-typed" to "com.typesafe.akka:akka-cluster-sharding-typed_2.13:$akkaVersion"
 )
 
+val byteBuddy = mapOf(
+    "byte-buddy" to "net.bytebuddy:byte-buddy:$byteBuddyVersion",
+    "byte-buddy-agent" to "net.bytebuddy:byte-buddy-agent:$byteBuddyVersion"
+)
+
 val openTelemetry = mapOf(
     "opentelemetry-api" to "io.opentelemetry:opentelemetry-api:$opentelemetryVersion",
-    "opentelemetry-instrumentation-api" to "io.opentelemetry.instrumentation:opentelemetry-instrumentation-api:$opentelemetryAlphaVersion"
+    "opentelemetry-instrumentation-api" to "io.opentelemetry.instrumentation:opentelemetry-instrumentation-api:$opentelemetryAlphaVersion",
+    "opentelemetry-extension-api" to "io.opentelemetry.javaagent:opentelemetry-javaagent-extension-api:$opentelemetryAlphaVersion",
+    "opentelemetry-javaagent-tooling" to "io.opentelemetry.javaagent:opentelemetry-javaagent-tooling:$opentelemetryAlphaVersion",
+    "opentelemetry-muzzle" to "io.opentelemetry.javaagent:opentelemetry-muzzle:$opentelemetryAlphaVersion",
+    "opentelemetry-javaagent-bootstrap" to "io.opentelemetry.javaagent:opentelemetry-javaagent-bootstrap:$opentelemetryAlphaVersion",
+    "opentelemetry-instrumentation-api-semconv" to "io.opentelemetry.instrumentation:opentelemetry-instrumentation-api-semconv:$opentelemetryAlphaVersion"
 
 )
 val scala = mapOf(
@@ -27,7 +47,7 @@ val scala = mapOf(
 )
 
 
-extra["dependencies"] = akka + openTelemetry + scala
+extra["dependencies"] = akka + openTelemetry + scala + google + zio + byteBuddy
 extra["getDependency"] = fun(name: String): String {
     val dependencies: Map<String, String> = extra["dependencies"] as Map<String, String>
     return dependencies[name]!!

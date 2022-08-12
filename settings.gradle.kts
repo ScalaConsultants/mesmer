@@ -9,3 +9,4 @@ dependencyResolutionManagement {
 }
 
 include(":core")
+include(":otel-extension")
