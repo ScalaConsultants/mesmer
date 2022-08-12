@@ -3,6 +3,7 @@ package io.scalac.mesmer.otelextension.akka;
 import static io.opentelemetry.javaagent.extension.matcher.AgentElementMatchers.hasClassesNamed;
 
 import com.google.auto.service.AutoService;
+import io.opentelemetry.instrumentation.api.config.Config;
 import io.opentelemetry.javaagent.extension.instrumentation.InstrumentationModule;
 import io.opentelemetry.javaagent.extension.instrumentation.TypeInstrumentation;
 import io.opentelemetry.javaagent.tooling.muzzle.InstrumentationModuleMuzzle;
@@ -30,7 +31,11 @@ public class MesmerAkkaStreamInstrumentationModule extends InstrumentationModule
 
   @Override
   public ElementMatcher.Junction<ClassLoader> classLoaderMatcher() {
-    return hasClassesNamed("io.scalac.mesmer.extension.AkkaStreamMonitoring");
+    if (Config.get().getBoolean("io.scalac.mesmer.test", false)) {
+      return super.classLoaderMatcher();
+    } else {
+      return hasClassesNamed("io.scalac.mesmer.extension.AkkaStreamMonitoring");
+    }
   }
 
   @Override
