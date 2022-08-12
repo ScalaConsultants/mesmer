@@ -24,7 +24,7 @@ object ActorRefOps {
 
   @inline final def cell(actorRef: ActorRef): Cell = underlying(actorRef) // alias
   @inline final def underlying(actorRef: ActorRef): Cell =
-    underlyingMethodHandler.invoke(actorRef)
+    underlyingMethodHandler.invoke(actorRef).asInstanceOf[Cell]
 
   @inline final def children(actorRef: ActorRef): immutable.Iterable[ActorRef] =
     childrenMethodHandler.invoke(actorRef).asInstanceOf[immutable.Iterable[ActorRef]]
