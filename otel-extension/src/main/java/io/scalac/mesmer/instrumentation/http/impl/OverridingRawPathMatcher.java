@@ -11,7 +11,6 @@ public class OverridingRawPathMatcher {
   public static void onExit(
       @Advice.Argument(0) Object matcher,
       @Advice.Return(readOnly = false, typing = Assigner.Typing.DYNAMIC) Object result) {
-    //
 
     result = OverridingRawPatchMatcherImpl.rawPathPrefix((PathMatcher<?>) matcher);
   }
