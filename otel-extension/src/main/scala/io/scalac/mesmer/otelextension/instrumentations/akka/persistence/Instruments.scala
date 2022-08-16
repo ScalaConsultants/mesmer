@@ -38,7 +38,7 @@ object InstrumentsProvider {
 
         val snapshots: LongCounter = provider
           .get("mesmer")
-          .counterBuilder("mesmer_akka_persistence_event_total")
+          .counterBuilder("mesmer_akka_persistence_snapshot_total")
           .build()
       })
     } else _instance
