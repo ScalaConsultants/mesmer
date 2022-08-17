@@ -13,9 +13,8 @@ import org.slf4j.LoggerFactory
 import scala.concurrent.duration._
 
 /**
- * Another example useful to testing if stream instrumentation work.
- * It's a simple example that prints amount of process elements roughly in 5 seconds intervals
- * and after shutdown.
+ * Another example useful to testing if stream instrumentation work. It's a simple example that prints amount of process
+ * elements roughly in 5 seconds intervals and after shutdown.
  *
  * Data should be compared with information that can be found in prometheus.
  */
