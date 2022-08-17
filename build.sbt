@@ -150,7 +150,8 @@ lazy val example = (project in file("example"))
       akkaTestkit.map(_ % "test") ++
       akkaPersistance ++
       logback ++
-      exampleDependencies
+      exampleDependencies ++
+      zio
     },
     assemblyMergeStrategySettings,
     mainClass                  := Some("example.Boot"),
@@ -168,7 +169,8 @@ lazy val example = (project in file("example"))
       keys
     },
     commands += runExampleWithOtelAgent,
-    commands += runStreamExampleWithOtelAgent
+    commands += runStreamExampleWithOtelAgent,
+    commands += runZioExampleWithOtelAgent
   )
   .dependsOn(extension)
 
@@ -241,5 +243,23 @@ def runStreamExampleWithOtelAgent = Command.command("runStreamExampleWithOtelAge
   )
   val (s, _) =
     Project.extract(newState).runInputTask(Compile / runMain, " example.SimpleStreamExample", newState)
+  s
+}
+
+def runZioExampleWithOtelAgent = Command.command("runZioExampleWithOtelAgent") { state =>
+  val extracted = Project extract state
+  val newState = extracted.appendWithSession(
+    Seq(
+      run / javaOptions ++= Seq(
+        s"-javaagent:$projectRootDir/opentelemetry-javaagent-$OpentelemetryLatestVersion.jar",
+        s"-Dotel.service.name=mesmer-stream-example",
+        s"-Dotel.metric.export.interval=1000",
+        s"-Dotel.javaagent.extensions=${(otelExtension / assembly).value.absolutePath}"
+      )
+    ),
+    state
+  )
+  val (s, _) =
+    Project.extract(newState).runInputTask(Compile / runMain, " example.SimpleZioExample", newState)
   s
 }
