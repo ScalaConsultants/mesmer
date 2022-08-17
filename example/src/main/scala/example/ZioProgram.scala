@@ -1,6 +1,10 @@
 package example
 
-import zio.{Console, durationInt, Random, Schedule, ZIO}
+import zio.Console
+import zio.Random
+import zio.Schedule
+import zio.ZIO
+import zio.durationInt
 
 //NOTE: code originally written by Łukasz Gajowy
 object ZioProgram {
