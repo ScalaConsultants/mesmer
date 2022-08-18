@@ -26,39 +26,39 @@ object Instruments {
 
     lazy val failedMessages: LongCounter = provider
       .get("mesmer")
-      .counterBuilder("mesmer_akka_failed_messages_total")
+      .counterBuilder("mesmer_akka_actor_failed_messages_total")
       .build()
 
     lazy val processingTime: LongHistogram = provider
       .get("mesmer")
-      .histogramBuilder("mesmer_akka_message_processing_time")
+      .histogramBuilder("mesmer_akka_actor_message_processing_time")
       .ofLongs()
       .build()
 
     lazy val unhandledMessages: LongCounter = provider
       .get("mesmer")
-      .counterBuilder("mesmer_akka_unhandled_messages_total")
+      .counterBuilder("mesmer_akka_actor_unhandled_messages_total")
       .build()
 
     lazy val droppedMessages: LongCounter = provider
       .get("mesmer")
-      .counterBuilder("mesmer_akka_dropped_total")
+      .counterBuilder("mesmer_akka_actor_dropped_messages_total")
       .build()
 
     lazy val mailboxTime: LongHistogram = provider
       .get("mesmer")
-      .histogramBuilder("mesmer_akka_mailbox_time")
+      .histogramBuilder("mesmer_akka_actor_mailbox_time")
       .ofLongs()
       .build()
 
     lazy val stashedMessages: LongCounter = provider
       .get("mesmer")
-      .counterBuilder("mesmer_akka_stashed_messages_total")
+      .counterBuilder("mesmer_akka_actor_stashed_messages_total")
       .build()
 
     lazy val sentMessages: LongCounter = provider
       .get("mesmer")
-      .counterBuilder("mesmer_akka_sent_messages_total")
+      .counterBuilder("mesmer_akka_actor_sent_messages_total")
       .build()
   }
 }

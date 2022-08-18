@@ -128,7 +128,7 @@ class ActorMailboxTest
       props
     )
 
-    assertMetric("mesmer_akka_dropped_total") { data =>
+    assertMetric("mesmer_akka_actor_dropped_messages_total") { data =>
       val points = data.getLongSumData.getPoints.asScala
         .filter(point =>
           Option(point.getAttributes.get(AttributeKey.stringKey(AttributeNames.ActorPath)))
