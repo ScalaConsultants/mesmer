@@ -19,6 +19,8 @@ trait Instruments {
   def stashedMessages: LongCounter
 
   def sentMessages: LongCounter
+
+  def actorsCreated: LongCounter
 }
 
 object Instruments {
@@ -59,6 +61,11 @@ object Instruments {
     lazy val sentMessages: LongCounter = provider
       .get("mesmer")
       .counterBuilder("mesmer_akka_actor_sent_messages_total")
+      .build()
+
+    lazy val actorsCreated: LongCounter = provider
+      .get("mesmer")
+      .counterBuilder("mesmer_akka_actor_actors_created_total")
       .build()
   }
 }
