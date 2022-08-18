@@ -21,7 +21,7 @@ https://www.youtube.com/watch?v=OF3YFGZcQkg - talk by the creator. Provides good
 
 
 ## OpenTelemetry
-Initiative that goal is to create spec for observable systems and provide tools to implement it for different languages.
+Initiative that's goal is to create a spec for observable systems and provide tools to implement it for different languages.
 java SDK - https://github.com/open-telemetry/opentelemetry-java
 tool for manual instrumentation
 java autoinstrumentation -  https://github.com/open-telemetry/opentelemetry-java-instrumentation
