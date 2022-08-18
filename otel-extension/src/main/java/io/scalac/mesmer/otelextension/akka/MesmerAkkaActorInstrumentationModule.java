@@ -35,7 +35,8 @@ public class MesmerAkkaActorInstrumentationModule extends InstrumentationModule
         AkkaActorAgent.boundedQueueBasedMessageQueueConstructorAdvice(),
         AkkaActorAgent.boundedQueueBasedMessageQueueQueueAdvice(),
         AkkaActorAgent.boundedMessageQueueSemanticsEnqueueAdvice(),
-        AkkaActorAgent.actorCellReceived());
+        AkkaActorAgent.actorCellReceived(),
+        AkkaActorAgent.actorCreatedAdvice());
   }
 
   @Override
