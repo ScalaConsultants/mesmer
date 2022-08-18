@@ -55,7 +55,7 @@ In Mesmer we support 3 types of metrics:
 | Operator throughput          | counter |
 | Operator processing time     | counter |
 
-## ZIO (both Default-JVM-Metrics and others)
+## ZIO Executor Metrics
 
 | Metric                                | Type      |
 |---------------------------------------|-----------|
@@ -65,6 +65,11 @@ In Mesmer we support 3 types of metrics:
 | Executor Enqueued Count               | counter   |
 | Executor Size                         | gauge     |
 | Executor Worker Count                 | counter   |
+
+## ZIO JVM Metrics
+
+| Metric                                | Type      |
+|---------------------------------------|-----------|
 | JVM Buffer Pool Capacity Bytes        | gauge     |
 | JVM Buffer Pool Used Buffers          | gauge     |
 | JVM Buffer Pool Used Bytes            | gauge     |
@@ -89,7 +94,12 @@ In Mesmer we support 3 types of metrics:
 | JVM Threads Deadlocked Monitor        | gauge     |
 | JVM Threads Peak                      | gauge     |
 | JVM Threads Started Total             | gauge     |
-| Null                                  | counter   |
+
+## ZIO Runtime Metrics
+
+| Metric                                | Type      |
+|---------------------------------------|-----------|
+| Forwarded Null                        | counter   |
 | Process CPU Seconds Total             | gauge     |
 | Process Max FDS                       | gauge     |
 | Process Open FDS                      | gauge     |
