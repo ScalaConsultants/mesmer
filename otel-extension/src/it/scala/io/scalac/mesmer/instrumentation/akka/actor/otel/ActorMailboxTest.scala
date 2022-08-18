@@ -6,7 +6,6 @@ import akka.actor.{ ActorSystem, PoisonPill }
 import akka.dispatch.{ BoundedPriorityMailbox, BoundedStablePriorityMailbox, Envelope }
 import com.typesafe.config.{ Config, ConfigFactory }
 import io.opentelemetry.api.common.AttributeKey
-import io.opentelemetry.sdk.metrics.data.MetricDataType
 import io.scalac.mesmer.agent.utils.{ OtelAgentTest, SafeLoadSystem }
 import io.scalac.mesmer.core.akka.model.AttributeNames
 import io.scalac.mesmer.core.config.MesmerPatienceConfig

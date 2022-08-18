@@ -34,14 +34,12 @@ final class AkkaActorTest
 
   private val Tolerance: Double = scaled(25.millis).toMillis.toDouble
 
-  override protected def beforeEach() {
+  override protected def beforeEach(): Unit =
     super.beforeEach()
-  }
 
   import AkkaActorAgentTest._
 
   private final val StashMessageCount = 10
-  private final val ToleranceNanos    = 20_000_000
 
   private def publishActorContext[T](
     contextRef: ActorRef[classic.ActorContext]
@@ -96,7 +94,7 @@ final class AkkaActorTest
   private def testBehavior[T](behavior: T => Behavior[T])(messages: T*)(
     checks: (Int, classic.ActorContext => Any)*
   ): Any =
-    testWithChecks(_ => Behaviors.receiveMessage[T](behavior), false)(messages: _*)(checks: _*)
+    testWithChecks(_ => Behaviors.receiveMessage[T](behavior), probes = false)(messages: _*)(checks: _*)
 
   private def testEffect[T](effect: T => Unit, probes: Boolean = true)(messages: T*)(
     checks: (Int, classic.ActorContext => Any)*
@@ -111,6 +109,17 @@ final class AkkaActorTest
 
   private def check[T](extr: ActorCellMetrics => T)(checkFunc: T => Any): classic.ActorContext => Any = ctx =>
     checkFunc(ActorCellDecorator.getMetrics(ctx).map(extr).value)
+
+  "AkkaActorAgent" should "record actors created total count" in {
+    system.systemActorOf(Behaviors.ignore, createUniqueId)
+
+    assertMetric("mesmer_akka_actor_actors_created_total") { data =>
+      val totalCount = data.getLongSumData.getPoints.asScala.map {
+        _.getValue
+      }.sum
+      totalCount should be > 0L
+    }
+  }
 
   "AkkaActorAgent" should "record mailbox time properly" in {
     val idle            = 100.milliseconds
@@ -204,8 +213,7 @@ final class AkkaActorTest
   }
 
   it should "record stash operation from actors beginning for typed actors" in {
-    val stashActor      = system.systemActorOf(TypedStash(StashMessageCount * 4), "typedStashActor")
-    val inspectionProbe = createTestProbe[StashSize]
+    val stashActor = system.systemActorOf(TypedStash(StashMessageCount * 4), "typedStashActor")
 
     def sendMessage(count: Int): Unit =
       List.fill(count)(Message).foreach(stashActor.tell)
@@ -424,7 +432,7 @@ final class AkkaActorTest
             case _ => Behaviors.same
           }
         },
-      false
+      probes = false
     )("forward", "", "forward", "forward")(
       (0, expectedEmpty),
       (1, expectedEmpty),
@@ -441,15 +449,20 @@ object AkkaActorAgentTest {
   type Fixture = TestProbe[ActorEvent]
 
   sealed trait Command
-  final case object Open    extends Command
-  final case object Close   extends Command
+
+  final case object Open extends Command
+
+  final case object Close extends Command
+
   final case object Message extends Command
+
   // replies
   final case class StashSize(stash: Option[Long])
 
   object ClassicStashActor {
     def props(): Props = Props(new ClassicStashActor)
   }
+
   class ClassicStashActor extends classic.Actor with classic.Stash with classic.ActorLogging {
     def receive: Receive = closed
 
@@ -493,6 +506,7 @@ object AkkaActorAgentTest {
           buffer.stash(m)
           Behaviors.same
       }
+
     private def open(): Behavior[Command] =
       Behaviors.receiveMessagePartial {
         case Close =>
