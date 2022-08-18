@@ -3,7 +3,6 @@ package example
 import zio._
 import zio.metrics.jvm.DefaultJvmMetrics
 
-//NOTE: code originally written by Łukasz Gajowy
 object SimpleZioExample extends ZIOAppDefault {
 
   override def run: ZIO[Any, Throwable, Boolean] =

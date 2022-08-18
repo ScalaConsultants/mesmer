@@ -6,7 +6,6 @@ import zio.Schedule
 import zio.ZIO
 import zio.durationInt
 
-//NOTE: code originally written by Łukasz Gajowy
 object ZioProgram {
 
   def findTheMeaningOfLife(parallelism: Int, lowerBound: Int, upperBound: Int): ZIO[Any, Nothing, Boolean] = {

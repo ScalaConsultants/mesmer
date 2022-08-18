@@ -7,7 +7,6 @@ import akka.actor.typed.{ ActorRef, Behavior, SupervisorStrategy }
 import akka.actor.{ PoisonPill, Props }
 import akka.{ actor => classic }
 import io.opentelemetry.api.common.AttributeKey
-import io.opentelemetry.sdk.metrics.data.{ LongPointData, MetricDataType }
 import io.scalac.mesmer.agent.utils.{ OtelAgentTest, SafeLoadSystem }
 import io.scalac.mesmer.core.actor.{ ActorCellDecorator, ActorCellMetrics }
 import io.scalac.mesmer.core.akka.model.AttributeNames
@@ -35,14 +34,12 @@ final class AkkaActorTest
 
   private val Tolerance: Double = scaled(25.millis).toMillis.toDouble
 
-  override protected def beforeEach() {
+  override protected def beforeEach(): Unit =
     super.beforeEach()
-  }
 
   import AkkaActorAgentTest._
 
   private final val StashMessageCount = 10
-  private final val ToleranceNanos    = 20_000_000
 
   private def publishActorContext[T](
     contextRef: ActorRef[classic.ActorContext]
@@ -97,7 +94,7 @@ final class AkkaActorTest
   private def testBehavior[T](behavior: T => Behavior[T])(messages: T*)(
     checks: (Int, classic.ActorContext => Any)*
   ): Any =
-    testWithChecks(_ => Behaviors.receiveMessage[T](behavior), false)(messages: _*)(checks: _*)
+    testWithChecks(_ => Behaviors.receiveMessage[T](behavior), probes = false)(messages: _*)(checks: _*)
 
   private def testEffect[T](effect: T => Unit, probes: Boolean = true)(messages: T*)(
     checks: (Int, classic.ActorContext => Any)*
@@ -113,6 +110,17 @@ final class AkkaActorTest
   private def check[T](extr: ActorCellMetrics => T)(checkFunc: T => Any): classic.ActorContext => Any = ctx =>
     checkFunc(ActorCellDecorator.getMetrics(ctx).map(extr).value)
 
+  "AkkaActorAgent" should "record actors created total count" in {
+    system.systemActorOf(Behaviors.ignore, createUniqueId)
+
+    assertMetric("mesmer_akka_actor_actors_created_total") { data =>
+      val totalCount = data.getLongSumData.getPoints.asScala.map {
+        _.getValue
+      }.sum
+      totalCount should be > 0L
+    }
+  }
+
   "AkkaActorAgent" should "record mailbox time properly" in {
     val idle            = 100.milliseconds
     val messages        = 3
@@ -120,7 +128,7 @@ final class AkkaActorTest
     val expectedValue   = idle.toMillis.toDouble
 
     val check: classic.ActorContext => Any = ctx =>
-      assertMetric("mesmer_akka_mailbox_time") { data =>
+      assertMetric("mesmer_akka_actor_mailbox_time") { data =>
         val points = data.getHistogramData.getPoints.asScala
           .filter(point =>
             Option(point.getAttributes.get(AttributeKey.stringKey(AttributeNames.ActorPath)))
@@ -152,7 +160,7 @@ final class AkkaActorTest
     val expectedValue = processing.toMillis
 
     val check: classic.ActorContext => Any = ctx =>
-      assertMetric("mesmer_akka_message_processing_time") { data =>
+      assertMetric("mesmer_akka_actor_message_processing_time") { data =>
         val points = data.getHistogramData.getPoints.asScala
           .filter(point =>
             Option(point.getAttributes.get(AttributeKey.stringKey(AttributeNames.ActorPath)))
@@ -181,7 +189,7 @@ final class AkkaActorTest
       List.fill(count)(Message).foreach(m => stashActor ! m)
 
     def expectStashSize(size: Int): Unit =
-      assertMetric("mesmer_akka_stashed_messages_total") { data =>
+      assertMetric("mesmer_akka_actor_stashed_messages_total") { data =>
         val points = data.getLongSumData.getPoints.asScala
           .filter(point =>
             Option(point.getAttributes.get(AttributeKey.stringKey(AttributeNames.ActorPath)))
@@ -205,14 +213,13 @@ final class AkkaActorTest
   }
 
   it should "record stash operation from actors beginning for typed actors" in {
-    val stashActor      = system.systemActorOf(TypedStash(StashMessageCount * 4), "typedStashActor")
-    val inspectionProbe = createTestProbe[StashSize]
+    val stashActor = system.systemActorOf(TypedStash(StashMessageCount * 4), "typedStashActor")
 
     def sendMessage(count: Int): Unit =
       List.fill(count)(Message).foreach(stashActor.tell)
 
     def expectStashSize(size: Int): Unit =
-      assertMetric("mesmer_akka_stashed_messages_total") { data =>
+      assertMetric("mesmer_akka_actor_stashed_messages_total") { data =>
         val points = data.getLongSumData.getPoints.asScala
           .filter(point =>
             Option(point.getAttributes.get(AttributeKey.stringKey(AttributeNames.ActorPath)))
@@ -248,7 +255,7 @@ final class AkkaActorTest
   it should "record the amount of failed messages without supervision" in {
 
     def expect(assert: Vector[Long] => Any)(context: classic.ActorContext): Any =
-      assertMetric("mesmer_akka_failed_messages_total") { data =>
+      assertMetric("mesmer_akka_actor_failed_messages_total") { data =>
         // if no data is found it's OK too
         if (!data.isEmpty) {
           val points = data.getLongSumData.getPoints.asScala
@@ -280,7 +287,7 @@ final class AkkaActorTest
   it should "record the amount of failed messages with supervision" in {
 
     def expect(assert: Vector[Long] => Any)(context: classic.ActorContext): Any =
-      assertMetric("mesmer_akka_failed_messages_total") { data =>
+      assertMetric("mesmer_akka_actor_failed_messages_total") { data =>
         // if no data is found it's OK too
         if (!data.isEmpty) {
           val points = data.getLongSumData.getPoints.asScala
@@ -319,7 +326,7 @@ final class AkkaActorTest
     def expectEmpty(
       context: classic.ActorContext
     ): Any =
-      assertMetric("mesmer_akka_unhandled_messages_total") { data =>
+      assertMetric("mesmer_akka_actor_unhandled_messages_total") { data =>
         if (!data.isEmpty) {
           val points = data.getLongSumData.getPoints.asScala
             .filter(point =>
@@ -335,7 +342,7 @@ final class AkkaActorTest
     def expectNum(num: Int)(
       context: classic.ActorContext
     ): Any =
-      assertMetric("mesmer_akka_unhandled_messages_total") { data =>
+      assertMetric("mesmer_akka_actor_unhandled_messages_total") { data =>
         val points = data.getLongSumData.getPoints.asScala
           .filter(point =>
             Option(point.getAttributes.get(AttributeKey.stringKey(AttributeNames.ActorPath)))
@@ -377,7 +384,7 @@ final class AkkaActorTest
     val receiver      = classicSystem.actorOf(classic.Props(new Receiver), createUniqueId)
     val sender        = system.classicSystem.actorOf(classic.Props(new Sender(receiver)), createUniqueId)
 
-    def expectedSendMessages(num: Int): Any = assertMetric("mesmer_akka_sent_messages_total") { data =>
+    def expectedSendMessages(num: Int): Any = assertMetric("mesmer_akka_actor_sent_messages_total") { data =>
       val points = data.getLongSumData.getPoints.asScala
         .filter(point =>
           Option(point.getAttributes.get(AttributeKey.stringKey(AttributeNames.ActorPath)))
@@ -402,14 +409,15 @@ final class AkkaActorTest
 
   it should "record the amount of sent messages properly in typed akka" in {
 
-    def expectedEmpty(context: classic.ActorContext): Any = assertMetric("mesmer_akka_sent_messages_total") { data =>
-      val points = data.getLongSumData.getPoints.asScala
-        .filter(point =>
-          Option(point.getAttributes.get(AttributeKey.stringKey(AttributeNames.ActorPath)))
-            .contains(context.self.path.toStringWithoutAddress)
-        )
-        .toVector
-      points.map(_.getValue) should be(empty)
+    def expectedEmpty(context: classic.ActorContext): Any = assertMetric("mesmer_akka_actor_sent_messages_total") {
+      data =>
+        val points = data.getLongSumData.getPoints.asScala
+          .filter(point =>
+            Option(point.getAttributes.get(AttributeKey.stringKey(AttributeNames.ActorPath)))
+              .contains(context.self.path.toStringWithoutAddress)
+          )
+          .toVector
+        points.map(_.getValue) should be(empty)
     }
 
     testWithChecks(
@@ -424,7 +432,7 @@ final class AkkaActorTest
             case _ => Behaviors.same
           }
         },
-      false
+      probes = false
     )("forward", "", "forward", "forward")(
       (0, expectedEmpty),
       (1, expectedEmpty),
@@ -441,15 +449,20 @@ object AkkaActorAgentTest {
   type Fixture = TestProbe[ActorEvent]
 
   sealed trait Command
-  final case object Open    extends Command
-  final case object Close   extends Command
+
+  final case object Open extends Command
+
+  final case object Close extends Command
+
   final case object Message extends Command
+
   // replies
   final case class StashSize(stash: Option[Long])
 
   object ClassicStashActor {
     def props(): Props = Props(new ClassicStashActor)
   }
+
   class ClassicStashActor extends classic.Actor with classic.Stash with classic.ActorLogging {
     def receive: Receive = closed
 
@@ -493,6 +506,7 @@ object AkkaActorAgentTest {
           buffer.stash(m)
           Behaviors.same
       }
+
     private def open(): Behavior[Command] =
       Behaviors.receiveMessagePartial {
         case Close =>

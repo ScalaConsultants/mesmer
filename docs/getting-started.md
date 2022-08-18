@@ -67,7 +67,7 @@ Both parts need to be included in the application for Mesmer to work.
 
 ## How to collect JVM Metrics from ZIO (for Mesmer):
 
-In your ZIO Application, you will need to add the following lines of code:
+In your ZIO Application, you will need to add the following layers:
 
 - `Runtime.enableRuntimeMetrics`
 - `DefaultJvmMetrics.live.unit`

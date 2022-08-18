@@ -1,6 +1,6 @@
-| CI | Release | Snapshot |
-| --- | --- | --- |
-| ![Scala CI][Badge-CI] | [![Release Artifacts][badge-releases]][link-releases] | [![Snapshot Artifacts][badge-snapshots]][link-snapshots] |
+| Project Stage | CI | Release | Snapshot |
+| --- | --- | --- | --- |
+| [![Project stage][Stage]][Stage-Page] | ![Scala CI][Badge-CI] | [![Release Artifacts][badge-releases]][link-releases] | [![Snapshot Artifacts][badge-snapshots]][link-snapshots] |
 
 # Mesmer
 
@@ -79,3 +79,7 @@ The homepage (in case you need to make changes to it) resides in `website/src/pa
 [link-releases]: https://oss.sonatype.org/content/repositories/releases/io/scalac/mesmer-akka-extension_2.13/ "Sonatype Releases"
 
 [link-snapshots]: https://oss.sonatype.org/content/repositories/snapshots/io/scalac/mesmer-akka-extension_2.13/ "Sonatype Snapshots"
+
+[Stage]: https://img.shields.io/badge/Project%20Stage-Development-yellowgreen.svg
+
+[Stage-Page]: https://github.com/zio/zio/wiki/Project-Stages

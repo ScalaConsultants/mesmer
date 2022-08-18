@@ -16,25 +16,28 @@ Mesmer is designed as an extension for the OpenTelemetry Java agent. This way yo
 
 ## ByteBuddy
 This is the tool that we use to instrument java bytecode. It provides a declarative API and allows to register transformation on loaded classes.
-main page tutorial, provides a good overview, but we don't use many features from here (and not all features that we use are there described) - https://bytebuddy.net/#/tutorial
-https://www.youtube.com/watch?v=OF3YFGZcQkg - talk by the creator. Provides good introduction to Advice - tool that we heavily use in mesmer
+
+* [ByteBuddy Tutorial](https://bytebuddy.net/#/tutorial): provides a good overview, but we don't use many features from here (and not all features that we use are there described).
+
+* [Rafael Winterhalter — The definite guide to Java agents](https://www.youtube.com/watch?v=OF3YFGZcQkg): talk by the creator. 
+    * Provides good introduction to Advice (tool that we heavily use in mesmer).
 
 
 ## OpenTelemetry
-Initiative that goal is to create spec for observable systems and provide tools to implement it for different languages.
-java SDK - https://github.com/open-telemetry/opentelemetry-java
-tool for manual instrumentation
-java autoinstrumentation -  https://github.com/open-telemetry/opentelemetry-java-instrumentation
-depends on the former
-collection of auto instruments that integrates with an application seemlessly
-our goal is to make mesmer a plugin for this
-I recommend that check out the repository, but it's huge and requires a lot of time to index by IDE
-conceptual introduction to OT https://www.youtube.com/watch?v=DbaO0Xxv34c
+Initiative that's goal is to create a spec for observable systems and provide tools to implement it for different languages.
+
+* [OpenTelemetry Java SDK](https://github.com/open-telemetry/opentelemetry-java):
+    * tool for Manual Instrumentation
+* [OpenTelemetry Java Auto-Instrumentation](https://github.com/open-telemetry/opentelemetry-java-instrumentation)
+    * depends on the former
+    * collection of auto instruments that integrates with an application seamlessly
+    * our goal is to make Mesmer a plugin for this
+    * One of the Mesmer Devs recommended that check out the repository, but it's huge and requires a lot of time to index by IDE.
+
+* [Conceptual Introduction to OpenTelemetry](https://www.youtube.com/watch?v=DbaO0Xxv34c)
 
 
 ## Mesmer
-https://github.com/ScalaConsultants/mesmer/blob/main/CONTRIBUTORS.md
-
-https://scalac.io/blog/the-opentelemetry-mesmer-duo-state-of-the-mesmer-project/
-
-https://scalac.io/mesmer-opentelemetry-extension/
+* [Mesmer Contributor Guide](https://github.com/ScalaConsultants/mesmer/blob/main/CONTRIBUTORS.md)
+* [ScalaC Mesmer Article](https://scalac.io/blog/the-opentelemetry-mesmer-duo-state-of-the-mesmer-project/)
+* [ScalaC - Mesmer homepage](https://scalac.io/mesmer-opentelemetry-extension/)
