@@ -13,7 +13,7 @@ This will set up everything needed by the application:
   data (Averages, Requests per second etc). It shows graphs based both on Mesmer-provided (Akka Persistence + Actor
   Metrics) and OpenTelemetry-provided metrics (Akka Http).
 
-## Run the application
+## Run the application (both Akka and ZIO examples)
 
 ```
 sbt "project example" runExampleWithOtelAgent
@@ -23,6 +23,12 @@ or (for Akka Streaming example)
 
 ```
 sbt "project example" runStreamExampleWithOtelAgent
+```
+
+or (for ZIO 2.0.0 example)
+
+```
+sbt "project example" runZioExampleWithOtelAgent
 ```
 
 ## In case you are running the non-streaming example: call the endpoints
