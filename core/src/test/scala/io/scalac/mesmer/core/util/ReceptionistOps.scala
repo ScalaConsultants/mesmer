@@ -14,7 +14,7 @@ import org.scalatest.concurrent.Eventually
 import org.scalatest.concurrent.ScalaFutures.convertScalaFuture
 import org.scalatest.matchers.should.Matchers
 
-import io.scalac.mesmer.core.config.AkkaPatienceConfig
+import io.scalac.mesmer.core.config.MesmerPatienceConfig
 
 trait ReceptionistOps
     extends TestOps
@@ -22,7 +22,7 @@ trait ReceptionistOps
     with Inside
     with LoneElement
     with Matchers
-    with AkkaPatienceConfig {
+    with MesmerPatienceConfig {
 
   /**
    * Waits until ref is only service for serviceKey

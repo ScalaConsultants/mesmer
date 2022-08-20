@@ -1,7 +1,8 @@
 package io.scalac.mesmer.agent.util.i13n
 
-import io.opentelemetry.javaagent.extension.instrumentation.TypeInstrumentation
 import io.opentelemetry.javaagent.extension.instrumentation.TypeTransformer
+import io.opentelemetry.javaagent.extension.instrumentation.{ TypeInstrumentation => OtelTypeInstrumentation }
+import net.bytebuddy.agent.builder.AgentBuilder
 import net.bytebuddy.description.`type`.TypeDescription
 import net.bytebuddy.matcher.ElementMatcher
 
@@ -21,17 +22,28 @@ case class Instrumentation private (
 object Instrumentation {
   def apply(forType: TypeDesc): Instrumentation = this(forType, Set())
 
-  implicit val toOtelTypeInstrumentation: Encode[Instrumentation, TypeInstrumentation] = input =>
-    new TypeInstrumentation {
+  implicit val toOtelTypeInstrumentation: Encode[Instrumentation, OtelTypeInstrumentation] = input =>
+    new OtelTypeInstrumentation {
       val typeMatcher: ElementMatcher[TypeDescription] = input.instrumentedType
 
       def transform(transformer: TypeTransformer): Unit =
-        input.adviceSet.foreach { it: Advice =>
-          transformer.applyAdviceToMethod(it.instrumentedMethod, it.adviceName)
+        input.adviceSet.foreach {
+          case ForMethod(instrumentedMethod, adviceName) =>
+            transformer.applyAdviceToMethod(instrumentedMethod, adviceName)
+          case ForTransformer(agentTransformer) =>
+            transformer.applyTransformer(agentTransformer)
         }
     }
 
-  implicit def convertToOtel(instrumentation: Instrumentation): TypeInstrumentation = instrumentation.encode
+  implicit def convertToOtel(instrumentation: Instrumentation): OtelTypeInstrumentation = instrumentation.encode
 }
 
-case class Advice(private[i13n] val instrumentedMethod: MethodDesc, private[i13n] val adviceName: String)
+sealed trait Advice
+
+object Advice {
+  def apply(instrumentedMethod: MethodDesc, adviceName: String): Advice = ForMethod(instrumentedMethod, adviceName)
+  def apply(transformer: AgentBuilder.Transformer): Advice              = ForTransformer(transformer)
+}
+
+private case class ForMethod(instrumentedMethod: MethodDesc, adviceName: String) extends Advice
+private case class ForTransformer(transformer: AgentBuilder.Transformer)         extends Advice

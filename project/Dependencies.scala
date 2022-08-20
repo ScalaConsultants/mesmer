@@ -65,7 +65,8 @@ object Dependencies {
   )
 
   val openTelemetryMuzzle = Seq(
-    "io.opentelemetry.javaagent" % "opentelemetry-muzzle" % OpentelemetryAlphaVersion131
+    "io.opentelemetry.javaagent" % "opentelemetry-muzzle"              % OpentelemetryAlphaVersion131,
+    "io.opentelemetry.javaagent" % "opentelemetry-javaagent-bootstrap" % OpentelemetryAlphaVersion131
   )
 
   val openTelemetryTesting = Seq(
@@ -82,21 +83,4 @@ object Dependencies {
   val scalatest = Seq("org.scalatest" %% "scalatest" % ScalatestVersion)
 
   val akkaMultiNodeTestKit = Seq("com.typesafe.akka" %% "akka-multi-node-testkit" % AkkaVersion)
-
-  val exampleDependencies = Seq(
-    "io.circe"                      %% "circe-core"                                % CirceVersion,
-    "io.circe"                      %% "circe-generic"                             % CirceVersion,
-    "io.circe"                      %% "circe-parser"                              % CirceVersion,
-    "de.heikoseeberger"             %% "akka-http-circe"                           % "1.39.2",
-    "org.postgresql"                 % "postgresql"                                % PostgresVersion,
-    "com.typesafe.slick"            %% "slick"                                     % SlickVersion,
-    "com.typesafe.slick"            %% "slick-hikaricp"                            % SlickVersion,
-    "com.typesafe.akka"             %% "akka-discovery"                            % AkkaVersion,
-    "com.lightbend.akka.management" %% "akka-management"                           % AkkaManagementVersion,
-    "com.lightbend.akka.management" %% "akka-management-cluster-http"              % AkkaManagementVersion,
-    "com.lightbend.akka.management" %% "akka-management-cluster-bootstrap"         % AkkaManagementVersion,
-    "io.opentelemetry"               % "opentelemetry-sdk-extension-autoconfigure" % OpentelemetryAlphaVersion130,
-    "io.grpc"                        % "grpc-netty-shaded"                         % "1.48.0",
-    "org.wvlet.airframe"            %% "airframe-log"                              % AirframeVersion
-  )
 }

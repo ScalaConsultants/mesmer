@@ -64,3 +64,14 @@ Both parts need to be included in the application for Mesmer to work.
    ```sh
    curl -i http://localhost:9464
    ```
+
+## How to collect JVM Metrics from ZIO (for Mesmer):
+
+In your ZIO Application, you will need to add the following layers:
+
+- `Runtime.enableRuntimeMetrics`
+- `DefaultJvmMetrics.live.unit`
+
+For reference, please follow this ZIO 2.0 SampleApp code:
+
+https://github.com/zio/zio-metrics-connectors/blob/zio/series2.x/core/jvm/src/test/scala/zio/metrics/connectors/SampleApp.scala#L15-L71

@@ -26,7 +26,7 @@ import scala.concurrent.duration._
 import io.scalac.mesmer.agent.utils.OtelAgentTest
 import io.scalac.mesmer.agent.utils.SafeLoadSystem
 import io.scalac.mesmer.core.akka.model.PushMetrics
-import _root_.io.scalac.mesmer.core.config.AkkaPatienceConfig
+import _root_.io.scalac.mesmer.core.config.MesmerPatienceConfig
 import io.scalac.mesmer.core.event.ActorEvent
 import io.scalac.mesmer.core.event.ActorEvent.TagsSet
 import io.scalac.mesmer.core.event.Service
@@ -51,7 +51,7 @@ class AkkaStreamAgentTest
     with Futures
     with Inside
     with CommonMonitorTestFactory
-    with AkkaPatienceConfig {
+    with MesmerPatienceConfig {
 
   override type Command = StreamEvent
 
