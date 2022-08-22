@@ -216,14 +216,6 @@ lazy val assemblyMergeStrategySettings = assembly / assemblyMergeStrategy := {
   case _ => MergeStrategy.first
 }
 
-lazy val benchmark = (project in file("benchmark"))
-  .enablePlugins(JmhPlugin)
-  .disablePlugins(sbtassembly.AssemblyPlugin)
-  .settings {
-    name := "akka-monitoring-benchmark"
-  }
-  .dependsOn(extension)
-
 def runExampleWithOtelAgent = Command.command("runExampleWithOtelAgent") { state =>
   val extracted = Project extract state
   val newState = extracted.appendWithSession(
