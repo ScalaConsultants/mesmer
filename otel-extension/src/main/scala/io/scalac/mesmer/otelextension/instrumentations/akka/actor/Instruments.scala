@@ -66,6 +66,7 @@ object Instruments {
     lazy val actorsCreated: LongCounter = provider
       .get("mesmer")
       .counterBuilder("mesmer_akka_actor_actors_created_total")
+      .setDescription("Amount of actors created measured from Actor System start")
       .build()
   }
 }
