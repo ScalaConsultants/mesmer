@@ -12,7 +12,7 @@ This guide presents steps for Prometheus and OTEL (native OpenTelemetry protocol
 
 ## Basic setup
 
-1. Download [opentelemetry-javaagent.jar](https://github.com/open-telemetry/opentelemetry-java-instrumentation/releases/download/v1.12.0/opentelemetry-javaagent.jar) from `opentelemetry-java` Releases.
+1. Download [opentelemetry-javaagent.jar](https://github.com/open-telemetry/opentelemetry-java-instrumentation/releases/download/v1.13.1/opentelemetry-javaagent.jar) from `opentelemetry-java` Releases.
 
 2. Download [mesmer-otel-extension.jar](https://github.com/ScalaConsultants/mesmer/releases/download/v0.8.0.RC1/mesmer-otel-extension.jar) from `mesmer` Releases.
 
