@@ -4,6 +4,7 @@ import akka.actor.ActorSystem;
 import io.opentelemetry.instrumentation.api.field.VirtualField;
 import io.scalac.mesmer.core.actor.ActorRefAttributeFactory;
 import io.scalac.mesmer.core.actor.ConfiguredAttributeFactory;
+import io.scalac.mesmer.otelextension.instrumentations.akka.actor.AkkaActorExtension;
 import java.util.Objects;
 import net.bytebuddy.asm.Advice;
 
@@ -11,6 +12,8 @@ public class ClassicActorSystemProviderAdvice {
 
   @Advice.OnMethodExit
   public static void init(@Advice.This ActorSystem classicSystem) {
+
+    AkkaActorExtension.registerExtensionDelayed(classicSystem);
 
     ActorRefAttributeFactory config =
         VirtualField.find(ActorSystem.class, ActorRefAttributeFactory.class).get(classicSystem);

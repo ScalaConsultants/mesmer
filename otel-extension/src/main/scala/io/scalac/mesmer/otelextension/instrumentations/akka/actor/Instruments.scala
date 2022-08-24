@@ -21,6 +21,8 @@ trait Instruments {
   def sentMessages: LongCounter
 
   def actorsCreated: LongCounter
+
+  def actorsTerminated: LongCounter
 }
 
 object Instruments {
@@ -67,6 +69,12 @@ object Instruments {
       .get("mesmer")
       .counterBuilder("mesmer_akka_actor_actors_created_total")
       .setDescription("Amount of actors created measured from Actor System start")
+      .build()
+
+    lazy val actorsTerminated: LongCounter = provider
+      .get("mesmer")
+      .counterBuilder("mesmer_akka_actor_actors_terminated_total")
+      .setDescription("Amount of actors terminated measured from Actor System start")
       .build()
   }
 }

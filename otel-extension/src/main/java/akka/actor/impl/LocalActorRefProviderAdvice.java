@@ -1,12 +1,15 @@
 package akka.actor.impl;
 
-import io.scalac.mesmer.otelextension.instrumentations.akka.actor.InstrumentsProvider;
+import akka.actor.ActorRef;
+import akka.actor.ActorSystem;
+import io.scalac.mesmer.otelextension.instrumentations.akka.actor.ActorEvent;
 import net.bytebuddy.asm.Advice;
 
 public class LocalActorRefProviderAdvice {
 
   @Advice.OnMethodExit
-  public static void actorOfExit() {
-    InstrumentsProvider.instance().actorsCreated().add(1);
+  public static void actorOfExit(
+      @Advice.Argument(0) ActorSystem system, @Advice.Return ActorRef ref) {
+    system.eventStream().publish(new ActorEvent.ActorCreated(ref));
   }
 }

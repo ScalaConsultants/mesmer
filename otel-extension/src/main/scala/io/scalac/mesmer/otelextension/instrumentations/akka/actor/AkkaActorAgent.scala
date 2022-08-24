@@ -150,6 +150,15 @@ object AkkaActorAgent {
     )
   )
 
+  val actorSystemAdvice: TypeInstrumentation = Instrumentation(
+    matchers.named("akka.actor.ActorSystem$")
+  ).`with`(
+    Advice(
+      named("create"),
+      "akka.actor.impl.ActorSystemAdvice"
+    )
+  )
+
   val actorCreatedAdvice: TypeInstrumentation = Instrumentation(
     matchers.named("akka.actor.LocalActorRefProvider")
   ).`with`(
