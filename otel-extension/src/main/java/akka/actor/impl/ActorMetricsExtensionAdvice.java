@@ -8,6 +8,6 @@ public class ActorMetricsExtensionAdvice {
 
   @Advice.OnMethodExit
   public static void init(@Advice.This ActorSystem classicSystem) {
-    AkkaActorExtension.registerExtensionDelayed(classicSystem);
+    AkkaActorExtension.registerExtension(classicSystem);
   }
 }

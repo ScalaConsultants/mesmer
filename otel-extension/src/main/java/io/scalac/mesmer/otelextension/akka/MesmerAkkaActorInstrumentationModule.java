@@ -83,10 +83,10 @@ public class MesmerAkkaActorInstrumentationModule extends InstrumentationModule
         "io.scalac.mesmer.otelextension.instrumentations.akka.actor.impl.otel.ActorCellInstrumentationState",
         "akka.actor.ProxiedQueue",
         "akka.actor.BoundedQueueProxy",
-        "io.scalac.mesmer.otelextension.instrumentations.akka.actor.ActorEvent$ActorCreated",
-        "io.scalac.mesmer.otelextension.instrumentations.akka.actor.ActorEvent",
-        "io.scalac.mesmer.otelextension.instrumentations.akka.actor.ActorEvent$ActorTerminated",
-        "io.scalac.mesmer.otelextension.instrumentations.akka.actor.ActorSystemMetricsBehavior",
-        "io.scalac.mesmer.otelextension.instrumentations.akka.actor.ActorSystemMetricsBehavior$");
+        "io.scalac.mesmer.otelextension.instrumentations.akka.actor.ActorLifecycleEvent$ActorCreated",
+        "io.scalac.mesmer.otelextension.instrumentations.akka.actor.ActorLifecycleEvent",
+        "io.scalac.mesmer.otelextension.instrumentations.akka.actor.ActorLifecycleEvent$ActorTerminated",
+        "io.scalac.mesmer.otelextension.instrumentations.akka.actor.ActorLifecycleMetricsMonitor",
+        "io.scalac.mesmer.otelextension.instrumentations.akka.actor.ActorLifecycleMetricsMonitor$");
   }
 }

@@ -10,23 +10,19 @@ import akka.actor.typed.scaladsl.ActorContext
 import akka.actor.typed.scaladsl.Behaviors
 import akka.actor.typed.scaladsl.adapter.ClassicActorRefOps
 
-import io.scalac.mesmer.otelextension.instrumentations.akka.actor.ActorEvent.ActorCreated
-import io.scalac.mesmer.otelextension.instrumentations.akka.actor.ActorEvent.ActorTerminated
+import io.scalac.mesmer.otelextension.instrumentations.akka.actor.ActorLifecycleEvent.ActorCreated
+import io.scalac.mesmer.otelextension.instrumentations.akka.actor.ActorLifecycleEvent.ActorTerminated
 
-trait ActorEvent
+trait ActorLifecycleEvent
 
-object ActorEvent {
-  final case class ActorCreated(ref: ActorRef)    extends ActorEvent
-  final case class ActorTerminated(ref: ActorRef) extends ActorEvent
+object ActorLifecycleEvent {
+  final case class ActorCreated(ref: ActorRef)    extends ActorLifecycleEvent
+  final case class ActorTerminated(ref: ActorRef) extends ActorLifecycleEvent
 }
 
-object ActorSystemMetrics {
-  def actorCreated(newActor: ActorRef): Unit = newActor ! ActorCreated(newActor)
-}
-
-final class ActorSystemMetricsBehavior(context: ActorContext[ActorEvent])
-    extends AbstractBehavior[ActorEvent](context) {
-  override def onMessage(msg: ActorEvent): Behavior[ActorEvent] = msg match {
+final class ActorLifecycleMetricsMonitor(context: ActorContext[ActorLifecycleEvent])
+    extends AbstractBehavior[ActorLifecycleEvent](context) {
+  override def onMessage(msg: ActorLifecycleEvent): Behavior[ActorLifecycleEvent] = msg match {
     case ActorCreated(ref) =>
       InstrumentsProvider.instance().actorsCreated.add(1)
       context.watchWith(ref.toTyped, ActorTerminated(ref))
@@ -37,21 +33,18 @@ final class ActorSystemMetricsBehavior(context: ActorContext[ActorEvent])
   }
 }
 
-object ActorSystemMetricsBehavior {
-  def apply(): Behavior[ActorEvent] =
-    Behaviors.setup[ActorEvent](ctx => new ActorSystemMetricsBehavior(ctx))
-
-  def createFromSystem(system: typed.ActorSystem[_]): typed.ActorRef[ActorEvent] = {
-
-    val actor = system.systemActorOf(
-      Behaviors.supervise(apply()).onFailure(SupervisorStrategy.restart),
-      "mesmerSystemMetricsMonitor"
-    )
-    actor
-  }
+object ActorLifecycleMetricsMonitor {
+  def apply(): Behavior[ActorLifecycleEvent] =
+    Behaviors.setup[ActorLifecycleEvent](ctx => new ActorLifecycleMetricsMonitor(ctx))
 
   def subscribeToEventStream(system: typed.ActorSystem[_]): Unit = {
-    val actor: typed.ActorRef[ActorEvent] = createFromSystem(system)
+    val actor: typed.ActorRef[ActorLifecycleEvent] = createFromSystem(system)
     system.eventStream.tell(EventStream.Subscribe(actor))
   }
+
+  private def createFromSystem(system: typed.ActorSystem[_]): typed.ActorRef[ActorLifecycleEvent] =
+    system.systemActorOf(
+      Behaviors.supervise(apply()).onFailure(SupervisorStrategy.restart),
+      "mesmerActorLifecycleMonitor"
+    )
 }

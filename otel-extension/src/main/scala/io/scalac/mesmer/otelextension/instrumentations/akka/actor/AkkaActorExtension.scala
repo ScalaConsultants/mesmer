@@ -10,7 +10,7 @@ import scala.concurrent.duration.FiniteDuration
 
 object AkkaActorExtension {
 
-  def registerExtensionDelayed(system: akka.actor.ActorSystem): Unit = {
+  def registerExtension(system: akka.actor.ActorSystem): Unit = {
 
     def registration(
       system: akka.actor.ActorSystem,
@@ -21,7 +21,7 @@ object AkkaActorExtension {
         throw new RuntimeException("Couldn't register the AkkaActorExtension. Terminating.")
       } else {
         try
-          registerExtension(system)
+          system.toTyped.registerExtension(AkkaActorExtensionId)
         catch {
           case _: Throwable =>
             system.log.info(s"Registering extension failed. Trying once again after $sleepDuration.")
@@ -33,15 +33,10 @@ object AkkaActorExtension {
     new Thread(() => registration(system, 1.second, 5)).start()
   }
 
-  def registerExtension(system: akka.actor.ActorSystem): AkkaActorExtension =
-    system.toTyped.registerExtension(AkkaActorExtensionId)
 }
 
 class AkkaActorExtension(actorSystem: ActorSystem[_]) extends Extension {
-
-  def start(): Unit =
-    ActorSystemMetricsBehavior.subscribeToEventStream(actorSystem)
-  start()
+  ActorLifecycleMetricsMonitor.subscribeToEventStream(actorSystem)
 }
 
 object AkkaActorExtensionId extends ExtensionId[AkkaActorExtension] {
