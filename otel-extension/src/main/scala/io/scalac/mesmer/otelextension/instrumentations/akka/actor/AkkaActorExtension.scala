@@ -39,10 +39,8 @@ object AkkaActorExtension {
 
 class AkkaActorExtension(actorSystem: ActorSystem[_]) extends Extension {
 
-  def start(): Unit = {
-    println("STARTING EXTENSION")
+  def start(): Unit =
     ActorSystemMetricsBehavior.subscribeToEventStream(actorSystem)
-  }
   start()
 }
 

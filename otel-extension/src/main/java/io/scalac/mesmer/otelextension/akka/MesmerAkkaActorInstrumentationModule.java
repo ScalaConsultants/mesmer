@@ -37,7 +37,6 @@ public class MesmerAkkaActorInstrumentationModule extends InstrumentationModule
         AkkaActorAgent.boundedMessageQueueSemanticsEnqueueAdvice(),
         AkkaActorAgent.actorCellReceived(),
         AkkaActorAgent.actorCreatedAdvice());
-    // AkkaActorAgent.actorSystemAdvice());
   }
 
   @Override
@@ -86,8 +85,6 @@ public class MesmerAkkaActorInstrumentationModule extends InstrumentationModule
         "io.scalac.mesmer.otelextension.instrumentations.akka.actor.ActorEvent$ActorCreated",
         "io.scalac.mesmer.otelextension.instrumentations.akka.actor.ActorEvent",
         "io.scalac.mesmer.otelextension.instrumentations.akka.actor.ActorEvent$ActorTerminated",
-        "io.scalac.mesmer.otelextension.instrumentations.akka.actor.ActorSystemMetricsActor",
-        "io.scalac.mesmer.otelextension.instrumentations.akka.actor.ActorSystemMetricsActor$",
         "io.scalac.mesmer.otelextension.instrumentations.akka.actor.ActorSystemMetricsBehavior",
         "io.scalac.mesmer.otelextension.instrumentations.akka.actor.ActorSystemMetricsBehavior$");
   }
