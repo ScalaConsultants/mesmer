@@ -1,38 +1,34 @@
 package io.scalac.mesmer.otelextension.instrumentations.akka.actor.extension
 
+import akka.actor
 import akka.actor.typed.ActorSystem
 import akka.actor.typed.Extension
 import akka.actor.typed.ExtensionId
 import akka.actor.typed.scaladsl.adapter.ClassicActorSystemOps
+import org.slf4j.LoggerFactory
 
 import scala.concurrent.duration.DurationInt
-import scala.concurrent.duration.FiniteDuration
+import scala.util.Failure
+import scala.util.Success
+
+import io.scalac.mesmer.core.util.Retry
 
 object AkkaActorExtension {
 
-  def registerExtension(system: akka.actor.ActorSystem): Unit = {
+  private val log = LoggerFactory.getLogger(classOf[AkkaActorExtension])
 
-    def registration(
-      system: akka.actor.ActorSystem,
-      sleepDuration: FiniteDuration,
-      attemptsLeft: Int
-    ): AkkaActorExtension =
-      if (attemptsLeft <= 0) {
-        throw new RuntimeException("Couldn't register the AkkaActorExtension. Terminating.")
-      } else {
-        try
-          system.toTyped.registerExtension(AkkaActorExtensionId)
-        catch {
-          case _: Throwable =>
-            system.log.info(s"Registering extension failed. Trying once again after $sleepDuration.")
-            Thread.sleep(sleepDuration.toMillis)
-            registration(system, sleepDuration * 2, attemptsLeft - 1)
+  def registerExtension(system: akka.actor.ActorSystem): Unit =
+    new Thread(new Runnable() {
+      override def run(): Unit =
+        Retry.retryWithPauses(10, 2.seconds)(register(system)) match {
+          case Failure(error) =>
+            log.error(s"Failed to install the Actor Lifecycle Monitoring Extension. Reason: $error")
+          case Success(_) => log.info("Successfully installed the Actor Lifecycle Monitoring Extension.")
         }
-      }
+    }).start()
 
-    new Thread(() => registration(system, 1.second, 5)).start()
-  }
-
+  private def register(system: actor.ActorSystem) =
+    system.toTyped.registerExtension(AkkaActorExtensionId)
 }
 
 class AkkaActorExtension(actorSystem: ActorSystem[_]) extends Extension {
