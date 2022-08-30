@@ -1,4 +1,4 @@
-package io.scalac.mesmer.otelextension.instrumentations.akka.actor
+package io.scalac.mesmer.otelextension.instrumentations.akka.actor.extension
 
 import akka.actor.typed.ActorSystem
 import akka.actor.typed.Extension

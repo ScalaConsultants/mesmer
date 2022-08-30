@@ -1,7 +1,7 @@
 package akka.actor.impl;
 
 import akka.actor.ActorSystem;
-import io.scalac.mesmer.otelextension.instrumentations.akka.actor.AkkaActorExtension;
+import io.scalac.mesmer.otelextension.instrumentations.akka.actor.extension.AkkaActorExtension;
 import net.bytebuddy.asm.Advice;
 
 public class ActorMetricsExtensionAdvice {
