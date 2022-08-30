@@ -23,6 +23,7 @@ public class MesmerAkkaActorInstrumentationModule extends InstrumentationModule
   public List<TypeInstrumentation> typeInstrumentations() {
     return Arrays.asList(
         AkkaActorAgent.actorSystemConfig(),
+        AkkaActorAgent.actorMetricsExtension(),
         AkkaActorAgent.actorCellInit(),
         AkkaActorAgent.dispatchSendMessage(),
         AkkaActorAgent.mailboxDequeue(),
