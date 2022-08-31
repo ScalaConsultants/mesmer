@@ -121,6 +121,17 @@ final class AkkaActorTest
     }
   }
 
+  "AkkaActorAgent" should "record actors terminated total count" in {
+    system.systemActorOf(Behaviors.stopped, createUniqueId)
+
+    assertMetric("mesmer_akka_actor_actors_terminated_total") { data =>
+      val totalCount = data.getLongSumData.getPoints.asScala.map {
+        _.getValue
+      }.sum
+      totalCount should be > 0L
+    }
+  }
+
   "AkkaActorAgent" should "record mailbox time properly" in {
     val idle            = 100.milliseconds
     val messages        = 3
