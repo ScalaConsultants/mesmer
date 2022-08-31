@@ -13,9 +13,9 @@ import scala.util.Success
 
 import io.scalac.mesmer.core.util.Retry
 
-object AkkaActorExtension {
+object ActorLifecycleMonitorExtension {
 
-  private val log = LoggerFactory.getLogger(classOf[AkkaActorExtension])
+  private val log = LoggerFactory.getLogger(classOf[ActorLifecycleMonitorExtension])
 
   def registerExtension(system: akka.actor.ActorSystem): Unit =
     new Thread(new Runnable() {
@@ -28,13 +28,14 @@ object AkkaActorExtension {
     }).start()
 
   private def register(system: actor.ActorSystem) =
-    system.toTyped.registerExtension(AkkaActorExtensionId)
+    system.toTyped.registerExtension(ActorLifecycleMonitorExtensionId)
 }
 
-class AkkaActorExtension(actorSystem: ActorSystem[_]) extends Extension {
-  ActorLifecycleMetricsMonitor.subscribeToEventStream(actorSystem)
+class ActorLifecycleMonitorExtension(actorSystem: ActorSystem[_]) extends Extension {
+  ActorLifecycleMonitor.subscribeToEventStream(actorSystem)
 }
 
-object AkkaActorExtensionId extends ExtensionId[AkkaActorExtension] {
-  override def createExtension(system: ActorSystem[_]): AkkaActorExtension = new AkkaActorExtension(system)
+object ActorLifecycleMonitorExtensionId extends ExtensionId[ActorLifecycleMonitorExtension] {
+  override def createExtension(system: ActorSystem[_]): ActorLifecycleMonitorExtension =
+    new ActorLifecycleMonitorExtension(system)
 }

@@ -13,7 +13,7 @@ import io.scalac.mesmer.otelextension.instrumentations.akka.actor.InstrumentsPro
 import io.scalac.mesmer.otelextension.instrumentations.akka.actor.extension.ActorLifecycleEvents.ActorCreated
 import io.scalac.mesmer.otelextension.instrumentations.akka.actor.extension.ActorLifecycleEvents.ActorTerminated
 
-final class ActorLifecycleMetricsMonitor(context: ActorContext[ActorLifecycleEvents])
+final class ActorLifecycleMonitor(context: ActorContext[ActorLifecycleEvents])
     extends AbstractBehavior[ActorLifecycleEvents](context) {
   override def onMessage(msg: ActorLifecycleEvents): Behavior[ActorLifecycleEvents] = msg match {
     case ActorCreated(ref) =>
@@ -26,9 +26,9 @@ final class ActorLifecycleMetricsMonitor(context: ActorContext[ActorLifecycleEve
   }
 }
 
-object ActorLifecycleMetricsMonitor {
+object ActorLifecycleMonitor {
   def apply(): Behavior[ActorLifecycleEvents] =
-    Behaviors.setup[ActorLifecycleEvents](ctx => new ActorLifecycleMetricsMonitor(ctx))
+    Behaviors.setup[ActorLifecycleEvents](ctx => new ActorLifecycleMonitor(ctx))
 
   def subscribeToEventStream(system: typed.ActorSystem[_]): Unit = {
     val actor: typed.ActorRef[ActorLifecycleEvents] = createFromSystem(system)
