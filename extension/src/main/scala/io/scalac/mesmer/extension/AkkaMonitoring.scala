@@ -4,14 +4,11 @@ import akka.actor.ExtendedActorSystem
 import akka.actor.typed._
 import akka.actor.typed.scaladsl.Behaviors
 import akka.cluster.Cluster
-import akka.util.Timeout
 import com.typesafe.config.Config
 import io.opentelemetry.api.GlobalOpenTelemetry
 import io.opentelemetry.api.metrics.Meter
 import org.slf4j.LoggerFactory
 
-import scala.concurrent.duration._
-import scala.language.postfixOps
 import scala.reflect.ClassTag
 import scala.reflect.classTag
 import scala.util.Try
@@ -47,16 +44,9 @@ final class AkkaMonitoring(system: ActorSystem[_]) extends Extension {
       nodeName => Some(nodeName.toNode)
     )
 
-  private val askTimeout: Timeout          = 5 seconds
   private val meter: Meter                 = GlobalOpenTelemetry.getMeter("mesmer-akka")
   private val actorSystemConfig: Config    = system.settings.config
   private val config: AkkaMonitoringConfig = AkkaMonitoringConfig.fromConfig(system.settings.config)
-  /*
-   We combine global config published by agent with current config to account for actor system having
-   different config file than agent. We take account only for 4 modules as those are only affected by agent.
-   */
-  private val akkaActorConfig = AkkaActorModule.enabled
-
   private val openTelemetryClusterMetricsMonitor: OpenTelemetryClusterMetricsMonitor =
     OpenTelemetryClusterMetricsMonitor(meter, AkkaClusterModule.enabled, actorSystemConfig)
   private val dispatcher = AkkaDispatcher.safeDispatcherSelector(system)

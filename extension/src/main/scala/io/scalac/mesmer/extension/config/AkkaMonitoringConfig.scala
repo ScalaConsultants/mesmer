@@ -2,15 +2,11 @@ package io.scalac.mesmer.extension.config
 
 import com.typesafe.config.Config
 
-import scala.concurrent.duration._
-import scala.jdk.DurationConverters._
-
 import io.scalac.mesmer.core.config.Configuration
 import io.scalac.mesmer.core.config.MesmerConfiguration
 
 final case class AkkaMonitoringConfig(
-  autoStart: AutoStartSettings,
-  cleaning: CleaningSettings
+  autoStart: AutoStartSettings
 )
 
 final case class AutoStartSettings(
@@ -29,14 +25,13 @@ object AkkaMonitoringConfig extends MesmerConfiguration[AkkaMonitoringConfig] wi
       akkaPersistence = false,
       akkaStream = false
     )
-  private val cleaningSettingsDefaults = CleaningSettings(20.seconds, 5.second)
 
   /**
    * Name of configuration inside mesmer branch
    */
   protected val mesmerConfig: String = ""
 
-  val defaultConfig: AkkaMonitoringConfig = AkkaMonitoringConfig(autoStartDefaults, cleaningSettingsDefaults)
+  val defaultConfig: AkkaMonitoringConfig = AkkaMonitoringConfig(autoStartDefaults)
 
   protected def extractFromConfig(monitoringConfig: Config): AkkaMonitoringConfig = {
     val autoStartSettings = monitoringConfig
@@ -54,19 +49,8 @@ object AkkaMonitoringConfig extends MesmerConfiguration[AkkaMonitoringConfig] wi
       }
       .getOrElse(autoStartDefaults)
 
-    val cleaningSettings = monitoringConfig
-      .tryValue("cleaning")(_.getConfig)
-      .flatMap { cleaningConfig =>
-        for {
-          max   <- cleaningConfig.tryValue("max-staleness")(_.getDuration)
-          every <- cleaningConfig.tryValue("every")(_.getDuration)
-        } yield CleaningSettings(max.toScala, every.toScala)
-      }
-      .getOrElse(cleaningSettingsDefaults)
-
     AkkaMonitoringConfig(
-      autoStartSettings,
-      cleaningSettings
+      autoStartSettings
     )
   }
 
