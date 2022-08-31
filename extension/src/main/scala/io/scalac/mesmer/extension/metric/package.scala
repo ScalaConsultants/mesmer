@@ -7,13 +7,9 @@ package object metric {
      To define the type alias here help us to reference monitors in the code instead of to invent a non-conflicting name for them inside namespaces.
      TODO In Scala 3 we'll have top-level to help us do that.
    */
-  type ActorMetricsMonitor = EmptyBind[ActorMetricsMonitor.BoundMonitor]
-  type PersistenceMetricsMonitor =
-    Bindable[PersistenceMetricsMonitor.Attributes, PersistenceMetricsMonitor.BoundMonitor]
   type ClusterMetricsMonitor = Bindable[ClusterMetricsMonitor.Attributes, ClusterMetricsMonitor.BoundMonitor]
   type StreamMetricsMonitor  = Bindable[StreamMetricsMonitor.EagerAttributes, StreamMetricsMonitor.BoundMonitor]
   type StreamOperatorMetricsMonitor =
     EmptyBind[StreamOperatorMetricsMonitor.BoundMonitor]
-  type ActorSystemMonitor = Bindable[ActorSystemMonitor.Attributes, ActorSystemMonitor.BoundMonitor]
 
 }
