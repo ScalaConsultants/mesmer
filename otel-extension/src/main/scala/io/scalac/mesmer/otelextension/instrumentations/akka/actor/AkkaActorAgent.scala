@@ -11,6 +11,10 @@ import io.scalac.mesmer.agent.util.i13n.Instrumentation._
 
 object AkkaActorAgent {
 
+  val actorMetricsExtension: TypeInstrumentation =
+    Instrumentation(named("akka.actor.ActorSystemImpl"))
+      .`with`(Advice(isConstructor, "akka.actor.impl.ActorMetricsExtensionAdvice"))
+
   val actorSystemConfig: TypeInstrumentation =
     Instrumentation(named("akka.actor.ActorSystemImpl"))
       .`with`(Advice(isConstructor, "akka.actor.impl.ClassicActorSystemProviderAdvice"))
