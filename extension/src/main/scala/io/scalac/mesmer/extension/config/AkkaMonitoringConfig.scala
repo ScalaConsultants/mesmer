@@ -10,8 +10,6 @@ final case class AkkaMonitoringConfig(
 )
 
 final case class AutoStartSettings(
-  akkaActor: Boolean,
-  akkaPersistence: Boolean,
   akkaCluster: Boolean,
   akkaStream: Boolean
 )
@@ -20,9 +18,7 @@ object AkkaMonitoringConfig extends MesmerConfiguration[AkkaMonitoringConfig] wi
 
   private val autoStartDefaults =
     AutoStartSettings(
-      akkaActor = false,
       akkaCluster = false,
-      akkaPersistence = false,
       akkaStream = false
     )
 
@@ -37,15 +33,12 @@ object AkkaMonitoringConfig extends MesmerConfiguration[AkkaMonitoringConfig] wi
     val autoStartSettings = monitoringConfig
       .tryValue("auto-start")(_.getConfig)
       .map { autoStartConfig =>
-        val akkaActor = autoStartConfig.tryValue("akka-actor")(_.getBoolean).getOrElse(autoStartDefaults.akkaActor)
-        val akkaPersistence =
-          autoStartConfig.tryValue("akka-persistence")(_.getBoolean).getOrElse(autoStartDefaults.akkaPersistence)
         val akkaCluster =
           autoStartConfig.tryValue("akka-cluster")(_.getBoolean).getOrElse(autoStartDefaults.akkaCluster)
         val akkaStream =
           autoStartConfig.tryValue("akka-stream")(_.getBoolean).getOrElse(autoStartDefaults.akkaStream)
 
-        AutoStartSettings(akkaActor, akkaPersistence, akkaCluster, akkaStream)
+        AutoStartSettings(akkaCluster, akkaStream)
       }
       .getOrElse(autoStartDefaults)
 
