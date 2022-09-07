@@ -17,13 +17,13 @@ class RetryTest extends AnyFlatSpec with Matchers {
       throw exception
     }
 
-    Retry.retryWithPauses(3, 1.millisecond)(function()) should be(Failure(exception))
+    Retry.retry(3, 1.millisecond)(function()) should be(Failure(exception))
     counter should be(3)
   }
 
   it should "succeed" in {
     def function(): Unit = ()
-    Retry.retryWithPauses(Int.MaxValue, 1.millisecond)(function()) should be(Success(()))
+    Retry.retry(Int.MaxValue, 1.millisecond)(function()) should be(Success(()))
   }
 
   it should "succeed the second time" in {
@@ -35,6 +35,6 @@ class RetryTest extends AnyFlatSpec with Matchers {
       } else {
         counter
       }
-    Retry.retryWithPauses(3, 1.millisecond)(function()) should be(Success(1))
+    Retry.retry(3, 1.millisecond)(function()) should be(Success(1))
   }
 }

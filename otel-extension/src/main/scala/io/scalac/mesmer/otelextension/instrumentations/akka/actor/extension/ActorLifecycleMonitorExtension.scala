@@ -11,7 +11,11 @@ import scala.concurrent.duration.DurationInt
 import scala.util.Failure
 import scala.util.Success
 
-import io.scalac.mesmer.core.util.Retry
+import io.scalac.mesmer.core.util.Retry._
+
+class ActorLifecycleMonitorExtension(actorSystem: ActorSystem[_]) extends Extension {
+  ActorLifecycleMonitor.subscribeToEventStream(actorSystem)
+}
 
 object ActorLifecycleMonitorExtension {
 
@@ -20,7 +24,7 @@ object ActorLifecycleMonitorExtension {
   def registerExtension(system: akka.actor.ActorSystem): Unit =
     new Thread(new Runnable() {
       override def run(): Unit =
-        Retry.retryWithPauses(10, 2.seconds)(register(system)) match {
+        retry(10, 2.seconds)(register(system)) match {
           case Failure(error) =>
             log.error(s"Failed to install the Actor Lifecycle Monitoring Extension. Reason: $error")
           case Success(_) => log.info("Successfully installed the Actor Lifecycle Monitoring Extension.")
@@ -29,10 +33,6 @@ object ActorLifecycleMonitorExtension {
 
   private def register(system: actor.ActorSystem) =
     system.toTyped.registerExtension(ActorLifecycleMonitorExtensionId)
-}
-
-class ActorLifecycleMonitorExtension(actorSystem: ActorSystem[_]) extends Extension {
-  ActorLifecycleMonitor.subscribeToEventStream(actorSystem)
 }
 
 object ActorLifecycleMonitorExtensionId extends ExtensionId[ActorLifecycleMonitorExtension] {
