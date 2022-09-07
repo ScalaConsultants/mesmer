@@ -25,6 +25,9 @@ object Retry {
       retry(n, pause)(fn)
     } else {
       Thread.sleep(pause.toMillis)
-      retryWithPrecondition(n - 1, pause)(precondition)(fn)
+      if (n > 0) { retryWithPrecondition(n - 1, pause)(precondition)(fn) }
+      else {
+        Failure(new RuntimeException(s"Precondition failed - couldn't retry."))
+      }
     }
 }
