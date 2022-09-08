@@ -3,7 +3,7 @@ package akka.actor.impl.typed;
 import akka.actor.ActorContext;
 import akka.actor.typed.TypedActorContext;
 import io.opentelemetry.api.common.Attributes;
-import io.opentelemetry.instrumentation.api.field.VirtualField;
+import io.opentelemetry.instrumentation.api.util.VirtualField;
 import io.scalac.mesmer.otelextension.instrumentations.akka.actor.Instruments;
 import io.scalac.mesmer.otelextension.instrumentations.akka.actor.InstrumentsProvider;
 import io.scalac.mesmer.otelextension.instrumentations.akka.actor.impl.otel.ActorCellInstrumentationState;

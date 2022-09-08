@@ -4,7 +4,7 @@ import akka.actor.ActorContext;
 import akka.dispatch.Envelope;
 import akka.dispatch.Mailbox;
 import io.opentelemetry.api.common.Attributes;
-import io.opentelemetry.instrumentation.api.field.VirtualField;
+import io.opentelemetry.instrumentation.api.util.VirtualField;
 import io.scalac.mesmer.core.util.Interval;
 import io.scalac.mesmer.otelextension.instrumentations.akka.actor.Instruments;
 import io.scalac.mesmer.otelextension.instrumentations.akka.actor.InstrumentsProvider;

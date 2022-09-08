@@ -12,14 +12,14 @@ This guide presents steps for Prometheus and OTEL (native OpenTelemetry protocol
 
 ## Basic setup
 
-1. Download [opentelemetry-javaagent.jar](https://github.com/open-telemetry/opentelemetry-java-instrumentation/releases/download/v1.13.1/opentelemetry-javaagent.jar) from `opentelemetry-java` Releases.
+1. Download [opentelemetry-javaagent.jar](https://github.com/open-telemetry/opentelemetry-java-instrumentation/releases/download/v1.17.0/opentelemetry-javaagent.jar) from `opentelemetry-java` Releases.
 
-2. Download [mesmer-otel-extension.jar](https://github.com/ScalaConsultants/mesmer/releases/download/v0.8.0.RC1/mesmer-otel-extension.jar) from `mesmer` Releases.
+2. Download [mesmer-otel-extension.jar](https://github.com/ScalaConsultants/mesmer/releases/download/v0.8.0-RC2/mesmer-otel-extension.jar) from `mesmer` Releases.
 
 3. Add the dependency on OpenTelemetry autoconfiguration extension to your `build.sbt` file:
    ```scala
    libraryDependencies ++= Seq(
-     "io.opentelemetry" % "opentelemetry-sdk-extension-autoconfigure" % "1.13.0-alpha"
+     "io.opentelemetry" % "opentelemetry-sdk-extension-autoconfigure" % "1.17.0-alpha"
    )
    ```
 
@@ -28,14 +28,14 @@ This guide presents steps for Prometheus and OTEL (native OpenTelemetry protocol
    **For OTLP**
    ```scala
    libraryDependencies ++= Seq(
-     "io.opentelemetry" % "opentelemetry-exporter-otlp" % "1.13.0",
+     "io.opentelemetry" % "opentelemetry-exporter-otlp" % "1.17.0",
    )
    ```
 
    **For Prometheus**
    ```scala
    libraryDependencies ++= Seq(
-     "io.opentelemetry" % "opentelemetry-exporter-prometheus" % "1.13.0-alpha".
+     "io.opentelemetry" % "opentelemetry-exporter-prometheus" % "1.17.0-alpha".
    )
    ```
 
@@ -85,7 +85,7 @@ Add Mesmer Akka extension:
 
    Add the following dependency to your `build.sbt` file:
    ```scala
-   libraryDependencies += "io.scalac" %% "mesmer-akka-extension" % "0.8.0.RC1"
+   libraryDependencies += "io.scalac" %% "mesmer-akka-extension" % "0.8.0-RC2"
    ```
 
    Add this entry to your `application.conf`:
@@ -111,9 +111,9 @@ For full reference see this ZIO 2.0 SampleApp code:
 
 https://github.com/zio/zio-metrics-connectors/blob/zio/series2.x/core/jvm/src/test/scala/zio/metrics/connectors/SampleApp.scala#L15-L71
 
-**Important for v0.8.0.RC1**
+**Important for non-Akka applications**
 
-At this moment (v0.8.0.RC1) Mesmer is closely bound with Akka. This is something we're working on, but until then there's a specific step that needs to be made in non-Akka applications. The application needs to be run with these additional parameters (that will turn off Akka instrumentation):
+At this moment (v0.8.0-RC2) Mesmer is closely bound with Akka. This is something we're working on, but until then there's a specific step that needs to be made in non-Akka applications. The application needs to be run with these additional parameters (that will turn off Akka instrumentation):
 ```sh
 -Dotel.instrumentation.mesmer-akka-actor.enabled=false
 -Dotel.instrumentation.mesmer-akka-http.enabled=false

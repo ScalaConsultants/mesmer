@@ -57,7 +57,7 @@ lazy val core = (project in file("core"))
     name := "mesmer-akka-core",
     libraryDependencies ++= {
       akka ++
-      openTelemetryInstrumentation ++
+      openTelemetryExtensionApi ++
       scalatest.map(_ % "test") ++
       akkaTestkit.map(_ % "test")
     }
@@ -89,9 +89,9 @@ lazy val otelExtension = (project in file("otel-extension"))
     excludeDependencies += "io.opentelemetry.javaagent" % "opentelemetry-javaagent-bootstrap",
     libraryDependencies ++= {
       zio.map(_ % "provided") ++
+      openTelemetryExtensionApi.map(_ % "provided") ++
       openTelemetryExtension.map(_ % "provided") ++
       openTelemetryMuzzle.map(_ % "provided") ++
-      openTelemetryInstrumentation.map(_ % "provided") ++
       openTelemetryInstrumentationApiSemanticConventions ++
       byteBuddy.map(_ % "provided") ++
       akkaTestkit.map(_ % "it,test") ++
@@ -117,7 +117,7 @@ lazy val otelExtension = (project in file("otel-extension"))
     IntegrationTest / parallelExecution := false,
     IntegrationTest / fork              := true,
     IntegrationTest / javaOptions ++= Seq(
-      s"-javaagent:$projectRootDir/opentelemetry-agent-for-testing-$OpentelemetryAlphaVersion131.jar",
+      s"-javaagent:$projectRootDir/opentelemetry-agent-for-testing-$OpentelemetryAlphaVersion170.jar",
       s"-Dotel.javaagent.extensions=${assembly.value.absolutePath}",
       "-Dotel.javaagent.debug=false",
       "-Dotel.metric.export.interval=100", // 100 ms so that the "eventually" assertions could catch up
@@ -163,7 +163,7 @@ lazy val example = (project in file("example"))
         "com.lightbend.akka.management" %% "akka-management"                           % AkkaManagementVersion,
         "com.lightbend.akka.management" %% "akka-management-cluster-http"              % AkkaManagementVersion,
         "com.lightbend.akka.management" %% "akka-management-cluster-bootstrap"         % AkkaManagementVersion,
-        "io.opentelemetry"               % "opentelemetry-sdk-extension-autoconfigure" % OpentelemetryAlphaVersion130,
+        "io.opentelemetry"               % "opentelemetry-sdk-extension-autoconfigure" % OpentelemetryAlphaVersion170,
         "io.grpc"                        % "grpc-netty-shaded"                         % "1.48.1",
         "org.wvlet.airframe"            %% "airframe-log"                              % AirframeVersion
       )
