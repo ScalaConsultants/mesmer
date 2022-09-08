@@ -9,6 +9,8 @@ import akka.cluster.typed.Cluster
 import org.slf4j.LoggerFactory
 
 import scala.concurrent.duration.DurationInt
+import scala.reflect.ClassTag
+import scala.reflect.classTag
 import scala.util.Failure
 import scala.util.Success
 import scala.util.Try
@@ -26,7 +28,7 @@ class AkkaClusterMonitorExtension(actorSystem: ActorSystem[_]) extends Extension
 
   checkPreconditions(actorSystem) match {
     case Left(initializationError) => log.error(s"$name Initialization error occurred: $initializationError")
-    case Right(_)                  => startActor()
+    case Right(_)                  => startClusterMonitors()
   }
 
   private def checkPreconditions(actorSystem: ActorSystem[_]): Either[String, Unit] = for {
@@ -35,14 +37,21 @@ class AkkaClusterMonitorExtension(actorSystem: ActorSystem[_]) extends Extension
     _ <- reflectiveIsInstanceOf("akka.cluster.ClusterActorRefProvider", classic.provider)
   } yield ()
 
-  private def startActor(): ActorRef[ClusterEventsMonitor.MemberEventWrapper] =
-    actorSystem.systemActorOf(
-      Behaviors
-        .supervise(ClusterEventsMonitor())
-        .onFailure[Exception](SupervisorStrategy.restart),
-      name,
-      dispatcher
-    )
+  private def startClusterMonitors(): Unit = {
+    startClusterMonitor(ClusterEventsMonitor)
+    startClusterMonitor(ClusterSelfNodeEventsActor)
+
+    def startClusterMonitor[T <: ClusterMonitorActor: ClassTag](actor: T): Unit = {
+      val name = classTag[T].runtimeClass.getSimpleName
+      actorSystem.systemActorOf(
+        Behaviors
+          .supervise(actor.apply())
+          .onFailure[Exception](SupervisorStrategy.restart),
+        name,
+        dispatcher
+      )
+    }
+  }
 
   private def reflectiveIsInstanceOf(className: String, ref: Any): Either[String, Unit] =
     Try(Class.forName(className)).toEither.left.map {

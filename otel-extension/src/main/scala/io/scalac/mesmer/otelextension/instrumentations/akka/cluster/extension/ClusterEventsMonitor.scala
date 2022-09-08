@@ -12,10 +12,11 @@ import io.opentelemetry.api.metrics.LongCounter
 import io.opentelemetry.api.metrics.Meter
 
 import io.scalac.mesmer.core.model.AkkaNodeOps
+import io.scalac.mesmer.otelextension.instrumentations.akka.common.SerializableMessage
 
-object ClusterEventsMonitor {
+object ClusterEventsMonitor extends ClusterMonitorActor {
 
-  final case class MemberEventWrapper(event: MemberEvent)
+  final case class MemberEventWrapper(event: MemberEvent) extends SerializableMessage
 
   private val meter: Meter = GlobalOpenTelemetry.getMeter("mesmer")
 
@@ -24,7 +25,7 @@ object ClusterEventsMonitor {
     .setDescription("Counter for node down events")
     .build()
 
-  def apply(): Behavior[MemberEventWrapper] =
+  override def apply(): Behavior[MemberEventWrapper] =
     OnClusterStartup { selfMember =>
       Behaviors.setup { context =>
         val reachabilityAdapter = context.messageAdapter[MemberEvent](MemberEventWrapper.apply)
