@@ -45,7 +45,9 @@ public class MesmerAkkaClusterInstrumentationModule extends InstrumentationModul
         "io.scalac.mesmer.otelextension.instrumentations.akka.cluster.extension.AkkaClusterMonitorExtension$$anon$1",
         "io.scalac.mesmer.otelextension.instrumentations.akka.cluster.extension.AkkaClusterMonitorExtensionId$",
         "io.scalac.mesmer.otelextension.instrumentations.akka.cluster.extension.ClusterEventsMonitor$",
+        "io.scalac.mesmer.otelextension.instrumentations.akka.cluster.extension.ClusterEventsMonitor$MemberEventWrapper",
         "io.scalac.mesmer.otelextension.instrumentations.akka.cluster.extension.OnClusterStartup$",
-        "io.scalac.mesmer.otelextension.instrumentations.akka.cluster.extension.OnClusterStartup$Initialized");
+        "io.scalac.mesmer.otelextension.instrumentations.akka.cluster.extension.OnClusterStartup$Initialized",
+        "io.scalac.mesmer.otelextension.instrumentations.akka.cluster.extension.OnClusterStartup$Timeout$");
   }
 }
