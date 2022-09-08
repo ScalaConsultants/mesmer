@@ -58,14 +58,13 @@ object AkkaClusterMonitorExtension {
 
   def registerExtension(system: akka.actor.ActorSystem): Unit =
     new Thread(new Runnable() {
-      override def run(): Unit = {
-        println(s"register extension ${Thread.currentThread().getName}")
-        Retry.retryWithPrecondition(10, 2.seconds)(system.toTyped.hasExtension(Cluster))(register(system))
-      } match {
-        case Failure(error) =>
-          log.error(s"Failed to install the Akka Cluster Monitoring Extension. Reason: $error")
-        case Success(_) => log.info("Successfully installed the Akka Cluster Monitoring Extension.")
-      }
+      override def run(): Unit =
+        Retry.retryWithPrecondition(10, 2.seconds)(system.toTyped.hasExtension(Cluster))(register(system)) match {
+          case Failure(error) =>
+            log.error(s"Failed to install the Akka Cluster Monitoring Extension. Reason: $error")
+          case Success(_) =>
+            log.info("Successfully installed the Akka Cluster Monitoring Extension.")
+        }
     })
       .start()
 

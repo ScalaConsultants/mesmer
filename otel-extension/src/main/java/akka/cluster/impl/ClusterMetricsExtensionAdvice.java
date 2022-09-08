@@ -7,7 +7,7 @@ import net.bytebuddy.asm.Advice;
 public class ClusterMetricsExtensionAdvice {
 
   @Advice.OnMethodExit
-  public static void init(@Advice.This ActorSystem classicSystem) throws InterruptedException {
+  public static void init(@Advice.This ActorSystem classicSystem) {
     AkkaClusterMonitorExtension.registerExtension(classicSystem);
   }
 }

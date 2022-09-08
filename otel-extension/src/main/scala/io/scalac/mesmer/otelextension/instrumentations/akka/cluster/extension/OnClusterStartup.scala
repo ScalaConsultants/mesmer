@@ -7,10 +7,13 @@ import akka.cluster.Member
 import akka.cluster.typed.Cluster
 import akka.cluster.typed.SelfUp
 import akka.cluster.typed.Subscribe
+import org.slf4j.LoggerFactory
 
 import scala.concurrent.duration.FiniteDuration
 
 object OnClusterStartup {
+
+  private val log = LoggerFactory.getLogger(OnClusterStartup.getClass)
 
   private case class Initialized(currentClusterState: CurrentClusterState)
 
@@ -32,10 +35,10 @@ object OnClusterStartup {
           Behaviors.withStash(1024) { stash =>
             Behaviors.receiveMessage {
               case Timeout =>
-                // ctx.log.warn("Initialization timed out")
+                log.warn("Initialization timed out")
                 Behaviors.stopped
               case Initialized(_) =>
-                // ctx.log.info("Cluster initialized")
+                log.info("Cluster initialized")
                 timer.cancel(timeoutTimerKey)
                 val selfMember = Cluster(ctx.system).selfMember
                 stash.unstashAll(inner(selfMember).asInstanceOf[Behavior[Any]])
