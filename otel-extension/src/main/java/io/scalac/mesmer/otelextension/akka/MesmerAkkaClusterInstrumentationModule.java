@@ -48,6 +48,13 @@ public class MesmerAkkaClusterInstrumentationModule extends InstrumentationModul
         "io.scalac.mesmer.otelextension.instrumentations.akka.cluster.extension.ClusterEventsMonitor$MemberEventWrapper",
         "io.scalac.mesmer.otelextension.instrumentations.akka.cluster.extension.OnClusterStartup$",
         "io.scalac.mesmer.otelextension.instrumentations.akka.cluster.extension.OnClusterStartup$Initialized",
-        "io.scalac.mesmer.otelextension.instrumentations.akka.cluster.extension.OnClusterStartup$Timeout$");
+        "io.scalac.mesmer.otelextension.instrumentations.akka.cluster.extension.OnClusterStartup$Timeout$",
+        "io.scalac.mesmer.otelextension.instrumentations.akka.cluster.extension.ClusterMonitorActor",
+        "io.scalac.mesmer.otelextension.instrumentations.akka.cluster.extension.ClusterSelfNodeEventsActor$",
+        "io.scalac.mesmer.otelextension.instrumentations.akka.cluster.extension.ClusterSelfNodeEventsActor$Command",
+        "io.scalac.mesmer.otelextension.instrumentations.akka.cluster.extension.ClusterSelfNodeEventsActor$Command$ClusterMemberEvent",
+        "io.scalac.mesmer.otelextension.instrumentations.akka.cluster.extension.ClusterSelfNodeEventsActor$Command$NodeUnreachable",
+        "io.scalac.mesmer.otelextension.instrumentations.akka.cluster.extension.ClusterSelfNodeEventsActor$Command$NodeReachable",
+        "io.scalac.mesmer.otelextension.instrumentations.akka.common.SerializableMessage");
   }
 }

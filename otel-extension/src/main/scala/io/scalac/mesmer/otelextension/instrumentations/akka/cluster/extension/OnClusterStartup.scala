@@ -35,10 +35,10 @@ object OnClusterStartup {
           Behaviors.withStash(1024) { stash =>
             Behaviors.receiveMessage {
               case Timeout =>
-                log.warn("Initialization timed out")
+                log.error("Initialization timed out.")
                 Behaviors.stopped
               case Initialized(_) =>
-                log.info("Cluster initialized")
+                log.debug("Cluster in initialized.")
                 timer.cancel(timeoutTimerKey)
                 val selfMember = Cluster(ctx.system).selfMember
                 stash.unstashAll(inner(selfMember).asInstanceOf[Behavior[Any]])
