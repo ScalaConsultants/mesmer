@@ -187,7 +187,7 @@ lazy val example = (project in file("example"))
     commands += runStreamExampleWithOtelAgent,
     commands += runZioExampleWithOtelAgent
   )
-  .dependsOn(core, extension)
+  .dependsOn(core)
 
 lazy val docs = project
   .in(file("mesmer-docs")) // important: it must not be docs/
