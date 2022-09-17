@@ -87,7 +87,7 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "sum(rate(promexample_akka_persistence_recovery_total[$__rate_interval]))",
+          "expr": "sum(rate(promexample_mesmer_akka_persistence_event_time_sum[$__rate_interval]))",
           "interval": "",
           "legendFormat": "global",
           "refId": "A"
@@ -174,7 +174,7 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "sum by($persistence_label)(rate(promexample_akka_persistence_recovery_total[1m]))",
+          "expr": "sum by($persistence_label)(rate(promexample_mesmer_akka_persistence_event_time_sum[1m]))",
           "interval": "",
           "legendFormat": "{{$persistence_label}}",
           "refId": "A"
@@ -258,7 +258,7 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "sum(rate(promexample_akka_persistence_recovery_time_sum[$__rate_interval])) / sum(rate(promexample_akka_persistence_recovery_time_count[$__rate_interval]) > 0)",
+          "expr": "sum(rate(promexample_mesmer_akka_persistence_recovery_time_sum[$__rate_interval])) / sum(rate(promexample_mesmer_akka_persistence_recovery_time_count[$__rate_interval]) > 0)",
           "interval": "",
           "intervalFactor": 1,
           "legendFormat": "global",
@@ -348,7 +348,7 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "sum by($persistence_label)(rate(promexample_akka_persistence_recovery_time_sum[$__rate_interval])) / sum by($persistence_label)(rate(promexample_akka_persistence_recovery_time_count[$__rate_interval]) > 0)",
+          "expr": "sum by($persistence_label)(rate(promexample_mesmer_akka_persistence_recovery_time_sum[$__rate_interval])) / sum by($persistence_label)(rate(promexample_mesmer_akka_persistence_recovery_time_count[$__rate_interval]) > 0)",
           "interval": "",
           "intervalFactor": 1,
           "legendFormat": "{{$persistence_label}}",
@@ -449,7 +449,7 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "sum(rate(promexample_akka_persistence_persistent_event_total[$__rate_interval]))",
+          "expr": "sum(rate(promexample_mesmer_akka_persistence_event_time_sum[$__rate_interval]))",
           "interval": "",
           "legendFormat": "global",
           "refId": "A"
@@ -538,7 +538,7 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "sum by($persistence_label)(rate(promexample_akka_persistence_persistent_event_total[$__rate_interval]))",
+          "expr": "sum by($persistence_label)(rate(promexample_mesmer_akka_persistence_event_time_sum[$__rate_interval]))",
           "interval": "",
           "legendFormat": "{{$persistence_label}}",
           "refId": "A"
@@ -624,7 +624,7 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "sum(rate(promexample_akka_persistence_persistent_event_sum[$__rate_interval])) / sum(rate(promexample_akka_persistence_persistent_event_count[$__rate_interval]) > 0)",
+          "expr": "sum(rate(promexample_mesmer_akka_persistence_event_time_sum[$__rate_interval])) / sum(rate(promexample_mesmer_akka_persistence_event_time_count[$__rate_interval]) > 0)",
           "interval": "",
           "intervalFactor": 1,
           "legendFormat": "global",
@@ -714,12 +714,820 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "sum by($persistence_label)(rate(promexample_akka_persistence_persistent_event_sum[$__rate_interval])) / sum by($persistence_label)(rate(promexample_akka_persistence_persistent_event_count[$__rate_interval]) > 0)",
+          "expr": "sum by($persistence_label)(rate(promexample_mesmer_akka_persistence_event_time_sum[$__rate_interval])) / sum by($persistence_label)(rate(promexample_mesmer_akka_persistence_event_time_count[$__rate_interval]) > 0)",
           "interval": "",
           "intervalFactor": 1,
           "legendFormat": "{{$persistence_label}}",
           "refId": "A"
+        },{
+          "annotations": {
+            "list": [
+              {
+                "builtIn": 1,
+                "datasource": "-- Grafana --",
+                "enable": true,
+                "hide": true,
+                "iconColor": "rgba(0, 211, 255, 1)",
+                "name": "Annotations & Alerts",
+                "target": {
+                  "limit": 100,
+                  "matchAny": false,
+                  "tags": [],
+                  "type": "dashboard"
+                },
+                "type": "dashboard"
+              }
+            ]
+          },
+          "editable": true,
+          "fiscalYearStartMonth": 0,
+          "graphTooltip": 0,
+          "iteration": 1648724423897,
+          "links": [],
+          "liveNow": false,
+          "panels": [
+            {
+              "collapsed": false,
+              "gridPos": {
+                "h": 9,
+                "w": 24,
+                "x": 0,
+                "y": 0
+              },
+              "id": 2,
+              "panels": [],
+              "title": "Recovery",
+              "type": "row"
+            },
+            {
+              "aliasColors": {},
+              "bars": false,
+              "dashLength": 10,
+              "dashes": false,
+              "description": "Akka persistence recoveries per second happening across entire cluster",
+              "fieldConfig": {
+                "defaults": {
+                  "unit": "reqps"
+                },
+                "overrides": []
+              },
+              "fill": 1,
+              "fillGradient": 0,
+              "gridPos": {
+                "h": 9,
+                "w": 24,
+                "x": 0,
+                "y": 1
+              },
+              "hiddenSeries": false,
+              "id": 7,
+              "legend": {
+                "avg": false,
+                "current": false,
+                "max": false,
+                "min": false,
+                "show": true,
+                "total": false,
+                "values": false
+              },
+              "lines": true,
+              "linewidth": 1,
+              "nullPointMode": "null",
+              "options": {
+                "alertThreshold": true
+              },
+              "percentage": false,
+              "pluginVersion": "8.3.1",
+              "pointradius": 2,
+              "points": false,
+              "renderer": "flot",
+              "seriesOverrides": [],
+              "spaceLength": 10,
+              "stack": false,
+              "steppedLine": false,
+              "targets": [
+                {
+                  "exemplar": true,
+                  "expr": "sum(rate(promexample_mesmer_akka_persistence_event_time_sum[$__rate_interval]))",
+                  "interval": "",
+                  "legendFormat": "global",
+                  "refId": "A"
+                }
+              ],
+              "thresholds": [],
+              "timeRegions": [],
+              "title": "Global recoveries",
+              "tooltip": {
+                "shared": true,
+                "sort": 0,
+                "value_type": "individual"
+              },
+              "type": "graph",
+              "xaxis": {
+                "mode": "time",
+                "show": true,
+                "values": []
+              },
+              "yaxes": [
+                {
+                  "format": "reqps",
+                  "logBase": 1,
+                  "show": true
+                },
+                {
+                  "format": "short",
+                  "logBase": 1,
+                  "show": true
+                }
+              ],
+              "yaxis": {
+                "align": false
+              }
+            },
+            {
+              "aliasColors": {},
+              "bars": false,
+              "dashLength": 10,
+              "dashes": false,
+              "fieldConfig": {
+                "defaults": {
+                  "unit": "reqps"
+                },
+                "overrides": []
+              },
+              "fill": 1,
+              "fillGradient": 0,
+              "gridPos": {
+                "h": 9,
+                "w": 12,
+                "x": 0,
+                "y": 10
+              },
+              "hiddenSeries": false,
+              "id": 8,
+              "legend": {
+                "avg": false,
+                "current": false,
+                "max": false,
+                "min": false,
+                "show": true,
+                "total": false,
+                "values": false
+              },
+              "lines": true,
+              "linewidth": 1,
+              "maxPerRow": 2,
+              "nullPointMode": "null",
+              "options": {
+                "alertThreshold": true
+              },
+              "percentage": false,
+              "pluginVersion": "8.3.1",
+              "pointradius": 2,
+              "points": false,
+              "renderer": "flot",
+              "repeat": "persistence_label",
+              "repeatDirection": "h",
+              "seriesOverrides": [],
+              "spaceLength": 10,
+              "stack": false,
+              "steppedLine": false,
+              "targets": [
+                {
+                  "exemplar": true,
+                  "expr": "sum by($persistence_label)(rate(promexample_mesmer_akka_persistence_event_time_sum[1m]))",
+                  "interval": "",
+                  "legendFormat": "{{$persistence_label}}",
+                  "refId": "A"
+                }
+              ],
+              "thresholds": [],
+              "timeRegions": [],
+              "title": "Recoveries/s by $persistence_label",
+              "tooltip": {
+                "shared": true,
+                "sort": 0,
+                "value_type": "individual"
+              },
+              "type": "graph",
+              "xaxis": {
+                "mode": "time",
+                "show": true,
+                "values": []
+              },
+              "yaxes": [
+                {
+                  "format": "reqps",
+                  "logBase": 1,
+                  "show": true
+                },
+                {
+                  "format": "short",
+                  "logBase": 1,
+                  "show": true
+                }
+              ],
+              "yaxis": {
+                "align": false
+              }
+            },
+            {
+              "aliasColors": {},
+              "bars": false,
+              "dashLength": 10,
+              "dashes": false,
+              "fieldConfig": {
+                "defaults": {
+                  "unit": "ms"
+                },
+                "overrides": []
+              },
+              "fill": 1,
+              "fillGradient": 0,
+              "gridPos": {
+                "h": 9,
+                "w": 24,
+                "x": 0,
+                "y": 18
+              },
+              "hiddenSeries": false,
+              "id": 16,
+              "legend": {
+                "avg": false,
+                "current": false,
+                "max": false,
+                "min": false,
+                "show": true,
+                "total": false,
+                "values": false
+              },
+              "lines": true,
+              "linewidth": 1,
+              "nullPointMode": "null",
+              "options": {
+                "alertThreshold": true
+              },
+              "percentage": false,
+              "pluginVersion": "8.3.1",
+              "pointradius": 2,
+              "points": false,
+              "renderer": "flot",
+              "seriesOverrides": [],
+              "spaceLength": 10,
+              "stack": false,
+              "steppedLine": false,
+              "targets": [
+                {
+                  "exemplar": true,
+                  "expr": "sum(rate(promexample_mesmer_akka_persistence_recovery_time_sum[$__rate_interval])) / sum(rate(promexample_mesmer_akka_persistence_recovery_time_count[$__rate_interval]) > 0)",
+                  "interval": "",
+                  "intervalFactor": 1,
+                  "legendFormat": "global",
+                  "refId": "A"
+                }
+              ],
+              "thresholds": [],
+              "timeRegions": [],
+              "title": "Recovery average time",
+              "tooltip": {
+                "shared": true,
+                "sort": 0,
+                "value_type": "individual"
+              },
+              "type": "graph",
+              "xaxis": {
+                "mode": "time",
+                "show": true,
+                "values": []
+              },
+              "yaxes": [
+                {
+                  "$$hashKey": "object:598",
+                  "format": "ms",
+                  "logBase": 1,
+                  "show": true
+                },
+                {
+                  "$$hashKey": "object:599",
+                  "format": "short",
+                  "logBase": 1,
+                  "show": true
+                }
+              ],
+              "yaxis": {
+                "align": false
+              }
+            },
+            {
+              "aliasColors": {},
+              "bars": false,
+              "dashLength": 10,
+              "dashes": false,
+              "fieldConfig": {
+                "defaults": {
+                  "unit": "ms"
+                },
+                "overrides": []
+              },
+              "fill": 1,
+              "fillGradient": 0,
+              "gridPos": {
+                "h": 9,
+                "w": 12,
+                "x": 0,
+                "y": 27
+              },
+              "hiddenSeries": false,
+              "id": 19,
+              "legend": {
+                "avg": false,
+                "current": false,
+                "max": false,
+                "min": false,
+                "show": true,
+                "total": false,
+                "values": false
+              },
+              "lines": true,
+              "linewidth": 1,
+              "maxPerRow": 2,
+              "nullPointMode": "null",
+              "options": {
+                "alertThreshold": true
+              },
+              "percentage": false,
+              "pluginVersion": "8.3.1",
+              "pointradius": 2,
+              "points": false,
+              "renderer": "flot",
+              "repeat": "persistence_label",
+              "repeatDirection": "h",
+              "seriesOverrides": [],
+              "spaceLength": 10,
+              "stack": false,
+              "steppedLine": false,
+              "targets": [
+                {
+                  "exemplar": true,
+                  "expr": "sum by($persistence_label)(rate(promexample_mesmer_akka_persistence_recovery_time_sum[$__rate_interval])) / sum by($persistence_label)(rate(promexample_mesmer_akka_persistence_recovery_time_count[$__rate_interval]) > 0)",
+                  "interval": "",
+                  "intervalFactor": 1,
+                  "legendFormat": "{{$persistence_label}}",
+                  "refId": "A"
+                }
+              ],
+              "thresholds": [],
+              "timeRegions": [],
+              "title": "Recovery average time by $persistence_label",
+              "tooltip": {
+                "shared": true,
+                "sort": 0,
+                "value_type": "individual"
+              },
+              "type": "graph",
+              "xaxis": {
+                "mode": "time",
+                "show": true,
+                "values": []
+              },
+              "yaxes": [
+                {
+                  "$$hashKey": "object:598",
+                  "format": "ms",
+                  "logBase": 1,
+                  "show": true
+                },
+                {
+                  "$$hashKey": "object:599",
+                  "format": "short",
+                  "logBase": 1,
+                  "show": true
+                }
+              ],
+              "yaxis": {
+                "align": false
+              }
+            },
+            {
+              "collapsed": false,
+              "gridPos": {
+                "h": 1,
+                "w": 24,
+                "x": 0,
+                "y": 45
+              },
+              "id": 14,
+              "panels": [],
+              "title": "Persistence event",
+              "type": "row"
+            },
+            {
+              "aliasColors": {},
+              "bars": false,
+              "dashLength": 10,
+              "dashes": false,
+              "description": "Akka persistent events per second happening across entire cluster",
+              "fieldConfig": {
+                "defaults": {
+                  "unit": "reqps"
+                },
+                "overrides": []
+              },
+              "fill": 1,
+              "fillGradient": 0,
+              "gridPos": {
+                "h": 9,
+                "w": 24,
+                "x": 0,
+                "y": 46
+              },
+              "hiddenSeries": false,
+              "id": 23,
+              "legend": {
+                "avg": false,
+                "current": false,
+                "max": false,
+                "min": false,
+                "show": true,
+                "total": false,
+                "values": false
+              },
+              "lines": true,
+              "linewidth": 1,
+              "nullPointMode": "null",
+              "options": {
+                "alertThreshold": true
+              },
+              "percentage": false,
+              "pluginVersion": "8.3.1",
+              "pointradius": 2,
+              "points": false,
+              "renderer": "flot",
+              "seriesOverrides": [],
+              "spaceLength": 10,
+              "stack": false,
+              "steppedLine": false,
+              "targets": [
+                {
+                  "exemplar": true,
+                  "expr": "sum(rate(promexample_mesmer_akka_persistence_event_time_sum[$__rate_interval]))",
+                  "interval": "",
+                  "legendFormat": "global",
+                  "refId": "A"
+                }
+              ],
+              "thresholds": [],
+              "timeRegions": [],
+              "title": "Global persistent events per second",
+              "tooltip": {
+                "shared": true,
+                "sort": 0,
+                "value_type": "individual"
+              },
+              "type": "graph",
+              "xaxis": {
+                "mode": "time",
+                "show": true,
+                "values": []
+              },
+              "yaxes": [
+                {
+                  "$$hashKey": "object:1082",
+                  "format": "reqps",
+                  "logBase": 1,
+                  "show": true
+                },
+                {
+                  "$$hashKey": "object:1083",
+                  "format": "short",
+                  "logBase": 1,
+                  "show": true
+                }
+              ],
+              "yaxis": {
+                "align": false
+              }
+            },
+            {
+              "aliasColors": {},
+              "bars": false,
+              "dashLength": 10,
+              "dashes": false,
+              "fieldConfig": {
+                "defaults": {
+                  "unit": "reqps"
+                },
+                "overrides": []
+              },
+              "fill": 1,
+              "fillGradient": 0,
+              "gridPos": {
+                "h": 9,
+                "w": 12,
+                "x": 0,
+                "y": 55
+              },
+              "hiddenSeries": false,
+              "id": 24,
+              "legend": {
+                "avg": false,
+                "current": false,
+                "max": false,
+                "min": false,
+                "show": true,
+                "total": false,
+                "values": false
+              },
+              "lines": true,
+              "linewidth": 1,
+              "maxPerRow": 2,
+              "nullPointMode": "null",
+              "options": {
+                "alertThreshold": true
+              },
+              "percentage": false,
+              "pluginVersion": "8.3.1",
+              "pointradius": 2,
+              "points": false,
+              "renderer": "flot",
+              "repeat": "persistence_label",
+              "repeatDirection": "h",
+              "seriesOverrides": [],
+              "spaceLength": 10,
+              "stack": false,
+              "steppedLine": false,
+              "targets": [
+                {
+                  "exemplar": true,
+                  "expr": "sum by($persistence_label)(rate(promexample_mesmer_akka_persistence_event_time_sum[$__rate_interval]))",
+                  "interval": "",
+                  "legendFormat": "{{$persistence_label}}",
+                  "refId": "A"
+                }
+              ],
+              "thresholds": [],
+              "timeRegions": [],
+              "title": "Persistent events per second by $persistence_label",
+              "tooltip": {
+                "shared": true,
+                "sort": 0,
+                "value_type": "individual"
+              },
+              "type": "graph",
+              "xaxis": {
+                "mode": "time",
+                "show": true,
+                "values": []
+              },
+              "yaxes": [
+                {
+                  "$$hashKey": "object:1037",
+                  "format": "reqps",
+                  "logBase": 1,
+                  "show": true
+                },
+                {
+                  "$$hashKey": "object:1038",
+                  "format": "short",
+                  "logBase": 1,
+                  "show": true
+                }
+              ],
+              "yaxis": {
+                "align": false
+              }
+            },
+            {
+              "aliasColors": {},
+              "bars": false,
+              "dashLength": 10,
+              "dashes": false,
+              "fieldConfig": {
+                "defaults": {
+                  "unit": "ms"
+                },
+                "overrides": []
+              },
+              "fill": 1,
+              "fillGradient": 0,
+              "gridPos": {
+                "h": 9,
+                "w": 24,
+                "x": 0,
+                "y": 63
+              },
+              "hiddenSeries": false,
+              "id": 29,
+              "legend": {
+                "avg": false,
+                "current": false,
+                "max": false,
+                "min": false,
+                "show": true,
+                "total": false,
+                "values": false
+              },
+              "lines": true,
+              "linewidth": 1,
+              "nullPointMode": "null",
+              "options": {
+                "alertThreshold": true
+              },
+              "percentage": false,
+              "pluginVersion": "8.3.1",
+              "pointradius": 2,
+              "points": false,
+              "renderer": "flot",
+              "seriesOverrides": [],
+              "spaceLength": 10,
+              "stack": false,
+              "steppedLine": false,
+              "targets": [
+                {
+                  "exemplar": true,
+                  "expr": "sum(rate(promexample_mesmer_akka_persistence_event_time_sum[$__rate_interval])) / sum(rate(promexample_mesmer_akka_persistence_event_time_count[$__rate_interval]) > 0)",
+                  "interval": "",
+                  "intervalFactor": 1,
+                  "legendFormat": "global",
+                  "refId": "A"
+                }
+              ],
+              "thresholds": [],
+              "timeRegions": [],
+              "title": "Persistent event average time",
+              "tooltip": {
+                "shared": true,
+                "sort": 0,
+                "value_type": "individual"
+              },
+              "type": "graph",
+              "xaxis": {
+                "mode": "time",
+                "show": true,
+                "values": []
+              },
+              "yaxes": [
+                {
+                  "$$hashKey": "object:598",
+                  "format": "ms",
+                  "logBase": 1,
+                  "show": true
+                },
+                {
+                  "$$hashKey": "object:599",
+                  "format": "short",
+                  "logBase": 1,
+                  "show": true
+                }
+              ],
+              "yaxis": {
+                "align": false
+              }
+            },
+            {
+              "aliasColors": {},
+              "bars": false,
+              "dashLength": 10,
+              "dashes": false,
+              "fieldConfig": {
+                "defaults": {
+                  "unit": "ms"
+                },
+                "overrides": []
+              },
+              "fill": 1,
+              "fillGradient": 0,
+              "gridPos": {
+                "h": 9,
+                "w": 12,
+                "x": 0,
+                "y": 72
+              },
+              "hiddenSeries": false,
+              "id": 31,
+              "legend": {
+                "avg": false,
+                "current": false,
+                "max": false,
+                "min": false,
+                "show": true,
+                "total": false,
+                "values": false
+              },
+              "lines": true,
+              "linewidth": 1,
+              "maxPerRow": 2,
+              "nullPointMode": "null",
+              "options": {
+                "alertThreshold": true
+              },
+              "percentage": false,
+              "pluginVersion": "8.3.1",
+              "pointradius": 2,
+              "points": false,
+              "renderer": "flot",
+              "repeat": "persistence_label",
+              "repeatDirection": "h",
+              "seriesOverrides": [],
+              "spaceLength": 10,
+              "stack": false,
+              "steppedLine": false,
+              "targets": [
+                {
+                  "exemplar": true,
+                  "expr": "sum by($persistence_label)(rate(promexample_mesmer_akka_persistence_event_time_sum[$__rate_interval])) / sum by($persistence_label)(rate(promexample_mesmer_akka_persistence_event_time_count[$__rate_interval]) > 0)",
+                  "interval": "",
+                  "intervalFactor": 1,
+                  "legendFormat": "{{$persistence_label}}",
+                  "refId": "A"
+                }
+              ],
+              "thresholds": [],
+              "timeRegions": [],
+              "title": "Persistent event average time by $persistence_label",
+              "tooltip": {
+                "shared": true,
+                "sort": 0,
+                "value_type": "individual"
+              },
+              "type": "graph",
+              "xaxis": {
+                "mode": "time",
+                "show": true,
+                "values": []
+              },
+              "yaxes": [
+                {
+                  "$$hashKey": "object:598",
+                  "format": "ms",
+                  "logBase": 1,
+                  "show": true
+                },
+                {
+                  "$$hashKey": "object:599",
+                  "format": "short",
+                  "logBase": 1,
+                  "show": true
+                }
+              ],
+              "yaxis": {
+                "align": false
+              }
+            }
+          ],
+          "refresh": false,
+          "schemaVersion": 33,
+          "style": "dark",
+          "tags": [],
+          "templating": {
+            "list": [
+              {
+                "current": {
+                  "selected": false,
+                  "text": "All",
+                  "value": "$__all"
+                },
+                "hide": 0,
+                "includeAll": true,
+                "label": "Akka persistence label",
+                "multi": false,
+                "name": "persistence_label",
+                "options": [
+                  {
+                    "selected": true,
+                    "text": "All",
+                    "value": "$__all"
+                  },
+                  {
+                    "selected": false,
+                    "text": "node",
+                    "value": "node"
+                  },
+                  {
+                    "selected": false,
+                    "text": "path",
+                    "value": "path"
+                  }
+                ],
+                "query": "node,path",
+                "queryValue": "",
+                "skipUrlSync": false,
+                "type": "custom"
+              }
+            ]
+          },
+          "time": {
+            "from": "now-5m",
+            "to": "now"
+          },
+          "timepicker": {},
+          "timezone": "",
+          "title": "Akka persistence",
+          "uid": "M6CmkH3Gk",
+          "version": 1,
+          "weekStart": ""
         }
+
       ],
       "thresholds": [],
       "timeRegions": [],
