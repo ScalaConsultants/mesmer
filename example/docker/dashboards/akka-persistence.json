@@ -87,7 +87,7 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "sum(rate(promexample_mesmer_akka_persistence_event_time_sum[$__rate_interval]))",
+          "expr": "sum(rate(promexample_mesmer_akka_persistence_recovery_time_count[$__rate_interval]))",
           "interval": "",
           "legendFormat": "global",
           "refId": "A"
@@ -174,7 +174,7 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "sum by($persistence_label)(rate(promexample_mesmer_akka_persistence_event_time_sum[1m]))",
+          "expr": "sum by($persistence_label)(rate(promexample_mesmer_akka_persistence_recovery_time_count[1m]))",
           "interval": "",
           "legendFormat": "{{$persistence_label}}",
           "refId": "A"
@@ -449,7 +449,7 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "sum(rate(promexample_mesmer_akka_persistence_event_time_sum[$__rate_interval]))",
+          "expr": "sum(rate(promexample_akka_persistence_persistent_event_total[$__rate_interval]))",
           "interval": "",
           "legendFormat": "global",
           "refId": "A"
@@ -538,7 +538,7 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "sum by($persistence_label)(rate(promexample_mesmer_akka_persistence_event_time_sum[$__rate_interval]))",
+          "expr": "sum by($persistence_label)(rate(promexample_akka_persistence_persistent_event_total[$__rate_interval]))",
           "interval": "",
           "legendFormat": "{{$persistence_label}}",
           "refId": "A"
