@@ -41,13 +41,21 @@ object ClusterRegionsMonitorActor extends ClusterMonitorActor {
 
   sealed trait Command extends SerializableMessage
 
-  private val entityPerRegion = meter.gaugeBuilder("mesmer_akka_cluster_entities_per_region")
+  private val entityPerRegion = meter
+    .gaugeBuilder("mesmer_akka_cluster_entities_per_region")
+    .setDescription("Amount of entities in a region.")
 
-  private val shardPerRegions = meter.gaugeBuilder("mesmer_akka_cluster_shards_per_region")
+  private val shardPerRegions = meter
+    .gaugeBuilder("mesmer_akka_cluster_shards_per_region")
+    .setDescription("Amount of shards in a region.")
 
-  private val entitiesOnNode = meter.gaugeBuilder("mesmer_akka_cluster_entities_on_node")
+  private val entitiesOnNode = meter
+    .gaugeBuilder("mesmer_akka_cluster_entities_on_node")
+    .setDescription("Amount of entities on a node.")
 
-  private val shardRegionsOnNode = meter.gaugeBuilder("mesmer_akka_cluster_shard_regions_on_node")
+  private val shardRegionsOnNode = meter
+    .gaugeBuilder("mesmer_akka_cluster_shard_regions_on_node")
+    .setDescription("Amount of shard regions on a node.")
 
   override def apply(): Behavior[Command] =
     OnClusterStartup { selfMember =>
