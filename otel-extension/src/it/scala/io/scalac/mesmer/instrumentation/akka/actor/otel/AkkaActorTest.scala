@@ -197,7 +197,7 @@ final class AkkaActorTest
 
   it should "record mailbox size properly" in {
     val processingTime = 200
-    val actor = system.classicSystem.actorOf(SuspendActor.props(processingTime), createUniqueId)
+    val actor          = system.classicSystem.actorOf(SuspendActor.props(processingTime), createUniqueId)
 
     def expectMailboxSize(run: Int, size: Int): Unit =
       assertMetric("mesmer_akka_actor_mailbox_size") { data =>
@@ -480,8 +480,8 @@ object AkkaActorAgentTest {
   }
 
   class SuspendActor(processingTime: Long) extends classic.Actor {
-    def receive: Receive = {
-      case Message => Thread.sleep(processingTime)
+    def receive: Receive = { case Message =>
+      Thread.sleep(processingTime)
     }
   }
 

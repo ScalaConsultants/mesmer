@@ -1,6 +1,9 @@
 package io.scalac.mesmer.otelextension.instrumentations.akka.actor
 import io.opentelemetry.api.GlobalOpenTelemetry
-import io.opentelemetry.api.metrics.{LongCounter, LongHistogram, LongUpDownCounter, MeterProvider}
+import io.opentelemetry.api.metrics.LongCounter
+import io.opentelemetry.api.metrics.LongHistogram
+import io.opentelemetry.api.metrics.LongUpDownCounter
+import io.opentelemetry.api.metrics.MeterProvider
 
 trait Instruments {
 

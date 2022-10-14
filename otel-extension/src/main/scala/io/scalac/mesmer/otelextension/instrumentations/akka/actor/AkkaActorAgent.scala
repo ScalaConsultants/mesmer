@@ -49,7 +49,6 @@ object AkkaActorAgent {
       )
     )
 
-
   val classicStashSupportStashAdvice: TypeInstrumentation =
     Instrumentation(named("akka.actor.StashSupport"))
       .`with`(
