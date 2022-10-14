@@ -1,8 +1,6 @@
 package io.scalac.mesmer.otelextension.instrumentations.akka.actor
 import io.opentelemetry.api.GlobalOpenTelemetry
-import io.opentelemetry.api.metrics.LongCounter
-import io.opentelemetry.api.metrics.LongHistogram
-import io.opentelemetry.api.metrics.MeterProvider
+import io.opentelemetry.api.metrics.{LongCounter, LongHistogram, LongUpDownCounter, MeterProvider}
 
 trait Instruments {
 
@@ -15,6 +13,8 @@ trait Instruments {
   def droppedMessages: LongCounter
 
   def mailboxTime: LongHistogram
+
+  def mailboxSize: LongUpDownCounter
 
   def stashedMessages: LongCounter
 
@@ -53,6 +53,11 @@ object Instruments {
       .get("mesmer")
       .histogramBuilder("mesmer_akka_actor_mailbox_time")
       .ofLongs()
+      .build()
+
+    lazy val mailboxSize: LongUpDownCounter = provider
+      .get("mesmer")
+      .upDownCounterBuilder("mesmer_akka_actor_mailbox_size")
       .build()
 
     lazy val stashedMessages: LongCounter = provider

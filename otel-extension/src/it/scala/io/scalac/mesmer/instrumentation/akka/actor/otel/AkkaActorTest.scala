@@ -20,6 +20,7 @@ import org.scalatest.{ BeforeAndAfterEach, Inspectors, OptionValues }
 
 import scala.concurrent.duration._
 import scala.jdk.CollectionConverters._
+import scala.util.Random
 import scala.util.control.NoStackTrace
 
 final class AkkaActorTest
@@ -192,6 +193,31 @@ final class AkkaActorTest
         Thread.sleep(processing.toMillis)
       case _ =>
     }("", "work", "work")(messages -> check)
+  }
+
+  it should "record mailbox size properly" in {
+    val processingTime = 200
+    val actor = system.classicSystem.actorOf(SuspendActor.props(processingTime), createUniqueId)
+
+    def expectMailboxSize(run: Int, size: Int): Unit =
+      assertMetric("mesmer_akka_actor_mailbox_size") { data =>
+        val points = data.getLongSumData.getPoints.asScala
+          .filter(point =>
+            Option(point.getAttributes.get(AttributeKey.stringKey(AttributeNames.ActorPath)))
+              .contains(actor.path.toStringWithoutAddress)
+          )
+
+        points.map(_.getValue) should contain(size)
+      }
+    val runId = Random.nextInt()
+    actor ! Message
+    actor ! Message
+    expectMailboxSize(runId, 1)
+    actor ! Message
+    expectMailboxSize(runId, 2)
+    Thread.sleep(processingTime)
+    expectMailboxSize(runId, 1)
+
   }
 
   it should "record stash operation from actors beginning" in {
@@ -448,6 +474,16 @@ object AkkaActorAgentTest {
 
   // replies
   final case class StashSize(stash: Option[Long])
+
+  object SuspendActor {
+    def props(processingTime: Long): Props = Props(new SuspendActor(processingTime))
+  }
+
+  class SuspendActor(processingTime: Long) extends classic.Actor {
+    def receive: Receive = {
+      case Message => Thread.sleep(processingTime)
+    }
+  }
 
   object ClassicStashActor {
     def props(): Props = Props(new ClassicStashActor)

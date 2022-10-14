@@ -41,6 +41,15 @@ object AkkaActorAgent {
       )
     )
 
+  val mailboxEnqueue: TypeInstrumentation = Instrumentation(named("akka.dispatch.Mailbox"))
+    .`with`(
+      Advice(
+        named("enqueue"),
+        "akka.actor.impl.MailboxEnqueueAdvice"
+      )
+    )
+
+
   val classicStashSupportStashAdvice: TypeInstrumentation =
     Instrumentation(named("akka.actor.StashSupport"))
       .`with`(

@@ -25,9 +25,10 @@ public class MailboxDequeueAdvice {
       Instruments instruments = InstrumentsProvider.instance();
 
       if (Objects.nonNull(context) && Objects.nonNull(attrs)) {
-
         long interval = new Interval(System.nanoTime() - context.sentTime()).toMillis();
+
         instruments.mailboxTime().record(interval, attrs);
+        instruments.mailboxSize().add(-1, attrs);
       }
     }
   }
