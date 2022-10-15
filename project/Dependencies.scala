@@ -8,7 +8,7 @@ object Dependencies {
   val AkkaVersion                  = "2.6.19"
   val CirceVersion                 = "0.14.2"
   val GoogleAutoServiceVersion     = "1.0.1"
-  val LogbackVersion               = "1.2.11"
+  val LogbackVersion               = "1.4.4"
   val OpentelemetryLatestVersion   = "1.13.1"
   val OpentelemetryApiVersion      = "1.13.0"
   val OpentelemetryAlphaVersion131 = "1.13.1-alpha"
