@@ -938,7 +938,7 @@
               "dashes": false,
               "fieldConfig": {
                 "defaults": {
-                  "unit": "ms"
+                  "unit": "ns"
                 },
                 "overrides": []
               },
@@ -1003,7 +1003,7 @@
               "yaxes": [
                 {
                   "$$hashKey": "object:598",
-                  "format": "ms",
+                  "format": "ns",
                   "logBase": 1,
                   "show": true
                 },
@@ -1025,7 +1025,7 @@
               "dashes": false,
               "fieldConfig": {
                 "defaults": {
-                  "unit": "ms"
+                  "unit": "ns"
                 },
                 "overrides": []
               },
@@ -1093,7 +1093,7 @@
               "yaxes": [
                 {
                   "$$hashKey": "object:598",
-                  "format": "ms",
+                  "format": "ns",
                   "logBase": 1,
                   "show": true
                 },
@@ -1304,7 +1304,7 @@
               "dashes": false,
               "fieldConfig": {
                 "defaults": {
-                  "unit": "ms"
+                  "unit": "ns"
                 },
                 "overrides": []
               },
@@ -1369,7 +1369,7 @@
               "yaxes": [
                 {
                   "$$hashKey": "object:598",
-                  "format": "ms",
+                  "format": "ns",
                   "logBase": 1,
                   "show": true
                 },
@@ -1391,7 +1391,7 @@
               "dashes": false,
               "fieldConfig": {
                 "defaults": {
-                  "unit": "ms"
+                  "unit": "ns"
                 },
                 "overrides": []
               },
@@ -1459,7 +1459,7 @@
               "yaxes": [
                 {
                   "$$hashKey": "object:598",
-                  "format": "ms",
+                  "format": "ns",
                   "logBase": 1,
                   "show": true
                 },
