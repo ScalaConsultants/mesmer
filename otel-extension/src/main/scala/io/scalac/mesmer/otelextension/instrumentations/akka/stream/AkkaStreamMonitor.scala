@@ -32,9 +32,14 @@ class AkkaStreamMonitor(actorSystem: ActorSystem[_]) extends Extension {
 
   private val interval = AkkaStreamConfig.metricSnapshotRefreshInterval(actorSystem.classicSystem)
 
-  def start(): Behavior[StreamStatsReceived] = Behaviors.setup[StreamStatsReceived]{ ctx =>
-    actorSystem.receptionist ! Register(streamService.serviceKey, ctx.messageAdapter[StreamEvent](StreamStatsReceived.apply))
-    actorSystem.scheduler.scheduleWithFixedDelay(interval, interval)(() => captureSnapshot())(actorSystem.executionContext)
+  def start(): Behavior[StreamStatsReceived] = Behaviors.setup[StreamStatsReceived] { ctx =>
+    actorSystem.receptionist ! Register(
+      streamService.serviceKey,
+      ctx.messageAdapter[StreamEvent](StreamStatsReceived.apply)
+    )
+    actorSystem.scheduler.scheduleWithFixedDelay(interval, interval)(() => captureSnapshot())(
+      actorSystem.executionContext
+    )
 
     Behaviors.receiveMessage[StreamStatsReceived] {
       case StreamStatsReceived(StreamInterpreterStats(ref, _, shellInfo)) =>
@@ -52,8 +57,8 @@ class AkkaStreamMonitor(actorSystem: ActorSystem[_]) extends Extension {
     val current = collected.toMap
     collected.clear()
 
-    val streamShells = current.groupBy {
-      case (ref, _) => stream.subStreamNameFromActorRef(ref)
+    val streamShells = current.groupBy { case (ref, _) =>
+      stream.subStreamNameFromActorRef(ref)
     }
     val streamNames = streamShells.keySet.map(_.streamName)
     metrics.setRunningStreamsTotal(streamNames.size)

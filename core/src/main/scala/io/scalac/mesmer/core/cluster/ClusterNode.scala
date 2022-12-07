@@ -31,7 +31,7 @@ object ClusterNode {
   private def reflectiveIsInstanceOf(fqcn: String, ref: Any): Either[String, Unit] =
     Try(Class.forName(fqcn)).toEither.left.map {
       case _: ClassNotFoundException => s"Class $fqcn not found"
-      case e => e.getMessage
+      case e                         => e.getMessage
     }.filterOrElse(_.isInstance(ref), s"Ref $ref is not instance of $fqcn").map(_ => ())
 
 }

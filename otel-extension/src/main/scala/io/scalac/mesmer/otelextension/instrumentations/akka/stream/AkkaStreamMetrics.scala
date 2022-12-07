@@ -9,10 +9,10 @@ import io.scalac.mesmer.core.model.Node
 
 final class AkkaStreamMetrics(node: Option[Node]) {
   private val meter: Meter = GlobalOpenTelemetry.getMeter("mesmer")
-  private val attributes = AkkaStreamAttributes.forNode(node)
+  private val attributes   = AkkaStreamAttributes.forNode(node)
 
   private val runningStreamsTotal = new AtomicReference[Option[Long]](None)
-  private val runningActorsTotal = new AtomicReference[Option[Long]](None)
+  private val runningActorsTotal  = new AtomicReference[Option[Long]](None)
 
   meter.gaugeBuilder("mesmer_akka_streams_running_streams").ofLongs().buildWithCallback { measurement =>
     runningStreamsTotal.get.foreach(v => measurement.record(v, attributes))
@@ -23,6 +23,6 @@ final class AkkaStreamMetrics(node: Option[Node]) {
   }
 
   def setRunningStreamsTotal(value: Long): Unit = runningStreamsTotal.set(Some(value))
-  def setRunningActorsTotal(value: Long): Unit = runningActorsTotal.set(Some(value))
+  def setRunningActorsTotal(value: Long): Unit  = runningActorsTotal.set(Some(value))
 
 }

@@ -34,7 +34,7 @@ final class AkkaMonitoring(system: ActorSystem[_]) extends Extension {
   private val dispatcher                   = AkkaDispatcher.safeDispatcherSelector(system)
 
   private def autoStart(): Unit = {
-    import config.{autoStart => autoStartConfig}
+    import config.{ autoStart => autoStartConfig }
 
     if (autoStartConfig.akkaStream) {
       log.debug("Start akka stream service")
