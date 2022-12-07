@@ -5,16 +5,18 @@ import akka.actor.typed.scaladsl.Behaviors
 import com.typesafe.config.Config
 import io.opentelemetry.api.GlobalOpenTelemetry
 import io.opentelemetry.api.metrics.Meter
+import org.slf4j.LoggerFactory
+
 import io.scalac.mesmer.core.AkkaDispatcher
 import io.scalac.mesmer.core.cluster.ClusterNode.ActorSystemOps
 import io.scalac.mesmer.core.model._
 import io.scalac.mesmer.core.module.Module._
 import io.scalac.mesmer.core.module._
 import io.scalac.mesmer.core.typeclasses.Traverse
-import io.scalac.mesmer.extension.config.{AkkaMonitoringConfig, CachingConfig}
+import io.scalac.mesmer.extension.config.AkkaMonitoringConfig
+import io.scalac.mesmer.extension.config.CachingConfig
 import io.scalac.mesmer.extension.metric.CachingMonitor
 import io.scalac.mesmer.extension.upstream._
-import org.slf4j.LoggerFactory
 
 object AkkaMonitoring extends ExtensionId[AkkaMonitoring] {
   def createExtension(system: ActorSystem[_]): AkkaMonitoring = new AkkaMonitoring(system)

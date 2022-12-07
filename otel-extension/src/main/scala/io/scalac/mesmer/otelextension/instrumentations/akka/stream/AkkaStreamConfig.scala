@@ -1,10 +1,12 @@
 package io.scalac.mesmer.otelextension.instrumentations.akka.stream
 
 import akka.actor.ActorSystem
-import io.scalac.mesmer.core.config.ConfigurationUtils.toConfigOps
 
-import scala.concurrent.duration.{DurationInt, FiniteDuration}
+import scala.concurrent.duration.DurationInt
+import scala.concurrent.duration.FiniteDuration
 import scala.jdk.DurationConverters.JavaDurationOps
+
+import io.scalac.mesmer.core.config.ConfigurationUtils.toConfigOps
 
 object AkkaStreamConfig {
   def metricSnapshotRefreshInterval(system: ActorSystem): FiniteDuration =

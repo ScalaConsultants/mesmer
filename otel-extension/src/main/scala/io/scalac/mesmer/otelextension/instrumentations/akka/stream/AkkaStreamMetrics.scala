@@ -1,10 +1,11 @@
 package io.scalac.mesmer.otelextension.instrumentations.akka.stream
 
+import java.util.concurrent.atomic.AtomicReference
+
 import io.opentelemetry.api.GlobalOpenTelemetry
 import io.opentelemetry.api.metrics.Meter
-import io.scalac.mesmer.core.model.Node
 
-import java.util.concurrent.atomic.AtomicReference
+import io.scalac.mesmer.core.model.Node
 
 final class AkkaStreamMetrics(node: Option[Node]) {
   private val meter: Meter = GlobalOpenTelemetry.getMeter("mesmer")
