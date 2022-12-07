@@ -76,10 +76,13 @@ object ActorGraphInterpreterOtelDecorator extends Lookup {
     receive: Actor.Receive,
     self: Actor
   ): Actor.Receive = {
-    val context = self.context
-    val system = context.system
+    val context  = self.context
+    val system   = context.system
     val interval = AkkaStreamConfig.metricSnapshotCollectInterval(system)
-    system.scheduler.scheduleAtFixedRate(interval, interval, context.self, PushMetrics)(context.dispatcher, context.self)
+    system.scheduler.scheduleAtFixedRate(interval, interval, context.self, PushMetrics)(
+      context.dispatcher,
+      context.self
+    )
 
     receive.orElse { case PushMetrics =>
       val subStreamName = subStreamNameFromActorRef(context.self)

@@ -22,11 +22,11 @@ object AkkaStreamAgent
 
   /**
    * @param config
-   * configuration of features that are wanted by the user
+   *   configuration of features that are wanted by the user
    * @param jars
-   * versions of required jars to deduce which features can be enabled
+   *   versions of required jars to deduce which features can be enabled
    * @return
-   * Resulting agent and resulting configuration based on runtime properties
+   *   Resulting agent and resulting configuration based on runtime properties
    */
   def agent: Agent = {
     val config = module.enabled
