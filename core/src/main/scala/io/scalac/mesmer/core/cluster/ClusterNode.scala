@@ -3,10 +3,12 @@ package io.scalac.mesmer.core.cluster
 import akka.actor.ExtendedActorSystem
 import akka.actor.typed.ActorSystem
 import akka.cluster.Cluster
-import io.scalac.mesmer.core.model.{AkkaNodeOps, Node}
 import org.slf4j.LoggerFactory
 
 import scala.util.Try
+
+import io.scalac.mesmer.core.model.AkkaNodeOps
+import io.scalac.mesmer.core.model.Node
 
 object ClusterNode {
   private val log = LoggerFactory.getLogger(classOf[ClusterNode.type])

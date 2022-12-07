@@ -1,22 +1,29 @@
 package io.scalac.mesmer.otelextension.instrumentations.akka.stream
 
 import akka.actor.ActorRef
+import akka.actor.typed.ActorSystem
+import akka.actor.typed.Behavior
+import akka.actor.typed.Extension
+import akka.actor.typed.ExtensionId
 import akka.actor.typed.receptionist.Receptionist.Register
 import akka.actor.typed.scaladsl.Behaviors
 import akka.actor.typed.scaladsl.adapter.ClassicActorSystemOps
-import akka.actor.typed.{ActorSystem, Behavior, Extension, ExtensionId}
-import io.scalac.mesmer.core.cluster.ClusterNode.ActorSystemOps
-import io.scalac.mesmer.core.event.Service.streamService
-import io.scalac.mesmer.core.event.StreamEvent
-import io.scalac.mesmer.core.event.StreamEvent.{LastStreamStats, StreamInterpreterStats}
-import io.scalac.mesmer.core.model.ShellInfo
-import io.scalac.mesmer.core.util.{Retry, stream}
-import io.scalac.mesmer.otelextension.instrumentations.akka.stream.AkkaStreamMonitor.StreamStatsReceived
 import org.slf4j.LoggerFactory
 
 import scala.collection.mutable
 import scala.concurrent.duration.DurationInt
-import scala.util.{Failure, Success}
+import scala.util.Failure
+import scala.util.Success
+
+import io.scalac.mesmer.core.cluster.ClusterNode.ActorSystemOps
+import io.scalac.mesmer.core.event.Service.streamService
+import io.scalac.mesmer.core.event.StreamEvent
+import io.scalac.mesmer.core.event.StreamEvent.LastStreamStats
+import io.scalac.mesmer.core.event.StreamEvent.StreamInterpreterStats
+import io.scalac.mesmer.core.model.ShellInfo
+import io.scalac.mesmer.core.util.Retry
+import io.scalac.mesmer.core.util.stream
+import io.scalac.mesmer.otelextension.instrumentations.akka.stream.AkkaStreamMonitor.StreamStatsReceived
 
 class AkkaStreamMonitor(actorSystem: ActorSystem[_]) extends Extension {
   private val node = actorSystem.clusterNodeName
