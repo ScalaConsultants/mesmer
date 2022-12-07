@@ -62,6 +62,15 @@ public class MesmerAkkaStreamInstrumentationModule extends InstrumentationModule
         "io.scalac.mesmer.otelextension.instrumentations.akka.stream.impl.GraphStageIslandOps",
         "io.scalac.mesmer.otelextension.instrumentations.akka.stream.impl.GraphStageIslandOps$",
         "io.scalac.mesmer.otelextension.instrumentations.akka.stream.impl.GraphStageIslandOps$TerminalSink$",
-        "io.scalac.mesmer.otelextension.instrumentations.akka.stream.impl.PhasedFusingActorMaterializerAdvice$");
+        "io.scalac.mesmer.otelextension.instrumentations.akka.stream.impl.PhasedFusingActorMaterializerAdvice$",
+        "io.scalac.mesmer.otelextension.instrumentations.akka.stream.AkkaStreamMonitor",
+        "io.scalac.mesmer.otelextension.instrumentations.akka.stream.AkkaStreamMonitor$$anon$1",
+        "io.scalac.mesmer.otelextension.instrumentations.akka.stream.AkkaStreamMonitorExtensionId$",
+        "io.scalac.mesmer.otelextension.instrumentations.akka.stream.AkkaStreamMonitor$",
+        "io.scalac.mesmer.otelextension.instrumentations.akka.stream.AkkaStreamMonitor$StreamStatsReceived",
+        "io.scalac.mesmer.otelextension.instrumentations.akka.stream.AkkaStreamMetrics",
+        "io.scalac.mesmer.otelextension.instrumentations.akka.stream.AkkaStreamConfig$",
+        "io.scalac.mesmer.otelextension.instrumentations.akka.stream.AkkaStreamAttributes$"
+    );
   }
 }
