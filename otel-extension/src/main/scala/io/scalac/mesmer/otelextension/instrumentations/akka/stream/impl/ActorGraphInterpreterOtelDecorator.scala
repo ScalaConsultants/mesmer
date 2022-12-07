@@ -18,6 +18,7 @@ import io.scalac.mesmer.core.model.Tag.SubStreamName
 import io.scalac.mesmer.core.model.stream.ConnectionStats
 import io.scalac.mesmer.core.model.stream.StageInfo
 import io.scalac.mesmer.core.util.stream.subStreamNameFromActorRef
+import io.scalac.mesmer.otelextension.instrumentations.akka.stream.AkkaStreamConfig
 
 object ActorGraphInterpreterOtelDecorator extends Lookup {
 
@@ -61,7 +62,7 @@ object ActorGraphInterpreterOtelDecorator extends Lookup {
     (stageInfo -> connections, localTerminalFound)
   }
 
-  def collectStats(shells: Set[GraphInterpreterShellMirror], subStreamName: SubStreamName): Set[ShellInfo] = {
+  private def collectStats(shells: Set[GraphInterpreterShellMirror], subStreamName: SubStreamName): Set[ShellInfo] = {
     var terminalFound = false
 
     shells.map { shell =>
@@ -74,9 +75,14 @@ object ActorGraphInterpreterOtelDecorator extends Lookup {
   def addCollectionReceive(
     receive: Actor.Receive,
     self: Actor
-  ): Actor.Receive =
+  ): Actor.Receive = {
+    val context = self.context
+    val system = context.system
+    val interval = AkkaStreamConfig.metricSnapshotCollectInterval(system)
+    system.scheduler.scheduleAtFixedRate(interval, interval, context.self, PushMetrics)(context.dispatcher, context.self)
+
     receive.orElse { case PushMetrics =>
-      val subStreamName = subStreamNameFromActorRef(self.context.self)
+      val subStreamName = subStreamNameFromActorRef(context.self)
 
       val currentShells = shells
         .invoke(self)
@@ -84,13 +90,14 @@ object ActorGraphInterpreterOtelDecorator extends Lookup {
 
       val stats = collectStats(currentShells, subStreamName)
 
-      EventBus(self.context.system.toTyped)
-        .publishEvent(StreamInterpreterStats(self.context.self, subStreamName, stats))
+      EventBus(system.toTyped)
+        .publishEvent(StreamInterpreterStats(context.self, subStreamName, stats))
     }
+  }
 
   def shellFinished(shell: GraphInterpreterShellMirror, self: Actor): Unit = {
     val subStreamName = subStreamNameFromActorRef(self.context.self)
-    val (stats, _)    = statsForShell(shell, subStreamName, false)
+    val (stats, _)    = statsForShell(shell, subStreamName, terminalFound = false)
     EventBus(self.context.system.toTyped)
       .publishEvent(LastStreamStats(self.context.self, subStreamName, stats))
   }
