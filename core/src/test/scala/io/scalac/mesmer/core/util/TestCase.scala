@@ -142,11 +142,8 @@ object TestCase {
     implicit def timeout: Timeout
 
     // overrides
-    final override protected def setUp(context: Context): Setup = {
-      val monitorActor = super[MonitorWithActorRefSetupTestCaseFactory].setUp(context)
-      onlyRef(monitorActor, serviceKey)(context.system, timeout)
-      monitorActor.taggedWith[SetupTag]
-    }
+    final override protected def setUp(context: Context): Setup =
+      super[MonitorWithActorRefSetupTestCaseFactory].setUp(context).taggedWith[SetupTag]
 
   }
 

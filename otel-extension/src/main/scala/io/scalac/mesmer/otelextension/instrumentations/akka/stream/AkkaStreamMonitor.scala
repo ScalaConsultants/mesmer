@@ -8,6 +8,7 @@ import akka.actor.typed.ExtensionId
 import akka.actor.typed.receptionist.Receptionist.Register
 import akka.actor.typed.scaladsl.Behaviors
 import akka.actor.typed.scaladsl.adapter.ClassicActorSystemOps
+import akka.cluster.typed.Cluster
 import org.slf4j.LoggerFactory
 
 import scala.collection.mutable
@@ -77,9 +78,14 @@ object AkkaStreamMonitor {
   def registerExtension(system: akka.actor.ActorSystem): Unit =
     new Thread(new Runnable() {
       override def run(): Unit =
-        Retry.retry(10, 2.seconds)(register(system)) match {
-          case Failure(error) =>
-            log.error(s"Failed to install the Akka Stream Monitoring Extension. Reason: $error")
+        Retry.retryWithPrecondition(10, 2.seconds)(system.toTyped.hasExtension(Cluster))(register(system)) match {
+          case Failure(_) =>
+            Retry.retry(10, 2.seconds)(register(system)) match {
+              case Failure(error) =>
+                log.error(s"Failed to install the Akka Stream Monitoring Extension. Reason: $error")
+              case Success(_) =>
+                log.info("Successfully installed the Akka Stream Monitoring Extension.")
+            }
           case Success(_) =>
             log.info("Successfully installed the Akka Stream Monitoring Extension.")
         }
