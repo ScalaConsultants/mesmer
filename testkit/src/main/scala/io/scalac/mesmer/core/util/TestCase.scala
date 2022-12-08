@@ -14,9 +14,6 @@ import io.scalac.mesmer.core.util.probe.ObserverCollector
 
 object TestCase {
 
-  /**
-   * This i
-   */
   trait TestCaseFactory {
     protected type Env
     protected type Context
@@ -145,7 +142,6 @@ object TestCase {
       onlyRef(monitorActor, serviceKey)(context.system, timeout)
       monitorActor
     }
-
   }
 
   object MonitorWithServiceTestCaseFactory {

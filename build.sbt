@@ -145,7 +145,10 @@ lazy val otelExtension = (project in file("otel-extension"))
       "-Dio.opentelemetry.javaagent.slf4j.simpleLogger.log.io.grpc.internal.ServerImplBuilder=INFO",
       "-Dio.opentelemetry.javaagent.slf4j.simpleLogger.log.io.grpc.internal.ManagedChannelImplBuilder=INFO",
       "-Dio.opentelemetry.javaagent.slf4j.simpleLogger.log.io.perfmark.PerfMark=INFO",
-      "-Dio.opentelemetry.javaagent.slf4j.simpleLogger.log.io.grpc.Context=INFO"
+      "-Dio.opentelemetry.javaagent.slf4j.simpleLogger.log.io.grpc.Context=INFO",
+      // disable automatic self PushMetrics invocation
+      "-Dio.scalac.mesmer.akka.streams.collect-interval=5m"
+
     )
   )
   .dependsOn(core % "provided->compile;compile->compile", testkit % "it,test")

@@ -79,7 +79,7 @@ object ActorGraphInterpreterOtelDecorator extends Lookup {
     val context  = self.context
     val system   = context.system
     val interval = AkkaStreamConfig.metricSnapshotCollectInterval(system)
-    system.scheduler.scheduleAtFixedRate(interval, interval, context.self, PushMetrics)(
+    system.scheduler.scheduleWithFixedDelay(interval, interval, context.self, PushMetrics)(
       context.dispatcher,
       context.self
     )
