@@ -24,9 +24,9 @@ import io.scalac.mesmer.core.event.StreamEvent.StreamInterpreterStats
 import io.scalac.mesmer.core.model.ShellInfo
 import io.scalac.mesmer.core.util.Retry
 import io.scalac.mesmer.core.util.stream
-import io.scalac.mesmer.otelextension.instrumentations.akka.stream.AkkaStreamMonitor.StreamStatsReceived
+import io.scalac.mesmer.otelextension.instrumentations.akka.stream.AkkaStreamMonitorExtension.StreamStatsReceived
 
-class AkkaStreamMonitor(actorSystem: ActorSystem[_]) extends Extension {
+final class AkkaStreamMonitorExtension(actorSystem: ActorSystem[_]) extends Extension {
   private val node = actorSystem.clusterNodeName
 
   private val metrics = new AkkaStreamMetrics(node)
@@ -70,31 +70,43 @@ class AkkaStreamMonitor(actorSystem: ActorSystem[_]) extends Extension {
 
 }
 
-object AkkaStreamMonitor {
-  private val log = LoggerFactory.getLogger(classOf[AkkaStreamMonitor])
+object AkkaStreamMonitorExtension {
+  private val log           = LoggerFactory.getLogger(classOf[AkkaStreamMonitorExtension])
+  private val retryLimit    = 10
+  private val retryInterval = 2.seconds
 
   final case class StreamStatsReceived(actorInterpreterStats: StreamEvent)
 
   def registerExtension(system: akka.actor.ActorSystem): Unit =
     new Thread(new Runnable() {
       override def run(): Unit =
-        Retry.retryWithPrecondition(10, 2.seconds)(system.toTyped.hasExtension(Cluster))(register(system)) match {
-          case Failure(_) =>
-            Retry.retry(10, 2.seconds)(register(system)) match {
-              case Failure(error) =>
-                log.error(s"Failed to install the Akka Stream Monitoring Extension. Reason: $error")
-              case Success(_) =>
-                log.info("Successfully installed the Akka Stream Monitoring Extension.")
-            }
-          case Success(_) =>
-            log.info("Successfully installed the Akka Stream Monitoring Extension.")
-        }
+        registerWithClusterOrElse(system)(registerWithNoCluster(system))
     })
       .start()
+
+  private def registerWithClusterOrElse(system: akka.actor.ActorSystem)(failoverFn: => Unit): Unit =
+    Retry.retryWithPrecondition(retryLimit, retryInterval)(system.toTyped.hasExtension(Cluster))(
+      register(system)
+    ) match {
+      case Failure(_) =>
+        failoverFn
+      case Success(_) =>
+        log.info("Successfully installed the Akka Stream Monitoring Extension.")
+    }
+
+  private def registerWithNoCluster(system: akka.actor.ActorSystem): Unit =
+    Retry.retry(retryLimit, retryInterval)(register(system)) match {
+      case Failure(error) =>
+        log.error(s"Failed to install the Akka Stream Monitoring Extension. Reason: $error")
+      case Success(_) =>
+        log.info("Successfully installed the Akka Stream Monitoring Extension.")
+    }
 
   private def register(system: akka.actor.ActorSystem) = system.toTyped.registerExtension(AkkaStreamMonitorExtensionId)
 }
 
-object AkkaStreamMonitorExtensionId extends ExtensionId[AkkaStreamMonitor] {
-  override def createExtension(system: ActorSystem[_]): AkkaStreamMonitor = new AkkaStreamMonitor(system)
+object AkkaStreamMonitorExtensionId extends ExtensionId[AkkaStreamMonitorExtension] {
+  override def createExtension(system: ActorSystem[_]): AkkaStreamMonitorExtension = new AkkaStreamMonitorExtension(
+    system
+  )
 }
