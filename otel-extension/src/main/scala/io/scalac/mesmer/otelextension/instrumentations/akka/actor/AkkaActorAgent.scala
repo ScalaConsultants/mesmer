@@ -160,4 +160,10 @@ object AkkaActorAgent {
     Advice(named("actorOf"), "akka.actor.impl.LocalActorRefProviderAdvice")
   )
 
+  val mailboxSizeAdvice: TypeInstrumentation = Instrumentation(
+    matchers.named("akka.actor.LocalActorRefProvider")
+  ).`with`(
+    Advice(named("actorOf"), "akka.actor.impl.MailboxSizeAdvice")
+  )
+
 }

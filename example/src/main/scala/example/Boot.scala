@@ -14,6 +14,10 @@ import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport
 import example.api.AccountRoutes
 import example.domain.AccountStateActor
 import example.domain.JsonCodecs
+import io.opentelemetry.api.GlobalOpenTelemetry
+import io.opentelemetry.api.metrics.ObservableLongUpDownCounter
+import io.opentelemetry.sdk.{ OpenTelemetrySdk, OpenTelemetrySdkBuilder }
+import io.opentelemetry.sdk.metrics.{ Aggregation, InstrumentSelector, SdkMeterProvider, SdkMeterProviderBuilder, View }
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 

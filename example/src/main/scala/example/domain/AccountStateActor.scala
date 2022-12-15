@@ -50,8 +50,10 @@ object AccountStateActor {
     def commandHandler(command: Command): Effect[Event, AccountState] =
       command match {
         case GetBalance(replyTo) =>
+          Thread.sleep(3000)
           Effect.none.thenReply(replyTo)(state => CurrentBalance(state.balance))
         case Withdraw(replyTo, value) =>
+          Thread.sleep(3000)
           if (value <= balance && value > 0.0) {
             Effect
               .persist(MoneyWithdrawn(value))
@@ -61,6 +63,7 @@ object AccountStateActor {
           }
         case Deposit(replyTo, value) =>
           val effect = if (value > 0.0) {
+            Thread.sleep(30000)
             Effect.persist[Event, AccountState](MoneyDeposit(value))
           } else Effect.none[Event, AccountState]
 
@@ -74,7 +77,7 @@ object AccountStateActor {
     }
   }
 
-  def apply(uuid: ju.UUID, snapshotEvery: Int = 10, keepSnapshots: Int = 2): Behavior[Command] =
+  def apply(uuid: ju.UUID, snapshotEvery: Int = 10, keepSnapshots: Int = 2): Behavior[Command] = 
     Behaviors.setup { _ =>
       EventSourcedBehavior[Command, Event, AccountState](
         PersistenceId.ofUniqueId(uuid.toString),

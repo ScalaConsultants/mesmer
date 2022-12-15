@@ -24,7 +24,7 @@ private case class ExactBaseGrouping(base: String, pathMatcher: PathMatcher) ext
 
 private case class SingleVarGrouping(base: String, pathMatcher: PathMatcher) extends ActorGrouping {
 
-  def actorPathAttributeBuilder(actorPath: String): Option[ActorPathAttribute] =
+  def actorPathAttributeBuilder(actorPath: String): Option[ActorPathAttribute] = {
     if (pathMatcher.matches(actorPath)) {
       val nextSegmentStart = actorPath.indexOf("/", base.length + 1)
       if (nextSegmentStart < 0) {
@@ -33,6 +33,7 @@ private case class SingleVarGrouping(base: String, pathMatcher: PathMatcher) ext
         Some(SomeActorPathAttribute(actorPath.substring(0, nextSegmentStart)))
 
     } else None
+  }
 }
 
 private case class Identity(pathMatcher: PathMatcher) extends ActorGrouping {

@@ -223,7 +223,7 @@ def runExampleWithOtelAgent = Command.command("runExampleWithOtelAgent") { state
       run / javaOptions ++= Seq(
         s"-javaagent:$projectRootDir/opentelemetry-javaagent-$OpentelemetryLatestVersion.jar",
         s"-Dotel.service.name=mesmer-example",
-        s"-Dotel.metric.export.interval=5000",
+        s"-Dotel.metric.export.interval=1000",
         s"-Dotel.javaagent.extensions=${(otelExtension / assembly).value.absolutePath}",
         "-Dotel.javaagent.debug=false"
       )

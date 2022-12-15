@@ -37,7 +37,8 @@ public class MesmerAkkaActorInstrumentationModule extends InstrumentationModule
         AkkaActorAgent.boundedQueueBasedMessageQueueQueueAdvice(),
         AkkaActorAgent.boundedMessageQueueSemanticsEnqueueAdvice(),
         AkkaActorAgent.actorCellReceived(),
-        AkkaActorAgent.actorCreatedAdvice());
+        AkkaActorAgent.actorCreatedAdvice(),
+        AkkaActorAgent.mailboxSizeAdvice());
   }
 
   @Override
@@ -91,6 +92,8 @@ public class MesmerAkkaActorInstrumentationModule extends InstrumentationModule
         "io.scalac.mesmer.otelextension.instrumentations.akka.actor.extension.ActorLifecycleEvents$ActorCreated",
         "io.scalac.mesmer.otelextension.instrumentations.akka.actor.extension.ActorLifecycleEvents$ActorTerminated",
         "io.scalac.mesmer.otelextension.instrumentations.akka.actor.extension.ActorLifecycleMonitor",
-        "io.scalac.mesmer.otelextension.instrumentations.akka.actor.extension.ActorLifecycleMonitor$");
+        "io.scalac.mesmer.otelextension.instrumentations.akka.actor.extension.ActorLifecycleMonitor$",
+        "io.scalac.mesmer.otelextension.instrumentations.akka.actor.extension.Mailbox",
+        "io.scalac.mesmer.otelextension.instrumentations.akka.actor.extension.Mailbox$");
   }
 }

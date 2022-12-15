@@ -12,6 +12,7 @@ import akka.cluster.sharding.ShardRegion.ShardRegionStats
 import akka.pattern.ask
 import akka.util.Timeout
 import io.opentelemetry.api.GlobalOpenTelemetry
+import io.opentelemetry.api.common.AttributeKey.stringKey
 import io.opentelemetry.api.common.Attributes
 import io.opentelemetry.api.common.AttributesBuilder
 import io.opentelemetry.api.metrics.Meter
@@ -24,7 +25,6 @@ import scala.concurrent.Future
 import scala.concurrent.duration.DurationInt
 import scala.concurrent.duration.FiniteDuration
 import scala.jdk.DurationConverters.JavaDurationOps
-
 import io.scalac.mesmer.core.config.ConfigurationUtils.toConfigOps
 import io.scalac.mesmer.core.model.AkkaNodeOps
 import io.scalac.mesmer.core.model.Region

@@ -1,8 +1,9 @@
 package io.scalac.mesmer.otelextension.instrumentations.akka.actor
 import io.opentelemetry.api.GlobalOpenTelemetry
-import io.opentelemetry.api.metrics.LongCounter
-import io.opentelemetry.api.metrics.LongHistogram
-import io.opentelemetry.api.metrics.MeterProvider
+import io.opentelemetry.api.metrics.{LongCounter, LongHistogram, MeterProvider, ObservableLongCounter, ObservableLongGauge, ObservableLongMeasurement, ObservableLongUpDownCounter}
+import io.opentelemetry.sdk.metrics.{Aggregation, InstrumentSelector, SdkMeterProvider, View}
+
+import java.util.function.Consumer
 
 trait Instruments {
 
@@ -23,11 +24,12 @@ trait Instruments {
   def actorsCreated: LongCounter
 
   def actorsTerminated: LongCounter
+
+  def mailboxSizeCounter(consumer: Consumer[ObservableLongMeasurement]): ObservableLongUpDownCounter
 }
 
 object Instruments {
   def apply(provider: MeterProvider): Instruments = new Instruments {
-
     lazy val failedMessages: LongCounter = provider
       .get("mesmer")
       .counterBuilder("mesmer_akka_actor_failed_messages_total")
@@ -76,6 +78,15 @@ object Instruments {
       .counterBuilder("mesmer_akka_actor_actors_terminated_total")
       .setDescription("Amount of actors terminated measured from Actor System start")
       .build()
+
+
+    override def mailboxSizeCounter(consumer: Consumer[ObservableLongMeasurement]): ObservableLongUpDownCounter =
+      provider
+        .get("mesmer")
+        .upDownCounterBuilder("mesmer_akka_actor_mailbox_size")
+        .setDescription("Current size of the mailbox")
+        .buildWithCallback(consumer)
+
   }
 }
 
