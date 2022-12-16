@@ -1,6 +1,5 @@
 package io.scalac.mesmer.extension
 
-import java.util
 import java.util.concurrent.atomic.AtomicReference
 
 import akka.actor.ActorRef
@@ -13,17 +12,16 @@ import akka.actor.typed.scaladsl.TimerScheduler
 import akka.actor.typed.scaladsl.adapter._
 import akka.util.Timeout
 
-import scala.annotation.tailrec
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.duration.FiniteDuration
 import scala.concurrent.duration._
-import scala.jdk.CollectionConverters._
 import scala.jdk.DurationConverters._
 import scala.util.Failure
 import scala.util.Success
 
 import io.scalac.mesmer.core.akka.model.PushMetrics
+import io.scalac.mesmer.core.akka.stream._
 import io.scalac.mesmer.core.config.ConfigurationUtils._
 import io.scalac.mesmer.core.event.Service.streamService
 import io.scalac.mesmer.core.event.StreamEvent
@@ -75,8 +73,6 @@ object AkkaStreamMonitoring {
 
   private[extension] final case class StageData(value: Long, connectedWith: String)
   private[extension] final case class SnapshotEntry(stage: StageInfo, data: Option[StageData])
-  private[extension] final case class DirectionData(stats: Set[ConnectionStats], distinct: Boolean)
-  private[extension] final case class IndexData(input: DirectionData, output: DirectionData)
 
   private[extension] final case class StreamStats(
     streamName: StreamName,
@@ -96,11 +92,6 @@ object AkkaStreamMonitoring {
     }
 
     def incStage(): this.type = {
-      stages += 1
-      this
-    }
-
-    def addStages(num: Int): this.type = {
       stages += 1
       this
     }
@@ -125,106 +116,6 @@ object AkkaStreamMonitoring {
 
   }
 
-  private[extension] final class ConnectionsIndexCache private (
-    private[extension] val indexCache: mutable.Map[StageInfo, ConnectionsIndexCache.IndexCacheEntry]
-  ) {
-    import ConnectionsIndexCache._
-
-    def get(stage: StageInfo)(connections: Array[ConnectionStats]): IndexData = indexCache
-      .get(stage)
-      .fold {
-        val (wiredInputs, wiredOutputs, entry) = findWithIndex(stage, connections)
-        indexCache.put(stage, entry)
-        IndexData(DirectionData(wiredInputs, entry.distinctInputs), DirectionData(wiredOutputs, entry.distinctOutputs))
-      }(entry =>
-        IndexData(
-          DirectionData(entry.inputs.map(connections.apply), entry.distinctInputs),
-          DirectionData(entry.outputs.map(connections.apply), entry.distinctOutputs)
-        )
-      )
-
-    private def findWithIndex(
-      stage: StageInfo,
-      connections: Array[ConnectionStats]
-    ): (Set[ConnectionStats], Set[ConnectionStats], IndexCacheEntry) = {
-      val inputIndexSet: mutable.Set[Int]                    = mutable.Set.empty
-      val outputIndexSet: mutable.Set[Int]                   = mutable.Set.empty
-      val inputConnectionsSet: mutable.Set[ConnectionStats]  = mutable.Set.empty
-      val outputConnectionsSet: mutable.Set[ConnectionStats] = mutable.Set.empty
-
-      val inputOutputIds = mutable.Set.empty[Int]
-      val outputInputIds = mutable.Set.empty[Int]
-
-      var distinctOutput = true
-      var distinctInput  = true
-
-      @tailrec
-      def findInArray(index: Int): (Set[ConnectionStats], Set[ConnectionStats], IndexCacheEntry) =
-        if (index >= connections.length)
-          (
-            inputConnectionsSet.toSet,
-            outputConnectionsSet.toSet,
-            IndexCacheEntry(inputIndexSet.toSet, outputIndexSet.toSet, distinctInput, distinctOutput)
-          )
-        else {
-          val connection = connections(index)
-          if (connection.in == stage.id) {
-            inputConnectionsSet += connection
-            inputIndexSet += index
-
-            if (distinctInput) {
-              if (inputOutputIds.contains(connection.out)) {
-                distinctInput = false
-              } else {
-                inputOutputIds += connection.out
-              }
-            }
-
-          } else if (connection.out == stage.id) {
-            outputConnectionsSet += connection
-            outputIndexSet += index
-
-            if (distinctOutput) {
-              if (outputInputIds.contains(connection.in)) {
-                distinctOutput = false
-              } else {
-                outputInputIds += connection.in
-              }
-            }
-
-          }
-          findInArray(index + 1)
-        }
-      findInArray(0)
-    }
-  }
-
-  object ConnectionsIndexCache {
-    private[extension] final case class IndexCacheEntry(
-      inputs: Set[Int],
-      outputs: Set[Int],
-      distinctInputs: Boolean,
-      distinctOutputs: Boolean
-    )
-
-    private[extension] def bounded(entries: Int): ConnectionsIndexCache = {
-
-      val mutableMap: mutable.Map[StageInfo, IndexCacheEntry] =
-        new util.LinkedHashMap[StageInfo, IndexCacheEntry](entries, 0.75f, true) {
-          override def removeEldestEntry(eldest: util.Map.Entry[StageInfo, IndexCacheEntry]): Boolean =
-            this.size() >= entries
-        }.asScala
-
-      new ConnectionsIndexCache(mutableMap)
-    }
-
-    /**
-     * Exists solely for testing purpose
-     * @return
-     */
-    private[extension] def empty = new ConnectionsIndexCache(mutable.Map.empty)
-
-  }
 }
 
 final class AkkaStreamMonitoring(
@@ -401,7 +292,7 @@ final class AkkaStreamMonitoring(
           }
       )
 
-  def captureGlobalStats(): Unit = {
+  private def captureGlobalStats(): Unit = {
     boundStreamMonitor.runningStreamsTotal.setValue(localStreamStats.size)
     val values = localStreamStats.values.map(_.build).toSeq
     localStreamStats.clear()

@@ -1,4 +1,5 @@
-package io.scalac.mesmer.extension
+package io.scalac.mesmer.core.akka.stream
+
 import org.scalatest.Inspectors
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
@@ -8,7 +9,6 @@ import io.scalac.mesmer.core.model.Tag.SubStreamName
 import io.scalac.mesmer.core.model.stream.ConnectionStats
 import io.scalac.mesmer.core.model.stream.StageInfo
 import io.scalac.mesmer.core.util.TestOps
-import io.scalac.mesmer.extension.AkkaStreamMonitoring.ConnectionsIndexCache
 
 class ConnectionsIndexCacheTest extends AnyFlatSpec with Matchers with TestOps with Inspectors {
 
