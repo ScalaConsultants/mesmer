@@ -155,7 +155,7 @@ lazy val example = (project in file("example"))
         "io.circe"                      %% "circe-generic"                             % CirceVersion,
         "io.circe"                      %% "circe-parser"                              % CirceVersion,
         "de.heikoseeberger"             %% "akka-http-circe"                           % "1.39.2",
-        "dev.zio"                       %% "zio"                                       % "2.0.0",
+        "dev.zio"                       %% "zio"                                       % "2.0.6",
         "org.postgresql"                 % "postgresql"                                % PostgresVersion,
         "com.typesafe.slick"            %% "slick"                                     % SlickVersion,
         "com.typesafe.slick"            %% "slick-hikaricp"                            % SlickVersion,
