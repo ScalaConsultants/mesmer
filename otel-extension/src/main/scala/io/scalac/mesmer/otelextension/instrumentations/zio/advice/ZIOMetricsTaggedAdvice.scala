@@ -23,8 +23,6 @@ object ZIOMetricsTaggedAdvice {
       .find(classOf[Metric[Type, _, _]], classOf[String])
       .get(oldMetric)
 
-    println(name)
-
     val attributesSoFar: Option[Attributes] = Option(
       VirtualField
         .find(classOf[Metric[Type, _, _]], classOf[Attributes])

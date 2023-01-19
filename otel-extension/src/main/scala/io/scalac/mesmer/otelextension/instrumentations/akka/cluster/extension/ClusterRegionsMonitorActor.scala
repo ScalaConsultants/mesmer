@@ -1,4 +1,4 @@
-package io.scalac.mesmer.extension
+package io.scalac.mesmer.otelextension.instrumentations.akka.cluster.extension
 
 import akka.actor.typed.ActorSystem
 import akka.actor.typed.Behavior
@@ -11,82 +11,100 @@ import akka.cluster.sharding.ShardRegion.GetShardRegionStats
 import akka.cluster.sharding.ShardRegion.ShardRegionStats
 import akka.pattern.ask
 import akka.util.Timeout
+import io.opentelemetry.api.GlobalOpenTelemetry
+import io.opentelemetry.api.common.Attributes
+import io.opentelemetry.api.common.AttributesBuilder
+import io.opentelemetry.api.metrics.Meter
+import io.opentelemetry.api.metrics.ObservableDoubleGauge
 import org.slf4j.LoggerFactory
 
+import scala.collection.mutable
 import scala.concurrent.ExecutionContext
 import scala.concurrent.Future
-import scala.concurrent.duration._
+import scala.concurrent.duration.DurationInt
+import scala.concurrent.duration.FiniteDuration
 import scala.jdk.DurationConverters.JavaDurationOps
 
-import io.scalac.mesmer.core.config.ConfigurationUtils._
-import io.scalac.mesmer.core.model._
+import io.scalac.mesmer.core.config.ConfigurationUtils.toConfigOps
+import io.scalac.mesmer.core.model.AkkaNodeOps
+import io.scalac.mesmer.core.model.Region
 import io.scalac.mesmer.core.util.CachedQueryResult
-import io.scalac.mesmer.extension.metric.ClusterMetricsMonitor
-import io.scalac.mesmer.extension.metric.ClusterMetricsMonitor.Attributes
+import io.scalac.mesmer.otelextension.instrumentations.akka.common.SerializableMessage
 
-class ClusterRegionsMonitorActor
 object ClusterRegionsMonitorActor extends ClusterMonitorActor {
 
-  private type RegionStats    = Map[ShardRegion.ShardId, Int]
+  private type RegionStats = Map[ShardRegion.ShardId, Int]
+
   private type RegionStatsMap = Map[String, RegionStats]
 
-  sealed trait Command
+  private val meter: Meter = GlobalOpenTelemetry.getMeter("mesmer")
 
-  private val logger = LoggerFactory.getLogger(classOf[ClusterRegionsMonitorActor])
+  sealed trait Command extends SerializableMessage
 
-  def apply(monitor: ClusterMetricsMonitor): Behavior[Command] =
-    OnClusterStartUp { selfMember =>
+  private val entityPerRegion = meter
+    .gaugeBuilder("mesmer_akka_cluster_entities_per_region")
+    .setDescription("Amount of entities in a region.")
+
+  private val shardPerRegions = meter
+    .gaugeBuilder("mesmer_akka_cluster_shards_per_region")
+    .setDescription("Amount of shards in a region.")
+
+  private val entitiesOnNode = meter
+    .gaugeBuilder("mesmer_akka_cluster_entities_on_node")
+    .setDescription("Amount of entities on a node.")
+
+  private val shardRegionsOnNode = meter
+    .gaugeBuilder("mesmer_akka_cluster_shard_regions_on_node")
+    .setDescription("Amount of shard regions on a node.")
+
+  override def apply(): Behavior[Command] =
+    OnClusterStartup { selfMember =>
       Behaviors.setup { ctx =>
         val system = ctx.system
         import system.executionContext
 
-        val node         = selfMember.uniqueAddress.toNode
-        val attributes   = Attributes(node)
-        val boundMonitor = monitor.bind(attributes)
-
+        val instruments                          = mutable.HashSet.empty[ObservableDoubleGauge]
+        val node                                 = selfMember.uniqueAddress.toNode
+        val attributesBuilder: AttributesBuilder = Attributes.builder().put("node", node)
         val regions = new Regions(
           system,
           onCreateEntry = (region, entry) => {
 
-            boundMonitor.entityPerRegion
-              .setUpdater(result =>
-                entry.get.foreach { regionStats =>
-                  val entities = regionStats.values.sum
-                  result.observe(entities, Attributes(node, Some(region)))
-                  logger.trace("Recorded amount of entities per region {}", entities)
-                }
-              )
+            instruments.add(entityPerRegion.buildWithCallback { measurement =>
+              entry.get.foreach { regionStats =>
+                val entities   = regionStats.values.sum
+                val attributes = attributesBuilder.put("region", region).build()
+                measurement.record(entities, attributes)
+              }
+            })
 
-            boundMonitor.shardPerRegions
-              .setUpdater(result =>
-                entry.get.foreach { regionStats =>
-                  val shards = regionStats.size
-                  result.observe(shards, Attributes(node, Some(region)))
-                  logger.trace("Recorded amount of shards per region {}", shards)
-                }
-              )
+            instruments.add(shardPerRegions.buildWithCallback { measurement =>
+              entry.get.foreach { regionStats =>
+                val shards     = regionStats.size
+                val attributes = attributesBuilder.put("region", region).build()
+                measurement.record(shards, attributes)
+              }
+            })
           }
         )
 
-        boundMonitor.entitiesOnNode.setUpdater { result =>
+        instruments.add(entitiesOnNode.buildWithCallback { measurement =>
           regions.regionStats.map { regionsStats =>
             val entities = regionsStats.view.values.flatMap(_.values).sum
-            result.observe(entities, attributes)
-            logger.trace("Recorded amount of entities on node {}", entities)
+            measurement.record(entities, attributesBuilder.build())
           }
-        }
+        })
 
-        boundMonitor.shardRegionsOnNode.setUpdater { result =>
-          result.observe(regions.size, attributes)
-          logger.trace("Recorded amount of regions on node {}", regions)
-        }
+        instruments.add(shardRegionsOnNode.buildWithCallback { measurement =>
+          measurement.record(regions.size, attributesBuilder.build())
+        })
 
         Behaviors.receiveSignal { case (_, PreRestart | PostStop) =>
-          boundMonitor.unbind()
+          instruments.foreach(_.close())
+          instruments.clear()
           Behaviors.same
         }
       }
-
     }
 
   private[extension] class Regions(

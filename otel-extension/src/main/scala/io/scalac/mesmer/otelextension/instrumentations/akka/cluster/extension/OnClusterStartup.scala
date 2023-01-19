@@ -1,4 +1,4 @@
-package io.scalac.mesmer.extension
+package io.scalac.mesmer.otelextension.instrumentations.akka.cluster.extension
 
 import akka.actor.typed.Behavior
 import akka.actor.typed.scaladsl.Behaviors
@@ -7,13 +7,18 @@ import akka.cluster.Member
 import akka.cluster.typed.Cluster
 import akka.cluster.typed.SelfUp
 import akka.cluster.typed.Subscribe
+import org.slf4j.LoggerFactory
 
 import scala.concurrent.duration.FiniteDuration
 
-object OnClusterStartUp {
+object OnClusterStartup {
+
+  private val log = LoggerFactory.getLogger(OnClusterStartup.getClass)
 
   private case class Initialized(currentClusterState: CurrentClusterState)
+
   private case object Timeout
+
   private val timeoutTimerKey = "WithTimeoutKey"
 
   def upTo[T](timeout: FiniteDuration)(inner: Member => Behavior[T]): Behavior[T] =
@@ -30,10 +35,10 @@ object OnClusterStartUp {
           Behaviors.withStash(1024) { stash =>
             Behaviors.receiveMessage {
               case Timeout =>
-                ctx.log.warn("Initialization timed out")
+                log.error("Initialization timed out.")
                 Behaviors.stopped
               case Initialized(_) =>
-                ctx.log.info("Cluster initialized")
+                log.debug("Cluster in initialized.")
                 timer.cancel(timeoutTimerKey)
                 val selfMember = Cluster(ctx.system).selfMember
                 stash.unstashAll(inner(selfMember).asInstanceOf[Behavior[Any]])

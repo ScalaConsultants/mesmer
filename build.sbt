@@ -164,7 +164,7 @@ lazy val example = (project in file("example"))
         "com.lightbend.akka.management" %% "akka-management-cluster-http"              % AkkaManagementVersion,
         "com.lightbend.akka.management" %% "akka-management-cluster-bootstrap"         % AkkaManagementVersion,
         "io.opentelemetry"               % "opentelemetry-sdk-extension-autoconfigure" % OpentelemetryAlphaVersion130,
-        "io.grpc"                        % "grpc-netty-shaded"                         % "1.48.1",
+        "io.grpc"                        % "grpc-netty-shaded"                         % "1.49.0",
         "org.wvlet.airframe"            %% "airframe-log"                              % AirframeVersion
       )
     },
@@ -187,7 +187,7 @@ lazy val example = (project in file("example"))
     commands += runStreamExampleWithOtelAgent,
     commands += runZioExampleWithOtelAgent
   )
-  .dependsOn(core, extension)
+  .dependsOn(core)
 
 lazy val docs = project
   .in(file("mesmer-docs")) // important: it must not be docs/
