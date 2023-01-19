@@ -1,6 +1,6 @@
 package io.scalac.mesmer.instrumentation.akka.cluster
 
-import akka.actor.typed.{ ActorRef, Behavior }
+import akka.actor.typed.ActorRef
 import akka.actor.typed.scaladsl.Behaviors
 import akka.actor.{ typed, ActorSystem }
 import akka.actor.typed.scaladsl.adapter.ClassicActorSystemOps
