@@ -2,11 +2,11 @@ import sbt._
 
 object Dependencies {
 
-  val AirframeVersion              = "22.8.0"
-  val AkkaHttpVersion              = "10.2.10"
-  val AkkaManagementVersion        = "1.1.4"
-  val AkkaVersion                  = "2.6.20"
-  val CirceVersion                 = "0.14.3"
+  val AirframeVersion       = "22.8.0"
+  val AkkaHttpVersion       = "10.2.10"
+  val AkkaManagementVersion = "1.1.4"
+  val AkkaVersion           = "2.6.20"
+  val CirceVersion          = "0.14.3"
 
   val GoogleAutoServiceVersion     = "1.0.1"
   val LogbackVersion               = "1.4.5"
