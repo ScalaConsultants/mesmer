@@ -1,6 +1,6 @@
 package io.scalac.mesmer.otelextension.instrumentations.zio
 
-import io.opentelemetry.sdk.metrics.data.{ MetricData, MetricDataType }
+import io.opentelemetry.sdk.metrics.data.MetricData
 import io.scalac.mesmer.agent.utils.OtelAgentTest
 import io.scalac.mesmer.core.config.MesmerPatienceConfig
 import org.scalatest.flatspec.AnyFlatSpecLike
