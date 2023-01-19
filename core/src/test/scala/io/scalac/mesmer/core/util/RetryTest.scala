@@ -30,7 +30,7 @@ class RetryTest extends AnyFlatSpec with Matchers {
     var counter = 0
     def function(): Int =
       if (counter == 0) {
-        counter = counter + 1
+        counter = 1
         throw new RuntimeException("fail")
       } else {
         counter
@@ -39,9 +39,10 @@ class RetryTest extends AnyFlatSpec with Matchers {
   }
 
   it should "fail when the precondition never succeeds" in {
-    val result = Retry.retryWithPrecondition(3, 1.millisecond)(false)(1)
+    val result = Retry.retryWithPrecondition(3, 1.millisecond)(precondition = false)(1)
 
-    result shouldBe a[Failure[RuntimeException]]
+    result shouldBe a[Failure[_]]
+    result.failed.get shouldBe a[RuntimeException]
   }
 
   it should "succeed after several trials" in {
@@ -58,6 +59,10 @@ class RetryTest extends AnyFlatSpec with Matchers {
 
   it should "still fail when precondition is true but error occurs" in {
     def function(): Int = throw new RuntimeException("fail")
-    Retry.retryWithPrecondition(1, 1.millisecond)(true)(function()) shouldBe a[Failure[RuntimeException]]
+
+    val result = Retry.retryWithPrecondition(1, 1.millisecond)(precondition = true)(function())
+
+    result shouldBe a[Failure[_]]
+    result.failed.get shouldBe a[RuntimeException]
   }
 }
