@@ -11,7 +11,7 @@ object AttributesFactory {
     of(required ++ optionals.collect { case (k, Some(v)) => (k, v) })
 
   /**
-   * Microoptimized version that produce OpenTelemetry attributes from sequence of tuples
+   * Micro optimized version that produce OpenTelemetry attributes from sequence of tuples
    * @param attributes
    * @return
    */

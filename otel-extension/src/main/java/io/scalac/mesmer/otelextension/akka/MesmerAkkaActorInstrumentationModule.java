@@ -23,6 +23,7 @@ public class MesmerAkkaActorInstrumentationModule extends InstrumentationModule
   public List<TypeInstrumentation> typeInstrumentations() {
     return Arrays.asList(
         AkkaActorAgent.actorSystemConfig(),
+        AkkaActorAgent.actorMetricsExtension(),
         AkkaActorAgent.actorCellInit(),
         AkkaActorAgent.dispatchSendMessage(),
         AkkaActorAgent.mailboxDequeue(),
@@ -81,6 +82,15 @@ public class MesmerAkkaActorInstrumentationModule extends InstrumentationModule
         "io.scalac.mesmer.otelextension.instrumentations.akka.actor.util.EnvelopeContext$",
         "io.scalac.mesmer.otelextension.instrumentations.akka.actor.impl.otel.ActorCellInstrumentationState",
         "akka.actor.ProxiedQueue",
-        "akka.actor.BoundedQueueProxy");
+        "akka.actor.BoundedQueueProxy",
+        "io.scalac.mesmer.otelextension.instrumentations.akka.actor.extension.ActorLifecycleMonitorExtension",
+        "io.scalac.mesmer.otelextension.instrumentations.akka.actor.extension.ActorLifecycleMonitorExtension$",
+        "io.scalac.mesmer.otelextension.instrumentations.akka.actor.extension.ActorLifecycleMonitorExtensionId$",
+        "io.scalac.mesmer.otelextension.instrumentations.akka.actor.extension.ActorLifecycleMonitorExtension$$anon$1",
+        "io.scalac.mesmer.otelextension.instrumentations.akka.actor.extension.ActorLifecycleEvents",
+        "io.scalac.mesmer.otelextension.instrumentations.akka.actor.extension.ActorLifecycleEvents$ActorCreated",
+        "io.scalac.mesmer.otelextension.instrumentations.akka.actor.extension.ActorLifecycleEvents$ActorTerminated",
+        "io.scalac.mesmer.otelextension.instrumentations.akka.actor.extension.ActorLifecycleMonitor",
+        "io.scalac.mesmer.otelextension.instrumentations.akka.actor.extension.ActorLifecycleMonitor$");
   }
 }

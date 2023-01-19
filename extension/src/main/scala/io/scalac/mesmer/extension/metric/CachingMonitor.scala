@@ -35,7 +35,7 @@ case class CachingMonitor[L <: AttributesSerializable, B <: Bound](
   final private def updateMonitors(attributes: L): B =
     cachedMonitors.getOrElseUpdate(
       attributes, {
-        logger.debug("Creating new monitor for lables {}", attributes)
+        logger.debug("Creating new monitor for attributes {}", attributes)
         bindable(attributes)
       }
     )

@@ -4,7 +4,7 @@
 
 # Mesmer
 
-Mesmer is an [OpenTelemetry](https://opentelemetry.io/) instrumentation library for [Akka](https://akka.io/)
+Mesmer is an [OpenTelemetry](https://opentelemetry.io/) instrumentation library for Scala
 applications.
 
 Compatibility:
