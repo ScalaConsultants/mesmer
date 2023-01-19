@@ -70,34 +70,34 @@ object ClusterRegionsMonitorActor extends ClusterMonitorActor {
           system,
           onCreateEntry = (region, entry) => {
 
-            instruments + entityPerRegion.buildWithCallback { measurement =>
+            instruments.add(entityPerRegion.buildWithCallback { measurement =>
               entry.get.foreach { regionStats =>
                 val entities   = regionStats.values.sum
                 val attributes = attributesBuilder.put("region", region).build()
                 measurement.record(entities, attributes)
               }
-            }
+            })
 
-            instruments + shardPerRegions.buildWithCallback { measurement =>
+            instruments.add(shardPerRegions.buildWithCallback { measurement =>
               entry.get.foreach { regionStats =>
                 val shards     = regionStats.size
                 val attributes = attributesBuilder.put("region", region).build()
                 measurement.record(shards, attributes)
               }
-            }
+            })
           }
         )
 
-        instruments + entitiesOnNode.buildWithCallback { measurement =>
+        instruments.add(entitiesOnNode.buildWithCallback { measurement =>
           regions.regionStats.map { regionsStats =>
             val entities = regionsStats.view.values.flatMap(_.values).sum
             measurement.record(entities, attributesBuilder.build())
           }
-        }
+        })
 
-        instruments + shardRegionsOnNode.buildWithCallback { measurement =>
+        instruments.add(shardRegionsOnNode.buildWithCallback { measurement =>
           measurement.record(regions.size, attributesBuilder.build())
-        }
+        })
 
         Behaviors.receiveSignal { case (_, PreRestart | PostStop) =>
           instruments.foreach(_.close())
