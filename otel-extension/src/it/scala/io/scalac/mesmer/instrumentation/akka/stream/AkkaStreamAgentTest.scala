@@ -157,7 +157,7 @@ class AkkaStreamAgentTest
     val ExpectedElements = Demand + 1L // somehow sinkQueue demand 1 element in advance
 
     val (inputQueue, outputQueue) = Source
-      .queue[Int](1024, OverflowStrategy.dropNew, 1)
+      .queue[Int](1024, OverflowStrategy.backpressure, 1)
       .named("InQueue")
       .via(
         Flow[Int]
@@ -219,7 +219,7 @@ class AkkaStreamAgentTest
     val SourceExpectedElements = (FlowExpectedElements + 1L) * 2
 
     val (inputQueue, outputQueue) = Source
-      .queue[Int](1024, OverflowStrategy.dropNew, 1)
+      .queue[Int](1024, OverflowStrategy.backpressure, 1)
       .withAttributes(Attributes.inputBuffer(1, 1))
       .async
       .filter(_ % 2 == 0)
@@ -314,7 +314,7 @@ class AkkaStreamAgentTest
     val Demand = 40L
 
     val (inputQueue, outputQueue) = Source
-      .queue[Int](1024, OverflowStrategy.dropNew, 1)
+      .queue[Int](1024, OverflowStrategy.backpressure, 1)
       .flatMapConcat(element => Source(List.fill(10)(element)).via(Flow[Int].map(_ + 100)))
       .toMat(
         Sink
