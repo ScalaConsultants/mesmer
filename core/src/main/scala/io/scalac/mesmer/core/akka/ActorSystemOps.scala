@@ -7,7 +7,7 @@ import akka.util.Unsafe
 
 object ActorSystemOps extends Lookup {
 
-  val initializedOffset: Long =
+  private val initializedOffset: Long =
     Unsafe.instance.objectFieldOffset(classOf[ActorSystemImpl].getDeclaredField("_initialized"))
 
   implicit final class ActorSystemOpsWrapper(private val system: ActorSystem) extends AnyVal {
