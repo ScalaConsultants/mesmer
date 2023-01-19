@@ -9,13 +9,13 @@ object Dependencies {
   val CirceVersion                 = "0.14.3"
 
   val GoogleAutoServiceVersion     = "1.0.1"
-  val LogbackVersion               = "1.2.11"
+  val LogbackVersion               = "1.4.5"
   val OpentelemetryLatestVersion   = "1.13.1"
   val OpentelemetryApiVersion      = "1.13.0"
   val OpentelemetryAlphaVersion131 = "1.13.1-alpha"
   val OpentelemetryAlphaVersion130 = "1.13.0-alpha"
   val PostgresVersion              = "42.5.0"
-  val ScalatestVersion             = "3.2.13"
+  val ScalatestVersion             = "3.2.15"
   val SlickVersion                 = "3.3.3"
 
   val akka = Seq(
