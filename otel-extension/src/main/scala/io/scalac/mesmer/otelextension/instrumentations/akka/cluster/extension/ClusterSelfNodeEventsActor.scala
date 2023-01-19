@@ -25,9 +25,15 @@ object ClusterSelfNodeEventsActor extends ClusterMonitorActor {
 
   private val meter: Meter = GlobalOpenTelemetry.getMeter("mesmer")
 
-  private val reachableNodesCounter = meter.upDownCounterBuilder("mesmer_akka_cluster_reachable_nodes").build()
+  private val reachableNodesCounter = meter
+    .upDownCounterBuilder("mesmer_akka_cluster_reachable_nodes")
+    .setDescription("Amount of reachable nodes.")
+    .build()
 
-  private val unreachableNodesCounter = meter.upDownCounterBuilder("mesmer_akka_cluster_unreachable_nodes").build()
+  private val unreachableNodesCounter = meter
+    .upDownCounterBuilder("mesmer_akka_cluster_unreachable_nodes")
+    .setDescription("Amount of unreachable nodes.")
+    .build()
 
   sealed trait Command extends SerializableMessage
 

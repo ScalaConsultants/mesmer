@@ -40,6 +40,7 @@ class AkkaClusterMonitorExtension(actorSystem: ActorSystem[_]) extends Extension
   private def startClusterMonitors(): Unit = {
     startClusterMonitor(ClusterEventsMonitor)
     startClusterMonitor(ClusterSelfNodeEventsActor)
+    startClusterMonitor(ClusterRegionsMonitorActor)
 
     def startClusterMonitor[T <: ClusterMonitorActor: ClassTag](actor: T): Unit = {
       val name = classTag[T].runtimeClass.getSimpleName
