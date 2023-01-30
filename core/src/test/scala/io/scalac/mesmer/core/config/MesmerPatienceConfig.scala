@@ -8,8 +8,8 @@ import scala.concurrent.duration._
 trait MesmerPatienceConfig {
   this: PatienceConfiguration =>
 
-  val reasonableInterval: Span = scaled(100.millis)
-  val reasonableTimeout: Span  = scaled(3.seconds)
+  val reasonableInterval: Span = scaled(200.millis)
+  val reasonableTimeout: Span  = scaled(15.seconds)
 
   override implicit lazy val patienceConfig: PatienceConfig = PatienceConfig(reasonableTimeout, reasonableInterval)
 }

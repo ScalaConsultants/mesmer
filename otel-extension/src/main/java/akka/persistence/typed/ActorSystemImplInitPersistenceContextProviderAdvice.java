@@ -2,7 +2,7 @@ package akka.persistence.typed;
 
 import akka.actor.ActorSystem;
 import io.opentelemetry.instrumentation.api.config.Config;
-import io.opentelemetry.instrumentation.api.field.VirtualField;
+import io.opentelemetry.instrumentation.api.util.VirtualField;
 import io.scalac.mesmer.otelextension.instrumentations.akka.persistence.impl.IdentityPersistenceContextProvider;
 import io.scalac.mesmer.otelextension.instrumentations.akka.persistence.impl.PersistenceContextProvider;
 import io.scalac.mesmer.otelextension.instrumentations.akka.persistence.impl.TemplatingPersistenceContextProvider;

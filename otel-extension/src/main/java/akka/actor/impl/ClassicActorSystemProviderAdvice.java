@@ -1,7 +1,7 @@
 package akka.actor.impl;
 
 import akka.actor.ActorSystem;
-import io.opentelemetry.instrumentation.api.field.VirtualField;
+import io.opentelemetry.instrumentation.api.util.VirtualField;
 import io.scalac.mesmer.core.actor.ActorRefAttributeFactory;
 import io.scalac.mesmer.core.actor.ConfiguredAttributeFactory;
 import java.util.Objects;

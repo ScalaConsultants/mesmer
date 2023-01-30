@@ -7,7 +7,7 @@ import akka.http.scaladsl.server.PathMatcher
 import akka.http.scaladsl.server.PathMatcher.Matched
 import akka.http.scaladsl.server.PathMatcher.Unmatched
 import io.opentelemetry.context.Context
-import io.opentelemetry.instrumentation.api.field.VirtualField
+import io.opentelemetry.instrumentation.api.util.VirtualField
 
 object OverridingRawPatchMatcherImpl {
 

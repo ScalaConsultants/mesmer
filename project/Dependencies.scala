@@ -10,10 +10,10 @@ object Dependencies {
 
   val GoogleAutoServiceVersion     = "1.0.1"
   val LogbackVersion               = "1.4.5"
-  val OpentelemetryLatestVersion   = "1.13.1"
-  val OpentelemetryApiVersion      = "1.13.0"
-  val OpentelemetryAlphaVersion131 = "1.13.1-alpha"
-  val OpentelemetryAlphaVersion130 = "1.13.0-alpha"
+  val OpentelemetryLatestVersion   = "1.14.0"
+  val OpentelemetryApiVersion      = "1.14.0"
+  val OpentelemetryAlphaVersion131 = "1.14.0-alpha"
+  val OpentelemetryAlphaVersion130 = "1.14.0-alpha"
   val PostgresVersion              = "42.5.1"
   val ScalatestVersion             = "3.2.15"
   val SlickVersion                 = "3.3.3"
@@ -59,9 +59,12 @@ object Dependencies {
     "io.opentelemetry.instrumentation" % "opentelemetry-instrumentation-api-semconv" % OpentelemetryAlphaVersion131
   )
 
+  val opentelemetryExtensionApi = Seq(
+    "io.opentelemetry.javaagent" % "opentelemetry-javaagent-extension-api" % OpentelemetryAlphaVersion131
+  )
+
   val openTelemetryExtension = Seq(
     "com.google.auto.service"    % "auto-service"                          % GoogleAutoServiceVersion,
-    "io.opentelemetry.javaagent" % "opentelemetry-javaagent-extension-api" % OpentelemetryAlphaVersion131,
     "io.opentelemetry.javaagent" % "opentelemetry-javaagent-tooling"       % OpentelemetryAlphaVersion131
   )
 

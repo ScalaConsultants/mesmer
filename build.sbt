@@ -57,7 +57,7 @@ lazy val core = (project in file("core"))
     name := "mesmer-akka-core",
     libraryDependencies ++= {
       akka ++
-      openTelemetryInstrumentation ++
+      opentelemetryExtensionApi ++
       scalatest.map(_ % "test") ++
       akkaTestkit.map(_ % "test")
     }
@@ -78,7 +78,7 @@ lazy val extension = (project in file("extension"))
       akkaMultiNodeTestKit.map(_ % "test") ++
       logback.map(_ % Test)
     }
-  )
+)
   .dependsOn(core % "compile->compile;test->test")
 
 lazy val otelExtension = (project in file("otel-extension"))
@@ -90,8 +90,8 @@ lazy val otelExtension = (project in file("otel-extension"))
     libraryDependencies ++= {
       zio.map(_ % "provided") ++
       openTelemetryExtension.map(_ % "provided") ++
+      opentelemetryExtensionApi ++
       openTelemetryMuzzle.map(_ % "provided") ++
-      openTelemetryInstrumentation.map(_ % "provided") ++
       openTelemetryInstrumentationApiSemanticConventions ++
       byteBuddy.map(_ % "provided") ++
       akkaTestkit.map(_ % "it,test") ++
@@ -99,7 +99,7 @@ lazy val otelExtension = (project in file("otel-extension"))
       openTelemetryTesting.map(_ % "it,test")
     },
     assembly / test            := {},
-    assembly / assemblyJarName := s"${name.value}_${scalaBinaryVersion.value}-${version.value}-assembly.jar",
+    assembly / assemblyJarName := s"${name.value}-assembly.jar",
     assemblyMergeStrategySettings,
     assembly / artifact := {
       val art = (assembly / artifact).value
@@ -120,7 +120,7 @@ lazy val otelExtension = (project in file("otel-extension"))
       s"-javaagent:$projectRootDir/opentelemetry-agent-for-testing-$OpentelemetryAlphaVersion131.jar",
       s"-Dotel.javaagent.extensions=${assembly.value.absolutePath}",
       "-Dotel.javaagent.debug=false",
-      "-Dotel.metric.export.interval=100", // 100 ms so that the "eventually" assertions could catch up
+      "-Dotel.metric.export.interval=50", // 100 ms so that the "eventually" assertions could catch up
       "-Dotel.javaagent.testing.fail-on-context-leak=true",
       "-Dotel.javaagent.testing.transform-safe-logging.enabled=true",
       "-Dotel.metrics.exporter=otlp",
@@ -149,8 +149,7 @@ lazy val example = (project in file("example"))
       scalatest.map(_ % "test") ++
       akkaTestkit.map(_ % "test") ++
       akkaPersistance ++
-      logback ++
-      Seq(
+      logback ++ Seq(
         "io.circe"                      %% "circe-core"                                % CirceVersion,
         "io.circe"                      %% "circe-generic"                             % CirceVersion,
         "io.circe"                      %% "circe-parser"                              % CirceVersion,

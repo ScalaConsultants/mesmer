@@ -1,7 +1,7 @@
 package io.scalac.mesmer.instrumentation.http.impl;
 
 import akka.http.scaladsl.server.PathMatcher;
-import io.opentelemetry.instrumentation.api.field.VirtualField;
+import io.opentelemetry.instrumentation.api.util.VirtualField;
 import net.bytebuddy.asm.Advice;
 
 public class StaticSegmentPathTemplateAdvice {

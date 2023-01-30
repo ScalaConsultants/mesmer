@@ -4,7 +4,7 @@ import akka.actor.ActorContext;
 import akka.actor.ActorSystem;
 import akka.actor.ClassicActorContextProvider;
 import akka.persistence.typed.internal.BehaviorSetup;
-import io.opentelemetry.instrumentation.api.field.VirtualField;
+import io.opentelemetry.instrumentation.api.util.VirtualField;
 import io.scalac.mesmer.otelextension.instrumentations.akka.persistence.impl.PersistenceContext;
 import io.scalac.mesmer.otelextension.instrumentations.akka.persistence.impl.PersistenceContextProvider;
 import java.util.Objects;
