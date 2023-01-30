@@ -12,6 +12,7 @@ import akka.cluster.sharding.ShardRegion.ShardRegionStats
 import akka.pattern.ask
 import akka.util.Timeout
 import io.opentelemetry.api.GlobalOpenTelemetry
+import io.opentelemetry.api.common.AttributeKey
 import io.opentelemetry.api.common.Attributes
 import io.opentelemetry.api.common.AttributesBuilder
 import io.opentelemetry.api.metrics.Meter
@@ -69,11 +70,11 @@ object ClusterRegionsMonitorActor extends ClusterMonitorActor {
         val regions = new Regions(
           system,
           onCreateEntry = (region, entry) => {
-
+            val regionKey: AttributeKey[String] = AttributeKey.stringKey("region")
             instruments.add(entityPerRegion.buildWithCallback { measurement =>
               entry.get.foreach { regionStats =>
                 val entities   = regionStats.values.sum
-                val attributes = attributesBuilder.put("region", region).build()
+                val attributes = Attributes.of(regionKey, region)
                 measurement.record(entities, attributes)
               }
             })
@@ -81,7 +82,7 @@ object ClusterRegionsMonitorActor extends ClusterMonitorActor {
             instruments.add(shardPerRegions.buildWithCallback { measurement =>
               entry.get.foreach { regionStats =>
                 val shards     = regionStats.size
-                val attributes = attributesBuilder.put("region", region).build()
+                val attributes = Attributes.of(regionKey, region)
                 measurement.record(shards, attributes)
               }
             })
