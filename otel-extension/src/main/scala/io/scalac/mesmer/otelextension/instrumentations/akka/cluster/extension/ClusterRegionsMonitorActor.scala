@@ -14,7 +14,6 @@ import akka.util.Timeout
 import io.opentelemetry.api.GlobalOpenTelemetry
 import io.opentelemetry.api.common.AttributeKey
 import io.opentelemetry.api.common.Attributes
-import io.opentelemetry.api.common.AttributesBuilder
 import io.opentelemetry.api.metrics.Meter
 import io.opentelemetry.api.metrics.ObservableDoubleGauge
 import org.slf4j.LoggerFactory
@@ -64,9 +63,10 @@ object ClusterRegionsMonitorActor extends ClusterMonitorActor {
         val system = ctx.system
         import system.executionContext
 
-        val instruments                          = mutable.HashSet.empty[ObservableDoubleGauge]
-        val node                                 = selfMember.uniqueAddress.toNode
-        val attributesBuilder: AttributesBuilder = Attributes.builder().put("node", node)
+        val instruments = mutable.HashSet.empty[ObservableDoubleGauge]
+        val node        = selfMember.uniqueAddress.toNode
+
+        val nodeKey = AttributeKey.stringKey("node")
         val regions = new Regions(
           system,
           onCreateEntry = (region, entry) => {
@@ -74,7 +74,7 @@ object ClusterRegionsMonitorActor extends ClusterMonitorActor {
             instruments.add(entityPerRegion.buildWithCallback { measurement =>
               entry.get.foreach { regionStats =>
                 val entities   = regionStats.values.sum
-                val attributes = Attributes.of(regionKey, region)
+                val attributes = Attributes.of(regionKey, region, nodeKey, node)
                 measurement.record(entities, attributes)
               }
             })
@@ -82,22 +82,24 @@ object ClusterRegionsMonitorActor extends ClusterMonitorActor {
             instruments.add(shardPerRegions.buildWithCallback { measurement =>
               entry.get.foreach { regionStats =>
                 val shards     = regionStats.size
-                val attributes = Attributes.of(regionKey, region)
+                val attributes = Attributes.of(regionKey, region, nodeKey, node)
                 measurement.record(shards, attributes)
               }
             })
           }
         )
 
+        val nodeAttribute = Attributes.of(nodeKey, node)
         instruments.add(entitiesOnNode.buildWithCallback { measurement =>
           regions.regionStats.map { regionsStats =>
             val entities = regionsStats.view.values.flatMap(_.values).sum
-            measurement.record(entities, attributesBuilder.build())
+
+            measurement.record(entities, nodeAttribute)
           }
         })
 
         instruments.add(shardRegionsOnNode.buildWithCallback { measurement =>
-          measurement.record(regions.size, attributesBuilder.build())
+          measurement.record(regions.size, nodeAttribute)
         })
 
         Behaviors.receiveSignal { case (_, PreRestart | PostStop) =>
