@@ -224,7 +224,7 @@ def runExampleWithOtelAgent = Command.command("runExampleWithOtelAgent") { state
         s"-Dotel.service.name=mesmer-example",
         s"-Dotel.metric.export.interval=5000",
         s"-Dotel.javaagent.extensions=${(otelExtension / assembly).value.absolutePath}",
-        "-Dotel.javaagent.debug=false"
+        "-Dotel.javaagent.debug=true"
       )
     ),
     state

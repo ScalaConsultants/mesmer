@@ -2,8 +2,6 @@ package io.scalac.mesmer.core.util
 
 import scala.concurrent.duration._
 
-import io.scalac.mesmer.core.util.Timestamp
-
 class CachedQueryResult[T] private (q: => T, validBy: FiniteDuration = 1.second) {
   @volatile
   private var lastUpdate: Option[Timestamp] = None
