@@ -41,8 +41,8 @@ object Dependencies {
   )
 
   val byteBuddy = Seq(
-    "net.bytebuddy" % "byte-buddy"       % "1.12.12",
-    "net.bytebuddy" % "byte-buddy-agent" % "1.12.12"
+    "net.bytebuddy" % "byte-buddy"       % "1.12.23",
+    "net.bytebuddy" % "byte-buddy-agent" % "1.12.23"
   )
 
   val logback = Seq("ch.qos.logback" % "logback-classic" % LogbackVersion)
