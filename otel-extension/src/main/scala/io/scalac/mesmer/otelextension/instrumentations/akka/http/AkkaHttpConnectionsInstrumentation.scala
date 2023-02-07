@@ -6,7 +6,6 @@ import akka.stream.scaladsl.Flow
 import io.opentelemetry.api.GlobalOpenTelemetry
 import io.opentelemetry.api.common.Attributes
 import io.opentelemetry.api.metrics.LongUpDownCounter
-import io.opentelemetry.instrumentation.api.config.Config
 
 import io.scalac.mesmer.core.akka.stream.BidiFlowForward
 
@@ -31,13 +30,10 @@ object AkkaHttpConnectionsInstrumentation {
   }
 
   private object HttpConnectionInstruments {
-    private val meter  = GlobalOpenTelemetry.getMeter("mesmer")
-    private val config = Config.get()
+    private val meter = GlobalOpenTelemetry.getMeter("mesmer")
 
     val httpConnectionsCounter: LongUpDownCounter = meter
-      .upDownCounterBuilder(
-        config.getString("io.scalac.mesmer.metrics.http.connections", "akka_http_connection_count")
-      )
+      .upDownCounterBuilder("akka_http_connections_count")
       .setDescription("Amount of HTTP connections currently being used")
       .build()
   }

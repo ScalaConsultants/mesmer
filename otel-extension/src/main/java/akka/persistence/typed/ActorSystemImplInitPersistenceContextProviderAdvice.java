@@ -1,8 +1,8 @@
 package akka.persistence.typed;
 
 import akka.actor.ActorSystem;
-import io.opentelemetry.instrumentation.api.config.Config;
 import io.opentelemetry.instrumentation.api.util.VirtualField;
+import io.scalac.mesmer.configuration.Config;
 import io.scalac.mesmer.otelextension.instrumentations.akka.persistence.impl.IdentityPersistenceContextProvider;
 import io.scalac.mesmer.otelextension.instrumentations.akka.persistence.impl.PersistenceContextProvider;
 import io.scalac.mesmer.otelextension.instrumentations.akka.persistence.impl.TemplatingPersistenceContextProvider;
@@ -19,7 +19,7 @@ public class ActorSystemImplInitPersistenceContextProviderAdvice {
 
     if (Objects.isNull(provider)) {
 
-      if (Config.get().getBoolean("mesmer.akka.persistence.templated", true)) {
+      if (Config.getBoolean("mesmer.akka.persistence.templated", true)) {
 
         VirtualField.find(ActorSystem.class, PersistenceContextProvider.class)
             .set(classicSystem, new TemplatingPersistenceContextProvider());

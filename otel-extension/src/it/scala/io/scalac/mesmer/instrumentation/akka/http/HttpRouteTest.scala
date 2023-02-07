@@ -27,7 +27,7 @@ class HttpRouteTest
 
   implicit val timeout: Timeout = 5.seconds
 
-  it should ("add a uuid template") in {
+  it should "add a uuid template" in {
     val promise = Promise[String]()
 
     val route: Route = (pathPrefix("api" / "v1" / JavaUUID) & pathEndOrSingleSlash) { _ =>
@@ -46,7 +46,7 @@ class HttpRouteTest
     }
   }
 
-  it should ("add a number template") in {
+  it should "add a number template" in {
     val promise = Promise[String]()
 
     val route: Route = (pathPrefix("api" / "v1" / IntNumber) & pathEndOrSingleSlash) { _ =>
@@ -65,7 +65,7 @@ class HttpRouteTest
     }
   }
 
-  it should ("add a wildcard for segment template") in {
+  it should "add a wildcard for segment template" in {
     val promise = Promise[String]()
 
     val route: Route = (pathPrefix("api" / "v1" / Segment) & pathEndOrSingleSlash) { _ =>
@@ -84,7 +84,7 @@ class HttpRouteTest
     }
   }
 
-  it should ("add a uuid template for or matcher") in {
+  it should "add a uuid template for or matcher" in {
     val promise = Promise[String]()
 
     val route: Route = (pathPrefix("api" / "v1" / (JavaUUID | IntNumber)) & pathEndOrSingleSlash) { _ =>
@@ -103,7 +103,7 @@ class HttpRouteTest
     }
   }
 
-  it should ("add a number template for or matcher") in {
+  it should "add a number template for or matcher" in {
     val promise = Promise[String]()
 
     val route: Route = (pathPrefix("api" / "v1" / (JavaUUID | LongNumber)) & pathEndOrSingleSlash) { _ =>

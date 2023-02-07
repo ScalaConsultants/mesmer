@@ -2,14 +2,13 @@ package io.scalac.mesmer.otelextension.instrumentations.akka.http
 
 import io.opentelemetry.javaagent.extension.instrumentation.TypeInstrumentation
 import io.opentelemetry.javaagent.extension.instrumentation.TypeTransformer
-import net.bytebuddy.asm.Advice
 import net.bytebuddy.description.`type`.TypeDescription
 import net.bytebuddy.description.method.MethodDescription
-import net.bytebuddy.implementation.SuperMethodCall
+import net.bytebuddy.implementation.MethodDelegation
 import net.bytebuddy.matcher.ElementMatcher
 import net.bytebuddy.matcher.ElementMatchers
 
-import io.scalac.mesmer.instrumentation.http.impl.OverridingRawPathMatcher
+import io.scalac.mesmer.instrumentation.http.impl.RawPathPrefixInterceptor
 
 object PathMatching {
   val uuidPathMatcher: TypeInstrumentation = new TypeInstrumentation {
@@ -194,10 +193,10 @@ object PathMatching {
         .and[TypeDescription](ElementMatchers.not[TypeDescription](ElementMatchers.isAbstract[TypeDescription]))
 
     def transform(transformer: TypeTransformer): Unit =
-      transformer.applyTransformer { (underlying, _, _, _) =>
-        underlying
+      transformer.applyTransformer { (builder, _, _, _) =>
+        builder
           .method(ElementMatchers.named[MethodDescription]("rawPathPrefix"))
-          .intercept(Advice.to(classOf[OverridingRawPathMatcher]).wrap(SuperMethodCall.INSTANCE))
+          .intercept(MethodDelegation.to(classOf[RawPathPrefixInterceptor]))
       }
   }
 
