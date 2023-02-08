@@ -108,7 +108,7 @@ lazy val otelExtension = (project in file("otel-extension"))
     addArtifact(assembly / artifact, assembly),
     Test / fork              := true,
     Test / parallelExecution := true,
-    Test / testGrouping := ((Test / testGrouping).value) flatMap { group =>
+    Test / testGrouping := (Test / testGrouping).value flatMap { group =>
       group.tests.map { test =>
         Tests.Group(name = test.name, tests = Seq(test), runPolicy = group.runPolicy)
       }
@@ -117,7 +117,7 @@ lazy val otelExtension = (project in file("otel-extension"))
     IntegrationTest / parallelExecution := false,
     IntegrationTest / fork              := true,
     IntegrationTest / javaOptions ++= Seq(
-      s"-javaagent:$projectRootDir/opentelemetry-agent-for-testing-$OpentelemetryAlphaVersion131.jar",
+      s"-javaagent:$projectRootDir/opentelemetry-agent-for-testing-$OpentelemetryAlphaVersion.jar",
       s"-Dotel.javaagent.extensions=${assembly.value.absolutePath}",
       "-Dotel.javaagent.debug=false",
       "-Dotel.metric.export.interval=50", // 100 ms so that the "eventually" assertions could catch up
@@ -150,21 +150,21 @@ lazy val example = (project in file("example"))
       akkaTestkit.map(_ % "test") ++
       akkaPersistance ++
       logback ++ Seq(
-        "io.circe"                      %% "circe-core"                                % CirceVersion,
-        "io.circe"                      %% "circe-generic"                             % CirceVersion,
-        "io.circe"                      %% "circe-parser"                              % CirceVersion,
-        "de.heikoseeberger"             %% "akka-http-circe"                           % "1.39.2",
-        "dev.zio"                       %% "zio"                                       % "2.0.0",
-        "org.postgresql"                 % "postgresql"                                % PostgresVersion,
-        "com.typesafe.slick"            %% "slick"                                     % SlickVersion,
-        "com.typesafe.slick"            %% "slick-hikaricp"                            % SlickVersion,
-        "com.typesafe.akka"             %% "akka-discovery"                            % AkkaVersion,
-        "com.lightbend.akka.management" %% "akka-management"                           % AkkaManagementVersion,
-        "com.lightbend.akka.management" %% "akka-management-cluster-http"              % AkkaManagementVersion,
-        "com.lightbend.akka.management" %% "akka-management-cluster-bootstrap"         % AkkaManagementVersion,
-        "io.opentelemetry"               % "opentelemetry-sdk-extension-autoconfigure" % OpentelemetryAlphaVersion0,
-        "io.grpc"                        % "grpc-netty-shaded"                         % "1.49.2",
-        "org.wvlet.airframe"            %% "airframe-log"                              % AirframeVersion
+        "io.circe"                      %% "circe-core"                        % CirceVersion,
+        "io.circe"                      %% "circe-generic"                     % CirceVersion,
+        "io.circe"                      %% "circe-parser"                      % CirceVersion,
+        "de.heikoseeberger"             %% "akka-http-circe"                   % "1.39.2",
+        "dev.zio"                       %% "zio"                               % "2.0.0",
+        "org.postgresql"                 % "postgresql"                        % PostgresVersion,
+        "com.typesafe.slick"            %% "slick"                             % SlickVersion,
+        "com.typesafe.slick"            %% "slick-hikaricp"                    % SlickVersion,
+        "com.typesafe.akka"             %% "akka-discovery"                    % AkkaVersion,
+        "com.lightbend.akka.management" %% "akka-management"                   % AkkaManagementVersion,
+        "com.lightbend.akka.management" %% "akka-management-cluster-http"      % AkkaManagementVersion,
+        "com.lightbend.akka.management" %% "akka-management-cluster-bootstrap" % AkkaManagementVersion,
+        "io.opentelemetry"    % "opentelemetry-sdk-extension-autoconfigure" % OpentelemetryAlphaMinor0Version,
+        "io.grpc"             % "grpc-netty-shaded"                         % "1.49.2",
+        "org.wvlet.airframe" %% "airframe-log"                              % AirframeVersion
       )
     },
     assemblyMergeStrategySettings,
