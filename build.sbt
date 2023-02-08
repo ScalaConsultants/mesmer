@@ -78,7 +78,7 @@ lazy val extension = (project in file("extension"))
       akkaMultiNodeTestKit.map(_ % "test") ++
       logback.map(_ % Test)
     }
-)
+  )
   .dependsOn(core % "compile->compile;test->test")
 
 lazy val otelExtension = (project in file("otel-extension"))
@@ -162,7 +162,7 @@ lazy val example = (project in file("example"))
         "com.lightbend.akka.management" %% "akka-management"                           % AkkaManagementVersion,
         "com.lightbend.akka.management" %% "akka-management-cluster-http"              % AkkaManagementVersion,
         "com.lightbend.akka.management" %% "akka-management-cluster-bootstrap"         % AkkaManagementVersion,
-        "io.opentelemetry"               % "opentelemetry-sdk-extension-autoconfigure" % OpentelemetryAlphaVersion130,
+        "io.opentelemetry"               % "opentelemetry-sdk-extension-autoconfigure" % OpentelemetryAlphaVersion0,
         "io.grpc"                        % "grpc-netty-shaded"                         % "1.49.2",
         "org.wvlet.airframe"            %% "airframe-log"                              % AirframeVersion
       )
@@ -220,7 +220,7 @@ def runExampleWithOtelAgent = Command.command("runExampleWithOtelAgent") { state
   val newState = extracted.appendWithSession(
     Seq(
       run / javaOptions ++= Seq(
-        s"-javaagent:$projectRootDir/opentelemetry-javaagent-$OpentelemetryLatestVersion.jar",
+        s"-javaagent:$projectRootDir/opentelemetry-javaagent-$OpentelemetryVersion.jar",
         s"-Dotel.service.name=mesmer-example",
         s"-Dotel.metric.export.interval=5000",
         s"-Dotel.javaagent.extensions=${(otelExtension / assembly).value.absolutePath}",
@@ -239,7 +239,7 @@ def runStreamExampleWithOtelAgent = Command.command("runStreamExampleWithOtelAge
   val newState = extracted.appendWithSession(
     Seq(
       run / javaOptions ++= Seq(
-        s"-javaagent:$projectRootDir/opentelemetry-javaagent-$OpentelemetryLatestVersion.jar",
+        s"-javaagent:$projectRootDir/opentelemetry-javaagent-$OpentelemetryVersion.jar",
         s"-Dotel.service.name=mesmer-stream-example",
         s"-Dotel.metric.export.interval=5000",
         s"-Dotel.javaagent.extensions=${(otelExtension / assembly).value.absolutePath}"
@@ -257,7 +257,7 @@ def runZioExampleWithOtelAgent = Command.command("runZioExampleWithOtelAgent") {
   val newState = extracted.appendWithSession(
     Seq(
       run / javaOptions ++= Seq(
-        s"-javaagent:$projectRootDir/opentelemetry-javaagent-$OpentelemetryLatestVersion.jar",
+        s"-javaagent:$projectRootDir/opentelemetry-javaagent-$OpentelemetryVersion.jar",
         s"-Dotel.service.name=mesmer-zio-example",
         s"-Dotel.metric.export.interval=1000",
         s"-Dotel.javaagent.extensions=${(otelExtension / assembly).value.absolutePath}"

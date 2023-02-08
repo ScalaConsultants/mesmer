@@ -10,10 +10,11 @@ object Dependencies {
 
   val GoogleAutoServiceVersion     = "1.0.1"
   val LogbackVersion               = "1.4.5"
-  val OpentelemetryLatestVersion   = "1.18.0"
-  val OpentelemetryApiVersion      = "1.18.0"
-  val OpentelemetryAlphaVersion131 = "1.18.0-alpha"
-  val OpentelemetryAlphaVersion130 = "1.18.0-alpha"
+  val OpentelemetryVersion         = "1.19.2"
+  val OpentelemetryVersion0        = "1.19.0"
+  val OpentelemetryAlphaVersion131 = "1.19.2-alpha"
+  val OpentelemetryAlphaVersion130 = "1.19.2-alpha"
+  val OpentelemetryAlphaVersion0 = "1.19.0-alpha"
   val PostgresVersion              = "42.5.1"
   val ScalatestVersion             = "3.2.15"
   val SlickVersion                 = "3.3.3"
@@ -41,14 +42,14 @@ object Dependencies {
   )
 
   val byteBuddy = Seq(
-    "net.bytebuddy" % "byte-buddy"       % "1.12.12",
-    "net.bytebuddy" % "byte-buddy-agent" % "1.12.12"
+    "net.bytebuddy" % "byte-buddy"       % "1.12.23",
+    "net.bytebuddy" % "byte-buddy-agent" % "1.12.23"
   )
 
   val logback = Seq("ch.qos.logback" % "logback-classic" % LogbackVersion)
 
   val openTelemetryApi = Seq(
-    "io.opentelemetry" % "opentelemetry-api" % OpentelemetryApiVersion
+    "io.opentelemetry" % "opentelemetry-api" % OpentelemetryVersion0
   )
 
   val openTelemetryInstrumentation = Seq(
@@ -64,8 +65,8 @@ object Dependencies {
   )
 
   val openTelemetryExtension = Seq(
-    "com.google.auto.service"    % "auto-service"                          % GoogleAutoServiceVersion,
-    "io.opentelemetry.javaagent" % "opentelemetry-javaagent-tooling"       % OpentelemetryAlphaVersion131
+    "com.google.auto.service"    % "auto-service"                    % GoogleAutoServiceVersion,
+    "io.opentelemetry.javaagent" % "opentelemetry-javaagent-tooling" % OpentelemetryAlphaVersion131
   )
 
   val openTelemetryMuzzle = Seq(

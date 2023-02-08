@@ -1,12 +1,16 @@
 package io.scalac.mesmer.otelextension.instrumentations.akka.http
 
+import java.security.ProtectionDomain
+
 import io.opentelemetry.javaagent.extension.instrumentation.TypeInstrumentation
 import io.opentelemetry.javaagent.extension.instrumentation.TypeTransformer
 import net.bytebuddy.description.`type`.TypeDescription
 import net.bytebuddy.description.method.MethodDescription
+import net.bytebuddy.dynamic.DynamicType
 import net.bytebuddy.implementation.MethodDelegation
 import net.bytebuddy.matcher.ElementMatcher
 import net.bytebuddy.matcher.ElementMatchers
+import net.bytebuddy.utility.JavaModule
 
 import io.scalac.mesmer.instrumentation.http.impl.RawPathPrefixInterceptor
 
@@ -193,11 +197,19 @@ object PathMatching {
         .and[TypeDescription](ElementMatchers.not[TypeDescription](ElementMatchers.isAbstract[TypeDescription]))
 
     def transform(transformer: TypeTransformer): Unit =
-      transformer.applyTransformer { (builder, _, _, _) =>
-        builder
-          .method(ElementMatchers.named[MethodDescription]("rawPathPrefix"))
-          .intercept(MethodDelegation.to(classOf[RawPathPrefixInterceptor]))
-      }
+      transformer.applyTransformer(
+        (
+          builder: DynamicType.Builder[_],
+          typeDescription: TypeDescription,
+          classLoader: ClassLoader,
+          module: JavaModule,
+          protectionDomain: ProtectionDomain
+        ) =>
+          builder
+            .method(ElementMatchers.named[MethodDescription]("rawPathPrefix"))
+            .intercept(MethodDelegation.to(classOf[RawPathPrefixInterceptor]))
+      )
+
   }
 
 }
