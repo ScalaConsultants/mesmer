@@ -4,7 +4,7 @@ lazy val scala213 = "2.13"
 
 inThisBuild(
   List(
-    scalaVersion := "2.13.6",
+    scalaVersion := "2.13.10",
     organization := "io.scalac",
     homepage     := Some(url("https://github.com/ScalaConsultants/mesmer-akka-agent")),
     licenses     := List("Apache-2.0" -> url("http://www.apache.org/licenses/LICENSE-2.0")),
@@ -162,8 +162,8 @@ lazy val example = (project in file("example"))
         "com.lightbend.akka.management" %% "akka-management"                   % AkkaManagementVersion,
         "com.lightbend.akka.management" %% "akka-management-cluster-http"      % AkkaManagementVersion,
         "com.lightbend.akka.management" %% "akka-management-cluster-bootstrap" % AkkaManagementVersion,
-        "io.opentelemetry"    % "opentelemetry-sdk-extension-autoconfigure" % OpentelemetryAlphaMinor0Version,
-        "io.grpc"             % "grpc-netty-shaded"                         % "1.49.2",
+        "io.opentelemetry" % "opentelemetry-sdk-extension-autoconfigure" % OpentelemetryAlphaMinor0Version,
+        "io.grpc"          % "grpc-netty-shaded"                         % "1.52.1",
         "org.wvlet.airframe" %% "airframe-log"                              % AirframeVersion
       )
     },

@@ -2,11 +2,12 @@ import sbt._
 
 object Dependencies {
 
-  val AirframeVersion       = "22.8.0"
-  val AkkaHttpVersion       = "10.2.10"
-  val AkkaManagementVersion = "1.1.4"
-  val AkkaVersion           = "2.6.20"
-  val CirceVersion          = "0.14.3"
+  val AirframeVersion       = "23.2.2"
+  val AkkaHttpVersion       = "10.4.0"
+  val AkkaManagementVersion = "1.2.0"
+  val AkkaVersion           = "2.7.0"
+  val ByteBuddyVersion      = "1.12.23"
+  val CirceVersion          = "0.14.4"
 
   val GoogleAutoServiceVersion        = "1.0.1"
   val LogbackVersion                  = "1.4.5"
@@ -14,9 +15,9 @@ object Dependencies {
   val OpentelemetryMinor0Version      = "1.22.0"
   val OpentelemetryAlphaVersion       = "1.22.1-alpha"
   val OpentelemetryAlphaMinor0Version = "1.22.0-alpha"
-  val PostgresVersion                 = "42.5.1"
+  val PostgresVersion                 = "42.5.3"
   val ScalatestVersion                = "3.2.15"
-  val SlickVersion                    = "3.3.3"
+  val SlickVersion                    = "3.4.1"
 
   val akka = Seq(
     "com.typesafe.akka" %% "akka-http"                   % AkkaHttpVersion,
@@ -32,7 +33,7 @@ object Dependencies {
 
   val akkaPersistance = Seq(
     "com.typesafe.akka"  %% "akka-persistence-typed" % AkkaVersion,
-    "com.lightbend.akka" %% "akka-persistence-jdbc"  % "5.1.0",
+    "com.lightbend.akka" %% "akka-persistence-jdbc"  % "5.2.0",
     "com.typesafe.akka"  %% "akka-persistence-query" % AkkaVersion
   )
 
@@ -41,8 +42,8 @@ object Dependencies {
   )
 
   val byteBuddy = Seq(
-    "net.bytebuddy" % "byte-buddy"       % "1.12.23",
-    "net.bytebuddy" % "byte-buddy-agent" % "1.12.23"
+    "net.bytebuddy" % "byte-buddy"       % ByteBuddyVersion,
+    "net.bytebuddy" % "byte-buddy-agent" % ByteBuddyVersion
   )
 
   val logback = Seq("ch.qos.logback" % "logback-classic" % LogbackVersion)
