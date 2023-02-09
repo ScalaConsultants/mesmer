@@ -57,7 +57,7 @@ lazy val core = (project in file("core"))
     name := "mesmer-akka-core",
     libraryDependencies ++= {
       akka ++
-      openTelemetryInstrumentation ++
+      opentelemetryExtensionApi ++
       scalatest.map(_ % "test") ++
       akkaTestkit.map(_ % "test")
     }
@@ -90,8 +90,8 @@ lazy val otelExtension = (project in file("otel-extension"))
     libraryDependencies ++= {
       zio.map(_ % "provided") ++
       openTelemetryExtension.map(_ % "provided") ++
+      opentelemetryExtensionApi ++
       openTelemetryMuzzle.map(_ % "provided") ++
-      openTelemetryInstrumentation.map(_ % "provided") ++
       openTelemetryInstrumentationApiSemanticConventions ++
       byteBuddy.map(_ % "provided") ++
       akkaTestkit.map(_ % "it,test") ++
@@ -99,7 +99,7 @@ lazy val otelExtension = (project in file("otel-extension"))
       openTelemetryTesting.map(_ % "it,test")
     },
     assembly / test            := {},
-    assembly / assemblyJarName := s"${name.value}_${scalaBinaryVersion.value}-${version.value}-assembly.jar",
+    assembly / assemblyJarName := s"${name.value}-assembly.jar",
     assemblyMergeStrategySettings,
     assembly / artifact := {
       val art = (assembly / artifact).value
@@ -108,7 +108,7 @@ lazy val otelExtension = (project in file("otel-extension"))
     addArtifact(assembly / artifact, assembly),
     Test / fork              := true,
     Test / parallelExecution := true,
-    Test / testGrouping := ((Test / testGrouping).value) flatMap { group =>
+    Test / testGrouping := (Test / testGrouping).value flatMap { group =>
       group.tests.map { test =>
         Tests.Group(name = test.name, tests = Seq(test), runPolicy = group.runPolicy)
       }
@@ -117,10 +117,10 @@ lazy val otelExtension = (project in file("otel-extension"))
     IntegrationTest / parallelExecution := false,
     IntegrationTest / fork              := true,
     IntegrationTest / javaOptions ++= Seq(
-      s"-javaagent:$projectRootDir/opentelemetry-agent-for-testing-$OpentelemetryAlphaVersion131.jar",
+      s"-javaagent:$projectRootDir/opentelemetry-agent-for-testing-$OpentelemetryAlphaVersion.jar",
       s"-Dotel.javaagent.extensions=${assembly.value.absolutePath}",
       "-Dotel.javaagent.debug=false",
-      "-Dotel.metric.export.interval=100", // 100 ms so that the "eventually" assertions could catch up
+      "-Dotel.metric.export.interval=50", // 100 ms so that the "eventually" assertions could catch up
       "-Dotel.javaagent.testing.fail-on-context-leak=true",
       "-Dotel.javaagent.testing.transform-safe-logging.enabled=true",
       "-Dotel.metrics.exporter=otlp",
@@ -149,23 +149,22 @@ lazy val example = (project in file("example"))
       scalatest.map(_ % "test") ++
       akkaTestkit.map(_ % "test") ++
       akkaPersistance ++
-      logback ++
-      Seq(
-        "io.circe"                      %% "circe-core"                                % CirceVersion,
-        "io.circe"                      %% "circe-generic"                             % CirceVersion,
-        "io.circe"                      %% "circe-parser"                              % CirceVersion,
-        "de.heikoseeberger"             %% "akka-http-circe"                           % "1.39.2",
-        "dev.zio"                       %% "zio"                                       % "2.0.0",
-        "org.postgresql"                 % "postgresql"                                % PostgresVersion,
-        "com.typesafe.slick"            %% "slick"                                     % SlickVersion,
-        "com.typesafe.slick"            %% "slick-hikaricp"                            % SlickVersion,
-        "com.typesafe.akka"             %% "akka-discovery"                            % AkkaVersion,
-        "com.lightbend.akka.management" %% "akka-management"                           % AkkaManagementVersion,
-        "com.lightbend.akka.management" %% "akka-management-cluster-http"              % AkkaManagementVersion,
-        "com.lightbend.akka.management" %% "akka-management-cluster-bootstrap"         % AkkaManagementVersion,
-        "io.opentelemetry"               % "opentelemetry-sdk-extension-autoconfigure" % OpentelemetryAlphaVersion130,
-        "io.grpc"                        % "grpc-netty-shaded"                         % "1.49.2",
-        "org.wvlet.airframe"            %% "airframe-log"                              % AirframeVersion
+      logback ++ Seq(
+        "io.circe"                      %% "circe-core"                        % CirceVersion,
+        "io.circe"                      %% "circe-generic"                     % CirceVersion,
+        "io.circe"                      %% "circe-parser"                      % CirceVersion,
+        "de.heikoseeberger"             %% "akka-http-circe"                   % "1.39.2",
+        "dev.zio"                       %% "zio"                               % "2.0.0",
+        "org.postgresql"                 % "postgresql"                        % PostgresVersion,
+        "com.typesafe.slick"            %% "slick"                             % SlickVersion,
+        "com.typesafe.slick"            %% "slick-hikaricp"                    % SlickVersion,
+        "com.typesafe.akka"             %% "akka-discovery"                    % AkkaVersion,
+        "com.lightbend.akka.management" %% "akka-management"                   % AkkaManagementVersion,
+        "com.lightbend.akka.management" %% "akka-management-cluster-http"      % AkkaManagementVersion,
+        "com.lightbend.akka.management" %% "akka-management-cluster-bootstrap" % AkkaManagementVersion,
+        "io.opentelemetry"    % "opentelemetry-sdk-extension-autoconfigure" % OpentelemetryAlphaMinor0Version,
+        "io.grpc"             % "grpc-netty-shaded"                         % "1.49.2",
+        "org.wvlet.airframe" %% "airframe-log"                              % AirframeVersion
       )
     },
     assemblyMergeStrategySettings,
@@ -221,11 +220,11 @@ def runExampleWithOtelAgent = Command.command("runExampleWithOtelAgent") { state
   val newState = extracted.appendWithSession(
     Seq(
       run / javaOptions ++= Seq(
-        s"-javaagent:$projectRootDir/opentelemetry-javaagent-$OpentelemetryLatestVersion.jar",
+        s"-javaagent:$projectRootDir/opentelemetry-javaagent-$OpentelemetryVersion.jar",
         s"-Dotel.service.name=mesmer-example",
         s"-Dotel.metric.export.interval=5000",
         s"-Dotel.javaagent.extensions=${(otelExtension / assembly).value.absolutePath}",
-        "-Dotel.javaagent.debug=false"
+        "-Dotel.javaagent.debug=true"
       )
     ),
     state
@@ -240,7 +239,7 @@ def runStreamExampleWithOtelAgent = Command.command("runStreamExampleWithOtelAge
   val newState = extracted.appendWithSession(
     Seq(
       run / javaOptions ++= Seq(
-        s"-javaagent:$projectRootDir/opentelemetry-javaagent-$OpentelemetryLatestVersion.jar",
+        s"-javaagent:$projectRootDir/opentelemetry-javaagent-$OpentelemetryVersion.jar",
         s"-Dotel.service.name=mesmer-stream-example",
         s"-Dotel.metric.export.interval=5000",
         s"-Dotel.javaagent.extensions=${(otelExtension / assembly).value.absolutePath}"
@@ -258,7 +257,7 @@ def runZioExampleWithOtelAgent = Command.command("runZioExampleWithOtelAgent") {
   val newState = extracted.appendWithSession(
     Seq(
       run / javaOptions ++= Seq(
-        s"-javaagent:$projectRootDir/opentelemetry-javaagent-$OpentelemetryLatestVersion.jar",
+        s"-javaagent:$projectRootDir/opentelemetry-javaagent-$OpentelemetryVersion.jar",
         s"-Dotel.service.name=mesmer-zio-example",
         s"-Dotel.metric.export.interval=1000",
         s"-Dotel.javaagent.extensions=${(otelExtension / assembly).value.absolutePath}"

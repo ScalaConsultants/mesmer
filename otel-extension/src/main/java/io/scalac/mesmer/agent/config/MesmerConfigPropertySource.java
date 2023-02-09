@@ -1,15 +1,19 @@
 package io.scalac.mesmer.agent.config;
 
 import com.google.auto.service.AutoService;
-import io.opentelemetry.javaagent.extension.config.ConfigPropertySource;
-
+import io.opentelemetry.sdk.autoconfigure.spi.AutoConfigurationCustomizer;
+import io.opentelemetry.sdk.autoconfigure.spi.AutoConfigurationCustomizerProvider;
 import java.util.Map;
 
-@AutoService(ConfigPropertySource.class)
-public class MesmerConfigPropertySource implements ConfigPropertySource {
+@AutoService(AutoConfigurationCustomizerProvider.class)
+public class MesmerConfigPropertySource implements AutoConfigurationCustomizerProvider {
 
-    @Override
-    public Map<String, String> getProperties() {
-        return MesmerConfigPropertySourceProvider.getProperties();
-    }
+  public Map<String, String> getProperties() {
+    return MesmerConfigPropertySourceProvider.getProperties();
+  }
+
+  @Override
+  public void customize(AutoConfigurationCustomizer autoConfiguration) {
+    autoConfiguration.addPropertiesSupplier(this::getProperties);
+  }
 }

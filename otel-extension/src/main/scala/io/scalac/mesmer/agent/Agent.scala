@@ -1,10 +1,14 @@
 package io.scalac.mesmer.agent
 
+import java.security.ProtectionDomain
+
 import io.opentelemetry.javaagent.extension.instrumentation.TypeInstrumentation
 import io.opentelemetry.javaagent.extension.instrumentation.TypeTransformer
+import net.bytebuddy.agent.builder.AgentBuilder
 import net.bytebuddy.description.`type`.TypeDescription
 import net.bytebuddy.dynamic.DynamicType
 import net.bytebuddy.matcher.ElementMatcher
+import net.bytebuddy.utility.JavaModule
 
 import scala.jdk.CollectionConverters.SeqHasAsJava
 
@@ -25,9 +29,15 @@ final case class Agent private (private[mesmer] val instrumentations: Set[AgentI
         override def typeMatcher(): ElementMatcher[TypeDescription] = instrumentation.`type`.desc
 
         override def transform(transformer: TypeTransformer): Unit =
-          transformer.applyTransformer { (builder: DynamicType.Builder[_], _, _, _) =>
-            instrumentation.transformBuilder(builder)
-          }
+          transformer.applyTransformer(new AgentBuilder.Transformer() {
+            override def transform(
+              builder: DynamicType.Builder[_],
+              typeDescription: TypeDescription,
+              classLoader: ClassLoader,
+              module: JavaModule,
+              protectionDomain: ProtectionDomain
+            ): DynamicType.Builder[_] = instrumentation.transformBuilder(builder)
+          })
       }
     }
     instrumentations.toSeq.sorted.map(toOtelAgentTypeInstrumentation).asJava

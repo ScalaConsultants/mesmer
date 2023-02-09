@@ -1,7 +1,7 @@
 package akka.stream;
 
 import akka.stream.impl.fusing.GraphInterpreter;
-import io.opentelemetry.instrumentation.api.field.VirtualField;
+import io.opentelemetry.instrumentation.api.util.VirtualField;
 import io.scalac.mesmer.otelextension.instrumentations.akka.stream.impl.ConnectionCounters;
 import net.bytebuddy.asm.Advice;
 

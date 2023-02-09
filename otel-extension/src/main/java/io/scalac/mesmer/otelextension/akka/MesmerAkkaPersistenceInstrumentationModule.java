@@ -34,6 +34,8 @@ public class MesmerAkkaPersistenceInstrumentationModule extends InstrumentationM
   @Override
   public List<String> getAdditionalHelperClassNames() {
     return Arrays.asList(
+        "io.scalac.mesmer.configuration.Config$",
+        "io.scalac.mesmer.configuration.Config",
         "io.scalac.mesmer.otelextension.instrumentations.akka.persistence.Instruments",
         "io.scalac.mesmer.otelextension.instrumentations.akka.persistence.InstrumentsProvider$$anon$1",
         "io.scalac.mesmer.otelextension.instrumentations.akka.persistence.InstrumentsProvider",

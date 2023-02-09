@@ -4,7 +4,7 @@ import akka.actor.ActorContext;
 import akka.actor.ActorSystem;
 import akka.actor.ClassicActorSystemProvider;
 import io.opentelemetry.api.common.Attributes;
-import io.opentelemetry.instrumentation.api.field.VirtualField;
+import io.opentelemetry.instrumentation.api.util.VirtualField;
 import io.scalac.mesmer.core.actor.ActorRefAttributeFactory;
 import io.scalac.mesmer.otelextension.instrumentations.akka.actor.impl.otel.ActorCellInstrumentationState;
 import net.bytebuddy.asm.Advice;

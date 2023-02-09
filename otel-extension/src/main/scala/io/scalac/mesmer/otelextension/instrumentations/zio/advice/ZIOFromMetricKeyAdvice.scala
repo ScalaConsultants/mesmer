@@ -1,7 +1,7 @@
 package io.scalac.mesmer.otelextension.instrumentations.zio.advice
 
 import io.opentelemetry.api.common.Attributes
-import io.opentelemetry.instrumentation.api.field.VirtualField
+import io.opentelemetry.instrumentation.api.util.VirtualField
 import net.bytebuddy.asm.Advice
 import zio.metrics.Metric
 import zio.metrics.Metric.Counter

@@ -2,7 +2,7 @@ package io.scalac.mesmer.core.actor
 
 import akka.MesmerMirrorTypes.Cell
 import akka.actor.ActorContext
-import io.opentelemetry.instrumentation.api.field.VirtualField
+import io.opentelemetry.instrumentation.api.util.VirtualField
 
 object ActorCellDecorator {
 
