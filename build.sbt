@@ -49,7 +49,7 @@ lazy val all: Project = (project in file("."))
     name           := "mesmer-all",
     publish / skip := true
   )
-  .aggregate(extension, otelExtension, example, core)
+  .aggregate(extension, otelExtension, example, core, testkit)
 
 lazy val core = (project in file("core"))
   .disablePlugins(sbtassembly.AssemblyPlugin)
@@ -61,6 +61,22 @@ lazy val core = (project in file("core"))
       scalatest.map(_ % "test") ++
       akkaTestkit.map(_ % "test")
     }
+  )
+  .dependsOn(tagging, testkit % "test")
+
+lazy val testkit = (project in file("testkit"))
+  .disablePlugins(sbtassembly.AssemblyPlugin)
+  .settings(
+    name := "mesmer-testkit",
+    libraryDependencies ++= {
+      scalatest ++ akkaTestkit
+    }
+  )
+  .dependsOn(tagging)
+
+lazy val tagging = (project in file("tagging"))
+  .settings(
+    name := "mesmer-tagging"
   )
 
 lazy val extension = (project in file("extension"))
@@ -79,7 +95,7 @@ lazy val extension = (project in file("extension"))
       logback.map(_ % Test)
     }
   )
-  .dependsOn(core % "compile->compile;test->test")
+  .dependsOn(core, testkit % "test")
 
 lazy val otelExtension = (project in file("otel-extension"))
   .configs(IntegrationTest)
@@ -137,7 +153,7 @@ lazy val otelExtension = (project in file("otel-extension"))
       "-Dio.opentelemetry.javaagent.slf4j.simpleLogger.log.io.grpc.Context=INFO"
     )
   )
-  .dependsOn(core % "provided->compile;test->test;compile->compile;it->test")
+  .dependsOn(core % "provided->compile;compile->compile", testkit % "it,test")
 
 lazy val example = (project in file("example"))
   .enablePlugins(JavaAppPackaging, UniversalPlugin)
