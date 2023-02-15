@@ -49,7 +49,7 @@ lazy val all: Project = (project in file("."))
     name           := "mesmer-all",
     publish / skip := true
   )
-  .aggregate(extension, otelExtension, example, core, testkit)
+  .aggregate(extension, otelExtension, example, core, testkit, tagging)
 
 lazy val core = (project in file("core"))
   .disablePlugins(sbtassembly.AssemblyPlugin)
