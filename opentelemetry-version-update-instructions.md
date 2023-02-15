@@ -17,9 +17,7 @@ For this reason we have to build the .jar with temporality set to `CUMULATIVE` o
 
 1. Clone the https://github.com/open-telemetry/opentelemetry-java-instrumentation.
 1. Checkout the tag of the version to which the update is being done.
-1.
-Change [OtlpInMemoryMetricExporter.java](https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/main/testing/agent-exporter/src/main/java/io/opentelemetry/javaagent/testing/exporter/OtlpInMemoryMetricExporter.java)
-`getAggregationTemporality()` to return `AggregationTemporality.CUMULATIVE`.
-
+1. Change [OtlpInMemoryMetricExporter.java](https://github.com/open-telemetry/opentelemetry-java-instrumentation/blob/main/testing/agent-exporter/src/main/java/io/opentelemetry/javaagent/testing/exporter/OtlpInMemoryMetricExporter.java)
+   `getAggregationTemporality()` to return `AggregationTemporality.CUMULATIVE`.
 1. Run gradle task to build the jar - `:testing:agent-for-testing:jar`.
 1. The jar can be found in `testing/agent-for-testing/build/libs/`.
