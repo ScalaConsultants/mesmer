@@ -11,8 +11,7 @@
 
 Tests in this repo require aggregation temporality to be set to `CUMULATIVE`. However, there was a change made
 to the [opentelemetry-java-instrumentation](https://github.com/open-telemetry/opentelemetry-java-instrumentation)
-agent-for-testing.jar that set the
-temporalityto `DELTA` ([change reference](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/5923#discussion_r856619839)).
+agent-for-testing.jar that set the temporality to `DELTA` ([change reference](https://github.com/open-telemetry/opentelemetry-java-instrumentation/pull/5923#discussion_r856619839)).
 For this reason we have to build the .jar with temporality set to `CUMULATIVE` ourselves. Following are the steps:
 
 1. Clone the https://github.com/open-telemetry/opentelemetry-java-instrumentation.
