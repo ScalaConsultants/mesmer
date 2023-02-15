@@ -88,8 +88,7 @@ class OtelAkkaPersistenceAgentTest
     )
   }
 
-  // TODO: Make this test work again but with DELTA aggregation temporality
-  it should "generate recovery, persisting and snapshot metrics for multiple persist event" ignore test {
+  it should "generate recovery, persisting and snapshot metrics for multiple persist event" in test {
     case (id, actor) =>
       List.fill(5)(Persist).foreach(actor.tell)
 
