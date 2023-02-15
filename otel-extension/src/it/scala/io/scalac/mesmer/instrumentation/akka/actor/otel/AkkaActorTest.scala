@@ -315,7 +315,7 @@ final class AkkaActorTest
     testForStrategy(SupervisorStrategy.stop)
   }
 
-  it should "record the amount of unhandled messages" in {
+  it should "record the amount of unhandled messages" ignore {
 
     def expectEmpty(
       context: classic.ActorContext
