@@ -9,8 +9,6 @@ import akka.actor.typed.scaladsl.Behaviors
 import akka.testkit.TestKit
 import akka.util.Timeout
 
-import io.scalac.mesmer.core.tagging._
-import io.scalac.mesmer.core.util.TestCase.MonitorWithServiceTestCaseFactory.SetupTag
 import io.scalac.mesmer.core.util.probe.Collected
 import io.scalac.mesmer.core.util.probe.ObserverCollector
 
@@ -116,7 +114,7 @@ object TestCase {
 
   trait MonitorWithActorRefSetupTestCaseFactory extends AbstractMonitorTestCaseFactory with TestOps {
     type Command
-    type Setup = ActorRef[_ >: Command] @@ SetupTag
+    type Setup = ActorRef[_ >: Command]
 
     // add-on api
     protected def createMonitorBehavior(implicit context: Context): Behavior[Command]
@@ -125,7 +123,7 @@ object TestCase {
     protected def setUp(context: Context): Setup = {
       val monitorBehavior = createMonitorBehavior(context)
       val monitorActor    = context.system.systemActorOf(monitorBehavior, createUniqueId)
-      monitorActor.taggedWith[SetupTag]
+      monitorActor
     }
 
     final protected def tearDown(setup: Setup): Unit =
@@ -145,7 +143,7 @@ object TestCase {
     final override protected def setUp(context: Context): Setup = {
       val monitorActor = super[MonitorWithActorRefSetupTestCaseFactory].setUp(context)
       onlyRef(monitorActor, serviceKey)(context.system, timeout)
-      monitorActor.taggedWith[SetupTag]
+      monitorActor
     }
 
   }
