@@ -148,8 +148,7 @@ class ActorMailboxTest
     testWithProps(props)
   }
 
-  // TODO: Fix the test so that it works with DELTA aggregation temporality
-  it should "increase dropped messages for bounded queue" ignore {
+  it should "increase dropped messages for bounded queue" in {
     val props = MailboxSelector
       .fromConfig("bounded-queue ")
       .withDispatcherFromConfig("single-thread-dispatcher")

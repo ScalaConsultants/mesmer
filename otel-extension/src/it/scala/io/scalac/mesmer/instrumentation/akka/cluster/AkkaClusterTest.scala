@@ -37,8 +37,7 @@ final class AkkaClusterTest extends AnyFlatSpec with OtelAgentTest with TestOps 
     assertMetricCollected("mesmer_akka_cluster_node_down_total")
   }
 
-  // TODO: Fix the test so that it works with DELTA aggregation temporality
-  it should "record reachable nodes metric" ignore {
+  it should "record reachable nodes metric" in {
     assertMetricCollected("mesmer_akka_cluster_reachable_nodes")
   }
 

@@ -315,7 +315,6 @@ final class AkkaActorTest
     testForStrategy(SupervisorStrategy.stop)
   }
 
-  // TODO: Make this test work again but with DELTA aggregation temporality
   it should "record the amount of unhandled messages" in {
 
     def expectEmpty(
@@ -398,8 +397,7 @@ final class AkkaActorTest
     receiver ! PoisonPill
   }
 
-  // TODO: Fix the test so that it works with DELTA aggregation temporality
-  it should "record the amount of sent messages properly in typed akka" ignore {
+  it should "record the amount of sent messages properly in typed akka" in {
 
     def expectedEmpty(context: classic.ActorContext): Any = assertMetric("mesmer_akka_actor_sent_messages_total") {
       data =>

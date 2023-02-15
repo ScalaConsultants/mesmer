@@ -36,8 +36,7 @@ class ZIOMetricsTest extends OtelAgentTest with AnyFlatSpecLike with Matchers wi
     assertCounterMetricValue("mesmer_zio_forwarded_zio_fiber_successes", 2)
   }
 
-  // TODO: Make this test work again but with DELTA aggregation temporality
-  "Runtime fiber_failures metric" should "be picked up by our OTEL instrumentations" ignore {
+  "Runtime fiber_failures metric" should "be picked up by our OTEL instrumentations" in {
     val testProgram =
       for {
         fiber  <- ZIO.fail(new Throwable("I failed.")).fork
