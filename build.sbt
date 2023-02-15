@@ -49,7 +49,7 @@ lazy val all: Project = (project in file("."))
     name           := "mesmer-all",
     publish / skip := true
   )
-  .aggregate(extension, otelExtension, example, core, testkit, tagging)
+  .aggregate(extension, otelExtension, example, core, testkit)
 
 lazy val core = (project in file("core"))
   .disablePlugins(sbtassembly.AssemblyPlugin)
@@ -62,21 +62,16 @@ lazy val core = (project in file("core"))
       akkaTestkit.map(_ % "test")
     }
   )
-  .dependsOn(tagging, testkit % "test")
+  .dependsOn(testkit % "test")
 
 lazy val testkit = (project in file("testkit"))
   .disablePlugins(sbtassembly.AssemblyPlugin)
   .settings(
-    name := "mesmer-testkit",
+    name           := "mesmer-testkit",
+    publish / skip := true,
     libraryDependencies ++= {
       scalatest ++ akkaTestkit
     }
-  )
-  .dependsOn(tagging)
-
-lazy val tagging = (project in file("tagging"))
-  .settings(
-    name := "mesmer-tagging"
   )
 
 lazy val extension = (project in file("extension"))
