@@ -151,7 +151,7 @@ lazy val otelExtension = (project in file("otel-extension"))
   .dependsOn(core % "provided->compile;compile->compile", testkit % "it,test")
 
 lazy val example = (project in file("example"))
-  .enablePlugins(JavaAppPackaging, UniversalPlugin)
+  //.enablePlugins(JavaAppPackaging, UniversalPlugin)
   .settings(
     name           := "mesmer-akka-example",
     publish / skip := true,
@@ -182,7 +182,7 @@ lazy val example = (project in file("example"))
     mainClass                  := Some("example.Boot"),
     assembly / assemblyJarName := "mesmer-akka-example.jar",
     resolvers += "Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots",
-    run / fork := true,
+    run / fork := false,
     run / javaOptions ++= {
       val properties = System.getProperties
 
