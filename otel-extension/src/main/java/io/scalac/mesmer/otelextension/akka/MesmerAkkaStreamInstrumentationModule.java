@@ -57,8 +57,6 @@ public class MesmerAkkaStreamInstrumentationModule extends InstrumentationModule
         "io.scalac.mesmer.otelextension.instrumentations.akka.stream.impl.ActorGraphInterpreterOtelDecorator",
         "io.scalac.mesmer.otelextension.instrumentations.akka.stream.impl.ActorGraphInterpreterOtelDecorator$",
         "io.scalac.mesmer.otelextension.instrumentations.akka.stream.impl.ActorGraphInterpreterOtelDecorator$$anonfun$addCollectionReceive$1",
-        "akka.ActorGraphInterpreterProcessEventOtelAdvice$",
-        "akka.ActorGraphInterpreterTryInitOtelAdvice$",
         "io.scalac.mesmer.otelextension.instrumentations.akka.stream.impl.GraphStageIslandOps",
         "io.scalac.mesmer.otelextension.instrumentations.akka.stream.impl.GraphStageIslandOps$",
         "io.scalac.mesmer.otelextension.instrumentations.akka.stream.impl.GraphStageIslandOps$TerminalSink$",

@@ -8,7 +8,12 @@ object AkkaStreamAgents {
 
   def getAllStreamInstrumentations: java.util.List[TypeInstrumentation] = {
     val old: List[TypeInstrumentation] = AkkaStreamAgent.agent.asOtelTypeInstrumentations.asScala.toList
-    val migrated                       = List(AkkaStreamAgentMigrated.streamMetricsExtension)
+
+    val migrated = List(
+      AkkaStreamAgentMigrated.streamMetricsExtension,
+      AkkaStreamAgentMigrated.actorGraphInterpreterInstrumentation
+    )
+
     (old ++ migrated).asJava
   }
 }

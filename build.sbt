@@ -256,7 +256,8 @@ def runStreamExampleWithOtelAgent = Command.command("runStreamExampleWithOtelAge
         s"-javaagent:$projectRootDir/opentelemetry-javaagent-$OpentelemetryVersion.jar",
         s"-Dotel.service.name=mesmer-stream-example",
         s"-Dotel.metric.export.interval=5000",
-        s"-Dotel.javaagent.extensions=${(otelExtension / assembly).value.absolutePath}"
+        s"-Dotel.javaagent.extensions=${(otelExtension / assembly).value.absolutePath}",
+        "-Dotel.javaagent.debug=true"
       )
     ),
     state
