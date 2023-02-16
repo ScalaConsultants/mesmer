@@ -7,7 +7,6 @@ import akka.stream.ConnectionConstructorAdvice
 import akka.stream.GraphInterpreterOtelPullAdvice
 import akka.stream.GraphInterpreterOtelPushAdvice
 import akka.stream.GraphStageIslandOtelAdvice
-import akka.stream.impl.StreamMetricsExtensionAdvice
 
 import io.scalac.mesmer.agent.Agent
 import io.scalac.mesmer.agent.AgentInstrumentation
@@ -40,11 +39,6 @@ object AkkaStreamAgent
       demand.onCondition(config.demand)
     ).reduce(_ ++ _)
   }
-
-  private val streamMetricsExtension =
-    AgentInstrumentation.deferred(
-      instrument("akka.actor.ActorSystemImpl".fqcn).visit[StreamMetricsExtensionAdvice](constructor)
-    )
 
   lazy val runningStreamsTotal: Agent = sharedImplementations
 
@@ -128,6 +122,6 @@ object AkkaStreamAgent
     )
 
   private val sharedImplementations =
-    connectionConstructorAdvice ++ connectionPushAgent ++ connectionPullAgent ++ actorGraphInterpreterInstrumentation ++ graphStageIslandInstrumentation ++ phasedFusingActorMaterializerAgentInstrumentation ++ streamMetricsExtension
+    connectionConstructorAdvice ++ connectionPushAgent ++ connectionPullAgent ++ actorGraphInterpreterInstrumentation ++ graphStageIslandInstrumentation ++ phasedFusingActorMaterializerAgentInstrumentation
 
 }

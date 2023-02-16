@@ -6,7 +6,7 @@ import io.opentelemetry.javaagent.extension.instrumentation.TypeInstrumentation;
 import io.opentelemetry.javaagent.tooling.muzzle.InstrumentationModuleMuzzle;
 import io.opentelemetry.javaagent.tooling.muzzle.VirtualFieldMappingsBuilder;
 import io.opentelemetry.javaagent.tooling.muzzle.references.ClassRef;
-import io.scalac.mesmer.otelextension.instrumentations.akka.stream.AkkaStreamAgent;
+import io.scalac.mesmer.otelextension.instrumentations.akka.stream.AkkaStreamAgents;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -22,7 +22,7 @@ public class MesmerAkkaStreamInstrumentationModule extends InstrumentationModule
 
   @Override
   public List<TypeInstrumentation> typeInstrumentations() {
-    return AkkaStreamAgent.agent().asOtelTypeInstrumentations();
+    return AkkaStreamAgents.getAllStreamInstrumentations();
   }
 
   @Override
@@ -70,7 +70,6 @@ public class MesmerAkkaStreamInstrumentationModule extends InstrumentationModule
         "io.scalac.mesmer.otelextension.instrumentations.akka.stream.AkkaStreamMonitorExtension$StreamStatsReceived",
         "io.scalac.mesmer.otelextension.instrumentations.akka.stream.AkkaStreamMetrics",
         "io.scalac.mesmer.otelextension.instrumentations.akka.stream.AkkaStreamConfig$",
-        "io.scalac.mesmer.otelextension.instrumentations.akka.stream.AkkaStreamAttributes$"
-    );
+        "io.scalac.mesmer.otelextension.instrumentations.akka.stream.AkkaStreamAttributes$");
   }
 }
