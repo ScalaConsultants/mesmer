@@ -188,7 +188,7 @@ lazy val example = (project in file("example"))
 
       import scala.collection.JavaConverters._
       val keys = for {
-        (key, value) <- properties.asScala.toList if value.nonEmpty
+        (key, value) <- properties.asScala.toList if value.nonEmpty && key != "line.separator"
       } yield s"-D$key=$value"
 
       keys
