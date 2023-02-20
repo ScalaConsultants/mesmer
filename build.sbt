@@ -152,7 +152,6 @@ lazy val otelExtension = (project in file("otel-extension"))
 
 def exampleCommonSettings = Seq(
   publish / skip := true,
-  assemblyMergeStrategySettings,
   resolvers += "Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots",
   run / javaOptions ++= {
     val properties = System.getProperties
@@ -168,7 +167,14 @@ def exampleCommonSettings = Seq(
     s"-javaagent:$projectRootDir/opentelemetry-javaagent-$OpentelemetryVersion.jar",
     s"-Dotel.javaagent.extensions=${(otelExtension / assembly).value.absolutePath}",
     "-Dotel.javaagent.debug=true"
-  )
+  ),
+  libraryDependencies ++= {
+    logback ++ Seq(
+      "io.opentelemetry"    % "opentelemetry-sdk-extension-autoconfigure" % OpentelemetryAlphaMinor0Version,
+      "io.grpc"             % "grpc-netty-shaded"                         % "1.53.0",
+      "org.wvlet.airframe" %% "airframe-log"                              % AirframeVersion
+    )
+  }
 )
 
 lazy val exampleAkka = (project in file("examples/akka"))
@@ -180,7 +186,6 @@ lazy val exampleAkka = (project in file("examples/akka"))
       scalatest.map(_ % "test") ++
       akkaTestkit.map(_ % "test") ++
       akkaPersistance ++
-      zio ++
       logback ++ Seq(
         "io.circe"                      %% "circe-core"                        % CirceVersion,
         "io.circe"                      %% "circe-generic"                     % CirceVersion,
@@ -192,10 +197,7 @@ lazy val exampleAkka = (project in file("examples/akka"))
         "com.typesafe.akka"             %% "akka-discovery"                    % AkkaVersion,
         "com.lightbend.akka.management" %% "akka-management"                   % AkkaManagementVersion,
         "com.lightbend.akka.management" %% "akka-management-cluster-http"      % AkkaManagementVersion,
-        "com.lightbend.akka.management" %% "akka-management-cluster-bootstrap" % AkkaManagementVersion,
-        "io.opentelemetry"    % "opentelemetry-sdk-extension-autoconfigure" % OpentelemetryAlphaMinor0Version,
-        "io.grpc"             % "grpc-netty-shaded"                         % "1.53.0",
-        "org.wvlet.airframe" %% "airframe-log"                              % AirframeVersion
+        "com.lightbend.akka.management" %% "akka-management-cluster-bootstrap" % AkkaManagementVersion
       )
     },
     mainClass := Some("example.Boot"),
@@ -210,14 +212,7 @@ lazy val exampleAkkaStream = (project in file("examples/akka-stream"))
   .settings(exampleCommonSettings)
   .settings(
     name := "mesmer-akka-stream-example",
-    libraryDependencies ++= {
-      akka ++
-      logback ++ Seq(
-        "io.opentelemetry"    % "opentelemetry-sdk-extension-autoconfigure" % OpentelemetryAlphaMinor0Version,
-        "io.grpc"             % "grpc-netty-shaded"                         % "1.53.0",
-        "org.wvlet.airframe" %% "airframe-log"                              % AirframeVersion
-      )
-    },
+    libraryDependencies ++= akka,
     mainClass := Some("example.SimpleStreamExample"),
     run / javaOptions ++= Seq(
       s"-Dotel.service.name=mesmer-stream-example",
@@ -230,14 +225,7 @@ lazy val exampleZio = (project in file("examples/zio"))
   .settings(exampleCommonSettings)
   .settings(
     name := "mesmer-zio-example",
-    libraryDependencies ++= {
-      zio ++
-      logback ++ Seq(
-        "io.opentelemetry"    % "opentelemetry-sdk-extension-autoconfigure" % OpentelemetryAlphaMinor0Version,
-        "io.grpc"             % "grpc-netty-shaded"                         % "1.53.0",
-        "org.wvlet.airframe" %% "airframe-log"                              % AirframeVersion
-      )
-    },
+    libraryDependencies ++= zio,
     mainClass := Some("example.SimpleZioExample"),
     run / javaOptions ++= Seq(
       s"-Dotel.service.name=mesmer-zio-example",
