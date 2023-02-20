@@ -174,7 +174,8 @@ def exampleCommonSettings = Seq(
       "io.grpc"             % "grpc-netty-shaded"                         % "1.53.0",
       "org.wvlet.airframe" %% "airframe-log"                              % AirframeVersion
     )
-  }
+  },
+  run / fork := true
 )
 
 lazy val exampleAkka = (project in file("examples/akka"))
