@@ -4,6 +4,8 @@ import io.opentelemetry.instrumentation.testing.AgentTestRunner
 import io.opentelemetry.sdk.metrics.data.{ HistogramPointData, MetricData }
 import io.opentelemetry.sdk.metrics.internal.aggregator.EmptyMetricData
 import org.scalatest.concurrent.Eventually
+import org.scalatest.matchers.must.Matchers.be
+import org.scalatest.matchers.should.Matchers.convertToAnyShouldWrapper
 import org.scalatest.{ BeforeAndAfterAll, BeforeAndAfterEach, OptionValues, TestSuite }
 
 import scala.jdk.CollectionConverters._
@@ -73,6 +75,12 @@ trait OtelAgentTest extends TestSuite with BeforeAndAfterAll with Eventually wit
 
   protected def assertMetricIsCollected(instrumentationName: String, metricName: String): Unit =
     assertMetrics(instrumentationName)(metricName -> Function.const(()))
+
+  protected def assertMetricSumGreaterOrEqualTo0(name: String): Unit =
+    assertMetric(name) { data =>
+      val totalCount = data.getLongSumData.getPoints.asScala.map(_.getValue).sum
+      totalCount should be >= 0L
+    }
 
 }
 
