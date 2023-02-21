@@ -1,4 +1,5 @@
 import Dependencies._
+import sbt.Keys.connectInput
 
 lazy val scala213 = "2.13"
 
@@ -153,16 +154,6 @@ lazy val otelExtension = (project in file("otel-extension"))
 def exampleCommonSettings = Seq(
   publish / skip := true,
   resolvers += "Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots",
-  run / javaOptions ++= {
-    val properties = System.getProperties
-
-    import scala.collection.JavaConverters._
-    val keys = for {
-      (key, value) <- properties.asScala.toList if value.nonEmpty
-    } yield s"-D$key=$value"
-
-    keys
-  },
   run / javaOptions ++= Seq(
     s"-javaagent:$projectRootDir/opentelemetry-javaagent-$OpentelemetryVersion.jar",
     s"-Dotel.javaagent.extensions=${(otelExtension / assembly).value.absolutePath}",
@@ -175,14 +166,8 @@ def exampleCommonSettings = Seq(
       "org.wvlet.airframe" %% "airframe-log"                              % AirframeVersion
     )
   },
-  run / fork := {
-    // forking causes `run` to fail in sbt shell on Windows
-    if (System.getProperty("os.name").toLowerCase.contains("win")) {
-      false
-    } else {
-      true
-    }
-  }
+  run / fork         := true,
+  run / connectInput := true
 )
 
 lazy val exampleAkka = (project in file("examples/akka"))
