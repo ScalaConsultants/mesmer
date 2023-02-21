@@ -13,9 +13,9 @@ import scala.reflect.ClassTag
 import scala.reflect.classTag
 import scala.util.Failure
 import scala.util.Success
-import scala.util.Try
 
 import io.scalac.mesmer.core.AkkaDispatcher
+import io.scalac.mesmer.core.util.ReflectionUtils.reflectiveIsInstanceOf
 import io.scalac.mesmer.core.util.Retry
 
 class AkkaClusterMonitorExtension(actorSystem: ActorSystem[_]) extends Extension {
@@ -53,13 +53,6 @@ class AkkaClusterMonitorExtension(actorSystem: ActorSystem[_]) extends Extension
       )
     }
   }
-
-  private def reflectiveIsInstanceOf(className: String, ref: Any): Either[String, Unit] =
-    Try(Class.forName(className)).toEither.left.map {
-      case _: ClassNotFoundException => s"Class $className not found"
-      case e                         => e.getMessage
-    }.filterOrElse(_.isInstance(ref), s"Ref $ref is not instance of $className").map(_ => ())
-
 }
 
 object AkkaClusterMonitorExtension {

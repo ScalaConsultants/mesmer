@@ -8,11 +8,11 @@ import io.opentelemetry.api.metrics.Meter
 import org.slf4j.LoggerFactory
 
 import io.scalac.mesmer.core.AkkaDispatcher
-import io.scalac.mesmer.core.cluster.ClusterNode.ActorSystemOps
 import io.scalac.mesmer.core.model._
 import io.scalac.mesmer.core.module.Module._
 import io.scalac.mesmer.core.module._
 import io.scalac.mesmer.core.typeclasses.Traverse
+import io.scalac.mesmer.core.util.TypedActorSystemOps.ActorSystemOps
 import io.scalac.mesmer.extension.config.AkkaMonitoringConfig
 import io.scalac.mesmer.extension.config.CachingConfig
 import io.scalac.mesmer.extension.metric.CachingMonitor

@@ -1,6 +1,5 @@
 package io.scalac.mesmer.core.event
 
-import akka.ActorSystemOps._
 import akka.actor.typed._
 import akka.actor.typed.receptionist.Receptionist
 import akka.actor.typed.receptionist.Receptionist.Subscribe
@@ -15,6 +14,7 @@ import scala.language.postfixOps
 import scala.util.DynamicVariable
 
 import io.scalac.mesmer.core.AkkaDispatcher.safeDispatcherSelector
+import io.scalac.mesmer.core.util.ClassicActorSystemOps._
 import io.scalac.mesmer.core.util.MutableTypedMap
 
 trait EventBus extends Extension {

@@ -4,7 +4,7 @@ import akka.actor.typed.ActorSystem
 import io.opentelemetry.api.GlobalOpenTelemetry
 import io.opentelemetry.api.metrics.Meter
 
-import io.scalac.mesmer.core.cluster.ClusterNode.ActorSystemOps
+import io.scalac.mesmer.core.util.TypedActorSystemOps.ActorSystemOps
 
 final class AkkaStreamMetrics(actorSystem: ActorSystem[_]) {
   private val meter: Meter    = GlobalOpenTelemetry.getMeter("mesmer")

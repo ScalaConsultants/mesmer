@@ -1,17 +1,16 @@
-package io.scalac.mesmer.core.cluster
+package io.scalac.mesmer.core.util
 
 import akka.actor.ExtendedActorSystem
 import akka.actor.typed.ActorSystem
 import akka.cluster.Cluster
 import org.slf4j.LoggerFactory
 
-import scala.util.Try
-
 import io.scalac.mesmer.core.model.AkkaNodeOps
 import io.scalac.mesmer.core.model.Node
+import io.scalac.mesmer.core.util.ReflectionUtils.reflectiveIsInstanceOf
 
-object ClusterNode {
-  private val log = LoggerFactory.getLogger(classOf[ClusterNode.type])
+object TypedActorSystemOps {
+  private val log = LoggerFactory.getLogger(classOf[TypedActorSystemOps.type])
 
   implicit class ActorSystemOps(system: ActorSystem[_]) {
     def clusterNodeName: Option[Node] =
@@ -27,11 +26,4 @@ object ClusterNode {
         nodeName => Some(nodeName.toNode)
       )
   }
-
-  private def reflectiveIsInstanceOf(fqcn: String, ref: Any): Either[String, Unit] =
-    Try(Class.forName(fqcn)).toEither.left.map {
-      case _: ClassNotFoundException => s"Class $fqcn not found"
-      case e                         => e.getMessage
-    }.filterOrElse(_.isInstance(ref), s"Ref $ref is not instance of $fqcn").map(_ => ())
-
 }
