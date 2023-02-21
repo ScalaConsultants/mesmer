@@ -175,7 +175,14 @@ def exampleCommonSettings = Seq(
       "org.wvlet.airframe" %% "airframe-log"                              % AirframeVersion
     )
   },
-  run / fork := true
+  run / fork := {
+    // forking causes `run` to fail in sbt shell on Windows
+    if (System.getProperty("os.name").toLowerCase.contains("win")) {
+      false
+    } else {
+      true
+    }
+  }
 )
 
 lazy val exampleAkka = (project in file("examples/akka"))
