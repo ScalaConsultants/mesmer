@@ -193,8 +193,7 @@ lazy val exampleAkka = (project in file("examples/akka"))
       akka ++
       scalatest.map(_ % "test") ++
       akkaTestkit.map(_ % "test") ++
-      akkaPersistance ++
-      logback ++ Seq(
+      akkaPersistance ++ Seq(
         "io.circe"                      %% "circe-core"                        % CirceVersion,
         "io.circe"                      %% "circe-generic"                     % CirceVersion,
         "io.circe"                      %% "circe-parser"                      % CirceVersion,
