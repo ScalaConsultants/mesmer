@@ -77,11 +77,6 @@ trait OtelAgentTest extends TestSuite with BeforeAndAfterAll with Eventually wit
     if (!isMetricCollected(instrumentationName, metricName))
       fail(s"No metric data collected for metric [$metricName] and instrumentation [$instrumentationName]")
 
-  protected def assertMetricIsNotCollected(metricName: String): Unit = assertMetricIsNotCollected("mesmer", metricName)
-
-  protected def assertMetricIsNotCollected(instrumentationName: String, metricName: String): Unit =
-    if (isMetricCollected(instrumentationName, metricName))
-      fail(s"Metric data collected for metric [$metricName] and instrumentation [$instrumentationName]")
 
   protected def isMetricCollected(instrumentationName: String, metricName: String): Boolean = {
     var result: Option[Boolean] = None
