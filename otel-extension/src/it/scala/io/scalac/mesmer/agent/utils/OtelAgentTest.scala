@@ -74,7 +74,26 @@ trait OtelAgentTest extends TestSuite with BeforeAndAfterAll with Eventually wit
   protected def assertMetricIsCollected(metricName: String): Unit = assertMetricIsCollected("mesmer", metricName)
 
   protected def assertMetricIsCollected(instrumentationName: String, metricName: String): Unit =
-    assertMetrics(instrumentationName)(metricName -> Function.const(()))
+    if (!isMetricCollected(instrumentationName, metricName))
+      fail(s"No metric data collected for metric [$metricName] and instrumentation [$instrumentationName]")
+
+  protected def assertMetricIsNotCollected(metricName: String): Unit = assertMetricIsNotCollected("mesmer", metricName)
+
+  protected def assertMetricIsNotCollected(instrumentationName: String, metricName: String): Unit =
+    if (isMetricCollected(instrumentationName, metricName))
+      fail(s"Metric data collected for metric [$metricName] and instrumentation [$instrumentationName]")
+
+  protected def isMetricCollected(instrumentationName: String, metricName: String): Boolean = {
+    var result: Option[Boolean] = None
+    assertMetrics(instrumentationName)(
+      metricName -> (metricData =>
+        if (metricData.isEmpty)
+          result = Some(false)
+        else result = Some(true)
+      )
+    )
+    result.get
+  }
 
   protected def assertMetricSumGreaterOrEqualTo0(name: String): Unit =
     assertMetric(name) { data =>
