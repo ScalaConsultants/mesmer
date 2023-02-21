@@ -55,7 +55,7 @@ jobs:
         with:
           java-version: '11'
           distribution: zulu
-      - name: Run tests
+      - name: Run example
         run: echo -ne '\n' | sbt "clean;${{ matrix.example }}/run"
 
   publish:
