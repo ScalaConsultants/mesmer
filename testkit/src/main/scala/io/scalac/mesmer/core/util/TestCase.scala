@@ -14,9 +14,6 @@ import io.scalac.mesmer.core.util.probe.ObserverCollector
 
 object TestCase {
 
-  /**
-   * This i
-   */
   trait TestCaseFactory {
     protected type Env
     protected type Context
@@ -140,12 +137,8 @@ object TestCase {
     implicit def timeout: Timeout
 
     // overrides
-    final override protected def setUp(context: Context): Setup = {
-      val monitorActor = super[MonitorWithActorRefSetupTestCaseFactory].setUp(context)
-      onlyRef(monitorActor, serviceKey)(context.system, timeout)
-      monitorActor
-    }
-
+    final override protected def setUp(context: Context): Setup =
+      super[MonitorWithActorRefSetupTestCaseFactory].setUp(context)
   }
 
   object MonitorWithServiceTestCaseFactory {
