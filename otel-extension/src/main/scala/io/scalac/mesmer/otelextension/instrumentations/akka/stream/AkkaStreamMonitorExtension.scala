@@ -16,7 +16,6 @@ import scala.concurrent.duration.DurationInt
 import scala.util.Failure
 import scala.util.Success
 
-import io.scalac.mesmer.core.cluster.ClusterNode.ActorSystemOps
 import io.scalac.mesmer.core.event.Service.streamService
 import io.scalac.mesmer.core.event.StreamEvent
 import io.scalac.mesmer.core.event.StreamEvent.LastStreamStats
@@ -27,9 +26,8 @@ import io.scalac.mesmer.core.util.stream
 import io.scalac.mesmer.otelextension.instrumentations.akka.stream.AkkaStreamMonitorExtension.StreamStatsReceived
 
 final class AkkaStreamMonitorExtension(actorSystem: ActorSystem[_]) extends Extension {
-  private val node = actorSystem.clusterNodeName
 
-  private val metrics = new AkkaStreamMetrics(node)
+  private lazy val metrics = new AkkaStreamMetrics(actorSystem)
 
   private val interval = AkkaStreamConfig.metricSnapshotRefreshInterval(actorSystem.classicSystem)
 

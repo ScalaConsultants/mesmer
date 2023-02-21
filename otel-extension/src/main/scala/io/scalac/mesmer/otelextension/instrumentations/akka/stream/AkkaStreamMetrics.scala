@@ -1,13 +1,14 @@
 package io.scalac.mesmer.otelextension.instrumentations.akka.stream
 
+import akka.actor.typed.ActorSystem
 import io.opentelemetry.api.GlobalOpenTelemetry
 import io.opentelemetry.api.metrics.Meter
 
-import io.scalac.mesmer.core.model.Node
+import io.scalac.mesmer.core.cluster.ClusterNode.ActorSystemOps
 
-final class AkkaStreamMetrics(node: Option[Node]) {
-  private val meter: Meter = GlobalOpenTelemetry.getMeter("mesmer")
-  private val attributes   = AkkaStreamAttributes.forNode(node)
+final class AkkaStreamMetrics(actorSystem: ActorSystem[_]) {
+  private val meter: Meter    = GlobalOpenTelemetry.getMeter("mesmer")
+  private lazy val attributes = AkkaStreamAttributes.forNode(actorSystem.clusterNodeName)
 
   @volatile private var runningStreamsTotal: Option[Long] = None
   @volatile private var runningActorsTotal: Option[Long]  = None
