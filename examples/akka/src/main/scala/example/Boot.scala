@@ -79,11 +79,9 @@ object Boot extends App with FailFastCirceSupport with JsonCodecs {
 
     StdIn.readLine()
 
-    sys.addShutdownHook {
-      binding
-        .flatMap(_.unbind())
-        .onComplete(_ => system.terminate())
-    }
+    binding
+      .flatMap(_.unbind())
+      .onComplete(_ => system.terminate())
   }
 
   startUp()
