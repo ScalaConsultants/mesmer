@@ -1,44 +1,33 @@
 package io.scalac.mesmer.instrumentation.akka.stream
 
+import _root_.io.scalac.mesmer.core.config.MesmerPatienceConfig
 import akka.Done
 import akka.actor.ActorRef
 import akka.actor.testkit.typed.scaladsl.TestProbe
-import akka.actor.typed.ActorSystem
-import akka.actor.typed.Behavior
 import akka.actor.typed.receptionist.Receptionist._
 import akka.actor.typed.receptionist.ServiceKey
 import akka.actor.typed.scaladsl.Behaviors
-import akka.stream.Attributes
-import akka.stream.BufferOverflowException
-import akka.stream.OverflowStrategy
-import akka.stream.QueueOfferResult
+import akka.actor.typed.{ ActorSystem, Behavior }
 import akka.stream.scaladsl._
-import org.scalatest._
-import org.scalatest.concurrent.Futures
-import org.scalatest.concurrent.ScalaFutures
-import org.scalatest.flatspec.AnyFlatSpecLike
-import org.scalatest.matchers.should.Matchers
-
-import scala.concurrent.ExecutionContext
-import scala.concurrent.Future
-import scala.concurrent.duration._
-
-import io.scalac.mesmer.agent.utils.OtelAgentTest
-import io.scalac.mesmer.agent.utils.SafeLoadSystem
+import akka.stream.{ Attributes, BufferOverflowException, OverflowStrategy, QueueOfferResult }
+import io.scalac.mesmer.agent.utils.{ OtelAgentTest, SafeLoadSystem }
 import io.scalac.mesmer.core.akka.model.PushMetrics
-import _root_.io.scalac.mesmer.core.config.MesmerPatienceConfig
-import io.scalac.mesmer.core.event.ActorEvent
 import io.scalac.mesmer.core.event.ActorEvent.TagsSet
-import io.scalac.mesmer.core.event.Service
-import io.scalac.mesmer.core.event.StreamEvent
-import io.scalac.mesmer.core.event.StreamEvent.LastStreamStats
-import io.scalac.mesmer.core.event.StreamEvent.StreamInterpreterStats
+import io.scalac.mesmer.core.event.StreamEvent.{ LastStreamStats, StreamInterpreterStats }
+import io.scalac.mesmer.core.event.{ ActorEvent, Service, StreamEvent }
 import io.scalac.mesmer.core.model.ActorRefTags
 import io.scalac.mesmer.core.model.Tag.stream
 import io.scalac.mesmer.core.util.TestBehaviors.Pass
 import io.scalac.mesmer.core.util.TestCase.CommonMonitorTestFactory
+import org.scalatest._
+import org.scalatest.concurrent.{ Futures, ScalaFutures }
+import org.scalatest.flatspec.AnyFlatSpecLike
+import org.scalatest.matchers.should.Matchers
 
-class AkkaStreamAgentTest
+import scala.concurrent.duration._
+import scala.concurrent.{ ExecutionContext, Future }
+
+class AkkaStreamsTest
     extends OtelAgentTest
     with AnyFlatSpecLike
     with Matchers
@@ -333,5 +322,13 @@ class AkkaStreamAgentTest
 
       monitor.expectMessageType[StreamInterpreterStats].shellInfo should have size 2
     }
+  }
+
+  it should "collect actor count metric" in {
+    assertMetricSumGreaterOrEqualTo0("mesmer_akka_streams_actors")
+  }
+
+  it should "collect running streams metric" in {
+    assertMetricSumGreaterOrEqualTo0("mesmer_akka_streams_running_streams")
   }
 }
