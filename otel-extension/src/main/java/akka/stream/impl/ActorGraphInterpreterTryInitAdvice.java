@@ -17,8 +17,6 @@ public class ActorGraphInterpreterTryInitAdvice {
       @Advice.Argument(0) GraphInterpreterShell shell,
       @Advice.Return Boolean initialized) {
 
-    System.out.println("working ActorGraphInterpreterTryInitOtelAdvice");
-
     if (!initialized) {
       ActorGraphInterpreterOtelDecorator.shellFinished(shell, (Actor) self);
     }

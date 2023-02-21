@@ -1,5 +1,6 @@
 package io.scalac.mesmer.otelextension.instrumentations.akka.stream
 
+import akka.ActorSystemOps.ActorSystemOpsWrapper
 import akka.actor.ActorRef
 import akka.actor.typed.ActorSystem
 import akka.actor.typed.Behavior
@@ -8,7 +9,6 @@ import akka.actor.typed.ExtensionId
 import akka.actor.typed.receptionist.Receptionist.Register
 import akka.actor.typed.scaladsl.Behaviors
 import akka.actor.typed.scaladsl.adapter.ClassicActorSystemOps
-import akka.cluster.typed.Cluster
 import org.slf4j.LoggerFactory
 
 import scala.collection.mutable
@@ -79,23 +79,13 @@ object AkkaStreamMonitorExtension {
 
   def registerExtension(system: akka.actor.ActorSystem): Unit =
     new Thread(new Runnable() {
-      override def run(): Unit =
-        registerWithClusterOrElse(system)(registerWithNoCluster(system))
-    })
-      .start()
+      override def run(): Unit = registerWhenSystemIsInitialized(system)
+    }).start()
 
-  private def registerWithClusterOrElse(system: akka.actor.ActorSystem)(failoverFn: => Unit): Unit =
-    Retry.retryWithPrecondition(retryLimit, retryInterval)(system.toTyped.hasExtension(Cluster))(
+  private def registerWhenSystemIsInitialized(system: akka.actor.ActorSystem): Unit =
+    Retry.retryWithPrecondition(retryLimit, retryInterval)(system.isInitialized)(
       register(system)
     ) match {
-      case Failure(_) =>
-        failoverFn
-      case Success(_) =>
-        log.info("Successfully installed the Akka Stream Monitoring Extension.")
-    }
-
-  private def registerWithNoCluster(system: akka.actor.ActorSystem): Unit =
-    Retry.retry(retryLimit, retryInterval)(register(system)) match {
       case Failure(error) =>
         log.error(s"Failed to install the Akka Stream Monitoring Extension. Reason: $error")
       case Success(_) =>

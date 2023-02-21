@@ -12,7 +12,6 @@ public class ActorGraphInterpreterProcessEventAdvice {
       @Advice.This Object self,
       @Advice.Argument(0) ActorGraphInterpreter.BoundaryEvent boundaryEvent) {
 
-    System.out.println("working ActorGraphInterpreterProcessEventAdvice");
     if (boundaryEvent.shell().isTerminated()) {
       ActorGraphInterpreterOtelDecorator.shellFinished(boundaryEvent.shell(), (Actor) self);
     }
