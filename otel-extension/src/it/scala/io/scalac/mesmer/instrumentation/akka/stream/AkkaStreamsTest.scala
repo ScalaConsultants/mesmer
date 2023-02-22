@@ -70,12 +70,11 @@ class AkkaStreamsTest
   final class ActorStreamRefService(implicit system: ActorSystem[_]) {
     private val probe = TestProbe[ActorRef]("stream_refs")
 
-    def actors(number: Int): Seq[ActorRef] = probe
-      .within(2.seconds) {
-        val messages = probe.receiveMessages(number)
-        probe.expectNoMessage(probe.remaining)
-        messages
-      }
+    def actors(number: Int): Seq[ActorRef] = {
+      val messages = probe.receiveMessages(number, patienceConfig.timeout)
+      probe.expectNoMessage(2.seconds)
+      messages
+    }
 
     sealed trait Command
 
