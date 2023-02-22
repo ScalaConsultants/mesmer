@@ -45,7 +45,6 @@ addCommandAlias("testAll", "test; IntegrationTest/test")
 val projectRootDir = all.base.absolutePath
 
 lazy val all: Project = (project in file("."))
-  .disablePlugins(sbtassembly.AssemblyPlugin)
   .settings(
     name           := "mesmer-all",
     publish / skip := true
@@ -174,6 +173,7 @@ def exampleCommonSettings = Seq(
 )
 
 lazy val exampleAkka = (project in file("examples/akka"))
+  .disablePlugins(sbtassembly.AssemblyPlugin)
   .settings(exampleCommonSettings)
   .settings(
     name := "mesmer-akka-example",
@@ -204,6 +204,7 @@ lazy val exampleAkka = (project in file("examples/akka"))
   .dependsOn(core)
 
 lazy val exampleAkkaStream = (project in file("examples/akka-stream"))
+  .disablePlugins(sbtassembly.AssemblyPlugin)
   .settings(exampleCommonSettings)
   .settings(
     name := "mesmer-akka-stream-example",
@@ -217,6 +218,7 @@ lazy val exampleAkkaStream = (project in file("examples/akka-stream"))
   .dependsOn(core)
 
 lazy val exampleZio = (project in file("examples/zio"))
+  .disablePlugins(sbtassembly.AssemblyPlugin)
   .settings(exampleCommonSettings)
   .settings(
     name := "mesmer-zio-example",
