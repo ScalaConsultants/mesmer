@@ -217,7 +217,6 @@ lazy val exampleAkkaStream = (project in file("examples/akka-stream"))
   )
   .dependsOn(core)
 
-
 lazy val exampleZio = (project in file("examples/zio"))
   .disablePlugins(sbtassembly.AssemblyPlugin)
   .settings(exampleCommonSettings)
