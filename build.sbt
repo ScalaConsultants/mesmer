@@ -1,4 +1,5 @@
 import Dependencies._
+import sbt.Keys.connectInput
 
 lazy val scala213 = "2.13"
 
@@ -44,12 +45,11 @@ addCommandAlias("testAll", "test; IntegrationTest/test")
 val projectRootDir = all.base.absolutePath
 
 lazy val all: Project = (project in file("."))
-  .disablePlugins(sbtassembly.AssemblyPlugin)
   .settings(
     name           := "mesmer-all",
     publish / skip := true
   )
-  .aggregate(extension, otelExtension, example, core, testkit)
+  .aggregate(extension, otelExtension, core, testkit, exampleAkka, exampleAkkaStream, exampleZio)
 
 lazy val core = (project in file("core"))
   .disablePlugins(sbtassembly.AssemblyPlugin)
@@ -145,23 +145,43 @@ lazy val otelExtension = (project in file("otel-extension"))
       "-Dio.opentelemetry.javaagent.slf4j.simpleLogger.log.io.grpc.internal.ServerImplBuilder=INFO",
       "-Dio.opentelemetry.javaagent.slf4j.simpleLogger.log.io.grpc.internal.ManagedChannelImplBuilder=INFO",
       "-Dio.opentelemetry.javaagent.slf4j.simpleLogger.log.io.perfmark.PerfMark=INFO",
-      "-Dio.opentelemetry.javaagent.slf4j.simpleLogger.log.io.grpc.Context=INFO"
+      "-Dio.opentelemetry.javaagent.slf4j.simpleLogger.log.io.grpc.Context=INFO",
+      // disable automatic self PushMetrics invocation
+      "-Dio.scalac.mesmer.akka.streams.collect-interval=5m"
+
     )
   )
   .dependsOn(core % "provided->compile;compile->compile", testkit % "it,test")
 
-lazy val example = (project in file("example"))
-  .enablePlugins(JavaAppPackaging, UniversalPlugin)
+def exampleCommonSettings = Seq(
+  publish / skip := true,
+  resolvers += "Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots",
+  run / javaOptions ++= Seq(
+    s"-javaagent:$projectRootDir/opentelemetry-javaagent-$OpentelemetryVersion.jar",
+    s"-Dotel.javaagent.extensions=${(otelExtension / assembly).value.absolutePath}",
+    "-Dotel.javaagent.debug=true"
+  ),
+  libraryDependencies ++= {
+    logback ++ Seq(
+      "io.opentelemetry"    % "opentelemetry-sdk-extension-autoconfigure" % OpentelemetryAlphaMinor0Version,
+      "io.grpc"             % "grpc-netty-shaded"                         % "1.53.0",
+      "org.wvlet.airframe" %% "airframe-log"                              % AirframeVersion
+    )
+  },
+  run / fork         := true,
+  run / connectInput := true
+)
+
+lazy val exampleAkka = (project in file("examples/akka"))
+  .disablePlugins(sbtassembly.AssemblyPlugin)
+  .settings(exampleCommonSettings)
   .settings(
-    name           := "mesmer-akka-example",
-    publish / skip := true,
+    name := "mesmer-akka-example",
     libraryDependencies ++= {
       akka ++
       scalatest.map(_ % "test") ++
       akkaTestkit.map(_ % "test") ++
-      akkaPersistance ++
-      zio ++
-      logback ++ Seq(
+      akkaPersistance ++ Seq(
         "io.circe"                      %% "circe-core"                        % CirceVersion,
         "io.circe"                      %% "circe-generic"                     % CirceVersion,
         "io.circe"                      %% "circe-parser"                      % CirceVersion,
@@ -172,30 +192,43 @@ lazy val example = (project in file("example"))
         "com.typesafe.akka"             %% "akka-discovery"                    % AkkaVersion,
         "com.lightbend.akka.management" %% "akka-management"                   % AkkaManagementVersion,
         "com.lightbend.akka.management" %% "akka-management-cluster-http"      % AkkaManagementVersion,
-        "com.lightbend.akka.management" %% "akka-management-cluster-bootstrap" % AkkaManagementVersion,
-        "io.opentelemetry"    % "opentelemetry-sdk-extension-autoconfigure" % OpentelemetryAlphaMinor0Version,
-        "io.grpc"             % "grpc-netty-shaded"                         % "1.53.0",
-        "org.wvlet.airframe" %% "airframe-log"                              % AirframeVersion
+        "com.lightbend.akka.management" %% "akka-management-cluster-bootstrap" % AkkaManagementVersion
       )
     },
-    assemblyMergeStrategySettings,
-    mainClass                  := Some("example.Boot"),
-    assembly / assemblyJarName := "mesmer-akka-example.jar",
-    resolvers += "Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots",
-    run / fork := true,
-    run / javaOptions ++= {
-      val properties = System.getProperties
+    mainClass := Some("example.Boot"),
+    run / javaOptions ++= Seq(
+      s"-Dotel.service.name=mesmer-example",
+      s"-Dotel.metric.export.interval=5000"
+    )
+  )
+  .dependsOn(core)
 
-      import scala.collection.JavaConverters._
-      val keys = for {
-        (key, value) <- properties.asScala.toList if value.nonEmpty && key != "line.separator"
-      } yield s"-D$key=$value"
+lazy val exampleAkkaStream = (project in file("examples/akka-stream"))
+  .disablePlugins(sbtassembly.AssemblyPlugin)
+  .settings(exampleCommonSettings)
+  .settings(
+    name := "mesmer-akka-stream-example",
+    libraryDependencies ++= akka,
+    mainClass := Some("example.SimpleStreamExample"),
+    run / javaOptions ++= Seq(
+      s"-Dotel.service.name=mesmer-stream-example",
+      s"-Dotel.metric.export.interval=5000"
+    )
+  )
+  .dependsOn(core)
 
-      keys
-    },
-    commands += runExampleWithOtelAgent,
-    commands += runStreamExampleWithOtelAgent,
-    commands += runZioExampleWithOtelAgent
+
+lazy val exampleZio = (project in file("examples/zio"))
+  .disablePlugins(sbtassembly.AssemblyPlugin)
+  .settings(exampleCommonSettings)
+  .settings(
+    name := "mesmer-zio-example",
+    libraryDependencies ++= zio,
+    mainClass := Some("example.SimpleZioExample"),
+    run / javaOptions ++= Seq(
+      s"-Dotel.service.name=mesmer-zio-example",
+      s"-Dotel.metric.export.interval=1000"
+    )
   )
   .dependsOn(core)
 
@@ -224,59 +257,4 @@ lazy val assemblyMergeStrategySettings = assembly / assemblyMergeStrategy := {
   case PathList("jackson-module-paranamer-2.10.3.jar", _ @_*) =>
     MergeStrategy.last
   case _ => MergeStrategy.first
-}
-
-def runExampleWithOtelAgent = Command.command("runExampleWithOtelAgent") { state =>
-  val extracted = Project extract state
-  val newState = extracted.appendWithSession(
-    Seq(
-      run / javaOptions ++= Seq(
-        s"-javaagent:$projectRootDir/opentelemetry-javaagent-$OpentelemetryVersion.jar",
-        s"-Dotel.service.name=mesmer-example",
-        s"-Dotel.metric.export.interval=5000",
-        s"-Dotel.javaagent.extensions=${(otelExtension / assembly).value.absolutePath}",
-        "-Dotel.javaagent.debug=true"
-      )
-    ),
-    state
-  )
-  val (s, _) =
-    Project.extract(newState).runInputTask(Compile / runMain, " example.Boot", newState)
-  s
-}
-
-def runStreamExampleWithOtelAgent = Command.command("runStreamExampleWithOtelAgent") { state =>
-  val extracted = Project extract state
-  val newState = extracted.appendWithSession(
-    Seq(
-      run / javaOptions ++= Seq(
-        s"-javaagent:$projectRootDir/opentelemetry-javaagent-$OpentelemetryVersion.jar",
-        s"-Dotel.service.name=mesmer-stream-example",
-        s"-Dotel.metric.export.interval=5000",
-        s"-Dotel.javaagent.extensions=${(otelExtension / assembly).value.absolutePath}"
-      )
-    ),
-    state
-  )
-  val (s, _) =
-    Project.extract(newState).runInputTask(Compile / runMain, " example.SimpleStreamExample", newState)
-  s
-}
-
-def runZioExampleWithOtelAgent = Command.command("runZioExampleWithOtelAgent") { state =>
-  val extracted = Project extract state
-  val newState = extracted.appendWithSession(
-    Seq(
-      run / javaOptions ++= Seq(
-        s"-javaagent:$projectRootDir/opentelemetry-javaagent-$OpentelemetryVersion.jar",
-        s"-Dotel.service.name=mesmer-zio-example",
-        s"-Dotel.metric.export.interval=1000",
-        s"-Dotel.javaagent.extensions=${(otelExtension / assembly).value.absolutePath}"
-      )
-    ),
-    state
-  )
-  val (s, _) =
-    Project.extract(newState).runInputTask(Compile / runMain, " example.SimpleZioExample", newState)
-  s
 }

@@ -11,6 +11,7 @@ import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
 import scala.concurrent.duration._
+import scala.io.StdIn
 
 /**
  * Another example useful to testing if stream instrumentation work. It's a simple example that prints amount of process
@@ -47,8 +48,8 @@ object SimpleStreamExample extends App {
     .toMat(Sink.ignore)(Keep.left)
     .run()
 
-  sys.addShutdownHook {
-    ks.shutdown()
-  }
+  StdIn.readLine()
 
+  ks.shutdown()
+  system.terminate()
 }

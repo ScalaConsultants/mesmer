@@ -18,12 +18,56 @@ import io.scalac.mesmer.core.model.Tag.SubStreamName
 import io.scalac.mesmer.core.model.stream.ConnectionStats
 import io.scalac.mesmer.core.model.stream.StageInfo
 import io.scalac.mesmer.core.util.stream.subStreamNameFromActorRef
+import io.scalac.mesmer.otelextension.instrumentations.akka.stream.AkkaStreamConfig
 
 object ActorGraphInterpreterOtelDecorator extends Lookup {
 
   private lazy val shells = {
     val actorInterpreter = Class.forName("akka.stream.impl.fusing.ActorGraphInterpreter")
     lookup.findVirtual(actorInterpreter, "activeInterpreters", methodType(classOf[Set[GraphInterpreterShellMirror]]))
+  }
+
+  def addCollectionReceive(
+    receive: Actor.Receive,
+    self: Actor
+  ): Actor.Receive = {
+    val context  = self.context
+    val system   = context.system
+    val interval = AkkaStreamConfig.metricSnapshotCollectInterval(system)
+    system.scheduler.scheduleWithFixedDelay(interval, interval, context.self, PushMetrics)(
+      context.dispatcher,
+      context.self
+    )
+
+    receive.orElse { case PushMetrics =>
+      val subStreamName = subStreamNameFromActorRef(context.self)
+
+      val currentShells = shells
+        .invoke(self)
+        .asInstanceOf[Set[GraphInterpreterShellMirror]]
+
+      val stats = collectStats(currentShells, subStreamName)
+
+      EventBus(system.toTyped)
+        .publishEvent(StreamInterpreterStats(context.self, subStreamName, stats))
+    }
+  }
+
+  private def collectStats(shells: Set[GraphInterpreterShellMirror], subStreamName: SubStreamName): Set[ShellInfo] = {
+    var terminalFound = false
+
+    shells.map { shell =>
+      val (stats, containsTerminal) = statsForShell(shell, subStreamName, terminalFound)
+      terminalFound = containsTerminal
+      stats
+    }
+  }
+
+  def shellFinished(shell: GraphInterpreterShellMirror, self: Actor): Unit = {
+    val subStreamName = subStreamNameFromActorRef(self.context.self)
+    val (stats, _)    = statsForShell(shell, subStreamName, terminalFound = false)
+    EventBus(self.context.system.toTyped)
+      .publishEvent(LastStreamStats(self.context.self, subStreamName, stats))
   }
 
   private def statsForShell(
@@ -60,39 +104,4 @@ object ActorGraphInterpreterOtelDecorator extends Lookup {
 
     (stageInfo -> connections, localTerminalFound)
   }
-
-  def collectStats(shells: Set[GraphInterpreterShellMirror], subStreamName: SubStreamName): Set[ShellInfo] = {
-    var terminalFound = false
-
-    shells.map { shell =>
-      val (stats, containsTerminal) = statsForShell(shell, subStreamName, terminalFound)
-      terminalFound = containsTerminal
-      stats
-    }
-  }
-
-  def addCollectionReceive(
-    receive: Actor.Receive,
-    self: Actor
-  ): Actor.Receive =
-    receive.orElse { case PushMetrics =>
-      val subStreamName = subStreamNameFromActorRef(self.context.self)
-
-      val currentShells = shells
-        .invoke(self)
-        .asInstanceOf[Set[GraphInterpreterShellMirror]]
-
-      val stats = collectStats(currentShells, subStreamName)
-
-      EventBus(self.context.system.toTyped)
-        .publishEvent(StreamInterpreterStats(self.context.self, subStreamName, stats))
-    }
-
-  def shellFinished(shell: GraphInterpreterShellMirror, self: Actor): Unit = {
-    val subStreamName = subStreamNameFromActorRef(self.context.self)
-    val (stats, _)    = statsForShell(shell, subStreamName, false)
-    EventBus(self.context.system.toTyped)
-      .publishEvent(LastStreamStats(self.context.self, subStreamName, stats))
-  }
-
 }

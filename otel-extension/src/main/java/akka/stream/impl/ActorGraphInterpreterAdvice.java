@@ -1,4 +1,4 @@
-package akka;
+package akka.stream.impl;
 
 import akka.actor.Actor;
 import io.scalac.mesmer.otelextension.instrumentations.akka.stream.impl.ActorGraphInterpreterOtelDecorator;
@@ -6,7 +6,7 @@ import net.bytebuddy.asm.Advice;
 import scala.PartialFunction;
 import scala.runtime.BoxedUnit;
 
-public class ActorGraphInterpreterOtelAdvice {
+public class ActorGraphInterpreterAdvice {
 
   @Advice.OnMethodExit
   public static void overrideReceive(

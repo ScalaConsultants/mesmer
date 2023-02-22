@@ -1,7 +1,6 @@
 package io.scalac.mesmer.core.util
 
 import akka.actor.PoisonPill
-import akka.actor.typed.ActorRef
 import akka.actor.typed.ActorSystem
 import akka.actor.typed.receptionist.Receptionist
 import akka.actor.typed.receptionist.Receptionist.Listing
@@ -23,20 +22,6 @@ trait ReceptionistOps
     with LoneElement
     with Matchers
     with MesmerPatienceConfig {
-
-  /**
-   * Waits until ref is only service for serviceKey
-   * @param ref
-   * @param serviceKey
-   */
-  def onlyRef(ref: ActorRef[_], serviceKey: ServiceKey[_])(implicit system: ActorSystem[_], timeout: Timeout): Unit =
-    eventually {
-      val result = findServices(serviceKey)
-      inside(result) { case serviceKey.Listing(res) =>
-        val elem = res.loneElement
-        elem should sameOrParent(ref)
-      }
-    }
 
   def killServices(serviceKey: ServiceKey[_])(implicit system: ActorSystem[_], timeout: Timeout): Unit = {
     val result = findServices(serviceKey)
