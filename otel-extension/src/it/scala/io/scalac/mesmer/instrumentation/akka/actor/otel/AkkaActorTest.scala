@@ -196,7 +196,7 @@ final class AkkaActorTest
   }
 
   it should "record mailbox size properly" in {
-    val processingTime = 200
+    val processingTime = 1000
     val actor          = system.classicSystem.actorOf(SuspendActor.props(processingTime), createUniqueId)
 
     def expectMailboxSize(run: Int, size: Int): Unit =
