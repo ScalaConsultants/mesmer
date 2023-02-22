@@ -134,7 +134,6 @@ lazy val otelExtension = (project in file("otel-extension"))
       "-Dotel.metric.export.interval=50", // 100 ms so that the "eventually" assertions could catch up
       "-Dotel.javaagent.testing.fail-on-context-leak=true",
       "-Dotel.javaagent.testing.transform-safe-logging.enabled=true",
-      "-Dotel.metrics.exporter=otlp",
       "-Dmesmer.akka.persistence.templated=false",
 
       // suppress repeated logging of "No metric data to export - skipping export."
