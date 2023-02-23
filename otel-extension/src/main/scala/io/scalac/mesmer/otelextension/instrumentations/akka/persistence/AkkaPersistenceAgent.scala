@@ -1,10 +1,15 @@
 package io.scalac.mesmer.otelextension.instrumentations.akka.persistence
+import java.security.ProtectionDomain
+
 import io.opentelemetry.javaagent.extension.instrumentation.TypeInstrumentation
 import io.opentelemetry.javaagent.tooling.Utils
 import io.opentelemetry.javaagent.tooling.bytebuddy.ExceptionHandlers
 import net.bytebuddy.agent.builder.AgentBuilder
 import net.bytebuddy.asm.MemberSubstitution
+import net.bytebuddy.description.`type`.TypeDescription
 import net.bytebuddy.description.method.MethodDescription
+import net.bytebuddy.dynamic.DynamicType
+import net.bytebuddy.utility.JavaModule
 
 import io.scalac.mesmer.agent.util.dsl._
 import io.scalac.mesmer.agent.util.dsl.matchers._
@@ -50,15 +55,22 @@ object AkkaPersistenceAgent {
 
   val storingSnapshotOnWriteInitiated: TypeInstrumentation =
     Instrumentation(named("akka.persistence.typed.internal.Running$StoringSnapshot"))
-      .`with`(Advice { (dynamic, _, _, _) =>
-        dynamic
-          .visit(
-            MemberSubstitution
-              .relaxed()
-              .method(matchers.named("dummyContext"))
-              .replaceWithMethod(matchers.named("context"))
-              .on(matchers.named[MethodDescription]("onSaveSnapshotResponse"))
-          )
+      .`with`(Advice {
+        (
+          builder: DynamicType.Builder[_],
+          typeDescription: TypeDescription,
+          classLoader: ClassLoader,
+          module: JavaModule,
+          protectionDomain: ProtectionDomain
+        ) =>
+          builder
+            .visit(
+              MemberSubstitution
+                .relaxed()
+                .method(matchers.named("dummyContext"))
+                .replaceWithMethod(matchers.named("context"))
+                .on(matchers.named[MethodDescription]("onSaveSnapshotResponse"))
+            )
       })
       .`with`(
         Advice(
@@ -77,15 +89,22 @@ object AkkaPersistenceAgent {
 
   val abstractBehaviorSubstituteTest: TypeInstrumentation =
     Instrumentation(named("example.TestBehavior"))
-      .`with`(Advice { (dynamic, _, _, _) =>
-        dynamic
-          .visit(
-            MemberSubstitution
-              .relaxed()
-              .method(matchers.named("dummyContext"))
-              .replaceWithMethod(matchers.named("context"))
-              .on(matchers.named[MethodDescription]("onMessage"))
-          )
+      .`with`(Advice {
+        (
+          builder: DynamicType.Builder[_],
+          typeDescription: TypeDescription,
+          classLoader: ClassLoader,
+          module: JavaModule,
+          protectionDomain: ProtectionDomain
+        ) =>
+          builder
+            .visit(
+              MemberSubstitution
+                .relaxed()
+                .method(matchers.named("dummyContext"))
+                .replaceWithMethod(matchers.named("context"))
+                .on(matchers.named[MethodDescription]("onMessage"))
+            )
       })
       .`with`(
         Advice(

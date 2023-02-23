@@ -1,8 +1,5 @@
 package io.scalac.mesmer.otelextension.instrumentations.akka.stream
 
-import akka.ActorGraphInterpreterOtelAdvice
-import akka.ActorGraphInterpreterProcessEventOtelAdvice
-import akka.ActorGraphInterpreterTryInitOtelAdvice
 import akka.stream.ConnectionConstructorAdvice
 import akka.stream.GraphInterpreterOtelPullAdvice
 import akka.stream.GraphInterpreterOtelPushAdvice
@@ -107,18 +104,6 @@ object AkkaStreamAgent
   }
 
   /**
-   * Instrumentation for Actor that execute streams - adds another message for it to handle that pushes all connection
-   * data to EventBus and propagation of short living streams
-   */
-  private val actorGraphInterpreterInstrumentation =
-    AgentInstrumentation.deferred(
-      instrument("akka.stream.impl.fusing.ActorGraphInterpreter".fqcn)
-        .visit[ActorGraphInterpreterOtelAdvice]("receive")
-        .visit(ActorGraphInterpreterProcessEventOtelAdvice, "processEvent")
-        .visit(ActorGraphInterpreterTryInitOtelAdvice, "tryInit")
-    )
-
-  /**
    * Instrumentation that add additional tag to terminal Sink
    */
   private val graphStageIslandInstrumentation =
@@ -128,6 +113,6 @@ object AkkaStreamAgent
     )
 
   private val sharedImplementations =
-    connectionConstructorAdvice ++ connectionPushAgent ++ connectionPullAgent ++ actorGraphInterpreterInstrumentation ++ graphStageIslandInstrumentation ++ phasedFusingActorMaterializerAgentInstrumentation ++ streamMetricsExtension
+    connectionConstructorAdvice ++ connectionPushAgent ++ connectionPullAgent ++ graphStageIslandInstrumentation ++ phasedFusingActorMaterializerAgentInstrumentation ++ streamMetricsExtension
 
 }

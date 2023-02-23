@@ -6,7 +6,7 @@ import io.opentelemetry.javaagent.extension.instrumentation.TypeInstrumentation;
 import io.opentelemetry.javaagent.tooling.muzzle.InstrumentationModuleMuzzle;
 import io.opentelemetry.javaagent.tooling.muzzle.VirtualFieldMappingsBuilder;
 import io.opentelemetry.javaagent.tooling.muzzle.references.ClassRef;
-import io.scalac.mesmer.otelextension.instrumentations.akka.stream.AkkaStreamAgent;
+import io.scalac.mesmer.otelextension.instrumentations.akka.stream.AkkaStreamAgents;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -22,7 +22,7 @@ public class MesmerAkkaStreamInstrumentationModule extends InstrumentationModule
 
   @Override
   public List<TypeInstrumentation> typeInstrumentations() {
-    return AkkaStreamAgent.agent().asOtelTypeInstrumentations();
+    return AkkaStreamAgents.getAllStreamInstrumentations();
   }
 
   @Override
@@ -57,8 +57,6 @@ public class MesmerAkkaStreamInstrumentationModule extends InstrumentationModule
         "io.scalac.mesmer.otelextension.instrumentations.akka.stream.impl.ActorGraphInterpreterOtelDecorator",
         "io.scalac.mesmer.otelextension.instrumentations.akka.stream.impl.ActorGraphInterpreterOtelDecorator$",
         "io.scalac.mesmer.otelextension.instrumentations.akka.stream.impl.ActorGraphInterpreterOtelDecorator$$anonfun$addCollectionReceive$1",
-        "akka.ActorGraphInterpreterProcessEventOtelAdvice$",
-        "akka.ActorGraphInterpreterTryInitOtelAdvice$",
         "io.scalac.mesmer.otelextension.instrumentations.akka.stream.impl.GraphStageIslandOps",
         "io.scalac.mesmer.otelextension.instrumentations.akka.stream.impl.GraphStageIslandOps$",
         "io.scalac.mesmer.otelextension.instrumentations.akka.stream.impl.GraphStageIslandOps$TerminalSink$",

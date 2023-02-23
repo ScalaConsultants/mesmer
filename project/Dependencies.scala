@@ -2,20 +2,22 @@ import sbt._
 
 object Dependencies {
 
-  val AirframeVersion              = "22.8.0"
-  val AkkaHttpVersion              = "10.2.9"
-  val AkkaManagementVersion        = "1.1.3"
-  val AkkaVersion                  = "2.6.19"
-  val CirceVersion                 = "0.14.2"
-  val GoogleAutoServiceVersion     = "1.0.1"
-  val LogbackVersion               = "1.2.11"
-  val OpentelemetryLatestVersion   = "1.13.1"
-  val OpentelemetryApiVersion      = "1.13.0"
-  val OpentelemetryAlphaVersion131 = "1.13.1-alpha"
-  val OpentelemetryAlphaVersion130 = "1.13.0-alpha"
-  val PostgresVersion              = "42.4.2"
-  val ScalatestVersion             = "3.2.13"
-  val SlickVersion                 = "3.3.3"
+  val AirframeVersion       = "23.2.4"
+  val AkkaHttpVersion       = "10.4.0"
+  val AkkaManagementVersion = "1.2.0"
+  val AkkaVersion           = "2.7.0"
+  val ByteBuddyVersion      = "1.13.0"
+  val CirceVersion          = "0.14.4"
+
+  val GoogleAutoServiceVersion        = "1.0.1"
+  val LogbackVersion                  = "1.4.5"
+  val OpentelemetryVersion            = "1.22.1"
+  val OpentelemetryMinor0Version      = "1.22.0"
+  val OpentelemetryAlphaVersion       = "1.22.1-alpha"
+  val OpentelemetryAlphaMinor0Version = "1.22.0-alpha"
+  val PostgresVersion                 = "42.5.4"
+  val ScalatestVersion                = "3.2.15"
+  val SlickVersion                    = "3.4.1"
 
   val akka = Seq(
     "com.typesafe.akka" %% "akka-http"                   % AkkaHttpVersion,
@@ -31,46 +33,45 @@ object Dependencies {
 
   val akkaPersistance = Seq(
     "com.typesafe.akka"  %% "akka-persistence-typed" % AkkaVersion,
-    "com.lightbend.akka" %% "akka-persistence-jdbc"  % "5.0.4",
+    "com.lightbend.akka" %% "akka-persistence-jdbc"  % "5.2.0",
     "com.typesafe.akka"  %% "akka-persistence-query" % AkkaVersion
   )
 
   val zio = Seq(
-    "dev.zio" %% "zio" % "2.0.0"
+    "dev.zio" %% "zio" % "2.0.9"
   )
 
   val byteBuddy = Seq(
-    "net.bytebuddy" % "byte-buddy"       % "1.12.12",
-    "net.bytebuddy" % "byte-buddy-agent" % "1.12.12"
+    "net.bytebuddy" % "byte-buddy"       % ByteBuddyVersion,
+    "net.bytebuddy" % "byte-buddy-agent" % ByteBuddyVersion
   )
 
   val logback = Seq("ch.qos.logback" % "logback-classic" % LogbackVersion)
 
   val openTelemetryApi = Seq(
-    "io.opentelemetry" % "opentelemetry-api" % OpentelemetryApiVersion
-  )
-
-  val openTelemetryInstrumentation = Seq(
-    "io.opentelemetry.javaagent" % "opentelemetry-javaagent-instrumentation-api" % OpentelemetryAlphaVersion131
+    "io.opentelemetry" % "opentelemetry-api" % OpentelemetryMinor0Version
   )
 
   val openTelemetryInstrumentationApiSemanticConventions = Seq(
-    "io.opentelemetry.instrumentation" % "opentelemetry-instrumentation-api-semconv" % OpentelemetryAlphaVersion131
+    "io.opentelemetry.instrumentation" % "opentelemetry-instrumentation-api-semconv" % OpentelemetryAlphaVersion
+  )
+
+  val opentelemetryExtensionApi = Seq(
+    "io.opentelemetry.javaagent" % "opentelemetry-javaagent-extension-api" % OpentelemetryAlphaVersion
   )
 
   val openTelemetryExtension = Seq(
-    "com.google.auto.service"    % "auto-service"                          % GoogleAutoServiceVersion,
-    "io.opentelemetry.javaagent" % "opentelemetry-javaagent-extension-api" % OpentelemetryAlphaVersion131,
-    "io.opentelemetry.javaagent" % "opentelemetry-javaagent-tooling"       % OpentelemetryAlphaVersion131
+    "com.google.auto.service"    % "auto-service"                    % GoogleAutoServiceVersion,
+    "io.opentelemetry.javaagent" % "opentelemetry-javaagent-tooling" % OpentelemetryAlphaVersion
   )
 
   val openTelemetryMuzzle = Seq(
-    "io.opentelemetry.javaagent" % "opentelemetry-muzzle"              % OpentelemetryAlphaVersion131,
-    "io.opentelemetry.javaagent" % "opentelemetry-javaagent-bootstrap" % OpentelemetryAlphaVersion131
+    "io.opentelemetry.javaagent" % "opentelemetry-muzzle"              % OpentelemetryAlphaVersion,
+    "io.opentelemetry.javaagent" % "opentelemetry-javaagent-bootstrap" % OpentelemetryAlphaVersion
   )
 
   val openTelemetryTesting = Seq(
-    "io.opentelemetry.javaagent" % "opentelemetry-testing-common" % OpentelemetryAlphaVersion131
+    "io.opentelemetry.javaagent" % "opentelemetry-testing-common" % OpentelemetryAlphaVersion
   )
 
   val akkaTestkit = Seq(

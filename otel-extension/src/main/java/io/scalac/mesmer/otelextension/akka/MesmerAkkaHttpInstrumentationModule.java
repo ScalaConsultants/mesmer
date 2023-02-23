@@ -73,8 +73,9 @@ public class MesmerAkkaHttpInstrumentationModule extends InstrumentationModule
         "io.scalac.mesmer.otelextension.instrumentations.akka.http.RouteTemplateHolder",
         "io.scalac.mesmer.otelextension.instrumentations.akka.http.UpdateHttpRouteWrapper$$anonfun$$nestedInanonfun$apply$1$1",
         "io.scalac.mesmer.otelextension.instrumentations.akka.http.UpdateHttpRouteWrapper",
-        "io.scalac.mesmer.otelextension.instrumentations.akka.http.OverridingRawPatchMatcherImpl$",
-        "io.scalac.mesmer.otelextension.instrumentations.akka.http.OverridingRawPatchMatcherImpl",
+        "io.scalac.mesmer.instrumentation.http.impl.RawPathPrefixInterceptor",
+        "io.scalac.mesmer.otelextension.instrumentations.akka.http.RawPathPrefixImplementation$",
+        "io.scalac.mesmer.otelextension.instrumentations.akka.http.RawPathPrefixImplementation",
         "io.scalac.mesmer.otelextension.instrumentations.akka.http.AkkaHttpConnectionsInstrumentation$",
         "io.scalac.mesmer.otelextension.instrumentations.akka.http.AkkaHttpConnectionsInstrumentation$HttpConnectionInstruments$",
         "io.scalac.mesmer.otelextension.instrumentations.akka.http.AkkaHttpConnectionsInstrumentation");

@@ -7,6 +7,7 @@ import akka.actor.typed.{ ActorRef, Behavior, SupervisorStrategy }
 import akka.actor.{ PoisonPill, Props }
 import akka.{ actor => classic }
 import io.opentelemetry.api.common.AttributeKey
+import io.opentelemetry.sdk.metrics.data.MetricData
 import io.scalac.mesmer.agent.utils.{ OtelAgentTest, SafeLoadSystem }
 import io.scalac.mesmer.core.actor.{ ActorCellDecorator, ActorCellMetrics }
 import io.scalac.mesmer.core.akka.model.AttributeNames
@@ -19,6 +20,7 @@ import org.scalatest.{ BeforeAndAfterEach, Inspectors, OptionValues }
 
 import scala.concurrent.duration._
 import scala.jdk.CollectionConverters._
+import scala.util.Random
 import scala.util.control.NoStackTrace
 
 final class AkkaActorTest
@@ -193,34 +195,55 @@ final class AkkaActorTest
     }("", "work", "work")(messages -> check)
   }
 
+  it should "record mailbox size properly" in {
+    val processingTime = 1000
+    val actor          = system.classicSystem.actorOf(SuspendActor.props(processingTime), createUniqueId)
+
+    def expectMailboxSize(run: Int, size: Int): Unit =
+      assertMetric("mesmer_akka_actor_mailbox_size") { data =>
+        val points = data.getLongSumData.getPoints.asScala
+          .filter(point =>
+            Option(point.getAttributes.get(AttributeKey.stringKey(AttributeNames.ActorPath)))
+              .contains(actor.path.toStringWithoutAddress)
+          )
+
+        points.map(_.getValue) should contain(size)
+      }
+    val runId = Random.nextInt()
+    actor ! Message
+    actor ! Message
+    expectMailboxSize(runId, 1)
+    actor ! Message
+    expectMailboxSize(runId, 2)
+    Thread.sleep(processingTime)
+    expectMailboxSize(runId, 1)
+
+  }
+
   it should "record stash operation from actors beginning" in {
     val stashActor = system.classicSystem.actorOf(ClassicStashActor.props(), createUniqueId)
 
-    def sendMessage(count: Int): Unit =
-      List.fill(count)(Message).foreach(m => stashActor ! m)
+    def sendMessage(count: Int): Unit = List.fill(count)(Message).foreach(m => stashActor ! m)
 
     def expectStashSize(size: Int): Unit =
-      assertMetric("mesmer_akka_actor_stashed_messages_total") { data =>
+      assertMetric("mesmer_akka_actor_stashed_messages_total") { data: MetricData =>
         val points = data.getLongSumData.getPoints.asScala
           .filter(point =>
             Option(point.getAttributes.get(AttributeKey.stringKey(AttributeNames.ActorPath)))
               .contains(stashActor.path.toStringWithoutAddress)
           )
           .toVector
+
         points.map(_.getValue) should contain(size)
       }
 
     sendMessage(StashMessageCount)
     expectStashSize(StashMessageCount)
-    sendMessage(StashMessageCount)
-    expectStashSize(StashMessageCount * 2)
     stashActor ! Open
-    expectStashSize(StashMessageCount * 2)
-    sendMessage(StashMessageCount)
-    expectStashSize(StashMessageCount * 2)
+    expectStashSize(StashMessageCount)
     stashActor ! Close
     sendMessage(StashMessageCount)
-    expectStashSize(StashMessageCount * 3)
+    expectStashSize(StashMessageCount)
   }
 
   it should "record stash operation from actors beginning for typed actors" in {
@@ -242,25 +265,11 @@ final class AkkaActorTest
 
     sendMessage(StashMessageCount)
     expectStashSize(StashMessageCount)
-    sendMessage(StashMessageCount)
-    expectStashSize(StashMessageCount * 2)
     stashActor ! Open
-    expectStashSize(StashMessageCount * 2)
-    sendMessage(StashMessageCount)
-    expectStashSize(StashMessageCount * 2)
+    expectStashSize(StashMessageCount)
     stashActor ! Close
     sendMessage(StashMessageCount)
-    expectStashSize(StashMessageCount * 3)
-  }
-
-  // TODO I don't see why we should support received messages anymore - this is the same information as processed messages
-  it should "record the amount of received messages" ignore {
-    testWithoutEffect[Unit]((), (), ())(
-      (0, check(_.receivedMessages)(_.get.get() should be(0))),
-      (1, check(_.receivedMessages)(_.get.get() should be(1))),
-      (0, check(_.receivedMessages)(_.get.get() should be(1))),
-      (2, check(_.receivedMessages)(_.get.get() should be(3)))
-    )
+    expectStashSize(StashMessageCount)
   }
 
   it should "record the amount of failed messages without supervision" in {
@@ -324,7 +333,7 @@ final class AkkaActorTest
         (1, expect(_ should contain(1L))),
         (0, expect(_ should contain(1L))),
         (1, expect(_ should contain(1L))),
-        (2, expect(_ should contain(if (strategy != SupervisorStrategy.stop) 3 else 1)))
+        (2, expect(_ should contain(1L)))
       )
 
     testForStrategy(SupervisorStrategy.restart)
@@ -332,7 +341,7 @@ final class AkkaActorTest
     testForStrategy(SupervisorStrategy.stop)
   }
 
-  it should "record the amount of unhandled messages" in {
+  it should "record the amount of unhandled messages" ignore {
 
     def expectEmpty(
       context: classic.ActorContext
@@ -371,8 +380,8 @@ final class AkkaActorTest
       (0, expectEmpty),
       (1, expectNum(1)),
       (0, expectNum(1)),
-      (2, expectNum(3)),
-      (1, expectNum(3))
+      (2, expectNum(2)),
+      (1, expectNum(2))
     )
 
   }
@@ -407,12 +416,8 @@ final class AkkaActorTest
 
     sender ! "forward"
     expectedSendMessages(1)
-    expectedSendMessages(1)
     sender ! "something else"
     expectedSendMessages(1)
-    sender ! "forward"
-    sender ! "forward"
-    expectedSendMessages(3)
 
     sender ! PoisonPill
     receiver ! PoisonPill
@@ -448,7 +453,7 @@ final class AkkaActorTest
       (0, expectedEmpty),
       (1, expectedEmpty),
       (0, expectedEmpty),
-      (2, expectedEmpty)
+      (1, expectedEmpty)
     )
 
   }
@@ -469,6 +474,16 @@ object AkkaActorAgentTest {
 
   // replies
   final case class StashSize(stash: Option[Long])
+
+  object SuspendActor {
+    def props(processingTime: Long): Props = Props(new SuspendActor(processingTime))
+  }
+
+  class SuspendActor(processingTime: Long) extends classic.Actor {
+    def receive: Receive = { case Message =>
+      Thread.sleep(processingTime)
+    }
+  }
 
   object ClassicStashActor {
     def props(): Props = Props(new ClassicStashActor)

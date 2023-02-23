@@ -1,18 +1,17 @@
 package io.scalac.mesmer.instrumentation.actor.impl;
 
-
 import akka.dispatch.BoundedQueueBasedMessageQueue;
-import io.opentelemetry.instrumentation.api.field.VirtualField;
-import net.bytebuddy.asm.Advice;
-
+import io.opentelemetry.instrumentation.api.util.VirtualField;
 import java.util.concurrent.BlockingQueue;
+import net.bytebuddy.asm.Advice;
 
 public class BoundedQueueBasedMessageQueueAdvice {
 
-    @Advice.OnMethodExit
-    public static void queue(@Advice.Return(readOnly = false) BlockingQueue<?> result, @Advice.This Object self) {
-        result = VirtualField.find(BoundedQueueBasedMessageQueue.class, BlockingQueue.class)
-                .get((BoundedQueueBasedMessageQueue) self);
-    }
-
+  @Advice.OnMethodExit
+  public static void queue(
+      @Advice.Return(readOnly = false) BlockingQueue<?> result, @Advice.This Object self) {
+    result =
+        VirtualField.find(BoundedQueueBasedMessageQueue.class, BlockingQueue.class)
+            .get((BoundedQueueBasedMessageQueue) self);
+  }
 }

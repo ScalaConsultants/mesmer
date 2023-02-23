@@ -27,6 +27,7 @@ public class MesmerAkkaActorInstrumentationModule extends InstrumentationModule
         AkkaActorAgent.actorCellInit(),
         AkkaActorAgent.dispatchSendMessage(),
         AkkaActorAgent.mailboxDequeue(),
+        AkkaActorAgent.mailboxEnqueue(),
         AkkaActorAgent.classicStashSupportStashAdvice(),
         AkkaActorAgent.classicStashSupportPrependAdvice(),
         AkkaActorAgent.typedStashBufferAdvice(),

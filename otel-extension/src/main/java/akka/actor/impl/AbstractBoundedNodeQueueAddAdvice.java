@@ -1,7 +1,7 @@
 package akka.actor.impl;
 
 import akka.dispatch.AbstractBoundedNodeQueue;
-import io.opentelemetry.instrumentation.api.field.VirtualField;
+import io.opentelemetry.instrumentation.api.util.VirtualField;
 import net.bytebuddy.asm.Advice;
 
 public class AbstractBoundedNodeQueueAddAdvice {

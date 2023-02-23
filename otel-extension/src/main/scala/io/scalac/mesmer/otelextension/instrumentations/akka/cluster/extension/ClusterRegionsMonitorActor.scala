@@ -12,18 +12,22 @@ import akka.cluster.sharding.ShardRegion.ShardRegionStats
 import akka.pattern.ask
 import akka.util.Timeout
 import io.opentelemetry.api.GlobalOpenTelemetry
+import io.opentelemetry.api.common.AttributeKey
 import io.opentelemetry.api.common.Attributes
-import io.opentelemetry.api.common.AttributesBuilder
 import io.opentelemetry.api.metrics.Meter
 import io.opentelemetry.api.metrics.ObservableDoubleGauge
 import org.slf4j.LoggerFactory
 
 import scala.collection.mutable
+import scala.concurrent.Await
 import scala.concurrent.ExecutionContext
 import scala.concurrent.Future
+import scala.concurrent.duration.Duration
 import scala.concurrent.duration.DurationInt
 import scala.concurrent.duration.FiniteDuration
+import scala.concurrent.duration.SECONDS
 import scala.jdk.DurationConverters.JavaDurationOps
+import scala.util.Try
 
 import io.scalac.mesmer.core.config.ConfigurationUtils.toConfigOps
 import io.scalac.mesmer.core.model.AkkaNodeOps
@@ -63,40 +67,51 @@ object ClusterRegionsMonitorActor extends ClusterMonitorActor {
         val system = ctx.system
         import system.executionContext
 
-        val instruments                          = mutable.HashSet.empty[ObservableDoubleGauge]
-        val node                                 = selfMember.uniqueAddress.toNode
-        val attributesBuilder: AttributesBuilder = Attributes.builder().put("node", node)
+        val instruments   = mutable.HashSet.empty[ObservableDoubleGauge]
+        val node          = selfMember.uniqueAddress.toNode
+        val nodeKey       = AttributeKey.stringKey("node")
+        val nodeAttribute = Attributes.of(nodeKey, node)
+
+        /**
+         * Since measurement.record() uses volatile fields underneath, we can't just .map over future to collect the
+         * measurement. We need to Await for the future result and then collect the value. Otherwise the measurement
+         * will be dropped by OpenTelemetry SDK.
+         */
+        def onFutureSuccess(future: Future[Int], timeout: Duration = awaitTimeout())(measurement: Int => Unit) =
+          Try(Await.result(future, Duration(1, SECONDS))).map(result => measurement.apply(result))
+
+        def awaitTimeout(): FiniteDuration =
+          system.settings.config
+            .tryValue("io.scalac.scalac.akka-monitoring.timeouts.await-timeout")(_.getDuration)
+            .map(_.toScala)
+            .getOrElse(3.seconds)
+
         val regions = new Regions(
           system,
           onCreateEntry = (region, entry) => {
-
+            val attributes = Attributes.of(AttributeKey.stringKey("region"), region, nodeKey, node)
             instruments.add(entityPerRegion.buildWithCallback { measurement =>
-              entry.get.foreach { regionStats =>
-                val entities   = regionStats.values.sum
-                val attributes = attributesBuilder.put("region", region).build()
+              onFutureSuccess(entry.get.map { regionStats: RegionStats => regionStats.values.sum })(entities =>
                 measurement.record(entities, attributes)
-              }
+              )
             })
 
             instruments.add(shardPerRegions.buildWithCallback { measurement =>
-              entry.get.foreach { regionStats =>
-                val shards     = regionStats.size
-                val attributes = attributesBuilder.put("region", region).build()
+              onFutureSuccess(entry.get.map(regionStats => regionStats.size))(shards =>
                 measurement.record(shards, attributes)
-              }
+              )
             })
           }
         )
 
         instruments.add(entitiesOnNode.buildWithCallback { measurement =>
-          regions.regionStats.map { regionsStats =>
-            val entities = regionsStats.view.values.flatMap(_.values).sum
-            measurement.record(entities, attributesBuilder.build())
-          }
+          onFutureSuccess(regions.regionStats().map { regionsStats =>
+            regionsStats.view.values.flatMap(_.values).sum
+          })(entities => measurement.record(entities, nodeAttribute))
         })
 
         instruments.add(shardRegionsOnNode.buildWithCallback { measurement =>
-          measurement.record(regions.size, attributesBuilder.build())
+          measurement.record(regions.size, nodeAttribute)
         })
 
         Behaviors.receiveSignal { case (_, PreRestart | PostStop) =>
@@ -122,7 +137,7 @@ object ClusterRegionsMonitorActor extends ClusterMonitorActor {
 
     def size: Int = cache.size
 
-    def regionStats: Future[RegionStatsMap] = {
+    def regionStats(): Future[RegionStatsMap] = {
       renewEntries()
       val regions = cache.keySet.toSeq
       Future
@@ -165,8 +180,6 @@ object ClusterRegionsMonitorActor extends ClusterMonitorActor {
       system.settings.config
         .tryValue("io.scalac.scalac.akka-monitoring.timeouts.query-region-stats")(_.getDuration)
         .map(_.toScala)
-        .getOrElse(2.second)
-
+        .getOrElse(2.seconds)
   }
-
 }

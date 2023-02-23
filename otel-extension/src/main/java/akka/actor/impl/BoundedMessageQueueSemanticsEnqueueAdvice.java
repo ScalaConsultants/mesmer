@@ -6,7 +6,7 @@ import akka.dispatch.BoundedMessageQueueSemantics;
 import akka.dispatch.BoundedNodeMessageQueue;
 import akka.dispatch.BoundedQueueBasedMessageQueue;
 import io.opentelemetry.api.common.Attributes;
-import io.opentelemetry.instrumentation.api.field.VirtualField;
+import io.opentelemetry.instrumentation.api.util.VirtualField;
 import io.scalac.mesmer.otelextension.instrumentations.akka.actor.Instruments;
 import io.scalac.mesmer.otelextension.instrumentations.akka.actor.InstrumentsProvider;
 import io.scalac.mesmer.otelextension.instrumentations.akka.actor.impl.otel.ActorCellInstrumentationState;
