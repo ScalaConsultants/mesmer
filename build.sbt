@@ -128,7 +128,7 @@ lazy val otelExtension = (project in file("otel-extension"))
     IntegrationTest / parallelExecution := false,
     IntegrationTest / fork              := true,
     IntegrationTest / javaOptions ++= Seq(
-      s"-javaagent:$projectRootDir/opentelemetry-agent-for-testing-$OpentelemetryAlphaVersion.jar",
+      s"-javaagent:$projectRootDir/opentelemetry-agent-for-testing-$OpentelemetryAlphaMinor0Version.jar",
       s"-Dotel.javaagent.extensions=${assembly.value.absolutePath}",
       "-Dotel.javaagent.debug=false",
       "-Dotel.metric.export.interval=50", // 100 ms so that the "eventually" assertions could catch up
@@ -147,7 +147,6 @@ lazy val otelExtension = (project in file("otel-extension"))
       "-Dio.opentelemetry.javaagent.slf4j.simpleLogger.log.io.grpc.Context=INFO",
       // disable automatic self PushMetrics invocation
       "-Dio.scalac.mesmer.akka.streams.collect-interval=5m"
-
     )
   )
   .dependsOn(core % "provided->compile;compile->compile", testkit % "it,test")
@@ -156,7 +155,7 @@ def exampleCommonSettings = Seq(
   publish / skip := true,
   resolvers += "Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots",
   run / javaOptions ++= Seq(
-    s"-javaagent:$projectRootDir/opentelemetry-javaagent-$OpentelemetryVersion.jar",
+    s"-javaagent:$projectRootDir/opentelemetry-javaagent-$OpentelemetryMinor0Version.jar",
     s"-Dotel.javaagent.extensions=${(otelExtension / assembly).value.absolutePath}",
     "-Dotel.javaagent.debug=true"
   ),

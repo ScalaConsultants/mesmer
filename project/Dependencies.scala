@@ -11,10 +11,10 @@ object Dependencies {
 
   val GoogleAutoServiceVersion        = "1.0.1"
   val LogbackVersion                  = "1.4.5"
-  val OpentelemetryVersion            = "1.22.1"
-  val OpentelemetryMinor0Version      = "1.22.0"
-  val OpentelemetryAlphaVersion       = "1.22.1-alpha"
-  val OpentelemetryAlphaMinor0Version = "1.22.0-alpha"
+  val OpentelemetryVersion            = "1.23.1"
+  val OpentelemetryMinor0Version      = "1.23.0"
+  val OpentelemetryAlphaVersion       = "1.23.1-alpha"
+  val OpentelemetryAlphaMinor0Version = "1.23.0-alpha"
   val PostgresVersion                 = "42.5.4"
   val ScalatestVersion                = "3.2.15"
   val SlickVersion                    = "3.4.1"
@@ -53,25 +53,25 @@ object Dependencies {
   )
 
   val openTelemetryInstrumentationApiSemanticConventions = Seq(
-    "io.opentelemetry.instrumentation" % "opentelemetry-instrumentation-api-semconv" % OpentelemetryAlphaVersion
+    "io.opentelemetry.instrumentation" % "opentelemetry-instrumentation-api-semconv" % OpentelemetryAlphaMinor0Version
   )
 
   val opentelemetryExtensionApi = Seq(
-    "io.opentelemetry.javaagent" % "opentelemetry-javaagent-extension-api" % OpentelemetryAlphaVersion
+    "io.opentelemetry.javaagent" % "opentelemetry-javaagent-extension-api" % OpentelemetryAlphaMinor0Version
   )
 
   val openTelemetryExtension = Seq(
     "com.google.auto.service"    % "auto-service"                    % GoogleAutoServiceVersion,
-    "io.opentelemetry.javaagent" % "opentelemetry-javaagent-tooling" % OpentelemetryAlphaVersion
+    "io.opentelemetry.javaagent" % "opentelemetry-javaagent-tooling" % OpentelemetryAlphaMinor0Version
   )
 
   val openTelemetryMuzzle = Seq(
-    "io.opentelemetry.javaagent" % "opentelemetry-muzzle"              % OpentelemetryAlphaVersion,
+    "io.opentelemetry.javaagent" % "opentelemetry-muzzle"              % OpentelemetryAlphaMinor0Version,
     "io.opentelemetry.javaagent" % "opentelemetry-javaagent-bootstrap" % OpentelemetryAlphaVersion
   )
 
   val openTelemetryTesting = Seq(
-    "io.opentelemetry.javaagent" % "opentelemetry-testing-common" % OpentelemetryAlphaVersion
+    "io.opentelemetry.javaagent" % "opentelemetry-testing-common" % OpentelemetryAlphaMinor0Version
   )
 
   val akkaTestkit = Seq(
