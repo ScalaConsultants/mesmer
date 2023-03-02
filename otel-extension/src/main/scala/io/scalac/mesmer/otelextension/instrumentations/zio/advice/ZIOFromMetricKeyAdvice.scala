@@ -15,7 +15,7 @@ import io.scalac.mesmer.otelextension.instrumentations.zio.ZIOMetrics._
 object ZIOFromMetricKeyAdvice {
 
   @Advice.OnMethodExit
-  def fromMetricKeyExit[Type <: MetricKeyType, _](
+  def fromMetricKeyExit[Type <: MetricKeyType](
     @Advice.Argument(0) key: MetricKey[Type],
     @Advice.Return metric: Metric[Type, _, _]
   ): Unit = {
