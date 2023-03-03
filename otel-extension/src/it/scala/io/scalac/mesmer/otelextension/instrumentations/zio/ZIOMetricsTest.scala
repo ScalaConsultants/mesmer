@@ -7,7 +7,7 @@ import org.scalatest.BeforeAndAfterEach
 import org.scalatest.flatspec.AnyFlatSpecLike
 import org.scalatest.matchers.should.Matchers
 import zio._
-import zio.metrics.Metric
+import zio.metrics.{ Metric, MetricLabel, MetricState }
 
 import scala.jdk.CollectionConverters.CollectionHasAsScala
 
@@ -18,7 +18,7 @@ class ZIOMetricsTest
     with MesmerPatienceConfig
     with BeforeAndAfterEach {
 
-  "OTEL counter" should "be registered and working for a custom ZIO Counter" in {
+  "plain ZIO counter" should "be picked up by our OTEL instrumentations" in {
     val counter = Metric.counter("my_custom_zio_counter").fromConst(1)
 
     val testProgram = for { _ <- ZIO.unit @@ counter } yield ()
@@ -26,6 +26,33 @@ class ZIOMetricsTest
     runUnsafely(testProgram, runtimeMetrics = false)
 
     assertCounterMetricValue("mesmer_zio_forwarded_my_custom_zio_counter", 1)
+  }
+
+  "ZIO tagged metrics" should "be picked up by our OTEL instrumentations" in {
+    val counter = Metric
+      .counter("my_custom_zio_counter_tagged")
+      .tagged(MetricLabel("static-tag", "foo"))
+      .taggedWith[Long](v => Set(MetricLabel("dynamic-tag", s"bar-$v")))
+      .fromConst(1)
+
+    val testProgram = for { _ <- ZIO.unit @@ counter } yield ()
+
+    runUnsafely(testProgram, runtimeMetrics = false)
+
+    assertCounterMetricValue("mesmer_zio_forwarded_my_custom_zio_counter_tagged", 1)
+  }
+
+  "ZIO mapped metrics" should "be picked up by our OTEL instrumentations" in {
+    val counter = Metric
+      .counter("my_custom_zio_counter_mapped")
+      .contramap[Any](_ => 1)
+      .map(out => MetricState.Counter(out.count * 2.5))
+
+    val testProgram = for { _ <- ZIO.unit @@ counter } yield ()
+
+    runUnsafely(testProgram, runtimeMetrics = false)
+
+    assertCounterMetricValue("mesmer_zio_forwarded_my_custom_zio_counter_mapped", 2.5)
   }
 
   "Runtime fiber_started metric" should "be picked up by our OTEL instrumentations" in {
