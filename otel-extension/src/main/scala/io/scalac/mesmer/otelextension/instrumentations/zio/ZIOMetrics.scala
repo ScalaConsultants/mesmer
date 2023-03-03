@@ -17,9 +17,6 @@ object ZIOMetrics {
   private val metricName: String => String = (suffix: String) => s"mesmer_zio_forwarded_$suffix"
 
   def registerCounterAsyncMetric(zioMetricName: String, counter: Counter[_], attributes: Attributes): Unit =
-    // println("FINDME 2")
-    // println(counter)
-    // Thread.currentThread().getStackTrace().map(st => println(s"${st.getFileName()}:${st.getLineNumber()} - ${st.getMethodName()}"))
     meter
       .counterBuilder(metricName(zioMetricName))
       .ofDoubles()
