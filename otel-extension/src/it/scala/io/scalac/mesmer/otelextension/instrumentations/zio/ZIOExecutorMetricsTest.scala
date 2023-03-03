@@ -11,7 +11,7 @@ import zio._
 import java.util.concurrent.{ SynchronousQueue, ThreadPoolExecutor, TimeUnit }
 import scala.jdk.CollectionConverters._
 
-class ZIOExecutorMetricsTest extends AnyFlatSpecLike with OtelAgentTest with Matchers with MesmerPatienceConfig {
+class ZIOExecutorMetricsTest extends OtelAgentTest with AnyFlatSpecLike with Matchers with MesmerPatienceConfig {
 
   val testProgram: ZIO[Any, Nothing, Long] = (for {
     _ <- Random.nextInt

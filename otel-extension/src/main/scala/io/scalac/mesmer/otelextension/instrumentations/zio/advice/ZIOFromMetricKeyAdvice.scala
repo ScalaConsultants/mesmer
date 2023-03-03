@@ -21,6 +21,9 @@ object ZIOFromMetricKeyAdvice {
   ): Unit = {
     val attributes = ZIOMetrics.buildAttributes(key.tags)
 
+    // println("FINDME 0")
+    // println(key.name)
+
     key.keyType match {
       case _: MetricKeyType.Counter =>
         registerCounterAsyncMetric(key.name, metric.asInstanceOf[Counter[_]], attributes)

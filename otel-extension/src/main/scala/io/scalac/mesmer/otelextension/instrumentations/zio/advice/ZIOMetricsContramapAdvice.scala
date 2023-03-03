@@ -6,10 +6,10 @@ import net.bytebuddy.asm.Advice
 import zio.metrics.Metric
 import zio.metrics.MetricKeyType
 
-object ZIOMetricsGenericMappingAdvice {
+object ZIOMetricsContramapAdvice {
 
   @Advice.OnMethodExit
-  def genericMapping[Type <: MetricKeyType](
+  def contramap[Type <: MetricKeyType](
     @Advice.This oldMetric: Metric[Type, _, _],
     @Advice.Return newMetric: Metric[Type, _, _]
   ): Unit = {
@@ -17,13 +17,13 @@ object ZIOMetricsGenericMappingAdvice {
       .find(classOf[Metric[Type, _, _]], classOf[String])
       .get(oldMetric)
 
-    VirtualField
-      .find(classOf[Metric[Type, _, _]], classOf[String])
-      .set(newMetric, name)
-
     val attributes: Attributes = VirtualField
       .find(classOf[Metric[Type, _, _]], classOf[Attributes])
       .get(oldMetric)
+
+    VirtualField
+      .find(classOf[Metric[Type, _, _]], classOf[String])
+      .set(newMetric, name)
 
     VirtualField
       .find(classOf[Metric[Type, _, _]], classOf[Attributes])
