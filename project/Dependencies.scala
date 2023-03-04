@@ -7,7 +7,7 @@ object Dependencies {
   val AkkaManagementVersion = "1.2.0"
   val AkkaVersion           = "2.7.0"
   val ByteBuddyVersion      = "1.13.0"
-  val CirceVersion          = "0.14.4"
+  val CirceVersion          = "0.14.5"
 
   val GoogleAutoServiceVersion        = "1.0.1"
   val LogbackVersion                  = "1.4.5"
