@@ -13,6 +13,7 @@ import org.slf4j.LoggerFactory
 
 import scala.collection.mutable
 import scala.concurrent.duration.DurationInt
+import scala.concurrent.duration.FiniteDuration
 import scala.util.Failure
 import scala.util.Success
 
@@ -21,21 +22,27 @@ import io.scalac.mesmer.core.event.StreamEvent
 import io.scalac.mesmer.core.event.StreamEvent.LastStreamStats
 import io.scalac.mesmer.core.event.StreamEvent.StreamInterpreterStats
 import io.scalac.mesmer.core.model.StreamInfo
-import io.scalac.mesmer.core.model.Tag
 import io.scalac.mesmer.core.model.Tag.StreamName
-import io.scalac.mesmer.core.model.stream.StreamStats
-import io.scalac.mesmer.core.model.stream.StreamStatsBuilder
+import io.scalac.mesmer.core.model.stream._
+import io.scalac.mesmer.core.module.AkkaStreamModule
 import io.scalac.mesmer.core.util.ClassicActorSystemOps.ActorSystemOps
 import io.scalac.mesmer.core.util.Retry
 import io.scalac.mesmer.core.util.TypedActorSystemOps.{ ActorSystemOps => TypedActorSystemOps }
 import io.scalac.mesmer.otelextension.instrumentations.akka.stream.AkkaStreamMetrics.streamNameAttribute
 import io.scalac.mesmer.otelextension.instrumentations.akka.stream.AkkaStreamMonitorExtension.StreamStatsReceived
+import io.scalac.mesmer.otelextension.instrumentations.akka.stream.AkkaStreamMonitorExtension.log
 
 final class AkkaStreamMonitorExtension(actorSystem: ActorSystem[_]) extends Extension {
 
-  private lazy val metrics = new AkkaStreamMetrics(actorSystem)
+  private lazy val metrics: AkkaStreamMetrics = new AkkaStreamMetrics(actorSystem)
 
-  private val interval = AkkaStreamConfig.metricSnapshotRefreshInterval(actorSystem.classicSystem)
+  private val interval: FiniteDuration = AkkaStreamConfig.metricSnapshotRefreshInterval(actorSystem.classicSystem)
+
+  private val cachingConfig: CachingConfig = CachingConfig.fromConfig(actorSystem.settings.config, AkkaStreamModule)
+
+  private val indexCache = ConnectionsIndexCache.bounded(cachingConfig.maxEntries)
+
+  private lazy val nodeAttribute: Attributes = AkkaStreamAttributes.forNode(actorSystem.clusterNodeName)
 
   def start(): Behavior[StreamStatsReceived] = Behaviors.setup[StreamStatsReceived] { ctx =>
     actorSystem.receptionist ! Register(
@@ -61,32 +68,51 @@ final class AkkaStreamMonitorExtension(actorSystem: ActorSystem[_]) extends Exte
   private def captureSnapshot(): Unit = {
     val current = collected.toMap
     collected.clear()
-
-    val streamShells: Map[Tag.SubStreamName, Map[ActorRef, StreamInfo]] =
-      current.groupBy { case (ref, streamInfo) => streamInfo.subStreamName }
-    val streamNames = streamShells.keySet.map(_.streamName)
-
-    collectStreamStats(current)
+    collectStreamMetrics(current)
   }
 
-  private def collectStreamStats(current: Map[ActorRef, StreamInfo]) = {
-    val nodeAttribute: Attributes = AkkaStreamAttributes.forNode(actorSystem.clusterNodeName)
-    val currentStreamStats        = mutable.Map.empty[StreamName, StreamStatsBuilder]
+  private def collectStreamMetrics(current: Map[ActorRef, StreamInfo]): Unit = {
+    val currentStreamStats = mutable.Map.empty[StreamName, StreamStatsBuilder]
 
     val streamStats = current.values.map { streamInfo =>
       val subStreamName = streamInfo.subStreamName
+
       val stats =
         currentStreamStats.getOrElseUpdate(subStreamName.streamName, new StreamStatsBuilder(subStreamName.streamName))
+
       stats.incActors()
+
+      streamInfo.shellInfo.foreach { case (stageInfo, connections) =>
+        for {
+          stage <- stageInfo if stage ne null
+        } {
+          stats.incStage()
+
+          val IndexData(DirectionData(inputStats, inputDistinct), DirectionData(outputStats, outputDistinct)) =
+            indexCache.get(stage)(connections)
+
+          // updateLocalProcessedState(stage, inputStats, stageInfo, inputDistinct)
+          // updateLocalDemandState(stage, outputStats, stageInfo, outputDistinct)
+
+          // set name for stream is it's terminal operator
+          if (stage.terminal) {
+            log.debug("Found terminal stage {}", stage)
+            stats.terminalName(stage.stageName.nameOnly)
+            stats.processedMessages(inputStats.foldLeft(0L)(_ + _.push))
+          }
+        }
+      }
+
+      stats
     }.map(_.build).toSeq
 
     metrics.setRunningActorsTotal(streamStats.foldLeft(0L)(_ + _.actors), nodeAttribute)
     // FIXME: or just: metrics.setRunningActorsTotal(current.size)???
     metrics.setRunningStreamsTotal(currentStreamStats.size, nodeAttribute)
-    setStreamProcessedMessages(nodeAttribute, streamStats)
+    setStreamProcessedMessages(streamStats)
   }
 
-  private def setStreamProcessedMessages(nodeAttribute: Attributes, streamStats: Seq[StreamStats]): Unit = {
+  private def setStreamProcessedMessages(streamStats: Seq[StreamStats]): Unit = {
     val builder = nodeAttribute.toBuilder
 
     val processesMessages = streamStats.map { stats =>

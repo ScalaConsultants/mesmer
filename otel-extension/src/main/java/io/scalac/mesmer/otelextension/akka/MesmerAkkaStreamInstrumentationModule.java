@@ -45,7 +45,6 @@ public class MesmerAkkaStreamInstrumentationModule extends InstrumentationModule
 
   @Override
   public List<String> getAdditionalHelperClassNames() {
-
     return MesmerAkkaHelpers.combine(
         MesmerAkkaHelpers.coreHelpers(),
         Arrays.asList(
@@ -70,8 +69,10 @@ public class MesmerAkkaStreamInstrumentationModule extends InstrumentationModule
             "io.scalac.mesmer.otelextension.instrumentations.akka.stream.AkkaStreamMonitorExtensionId$",
             "io.scalac.mesmer.otelextension.instrumentations.akka.stream.AkkaStreamMonitorExtension$",
             "io.scalac.mesmer.otelextension.instrumentations.akka.stream.AkkaStreamMonitorExtension$StreamStatsReceived",
-            "io.scalac.mesmer.otelextension.instrumentations.akka.stream.AkkaStreamMetrics",
+            "io.scalac.mesmer.otelextension.instrumentations.akka.stream.AkkaStreamMetrics$",
             "io.scalac.mesmer.otelextension.instrumentations.akka.stream.AkkaStreamConfig$",
-            "io.scalac.mesmer.otelextension.instrumentations.akka.stream.AkkaStreamAttributes$"));
+            "io.scalac.mesmer.otelextension.instrumentations.akka.stream.AkkaStreamAttributes$",
+            "io.scalac.mesmer.otelextension.instrumentations.akka.stream.CachingConfig",
+            "io.scalac.mesmer.otelextension.instrumentations.akka.stream.CachingConfig$"));
   }
 }
