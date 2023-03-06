@@ -20,7 +20,10 @@ public class MesmerZIOMetricAPIInstrumentationModule extends InstrumentationModu
 
   @Override
   public List<TypeInstrumentation> typeInstrumentations() {
-    return List.of(ZIOInstrumentations.fromMetricKeyAdvice(), ZIOInstrumentations.taggedAdvice());
+    return List.of(
+        ZIOInstrumentations.fromMetricKeyAdvice(),
+        ZIOInstrumentations.taggedAdvice(),
+        ZIOInstrumentations.contramapAdvice());
   }
 
   @Override
@@ -28,6 +31,7 @@ public class MesmerZIOMetricAPIInstrumentationModule extends InstrumentationModu
     return List.of(
         "io.scalac.mesmer.otelextension.instrumentations.zio.advice.ZIOFromMetricKeyAdvice$",
         "io.scalac.mesmer.otelextension.instrumentations.zio.advice.ZIOMetricsTaggedAdvice$",
+        "io.scalac.mesmer.otelextension.instrumentations.zio.advice.ZIOMetricsContramapAdvice$",
         "io.scalac.mesmer.otelextension.instrumentations.zio.ZIOInstrumentations$",
         "io.scalac.mesmer.otelextension.instrumentations.zio.ZIOMetrics$");
   }

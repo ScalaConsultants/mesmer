@@ -1,18 +1,25 @@
 package io.scalac.mesmer.otelextension.instrumentations.zio
 
 import io.opentelemetry.sdk.metrics.data.MetricData
+import io.opentelemetry.api.common.{ AttributeKey, Attributes }
 import io.scalac.mesmer.agent.utils.OtelAgentTest
 import io.scalac.mesmer.core.config.MesmerPatienceConfig
+import org.scalatest.BeforeAndAfterEach
 import org.scalatest.flatspec.AnyFlatSpecLike
 import org.scalatest.matchers.should.Matchers
 import zio._
-import zio.metrics.Metric
+import zio.metrics.{ Metric, MetricLabel }
 
 import scala.jdk.CollectionConverters.CollectionHasAsScala
 
-class ZIOMetricsTest extends OtelAgentTest with AnyFlatSpecLike with Matchers with MesmerPatienceConfig {
+class ZIOMetricsTest
+    extends AnyFlatSpecLike
+    with OtelAgentTest
+    with Matchers
+    with MesmerPatienceConfig
+    with BeforeAndAfterEach {
 
-  "OTEL counter" should "be registered and working for a custom ZIO Counter" in {
+  "plain ZIO counter" should "be picked up by our OTEL instrumentations" in {
     val counter = Metric.counter("my_custom_zio_counter").fromConst(1)
 
     val testProgram = for { _ <- ZIO.unit @@ counter } yield ()
@@ -20,6 +27,19 @@ class ZIOMetricsTest extends OtelAgentTest with AnyFlatSpecLike with Matchers wi
     runUnsafely(testProgram, runtimeMetrics = false)
 
     assertCounterMetricValue("mesmer_zio_forwarded_my_custom_zio_counter", 1)
+  }
+
+  "ZIO tagged counter" should "be picked up by our OTEL instrumentations" in {
+    val zioMetricName  = "my_custom_zio_counter_tagged"
+    val otelMetricName = s"mesmer_zio_forwarded_$zioMetricName"
+    val counter        = Metric.counter(zioMetricName).tagged(MetricLabel("foo", "bar")).fromConst(1)
+
+    val testProgram = for { _ <- ZIO.unit @@ counter } yield ()
+
+    runUnsafely(testProgram, runtimeMetrics = false)
+
+    assertCounterMetricValue(otelMetricName, 1)
+    assertCounterAttribute(otelMetricName, "foo", "bar")
   }
 
   "Runtime fiber_started metric" should "be picked up by our OTEL instrumentations" in {
@@ -79,4 +99,14 @@ class ZIOMetricsTest extends OtelAgentTest with AnyFlatSpecLike with Matchers wi
 
   private def getCounterValue(data: MetricData): Option[Double] =
     data.getDoubleSumData.getPoints.asScala.map(_.getValue).toList.headOption
+
+  private def assertCounterAttribute(metricName: String, key: String, value: String): Unit =
+    assertMetric(metricName) { data =>
+      val attributeKey = AttributeKey.stringKey(key)
+      getCounterAttributes(data).map(_.get(attributeKey)) should be(Some(value))
+    }
+
+  private def getCounterAttributes(data: MetricData): Option[Attributes] =
+    data.getDoubleSumData.getPoints.asScala.map(_.getAttributes).toList.headOption
+
 }

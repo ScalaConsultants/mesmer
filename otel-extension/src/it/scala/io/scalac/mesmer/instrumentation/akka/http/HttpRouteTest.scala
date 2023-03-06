@@ -17,8 +17,8 @@ import scala.concurrent.Promise
 import scala.concurrent.duration._
 
 class HttpRouteTest
-    extends OtelAgentTest
-    with AnyFlatSpecLike
+    extends AnyFlatSpecLike
+    with OtelAgentTest
     with Matchers
     with ScalaFutures
     with ScalatestRouteTest

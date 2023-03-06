@@ -14,7 +14,7 @@ import io.scalac.mesmer.otelextension.instrumentations.zio.ZIOMetrics._
 object ZIOMetricsTaggedAdvice {
 
   @Advice.OnMethodExit
-  def tagged[Type <: MetricKeyType, _](
+  def tagged[Type <: MetricKeyType](
     @Advice.Argument(0) extraTags: Set[MetricLabel],
     @Advice.This oldMetric: Metric[Type, _, _],
     @Advice.Return newMetric: Metric[Type, _, _]

@@ -28,8 +28,8 @@ import scala.concurrent.duration._
 import scala.concurrent.{ ExecutionContext, Future }
 
 class AkkaStreamsTest
-    extends OtelAgentTest
-    with AnyFlatSpecLike
+    extends AnyFlatSpecLike
+    with OtelAgentTest
     with Matchers
     with SafeLoadSystem
     with BeforeAndAfterAll

@@ -36,4 +36,12 @@ object ZIOInstrumentations {
         "io.scalac.mesmer.otelextension.instrumentations.zio.advice.ZIOMetricsTaggedAdvice"
       )
     )
+
+  val contramapAdvice: TypeInstrumentation =
+    Instrumentation(named[TypeDescription]("zio.metrics.Metric")).`with`(
+      Advice(
+        named[MethodDescription]("contramap"),
+        "io.scalac.mesmer.otelextension.instrumentations.zio.advice.ZIOMetricsContramapAdvice"
+      )
+    )
 }
