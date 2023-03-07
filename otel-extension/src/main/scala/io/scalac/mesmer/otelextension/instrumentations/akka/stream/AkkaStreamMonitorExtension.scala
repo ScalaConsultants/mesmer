@@ -28,7 +28,9 @@ import io.scalac.mesmer.core.module.AkkaStreamModule
 import io.scalac.mesmer.core.util.ClassicActorSystemOps.ActorSystemOps
 import io.scalac.mesmer.core.util.Retry
 import io.scalac.mesmer.core.util.TypedActorSystemOps.{ ActorSystemOps => TypedActorSystemOps }
-import io.scalac.mesmer.otelextension.instrumentations.akka.stream.AkkaStreamMetrics.streamNameAttribute
+import io.scalac.mesmer.otelextension.instrumentations.akka.stream.AkkaStreamMetrics.isTerminalStageKey
+import io.scalac.mesmer.otelextension.instrumentations.akka.stream.AkkaStreamMetrics.stageNameAttributeKey
+import io.scalac.mesmer.otelextension.instrumentations.akka.stream.AkkaStreamMetrics.streamNameAttributeKey
 import io.scalac.mesmer.otelextension.instrumentations.akka.stream.AkkaStreamMonitorExtension.StreamStatsReceived
 import io.scalac.mesmer.otelextension.instrumentations.akka.stream.AkkaStreamMonitorExtension.log
 
@@ -76,33 +78,10 @@ final class AkkaStreamMonitorExtension(actorSystem: ActorSystem[_]) extends Exte
 
     val streamStats = current.values.map { streamInfo =>
       val subStreamName = streamInfo.subStreamName
-
-      val stats =
+      val stats: StreamStatsBuilder =
         currentStreamStats.getOrElseUpdate(subStreamName.streamName, new StreamStatsBuilder(subStreamName.streamName))
-
       stats.incActors()
-
-      streamInfo.shellInfo.foreach { case (stageInfo, connections) =>
-        for {
-          stage <- stageInfo if stage ne null
-        } {
-          stats.incStage()
-
-          val IndexData(DirectionData(inputStats, inputDistinct), DirectionData(outputStats, outputDistinct)) =
-            indexCache.get(stage)(connections)
-
-          // updateLocalProcessedState(stage, inputStats, stageInfo, inputDistinct)
-          // updateLocalDemandState(stage, outputStats, stageInfo, outputDistinct)
-
-          // set name for stream is it's terminal operator
-          if (stage.terminal) {
-            log.debug("Found terminal stage {}", stage)
-            stats.terminalName(stage.stageName.nameOnly)
-            stats.processedMessages(inputStats.foldLeft(0L)(_ + _.push))
-          }
-        }
-      }
-
+      collectPerStageMetrics(stats, streamInfo)
       stats
     }.map(_.build).toSeq
 
@@ -112,17 +91,106 @@ final class AkkaStreamMonitorExtension(actorSystem: ActorSystem[_]) extends Exte
     setStreamProcessedMessages(streamStats)
   }
 
+  private def collectPerStageMetrics(stats: StreamStatsBuilder, streamInfo: StreamInfo): Unit =
+    streamInfo.shellInfo.foreach { case (stageInfo, connections) =>
+      for {
+        stage <- stageInfo if stage ne null
+      } {
+        stats.incStage()
+
+        val IndexData(DirectionData(inputStats, inputDistinct), DirectionData(outputStats, outputDistinct)) =
+          indexCache.get(stage)(connections)
+
+        val operatorsPerStage = getPerStageValues(getProcessedState(stage, inputStats, stageInfo, inputDistinct))
+
+        val demandPerStage = getPerStageValues(getDemandState(stage, outputStats, stageInfo, outputDistinct))
+
+        metrics.setRunningOperators(operatorsPerStage)
+        metrics.setOperatorDemand(demandPerStage)
+
+        if (stage.terminal) {
+          log.debug("Found terminal stage {}", stage)
+          stats.terminalName(stage.stageName.nameOnly)
+          stats.processedMessages(inputStats.foldLeft(0L)(_ + _.push))
+        }
+      }
+    }
+
   private def setStreamProcessedMessages(streamStats: Seq[StreamStats]): Unit = {
     val builder = nodeAttribute.toBuilder
 
     val processesMessages = streamStats.map { stats =>
-      val attributes = builder.put(streamNameAttribute, stats.streamName.name).build()
+      val attributes = builder.put(streamNameAttributeKey, stats.streamName.name).build()
       (stats.processesMessages, attributes)
     }
 
-    println(processesMessages)
     metrics.setStreamProcessedMessagesTotal(processesMessages)
   }
+
+  private def getPerStageValues(snapshot: Seq[SnapshotEntry]): Seq[(Long, Attributes)] =
+    snapshot
+      .groupBy(_.stage.subStreamName.streamName)
+      .flatMap { case (streamName, entriesPerStream) =>
+        entriesPerStream.groupBy(_.stage.stageName.nameOnly).map { case (stageName, entriesPerStage) =>
+          val attributes = nodeAttribute.toBuilder
+            .put(stageNameAttributeKey, stageName.name)
+            .put(streamNameAttributeKey, streamName.name)
+            .put(isTerminalStageKey, "false")
+            .build()
+          val value = entriesPerStage.size
+          (value.toLong, attributes)
+        }
+      }
+      .toSeq
+
+  private def getDemandState(
+    stage: StageInfo,
+    connectionStats: Set[ConnectionStats],
+    stages: Array[StageInfo],
+    distinct: Boolean = false
+  ): Seq[SnapshotEntry] = computeSnapshotEntries(stage, connectionStats, stages, distinct, conn => (conn.in, conn.pull))
+
+  private def getProcessedState(
+    stage: StageInfo,
+    connectionStats: Set[ConnectionStats],
+    stages: Array[StageInfo],
+    distinct: Boolean = false
+  ): Seq[SnapshotEntry] =
+    computeSnapshotEntries(stage, connectionStats, stages, distinct, conn => (conn.out, conn.push))
+
+  private def computeSnapshotEntries(
+    stage: StageInfo,
+    connectionStats: Set[ConnectionStats],
+    stages: Array[StageInfo],
+    distinct: Boolean,
+    extractFunction: ConnectionStats => (Int, Long)
+  ): Seq[SnapshotEntry] =
+    if (connectionStats.nonEmpty) {
+      if (distinct) {
+        // optimization for simpler graphs
+        connectionStats.map { conn =>
+          val (out, push) = extractFunction(conn)
+          createSnapshotEntry(stage, stages(out), push)
+        }.toSeq
+      } else {
+        connectionStats
+          .map(extractFunction)
+          .groupBy(_._1)
+          .map { case (index, connections) =>
+            val value = connections.foldLeft(0L)(_ + _._2)
+            createSnapshotEntry(stage, stages(index), value)
+          }
+          .toSeq
+      }
+    } else {
+      Seq(SnapshotEntry(stage, None))
+    }
+
+  private def createSnapshotEntry(stage: StageInfo, connectedWith: StageInfo, value: Long): SnapshotEntry =
+    if (connectedWith ne null) {
+      val connectedName = connectedWith.stageName
+      SnapshotEntry(stage, Some(StageData(value, connectedName.name)))
+    } else SnapshotEntry(stage, Some(StageData(value, "unknown")))
 
   actorSystem.systemActorOf(start(), "mesmerStreamMonitor")
 }
