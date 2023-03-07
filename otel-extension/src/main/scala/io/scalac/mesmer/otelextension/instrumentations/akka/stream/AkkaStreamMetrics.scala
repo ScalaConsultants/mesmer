@@ -51,7 +51,7 @@ final class AkkaStreamMetrics(actorSystem: ActorSystem[_]) {
     .buildWithCallback(callback(_, operatorDemand))
 
   def setRunningStreamsTotal(value: Long, attributes: Attributes): Unit = runningStreamsTotal = Seq((value, attributes))
-  def setRunningActorsTotal(value: Long, attributes: Attributes): Unit  = runningActorsTotal = Seq((value, attributes))
+  def setRunningActorsTotal(values: Seq[(Long, Attributes)]): Unit      = runningActorsTotal = values
   def setStreamProcessedMessagesTotal(values: Seq[(Long, Attributes)]): Unit = streamProcessedMessagesTotal = values
   def setRunningOperators(values: Seq[(Long, Attributes)]): Unit             = runningOperators = values
   def setOperatorDemand(values: Seq[(Long, Attributes)]): Unit               = operatorDemand = values

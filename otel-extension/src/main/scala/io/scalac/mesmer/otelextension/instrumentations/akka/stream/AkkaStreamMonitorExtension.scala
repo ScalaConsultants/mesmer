@@ -1,6 +1,5 @@
 package io.scalac.mesmer.otelextension.instrumentations.akka.stream
 
-import akka.actor.ActorRef
 import akka.actor.typed.ActorSystem
 import akka.actor.typed.Behavior
 import akka.actor.typed.Extension
@@ -34,64 +33,55 @@ import io.scalac.mesmer.otelextension.instrumentations.akka.stream.AkkaStreamMet
 import io.scalac.mesmer.otelextension.instrumentations.akka.stream.AkkaStreamMonitorExtension.StreamStatsReceived
 import io.scalac.mesmer.otelextension.instrumentations.akka.stream.AkkaStreamMonitorExtension.log
 
-final class AkkaStreamMonitorExtension(actorSystem: ActorSystem[_]) extends Extension {
-
-  private lazy val metrics: AkkaStreamMetrics = new AkkaStreamMetrics(actorSystem)
-
-  private val interval: FiniteDuration = AkkaStreamConfig.metricSnapshotRefreshInterval(actorSystem.classicSystem)
-
-  private val cachingConfig: CachingConfig = CachingConfig.fromConfig(actorSystem.settings.config, AkkaStreamModule)
-
-  private val indexCache = ConnectionsIndexCache.bounded(cachingConfig.maxEntries)
+final class AkkaStreamMonitorExtension(
+  actorSystem: ActorSystem[_],
+  streamSnapshotService: StreamSnapshotsService,
+  metrics: AkkaStreamMetrics,
+  indexCache: ConnectionsIndexCache
+) extends Extension {
 
   private lazy val nodeAttribute: Attributes = AkkaStreamAttributes.forNode(actorSystem.clusterNodeName)
+
+  private val interval: FiniteDuration = AkkaStreamConfig.metricSnapshotRefreshInterval(actorSystem.classicSystem)
 
   def start(): Behavior[StreamStatsReceived] = Behaviors.setup[StreamStatsReceived] { ctx =>
     actorSystem.receptionist ! Register(
       streamService.serviceKey,
       ctx.messageAdapter[StreamEvent](StreamStatsReceived.apply)
     )
-    actorSystem.scheduler.scheduleWithFixedDelay(interval, interval)(() => captureSnapshot())(
+    actorSystem.scheduler.scheduleWithFixedDelay(interval, interval)(() => collectStreamMetrics())(
       actorSystem.executionContext
     )
 
     Behaviors.receiveMessage[StreamStatsReceived] {
       case StreamStatsReceived(StreamInterpreterStats(ref, streamName, shellInfo)) =>
-        collected.put(ref, StreamInfo(streamName, shellInfo))
+        streamSnapshotService.loadInfo(ref, StreamInfo(streamName, shellInfo))
         Behaviors.same
       case StreamStatsReceived(LastStreamStats(ref, streamName, shellInfo)) =>
-        collected.put(ref, StreamInfo(streamName, Set(shellInfo)))
+        streamSnapshotService.loadInfo(ref, StreamInfo(streamName, Set(shellInfo)))
         Behaviors.same
     }
   }
 
-  private val collected: mutable.Map[ActorRef, StreamInfo] = mutable.Map.empty
-
-  private def captureSnapshot(): Unit = {
-    val current = collected.toMap
-    collected.clear()
-    collectStreamMetrics(current)
-  }
-
-  private def collectStreamMetrics(current: Map[ActorRef, StreamInfo]): Unit = {
+  private def collectStreamMetrics(): Unit = {
+    val currentSnapshot    = streamSnapshotService.getSnapshot()
     val currentStreamStats = mutable.Map.empty[StreamName, StreamStatsBuilder]
 
-    val streamStats = current.values.map { streamInfo =>
+    val streamStats: Seq[StreamStats] = currentSnapshot.values.map { streamInfo =>
       val subStreamName = streamInfo.subStreamName
       val stats: StreamStatsBuilder =
         currentStreamStats.getOrElseUpdate(subStreamName.streamName, new StreamStatsBuilder(subStreamName.streamName))
       stats.incActors()
-      collectPerStageMetrics(stats, streamInfo)
+      collectPerStreamMetrics(stats, streamInfo)
       stats
     }.map(_.build).toSeq
 
-    metrics.setRunningActorsTotal(streamStats.foldLeft(0L)(_ + _.actors), nodeAttribute)
-    // FIXME: or just: metrics.setRunningActorsTotal(current.size)???
+    setRunningActorsTotal(streamStats)
     metrics.setRunningStreamsTotal(currentStreamStats.size, nodeAttribute)
     setStreamProcessedMessages(streamStats)
   }
 
-  private def collectPerStageMetrics(stats: StreamStatsBuilder, streamInfo: StreamInfo): Unit =
+  private def collectPerStreamMetrics(stats: StreamStatsBuilder, streamInfo: StreamInfo): Unit =
     streamInfo.shellInfo.foreach { case (stageInfo, connections) =>
       for {
         stage <- stageInfo if stage ne null
@@ -116,6 +106,15 @@ final class AkkaStreamMonitorExtension(actorSystem: ActorSystem[_]) extends Exte
       }
     }
 
+  private def setRunningActorsTotal(streamStats: Seq[StreamStats]): Unit = {
+    val actorsPerStream: Seq[(Long, Attributes)] = streamStats
+      .map(stats => (stats.actors, stats.streamName))
+      .map { case (actors, streamName) =>
+        (actors.toLong, nodeAttribute.toBuilder.put(streamNameAttributeKey, streamName.name).build())
+      }
+
+    metrics.setRunningActorsTotal(actorsPerStream)
+  }
   private def setStreamProcessedMessages(streamStats: Seq[StreamStats]): Unit = {
     val builder = nodeAttribute.toBuilder
 
@@ -222,6 +221,9 @@ object AkkaStreamMonitorExtension {
 
 object AkkaStreamMonitorExtensionId extends ExtensionId[AkkaStreamMonitorExtension] {
   override def createExtension(system: ActorSystem[_]): AkkaStreamMonitorExtension = new AkkaStreamMonitorExtension(
-    system
+    system,
+    StreamSnapshotsService.make(),
+    new AkkaStreamMetrics(system),
+    ConnectionsIndexCache.bounded(CachingConfig.fromConfig(system.settings.config, AkkaStreamModule).maxEntries)
   )
 }
