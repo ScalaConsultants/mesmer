@@ -161,7 +161,6 @@ def exampleCommonSettings = Seq(
   ),
   libraryDependencies ++= {
     logback ++ Seq(
-      "io.opentelemetry"    % "opentelemetry-sdk-extension-autoconfigure" % OpentelemetryAlphaMinor0Version,
       "io.grpc"             % "grpc-netty-shaded"                         % "1.53.0",
       "org.wvlet.airframe" %% "airframe-log"                              % AirframeVersion
     )
