@@ -11,15 +11,15 @@ import io.opentelemetry.api.metrics.ObservableLongMeasurement
 final class AkkaStreamMetrics(actorSystem: ActorSystem[_]) {
   private val meter: Meter = GlobalOpenTelemetry.getMeter("mesmer")
 
-  @volatile private var runningStreamsTotal: Seq[(Long, Attributes)]          = Seq.empty
-  @volatile private var runningActorsTotal: Seq[(Long, Attributes)]           = Seq.empty
-  @volatile private var streamProcessedMessagesTotal: Seq[(Long, Attributes)] = Seq.empty
-  @volatile private var runningOperators: Seq[(Long, Attributes)]             = Seq.empty
-  @volatile private var operatorDemand: Seq[(Long, Attributes)]               = Seq.empty
+  @volatile private var runningStreamsTotal: Map[Attributes, Long]          = Map.empty
+  @volatile private var runningActorsTotal: Map[Attributes, Long]           = Map.empty
+  @volatile private var streamProcessedMessagesTotal: Map[Attributes, Long] = Map.empty
+  @volatile private var runningOperators: Map[Attributes, Long]             = Map.empty
+  @volatile private var operatorDemand: Map[Attributes, Long]               = Map.empty
 
-  private val callback: (ObservableLongMeasurement, Seq[(Long, Attributes)]) => Unit =
-    (measurement: ObservableLongMeasurement, values: Seq[(Long, Attributes)]) =>
-      values.foreach { case (value, attributes) =>
+  private val callback: (ObservableLongMeasurement, Map[Attributes, Long]) => Unit =
+    (measurement: ObservableLongMeasurement, values: Map[Attributes, Long]) =>
+      values.foreach { case (attributes, value) =>
         measurement.record(value, attributes)
       }
 
@@ -50,11 +50,11 @@ final class AkkaStreamMetrics(actorSystem: ActorSystem[_]) {
     .setDescription("Messages demanded by operator")
     .buildWithCallback(callback(_, operatorDemand))
 
-  def setRunningStreamsTotal(value: Long, attributes: Attributes): Unit = runningStreamsTotal = Seq((value, attributes))
-  def setRunningActorsTotal(values: Seq[(Long, Attributes)]): Unit      = runningActorsTotal = values
-  def setStreamProcessedMessagesTotal(values: Seq[(Long, Attributes)]): Unit = streamProcessedMessagesTotal = values
-  def setRunningOperators(values: Seq[(Long, Attributes)]): Unit             = runningOperators = values
-  def setOperatorDemand(values: Seq[(Long, Attributes)]): Unit               = operatorDemand = values
+  def setRunningStreamsTotal(value: Long, attributes: Attributes): Unit = runningStreamsTotal = Map(attributes -> value)
+  def setRunningActorsTotal(values: Map[Attributes, Long]): Unit        = runningActorsTotal = values
+  def setStreamProcessedMessagesTotal(values: Map[Attributes, Long]): Unit = streamProcessedMessagesTotal = values
+  def setRunningOperators(values: Map[Attributes, Long]): Unit             = runningOperators = values
+  def setOperatorDemand(values: Map[Attributes, Long]): Unit               = operatorDemand = values
 }
 
 object AkkaStreamMetrics {

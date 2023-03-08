@@ -107,11 +107,12 @@ final class AkkaStreamMonitorExtension(
     }
 
   private def setRunningActorsTotal(streamStats: Seq[StreamStats]): Unit = {
-    val actorsPerStream: Seq[(Long, Attributes)] = streamStats
+    val actorsPerStream: Map[Attributes, Long] = streamStats
       .map(stats => (stats.actors, stats.streamName))
       .map { case (actors, streamName) =>
-        (actors.toLong, nodeAttribute.toBuilder.put(streamNameAttributeKey, streamName.name).build())
+        nodeAttribute.toBuilder.put(streamNameAttributeKey, streamName.name).build() -> actors.toLong
       }
+      .toMap
 
     metrics.setRunningActorsTotal(actorsPerStream)
   }
@@ -120,13 +121,13 @@ final class AkkaStreamMonitorExtension(
 
     val processesMessages = streamStats.map { stats =>
       val attributes = builder.put(streamNameAttributeKey, stats.streamName.name).build()
-      (stats.processesMessages, attributes)
-    }
+      (attributes, stats.processesMessages)
+    }.toMap
 
     metrics.setStreamProcessedMessagesTotal(processesMessages)
   }
 
-  private def getPerStageValues(snapshot: Seq[SnapshotEntry]): Seq[(Long, Attributes)] =
+  private def getPerStageValues(snapshot: Seq[SnapshotEntry]): Map[Attributes, Long] =
     snapshot
       .groupBy(_.stage.subStreamName.streamName)
       .flatMap { case (streamName, entriesPerStream) =>
@@ -137,10 +138,9 @@ final class AkkaStreamMonitorExtension(
             .put(isTerminalStageKey, "false")
             .build()
           val value = entriesPerStage.size
-          (value.toLong, attributes)
+          attributes -> value.toLong
         }
       }
-      .toSeq
 
   private def getDemandState(
     stage: StageInfo,
