@@ -151,6 +151,17 @@ lazy val otelExtension = (project in file("otel-extension"))
   )
   .dependsOn(core % "provided->compile;compile->compile", testkit % "it,test")
 
+lazy val otelZioMetrics = (project in file("otel-zio-metrics"))
+  .disablePlugins(sbtassembly.AssemblyPlugin)
+  .settings(
+    name := "mesmer-otel-zio-metrics",
+    libraryDependencies ++= {
+      zio.map(_ % "provided") ++
+      opentelemetryExtensionApi ++
+      scalatest.map(_ % "test")
+    }
+  )
+
 def exampleCommonSettings = Seq(
   publish / skip := true,
   resolvers += "Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots",
