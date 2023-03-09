@@ -2,8 +2,6 @@ package io.scalac.mesmer.otelextension.instrumentations.akka.stream
 
 import akka.actor.typed.ActorSystem
 import io.opentelemetry.api.GlobalOpenTelemetry
-import io.opentelemetry.api.common.AttributeKey
-import io.opentelemetry.api.common.AttributeKey.stringKey
 import io.opentelemetry.api.common.Attributes
 import io.opentelemetry.api.metrics.Meter
 import io.opentelemetry.api.metrics.ObservableLongMeasurement
@@ -55,11 +53,4 @@ final class AkkaStreamMetrics(actorSystem: ActorSystem[_]) {
   def setStreamProcessedMessagesTotal(values: Map[Attributes, Long]): Unit = streamProcessedMessagesTotal = values
   def setRunningOperators(values: Map[Attributes, Long]): Unit             = runningOperators = values
   def setOperatorDemand(values: Map[Attributes, Long]): Unit               = operatorDemand = values
-}
-
-object AkkaStreamMetrics {
-  val streamNameAttributeKey: AttributeKey[String] = stringKey("stream_name")
-  val stageNameAttributeKey: AttributeKey[String]  = stringKey("stage_name")
-  val isTerminalStageKey: AttributeKey[String]     = stringKey("is_terminal")
-  val connectedWithKey: AttributeKey[String]       = stringKey("connected_with")
 }

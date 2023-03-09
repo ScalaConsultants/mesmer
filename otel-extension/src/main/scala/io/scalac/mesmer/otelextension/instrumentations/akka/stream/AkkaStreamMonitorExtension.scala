@@ -20,16 +20,14 @@ import io.scalac.mesmer.core.event.Service.streamService
 import io.scalac.mesmer.core.event.StreamEvent
 import io.scalac.mesmer.core.event.StreamEvent.LastStreamStats
 import io.scalac.mesmer.core.event.StreamEvent.StreamInterpreterStats
+import io.scalac.mesmer.core.model.Node
 import io.scalac.mesmer.core.model.StreamInfo
+import io.scalac.mesmer.core.model.Tag._
 import io.scalac.mesmer.core.model.stream._
 import io.scalac.mesmer.core.module.AkkaStreamModule
 import io.scalac.mesmer.core.util.ClassicActorSystemOps.ActorSystemOps
 import io.scalac.mesmer.core.util.Retry
 import io.scalac.mesmer.core.util.TypedActorSystemOps.{ ActorSystemOps => TypedActorSystemOps }
-import io.scalac.mesmer.otelextension.instrumentations.akka.stream.AkkaStreamMetrics.connectedWithKey
-import io.scalac.mesmer.otelextension.instrumentations.akka.stream.AkkaStreamMetrics.isTerminalStageKey
-import io.scalac.mesmer.otelextension.instrumentations.akka.stream.AkkaStreamMetrics.stageNameAttributeKey
-import io.scalac.mesmer.otelextension.instrumentations.akka.stream.AkkaStreamMetrics.streamNameAttributeKey
 import io.scalac.mesmer.otelextension.instrumentations.akka.stream.AkkaStreamMonitorExtension.StreamStatsReceived
 
 final class AkkaStreamMonitorExtension(
@@ -39,7 +37,7 @@ final class AkkaStreamMonitorExtension(
   indexCache: ConnectionsIndexCache
 ) extends Extension {
 
-  private lazy val nodeAttribute: Attributes = AkkaStreamAttributes.forNode(actorSystem.clusterNodeName)
+  private lazy val nodeName: Option[Node] = actorSystem.clusterNodeName
 
   private val interval: FiniteDuration = AkkaStreamConfig.metricSnapshotRefreshInterval(actorSystem.classicSystem)
 
@@ -75,9 +73,9 @@ final class AkkaStreamMonitorExtension(
 
     val operatorDemand    = stageSnapshots.flatMap(snapshot => getPerStageValues(snapshot.output)).toMap
     val runningOperators  = stageSnapshots.flatMap(snapshot => getPerStageOperatorValues(snapshot.input)).toMap
-    val processedMessages = stageSnapshots.flatMap(snapshot => getPerStageOperatorValues(snapshot.input)).toMap
+    val processedMessages = stageSnapshots.flatMap(snapshot => getPerStageValues(snapshot.input)).toMap
 
-    metrics.setRunningActorsTotal(currentSnapshot.size, nodeAttribute)
+    metrics.setRunningActorsTotal(currentSnapshot.size, AkkaStreamAttributes.forNode(nodeName))
     metrics.setOperatorDemand(operatorDemand)
     metrics.setRunningOperators(runningOperators)
     metrics.setStreamProcessedMessagesTotal(processedMessages)
@@ -116,28 +114,31 @@ final class AkkaStreamMonitorExtension(
 
   private def getPerStageOperatorValues(snapshot: Seq[SnapshotEntry]): Map[Attributes, Long] =
     snapshot
-      .groupBy(_.stage.subStreamName.streamName.name)
+      .groupBy(_.stage.subStreamName.streamName)
       .flatMap { case (streamName, entriesPerStream) =>
         entriesPerStream.groupBy(_.stage.stageName.nameOnly).map { case (stageName, entriesPerStage) =>
-          val attributes = nodeAttribute.toBuilder
-            .put(stageNameAttributeKey, stageName.name)
-            .put(streamNameAttributeKey, streamName)
-            .put(isTerminalStageKey, "false")
-            .build()
-          val value = entriesPerStage.size
-          attributes -> value.toLong
+          val attributes = StageAttributes(
+            stageName,
+            streamName,
+            terminal = false,
+            nodeName,
+            None
+          ).toOtel
+
+          attributes -> entriesPerStage.size.toLong
         }
       }
 
   private def getPerStageValues(snapshot: Seq[SnapshotEntry]): Map[Attributes, Long] =
     snapshot.collect { case SnapshotEntry(stageInfo, Some(StageData(value, connectedWith))) =>
-      val attributes =
-        nodeAttribute.toBuilder
-          .put(stageNameAttributeKey, stageInfo.stageName.name)
-          .put(streamNameAttributeKey, stageInfo.subStreamName.streamName.name)
-          .put(isTerminalStageKey, stageInfo.terminal.toString)
-          .put(connectedWithKey, connectedWith)
-          .build()
+      val attributes = StageAttributes(
+        stageInfo.stageName,
+        stageInfo.subStreamName.streamName,
+        stageInfo.terminal,
+        nodeName,
+        Some(connectedWith)
+      ).toOtel
+
       attributes -> value
     }.toMap
 

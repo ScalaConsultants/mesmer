@@ -13,7 +13,7 @@ import io.scalac.mesmer.core.tagging._
 
 package object model {
 
-  case class StreamInfo(subStreamName: SubStreamName, shellInfo: Set[ShellInfo])
+  final case class StreamInfo(subStreamName: SubStreamName, shellInfo: Set[ShellInfo])
 
   type ShellInfo = (Array[StageInfo], Array[ConnectionStats])
 

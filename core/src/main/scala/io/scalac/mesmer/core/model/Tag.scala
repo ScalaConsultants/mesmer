@@ -1,5 +1,7 @@
 package io.scalac.mesmer.core.model
 
+import io.opentelemetry.api.common.Attributes
+
 import io.scalac.mesmer.core.model.Tag.StreamName.StreamNameAttributeKey
 
 sealed trait Tag extends Any {
@@ -69,6 +71,31 @@ object Tag {
       val subStreamId: String    = islandId
       lazy val serialize: Seq[(String, String)] =
         Seq(("stream_name_with_island", s"${streamName.name}-$subStreamId")) ++ streamName.serialize
+    }
+  }
+
+  final case class StageAttributes(
+    operator: StageName,
+    stream: StreamName,
+    terminal: Boolean,
+    node: Option[Node],
+    connectedWith: Option[String]
+  ) {
+    private val serialize: Map[String, String] = {
+
+      val connected = connectedWith.fold[RawAttributes](Seq.empty) { stageName =>
+        Seq("connected_with" -> stageName)
+      }
+
+      val terminalAttributes = if (terminal) Seq("terminal" -> "true") else Seq.empty
+
+      operator.serialize ++ stream.serialize ++ node.serialize ++ connected ++ terminalAttributes
+    }.toMap
+
+    def toOtel: Attributes = {
+      val builder = Attributes.builder()
+      this.serialize.foreach { case (k, v) => builder.put(k, v) }
+      builder.build()
     }
   }
 
