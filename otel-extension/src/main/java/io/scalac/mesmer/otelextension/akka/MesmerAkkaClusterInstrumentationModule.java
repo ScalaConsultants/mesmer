@@ -39,26 +39,33 @@ public class MesmerAkkaClusterInstrumentationModule extends InstrumentationModul
 
   @Override
   public List<String> getAdditionalHelperClassNames() {
-    return List.of(
-        "io.scalac.mesmer.otelextension.instrumentations.akka.cluster.extension.AkkaClusterMonitorExtension",
-        "io.scalac.mesmer.otelextension.instrumentations.akka.cluster.extension.AkkaClusterMonitorExtension$",
-        "io.scalac.mesmer.otelextension.instrumentations.akka.cluster.extension.AkkaClusterMonitorExtension$$anon$1",
-        "io.scalac.mesmer.otelextension.instrumentations.akka.cluster.extension.AkkaClusterMonitorExtensionId$",
-        "io.scalac.mesmer.otelextension.instrumentations.akka.cluster.extension.ClusterEventsMonitor$",
-        "io.scalac.mesmer.otelextension.instrumentations.akka.cluster.extension.ClusterEventsMonitor$MemberEventWrapper",
-        "io.scalac.mesmer.otelextension.instrumentations.akka.cluster.extension.OnClusterStartup$",
-        "io.scalac.mesmer.otelextension.instrumentations.akka.cluster.extension.OnClusterStartup$Initialized",
-        "io.scalac.mesmer.otelextension.instrumentations.akka.cluster.extension.OnClusterStartup$Timeout$",
-        "io.scalac.mesmer.otelextension.instrumentations.akka.cluster.extension.ClusterMonitorActor",
-        "io.scalac.mesmer.otelextension.instrumentations.akka.cluster.extension.ClusterSelfNodeEventsActor$",
-        "io.scalac.mesmer.otelextension.instrumentations.akka.cluster.extension.ClusterSelfNodeEventsActor$Command",
-        "io.scalac.mesmer.otelextension.instrumentations.akka.cluster.extension.ClusterSelfNodeEventsActor$Command$ClusterMemberEvent",
-        "io.scalac.mesmer.otelextension.instrumentations.akka.cluster.extension.ClusterSelfNodeEventsActor$Command$NodeUnreachable",
-        "io.scalac.mesmer.otelextension.instrumentations.akka.cluster.extension.ClusterSelfNodeEventsActor$Command$NodeReachable",
-        "io.scalac.mesmer.otelextension.instrumentations.akka.common.SerializableMessage",
-        "io.scalac.mesmer.otelextension.instrumentations.akka.cluster.extension.ClusterRegionsMonitorActor$",
-        "io.scalac.mesmer.otelextension.instrumentations.akka.cluster.extension.ClusterRegionsMonitorActor$Command",
-        "io.scalac.mesmer.otelextension.instrumentations.akka.cluster.extension.ClusterRegionsMonitorActor$Regions",
-        "io.scalac.mesmer.otelextension.instrumentations.akka.cluster.extension.ClusterRegionsMonitorActor$$anonfun$$nestedInanonfun$apply$2$1");
+    return MesmerAkkaHelpers.combine(
+        MesmerAkkaHelpers.coreHelpers(),
+        List.of(
+            // Vendor helpers
+            "akka.cluster.typed.Cluster",
+            "akka.cluster.typed.Cluster$",
+            "akka.cluster.typed.internal.AdapterClusterImpl",
+            // Mesmer extension helpers
+            "io.scalac.mesmer.otelextension.instrumentations.akka.cluster.extension.AkkaClusterMonitorExtension",
+            "io.scalac.mesmer.otelextension.instrumentations.akka.cluster.extension.AkkaClusterMonitorExtension$",
+            "io.scalac.mesmer.otelextension.instrumentations.akka.cluster.extension.AkkaClusterMonitorExtension$$anon$1",
+            "io.scalac.mesmer.otelextension.instrumentations.akka.cluster.extension.AkkaClusterMonitorExtensionId$",
+            "io.scalac.mesmer.otelextension.instrumentations.akka.cluster.extension.ClusterEventsMonitor$",
+            "io.scalac.mesmer.otelextension.instrumentations.akka.cluster.extension.ClusterEventsMonitor$MemberEventWrapper",
+            "io.scalac.mesmer.otelextension.instrumentations.akka.cluster.extension.OnClusterStartup$",
+            "io.scalac.mesmer.otelextension.instrumentations.akka.cluster.extension.OnClusterStartup$Initialized",
+            "io.scalac.mesmer.otelextension.instrumentations.akka.cluster.extension.OnClusterStartup$Timeout$",
+            "io.scalac.mesmer.otelextension.instrumentations.akka.cluster.extension.ClusterMonitorActor",
+            "io.scalac.mesmer.otelextension.instrumentations.akka.cluster.extension.ClusterSelfNodeEventsActor$",
+            "io.scalac.mesmer.otelextension.instrumentations.akka.cluster.extension.ClusterSelfNodeEventsActor$Command",
+            "io.scalac.mesmer.otelextension.instrumentations.akka.cluster.extension.ClusterSelfNodeEventsActor$Command$ClusterMemberEvent",
+            "io.scalac.mesmer.otelextension.instrumentations.akka.cluster.extension.ClusterSelfNodeEventsActor$Command$NodeUnreachable",
+            "io.scalac.mesmer.otelextension.instrumentations.akka.cluster.extension.ClusterSelfNodeEventsActor$Command$NodeReachable",
+            "io.scalac.mesmer.otelextension.instrumentations.akka.common.SerializableMessage",
+            "io.scalac.mesmer.otelextension.instrumentations.akka.cluster.extension.ClusterRegionsMonitorActor$",
+            "io.scalac.mesmer.otelextension.instrumentations.akka.cluster.extension.ClusterRegionsMonitorActor$Command",
+            "io.scalac.mesmer.otelextension.instrumentations.akka.cluster.extension.ClusterRegionsMonitorActor$Regions",
+            "io.scalac.mesmer.otelextension.instrumentations.akka.cluster.extension.ClusterRegionsMonitorActor$$anonfun$$nestedInanonfun$apply$2$1"));
   }
 }
