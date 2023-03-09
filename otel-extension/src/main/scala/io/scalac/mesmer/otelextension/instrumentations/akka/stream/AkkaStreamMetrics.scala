@@ -51,7 +51,7 @@ final class AkkaStreamMetrics(actorSystem: ActorSystem[_]) {
     .buildWithCallback(callback(_, operatorDemand))
 
   def setRunningStreamsTotal(value: Long, attributes: Attributes): Unit = runningStreamsTotal = Map(attributes -> value)
-  def setRunningActorsTotal(values: Map[Attributes, Long]): Unit        = runningActorsTotal = values
+  def setRunningActorsTotal(value: Long, attributes: Attributes): Unit  = runningActorsTotal = Map(attributes -> value)
   def setStreamProcessedMessagesTotal(values: Map[Attributes, Long]): Unit = streamProcessedMessagesTotal = values
   def setRunningOperators(values: Map[Attributes, Long]): Unit             = runningOperators = values
   def setOperatorDemand(values: Map[Attributes, Long]): Unit               = operatorDemand = values
@@ -61,4 +61,5 @@ object AkkaStreamMetrics {
   val streamNameAttributeKey: AttributeKey[String] = stringKey("stream_name")
   val stageNameAttributeKey: AttributeKey[String]  = stringKey("stage_name")
   val isTerminalStageKey: AttributeKey[String]     = stringKey("is_terminal")
+  val connectedWithKey: AttributeKey[String]       = stringKey("connected_with")
 }

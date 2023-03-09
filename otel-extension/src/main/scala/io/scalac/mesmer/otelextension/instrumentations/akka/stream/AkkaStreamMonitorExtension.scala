@@ -1,5 +1,6 @@
 package io.scalac.mesmer.otelextension.instrumentations.akka.stream
 
+import akka.actor.ActorRef
 import akka.actor.typed.ActorSystem
 import akka.actor.typed.Behavior
 import akka.actor.typed.Extension
@@ -10,7 +11,6 @@ import akka.actor.typed.scaladsl.adapter.ClassicActorSystemOps
 import io.opentelemetry.api.common.Attributes
 import org.slf4j.LoggerFactory
 
-import scala.collection.mutable
 import scala.concurrent.duration.DurationInt
 import scala.concurrent.duration.FiniteDuration
 import scala.util.Failure
@@ -21,17 +21,16 @@ import io.scalac.mesmer.core.event.StreamEvent
 import io.scalac.mesmer.core.event.StreamEvent.LastStreamStats
 import io.scalac.mesmer.core.event.StreamEvent.StreamInterpreterStats
 import io.scalac.mesmer.core.model.StreamInfo
-import io.scalac.mesmer.core.model.Tag.StreamName
 import io.scalac.mesmer.core.model.stream._
 import io.scalac.mesmer.core.module.AkkaStreamModule
 import io.scalac.mesmer.core.util.ClassicActorSystemOps.ActorSystemOps
 import io.scalac.mesmer.core.util.Retry
 import io.scalac.mesmer.core.util.TypedActorSystemOps.{ ActorSystemOps => TypedActorSystemOps }
+import io.scalac.mesmer.otelextension.instrumentations.akka.stream.AkkaStreamMetrics.connectedWithKey
 import io.scalac.mesmer.otelextension.instrumentations.akka.stream.AkkaStreamMetrics.isTerminalStageKey
 import io.scalac.mesmer.otelextension.instrumentations.akka.stream.AkkaStreamMetrics.stageNameAttributeKey
 import io.scalac.mesmer.otelextension.instrumentations.akka.stream.AkkaStreamMetrics.streamNameAttributeKey
 import io.scalac.mesmer.otelextension.instrumentations.akka.stream.AkkaStreamMonitorExtension.StreamStatsReceived
-import io.scalac.mesmer.otelextension.instrumentations.akka.stream.AkkaStreamMonitorExtension.log
 
 final class AkkaStreamMonitorExtension(
   actorSystem: ActorSystem[_],
@@ -64,77 +63,65 @@ final class AkkaStreamMonitorExtension(
   }
 
   private def collectStreamMetrics(): Unit = {
-    val currentSnapshot    = streamSnapshotService.getSnapshot()
-    val currentStreamStats = mutable.Map.empty[StreamName, StreamStatsBuilder]
+    val currentSnapshot = streamSnapshotService.getSnapshot()
 
-    val streamStats: Seq[StreamStats] = currentSnapshot.values.map { streamInfo =>
+    val currentlyRunningStreams: Map[String, Map[ActorRef, StreamInfo]] =
+      currentSnapshot.groupBy(_._2.subStreamName.streamName.name)
+
+    val stageSnapshots: Seq[StageSnapshot] = currentSnapshot.values.flatMap { streamInfo =>
       val subStreamName = streamInfo.subStreamName
-      val stats: StreamStatsBuilder =
-        currentStreamStats.getOrElseUpdate(subStreamName.streamName, new StreamStatsBuilder(subStreamName.streamName))
-      stats.incActors()
-      collectPerStreamMetrics(stats, streamInfo)
-      stats
-    }.map(_.build).toSeq
+      collectStageSnapshots(streamInfo)
+    }.toSeq
 
-    setRunningActorsTotal(streamStats)
-    metrics.setRunningStreamsTotal(currentStreamStats.size, nodeAttribute)
-    setStreamProcessedMessages(streamStats)
+    val operatorDemand    = stageSnapshots.flatMap(snapshot => getPerStageValues(snapshot.output)).toMap
+    val runningOperators  = stageSnapshots.flatMap(snapshot => getPerStageOperatorValues(snapshot.input)).toMap
+    val processedMessages = stageSnapshots.flatMap(snapshot => getPerStageOperatorValues(snapshot.input)).toMap
+
+    metrics.setRunningActorsTotal(currentSnapshot.size, nodeAttribute)
+    metrics.setOperatorDemand(operatorDemand)
+    metrics.setRunningOperators(runningOperators)
+    metrics.setStreamProcessedMessagesTotal(processedMessages)
   }
 
-  private def collectPerStreamMetrics(stats: StreamStatsBuilder, streamInfo: StreamInfo): Unit =
-    streamInfo.shellInfo.foreach { case (stageInfo, connections) =>
-      for {
-        stage <- stageInfo if stage ne null
-      } {
-        stats.incStage()
+  private case class StageSnapshot(stage: StageInfo, input: Seq[SnapshotEntry], output: Seq[SnapshotEntry])
 
-        val IndexData(DirectionData(inputStats, inputDistinct), DirectionData(outputStats, outputDistinct)) =
-          indexCache.get(stage)(connections)
+  private def collectStageSnapshots(streamInfo: StreamInfo): Set[StageSnapshot] =
+    streamInfo.shellInfo.collect { case (stageInfo, connections) =>
+      stageInfo
+        .withFilter(stage => stage ne null)
+        .map { stage =>
+          val indexData: IndexData = indexCache.get(stage)(connections)
 
-        val operatorsPerStage = getPerStageValues(getProcessedState(stage, inputStats, stageInfo, inputDistinct))
+          // processed messages & operators
+          val inputSnapshot = computeSnapshotEntries(
+            stage,
+            indexData.input.stats,
+            stageInfo,
+            indexData.input.distinct,
+            conn => (conn.out, conn.push)
+          )
 
-        val demandPerStage = getPerStageValues(getDemandState(stage, outputStats, stageInfo, outputDistinct))
+          // demand
+          val outputSnapshot = computeSnapshotEntries(
+            stage,
+            indexData.output.stats,
+            stageInfo,
+            indexData.output.distinct,
+            conn => (conn.in, conn.pull)
+          )
 
-        metrics.setRunningOperators(operatorsPerStage)
-        metrics.setOperatorDemand(demandPerStage)
-
-        if (stage.terminal) {
-          log.debug("Found terminal stage {}", stage)
-          stats.terminalName(stage.stageName.nameOnly)
-          stats.processedMessages(inputStats.foldLeft(0L)(_ + _.push))
+          StageSnapshot(stage, inputSnapshot, outputSnapshot)
         }
-      }
-    }
+    }.flatten
 
-  private def setRunningActorsTotal(streamStats: Seq[StreamStats]): Unit = {
-    val actorsPerStream: Map[Attributes, Long] = streamStats
-      .map(stats => (stats.actors, stats.streamName))
-      .map { case (actors, streamName) =>
-        nodeAttribute.toBuilder.put(streamNameAttributeKey, streamName.name).build() -> actors.toLong
-      }
-      .toMap
-
-    metrics.setRunningActorsTotal(actorsPerStream)
-  }
-  private def setStreamProcessedMessages(streamStats: Seq[StreamStats]): Unit = {
-    val builder = nodeAttribute.toBuilder
-
-    val processesMessages = streamStats.map { stats =>
-      val attributes = builder.put(streamNameAttributeKey, stats.streamName.name).build()
-      (attributes, stats.processesMessages)
-    }.toMap
-
-    metrics.setStreamProcessedMessagesTotal(processesMessages)
-  }
-
-  private def getPerStageValues(snapshot: Seq[SnapshotEntry]): Map[Attributes, Long] =
+  private def getPerStageOperatorValues(snapshot: Seq[SnapshotEntry]): Map[Attributes, Long] =
     snapshot
-      .groupBy(_.stage.subStreamName.streamName)
+      .groupBy(_.stage.subStreamName.streamName.name)
       .flatMap { case (streamName, entriesPerStream) =>
         entriesPerStream.groupBy(_.stage.stageName.nameOnly).map { case (stageName, entriesPerStage) =>
           val attributes = nodeAttribute.toBuilder
             .put(stageNameAttributeKey, stageName.name)
-            .put(streamNameAttributeKey, streamName.name)
+            .put(streamNameAttributeKey, streamName)
             .put(isTerminalStageKey, "false")
             .build()
           val value = entriesPerStage.size
@@ -142,20 +129,17 @@ final class AkkaStreamMonitorExtension(
         }
       }
 
-  private def getDemandState(
-    stage: StageInfo,
-    connectionStats: Set[ConnectionStats],
-    stages: Array[StageInfo],
-    distinct: Boolean = false
-  ): Seq[SnapshotEntry] = computeSnapshotEntries(stage, connectionStats, stages, distinct, conn => (conn.in, conn.pull))
-
-  private def getProcessedState(
-    stage: StageInfo,
-    connectionStats: Set[ConnectionStats],
-    stages: Array[StageInfo],
-    distinct: Boolean = false
-  ): Seq[SnapshotEntry] =
-    computeSnapshotEntries(stage, connectionStats, stages, distinct, conn => (conn.out, conn.push))
+  private def getPerStageValues(snapshot: Seq[SnapshotEntry]): Map[Attributes, Long] =
+    snapshot.collect { case SnapshotEntry(stageInfo, Some(StageData(value, connectedWith))) =>
+      val attributes =
+        nodeAttribute.toBuilder
+          .put(stageNameAttributeKey, stageInfo.stageName.name)
+          .put(streamNameAttributeKey, stageInfo.subStreamName.streamName.name)
+          .put(isTerminalStageKey, stageInfo.terminal.toString)
+          .put(connectedWithKey, connectedWith)
+          .build()
+      attributes -> value
+    }.toMap
 
   private def computeSnapshotEntries(
     stage: StageInfo,

@@ -77,6 +77,9 @@ public class MesmerAkkaStreamInstrumentationModule extends InstrumentationModule
             "io.scalac.mesmer.otelextension.instrumentations.akka.stream.CachingConfig$",
             "io.scalac.mesmer.otelextension.instrumentations.akka.stream.StreamSnapshotsService",
             "io.scalac.mesmer.otelextension.instrumentations.akka.stream.StreamSnapshotsService$",
-            "io.scalac.mesmer.otelextension.instrumentations.akka.stream.StreamSnapshotsService$$anon$1"));
+            "io.scalac.mesmer.otelextension.instrumentations.akka.stream.StreamSnapshotsService$$anon$1",
+            "io.scalac.mesmer.otelextension.instrumentations.akka.stream.AkkaStreamMonitorExtension$$anonfun$collectStageSnapshots$1",
+            "io.scalac.mesmer.otelextension.instrumentations.akka.stream.AkkaStreamMonitorExtension$StageSnapshot",
+            "io.scalac.mesmer.otelextension.instrumentations.akka.stream.AkkaStreamMonitorExtension$$anonfun$getPerStageValues$1"));
   }
 }
