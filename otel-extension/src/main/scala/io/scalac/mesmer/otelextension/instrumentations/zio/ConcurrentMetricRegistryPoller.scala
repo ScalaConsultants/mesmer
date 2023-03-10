@@ -4,7 +4,6 @@ import java.util.Timer
 import java.util.TimerTask
 
 import io.scalac.mesmer.otelextension.instrumentations.zio.ZIOMetrics._
-import zio.MetricsRegistryClient
 import zio.metrics.MetricKey
 import zio.metrics.MetricKeyType
 
@@ -21,7 +20,7 @@ class ConcurrentMetricRegistryPoller {
   private def task = new TimerTask {
     override def run(): Unit =
       try {
-        val snapshot = MetricsRegistryClient.snapshot()
+        val snapshot = ConcurrentMetricsRegistryClient.snapshot()
 
         snapshot.filter { metricPair =>
           !instruments.contains(metricPair.metricKey)

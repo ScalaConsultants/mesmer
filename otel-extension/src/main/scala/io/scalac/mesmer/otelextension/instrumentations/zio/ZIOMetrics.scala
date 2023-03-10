@@ -4,9 +4,6 @@ import io.opentelemetry.api.GlobalOpenTelemetry
 import io.opentelemetry.api.common.AttributeKey
 import io.opentelemetry.api.common.Attributes
 import io.opentelemetry.api.metrics.Meter
-import io.opentelemetry.api.metrics.ObservableDoubleCounter
-import io.opentelemetry.api.metrics.ObservableDoubleGauge
-import zio.MetricsRegistryClient
 import zio.metrics.MetricKey
 import zio.metrics.MetricKeyType
 import zio.metrics.MetricLabel
@@ -35,9 +32,9 @@ object ZIOMetrics {
   }
 
   private def unsafeGetCounterValue(metricKey: MetricKey[MetricKeyType.Counter]): Double =
-    MetricsRegistryClient.get(metricKey).get().count
+    ConcurrentMetricsRegistryClient.get(metricKey).get().count
 
   private def unsafeGetGaugeValue(metricKey: MetricKey[MetricKeyType.Gauge]): Double =
-    MetricsRegistryClient.get(metricKey).get().value
+    ConcurrentMetricsRegistryClient.get(metricKey).get().value
 
 }

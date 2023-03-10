@@ -30,7 +30,7 @@ public class MesmerZIOMetricAPIInstrumentationModule extends InstrumentationModu
         "io.scalac.mesmer.otelextension.instrumentations.zio.ZIOInstrumentations$",
         "io.scalac.mesmer.otelextension.instrumentations.zio.ZIOMetrics$",
         "io.scalac.mesmer.otelextension.instrumentations.zio.ConcurrentMetricRegistryPoller",
-        "zio.MetricsRegistryClient$");
+        "io.scalac.mesmer.otelextension.instrumentations.zio.ConcurrentMetricsRegistryClient$");
   }
 
   @Override

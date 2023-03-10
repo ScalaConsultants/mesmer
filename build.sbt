@@ -107,7 +107,9 @@ lazy val otelExtension = (project in file("otel-extension"))
       byteBuddy.map(_ % "provided") ++
       akkaTestkit.map(_ % "it,test") ++
       scalatest.map(_ % "it,test") ++
-      openTelemetryTesting.map(_ % "it,test")
+      openTelemetryTesting.map(_ % "it,test") ++ Seq(
+        "org.scala-lang" % "scala-reflect" % scalaVersion.value
+      )
     },
     assembly / test            := {},
     assembly / assemblyJarName := s"${name.value}-assembly.jar",
