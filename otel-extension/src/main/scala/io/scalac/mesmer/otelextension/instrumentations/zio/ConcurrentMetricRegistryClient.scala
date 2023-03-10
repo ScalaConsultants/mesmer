@@ -14,6 +14,7 @@ object ConcurrentMetricRegistryClient {
 
   def get[Type <: MetricKeyType](key: MetricKey[Type]): MetricHook[key.keyType.In, key.keyType.Out] = {
     val hook = getMethod.invoke(metricsRegistry, key, unsafe)
+    // TODO can hook.getClass.getDeclaredField reflective calls be optimised more?
     MetricHook(
       {
         val field = hook.getClass.getDeclaredField("update")
