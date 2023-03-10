@@ -67,17 +67,18 @@ public class MesmerAkkaHttpInstrumentationModule extends InstrumentationModule
 
   @Override
   public List<String> getAdditionalHelperClassNames() {
-    return Arrays.asList(
-        "io.scalac.mesmer.otelextension.instrumentations.akka.http.RouteContext$",
-        "io.scalac.mesmer.otelextension.instrumentations.akka.http.RouteContext",
-        "io.scalac.mesmer.otelextension.instrumentations.akka.http.RouteTemplateHolder",
-        "io.scalac.mesmer.otelextension.instrumentations.akka.http.UpdateHttpRouteWrapper$$anonfun$$nestedInanonfun$apply$1$1",
-        "io.scalac.mesmer.otelextension.instrumentations.akka.http.UpdateHttpRouteWrapper",
-        "io.scalac.mesmer.instrumentation.http.impl.RawPathPrefixInterceptor",
-        "io.scalac.mesmer.otelextension.instrumentations.akka.http.RawPathPrefixImplementation$",
-        "io.scalac.mesmer.otelextension.instrumentations.akka.http.RawPathPrefixImplementation",
-        "io.scalac.mesmer.otelextension.instrumentations.akka.http.AkkaHttpConnectionsInstrumentation$",
-        "io.scalac.mesmer.otelextension.instrumentations.akka.http.AkkaHttpConnectionsInstrumentation$HttpConnectionInstruments$",
-        "io.scalac.mesmer.otelextension.instrumentations.akka.http.AkkaHttpConnectionsInstrumentation");
+    return MesmerAkkaHelpers.combine(
+        MesmerAkkaHelpers.coreHelpers(),
+        List.of(
+            "io.scalac.mesmer.otelextension.instrumentations.akka.http.RouteContext$",
+            "io.scalac.mesmer.otelextension.instrumentations.akka.http.RouteTemplateHolder",
+            "io.scalac.mesmer.otelextension.instrumentations.akka.http.UpdateHttpRouteWrapper$$anonfun$$nestedInanonfun$apply$1$1",
+            "io.scalac.mesmer.otelextension.instrumentations.akka.http.UpdateHttpRouteWrapper",
+            "io.scalac.mesmer.instrumentation.http.impl.RawPathPrefixInterceptor",
+            "io.scalac.mesmer.otelextension.instrumentations.akka.http.RawPathPrefixImplementation$",
+            "io.scalac.mesmer.otelextension.instrumentations.akka.http.RawPathPrefixImplementation",
+            "io.scalac.mesmer.otelextension.instrumentations.akka.http.AkkaHttpConnectionsInstrumentation$",
+            "io.scalac.mesmer.otelextension.instrumentations.akka.http.AkkaHttpConnectionsInstrumentation$HttpConnectionInstruments$",
+            "io.scalac.mesmer.otelextension.instrumentations.akka.http.AkkaHttpConnectionsInstrumentation"));
   }
 }

@@ -71,27 +71,29 @@ public class MesmerAkkaActorInstrumentationModule extends InstrumentationModule
 
   @Override
   public List<String> getAdditionalHelperClassNames() {
-    return Arrays.asList(
-        "io.scalac.mesmer.core.actor.ActorRefAttributeFactory",
-        "io.scalac.mesmer.core.actor.ConfiguredAttributeFactory",
-        "io.scalac.mesmer.otelextension.instrumentations.akka.actor.Instruments$$anon$1",
-        "io.scalac.mesmer.otelextension.instrumentations.akka.actor.Instruments",
-        "io.scalac.mesmer.otelextension.instrumentations.akka.actor.Instruments$",
-        "io.scalac.mesmer.otelextension.instrumentations.akka.actor.InstrumentsProvider",
-        "io.scalac.mesmer.otelextension.instrumentations.akka.actor.InstrumentsProvider$",
-        "io.scalac.mesmer.otelextension.instrumentations.akka.actor.util.EnvelopeContext",
-        "io.scalac.mesmer.otelextension.instrumentations.akka.actor.util.EnvelopeContext$",
-        "io.scalac.mesmer.otelextension.instrumentations.akka.actor.impl.otel.ActorCellInstrumentationState",
-        "akka.actor.ProxiedQueue",
-        "akka.actor.BoundedQueueProxy",
-        "io.scalac.mesmer.otelextension.instrumentations.akka.actor.extension.ActorLifecycleMonitorExtension",
-        "io.scalac.mesmer.otelextension.instrumentations.akka.actor.extension.ActorLifecycleMonitorExtension$",
-        "io.scalac.mesmer.otelextension.instrumentations.akka.actor.extension.ActorLifecycleMonitorExtensionId$",
-        "io.scalac.mesmer.otelextension.instrumentations.akka.actor.extension.ActorLifecycleMonitorExtension$$anon$1",
-        "io.scalac.mesmer.otelextension.instrumentations.akka.actor.extension.ActorLifecycleEvents",
-        "io.scalac.mesmer.otelextension.instrumentations.akka.actor.extension.ActorLifecycleEvents$ActorCreated",
-        "io.scalac.mesmer.otelextension.instrumentations.akka.actor.extension.ActorLifecycleEvents$ActorTerminated",
-        "io.scalac.mesmer.otelextension.instrumentations.akka.actor.extension.ActorLifecycleMonitor",
-        "io.scalac.mesmer.otelextension.instrumentations.akka.actor.extension.ActorLifecycleMonitor$");
+    return MesmerAkkaHelpers.combine(
+        MesmerAkkaHelpers.coreHelpers(),
+        Arrays.asList(
+            "akka.actor.ProxiedQueue",
+            "akka.actor.BoundedQueueProxy",
+            "io.scalac.mesmer.core.actor.ActorRefAttributeFactory",
+            "io.scalac.mesmer.core.actor.ConfiguredAttributeFactory",
+            "io.scalac.mesmer.otelextension.instrumentations.akka.actor.Instruments$$anon$1",
+            "io.scalac.mesmer.otelextension.instrumentations.akka.actor.Instruments",
+            "io.scalac.mesmer.otelextension.instrumentations.akka.actor.Instruments$",
+            "io.scalac.mesmer.otelextension.instrumentations.akka.actor.InstrumentsProvider",
+            "io.scalac.mesmer.otelextension.instrumentations.akka.actor.InstrumentsProvider$",
+            "io.scalac.mesmer.otelextension.instrumentations.akka.actor.util.EnvelopeContext",
+            "io.scalac.mesmer.otelextension.instrumentations.akka.actor.util.EnvelopeContext$",
+            "io.scalac.mesmer.otelextension.instrumentations.akka.actor.impl.otel.ActorCellInstrumentationState",
+            "io.scalac.mesmer.otelextension.instrumentations.akka.actor.extension.ActorLifecycleMonitorExtension",
+            "io.scalac.mesmer.otelextension.instrumentations.akka.actor.extension.ActorLifecycleMonitorExtension$",
+            "io.scalac.mesmer.otelextension.instrumentations.akka.actor.extension.ActorLifecycleMonitorExtensionId$",
+            "io.scalac.mesmer.otelextension.instrumentations.akka.actor.extension.ActorLifecycleMonitorExtension$$anon$1",
+            "io.scalac.mesmer.otelextension.instrumentations.akka.actor.extension.ActorLifecycleEvents",
+            "io.scalac.mesmer.otelextension.instrumentations.akka.actor.extension.ActorLifecycleEvents$ActorCreated",
+            "io.scalac.mesmer.otelextension.instrumentations.akka.actor.extension.ActorLifecycleEvents$ActorTerminated",
+            "io.scalac.mesmer.otelextension.instrumentations.akka.actor.extension.ActorLifecycleMonitor",
+            "io.scalac.mesmer.otelextension.instrumentations.akka.actor.extension.ActorLifecycleMonitor$"));
   }
 }
