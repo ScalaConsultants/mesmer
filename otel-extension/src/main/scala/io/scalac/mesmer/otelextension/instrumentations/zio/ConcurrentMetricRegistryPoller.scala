@@ -20,7 +20,7 @@ class ConcurrentMetricRegistryPoller {
   private def task = new TimerTask {
     override def run(): Unit =
       try {
-        val snapshot = ConcurrentMetricsRegistryClient.snapshot()
+        val snapshot = ConcurrentMetricRegistryClient.snapshot()
 
         snapshot.filter { metricPair =>
           !instruments.contains(metricPair.metricKey)

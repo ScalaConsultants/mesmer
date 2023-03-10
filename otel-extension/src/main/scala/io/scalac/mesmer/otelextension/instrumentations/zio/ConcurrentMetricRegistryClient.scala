@@ -7,7 +7,7 @@ import zio.metrics.MetricPair
 
 import scala.reflect.runtime.{ universe => ru }
 
-object ConcurrentMetricsRegistryClient {
+object ConcurrentMetricRegistryClient {
 
   def snapshot(): Set[MetricPair.Untyped] =
     snapshotCall()

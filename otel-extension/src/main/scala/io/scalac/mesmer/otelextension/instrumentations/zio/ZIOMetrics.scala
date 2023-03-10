@@ -32,9 +32,9 @@ object ZIOMetrics {
   }
 
   private def unsafeGetCounterValue(metricKey: MetricKey[MetricKeyType.Counter]): Double =
-    ConcurrentMetricsRegistryClient.get(metricKey).get().count
+    ConcurrentMetricRegistryClient.get(metricKey).get().count
 
   private def unsafeGetGaugeValue(metricKey: MetricKey[MetricKeyType.Gauge]): Double =
-    ConcurrentMetricsRegistryClient.get(metricKey).get().value
+    ConcurrentMetricRegistryClient.get(metricKey).get().value
 
 }
