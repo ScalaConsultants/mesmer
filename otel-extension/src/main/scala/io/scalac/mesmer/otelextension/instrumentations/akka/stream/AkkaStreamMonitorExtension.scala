@@ -75,7 +75,9 @@ final class AkkaStreamMonitorExtension(
     val runningOperators  = stageSnapshots.flatMap(snapshot => getPerStageOperatorValues(snapshot.input)).toMap
     val processedMessages = stageSnapshots.flatMap(snapshot => getPerStageValues(snapshot.input)).toMap
 
-    metrics.setRunningActorsTotal(currentSnapshot.size, AkkaStreamAttributes.forNode(nodeName))
+    val nodeAttribute = AkkaStreamAttributes.forNode(nodeName)
+    metrics.setRunningStreamsTotal(currentlyRunningStreams.size, nodeAttribute)
+    metrics.setRunningActorsTotal(currentSnapshot.size, nodeAttribute)
     metrics.setOperatorDemand(operatorDemand)
     metrics.setRunningOperators(runningOperators)
     metrics.setStreamProcessedMessagesTotal(processedMessages)
@@ -123,9 +125,9 @@ final class AkkaStreamMonitorExtension(
             terminal = false,
             nodeName,
             None
-          ).toOtel
+          )
 
-          attributes -> entriesPerStage.size.toLong
+          asOtelAttributes(attributes) -> entriesPerStage.size.toLong
         }
       }
 
@@ -137,10 +139,16 @@ final class AkkaStreamMonitorExtension(
         stageInfo.terminal,
         nodeName,
         Some(connectedWith)
-      ).toOtel
+      )
 
-      attributes -> value
+      asOtelAttributes(attributes) -> value
     }.toMap
+
+  private def asOtelAttributes(attributes: StageAttributes): Attributes = {
+    val builder = Attributes.builder()
+    attributes.serialize.foreach { case (k, v) => builder.put(k, v) }
+    builder.build()
+  }
 
   private def computeSnapshotEntries(
     stage: StageInfo,
