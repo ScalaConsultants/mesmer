@@ -1,9 +1,9 @@
-package io.scalac.mesmer.zio.metrics
+package io.scalac.mesmer.otelextension.instrumentations.zio
 
 import java.util.Timer
 import java.util.TimerTask
 
-import io.scalac.mesmer.zio.metrics.ZIOMetrics._
+import io.scalac.mesmer.otelextension.instrumentations.zio.ZIOMetrics._
 import zio.MetricsRegistryClient
 import zio.metrics.MetricKey
 import zio.metrics.MetricKeyType
@@ -12,14 +12,13 @@ import scala.collection.mutable
 import scala.concurrent.duration._
 import scala.util.control.NonFatal
 
-class ZioMetricsRegistryOtelPoller {
-  import ZioMetricsRegistryOtelPoller._
+class ConcurrentMetricRegistryPoller {
 
   private val timer = new Timer()
 
-  private val instruments = mutable.HashMap.empty[MetricKey[MetricKeyType], OtelInstrument]
+  private val instruments = mutable.HashMap.empty[MetricKey[MetricKeyType], AutoCloseable]
 
-  private val task = new TimerTask {
+  private def task = new TimerTask {
     override def run(): Unit =
       try {
         val snapshot = MetricsRegistryClient.snapshot()
@@ -27,38 +26,35 @@ class ZioMetricsRegistryOtelPoller {
         snapshot.filter { metricPair =>
           !instruments.contains(metricPair.metricKey)
         }.foreach { metricPair =>
-          val close = metricPair.metricKey.keyType match {
+          val autocloseable = metricPair.metricKey.keyType match {
             case _: MetricKeyType.Counter =>
-              () => registerCounterAsyncMetric(metricPair.metricKey.asInstanceOf[MetricKey.Counter]).close()
+              registerCounterAsyncMetric(metricPair.metricKey.asInstanceOf[MetricKey.Counter])
             case _: MetricKeyType.Gauge =>
-              () => registerGaugeAsyncMetric(metricPair.metricKey.asInstanceOf[MetricKey.Gauge]).close()
+              registerGaugeAsyncMetric(metricPair.metricKey.asInstanceOf[MetricKey.Gauge])
             case _ =>
               // TODO setup sync instruments for histograms
-              () => ()
+              new AutoCloseable {
+                override def close(): Unit = ()
+              }
           }
-          instruments.put(metricPair.metricKey, OtelInstrument(() => close()))
+          instruments.put(metricPair.metricKey, autocloseable)
         }
 
         instruments.filter { case (metricKey, _) =>
           !snapshot.exists(metricPair => metricPair.metricKey == metricKey)
-        }.foreach { case (metricKey, instrument) =>
+        }.foreach { case (metricKey, autoCloseable) =>
           instruments.remove(metricKey)
-          instrument.close()
+          autoCloseable.close()
         }
-
       } catch {
         case NonFatal(_) =>
-          // TODO how to log the exception?
-          schedule()
-      }
+        // TODO how to log the exception?
+      } finally
+        schedule()
   }
 
   def schedule(): Unit =
-    timer.schedule(task, 500.millis.toMillis)
+    timer.schedule(task, 10.millis.toMillis) // TODO configurable polling interval?
 
   schedule()
-}
-
-object ZioMetricsRegistryOtelPoller {
-  case class OtelInstrument(close: () => Unit)
 }

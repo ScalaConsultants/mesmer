@@ -1,14 +1,15 @@
 package io.scalac.mesmer.otelextension.instrumentations.zio
+
 import io.opentelemetry.api.GlobalOpenTelemetry
 import io.opentelemetry.api.common.AttributeKey
 import io.opentelemetry.api.common.Attributes
 import io.opentelemetry.api.metrics.Meter
-import zio.Unsafe
-import zio.metrics.Metric
-import zio.metrics.Metric.Counter
-import zio.metrics.Metric.Gauge
+import io.opentelemetry.api.metrics.ObservableDoubleCounter
+import io.opentelemetry.api.metrics.ObservableDoubleGauge
+import zio.MetricsRegistryClient
+import zio.metrics.MetricKey
+import zio.metrics.MetricKeyType
 import zio.metrics.MetricLabel
-import zio.metrics.MetricState
 
 object ZIOMetrics {
 
@@ -16,16 +17,16 @@ object ZIOMetrics {
 
   private val metricName: String => String = (suffix: String) => s"mesmer_zio_forwarded_$suffix"
 
-  def registerCounterAsyncMetric(zioMetricName: String, counter: Counter[_], attributes: Attributes): Unit =
+  def registerCounterAsyncMetric(metricKey: MetricKey.Counter): AutoCloseable =
     meter
-      .counterBuilder(metricName(zioMetricName))
+      .counterBuilder(metricName(metricKey.name))
       .ofDoubles()
-      .buildWithCallback(_.record(unsafeGetCount(counter), attributes))
+      .buildWithCallback(_.record(unsafeGetCounterValue(metricKey), buildAttributes(metricKey.tags)))
 
-  def registerGaugeAsyncMetric(zioMetricName: String, counter: Gauge[_], attributes: Attributes): Unit =
+  def registerGaugeAsyncMetric(metricKey: MetricKey.Gauge): AutoCloseable =
     meter
-      .gaugeBuilder(metricName(zioMetricName))
-      .buildWithCallback(_.record(unsafeGetGaugeValue(counter), attributes))
+      .gaugeBuilder(metricName(metricKey.name))
+      .buildWithCallback(_.record(unsafeGetGaugeValue(metricKey), buildAttributes(metricKey.tags)))
 
   def buildAttributes(metricLabels: Set[MetricLabel]): Attributes = {
     val builder = Attributes.builder()
@@ -33,13 +34,10 @@ object ZIOMetrics {
     builder.build()
   }
 
-  private def unsafeGetValue[S <: MetricState[_], M <: Metric[_, _, S]](metric: M): S =
-    Unsafe.unsafe(implicit u => zio.Runtime.default.unsafe.run(metric.value).getOrThrowFiberFailure())
+  private def unsafeGetCounterValue(metricKey: MetricKey[MetricKeyType.Counter]): Double =
+    MetricsRegistryClient.get(metricKey).get().count
 
-  private def unsafeGetGaugeValue(gauge: Gauge[_]): Double =
-    unsafeGetValue[MetricState.Gauge, Gauge[_]](gauge).value
-
-  private def unsafeGetCount(counter: Counter[_]): Double =
-    unsafeGetValue[MetricState.Counter, Counter[_]](counter).count
+  private def unsafeGetGaugeValue(metricKey: MetricKey[MetricKeyType.Gauge]): Double =
+    MetricsRegistryClient.get(metricKey).get().value
 
 }
