@@ -3,10 +3,8 @@ package io.scalac.mesmer.otelextension.instrumentations.zio
 import io.opentelemetry.javaagent.extension.instrumentation.TypeInstrumentation
 import net.bytebuddy.description.`type`.TypeDescription
 import net.bytebuddy.description.method.MethodDescription
-import net.bytebuddy.matcher.ElementMatchers
 import net.bytebuddy.matcher.ElementMatchers.isConstructor
 import net.bytebuddy.matcher.ElementMatchers.named
-import zio.metrics.MetricLabel
 
 import io.scalac.mesmer.agent.util.i13n.Advice
 import io.scalac.mesmer.agent.util.i13n.Instrumentation

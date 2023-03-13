@@ -3,13 +3,14 @@ package io.scalac.mesmer.otelextension.instrumentations.zio
 import java.util.Timer
 import java.util.TimerTask
 
-import io.scalac.mesmer.otelextension.instrumentations.zio.ZIOMetrics._
 import zio.metrics.MetricKey
 import zio.metrics.MetricKeyType
 
 import scala.collection.mutable
 import scala.concurrent.duration._
 import scala.util.control.NonFatal
+
+import io.scalac.mesmer.otelextension.instrumentations.zio.ZIOMetrics._
 
 class ConcurrentMetricRegistryPoller {
 
