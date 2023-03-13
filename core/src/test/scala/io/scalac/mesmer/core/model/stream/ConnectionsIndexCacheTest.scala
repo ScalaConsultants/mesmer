@@ -1,16 +1,18 @@
-package io.scalac.mesmer.extension
+package io.scalac.mesmer.core.model.stream
+
 import org.scalatest.Inspectors
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
+import scala.collection.mutable
+
 import io.scalac.mesmer.core.model.Tag.StageName.StreamUniqueStageName
 import io.scalac.mesmer.core.model.Tag.SubStreamName
-import io.scalac.mesmer.core.model.stream.ConnectionStats
-import io.scalac.mesmer.core.model.stream.StageInfo
 import io.scalac.mesmer.core.util.TestOps
-import io.scalac.mesmer.extension.AkkaStreamMonitoring.ConnectionsIndexCache
 
 class ConnectionsIndexCacheTest extends AnyFlatSpec with Matchers with TestOps with Inspectors {
+
+  private def emptyCache = new ConnectionsIndexCache(mutable.Map.empty)
 
   private def genLinearFlowData(length: Int): (Array[StageInfo], Array[ConnectionStats]) = {
 
@@ -30,7 +32,7 @@ class ConnectionsIndexCacheTest extends AnyFlatSpec with Matchers with TestOps w
   }
 
   "ConnectionsIndexCache" should "generate new entries" in {
-    val sut                   = ConnectionsIndexCache.empty
+    val sut                   = emptyCache
     val resultMap             = sut.indexCache
     val StagesSize            = 5
     val (stages, connections) = genLinearFlowData(StagesSize)
@@ -41,7 +43,7 @@ class ConnectionsIndexCacheTest extends AnyFlatSpec with Matchers with TestOps w
   }
 
   it should "reuse existing entries" in {
-    val sut                   = ConnectionsIndexCache.empty
+    val sut                   = emptyCache
     val resultMap             = sut.indexCache
     val StagesSize            = 5
     val (stages, connections) = genLinearFlowData(StagesSize)

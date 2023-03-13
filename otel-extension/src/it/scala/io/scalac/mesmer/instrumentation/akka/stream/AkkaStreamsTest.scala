@@ -330,4 +330,16 @@ class AkkaStreamsTest
   it should "collect running streams metric" in {
     assertMetricSumGreaterOrEqualTo0("mesmer_akka_streams_running_streams")
   }
+
+  it should "collect processed messages metric" in {
+    assertMetricSumGreaterOrEqualTo0("mesmer_akka_stream_processed_messages")
+  }
+
+  it should "collect running operators metric" in {
+    assertMetricSumGreaterOrEqualTo0("mesmer_akka_streams_running_operators")
+  }
+
+  it should "collect operator demand metric" in {
+    assertMetricSumGreaterOrEqualTo0("mesmer_akka_streams_operator_demand")
+  }
 }

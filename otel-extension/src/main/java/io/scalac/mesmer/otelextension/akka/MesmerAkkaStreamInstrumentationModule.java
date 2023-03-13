@@ -7,6 +7,7 @@ import io.opentelemetry.javaagent.tooling.muzzle.InstrumentationModuleMuzzle;
 import io.opentelemetry.javaagent.tooling.muzzle.VirtualFieldMappingsBuilder;
 import io.opentelemetry.javaagent.tooling.muzzle.references.ClassRef;
 import io.scalac.mesmer.otelextension.instrumentations.akka.stream.AkkaStreamAgents;
+
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -70,6 +71,14 @@ public class MesmerAkkaStreamInstrumentationModule extends InstrumentationModule
             "io.scalac.mesmer.otelextension.instrumentations.akka.stream.AkkaStreamMonitorExtension$StreamStatsReceived",
             "io.scalac.mesmer.otelextension.instrumentations.akka.stream.AkkaStreamMetrics",
             "io.scalac.mesmer.otelextension.instrumentations.akka.stream.AkkaStreamConfig$",
-            "io.scalac.mesmer.otelextension.instrumentations.akka.stream.AkkaStreamAttributes$"));
+            "io.scalac.mesmer.otelextension.instrumentations.akka.stream.AkkaStreamAttributes$",
+            "io.scalac.mesmer.otelextension.instrumentations.akka.stream.CachingConfig",
+            "io.scalac.mesmer.otelextension.instrumentations.akka.stream.CachingConfig$",
+            "io.scalac.mesmer.otelextension.instrumentations.akka.stream.StreamSnapshotsService",
+            "io.scalac.mesmer.otelextension.instrumentations.akka.stream.StreamSnapshotsService$",
+            "io.scalac.mesmer.otelextension.instrumentations.akka.stream.StreamSnapshotsService$$anon$1",
+            "io.scalac.mesmer.otelextension.instrumentations.akka.stream.AkkaStreamMonitorExtension$$anonfun$collectStageSnapshots$1",
+            "io.scalac.mesmer.otelextension.instrumentations.akka.stream.AkkaStreamMonitorExtension$StageSnapshot",
+            "io.scalac.mesmer.otelextension.instrumentations.akka.stream.AkkaStreamMonitorExtension$$anonfun$getPerStageValues$1"));
   }
 }

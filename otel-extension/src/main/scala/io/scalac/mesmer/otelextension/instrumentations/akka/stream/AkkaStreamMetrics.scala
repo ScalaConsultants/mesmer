@@ -2,25 +2,55 @@ package io.scalac.mesmer.otelextension.instrumentations.akka.stream
 
 import akka.actor.typed.ActorSystem
 import io.opentelemetry.api.GlobalOpenTelemetry
+import io.opentelemetry.api.common.Attributes
 import io.opentelemetry.api.metrics.Meter
-
-import io.scalac.mesmer.core.util.TypedActorSystemOps.ActorSystemOps
+import io.opentelemetry.api.metrics.ObservableLongMeasurement
 
 final class AkkaStreamMetrics(actorSystem: ActorSystem[_]) {
-  private val meter: Meter    = GlobalOpenTelemetry.getMeter("mesmer")
-  private lazy val attributes = AkkaStreamAttributes.forNode(actorSystem.clusterNodeName)
+  private val meter: Meter = GlobalOpenTelemetry.getMeter("mesmer")
 
-  @volatile private var runningStreamsTotal: Option[Long] = None
-  @volatile private var runningActorsTotal: Option[Long]  = None
+  @volatile private var runningStreamsTotal: Map[Attributes, Long]          = Map.empty
+  @volatile private var runningActorsTotal: Map[Attributes, Long]           = Map.empty
+  @volatile private var streamProcessedMessagesTotal: Map[Attributes, Long] = Map.empty
+  @volatile private var runningOperators: Map[Attributes, Long]             = Map.empty
+  @volatile private var operatorDemand: Map[Attributes, Long]               = Map.empty
 
-  meter.gaugeBuilder("mesmer_akka_streams_running_streams").ofLongs().buildWithCallback { measurement =>
-    runningStreamsTotal.map(v => measurement.record(v, attributes))
-  }
+  private val callback: (ObservableLongMeasurement, Map[Attributes, Long]) => Unit =
+    (measurement: ObservableLongMeasurement, values: Map[Attributes, Long]) =>
+      values.foreach { case (attributes, value) =>
+        measurement.record(value, attributes)
+      }
 
-  meter.gaugeBuilder("mesmer_akka_streams_actors").ofLongs().buildWithCallback { measurement =>
-    runningActorsTotal.map(v => measurement.record(v, attributes))
-  }
+  meter
+    .gaugeBuilder("mesmer_akka_streams_running_streams")
+    .ofLongs()
+    .setDescription("Streams running in the system")
+    .buildWithCallback(callback(_, runningStreamsTotal))
 
-  def setRunningStreamsTotal(value: Long): Unit = runningStreamsTotal = Some(value)
-  def setRunningActorsTotal(value: Long): Unit  = runningActorsTotal = Some(value)
+  meter
+    .gaugeBuilder("mesmer_akka_streams_actors")
+    .setDescription("Actors running streams in the system")
+    .ofLongs()
+    .buildWithCallback(callback(_, runningActorsTotal))
+
+  meter
+    .counterBuilder("mesmer_akka_stream_processed_messages")
+    .setDescription("Messages processed by whole stream")
+    .buildWithCallback(callback(_, streamProcessedMessagesTotal))
+
+  meter
+    .counterBuilder("mesmer_akka_streams_running_operators")
+    .setDescription("Operators in a system")
+    .buildWithCallback(callback(_, runningOperators))
+
+  meter
+    .counterBuilder("mesmer_akka_streams_operator_demand")
+    .setDescription("Messages demanded by operator")
+    .buildWithCallback(callback(_, operatorDemand))
+
+  def setRunningStreamsTotal(value: Long, attributes: Attributes): Unit = runningStreamsTotal = Map(attributes -> value)
+  def setRunningActorsTotal(value: Long, attributes: Attributes): Unit  = runningActorsTotal = Map(attributes -> value)
+  def setStreamProcessedMessagesTotal(values: Map[Attributes, Long]): Unit = streamProcessedMessagesTotal = values
+  def setRunningOperators(values: Map[Attributes, Long]): Unit             = runningOperators = values
+  def setOperatorDemand(values: Map[Attributes, Long]): Unit               = operatorDemand = values
 }
