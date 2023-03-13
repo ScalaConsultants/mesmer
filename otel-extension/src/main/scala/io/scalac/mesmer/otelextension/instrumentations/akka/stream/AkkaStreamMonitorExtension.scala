@@ -66,11 +66,7 @@ final class AkkaStreamMonitorExtension(
     val currentlyRunningStreams: Map[String, Map[ActorRef, StreamInfo]] =
       currentSnapshot.groupBy(_._2.subStreamName.streamName.name)
 
-    val stageSnapshots: Seq[StageSnapshot] = currentSnapshot.values.flatMap { streamInfo =>
-      val subStreamName = streamInfo.subStreamName
-      collectStageSnapshots(streamInfo)
-    }.toSeq
-
+    val stageSnapshots    = currentSnapshot.values.flatMap(collectStageSnapshots)
     val operatorDemand    = stageSnapshots.flatMap(snapshot => getPerStageValues(snapshot.output)).toMap
     val runningOperators  = stageSnapshots.flatMap(snapshot => getPerStageOperatorValues(snapshot.input)).toMap
     val processedMessages = stageSnapshots.flatMap(snapshot => getPerStageValues(snapshot.input)).toMap

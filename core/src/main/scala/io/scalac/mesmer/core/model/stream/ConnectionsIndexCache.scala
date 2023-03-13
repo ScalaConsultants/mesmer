@@ -4,7 +4,7 @@ import scala.annotation.tailrec
 import scala.collection.mutable
 import scala.jdk.CollectionConverters._
 
-final class ConnectionsIndexCache private (
+final class ConnectionsIndexCache(
   val indexCache: mutable.Map[StageInfo, ConnectionsIndexCache.IndexCacheEntry]
 ) {
   import ConnectionsIndexCache._
@@ -96,11 +96,4 @@ object ConnectionsIndexCache {
 
     new ConnectionsIndexCache(mutableMap)
   }
-
-  /**
-   * Exists solely for testing purpose
-   * @return
-   */
-  def empty = new ConnectionsIndexCache(mutable.Map.empty)
-
 }
