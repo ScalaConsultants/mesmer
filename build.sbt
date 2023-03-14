@@ -107,7 +107,8 @@ lazy val otelExtension = (project in file("otel-extension"))
       byteBuddy.map(_ % "provided") ++
       akkaTestkit.map(_ % "it,test") ++
       scalatest.map(_ % "it,test") ++
-      openTelemetryTesting.map(_ % "it,test")
+      openTelemetryTesting.map(_ % "it,test") ++
+      scalaReflect(scalaVersion.value)
     },
     assembly / test            := {},
     assembly / assemblyJarName := s"${name.value}-assembly.jar",
@@ -161,8 +162,8 @@ def exampleCommonSettings = Seq(
   ),
   libraryDependencies ++= {
     logback ++ Seq(
-      "io.grpc"             % "grpc-netty-shaded"                         % "1.53.0",
-      "org.wvlet.airframe" %% "airframe-log"                              % AirframeVersion
+      "io.grpc"             % "grpc-netty-shaded" % "1.53.0",
+      "org.wvlet.airframe" %% "airframe-log"      % AirframeVersion
     )
   },
   run / fork         := true,

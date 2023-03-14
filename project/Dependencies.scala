@@ -1,3 +1,4 @@
+import sbt.Keys.scalaVersion
 import sbt._
 
 object Dependencies {
@@ -84,4 +85,6 @@ object Dependencies {
   val scalatest = Seq("org.scalatest" %% "scalatest" % ScalatestVersion)
 
   val akkaMultiNodeTestKit = Seq("com.typesafe.akka" %% "akka-multi-node-testkit" % AkkaVersion)
+
+  def scalaReflect(scalaVersion: String) = Seq("org.scala-lang" % "scala-reflect" % scalaVersion)
 }

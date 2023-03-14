@@ -20,20 +20,18 @@ public class MesmerZIOMetricAPIInstrumentationModule extends InstrumentationModu
 
   @Override
   public List<TypeInstrumentation> typeInstrumentations() {
-    return List.of(
-        ZIOInstrumentations.fromMetricKeyAdvice(),
-        ZIOInstrumentations.taggedAdvice(),
-        ZIOInstrumentations.contramapAdvice());
+    return Collections.singletonList(ZIOInstrumentations.concurrentMetricRegistryAdvice());
   }
 
   @Override
   public List<String> getAdditionalHelperClassNames() {
     return List.of(
-        "io.scalac.mesmer.otelextension.instrumentations.zio.advice.ZIOFromMetricKeyAdvice$",
-        "io.scalac.mesmer.otelextension.instrumentations.zio.advice.ZIOMetricsTaggedAdvice$",
-        "io.scalac.mesmer.otelextension.instrumentations.zio.advice.ZIOMetricsContramapAdvice$",
+        "io.scalac.mesmer.otelextension.instrumentations.zio.advice.ConcurrentMetricRegistryAdvice$",
         "io.scalac.mesmer.otelextension.instrumentations.zio.ZIOInstrumentations$",
-        "io.scalac.mesmer.otelextension.instrumentations.zio.ZIOMetrics$");
+        "io.scalac.mesmer.otelextension.instrumentations.zio.ZIOMetrics$",
+        "io.scalac.mesmer.otelextension.instrumentations.zio.ConcurrentMetricRegistryPoller",
+        "io.scalac.mesmer.otelextension.instrumentations.zio.ConcurrentMetricRegistryPoller$$anon$1",
+        "io.scalac.mesmer.otelextension.instrumentations.zio.ConcurrentMetricRegistryClient$");
   }
 
   @Override
@@ -42,12 +40,7 @@ public class MesmerZIOMetricAPIInstrumentationModule extends InstrumentationModu
   }
 
   @Override
-  public void registerMuzzleVirtualFields(VirtualFieldMappingsBuilder builder) {
-    builder.register("zio.metrics.Metric", "java.lang.String");
-    builder.register(
-        "zio.metrics.Metric",
-        "io.opentelemetry.javaagent.shaded.io.opentelemetry.api.common.Attributes");
-  }
+  public void registerMuzzleVirtualFields(VirtualFieldMappingsBuilder builder) { }
 
   @Override
   public List<String> getMuzzleHelperClassNames() {
