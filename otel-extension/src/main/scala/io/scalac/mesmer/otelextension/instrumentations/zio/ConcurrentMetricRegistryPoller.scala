@@ -18,6 +18,9 @@ class ConcurrentMetricRegistryPoller {
 
   private val instruments = mutable.HashMap.empty[MetricKey[MetricKeyType], AutoCloseable]
 
+  private val pollingInterval =
+    sys.props.get("io.scalac.mesmer.zio.metrics.polling-interval").map(Duration(_)).getOrElse(10.millis).toMillis
+
   private def task = new TimerTask {
     override def run(): Unit =
       try {
@@ -48,13 +51,13 @@ class ConcurrentMetricRegistryPoller {
         }
       } catch {
         case NonFatal(_) =>
-        // TODO how to log the exception?
+        // TODO log the exception
       } finally
         schedule()
   }
 
-  def schedule(): Unit =
-    timer.schedule(task, 10.millis.toMillis) // TODO configurable polling interval?
+  private def schedule(): Unit =
+    timer.schedule(task, pollingInterval)
 
   schedule()
 }

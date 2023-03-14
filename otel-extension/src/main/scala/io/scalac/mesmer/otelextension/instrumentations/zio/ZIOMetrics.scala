@@ -25,7 +25,7 @@ object ZIOMetrics {
       .gaugeBuilder(metricName(metricKey.name))
       .buildWithCallback(_.record(unsafeGetGaugeValue(metricKey), buildAttributes(metricKey.tags)))
 
-  def buildAttributes(metricLabels: Set[MetricLabel]): Attributes = {
+  private def buildAttributes(metricLabels: Set[MetricLabel]): Attributes = {
     val builder = Attributes.builder()
     metricLabels.foreach { case MetricLabel(key, value) => builder.put(AttributeKey.stringKey(key), value) }
     builder.build()
