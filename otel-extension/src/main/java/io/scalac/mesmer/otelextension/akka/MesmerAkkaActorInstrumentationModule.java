@@ -1,5 +1,7 @@
 package io.scalac.mesmer.otelextension.akka;
 
+import static io.scalac.mesmer.utils.Combine.combine;
+
 import com.google.auto.service.AutoService;
 import io.opentelemetry.javaagent.extension.instrumentation.InstrumentationModule;
 import io.opentelemetry.javaagent.extension.instrumentation.TypeInstrumentation;
@@ -71,7 +73,7 @@ public class MesmerAkkaActorInstrumentationModule extends InstrumentationModule
 
   @Override
   public List<String> getAdditionalHelperClassNames() {
-    return MesmerAkkaHelpers.combine(
+    return combine(
         MesmerAkkaHelpers.coreHelpers(),
         Arrays.asList(
             "akka.actor.ProxiedQueue",

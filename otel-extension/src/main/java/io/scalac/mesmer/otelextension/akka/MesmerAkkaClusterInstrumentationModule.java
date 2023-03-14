@@ -1,5 +1,6 @@
 package io.scalac.mesmer.otelextension.akka;
 
+import static io.scalac.mesmer.utils.Combine.combine;
 import static java.util.Collections.emptyList;
 
 import com.google.auto.service.AutoService;
@@ -39,7 +40,7 @@ public class MesmerAkkaClusterInstrumentationModule extends InstrumentationModul
 
   @Override
   public List<String> getAdditionalHelperClassNames() {
-    return MesmerAkkaHelpers.combine(
+    return combine(
         MesmerAkkaHelpers.coreHelpers(),
         List.of(
             // Vendor helpers
