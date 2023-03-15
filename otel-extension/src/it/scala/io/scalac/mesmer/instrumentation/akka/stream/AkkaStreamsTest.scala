@@ -285,7 +285,7 @@ class AkkaStreamsTest
 
     actors(StreamCount)
 
-    forAll(monitor.receiveMessages(StreamCount)) {
+    forAll(monitor.receiveMessages(StreamCount, 10.seconds)) {
       inside(_) { case LastStreamStats(_, _, shellInfo) =>
         val (stages, connectionStats) = shellInfo
         stages should have size 2

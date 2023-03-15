@@ -1,4 +1,3 @@
-import sbt.Keys.scalaVersion
 import sbt._
 
 object Dependencies {
@@ -49,10 +48,6 @@ object Dependencies {
 
   val logback = Seq("ch.qos.logback" % "logback-classic" % LogbackVersion)
 
-  val openTelemetryApi = Seq(
-    "io.opentelemetry" % "opentelemetry-api" % OpentelemetryMinor0Version
-  )
-
   val openTelemetryInstrumentationApiSemanticConventions = Seq(
     "io.opentelemetry.instrumentation" % "opentelemetry-instrumentation-api-semconv" % OpentelemetryAlphaMinor0Version
   )
@@ -84,7 +79,6 @@ object Dependencies {
 
   val scalatest = Seq("org.scalatest" %% "scalatest" % ScalatestVersion)
 
-  val akkaMultiNodeTestKit = Seq("com.typesafe.akka" %% "akka-multi-node-testkit" % AkkaVersion)
-
   def scalaReflect(scalaVersion: String) = Seq("org.scala-lang" % "scala-reflect" % scalaVersion)
+
 }

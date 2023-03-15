@@ -49,7 +49,7 @@ lazy val all: Project = (project in file("."))
     name           := "mesmer-all",
     publish / skip := true
   )
-  .aggregate(extension, otelExtension, core, testkit, exampleAkka, exampleAkkaStream, exampleZio)
+  .aggregate(otelExtension, core, testkit, exampleAkka, exampleAkkaStream, exampleZio)
 
 lazy val core = (project in file("core"))
   .disablePlugins(sbtassembly.AssemblyPlugin)
@@ -73,24 +73,6 @@ lazy val testkit = (project in file("testkit"))
       scalatest ++ akkaTestkit
     }
   )
-
-lazy val extension = (project in file("extension"))
-  .enablePlugins(MultiJvmPlugin)
-  .disablePlugins(sbtassembly.AssemblyPlugin)
-  .configs(MultiJvm)
-  .settings(
-    Test / parallelExecution := true,
-    name                     := "mesmer-akka-extension",
-    libraryDependencies ++= {
-      akka ++
-      openTelemetryApi ++
-      akkaTestkit.map(_ % "test") ++
-      scalatest.map(_ % "test") ++
-      akkaMultiNodeTestKit.map(_ % "test") ++
-      logback.map(_ % Test)
-    }
-  )
-  .dependsOn(core, testkit % "test")
 
 lazy val otelExtension = (project in file("otel-extension"))
   .configs(IntegrationTest)
@@ -234,7 +216,7 @@ lazy val docs = project
   .settings(
     moduleName := "mesmer-docs"
   )
-  .dependsOn(extension, otelExtension)
+  .dependsOn(otelExtension)
   .enablePlugins(MdocPlugin, DocusaurusPlugin)
 
 lazy val assemblyMergeStrategySettings = assembly / assemblyMergeStrategy := {
