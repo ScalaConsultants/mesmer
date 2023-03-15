@@ -17,15 +17,9 @@ inThisBuild(
         url("https://github.com/jczuchnowski")
       ),
       Developer(
-        "worekleszczy",
-        "Piotr Jósiak",
-        "piotr.josiak@gmail.com",
-        url("https://github.com/worekleszczy")
-      ),
-      Developer(
         "lgajowy",
         "Łukasz Gajowy",
-        "lukasz.gajowy@gmail.com",
+        "lukasz.gajowy@scalac.io",
         url("https://github.com/lgajowy")
       )
     ),
