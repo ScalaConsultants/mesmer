@@ -10,14 +10,14 @@ applications.
 Compatibility:
 - Scala: 2.13.x
 - JVM: 1.11+
-  
+
 See the [docs](https://scalaconsultants.github.io/mesmer/) for more information.
 
 ## Contributors
 ### Local testing
 
-`example` subproject contains a test application that uses Akka Cluster sharding with Mesmer Akka extension.
-Go [here](example/README.md) for more information.
+`examples` subproject contains a test application that uses Akka Cluster sharding with Mesmer Akka extension.
+Go [here](examples/README.md) for more information.
 
 ### Contributor setup
 

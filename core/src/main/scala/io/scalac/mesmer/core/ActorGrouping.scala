@@ -59,12 +59,12 @@ object ActorGrouping {
 
   final case class InvalidRule(rule: String, message: String) extends Error
 
-  def fromRule(rule: String, reporingType: Reporting): Either[Error, ActorGrouping] =
+  def fromRule(rule: String, reportingType: Reporting): Either[Error, ActorGrouping] =
     rule match {
       case _ if rule.endsWith("/*") =>
         val matcherPath = rule.dropRight(2).pipe(toValidPath)
 
-        reporingType match {
+        reportingType match {
           case Reporting.Group =>
             PathMatcher
               .prefix(matcherPath, false)
@@ -101,7 +101,7 @@ object ActorGrouping {
       case _ if rule.endsWith("/**") =>
         val matcherPath = rule.dropRight(3).pipe(toValidPath)
 
-        reporingType match {
+        reportingType match {
           case Reporting.Group =>
             PathMatcher
               .prefix(matcherPath, true)
@@ -136,7 +136,7 @@ object ActorGrouping {
       case x if !x.contains("*") =>
         val matcherPath = rule
 
-        reporingType match {
+        reportingType match {
           // TODO this should result in Left => there is not sense to group by one actor
           case Reporting.Group =>
             PathMatcher

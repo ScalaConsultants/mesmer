@@ -28,8 +28,8 @@ import scala.concurrent.duration._
 import scala.concurrent.{ ExecutionContext, Future }
 
 class AkkaStreamsTest
-    extends OtelAgentTest
-    with AnyFlatSpecLike
+    extends AnyFlatSpecLike
+    with OtelAgentTest
     with Matchers
     with SafeLoadSystem
     with BeforeAndAfterAll
@@ -285,7 +285,7 @@ class AkkaStreamsTest
 
     actors(StreamCount)
 
-    forAll(monitor.receiveMessages(StreamCount)) {
+    forAll(monitor.receiveMessages(StreamCount, 10.seconds)) {
       inside(_) { case LastStreamStats(_, _, shellInfo) =>
         val (stages, connectionStats) = shellInfo
         stages should have size 2
@@ -329,5 +329,17 @@ class AkkaStreamsTest
 
   it should "collect running streams metric" in {
     assertMetricSumGreaterOrEqualTo0("mesmer_akka_streams_running_streams")
+  }
+
+  it should "collect processed messages metric" in {
+    assertMetricSumGreaterOrEqualTo0("mesmer_akka_stream_processed_messages")
+  }
+
+  it should "collect running operators metric" in {
+    assertMetricSumGreaterOrEqualTo0("mesmer_akka_streams_running_operators")
+  }
+
+  it should "collect operator demand metric" in {
+    assertMetricSumGreaterOrEqualTo0("mesmer_akka_streams_operator_demand")
   }
 }

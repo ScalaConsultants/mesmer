@@ -1,5 +1,7 @@
 package io.scalac.mesmer.otelextension.akka;
 
+import static io.scalac.mesmer.utils.Combine.combine;
+
 import com.google.auto.service.AutoService;
 import io.opentelemetry.javaagent.extension.instrumentation.InstrumentationModule;
 import io.opentelemetry.javaagent.extension.instrumentation.TypeInstrumentation;
@@ -33,17 +35,19 @@ public class MesmerAkkaPersistenceInstrumentationModule extends InstrumentationM
 
   @Override
   public List<String> getAdditionalHelperClassNames() {
-    return Arrays.asList(
-        "io.scalac.mesmer.configuration.Config$",
-        "io.scalac.mesmer.configuration.Config",
-        "io.scalac.mesmer.otelextension.instrumentations.akka.persistence.Instruments",
-        "io.scalac.mesmer.otelextension.instrumentations.akka.persistence.InstrumentsProvider$$anon$1",
-        "io.scalac.mesmer.otelextension.instrumentations.akka.persistence.InstrumentsProvider",
-        "io.scalac.mesmer.otelextension.instrumentations.akka.persistence.InstrumentsProvider$",
-        "io.scalac.mesmer.otelextension.instrumentations.akka.persistence.impl.PersistenceContext",
-        "io.scalac.mesmer.otelextension.instrumentations.akka.persistence.impl.PersistenceContextProvider",
-        "io.scalac.mesmer.otelextension.instrumentations.akka.persistence.impl.TemplatingPersistenceContextProvider",
-        "io.scalac.mesmer.otelextension.instrumentations.akka.persistence.impl.IdentityPersistenceContextProvider");
+    return combine(
+        MesmerAkkaHelpers.coreHelpers(),
+        Arrays.asList(
+            "io.scalac.mesmer.configuration.Config$",
+            "io.scalac.mesmer.configuration.Config",
+            "io.scalac.mesmer.otelextension.instrumentations.akka.persistence.Instruments",
+            "io.scalac.mesmer.otelextension.instrumentations.akka.persistence.InstrumentsProvider$$anon$1",
+            "io.scalac.mesmer.otelextension.instrumentations.akka.persistence.InstrumentsProvider",
+            "io.scalac.mesmer.otelextension.instrumentations.akka.persistence.InstrumentsProvider$",
+            "io.scalac.mesmer.otelextension.instrumentations.akka.persistence.impl.PersistenceContext",
+            "io.scalac.mesmer.otelextension.instrumentations.akka.persistence.impl.PersistenceContextProvider",
+            "io.scalac.mesmer.otelextension.instrumentations.akka.persistence.impl.TemplatingPersistenceContextProvider",
+            "io.scalac.mesmer.otelextension.instrumentations.akka.persistence.impl.IdentityPersistenceContextProvider"));
   }
 
   @Override

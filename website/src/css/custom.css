@@ -19,11 +19,11 @@
   --ifm-font-color-base-inverse: #121212; /* hero text color */
 
   --ifm-breadcrumb-color-active: #e10b53;
-  --ifm-navbar-link-hover-color: #e10b53;
+  --ifm-navbar-link-hover-color: #1b89c7;
   --ifm-menu-color-active: #e10b53;
 
   --ifm-background-color: #fcf4f2;
-  --ifm-link-color: #121212;
+  --ifm-link-color: #1b89c7;
 
   --ifm-pagination-nav-color-hover: #e10b53;
 }
