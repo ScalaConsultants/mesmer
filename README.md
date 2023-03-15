@@ -16,7 +16,7 @@ See the [docs](https://scalaconsultants.github.io/mesmer/) for more information.
 ## Contributors
 ### Local testing
 
-`examples` subproject contains a test application that uses Akka Cluster sharding with Mesmer Akka extension.
+`examples` subproject contains a test application that uses Akka Cluster.
 Go [here](examples/README.md) for more information.
 
 ### Contributor setup
