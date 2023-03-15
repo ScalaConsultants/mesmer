@@ -11,15 +11,6 @@ sealed trait PathMatcher extends (String => Boolean) with Ordered[PathMatcher] {
 
   def matches(path: String): Boolean
 
-  /**
-   * Return Some with a result of map function called with part that passed the matcher
-   * @param map
-   * @param path
-   * @tparam T
-   * @return
-   */
-  def withPassing[T](map: String => T)(path: String): Option[T]
-
   def compare(that: PathMatcher): Int =
     if (sameBase(that)) {
       priority - that.priority
@@ -52,18 +43,6 @@ object PathMatcher {
       val pathTrailing = if (path.endsWith("/")) path else s"$path/"
       pathTrailing.startsWith(baseTrailing) && (withExactBase || pathTrailing.substring(baseTrailing.length).nonEmpty)
     }
-
-    def withPassing[T](map: String => T)(path: String): Option[T] = if (matches(path)) {
-      if (withExactBase) {
-        Some(map(base))
-      } else {
-        val baseTrailing = if (base.endsWith("/")) base else s"$base/"
-        val next         = path.indexOf("/", baseTrailing.length)
-        if (next < 0) {
-          Some(map(path))
-        } else Some(map(path.substring(0, next)))
-      }
-    } else None
   }
 
   private[core] final case class Exact(base: String) extends PathMatcher {
@@ -71,10 +50,6 @@ object PathMatcher {
     protected val priority = 2
 
     def matches(path: String): Boolean = path == base || s"$path/" == base
-
-    def withPassing[T](map: String => T)(path: String): Option[T] = if (matches(path)) {
-      Some(map(path))
-    } else None
   }
 
   private[core] final case class SingleVariable(base: String) extends PathMatcher {
@@ -84,15 +59,6 @@ object PathMatcher {
       val trailingSlash = if (base.endsWith("/")) base else s"$base/"
       path.startsWith(trailingSlash) && !path.substring(trailingSlash.length).contains('/')
     }
-
-    def withPassing[T](map: String => T)(path: String): Option[T] = if (matches(path)) {
-      val baseTrailing = if (base.endsWith("/")) base else s"$base/"
-      val next         = path.indexOf("/", baseTrailing.length)
-      if (next < 0) {
-        Some(map(path))
-      } else Some(map(path.substring(0, next)))
-    } else None
-
   }
 
   sealed trait Error {

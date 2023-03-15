@@ -2,11 +2,11 @@ import sbt._
 
 object Dependencies {
 
-  val AirframeVersion       = "23.2.4"
+  val AirframeVersion       = "23.2.5"
   val AkkaHttpVersion       = "10.4.0"
   val AkkaManagementVersion = "1.2.0"
   val AkkaVersion           = "2.7.0"
-  val ByteBuddyVersion      = "1.13.0"
+  val ByteBuddyVersion      = "1.14.2"
   val CirceVersion          = "0.14.5"
 
   val GoogleAutoServiceVersion        = "1.0.1"
@@ -48,10 +48,6 @@ object Dependencies {
 
   val logback = Seq("ch.qos.logback" % "logback-classic" % LogbackVersion)
 
-  val openTelemetryApi = Seq(
-    "io.opentelemetry" % "opentelemetry-api" % OpentelemetryMinor0Version
-  )
-
   val openTelemetryInstrumentationApiSemanticConventions = Seq(
     "io.opentelemetry.instrumentation" % "opentelemetry-instrumentation-api-semconv" % OpentelemetryAlphaMinor0Version
   )
@@ -83,5 +79,6 @@ object Dependencies {
 
   val scalatest = Seq("org.scalatest" %% "scalatest" % ScalatestVersion)
 
-  val akkaMultiNodeTestKit = Seq("com.typesafe.akka" %% "akka-multi-node-testkit" % AkkaVersion)
+  def scalaReflect(scalaVersion: String) = Seq("org.scala-lang" % "scala-reflect" % scalaVersion)
+
 }

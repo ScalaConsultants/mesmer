@@ -5,12 +5,15 @@ import _root_.akka.cluster.UniqueAddress
 
 import scala.language.implicitConversions
 
+import io.scalac.mesmer.core.model.Tag.SubStreamName
 import io.scalac.mesmer.core.model.stream.ConnectionStats
 import io.scalac.mesmer.core.model.stream.StageInfo
 import io.scalac.mesmer.core.tagging.@@
 import io.scalac.mesmer.core.tagging._
 
 package object model {
+
+  final case class StreamInfo(subStreamName: SubStreamName, shellInfo: Set[ShellInfo])
 
   type ShellInfo = (Array[StageInfo], Array[ConnectionStats])
 

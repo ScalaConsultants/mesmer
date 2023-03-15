@@ -49,7 +49,7 @@ lazy val all: Project = (project in file("."))
     name           := "mesmer-all",
     publish / skip := true
   )
-  .aggregate(extension, otelExtension, core, testkit, exampleAkka, exampleAkkaStream, exampleZio)
+  .aggregate(otelExtension, core, testkit, exampleAkka, exampleAkkaStream, exampleZio)
 
 lazy val core = (project in file("core"))
   .disablePlugins(sbtassembly.AssemblyPlugin)
@@ -74,24 +74,6 @@ lazy val testkit = (project in file("testkit"))
     }
   )
 
-lazy val extension = (project in file("extension"))
-  .enablePlugins(MultiJvmPlugin)
-  .disablePlugins(sbtassembly.AssemblyPlugin)
-  .configs(MultiJvm)
-  .settings(
-    Test / parallelExecution := true,
-    name                     := "mesmer-akka-extension",
-    libraryDependencies ++= {
-      akka ++
-      openTelemetryApi ++
-      akkaTestkit.map(_ % "test") ++
-      scalatest.map(_ % "test") ++
-      akkaMultiNodeTestKit.map(_ % "test") ++
-      logback.map(_ % Test)
-    }
-  )
-  .dependsOn(core, testkit % "test")
-
 lazy val otelExtension = (project in file("otel-extension"))
   .configs(IntegrationTest)
   .settings(
@@ -107,7 +89,8 @@ lazy val otelExtension = (project in file("otel-extension"))
       byteBuddy.map(_ % "provided") ++
       akkaTestkit.map(_ % "it,test") ++
       scalatest.map(_ % "it,test") ++
-      openTelemetryTesting.map(_ % "it,test")
+      openTelemetryTesting.map(_ % "it,test") ++
+      scalaReflect(scalaVersion.value)
     },
     assembly / test            := {},
     assembly / assemblyJarName := s"${name.value}-assembly.jar",
@@ -161,9 +144,8 @@ def exampleCommonSettings = Seq(
   ),
   libraryDependencies ++= {
     logback ++ Seq(
-      "io.opentelemetry"    % "opentelemetry-sdk-extension-autoconfigure" % OpentelemetryAlphaMinor0Version,
-      "io.grpc"             % "grpc-netty-shaded"                         % "1.53.0",
-      "org.wvlet.airframe" %% "airframe-log"                              % AirframeVersion
+      "io.grpc"             % "grpc-netty-shaded" % "1.53.0",
+      "org.wvlet.airframe" %% "airframe-log"      % AirframeVersion
     )
   },
   run / fork         := true,
@@ -234,7 +216,7 @@ lazy val docs = project
   .settings(
     moduleName := "mesmer-docs"
   )
-  .dependsOn(extension, otelExtension)
+  .dependsOn(otelExtension)
   .enablePlugins(MdocPlugin, DocusaurusPlugin)
 
 lazy val assemblyMergeStrategySettings = assembly / assemblyMergeStrategy := {
