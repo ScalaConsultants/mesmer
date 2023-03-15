@@ -1,5 +1,6 @@
 package io.scalac.mesmer.otelextension.akka;
 
+import static io.scalac.mesmer.utils.Combine.combine;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.emptyMap;
 
@@ -67,7 +68,7 @@ public class MesmerAkkaHttpInstrumentationModule extends InstrumentationModule
 
   @Override
   public List<String> getAdditionalHelperClassNames() {
-    return MesmerAkkaHelpers.combine(
+    return combine(
         MesmerAkkaHelpers.coreHelpers(),
         List.of(
             "io.scalac.mesmer.otelextension.instrumentations.akka.http.RouteContext$",

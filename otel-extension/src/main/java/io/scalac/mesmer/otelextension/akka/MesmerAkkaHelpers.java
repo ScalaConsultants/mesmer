@@ -1,9 +1,6 @@
 package io.scalac.mesmer.otelextension.akka;
 
-import java.util.Collection;
 import java.util.List;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 public class MesmerAkkaHelpers {
 
@@ -80,9 +77,5 @@ public class MesmerAkkaHelpers {
         "io.scalac.mesmer.core.model.Tag",
         "io.scalac.mesmer.core.model.stream.StageInfo",
         "io.scalac.mesmer.core.model.stream.ConnectionStats");
-  }
-
-  public static List<String> combine(List<String>... values) {
-    return Stream.of(values).flatMap(Collection::stream).collect(Collectors.toList());
   }
 }

@@ -1,5 +1,7 @@
 package io.scalac.mesmer.otelextension.zio;
 
+import static io.scalac.mesmer.utils.Combine.combine;
+
 import com.google.auto.service.AutoService;
 import io.opentelemetry.javaagent.extension.instrumentation.InstrumentationModule;
 import io.opentelemetry.javaagent.extension.instrumentation.TypeInstrumentation;
@@ -25,13 +27,17 @@ public class MesmerZIOMetricAPIInstrumentationModule extends InstrumentationModu
 
   @Override
   public List<String> getAdditionalHelperClassNames() {
-    return List.of(
-        "io.scalac.mesmer.otelextension.instrumentations.zio.advice.ConcurrentMetricRegistryAdvice$",
-        "io.scalac.mesmer.otelextension.instrumentations.zio.ZIOInstrumentations$",
-        "io.scalac.mesmer.otelextension.instrumentations.zio.ZIOMetrics$",
-        "io.scalac.mesmer.otelextension.instrumentations.zio.ConcurrentMetricRegistryPoller",
-        "io.scalac.mesmer.otelextension.instrumentations.zio.ConcurrentMetricRegistryPoller$$anon$1",
-        "io.scalac.mesmer.otelextension.instrumentations.zio.ConcurrentMetricRegistryClient$");
+    return combine(
+        ZIOHelpers.scalaReflectHelpers(),
+        List.of(
+            "io.scalac.mesmer.otelextension.instrumentations.zio.advice.ConcurrentMetricRegistryAdvice$",
+            "io.scalac.mesmer.otelextension.instrumentations.zio.ZIOInstrumentations$",
+            "io.scalac.mesmer.otelextension.instrumentations.zio.ZIOMetrics$",
+            "io.scalac.mesmer.otelextension.instrumentations.zio.ConcurrentMetricRegistryPoller",
+            "io.scalac.mesmer.otelextension.instrumentations.zio.ConcurrentMetricRegistryPoller$$anon$1",
+            "io.scalac.mesmer.otelextension.instrumentations.zio.ConcurrentMetricRegistryClient$",
+            "io.scalac.mesmer.otelextension.instrumentations.zio.ConcurrentMetricRegistryClient$MetricHook",
+            "io.scalac.mesmer.otelextension.instrumentations.zio.ConcurrentMetricRegistryPoller$$anon$1$$anon$2"));
   }
 
   @Override
@@ -40,7 +46,7 @@ public class MesmerZIOMetricAPIInstrumentationModule extends InstrumentationModu
   }
 
   @Override
-  public void registerMuzzleVirtualFields(VirtualFieldMappingsBuilder builder) { }
+  public void registerMuzzleVirtualFields(VirtualFieldMappingsBuilder builder) {}
 
   @Override
   public List<String> getMuzzleHelperClassNames() {
