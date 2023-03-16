@@ -16,10 +16,6 @@ import scala.concurrent.duration.FiniteDuration
 import scala.util.Failure
 import scala.util.Success
 
-import io.scalac.mesmer.core.event.Service.streamService
-import io.scalac.mesmer.core.event.StreamEvent
-import io.scalac.mesmer.core.event.StreamEvent.LastStreamStats
-import io.scalac.mesmer.core.event.StreamEvent.StreamInterpreterStats
 import io.scalac.mesmer.core.model.Node
 import io.scalac.mesmer.core.model.StreamInfo
 import io.scalac.mesmer.core.model.Tag._
@@ -29,6 +25,8 @@ import io.scalac.mesmer.core.util.ClassicActorSystemOps.ActorSystemOps
 import io.scalac.mesmer.core.util.Retry
 import io.scalac.mesmer.core.util.TypedActorSystemOps.{ ActorSystemOps => TypedActorSystemOps }
 import io.scalac.mesmer.otelextension.instrumentations.akka.stream.AkkaStreamMonitorExtension.StreamStatsReceived
+import io.scalac.mesmer.otelextension.instrumentations.akka.stream.StreamEvent._
+import io.scalac.mesmer.otelextension.instrumentations.akka.stream.StreamService.streamService
 
 final class AkkaStreamMonitorExtension(
   actorSystem: ActorSystem[_],

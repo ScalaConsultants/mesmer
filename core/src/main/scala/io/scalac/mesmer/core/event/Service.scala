@@ -29,7 +29,4 @@ object Service {
   implicit val actorService: Service[ActorEvent] = Service(actorServiceKey)
 
   implicit val persistenceService: Service[PersistenceEvent] = Service(persistenceServiceKey)
-
-  implicit val streamService: Service[StreamEvent] = Service(streamServiceKey)
-
 }

@@ -13,12 +13,14 @@ import akka.stream.{ Attributes, BufferOverflowException, OverflowStrategy, Queu
 import io.scalac.mesmer.agent.utils.{ OtelAgentTest, SafeLoadSystem }
 import io.scalac.mesmer.core.akka.model.PushMetrics
 import io.scalac.mesmer.core.event.ActorEvent.TagsSet
-import io.scalac.mesmer.core.event.StreamEvent.{ LastStreamStats, StreamInterpreterStats }
-import io.scalac.mesmer.core.event.{ ActorEvent, Service, StreamEvent }
+import io.scalac.mesmer.core.event.{ ActorEvent, Service }
 import io.scalac.mesmer.core.model.ActorRefTags
 import io.scalac.mesmer.core.model.Tag.stream
 import io.scalac.mesmer.core.util.TestBehaviors.Pass
 import io.scalac.mesmer.core.util.TestCase.CommonMonitorTestFactory
+import io.scalac.mesmer.otelextension.instrumentations.akka.stream.StreamEvent._
+import io.scalac.mesmer.otelextension.instrumentations.akka.stream.{ StreamEvent, StreamService }
+import io.scalac.mesmer.otelextension.instrumentations.akka.stream.StreamService.streamService
 import org.scalatest._
 import org.scalatest.concurrent.{ Futures, ScalaFutures }
 import org.scalatest.flatspec.AnyFlatSpecLike
@@ -45,9 +47,9 @@ class AkkaStreamsTest
   override type Command = StreamEvent
 
   protected def createMonitorBehavior(implicit context: Context): Behavior[Command] =
-    Pass.registerService(Service.streamService.serviceKey, monitor.ref)
+    Pass.registerService(StreamService.streamService.serviceKey, monitor.ref)
 
-  protected val serviceKey: ServiceKey[Command] = Service.streamService.serviceKey
+  protected val serviceKey: ServiceKey[Command] = StreamService.streamService.serviceKey
 
   type Monitor = TestProbe[StreamEvent]
   protected def createMonitor(implicit system: ActorSystem[_]): Monitor = TestProbe()

@@ -1,12 +1,9 @@
 package io.scalac.mesmer.core.event
 
-import akka.actor.ActorRef
-
-import io.scalac.mesmer.core.model.Tag.SubStreamName
 import io.scalac.mesmer.core.model._
 import io.scalac.mesmer.core.util.Timestamp
 
-sealed trait AbstractEvent extends Any { self =>
+trait AbstractEvent extends Any { self =>
   type Service >: self.type
 }
 
@@ -37,21 +34,4 @@ object PersistenceEvent {
       extends PersistEvent
   case class PersistingEventFinished(path: Path, persistenceId: PersistenceId, sequenceNr: Long, timestamp: Timestamp)
       extends PersistEvent
-}
-
-sealed trait StreamEvent extends AbstractEvent {
-  type Service = StreamEvent
-}
-
-object StreamEvent {
-  final case class StreamInterpreterStats(ref: ActorRef, streamName: SubStreamName, shellInfo: Set[ShellInfo])
-      extends StreamEvent
-
-  /**
-   * Indicating that this part of stream has collapsed
-   * @param ref
-   * @param streamName
-   * @param shellInfo
-   */
-  final case class LastStreamStats(ref: ActorRef, streamName: SubStreamName, shellInfo: ShellInfo) extends StreamEvent
 }
