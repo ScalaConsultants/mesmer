@@ -3,6 +3,7 @@ package io.scalac.mesmer.otelextension.instrumentations.zio
 import java.util.Timer
 import java.util.TimerTask
 
+import io.scalac.mesmer.otelextension.instrumentations.zio.ZIOMetrics._
 import zio.metrics.MetricKey
 import zio.metrics.MetricKeyType
 
@@ -10,9 +11,7 @@ import scala.collection.mutable
 import scala.concurrent.duration._
 import scala.util.control.NonFatal
 
-import io.scalac.mesmer.otelextension.instrumentations.zio.ZIOMetrics._
-
-class ConcurrentMetricRegistryPoller {
+class ConcurrentMetricRegistryPoller(client: ConcurrentMetricRegistryClient, zioMetrics: ZIOMetrics) {
 
   private val timer = new Timer()
 
@@ -24,18 +23,17 @@ class ConcurrentMetricRegistryPoller {
   private def task = new TimerTask {
     override def run(): Unit =
       try {
-        val snapshot = ConcurrentMetricRegistryClient.snapshot()
+        val snapshot = client.snapshot()
 
         snapshot.filter { metricPair =>
           !instruments.contains(metricPair.metricKey)
         }.foreach { metricPair =>
           val autocloseable = metricPair.metricKey.keyType match {
             case _: MetricKeyType.Counter =>
-              registerCounterAsyncMetric(metricPair.metricKey.asInstanceOf[MetricKey.Counter])
+              zioMetrics.registerCounterAsyncMetric(metricPair.metricKey.asInstanceOf[MetricKey.Counter])
             case _: MetricKeyType.Gauge =>
-              registerGaugeAsyncMetric(metricPair.metricKey.asInstanceOf[MetricKey.Gauge])
+              zioMetrics.registerGaugeAsyncMetric(metricPair.metricKey.asInstanceOf[MetricKey.Gauge])
             case _ =>
-              // TODO setup sync instruments for histograms
               new AutoCloseable {
                 override def close(): Unit = ()
               }

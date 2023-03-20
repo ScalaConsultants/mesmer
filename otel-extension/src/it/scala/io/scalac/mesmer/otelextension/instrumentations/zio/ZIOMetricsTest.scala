@@ -2,12 +2,16 @@ package io.scalac.mesmer.otelextension.instrumentations.zio
 
 import io.opentelemetry.sdk.metrics.data.MetricData
 import io.opentelemetry.api.common.{ AttributeKey, Attributes }
+import io.opentelemetry.sdk.metrics.data.HistogramData
 import io.scalac.mesmer.agent.utils.OtelAgentTest
 import io.scalac.mesmer.core.config.MesmerPatienceConfig
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.flatspec.AnyFlatSpecLike
 import org.scalatest.matchers.should.Matchers
 import zio._
+import zio.metrics.MetricKey
+import zio.metrics.MetricKeyType.Counter
+import zio.metrics.MetricKeyType.Histogram
 import zio.metrics.{ Metric, MetricLabel }
 
 import scala.jdk.CollectionConverters.CollectionHasAsScala
@@ -54,6 +58,10 @@ class ZIOMetricsTest
 
     assertCounterMetricValue("mesmer_zio_forwarded_zio_fiber_started", 2)
     assertCounterMetricValue("mesmer_zio_forwarded_zio_fiber_successes", 2)
+    assertHistogramData(
+      "mesmer_zio_forwarded_zio_fiber_lifetimes",
+      data => data.getPoints.asScala.map(_.getCount) should contain only (2)
+    )
   }
 
   "Runtime fiber_failures metric" should "be picked up by our OTEL instrumentations" in {
@@ -68,6 +76,10 @@ class ZIOMetricsTest
     runUnsafely(testProgram, runtimeMetrics = true)
 
     assertCounterMetricValue("mesmer_zio_forwarded_zio_fiber_failures", 2)
+    assertHistogramData(
+      "mesmer_zio_forwarded_zio_fiber_lifetimes",
+      data => data.getPoints.asScala.map(_.getCount) should contain only (2)
+    )
   }
 
   "OTEL gauge" should "be registered and working for a custom ZIO Gauge" in {
@@ -78,6 +90,33 @@ class ZIOMetricsTest
     runUnsafely(testProgram, runtimeMetrics = false)
 
     assertGaugeLastMetricValue("mesmer_zio_forwarded_my_custom_zio_gauge", 42)
+  }
+
+  "OTEL histogram" should "be registered and working for a custom ZIO Histogram" in {
+    val histogram = Metric.histogram("my_custom_zio_histogram", Histogram.Boundaries.linear(0, 1.0, 10))
+
+    val testProgram = for {
+      _ <- ZIO.succeed(5.0) @@ histogram
+      _ =
+        assertHistogramData(
+          "mesmer_zio_forwarded_my_custom_zio_histogram",
+          data => {
+            data.getPoints.asScala.map(_.getCount) should contain only (1)
+            data.getPoints.asScala.map(_.getSum) should contain only (5)
+          }
+        )
+      _ <- ZIO.succeed(10.0) @@ histogram
+      _ =
+        assertHistogramData(
+          "mesmer_zio_forwarded_my_custom_zio_histogram",
+          data => {
+            data.getPoints.asScala.map(_.getCount) should contain only (2)
+            data.getPoints.asScala.map(_.getSum) should contain only (15)
+          }
+        )
+    } yield ()
+
+    runUnsafely(testProgram, runtimeMetrics = false)
   }
 
   private def runUnsafely[E <: Throwable, A](
@@ -109,4 +148,9 @@ class ZIOMetricsTest
   private def getCounterAttributes(data: MetricData): Option[Attributes] =
     data.getDoubleSumData.getPoints.asScala.map(_.getAttributes).toList.headOption
 
+  private def assertHistogramData(metricName: String, block: HistogramData => Unit): Unit =
+    assertMetric(metricName)(data => block(getHistogramValue(data)))
+
+  private def getHistogramValue(data: MetricData): HistogramData =
+    data.getHistogramData
 }
