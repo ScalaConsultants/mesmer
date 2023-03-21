@@ -1,23 +1,12 @@
 package io.scalac.mesmer.otelextension.instrumentations.akka.stream
 
 import akka.actor.ActorRef
-import akka.actor.typed.ActorSystem
-import akka.actor.typed.Behavior
-import akka.actor.typed.Extension
-import akka.actor.typed.ExtensionId
+import akka.actor.typed.{ ActorSystem, Behavior, Extension, ExtensionId }
 import akka.actor.typed.receptionist.Receptionist.Register
 import akka.actor.typed.scaladsl.Behaviors
 import akka.actor.typed.scaladsl.adapter.ClassicActorSystemOps
 import io.opentelemetry.api.common.Attributes
-import org.slf4j.LoggerFactory
-
-import scala.concurrent.duration.DurationInt
-import scala.concurrent.duration.FiniteDuration
-import scala.util.Failure
-import scala.util.Success
-
-import io.scalac.mesmer.core.model.Node
-import io.scalac.mesmer.core.model.StreamInfo
+import io.scalac.mesmer.core.model.{ Node, StreamInfo }
 import io.scalac.mesmer.core.model.Tag._
 import io.scalac.mesmer.core.model.stream._
 import io.scalac.mesmer.core.module.AkkaStreamModule
@@ -27,6 +16,10 @@ import io.scalac.mesmer.core.util.TypedActorSystemOps.{ ActorSystemOps => TypedA
 import io.scalac.mesmer.otelextension.instrumentations.akka.stream.AkkaStreamMonitorExtension.StreamStatsReceived
 import io.scalac.mesmer.otelextension.instrumentations.akka.stream.StreamEvent._
 import io.scalac.mesmer.otelextension.instrumentations.akka.stream.StreamService.streamService
+import org.slf4j.LoggerFactory
+
+import scala.concurrent.duration.{ DurationInt, FiniteDuration }
+import scala.util.{ Failure, Success }
 
 final class AkkaStreamMonitorExtension(
   actorSystem: ActorSystem[_],
@@ -40,6 +33,8 @@ final class AkkaStreamMonitorExtension(
   private val interval: FiniteDuration = AkkaStreamConfig.metricSnapshotRefreshInterval(actorSystem.classicSystem)
 
   def start(): Behavior[StreamStatsReceived] = Behaviors.setup[StreamStatsReceived] { ctx =>
+    println("STARTING STREAMING EXTENSION AGENT")
+
     actorSystem.receptionist ! Register(
       streamService.serviceKey,
       ctx.messageAdapter[StreamEvent](StreamStatsReceived.apply)
@@ -59,6 +54,8 @@ final class AkkaStreamMonitorExtension(
   }
 
   private def collectStreamMetrics(): Unit = {
+    println(s"Collecting Streaming metrics .... System name: ${actorSystem.name}")
+
     val currentSnapshot = streamSnapshotService.getSnapshot()
 
     val currentlyRunningStreams: Map[String, Map[ActorRef, StreamInfo]] =

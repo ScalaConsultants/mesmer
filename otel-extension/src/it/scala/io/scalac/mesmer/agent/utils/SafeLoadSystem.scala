@@ -5,13 +5,14 @@ import akka.actor.testkit.typed.scaladsl.TestProbe
 import akka.actor.typed.ActorSystem
 import akka.actor.typed.scaladsl.adapter._
 import akka.util.Timeout
-import akka.{ actor => classic }
+import akka.{actor => classic}
 import com.typesafe.config.Config
 import com.typesafe.config.ConfigFactory
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.Suite
 
 import scala.concurrent.duration._
+import scala.util.Random
 
 trait SafeLoadSystem extends BeforeAndAfterAll {
   this: Suite =>
@@ -28,7 +29,9 @@ trait SafeLoadSystem extends BeforeAndAfterAll {
 
   override protected def beforeAll(): Unit = {
     super.beforeAll()
-    system = classic.ActorSystem("test-system", config).toTyped // ensure adapter is in use
+
+    println("CREATING SYSTEM")
+    system = classic.ActorSystem(s"test-system-${Random.nextInt()}", config).toTyped // ensure adapter is in use
   }
 
   override protected def afterAll(): Unit = {

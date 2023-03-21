@@ -28,8 +28,6 @@ public class MesmerAkkaHelpers {
         "io.scalac.mesmer.core.actor.ConfiguredAttributeFactory$$anonfun$1",
         "io.scalac.mesmer.core.event.AbstractEvent",
         "io.scalac.mesmer.core.event.AbstractService",
-        "io.scalac.mesmer.core.event.ActorEvent$TagsSet",
-        "io.scalac.mesmer.core.event.ActorEvent",
         "io.scalac.mesmer.core.event.EventBus$",
         "io.scalac.mesmer.core.event.EventBus",
         "io.scalac.mesmer.core.event.PersistenceEvent",

@@ -9,7 +9,6 @@ import io.scalac.mesmer.agent.Agent
 import io.scalac.mesmer.agent.AgentInstrumentation
 import io.scalac.mesmer.agent.util.i13n._
 import io.scalac.mesmer.core.module.AkkaStreamModule
-import io.scalac.mesmer.otelextension.instrumentations.akka.stream.impl.PhasedFusingActorMaterializerAdvice
 
 object AkkaStreamAgent
     extends InstrumentModuleFactory(AkkaStreamModule)
@@ -48,15 +47,6 @@ object AkkaStreamAgent
   lazy val operators: Agent = sharedImplementations
 
   lazy val demand: Agent = sharedImplementations
-
-  /**
-   * actorOf methods is called when island decide to materialize itself
-   */
-  private val phasedFusingActorMaterializerAgentInstrumentation =
-    AgentInstrumentation.deferred(
-      instrument(hierarchy("akka.stream.impl.ExtendedActorMaterializer".fqcn))
-        .visit(PhasedFusingActorMaterializerAdvice, method("actorOf"))
-    )
 
   private val connectionConstructorAdvice = {
 
@@ -107,6 +97,6 @@ object AkkaStreamAgent
     )
 
   private val sharedImplementations =
-    connectionConstructorAdvice ++ connectionPushAgent ++ connectionPullAgent ++ graphStageIslandInstrumentation ++ phasedFusingActorMaterializerAgentInstrumentation
+    connectionConstructorAdvice ++ connectionPushAgent ++ connectionPullAgent ++ graphStageIslandInstrumentation
 
 }

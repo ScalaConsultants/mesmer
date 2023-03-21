@@ -13,11 +13,11 @@ object AkkaStreamConfig {
     system.settings.config
       .tryValue("io.scalac.mesmer.akka.streams.refresh-interval")(_.getDuration)
       .map(_.toScala)
-      .getOrElse(10.seconds)
+      .getOrElse(4.seconds)
 
   def metricSnapshotCollectInterval(system: ActorSystem): FiniteDuration =
     system.settings.config
       .tryValue("io.scalac.mesmer.akka.streams.collect-interval")(_.getDuration)
       .map(_.toScala)
-      .getOrElse(5.seconds)
+      .getOrElse(2.seconds)
 }

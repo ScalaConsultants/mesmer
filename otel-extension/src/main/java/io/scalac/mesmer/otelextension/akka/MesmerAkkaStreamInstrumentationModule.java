@@ -1,7 +1,5 @@
 package io.scalac.mesmer.otelextension.akka;
 
-import static io.scalac.mesmer.utils.Combine.combine;
-
 import com.google.auto.service.AutoService;
 import io.opentelemetry.javaagent.extension.instrumentation.InstrumentationModule;
 import io.opentelemetry.javaagent.extension.instrumentation.TypeInstrumentation;
@@ -9,10 +7,13 @@ import io.opentelemetry.javaagent.tooling.muzzle.InstrumentationModuleMuzzle;
 import io.opentelemetry.javaagent.tooling.muzzle.VirtualFieldMappingsBuilder;
 import io.opentelemetry.javaagent.tooling.muzzle.references.ClassRef;
 import io.scalac.mesmer.otelextension.instrumentations.akka.stream.AkkaStreamAgents;
+
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+
+import static io.scalac.mesmer.utils.Combine.combine;
 
 @AutoService(InstrumentationModule.class)
 public class MesmerAkkaStreamInstrumentationModule extends InstrumentationModule
@@ -59,6 +60,9 @@ public class MesmerAkkaStreamInstrumentationModule extends InstrumentationModule
             "akka.ConnectionOtelOps",
             "akka.ConnectionOtelOps$",
             "io.scalac.mesmer.otelextension.instrumentations.akka.stream.StreamService$",
+            "io.scalac.mesmer.otelextension.instrumentations.akka.stream.ActorEvent",
+            "io.scalac.mesmer.otelextension.instrumentations.akka.stream.ActorEvent$",
+            "io.scalac.mesmer.otelextension.instrumentations.akka.stream.ActorEvent$TagsSet",
             "io.scalac.mesmer.otelextension.instrumentations.akka.stream.StreamEvent",
             "io.scalac.mesmer.otelextension.instrumentations.akka.stream.StreamEvent$",
             "io.scalac.mesmer.otelextension.instrumentations.akka.stream.StreamEvent$StreamInterpreterStats",
@@ -70,7 +74,6 @@ public class MesmerAkkaStreamInstrumentationModule extends InstrumentationModule
             "io.scalac.mesmer.otelextension.instrumentations.akka.stream.impl.GraphStageIslandOps",
             "io.scalac.mesmer.otelextension.instrumentations.akka.stream.impl.GraphStageIslandOps$",
             "io.scalac.mesmer.otelextension.instrumentations.akka.stream.impl.GraphStageIslandOps$TerminalSink$",
-            "io.scalac.mesmer.otelextension.instrumentations.akka.stream.impl.PhasedFusingActorMaterializerAdvice$",
             "io.scalac.mesmer.otelextension.instrumentations.akka.stream.AkkaStreamMonitorExtension",
             "io.scalac.mesmer.otelextension.instrumentations.akka.stream.AkkaStreamMonitorExtension$$anon$1",
             "io.scalac.mesmer.otelextension.instrumentations.akka.stream.AkkaStreamMonitorExtensionId$",

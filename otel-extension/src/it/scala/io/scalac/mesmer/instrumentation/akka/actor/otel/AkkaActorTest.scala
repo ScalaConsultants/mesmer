@@ -11,7 +11,6 @@ import io.opentelemetry.sdk.metrics.data.MetricData
 import io.scalac.mesmer.agent.utils.{ OtelAgentTest, SafeLoadSystem }
 import io.scalac.mesmer.core.actor.{ ActorCellDecorator, ActorCellMetrics }
 import io.scalac.mesmer.core.akka.model.AttributeNames
-import io.scalac.mesmer.core.event.ActorEvent
 import io.scalac.mesmer.core.util.ReceptionistOps
 import org.scalatest.concurrent.Eventually
 import org.scalatest.flatspec.AnyFlatSpec
@@ -460,8 +459,6 @@ final class AkkaActorTest
 }
 
 object AkkaActorAgentTest {
-
-  type Fixture = TestProbe[ActorEvent]
 
   sealed trait Command
 
