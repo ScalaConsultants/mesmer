@@ -3,7 +3,6 @@ package io.scalac.mesmer.otelextension.instrumentations.zio
 import io.opentelemetry.api.GlobalOpenTelemetry
 import io.opentelemetry.api.common.AttributeKey
 import io.opentelemetry.api.common.Attributes
-import io.opentelemetry.api.metrics
 import io.opentelemetry.api.metrics.Meter
 import zio.metrics.MetricKey
 import zio.metrics.MetricKeyType

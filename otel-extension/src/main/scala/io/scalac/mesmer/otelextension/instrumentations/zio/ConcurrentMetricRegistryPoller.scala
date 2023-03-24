@@ -3,7 +3,6 @@ package io.scalac.mesmer.otelextension.instrumentations.zio
 import java.util.Timer
 import java.util.TimerTask
 
-import io.scalac.mesmer.otelextension.instrumentations.zio.ZIOMetrics._
 import zio.metrics.MetricKey
 import zio.metrics.MetricKeyType
 

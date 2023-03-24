@@ -5,7 +5,6 @@ import io.scalac.mesmer.otelextension.instrumentations.zio.ConcurrentMetricRegis
 import io.scalac.mesmer.otelextension.instrumentations.zio.ConcurrentMetricRegistryPoller
 import io.scalac.mesmer.otelextension.instrumentations.zio.ZIOMetrics
 import net.bytebuddy.asm.Advice
-import zio.Executor
 
 object ConcurrentMetricRegistryAdvice {
   @Advice.OnMethodExit

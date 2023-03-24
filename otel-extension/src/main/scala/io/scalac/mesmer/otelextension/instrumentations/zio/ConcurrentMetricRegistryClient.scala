@@ -127,14 +127,4 @@ object ConcurrentMetricRegistryClient {
 
     def updateCounter(key: MetricKey[MetricKeyType.Counter], value: Double)(implicit unsafe: Unsafe): Unit = ()
   }
-
-  def apply(): ConcurrentMetricRegistryClient =
-    new ConcurrentMetricRegistryClient(
-      {
-        val packageObject = Class.forName("zio.internal.metrics.package$")
-        val method        = packageObject.getMethod("metricRegistry")
-        val module        = packageObject.getField("MODULE$").get(null)
-        method.invoke(module)
-      }
-    )
 }
