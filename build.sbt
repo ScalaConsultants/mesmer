@@ -32,8 +32,8 @@ inThisBuild(
   )
 )
 
-addCommandAlias("fmt", "scalafmtAll; scalafixAll")
-addCommandAlias("check", "scalafixAll --check; scalafmtCheckAll")
+addCommandAlias("fmt", "scalafmtSbt; scalafmtAll; scalafixAll")
+addCommandAlias("check", "scalafixAll --check; scalafmtCheckAll; scalafmtSbtCheck")
 addCommandAlias("testAll", "test; IntegrationTest/test")
 
 val projectRootDir = all.base.absolutePath
