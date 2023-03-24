@@ -1,10 +1,11 @@
 package io.scalac.mesmer.otelextension.instrumentations.zio.advice
 
+import net.bytebuddy.asm.Advice
+
 import io.scalac.mesmer.otelextension.instrumentations.zio.ConcurrentMetricRegistryClient
 import io.scalac.mesmer.otelextension.instrumentations.zio.ConcurrentMetricRegistryListener
 import io.scalac.mesmer.otelextension.instrumentations.zio.ConcurrentMetricRegistryPoller
 import io.scalac.mesmer.otelextension.instrumentations.zio.ZIOMetrics
-import net.bytebuddy.asm.Advice
 
 object ConcurrentMetricRegistryAdvice {
   @Advice.OnMethodExit

@@ -2,12 +2,13 @@ package io.scalac.mesmer.otelextension.instrumentations.zio
 
 import java.util.concurrent.ConcurrentHashMap
 
-import io.scalac.mesmer.otelextension.instrumentations.zio.ZIOMetrics.DoubleHistogram
 import zio.Unsafe
 import zio.metrics.MetricKey
 import zio.metrics.MetricKeyType
 
 import scala.jdk.CollectionConverters._
+
+import io.scalac.mesmer.otelextension.instrumentations.zio.ZIOMetrics.DoubleHistogram
 
 class ConcurrentMetricRegistryListener(client: ConcurrentMetricRegistryClient, zioMetrics: ZIOMetrics) {
 

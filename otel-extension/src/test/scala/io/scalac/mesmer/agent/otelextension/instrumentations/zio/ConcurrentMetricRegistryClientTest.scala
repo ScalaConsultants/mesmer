@@ -2,13 +2,14 @@ package io.scalac.mesmer.agent.otelextension.instrumentations.zio
 
 import java.util.UUID
 
-import io.scalac.mesmer.otelextension.instrumentations.zio.ConcurrentMetricRegistryClient
-import io.scalac.mesmer.otelextension.instrumentations.zio.ConcurrentMetricRegistryClient.MetricHook
-import io.scalac.mesmer.otelextension.instrumentations.zio.ConcurrentMetricRegistryClient.MetricListener
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import zio.metrics.MetricKey
 import zio.metrics.MetricState
+
+import io.scalac.mesmer.otelextension.instrumentations.zio.ConcurrentMetricRegistryClient
+import io.scalac.mesmer.otelextension.instrumentations.zio.ConcurrentMetricRegistryClient.MetricHook
+import io.scalac.mesmer.otelextension.instrumentations.zio.ConcurrentMetricRegistryClient.MetricListener
 
 class ConcurrentMetricRegistryClientTest extends AnyWordSpec with Matchers {
 
