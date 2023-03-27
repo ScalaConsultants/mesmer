@@ -170,7 +170,6 @@ lazy val exampleAkka = (project in file("examples/akka"))
         "com.lightbend.akka.management" %% "akka-management-cluster-bootstrap" % AkkaManagementVersion
       )
     },
-    mainClass := Some("example.Boot"),
     run / javaOptions ++= Seq(
       s"-Dotel.service.name=mesmer-example",
       s"-Dotel.metric.export.interval=5000"
@@ -184,7 +183,6 @@ lazy val exampleAkkaStream = (project in file("examples/akka-stream"))
   .settings(
     name := "mesmer-akka-stream-example",
     libraryDependencies ++= akka,
-    mainClass := Some("example.SimpleStreamExample"),
     run / javaOptions ++= Seq(
       s"-Dotel.service.name=mesmer-stream-example",
       s"-Dotel.metric.export.interval=5000"
@@ -198,7 +196,6 @@ lazy val exampleZio = (project in file("examples/zio"))
   .settings(
     name := "mesmer-zio-example",
     libraryDependencies ++= zio,
-    mainClass := Some("example.SimpleZioExample"),
     run / javaOptions ++= Seq(
       s"-Dotel.service.name=mesmer-zio-example",
       s"-Dotel.metric.export.interval=1000"
