@@ -32,8 +32,8 @@ inThisBuild(
   )
 )
 
-addCommandAlias("fmt", "scalafmtAll; scalafixAll")
-addCommandAlias("check", "scalafixAll --check; scalafmtCheckAll")
+addCommandAlias("fmt", "scalafmtSbt; scalafmtAll; scalafixAll")
+addCommandAlias("check", "scalafixAll --check; scalafmtCheckAll; scalafmtSbtCheck")
 addCommandAlias("testAll", "test; IntegrationTest/test")
 
 val projectRootDir = all.base.absolutePath
@@ -111,6 +111,7 @@ lazy val otelExtension = (project in file("otel-extension"))
       "-Dotel.metric.export.interval=50", // 100 ms so that the "eventually" assertions could catch up
       "-Dotel.javaagent.testing.fail-on-context-leak=true",
       "-Dotel.javaagent.testing.transform-safe-logging.enabled=true",
+      "-Dotel.javaagent.testing.exporter.temporality=CUMULATIVE",
       "-Dmesmer.akka.persistence.templated=false",
 
       // suppress repeated logging of "No metric data to export - skipping export."
@@ -138,7 +139,7 @@ def exampleCommonSettings = Seq(
   ),
   libraryDependencies ++= {
     logback ++ Seq(
-      "io.grpc"             % "grpc-netty-shaded" % "1.53.0",
+      "io.grpc"             % "grpc-netty-shaded" % "1.54.0",
       "org.wvlet.airframe" %% "airframe-log"      % AirframeVersion
     )
   },
@@ -169,7 +170,6 @@ lazy val exampleAkka = (project in file("examples/akka"))
         "com.lightbend.akka.management" %% "akka-management-cluster-bootstrap" % AkkaManagementVersion
       )
     },
-    mainClass := Some("example.Boot"),
     run / javaOptions ++= Seq(
       s"-Dotel.service.name=mesmer-example",
       s"-Dotel.metric.export.interval=5000"
@@ -183,7 +183,6 @@ lazy val exampleAkkaStream = (project in file("examples/akka-stream"))
   .settings(
     name := "mesmer-akka-stream-example",
     libraryDependencies ++= akka,
-    mainClass := Some("example.SimpleStreamExample"),
     run / javaOptions ++= Seq(
       s"-Dotel.service.name=mesmer-stream-example",
       s"-Dotel.metric.export.interval=5000"
@@ -197,7 +196,6 @@ lazy val exampleZio = (project in file("examples/zio"))
   .settings(
     name := "mesmer-zio-example",
     libraryDependencies ++= zio,
-    mainClass := Some("example.SimpleZioExample"),
     run / javaOptions ++= Seq(
       s"-Dotel.service.name=mesmer-zio-example",
       s"-Dotel.metric.export.interval=1000"
