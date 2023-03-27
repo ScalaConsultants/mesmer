@@ -139,7 +139,7 @@ def exampleCommonSettings = Seq(
   ),
   libraryDependencies ++= {
     logback ++ Seq(
-      "io.grpc"             % "grpc-netty-shaded" % "1.53.0",
+      "io.grpc"             % "grpc-netty-shaded" % "1.54.0",
       "org.wvlet.airframe" %% "airframe-log"      % AirframeVersion
     )
   },
