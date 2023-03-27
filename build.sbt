@@ -64,7 +64,7 @@ lazy val testkit = (project in file("testkit"))
     name           := "mesmer-testkit",
     publish / skip := true,
     libraryDependencies ++= {
-      scalatest ++ akkaTestkit
+      scalatest ++ akkaTestkit ++ testcontainersScala ++ circe
     }
   )
 
@@ -169,7 +169,7 @@ lazy val exampleAkka = (project in file("examples/akka"))
       s"-Dotel.metric.export.interval=5000"
     )
   )
-  .dependsOn(core)
+  .dependsOn(core, testkit % "test")
 
 lazy val exampleAkkaStream = (project in file("examples/akka-stream"))
   .disablePlugins(sbtassembly.AssemblyPlugin)
@@ -182,7 +182,7 @@ lazy val exampleAkkaStream = (project in file("examples/akka-stream"))
       s"-Dotel.metric.export.interval=5000"
     )
   )
-  .dependsOn(core)
+  .dependsOn(core, testkit % "test")
 
 lazy val exampleZio = (project in file("examples/zio"))
   .disablePlugins(sbtassembly.AssemblyPlugin)
@@ -195,7 +195,7 @@ lazy val exampleZio = (project in file("examples/zio"))
       s"-Dotel.metric.export.interval=1000"
     )
   )
-  .dependsOn(core)
+  .dependsOn(core, testkit % "test")
 
 lazy val docs = project
   .in(file("mesmer-docs")) // important: it must not be docs/
@@ -223,14 +223,3 @@ lazy val assemblyMergeStrategySettings = assembly / assemblyMergeStrategy := {
     MergeStrategy.last
   case _ => MergeStrategy.first
 }
-
-lazy val e2eTest = project
-  .in(file("e2e-test"))
-  .disablePlugins(sbtassembly.AssemblyPlugin)
-  .settings(
-    name           := "mesmer-e2e-test",
-    publish / skip := true,
-    libraryDependencies ++= {
-      scalatest.map(_ % "test") ++ testcontainersScala.map(_ % "test") ++ circe.map(_ % "test")
-    }
-  )

@@ -1,6 +1,7 @@
-package io.scalac.mesmer.e2e
+package example
 
 import io.circe.Json
+import io.scalac.mesmer.e2e.ExampleTestHarness
 import org.scalatest.EitherValues
 import org.scalatest.concurrent.Eventually
 import org.scalatest.concurrent.IntegrationPatience
@@ -15,10 +16,8 @@ class ExampleZioTest
     with IntegrationPatience
     with EitherValues {
 
-  private def withZioExample = withExample("exampleZio/run")(_)
-
   "ZIO example" should {
-    "produce both runtime and executor metrics" in withZioExample { container =>
+    "produce both runtime and executor metrics" in withExample("exampleZio/run") { container =>
       eventually {
         prometheusApiRequest(container)(
           "promexample_mesmer_zio_forwarded_zio_fiber_started",

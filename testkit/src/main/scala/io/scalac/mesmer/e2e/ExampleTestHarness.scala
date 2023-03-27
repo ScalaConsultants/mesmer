@@ -4,8 +4,8 @@ import java.io.File
 import java.net.URI
 import java.net.http.HttpClient
 import java.net.http.HttpRequest
-import java.net.http.HttpResponse
 import java.net.http.HttpResponse.BodyHandlers
+import java.nio.file.Paths
 
 import com.dimafeng.testcontainers.DockerComposeContainer
 import com.dimafeng.testcontainers.ExposedService
@@ -24,6 +24,7 @@ import scala.util.control.NonFatal
 trait ExampleTestHarness { this: Suite =>
 
   // we do this for Windows instead of running in cmd shell to eliminate the need to deal with orphan processes once main process is destroyed
+  // TODO can throw "server already running" exceptions, needs a solution
   private val sbtExecutable = if (sys.props("os.name").toLowerCase.contains("win")) {
     Process("cmd" :: "/c" :: "where" :: "sbt" :: Nil).lazyLines.headOption
       .getOrElse(sys.error("sbt executable not found"))
@@ -31,15 +32,15 @@ trait ExampleTestHarness { this: Suite =>
     "sbt"
   }
 
+  // TODO needs to work both in sbt shell and IntelliJ run/debug configurations
+  private val projectRoot = new File("./")
+
   private val containerDef = DockerComposeContainer.Def(
-    new File("../examples/docker/docker-compose.yaml"),
-    tailChildContainers = true,
+    Paths.get(projectRoot.toString, "examples/docker/docker-compose.yaml").toFile,
     exposedServices = Seq(
       ExposedService("prometheus", 9090)
     )
   )
-
-  private val projectRoot = new File("../")
 
   protected def withExample(sbtCommand: String, startTestString: String = "Example started")(
     block: DockerComposeContainer => Unit
@@ -84,9 +85,10 @@ trait ExampleTestHarness { this: Suite =>
     query: String,
     block: Json => Unit
   ): Unit = {
+    val urlString = s"http://localhost:${container.getServicePort("prometheus", 9090)}/api/v1/query?query=$query"
     val request = HttpRequest
       .newBuilder()
-      .uri(URI.create(s"http://localhost:${container.getServicePort("prometheus", 9090)}/api/v1/query?query=${query}"))
+      .uri(URI.create(urlString))
       .build()
     val client = HttpClient
       .newBuilder()
@@ -94,7 +96,7 @@ trait ExampleTestHarness { this: Suite =>
     val response = client.send(request, BodyHandlers.ofString())
     parse(response.body())
       .fold(
-        ex => sys.error(s"Failed parsing response [${response.body()}] to JSON, error $ex"),
+        ex => sys.error(s"failed parsing response [${response.body()}] to JSON, error $ex"),
         json => block(json)
       )
   }
