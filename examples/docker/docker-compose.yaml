@@ -1,8 +1,7 @@
 version: '3.3'
-
+name: mesmer
 services:
   postgres:
-    container_name: mesmer_example_postgres
     image: postgres:9.6
     ports:
     - 5432:5432
@@ -14,7 +13,6 @@ services:
     - ./schema.sql:/docker-entrypoint-initdb.d/schema.sql
 
   otel-collector:
-    container_name: mesmer_example_otel_collector
     image: otel/opentelemetry-collector-contrib-dev:latest
     command: [--config=/etc/otel-collector-config.yaml, '']
     volumes:
@@ -28,7 +26,6 @@ services:
     - 4317:4317     # otlp receiver
 
   prometheus:
-    container_name: mesmer_example_prometheus
     image: prom/prometheus:latest
     volumes:
     - ./prometheus.yaml:/etc/prometheus/prometheus.yml
@@ -36,7 +33,6 @@ services:
     - 9090:9090
 
   grafana:
-    container_name: mesmer_example_grafana
     image: grafana/grafana:latest
     volumes:
     - ./prometheus-datasource.yaml:/etc/grafana/provisioning/datasources/prometheus-datasource.yaml

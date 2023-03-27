@@ -23,7 +23,7 @@ object ZioProgram {
     }
 
     val tasks = (0 until parallelism).map(_ => task).toList
-    ZIO.raceAll(tasks.head, tasks.tail)
+    Console.printLine("Example started").orDie.flatMap(_ => ZIO.raceAll(tasks.head, tasks.tail))
   }
 
 }

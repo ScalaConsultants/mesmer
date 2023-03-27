@@ -28,6 +28,8 @@ object SimpleStreamExample extends App {
   implicit val system: ActorSystem[Nothing] =
     ActorSystem[Nothing](Behaviors.empty, "stream-simple", config)
 
+  logger.info("Example started")
+
   val ks: UniqueKillSwitch = Source
     .repeat(())
     .throttle(100, 1.second)

@@ -153,10 +153,7 @@ lazy val exampleAkka = (project in file("examples/akka"))
       akka ++
       scalatest.map(_ % "test") ++
       akkaTestkit.map(_ % "test") ++
-      akkaPersistance ++ Seq(
-        "io.circe"                      %% "circe-core"                        % CirceVersion,
-        "io.circe"                      %% "circe-generic"                     % CirceVersion,
-        "io.circe"                      %% "circe-parser"                      % CirceVersion,
+      akkaPersistance ++ circe ++ Seq(
         "de.heikoseeberger"             %% "akka-http-circe"                   % "1.39.2",
         "org.postgresql"                 % "postgresql"                        % PostgresVersion,
         "com.typesafe.slick"            %% "slick"                             % SlickVersion,
@@ -226,3 +223,14 @@ lazy val assemblyMergeStrategySettings = assembly / assemblyMergeStrategy := {
     MergeStrategy.last
   case _ => MergeStrategy.first
 }
+
+lazy val e2eTest = project
+  .in(file("e2e-test"))
+  .disablePlugins(sbtassembly.AssemblyPlugin)
+  .settings(
+    name           := "mesmer-e2e-test",
+    publish / skip := true,
+    libraryDependencies ++= {
+      scalatest.map(_ % "test") ++ testcontainersScala.map(_ % "test") ++ circe.map(_ % "test")
+    }
+  )

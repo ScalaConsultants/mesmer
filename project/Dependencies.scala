@@ -17,6 +17,7 @@ object Dependencies {
   val OpentelemetryAlphaMinor0Version = "1.24.0-alpha"
   val PostgresVersion                 = "42.6.0"
   val ScalatestVersion                = "3.2.15"
+  val TestcontainersScalaVersion      = "0.40.14"
   val SlickVersion                    = "3.4.1"
 
   val akka = Seq(
@@ -78,4 +79,12 @@ object Dependencies {
   )
 
   val scalatest = Seq("org.scalatest" %% "scalatest" % ScalatestVersion)
+
+  val testcontainersScala = Seq("com.dimafeng" %% "testcontainers-scala" % TestcontainersScalaVersion)
+
+  val circe = Seq(
+    "io.circe" %% "circe-core"    % CirceVersion,
+    "io.circe" %% "circe-generic" % CirceVersion,
+    "io.circe" %% "circe-parser"  % CirceVersion
+  )
 }
