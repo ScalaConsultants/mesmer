@@ -15,7 +15,9 @@ class OtelAgentHelpersTest extends AnyFlatSpec with Matchers {
       System.nanoTime(),
       Attributes.empty(),
       0L,
+      false,
       0L,
+      false,
       0L,
       util.Arrays.asList(50, 100, 200, 500),
       util.Arrays.asList(3, 5, 7, 13, 21)
@@ -32,7 +34,9 @@ class OtelAgentHelpersTest extends AnyFlatSpec with Matchers {
       System.nanoTime(),
       Attributes.empty(),
       0L,
+      false,
       0L,
+      false,
       0L,
       util.Arrays.asList(50, 100, 200, 500),
       util.Arrays.asList(3, 5, 7, 13, 21)
@@ -49,7 +53,9 @@ class OtelAgentHelpersTest extends AnyFlatSpec with Matchers {
       System.nanoTime(),
       Attributes.empty(),
       0L,
+      false,
       0L,
+      false,
       0L,
       util.Arrays.asList(5, 10, 20, 50, 75, 100, 150, 200, 500, 1000),
       util.Arrays.asList(0, 1, 1, 2, 3, 5, 8, 13, 21, 34, 55)

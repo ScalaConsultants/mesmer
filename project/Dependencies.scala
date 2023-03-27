@@ -2,7 +2,7 @@ import sbt._
 
 object Dependencies {
 
-  val AirframeVersion       = "23.2.5"
+  val AirframeVersion       = "23.3.4"
   val AkkaHttpVersion       = "10.4.0"
   val AkkaManagementVersion = "1.2.0"
   val AkkaVersion           = "2.7.0"
@@ -11,10 +11,10 @@ object Dependencies {
 
   val GoogleAutoServiceVersion        = "1.0.1"
   val LogbackVersion                  = "1.4.6"
-  val OpentelemetryVersion            = "1.23.1"
-  val OpentelemetryMinor0Version      = "1.23.0"
-  val OpentelemetryAlphaVersion       = "1.23.1-alpha"
-  val OpentelemetryAlphaMinor0Version = "1.23.0-alpha"
+  val OpentelemetryVersion            = "1.24.0"
+  val OpentelemetryMinor0Version      = "1.24.0"
+  val OpentelemetryAlphaVersion       = "1.24.0-alpha"
+  val OpentelemetryAlphaMinor0Version = "1.24.0-alpha"
   val PostgresVersion                 = "42.5.4"
   val ScalatestVersion                = "3.2.15"
   val SlickVersion                    = "3.4.1"
