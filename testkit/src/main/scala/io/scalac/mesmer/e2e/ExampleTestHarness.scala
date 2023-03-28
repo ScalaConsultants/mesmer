@@ -25,23 +25,23 @@ import scala.util.Failure
 import scala.util.Success
 import scala.util.control.NonFatal
 
+import scala.jdk.CollectionConverters._
+
 trait ExampleTestHarness { this: Suite =>
 
-  // we do this for Windows instead of running in cmd shell to eliminate the need to deal with orphan processes once main process is destroyed
   private val sbtExecutable = if (sys.props("os.name").toLowerCase.contains("win")) {
-    ScalaProcess("cmd" :: "/c" :: "where" :: "sbt" :: Nil).lazyLines.headOption
-      .getOrElse(sys.error("sbt executable not found"))
+    "cmd" :: "/c" :: "sbt" :: Nil
   } else {
-    "sbt"
+    "sbt" :: Nil
   }
 
   private val (projectRoot, dockerComposeFile) = {
     // sbt shell needs `./`, IntelliJ run/debug configurations need `../../`
-    val maybeRoots = Set(new File("../../"), new File("./"))
+    val maybeProjectRoots = Set(new File("../../"), new File("./"))
     val constructDockerComposePath = (projectRoot: File) =>
       Paths.get(projectRoot.toString, "examples/docker/docker-compose.yaml").toFile
-    val projectRoot = maybeRoots
-      .find(maybeRoot => constructDockerComposePath(maybeRoot).exists())
+    val projectRoot = maybeProjectRoots
+      .find(maybeProjectRoot => constructDockerComposePath(maybeProjectRoot).exists())
       .getOrElse(sys.error("Project root not found"))
     (projectRoot, constructDockerComposePath(projectRoot))
   }
@@ -60,9 +60,12 @@ trait ExampleTestHarness { this: Suite =>
     container.start()
 
     val processHandlePromise = Promise[Unit]()
+    val sbtOptions = List(
+      "-Dsbt.server.forcestart=true" // necessary for execution from sbt shell, because multiple sbt servers will be needed
+    )
     val process =
       ScalaProcess(
-        sbtExecutable :: "-Dsbt.server.forcestart=true" :: sbtCommand :: Nil,
+        sbtExecutable ::: sbtOptions ::: sbtCommand :: Nil,
         projectRoot
       )
     val processHandle = process.run(
@@ -98,7 +101,20 @@ trait ExampleTestHarness { this: Suite =>
       }
       block(container)
     } finally {
-      processHandle.destroy()
+      // process destruction is more involved, because on Windows orphan processes are not automatically terminated
+      val method = processHandle.getClass.getDeclaredField("p")
+      method.setAccessible(true)
+      val javaProcess = method.get(processHandle).asInstanceOf[java.lang.Process]
+      val destroy = (javaProcess: java.lang.Process) => {
+        javaProcess
+          .descendants()
+          .iterator()
+          .asScala
+          .foreach(_.destroy())
+        javaProcess.destroy()
+      }
+      destroy(javaProcess)
+
       container.stop()
     }
   }
