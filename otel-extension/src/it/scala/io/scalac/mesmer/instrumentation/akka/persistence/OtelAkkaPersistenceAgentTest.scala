@@ -70,9 +70,9 @@ class OtelAkkaPersistenceAgentTest
       }
 
     assertMetrics("mesmer")(
-      "mesmer_akka_persistence_recovery_time"  -> checkRecovery,
-      "mesmer_akka_persistence_event_time"     -> checkMetricEmpty,
-      "mesmer_akka_persistence_snapshot_total" -> checkMetricEmpty
+      "mesmer_akka_persistence_recovery_time" -> checkRecovery,
+      "mesmer_akka_persistence_event_time"    -> checkMetricEmpty,
+      "mesmer_akka_persistence_snapshot"      -> checkMetricEmpty
     )
   }
 
@@ -82,9 +82,9 @@ class OtelAkkaPersistenceAgentTest
     val check: MetricData => Unit = checkCount(id)(1)
 
     assertMetrics("mesmer")(
-      "mesmer_akka_persistence_recovery_time"  -> check,
-      "mesmer_akka_persistence_event_time"     -> check,
-      "mesmer_akka_persistence_snapshot_total" -> check
+      "mesmer_akka_persistence_recovery_time" -> check,
+      "mesmer_akka_persistence_event_time"    -> check,
+      "mesmer_akka_persistence_snapshot"      -> check
     )
   }
 
@@ -95,9 +95,9 @@ class OtelAkkaPersistenceAgentTest
       def check(num: Int) = checkCount(id)(num)
 
       assertMetrics("mesmer")(
-        "mesmer_akka_persistence_recovery_time"  -> check(1),
-        "mesmer_akka_persistence_event_time"     -> check(5),
-        "mesmer_akka_persistence_snapshot_total" -> check(5)
+        "mesmer_akka_persistence_recovery_time" -> check(1),
+        "mesmer_akka_persistence_event_time"    -> check(5),
+        "mesmer_akka_persistence_snapshot"      -> check(5)
       )
   }
 

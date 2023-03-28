@@ -19,7 +19,7 @@ public class SupervisorHandleReceiveExceptionAdvice {
    * metric by instrumentation code in [[ ActorCellReceivedAdvice ]] by setting up a failed flag to
    * true - some [[ akka.actor.typed.internal.AbstractSupervisor ]] might fall back to classic
    * failure handle and some will recover from it and we should increase
-   * mesmer_akka_failed_messages_total metric in both cases.
+   * mesmer_akka_failed_messages metric in both cases.
    */
   @Advice.OnMethodExit(onThrowable = Throwable.class)
   public static void exit(@Advice.Argument(0) TypedActorContext<?> typedContext) {

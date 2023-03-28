@@ -115,7 +115,7 @@ final class AkkaActorTest
   "AkkaActorAgent" should "record actors created total count" in {
     system.systemActorOf(Behaviors.ignore, createUniqueId)
 
-    assertMetric("mesmer_akka_actor_actors_created_total") { data =>
+    assertMetric("mesmer_akka_actor_actors_created") { data =>
       val totalCount = data.getLongSumData.getPoints.asScala.map {
         _.getValue
       }.sum
@@ -126,7 +126,7 @@ final class AkkaActorTest
   "AkkaActorAgent" should "record actors terminated total count" in {
     system.systemActorOf(Behaviors.stopped, createUniqueId)
 
-    assertMetric("mesmer_akka_actor_actors_terminated_total") { data =>
+    assertMetric("mesmer_akka_actor_actors_terminated") { data =>
       val totalCount = data.getLongSumData.getPoints.asScala.map {
         _.getValue
       }.sum
@@ -226,7 +226,7 @@ final class AkkaActorTest
     def sendMessage(count: Int): Unit = List.fill(count)(Message).foreach(m => stashActor ! m)
 
     def expectStashSize(size: Int): Unit =
-      assertMetric("mesmer_akka_actor_stashed_messages_total") { data: MetricData =>
+      assertMetric("mesmer_akka_actor_stashed_messages") { data: MetricData =>
         val points = data.getLongSumData.getPoints.asScala
           .filter(point =>
             Option(point.getAttributes.get(AttributeKey.stringKey(AttributeNames.ActorPath)))
@@ -253,7 +253,7 @@ final class AkkaActorTest
       List.fill(count)(Message).foreach(stashActor.tell)
 
     def expectStashSize(size: Int): Unit =
-      assertMetric("mesmer_akka_actor_stashed_messages_total") { data =>
+      assertMetric("mesmer_akka_actor_stashed_messages") { data =>
         val points = data.getLongSumData.getPoints.asScala
           .filter(point =>
             Option(point.getAttributes.get(AttributeKey.stringKey(AttributeNames.ActorPath)))
@@ -275,7 +275,7 @@ final class AkkaActorTest
   it should "record the amount of failed messages without supervision" in {
 
     def expect(assert: Vector[Long] => Any)(context: classic.ActorContext): Any =
-      assertMetric("mesmer_akka_actor_failed_messages_total") { data =>
+      assertMetric("mesmer_akka_actor_failed_messages") { data =>
         // if no data is found it's OK too
         if (!data.isEmpty) {
           val points = data.getLongSumData.getPoints.asScala
@@ -307,7 +307,7 @@ final class AkkaActorTest
   it should "record the amount of failed messages with supervision" in {
 
     def expect(assert: Vector[Long] => Any)(context: classic.ActorContext): Any =
-      assertMetric("mesmer_akka_actor_failed_messages_total") { data =>
+      assertMetric("mesmer_akka_actor_failed_messages") { data =>
         // if no data is found it's OK too
         if (!data.isEmpty) {
           val points = data.getLongSumData.getPoints.asScala
@@ -346,7 +346,7 @@ final class AkkaActorTest
     def expectEmpty(
       context: classic.ActorContext
     ): Any =
-      assertMetric("mesmer_akka_actor_unhandled_messages_total") { data =>
+      assertMetric("mesmer_akka_actor_unhandled_messages") { data =>
         if (!data.isEmpty) {
           val points = data.getLongSumData.getPoints.asScala
             .filter(point =>
@@ -362,7 +362,7 @@ final class AkkaActorTest
     def expectNum(num: Int)(
       context: classic.ActorContext
     ): Any =
-      assertMetric("mesmer_akka_actor_unhandled_messages_total") { data =>
+      assertMetric("mesmer_akka_actor_unhandled_messages") { data =>
         val points = data.getLongSumData.getPoints.asScala
           .filter(point =>
             Option(point.getAttributes.get(AttributeKey.stringKey(AttributeNames.ActorPath)))
@@ -404,7 +404,7 @@ final class AkkaActorTest
     val receiver      = classicSystem.actorOf(classic.Props(new Receiver), createUniqueId)
     val sender        = system.classicSystem.actorOf(classic.Props(new Sender(receiver)), createUniqueId)
 
-    def expectedSendMessages(num: Int): Any = assertMetric("mesmer_akka_actor_sent_messages_total") { data =>
+    def expectedSendMessages(num: Int): Any = assertMetric("mesmer_akka_actor_sent_messages") { data =>
       val points = data.getLongSumData.getPoints.asScala
         .filter(point =>
           Option(point.getAttributes.get(AttributeKey.stringKey(AttributeNames.ActorPath)))
@@ -425,15 +425,14 @@ final class AkkaActorTest
 
   it should "record the amount of sent messages properly in typed akka" in {
 
-    def expectedEmpty(context: classic.ActorContext): Any = assertMetric("mesmer_akka_actor_sent_messages_total") {
-      data =>
-        val points = data.getLongSumData.getPoints.asScala
-          .filter(point =>
-            Option(point.getAttributes.get(AttributeKey.stringKey(AttributeNames.ActorPath)))
-              .contains(context.self.path.toStringWithoutAddress)
-          )
-          .toVector
-        points.map(_.getValue) should be(empty)
+    def expectedEmpty(context: classic.ActorContext): Any = assertMetric("mesmer_akka_actor_sent_messages") { data =>
+      val points = data.getLongSumData.getPoints.asScala
+        .filter(point =>
+          Option(point.getAttributes.get(AttributeKey.stringKey(AttributeNames.ActorPath)))
+            .contains(context.self.path.toStringWithoutAddress)
+        )
+        .toVector
+      points.map(_.getValue) should be(empty)
     }
 
     testWithChecks(
