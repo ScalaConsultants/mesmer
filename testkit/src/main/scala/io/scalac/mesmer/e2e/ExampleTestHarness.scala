@@ -19,13 +19,12 @@ import scala.concurrent.Future
 import scala.concurrent.Promise
 import scala.concurrent.blocking
 import scala.concurrent.duration._
+import scala.jdk.CollectionConverters._
 import scala.sys.process.{ Process => ScalaProcess }
 import scala.sys.process.{ ProcessLogger => ScalaProcessLogger }
 import scala.util.Failure
 import scala.util.Success
 import scala.util.control.NonFatal
-
-import scala.jdk.CollectionConverters._
 
 trait ExampleTestHarness { this: Suite =>
 
