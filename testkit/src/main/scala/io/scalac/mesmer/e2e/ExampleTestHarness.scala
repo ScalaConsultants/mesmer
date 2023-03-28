@@ -14,29 +14,40 @@ import io.circe.parser._
 import org.scalatest.Suite
 
 import scala.concurrent.Await
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
 import scala.concurrent.Promise
+import scala.concurrent.blocking
 import scala.concurrent.duration._
-import scala.sys.process.Process
-import scala.sys.process.ProcessLogger
+import scala.sys.process.{ Process => ScalaProcess }
+import scala.sys.process.{ ProcessLogger => ScalaProcessLogger }
+import scala.util.Failure
 import scala.util.Success
 import scala.util.control.NonFatal
 
 trait ExampleTestHarness { this: Suite =>
 
   // we do this for Windows instead of running in cmd shell to eliminate the need to deal with orphan processes once main process is destroyed
-  // TODO can throw "server already running" exceptions, needs a solution
   private val sbtExecutable = if (sys.props("os.name").toLowerCase.contains("win")) {
-    Process("cmd" :: "/c" :: "where" :: "sbt" :: Nil).lazyLines.headOption
+    ScalaProcess("cmd" :: "/c" :: "where" :: "sbt" :: Nil).lazyLines.headOption
       .getOrElse(sys.error("sbt executable not found"))
   } else {
     "sbt"
   }
 
-  // TODO needs to work both in sbt shell and IntelliJ run/debug configurations
-  private val projectRoot = new File("./")
+  private val (projectRoot, dockerComposeFile) = {
+    // sbt shell needs `./`, IntelliJ run/debug configurations need `../../`
+    val maybeRoots = Set(new File("../../"), new File("./"))
+    val constructDockerComposePath = (projectRoot: File) =>
+      Paths.get(projectRoot.toString, "examples/docker/docker-compose.yaml").toFile
+    val projectRoot = maybeRoots
+      .find(maybeRoot => constructDockerComposePath(maybeRoot).exists())
+      .getOrElse(sys.error("Project root not found"))
+    (projectRoot, constructDockerComposePath(projectRoot))
+  }
 
   private val containerDef = DockerComposeContainer.Def(
-    Paths.get(projectRoot.toString, "examples/docker/docker-compose.yaml").toFile,
+    dockerComposeFile,
     exposedServices = Seq(
       ExposedService("prometheus", 9090)
     )
@@ -45,18 +56,17 @@ trait ExampleTestHarness { this: Suite =>
   protected def withExample(sbtCommand: String, startTestString: String = "Example started")(
     block: DockerComposeContainer => Unit
   ): Unit = {
-    val process =
-      Process(
-        sbtExecutable :: sbtCommand :: Nil,
-        projectRoot
-      )
-
     val container = containerDef.createContainer()
     container.start()
 
     val processHandlePromise = Promise[Unit]()
+    val process =
+      ScalaProcess(
+        sbtExecutable :: "-Dsbt.server.forcestart=true" :: sbtCommand :: Nil,
+        projectRoot
+      )
     val processHandle = process.run(
-      ProcessLogger(
+      ScalaProcessLogger(
         line => {
           if (line.contains(startTestString)) {
             processHandlePromise.complete(Success(()))
@@ -66,6 +76,18 @@ trait ExampleTestHarness { this: Suite =>
         sys.process.stderr.println(_)
       )
     )
+    Future {
+      blocking {
+        val exitValue = processHandle.exitValue()
+        if (!processHandlePromise.isCompleted) {
+          processHandlePromise.complete(
+            if (exitValue != 0)
+              Failure(new RuntimeException(s"sbt process exited with a non-zero exit code $exitValue"))
+            else Success(())
+          )
+        }
+      }
+    }
 
     try {
       try
