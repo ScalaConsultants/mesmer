@@ -12,6 +12,34 @@ import zio.metrics.MetricPair
 class ConcurrentMetricRegistryClient(metricsRegistry: AnyRef) {
   import ConcurrentMetricRegistryClient._
 
+  private lazy val unsafe = {
+    val companionObject = Class.forName("zio.Unsafe$")
+    val method          = companionObject.getMethod("unsafe")
+    method.setAccessible(true)
+    method.invoke(companionObject.getField("MODULE$").get(null))
+  }
+
+  private lazy val snapshotCall = {
+    val method = metricsRegistry.getClass.getDeclaredMethod("snapshot", classOf[Unsafe])
+    method.setAccessible(true)
+    () => method.invoke(metricsRegistry, unsafe).asInstanceOf[Set[MetricPair.Untyped]]
+  }
+
+  private lazy val getMethod = {
+    val method = metricsRegistry.getClass.getDeclaredMethod("get", classOf[MetricKey[_]], classOf[Unsafe])
+    method.setAccessible(true)
+    method
+  }
+
+  private lazy val metricsListener = Class.forName("zio.metrics.MetricListener")
+
+  private lazy val addListenerCall =
+    metricsRegistry.getClass.getDeclaredMethod(
+      "addListener",
+      metricsListener,
+      classOf[Unsafe]
+    )
+
   def snapshot(): Set[MetricPair.Untyped] =
     snapshotCall()
 
@@ -77,34 +105,6 @@ class ConcurrentMetricRegistryClient(metricsRegistry: AnyRef) {
     addListenerCall.invoke(metricsRegistry, proxy, unsafe)
     ()
   }
-
-  private lazy val unsafe = {
-    val companionObject = Class.forName("zio.Unsafe$")
-    val method          = companionObject.getMethod("unsafe")
-    method.setAccessible(true)
-    method.invoke(companionObject.getField("MODULE$").get(null))
-  }
-
-  private lazy val snapshotCall = {
-    val method = metricsRegistry.getClass.getDeclaredMethod("snapshot", classOf[Unsafe])
-    method.setAccessible(true)
-    () => method.invoke(metricsRegistry, unsafe).asInstanceOf[Set[MetricPair.Untyped]]
-  }
-
-  private lazy val getMethod = {
-    val method = metricsRegistry.getClass.getDeclaredMethod("get", classOf[MetricKey[_]], classOf[Unsafe])
-    method.setAccessible(true)
-    method
-  }
-
-  private lazy val metricsListener = Class.forName("zio.metrics.MetricListener")
-
-  private lazy val addListenerCall =
-    metricsRegistry.getClass.getDeclaredMethod(
-      "addListener",
-      metricsListener,
-      classOf[Unsafe]
-    )
 }
 
 object ConcurrentMetricRegistryClient {

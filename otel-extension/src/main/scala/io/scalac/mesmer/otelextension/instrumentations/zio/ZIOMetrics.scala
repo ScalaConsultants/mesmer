@@ -30,7 +30,8 @@ class ZIOMetrics(client: ConcurrentMetricRegistryClient) {
     val underlying = meter
       .histogramBuilder(metricName(metricKey.name))
       .build()
-    // workaround for classloading issues
+    // returning DoubleHistogram returned by histogramBuilder.build() causes class not found errors in advices,
+    // this is a workaround
     val fn1 = (double: Double) => underlying.record(double)
     val fn2 = (double: Double, tags: Set[MetricLabel]) => underlying.record(double, buildAttributes(tags))
     new DoubleHistogram {
