@@ -33,7 +33,7 @@ object Instruments {
 
     lazy val failedMessages: LongCounter = provider
       .get("mesmer")
-      .counterBuilder("mesmer_akka_actor_failed_messages_total")
+      .counterBuilder("mesmer_akka_actor_failed_messages")
       .build()
 
     lazy val processingTime: LongHistogram = provider
@@ -44,12 +44,12 @@ object Instruments {
 
     lazy val unhandledMessages: LongCounter = provider
       .get("mesmer")
-      .counterBuilder("mesmer_akka_actor_unhandled_messages_total")
+      .counterBuilder("mesmer_akka_actor_unhandled_messages")
       .build()
 
     lazy val droppedMessages: LongCounter = provider
       .get("mesmer")
-      .counterBuilder("mesmer_akka_actor_dropped_messages_total")
+      .counterBuilder("mesmer_akka_actor_dropped_messages")
       .build()
 
     lazy val mailboxTime: LongHistogram = provider
@@ -65,23 +65,23 @@ object Instruments {
 
     lazy val stashedMessages: LongCounter = provider
       .get("mesmer")
-      .counterBuilder("mesmer_akka_actor_stashed_messages_total")
+      .counterBuilder("mesmer_akka_actor_stashed_messages")
       .build()
 
     lazy val sentMessages: LongCounter = provider
       .get("mesmer")
-      .counterBuilder("mesmer_akka_actor_sent_messages_total")
+      .counterBuilder("mesmer_akka_actor_sent_messages")
       .build()
 
     lazy val actorsCreated: LongCounter = provider
       .get("mesmer")
-      .counterBuilder("mesmer_akka_actor_actors_created_total")
+      .counterBuilder("mesmer_akka_actor_actors_created")
       .setDescription("Amount of actors created measured from Actor System start")
       .build()
 
     lazy val actorsTerminated: LongCounter = provider
       .get("mesmer")
-      .counterBuilder("mesmer_akka_actor_actors_terminated_total")
+      .counterBuilder("mesmer_akka_actor_actors_terminated")
       .setDescription("Amount of actors terminated measured from Actor System start")
       .build()
   }

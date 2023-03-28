@@ -21,7 +21,7 @@ object ClusterEventsMonitor extends ClusterMonitorActor {
   private val meter: Meter = GlobalOpenTelemetry.getMeter("mesmer")
 
   private val nodesDownCounter: LongCounter = meter
-    .counterBuilder("mesmer_akka_cluster_node_down_total")
+    .counterBuilder("mesmer_akka_cluster_node_down")
     .setDescription("Counter for node down events")
     .build()
 

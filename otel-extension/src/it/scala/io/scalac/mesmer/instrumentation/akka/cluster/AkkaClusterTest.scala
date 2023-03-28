@@ -32,7 +32,7 @@ final class AkkaClusterTest extends AnyFlatSpec with OtelAgentTest with TestOps 
   }
 
   it should "record nodes down metric" in {
-    assertMetricSumGreaterOrEqualTo0("mesmer_akka_cluster_node_down_total")
+    assertMetricSumGreaterOrEqualTo0("mesmer_akka_cluster_node_down")
   }
 
   it should "record reachable nodes metric" in {
