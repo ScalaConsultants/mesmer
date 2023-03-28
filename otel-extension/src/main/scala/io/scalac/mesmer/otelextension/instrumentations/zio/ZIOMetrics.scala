@@ -8,7 +8,8 @@ import zio.metrics.MetricKey
 import zio.metrics.MetricKeyType
 import zio.metrics.MetricLabel
 
-object ZIOMetrics {
+class ZIOMetrics(client: ConcurrentMetricRegistryClient) {
+  import ZIOMetrics._
 
   private val meter: Meter = GlobalOpenTelemetry.getMeter("mesmer")
 
@@ -25,6 +26,20 @@ object ZIOMetrics {
       .gaugeBuilder(metricName(metricKey.name))
       .buildWithCallback(_.record(unsafeGetGaugeValue(metricKey), buildAttributes(metricKey.tags)))
 
+  def registerHistogramSyncMetric(metricKey: MetricKey.Histogram): DoubleHistogram = {
+    val underlying = meter
+      .histogramBuilder(metricName(metricKey.name))
+      .build()
+    // returning DoubleHistogram returned by histogramBuilder.build() causes class not found errors in advices,
+    // this is a workaround
+    val fn1 = (double: Double) => underlying.record(double)
+    val fn2 = (double: Double, tags: Set[MetricLabel]) => underlying.record(double, buildAttributes(tags))
+    new DoubleHistogram {
+      def record(double: Double): Unit                         = fn1(double)
+      def record(double: Double, tags: Set[MetricLabel]): Unit = fn2(double, tags)
+    }
+  }
+
   private def buildAttributes(metricLabels: Set[MetricLabel]): Attributes = {
     val builder = Attributes.builder()
     metricLabels.foreach { case MetricLabel(key, value) => builder.put(AttributeKey.stringKey(key), value) }
@@ -32,9 +47,15 @@ object ZIOMetrics {
   }
 
   private def unsafeGetCounterValue(metricKey: MetricKey[MetricKeyType.Counter]): Double =
-    ConcurrentMetricRegistryClient.get(metricKey).get().count
+    client.get(metricKey).get().count
 
   private def unsafeGetGaugeValue(metricKey: MetricKey[MetricKeyType.Gauge]): Double =
-    ConcurrentMetricRegistryClient.get(metricKey).get().value
+    client.get(metricKey).get().value
+}
 
+object ZIOMetrics {
+  trait DoubleHistogram {
+    def record(double: Double): Unit
+    def record(double: Double, tags: Set[MetricLabel]): Unit
+  }
 }

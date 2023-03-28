@@ -27,17 +27,22 @@ public class MesmerZIOMetricAPIInstrumentationModule extends InstrumentationModu
 
   @Override
   public List<String> getAdditionalHelperClassNames() {
-    return combine(
-        ZIOHelpers.scalaReflectHelpers(),
-        List.of(
-            "io.scalac.mesmer.otelextension.instrumentations.zio.advice.ConcurrentMetricRegistryAdvice$",
-            "io.scalac.mesmer.otelextension.instrumentations.zio.ZIOInstrumentations$",
-            "io.scalac.mesmer.otelextension.instrumentations.zio.ZIOMetrics$",
-            "io.scalac.mesmer.otelextension.instrumentations.zio.ConcurrentMetricRegistryPoller",
-            "io.scalac.mesmer.otelextension.instrumentations.zio.ConcurrentMetricRegistryPoller$$anon$1",
-            "io.scalac.mesmer.otelextension.instrumentations.zio.ConcurrentMetricRegistryClient$",
-            "io.scalac.mesmer.otelextension.instrumentations.zio.ConcurrentMetricRegistryClient$MetricHook",
-            "io.scalac.mesmer.otelextension.instrumentations.zio.ConcurrentMetricRegistryPoller$$anon$1$$anon$2"));
+    return List.of(
+        "io.scalac.mesmer.otelextension.instrumentations.zio.advice.ConcurrentMetricRegistryAdvice$",
+        "io.scalac.mesmer.otelextension.instrumentations.zio.ZIOInstrumentations$",
+        "io.scalac.mesmer.otelextension.instrumentations.zio.ZIOMetrics",
+        "io.scalac.mesmer.otelextension.instrumentations.zio.ZIOMetrics$$anon$1",
+        "io.scalac.mesmer.otelextension.instrumentations.zio.ZIOMetrics$DoubleHistogram",
+        "io.scalac.mesmer.otelextension.instrumentations.zio.ConcurrentMetricRegistryPoller",
+        "io.scalac.mesmer.otelextension.instrumentations.zio.ConcurrentMetricRegistryPoller$$anon$1",
+        "io.scalac.mesmer.otelextension.instrumentations.zio.ConcurrentMetricRegistryPoller$$anon$1$$anon$2",
+        "io.scalac.mesmer.otelextension.instrumentations.zio.ConcurrentMetricRegistryListener",
+        "io.scalac.mesmer.otelextension.instrumentations.zio.ConcurrentMetricRegistryListener$$anon$1",
+        "io.scalac.mesmer.otelextension.instrumentations.zio.ConcurrentMetricRegistryClient$MetricListener",
+        "io.scalac.mesmer.otelextension.instrumentations.zio.ConcurrentMetricRegistryClient$MetricHook",
+        "io.scalac.mesmer.otelextension.instrumentations.zio.ConcurrentMetricRegistryClient",
+        "io.scalac.mesmer.otelextension.instrumentations.zio.ConcurrentMetricRegistryClient$$anon$1"
+    );
   }
 
   @Override

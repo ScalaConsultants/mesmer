@@ -78,7 +78,4 @@ object Dependencies {
   )
 
   val scalatest = Seq("org.scalatest" %% "scalatest" % ScalatestVersion)
-
-  def scalaReflect(scalaVersion: String) = Seq("org.scala-lang" % "scala-reflect" % scalaVersion)
-
 }
