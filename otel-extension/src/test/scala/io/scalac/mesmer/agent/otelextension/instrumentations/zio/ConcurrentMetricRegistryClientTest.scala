@@ -5,7 +5,6 @@ import java.util.UUID
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import zio.metrics.MetricKey
-import zio.metrics.MetricState
 
 import io.scalac.mesmer.otelextension.instrumentations.zio.ConcurrentMetricRegistryClient
 import io.scalac.mesmer.otelextension.instrumentations.zio.ConcurrentMetricRegistryClient.MetricHook
@@ -30,7 +29,7 @@ class ConcurrentMetricRegistryClientTest extends AnyWordSpec with Matchers {
 
     "get" in {
       client
-        .get(MetricKey.counter(UUID.randomUUID().toString)) shouldBe a[MetricHook[Double, MetricState.Counter]]
+        .get(MetricKey.counter(UUID.randomUUID().toString)) shouldBe a[MetricHook[_, _]]
     }
 
     "add listener" in {
