@@ -1,5 +1,4 @@
 version: '3.3'
-name: mesmer
 services:
   postgres:
     image: postgres:9.6
