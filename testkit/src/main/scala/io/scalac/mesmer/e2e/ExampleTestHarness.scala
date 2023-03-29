@@ -28,7 +28,11 @@ import scala.util.control.NonFatal
 
 trait ExampleTestHarness { this: Suite =>
 
-  private val sbtExecutable = if (sys.props("os.name").toLowerCase.contains("win")) {
+  private val isCI = sys.env.contains("CI")
+
+  private val isWindows = sys.props("os.name").toLowerCase.contains("win")
+
+  private val sbtExecutable = if (isWindows) {
     "cmd" :: "/c" :: "sbt" :: Nil
   } else {
     "sbt" :: Nil
@@ -55,6 +59,9 @@ trait ExampleTestHarness { this: Suite =>
   protected def withExample(sbtCommand: String, startTestString: String = "Example started")(
     block: DockerComposeContainer => Unit
   ): Unit = {
+    if (isCI && isWindows) {
+      cancel("Cannot run on GitHub Windows CI runners - docker-compose not compatible with Windows containers")
+    }
     val container = containerDef.createContainer()
     container.start()
 
