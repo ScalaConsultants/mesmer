@@ -8,6 +8,7 @@ object Dependencies {
   val AkkaVersion           = "2.7.0"
   val ByteBuddyVersion      = "1.14.2"
   val CirceVersion          = "0.14.5"
+  val CirceYamlVersion      = "0.14.2"
 
   val GoogleAutoServiceVersion        = "1.0.1"
   val LogbackVersion                  = "1.4.6"
@@ -85,6 +86,7 @@ object Dependencies {
   val circe = Seq(
     "io.circe" %% "circe-core"    % CirceVersion,
     "io.circe" %% "circe-generic" % CirceVersion,
-    "io.circe" %% "circe-parser"  % CirceVersion
+    "io.circe" %% "circe-parser"  % CirceVersion,
+    "io.circe" %% "circe-yaml"    % CirceYamlVersion
   )
 }
