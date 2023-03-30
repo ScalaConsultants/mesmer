@@ -43,7 +43,7 @@ lazy val all: Project = (project in file("."))
     name           := "mesmer-all",
     publish / skip := true
   )
-  .aggregate(otelExtension, core, testkit, exampleAkka, exampleAkkaStream, exampleZio)
+  .aggregate(otelExtension, core, testkit, exampleAkka, exampleAkkaStream, exampleZio, e2eTest)
 
 lazy val core = (project in file("core"))
   .disablePlugins(sbtassembly.AssemblyPlugin)
@@ -64,7 +64,7 @@ lazy val testkit = (project in file("testkit"))
     name           := "mesmer-testkit",
     publish / skip := true,
     libraryDependencies ++= {
-      scalatest ++ akkaTestkit ++ testcontainersScala ++ circe
+      scalatest ++ akkaTestkit
     }
   )
 
@@ -127,10 +127,8 @@ lazy val otelExtension = (project in file("otel-extension"))
   .dependsOn(core % "provided->compile;compile->compile", testkit % "it,test")
 
 def exampleProject(project: Project) = project
-  .configs(IntegrationTest)
   .disablePlugins(sbtassembly.AssemblyPlugin)
   .settings(
-    Defaults.itSettings,
     publish / skip := true,
     resolvers += "Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots",
     run / javaOptions ++= Seq(
@@ -144,12 +142,10 @@ def exampleProject(project: Project) = project
         "org.wvlet.airframe" %% "airframe-log"      % AirframeVersion
       )
     },
-    run / fork                          := true,
-    run / connectInput                  := true,
-    IntegrationTest / parallelExecution := false,
-    IntegrationTest / fork              := true
+    run / fork         := true,
+    run / connectInput := true
   )
-  .dependsOn(core, testkit % "it,test")
+  .dependsOn(core, testkit % "test")
 
 lazy val exampleAkka = exampleProject(project in file("examples/akka"))
   .settings(
@@ -202,6 +198,19 @@ lazy val docs = project
   )
   .dependsOn(otelExtension)
   .enablePlugins(MdocPlugin, DocusaurusPlugin)
+
+lazy val e2eTest = (project in file("e2e-test"))
+  .configs(IntegrationTest)
+  .settings(
+    Defaults.itSettings,
+    name           := "mesmer-e2e-test",
+    publish / skip := true,
+    libraryDependencies ++= {
+      scalatest.map(_ % "it") ++ akkaTestkit.map(_ % "it") ++ testcontainersScala.map(_ % "it") ++ circe.map(_ % "it")
+    },
+    IntegrationTest / parallelExecution := false,
+    IntegrationTest / fork              := true
+  )
 
 lazy val assemblyMergeStrategySettings = assembly / assemblyMergeStrategy := {
   case PathList("META-INF", "services", _ @_*)           => MergeStrategy.concat

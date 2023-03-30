@@ -50,7 +50,7 @@ trait ExampleTestHarness extends EitherValues with TryValues with OptionValues {
 
   private val (projectRoot, dockerComposeFile) = {
     // sbt shell needs `./`, IntelliJ run/debug configurations need `../../`
-    val maybeProjectRoots = Set(new File("../../"), new File("./"))
+    val maybeProjectRoots = Set(new File("../"), new File("./"))
     val constructDockerComposePath = (projectRoot: File) =>
       Paths.get(projectRoot.getAbsolutePath, "examples/docker/docker-compose.yaml").toFile
     val projectRoot = maybeProjectRoots

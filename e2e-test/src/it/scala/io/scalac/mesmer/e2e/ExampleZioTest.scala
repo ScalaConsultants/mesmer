@@ -1,7 +1,6 @@
-package example
+package io.scalac.mesmer.e2e
 
 import io.circe.Json
-import io.scalac.mesmer.e2e.ExampleTestHarness
 import org.scalatest.EitherValues
 import org.scalatest.concurrent.Eventually
 import org.scalatest.concurrent.IntegrationPatience
