@@ -9,10 +9,11 @@ import net.bytebuddy.asm.Advice.OnMethodEnter
 import net.bytebuddy.asm.Advice.This
 
 import io.scalac.mesmer.core.event.EventBus
-import io.scalac.mesmer.core.event.PersistenceEvent.RecoveryFinished
 import io.scalac.mesmer.core.model._
 import io.scalac.mesmer.core.util.ReflectionFieldUtils
 import io.scalac.mesmer.core.util.Timestamp
+import io.scalac.mesmer.otelextension.instrumentations.akka.persistence.PersistenceEvent.RecoveryFinished
+import io.scalac.mesmer.otelextension.instrumentations.akka.persistence.PersistenceService.persistenceService
 
 object RecoveryCompletedAdvice {
 

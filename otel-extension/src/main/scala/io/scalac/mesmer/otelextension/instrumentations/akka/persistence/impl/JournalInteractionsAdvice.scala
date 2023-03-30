@@ -5,9 +5,10 @@ import akka.persistence.PersistentRepr
 import net.bytebuddy.asm.Advice._
 
 import io.scalac.mesmer.core.event.EventBus
-import io.scalac.mesmer.core.event.PersistenceEvent.PersistingEventStarted
 import io.scalac.mesmer.core.model._
 import io.scalac.mesmer.core.util.Timestamp
+import io.scalac.mesmer.otelextension.instrumentations.akka.persistence.PersistenceEvent.PersistingEventStarted
+import io.scalac.mesmer.otelextension.instrumentations.akka.persistence.PersistenceService.persistenceService
 
 object JournalInteractionsAdvice {
 

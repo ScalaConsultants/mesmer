@@ -6,9 +6,10 @@ import net.bytebuddy.asm.Advice.Argument
 import net.bytebuddy.asm.Advice.OnMethodEnter
 
 import io.scalac.mesmer.core.event.EventBus
-import io.scalac.mesmer.core.event.PersistenceEvent.PersistingEventFinished
 import io.scalac.mesmer.core.model._
 import io.scalac.mesmer.core.util.Timestamp
+import io.scalac.mesmer.otelextension.instrumentations.akka.persistence.PersistenceEvent.PersistingEventFinished
+import io.scalac.mesmer.otelextension.instrumentations.akka.persistence.PersistenceService.persistenceService
 
 object PersistingEventSuccessAdvice {
 

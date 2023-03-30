@@ -7,7 +7,6 @@ public class MesmerAkkaHelpers {
   // Mesmer core helpers. With Muzzle plugin this can be safely defined in `isHelperClass`.
   public static List<String> coreHelpers() {
     return List.of(
-        "io.scalac.mesmer.core.package$",
         "io.scalac.mesmer.core.PathMatcher$",
         "io.scalac.mesmer.core.PathMatcher$Error",
         "io.scalac.mesmer.core.PathMatcher$Prefix",
@@ -30,7 +29,7 @@ public class MesmerAkkaHelpers {
         "io.scalac.mesmer.core.event.AbstractService",
         "io.scalac.mesmer.core.event.EventBus$",
         "io.scalac.mesmer.core.event.EventBus",
-        "io.scalac.mesmer.core.event.PersistenceEvent",
+        "io.scalac.mesmer.otelextension.instrumentations.akka.persistence.PersistenceEvent",
         "io.scalac.mesmer.core.event.ReceptionistBasedEventBus$Subscribers",
         "io.scalac.mesmer.core.event.ReceptionistBasedEventBus$",
         "io.scalac.mesmer.core.event.ReceptionistBasedEventBus",
