@@ -3,7 +3,7 @@ package io.scalac.mesmer.instrumentation.akka.stream
 import _root_.io.scalac.mesmer.core.config.MesmerPatienceConfig
 import akka.Done
 import akka.actor.ActorRef
-import akka.actor.testkit.typed.scaladsl.TestProbe
+import akka.actor.testkit.typed.scaladsl.{ FishingOutcomes, TestProbe }
 import akka.actor.typed.receptionist.Receptionist._
 import akka.actor.typed.receptionist.ServiceKey
 import akka.actor.typed.scaladsl.Behaviors
@@ -41,103 +41,15 @@ class AkkaStreamsTest
     with MesmerPatienceConfig {
 
   override type Command = StreamEvent
-
-  protected def createMonitorBehavior(implicit context: Context): Behavior[Command] =
-    Pass.registerService(StreamService.streamService.serviceKey, monitor.ref)
-
+  type Monitor          = TestProbe[StreamEvent]
   protected val serviceKey: ServiceKey[Command] = StreamService.streamService.serviceKey
-
-  type Monitor = TestProbe[StreamEvent]
-  protected def createMonitor(implicit system: ActorSystem[_]): Monitor = TestProbe()
 
   implicit var streamService: ActorStreamRefService = _
 
-  def actors(num: Int)(implicit refService: ActorStreamRefService): Seq[ActorRef] = refService.actors(num)
-  def clear(implicit refService: ActorStreamRefService): Unit                     = refService.clear()
-
   override def beforeAll(): Unit = {
-    super.beforeAll() // order is important! actor system must be created
+    super.beforeAll() // actor system must be created first. See SafeLoadSystem.scala.
     streamService = new ActorStreamRefService()
     streamService.start()
-  }
-
-  after {
-    clear
-  }
-
-  final class ActorStreamRefService(implicit system: ActorSystem[_]) {
-    private val probe = TestProbe[ActorRef]("stream_refs")
-
-    def actors(number: Int): Seq[ActorRef] = {
-      val messages = probe.receiveMessages(number, patienceConfig.timeout)
-      messages
-    }
-
-    sealed trait Command
-
-    private case class Ref(ref: ActorRef) extends Command
-
-    private case object Filter extends Command
-
-    /**
-     * Make sure no more actors are created
-     */
-    def clear(): Unit = {} //probe.expectNoMessage(2.seconds)
-
-    def start(): Unit = system
-      .systemActorOf(
-        Behaviors.setup[Command] { context =>
-          val actorsSoFar = mutable.Set.empty[ActorRef]
-
-          context.system.receptionist ! Register(
-            StreamService.streamService.serviceKey,
-            context.messageAdapter[StreamEvent] {
-              case StreamInterpreterStats(ref, streamName, shellInfo) =>
-                println("STATS")
-                Ref(ref)
-              case LastStreamStats(ref, streamName, shellInfo) =>
-                println("LAST")
-                Ref(ref)
-              case _ => Filter
-            }
-          )
-          Behaviors.receiveMessage { case Ref(ref) =>
-            probe.ref ! ref
-            println("REF")
-            Behaviors.same
-          }
-        },
-        "akka-stream-filter-actor"
-      )
-  }
-
-  def offerMany[T](input: SourceQueue[T], elements: List[T])(implicit ec: ExecutionContext): Future[Done] = {
-    def loop(remaining: List[T]): Future[Done] = remaining match {
-      case Nil => Future.successful(Done)
-      case head :: tail =>
-        input.offer(head).flatMap {
-          case QueueOfferResult.Enqueued => loop(tail)
-          case _                         => Future.failed(BufferOverflowException(""))
-        }
-    }
-    loop(elements)
-  }
-
-  def expectMany[T](output: SinkQueue[T], num: Long)(implicit ec: ExecutionContext): Future[Done] = {
-    def loop(remaining: Long): Future[Done] =
-      if (remaining <= 0) {
-        Future.successful(Done)
-      } else
-        output
-          .pull()
-          .flatMap {
-            case Some(_) =>
-              loop(remaining - 1)
-            case None =>
-              Future.failed(new RuntimeException("Stream terminated before specified amount of elements was received"))
-          }
-
-    loop(num)
   }
 
   "AkkaStreamAgentTest" should "accurately detect push / demand" in testCase { implicit c =>
@@ -187,18 +99,6 @@ class AkkaStreamsTest
     }
   }
 
-  it should "find correct amount of actors for async streams" in testCase { implicit c =>
-    Source
-      .single(())
-      .async
-      .map(_ => ())
-      .async
-      .to(Sink.ignore)
-      .run()
-
-    actors(3)
-  }
-
   it should "find accurate amount of push / demand for async streams" in testCase { implicit c =>
     implicit val ec: ExecutionContext = system.executionContext
 
@@ -207,6 +107,10 @@ class AkkaStreamsTest
     val SinkExpectedElements   = Demand + 1L // somehow sinkQueue demand 1 element in advance
     val FlowExpectedElements   = SinkExpectedElements + 1L
     val SourceExpectedElements = (FlowExpectedElements + 1L) * 2
+
+    val sinkName   = "queueEnd"
+    val flowName   = "map"
+    val sourceName = "queueSource"
 
     val (inputQueue, outputQueue) = Source
       .queue[Int](1024, OverflowStrategy.backpressure, 1)
@@ -220,7 +124,7 @@ class AkkaStreamsTest
         Sink
           .queue[Int]()
           .withAttributes(Attributes.inputBuffer(1, 1))
-          .named("queueEnd")
+          .named(sinkName)
       )(Keep.both)
       .run()
 
@@ -228,12 +132,11 @@ class AkkaStreamsTest
       .zipWith(expectMany(outputQueue, Demand))((_, _) => Done)
 
     whenReady(elements) { _ =>
-      // are started in reverse order
-      val Seq(sinkRef, flowRef, sourceRef) = actors(3)
+      actor(sinkName) ! PushMetrics
+      actor(flowName) ! PushMetrics
+      actor(sourceName) ! PushMetrics
 
-      sinkRef ! PushMetrics
-
-      val (sinkStages, sinkConnections) = monitor.expectMessageType[StreamInterpreterStats].shellInfo.loneElement
+      val (sinkStages, sinkConnections) = findStreamInterpreterStats(sinkName).shellInfo.loneElement
 
       sinkStages should have size 2
       sinkConnections should have size 1
@@ -243,9 +146,7 @@ class AkkaStreamsTest
         connection.pull should be(SinkExpectedElements)
       }
 
-      flowRef ! PushMetrics
-
-      val (flowStages, flowConnections) = monitor.expectMessageType[StreamInterpreterStats].shellInfo.loneElement
+      val (flowStages, flowConnections) = findStreamInterpreterStats(flowName).shellInfo.loneElement
 
       flowStages should have size 4
 
@@ -258,9 +159,7 @@ class AkkaStreamsTest
         mapOutput.pull should be(FlowExpectedElements)
       }
 
-      sourceRef ! PushMetrics
-
-      val (sourceStages, sourceConnections) = monitor.expectMessageType[StreamInterpreterStats].shellInfo.loneElement
+      val (sourceStages, sourceConnections) = findStreamInterpreterStats(sourceName).shellInfo.loneElement
 
       sourceStages should have size 2
 
@@ -303,6 +202,7 @@ class AkkaStreamsTest
 
     val Demand = 40L
 
+    val sinkName = "flattenStreamQueueEnd"
     val (inputQueue, outputQueue) = Source
       .queue[Int](1024, OverflowStrategy.backpressure, 1)
       .flatMapConcat(element => Source(List.fill(10)(element)).via(Flow[Int].map(_ + 100)))
@@ -310,7 +210,7 @@ class AkkaStreamsTest
         Sink
           .queue[Int]()
           .withAttributes(Attributes.inputBuffer(1, 1))
-          .named("queueEnd")
+          .named(sinkName)
       )(Keep.both)
       .run()
 
@@ -318,10 +218,8 @@ class AkkaStreamsTest
       .zipWith(expectMany(outputQueue, Demand))((_, _) => Done)
 
     whenReady(elements) { _ =>
-      val ref = actors(1).loneElement
-      ref ! PushMetrics
-
-      monitor.expectMessageType[StreamInterpreterStats].shellInfo should have size 2
+      val stats: StreamInterpreterStats = findStreamInterpreterStats(sinkName)
+      stats.shellInfo should have size 2
     }
   }
 
@@ -343,5 +241,103 @@ class AkkaStreamsTest
 
   it should "collect operator demand metric" in {
     assertMetricSumGreaterOrEqualTo0("mesmer_akka_streams_operator_demand")
+  }
+
+  def actors(num: Int)(implicit refService: ActorStreamRefService): Seq[ActorRef] = refService.actors(num)
+
+  def expectMany[T](output: SinkQueue[T], num: Long)(implicit ec: ExecutionContext): Future[Done] = {
+    def loop(remaining: Long): Future[Done] =
+      if (remaining <= 0) {
+        Future.successful(Done)
+      } else
+        output
+          .pull()
+          .flatMap {
+            case Some(_) =>
+              loop(remaining - 1)
+            case None =>
+              Future.failed(new RuntimeException("Stream terminated before specified amount of elements was received"))
+          }
+
+    loop(num)
+  }
+
+  def offerMany[T](input: SourceQueue[T], elements: List[T])(implicit ec: ExecutionContext): Future[Done] = {
+    def loop(remaining: List[T]): Future[Done] = remaining match {
+      case Nil => Future.successful(Done)
+      case head :: tail =>
+        input.offer(head).flatMap {
+          case QueueOfferResult.Enqueued => loop(tail)
+          case _                         => Future.failed(BufferOverflowException(""))
+        }
+    }
+
+    loop(elements)
+  }
+
+  def actor(actorNamePart: String)(implicit refService: ActorStreamRefService): ActorRef =
+    refService.actor(actorNamePart)
+
+  protected def createMonitor(implicit system: ActorSystem[_]): Monitor = TestProbe()
+
+  protected def createMonitorBehavior(implicit context: Context): Behavior[Command] =
+    Pass.registerService(StreamService.streamService.serviceKey, monitor.ref)
+
+  private def findStreamInterpreterStats(actorNamePart: String)(implicit context: Context) = {
+    val stats = context.monitor
+      .fishForMessage(patienceConfig.timeout) {
+        case StreamInterpreterStats(ref, streamName, shellInfo) if ref.path.name.contains(actorNamePart) =>
+          FishingOutcomes.complete
+        case _ => FishingOutcomes.continueAndIgnore
+      }
+      .loneElement
+      .asInstanceOf[StreamInterpreterStats]
+    stats
+  }
+
+  final class ActorStreamRefService(implicit system: ActorSystem[_]) {
+    private val probe = TestProbe[ActorRef]("stream_refs")
+
+    def actors(number: Int): Seq[ActorRef] = {
+      val messages = probe.receiveMessages(number, patienceConfig.timeout)
+      messages
+    }
+
+    def actor(actorNamePart: String): ActorRef =
+      probe
+        .fishForMessage(patienceConfig.timeout)((ref: ActorRef) =>
+          if (ref.path.name.contains(actorNamePart)) { FishingOutcomes.complete }
+          else { FishingOutcomes.continueAndIgnore }
+        )
+        .loneElement
+
+    def start(): Unit = system
+      .systemActorOf(
+        Behaviors.setup[Command] { context =>
+          val actorsSoFar = mutable.Set.empty[ActorRef]
+
+          context.system.receptionist ! Register(
+            StreamService.streamService.serviceKey,
+            context.messageAdapter[StreamEvent] {
+              case StreamInterpreterStats(ref, streamName, shellInfo) =>
+                Ref(ref)
+              case LastStreamStats(ref, streamName, shellInfo) =>
+                Ref(ref)
+              case _ => Filter
+            }
+          )
+          Behaviors.receiveMessage { case Ref(ref) =>
+            probe.ref ! ref
+            Behaviors.same
+          }
+        },
+        "akka-stream-filter-actor"
+      )
+
+    sealed trait Command
+
+    private case class Ref(ref: ActorRef) extends Command
+
+    private case object Filter extends Command
   }
 }

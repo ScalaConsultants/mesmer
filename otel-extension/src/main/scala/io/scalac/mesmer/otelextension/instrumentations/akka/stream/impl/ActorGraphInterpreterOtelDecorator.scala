@@ -48,11 +48,7 @@ object ActorGraphInterpreterOtelDecorator extends Lookup {
 
       val stats = collectStats(currentShells, subStreamName)
 
-      val stats1 = StreamInterpreterStats(context.self, subStreamName, stats)
-
-      println(stats1)
-      EventBus(system.toTyped)
-        .publishEvent(stats1)
+      EventBus(system.toTyped).publishEvent(StreamInterpreterStats(context.self, subStreamName, stats))
     }
   }
 
