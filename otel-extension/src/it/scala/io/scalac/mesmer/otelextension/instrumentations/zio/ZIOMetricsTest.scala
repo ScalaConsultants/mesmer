@@ -9,8 +9,6 @@ import org.scalatest.BeforeAndAfterEach
 import org.scalatest.flatspec.AnyFlatSpecLike
 import org.scalatest.matchers.should.Matchers
 import zio._
-import zio.metrics.MetricKey
-import zio.metrics.MetricKeyType.Counter
 import zio.metrics.MetricKeyType.Histogram
 import zio.metrics.{ Metric, MetricLabel }
 
@@ -119,6 +117,21 @@ class ZIOMetricsTest
     runUnsafely(testProgram, runtimeMetrics = false)
   }
 
+  "ZIO frequency" should "be instrumented as a counter for each value" in {
+    val frequency = Metric.frequency("my_custom_zio_frequency")
+
+    val testProgram = for {
+      _ <- ZIO.succeed("hello") @@ frequency
+      _ <- ZIO.succeed("hello") @@ frequency
+      _ <- ZIO.succeed("world") @@ frequency
+    } yield ()
+
+    runUnsafely(testProgram, runtimeMetrics = false)
+
+    assertCounterMetricValue("mesmer_zio_forwarded_my_custom_zio_frequency", 2, Map("bucket" -> "hello"))
+    assertCounterMetricValue("mesmer_zio_forwarded_my_custom_zio_frequency", 1, Map("bucket" -> "world"))
+  }
+
   private def runUnsafely[E <: Throwable, A](
     testProgram: ZIO[Any, E, A],
     runtimeMetrics: Boolean
@@ -134,10 +147,25 @@ class ZIOMetricsTest
     data.getDoubleGaugeData.getPoints.asScala.map(_.getValue).toList.lastOption
 
   private def assertCounterMetricValue(metricName: String, value: Double): Unit =
-    assertMetric(metricName)(data => getCounterValue(data).get should be(value))
+    assertMetric(metricName)(data => getCounterValue(data, Map.empty).get should be(value))
 
-  private def getCounterValue(data: MetricData): Option[Double] =
-    data.getDoubleSumData.getPoints.asScala.map(_.getValue).toList.headOption
+  private def assertCounterMetricValue(
+    metricName: String,
+    value: Double,
+    attributes: Map[String, String]
+  ): Unit =
+    assertMetric(metricName)(data => getCounterValue(data, attributes).get should be(value))
+
+  private def getCounterValue(data: MetricData, attributes: Map[String, String]): Option[Double] =
+    data.getDoubleSumData.getPoints.asScala
+      .filter(pointData =>
+        attributes.forall { case (key, value) =>
+          Option(pointData.getAttributes.get(AttributeKey.stringKey(key))).contains(value)
+        }
+      )
+      .map(_.getValue)
+      .toList
+      .headOption
 
   private def assertCounterAttribute(metricName: String, key: String, value: String): Unit =
     assertMetric(metricName) { data =>
