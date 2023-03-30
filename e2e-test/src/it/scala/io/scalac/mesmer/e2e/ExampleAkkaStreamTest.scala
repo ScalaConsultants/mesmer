@@ -4,9 +4,7 @@ import io.circe.Json
 import org.scalatest.EitherValues
 import org.scalatest.concurrent.Eventually
 import org.scalatest.matchers.should.Matchers
-import org.scalatest.time.Millis
-import org.scalatest.time.Seconds
-import org.scalatest.time.Span
+
 import org.scalatest.wordspec.AnyWordSpec
 
 class ExampleAkkaStreamTest
@@ -15,11 +13,6 @@ class ExampleAkkaStreamTest
     with Matchers
     with Eventually
     with EitherValues {
-
-  implicit val patience: PatienceConfig = PatienceConfig(
-    timeout = scaled(Span(60, Seconds)),
-    interval = scaled(Span(150, Millis))
-  )
 
   "Akka Stream example" should {
     "produce stream metrics" in withExample("exampleAkkaStream/run") { prometheusApi =>

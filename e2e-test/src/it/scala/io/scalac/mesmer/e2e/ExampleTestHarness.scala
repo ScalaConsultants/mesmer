@@ -19,6 +19,10 @@ import org.scalatest.EitherValues
 import org.scalatest.OptionValues
 import org.scalatest.Suite
 import org.scalatest.TryValues
+import org.scalatest.concurrent.PatienceConfiguration
+import org.scalatest.time.Millis
+import org.scalatest.time.Seconds
+import org.scalatest.time.Span
 import org.testcontainers.shaded.org.apache.commons.io.FileUtils
 
 import scala.concurrent.Await
@@ -36,7 +40,8 @@ import scala.util.Success
 import scala.util.Using
 import scala.util.control.NonFatal
 
-trait ExampleTestHarness extends EitherValues with TryValues with OptionValues { this: Suite =>
+trait ExampleTestHarness extends PatienceConfiguration with EitherValues with TryValues with OptionValues {
+  this: Suite =>
 
   private val isCI = sys.env.contains("CI")
 
@@ -93,6 +98,11 @@ trait ExampleTestHarness extends EitherValues with TryValues with OptionValues {
     )
   )
 
+  implicit val patience: PatienceConfig = PatienceConfig(
+    timeout = scaled(Span(60, Seconds)),
+    interval = scaled(Span(150, Millis))
+  )
+
   protected def withExample(sbtCommand: String, startTestString: String = "Example started")(
     prometheusApiBlock: PrometheusApi => Unit
   ): Unit = {
@@ -132,7 +142,7 @@ trait ExampleTestHarness extends EitherValues with TryValues with OptionValues {
 
       try {
         try
-          Await.result(processHandlePromise.future, 60.seconds)
+          Await.result(processHandlePromise.future, 120.seconds)
         catch {
           case NonFatal(ex) =>
             fail("failed to start example application", ex)

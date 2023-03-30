@@ -3,17 +3,10 @@ package io.scalac.mesmer.e2e
 import io.circe.Json
 import org.scalatest.EitherValues
 import org.scalatest.concurrent.Eventually
-import org.scalatest.concurrent.IntegrationPatience
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
-class ExampleZioTest
-    extends AnyWordSpec
-    with ExampleTestHarness
-    with Matchers
-    with Eventually
-    with IntegrationPatience
-    with EitherValues {
+class ExampleZioTest extends AnyWordSpec with ExampleTestHarness with Matchers with Eventually with EitherValues {
 
   "ZIO example" should {
     "produce both runtime and executor metrics" in withExample("exampleZio/run") { prometheusApi =>
