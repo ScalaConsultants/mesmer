@@ -94,91 +94,101 @@ trait ExampleTestHarness extends EitherValues with TryValues with OptionValues {
   )
 
   protected def withExample(sbtCommand: String, startTestString: String = "Example started")(
-    block: DockerComposeContainer => Unit
+    prometheusApiBlock: PrometheusApi => Unit
   ): Unit = {
-    if (isCI && isWindows) {
-      cancel("Cannot run on GitHub Windows CI runners - docker-compose not compatible with Windows containers")
-    }
-    val container = containerDef.createContainer()
-    container.start()
-
-    val processHandlePromise = Promise[Unit]()
-    val sbtOptions = List(
-      "-Dsbt.server.forcestart=true" // necessary for execution from sbt shell, because multiple sbt servers will be needed
-    )
-    val process =
-      ScalaProcess(
-        sbtExecutable ::: sbtOptions ::: sbtCommand :: Nil,
-        projectRoot
+    val sbtProcessFn = (block: () => Unit) => {
+      val processHandlePromise = Promise[Unit]()
+      val sbtOptions = List(
+        "-Dsbt.server.forcestart=true" // necessary for execution from sbt shell, because multiple sbt servers will be needed
       )
-    val processHandle = process.run(
-      ScalaProcessLogger(
-        line => {
-          if (line.contains(startTestString)) {
-            processHandlePromise.complete(Success(()))
+      val process =
+        ScalaProcess(
+          sbtExecutable ::: sbtOptions ::: sbtCommand :: Nil,
+          projectRoot
+        )
+      val processHandle = process.run(
+        ScalaProcessLogger(
+          line => {
+            if (line.contains(startTestString)) {
+              processHandlePromise.complete(Success(()))
+            }
+            sys.process.stdout.println(line)
+          },
+          sys.process.stderr.println(_)
+        )
+      )
+      Future {
+        blocking {
+          val exitValue = processHandle.exitValue()
+          if (!processHandlePromise.isCompleted) {
+            processHandlePromise.complete(
+              if (exitValue != 0)
+                Failure(new RuntimeException(s"sbt process exited with a non-zero exit code $exitValue"))
+              else Success(())
+            )
           }
-          sys.process.stdout.println(line)
-        },
-        sys.process.stderr.println(_)
-      )
-    )
-    Future {
-      blocking {
-        val exitValue = processHandle.exitValue()
-        if (!processHandlePromise.isCompleted) {
-          processHandlePromise.complete(
-            if (exitValue != 0)
-              Failure(new RuntimeException(s"sbt process exited with a non-zero exit code $exitValue"))
-            else Success(())
-          )
         }
       }
+
+      try {
+        try
+          Await.result(processHandlePromise.future, 60.seconds)
+        catch {
+          case NonFatal(ex) =>
+            fail("failed to start example application", ex)
+        }
+        block()
+      } finally {
+        // process destruction is more involved, because on Windows orphan processes are not automatically terminated
+        val method = processHandle.getClass.getDeclaredField("p")
+        method.setAccessible(true)
+        val javaProcess = method.get(processHandle).asInstanceOf[java.lang.Process]
+        val destroy = (javaProcess: java.lang.Process) => {
+          javaProcess
+            .descendants()
+            .iterator()
+            .asScala
+            .foreach(_.destroy())
+          javaProcess.destroy()
+        }
+        destroy(javaProcess)
+      }
     }
 
-    try {
-      try
-        Await.result(processHandlePromise.future, 60.seconds)
-      catch {
-        case NonFatal(ex) =>
-          fail("failed to start example application", ex)
-      }
-      block(container)
-    } finally {
-      // process destruction is more involved, because on Windows orphan processes are not automatically terminated
-      val method = processHandle.getClass.getDeclaredField("p")
-      method.setAccessible(true)
-      val javaProcess = method.get(processHandle).asInstanceOf[java.lang.Process]
-      val destroy = (javaProcess: java.lang.Process) => {
-        javaProcess
-          .descendants()
-          .iterator()
-          .asScala
-          .foreach(_.destroy())
-        javaProcess.destroy()
-      }
-      destroy(javaProcess)
+    // cannot run on GitHub Windows CI runners - docker-compose not compatible with Windows containers,
+    // so only check if example project manages to start up successfully
+    if (isCI && isWindows) {
+      sbtProcessFn(() => ())
+    } else {
+      val container = containerDef.createContainer()
+      container.start()
 
-      container.stop()
+      try
+        sbtProcessFn(() => prometheusApiBlock(new PrometheusApi(container)))
+      finally
+        container.stop()
     }
   }
 
-  def prometheusApiRequest(container: DockerComposeContainer)(
-    query: String,
-    block: Json => Unit
-  ): Unit = {
-    val urlString = s"http://localhost:${container.getServicePort("prometheus", 9090)}/api/v1/query?query=$query"
-    val request = HttpRequest
-      .newBuilder()
-      .uri(URI.create(urlString))
-      .build()
-    val client = HttpClient
-      .newBuilder()
-      .build()
-    val response = client.send(request, BodyHandlers.ofString())
-    parse(response.body())
-      .fold(
-        ex => sys.error(s"failed parsing response [${response.body()}] to JSON, error $ex"),
-        json => block(json)
-      )
+  class PrometheusApi(container: DockerComposeContainer) {
+    def assert(
+      query: String,
+      block: Json => Unit
+    ): Unit = {
+      val urlString = s"http://localhost:${container.getServicePort("prometheus", 9090)}/api/v1/query?query=$query"
+      val request = HttpRequest
+        .newBuilder()
+        .uri(URI.create(urlString))
+        .build()
+      val client = HttpClient
+        .newBuilder()
+        .build()
+      val response = client.send(request, BodyHandlers.ofString())
+      parse(response.body())
+        .fold(
+          ex => sys.error(s"failed parsing response [${response.body()}] to JSON, error $ex"),
+          json => block(json)
+        )
+    }
   }
 }

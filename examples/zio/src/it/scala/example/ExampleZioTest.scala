@@ -17,9 +17,9 @@ class ExampleZioTest
     with EitherValues {
 
   "ZIO example" should {
-    "produce both runtime and executor metrics" in withExample("exampleZio/run") { container =>
+    "produce both runtime and executor metrics" in withExample("exampleZio/run") { prometheusApi =>
       eventually {
-        prometheusApiRequest(container)(
+        prometheusApi.assert(
           "promexample_mesmer_zio_forwarded_zio_fiber_started",
           response =>
             response.hcursor
@@ -31,7 +31,7 @@ class ExampleZioTest
       }
 
       eventually {
-        prometheusApiRequest(container)(
+        prometheusApi.assert(
           "promexample_mesmer_zio_executor_size",
           response =>
             response.hcursor

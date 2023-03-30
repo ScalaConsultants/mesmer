@@ -17,9 +17,9 @@ class ExampleAkkaTest
     with EitherValues {
 
   "Akka example" should {
-    "produce metrics" in withExample("exampleAkka/run", startTestString = "Starting http server at") { container =>
+    "produce metrics" in withExample("exampleAkka/run", startTestString = "Starting http server at") { prometheusApi =>
       eventually {
-        prometheusApiRequest(container)(
+        prometheusApi.assert(
           "promexample_mesmer_akka_actor_mailbox_size",
           response =>
             response.hcursor

@@ -23,9 +23,9 @@ class ExampleAkkaStreamTest
   )
 
   "Akka Stream example" should {
-    "produce stream metrics" in withExample("exampleAkkaStream/run") { container =>
+    "produce stream metrics" in withExample("exampleAkkaStream/run") { prometheusApi =>
       eventually {
-        prometheusApiRequest(container)(
+        prometheusApi.assert(
           "promexample_mesmer_akka_streams_running_streams",
           response =>
             response.hcursor
