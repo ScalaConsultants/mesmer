@@ -2,10 +2,10 @@ package io.scalac.mesmer.otelextension.instrumentations.akka.persistence
 
 import scala.reflect.io.Path
 
-import io.scalac.mesmer.core.event.AbstractEvent
 import io.scalac.mesmer.core.model.PersistenceIdTag
 import io.scalac.mesmer.core.tagging.@@
 import io.scalac.mesmer.core.util.Timestamp
+import io.scalac.mesmer.otelextension.instrumentations.akka.common.AbstractEvent
 
 sealed trait PersistenceEvent extends AbstractEvent {
   type Service = PersistenceEvent

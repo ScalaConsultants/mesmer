@@ -11,11 +11,10 @@ import akka.actor.typed.{ ActorSystem, Behavior }
 import akka.stream.scaladsl._
 import akka.stream.{ Attributes, BufferOverflowException, OverflowStrategy, QueueOfferResult }
 import io.scalac.mesmer.agent.utils.{ OtelAgentTest, SafeLoadSystem }
-import io.scalac.mesmer.core.akka.model.PushMetrics
 import io.scalac.mesmer.core.util.TestBehaviors.Pass
 import io.scalac.mesmer.core.util.TestCase.CommonMonitorTestFactory
 import io.scalac.mesmer.otelextension.instrumentations.akka.stream.StreamEvent._
-import io.scalac.mesmer.otelextension.instrumentations.akka.stream.{ StreamEvent, StreamService }
+import io.scalac.mesmer.otelextension.instrumentations.akka.stream.{ PushMetrics, StreamEvent, StreamService }
 import org.scalatest._
 import org.scalatest.concurrent.{ Futures, ScalaFutures }
 import org.scalatest.flatspec.AnyFlatSpecLike
