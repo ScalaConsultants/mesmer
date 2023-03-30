@@ -6,6 +6,7 @@ import java.util.TimerTask
 import zio.metrics.MetricKey
 import zio.metrics.MetricKeyType
 
+import scala.annotation.nowarn
 import scala.collection.mutable
 import scala.concurrent.duration._
 import scala.util.control.NonFatal
@@ -31,7 +32,9 @@ class ConcurrentMetricRegistryPoller(client: ConcurrentMetricRegistryClient, zio
             case _: MetricKeyType.Counter =>
               zioMetrics.registerCounterAsyncMetric(metricPair.metricKey.asInstanceOf[MetricKey.Counter])
             case _: MetricKeyType.Gauge =>
-              zioMetrics.registerGaugeAsyncMetric(metricPair.metricKey.asInstanceOf[MetricKey.Gauge])
+              zioMetrics.registerGaugeAsyncMetric(metricPair.metricKey.asInstanceOf[MetricKey.Gauge]): @nowarn(
+                "msg=unreachable code"
+              )
             case _ =>
               new AutoCloseable {
                 override def close(): Unit = ()
