@@ -24,7 +24,7 @@ trait SafeLoadSystem extends BeforeAndAfterAll {
 
   override protected def beforeAll(): Unit = {
     super.beforeAll()
-    system = classic.ActorSystem(s"test-system", config).toTyped // ensure adapter is in use
+    system = classic.ActorSystem("test-system", config).toTyped // ensure adapter is in use
   }
 
   protected def config: Config = ConfigFactory.load("application-test")

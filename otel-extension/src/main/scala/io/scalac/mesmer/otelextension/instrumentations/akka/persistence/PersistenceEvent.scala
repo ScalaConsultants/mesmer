@@ -1,7 +1,6 @@
 package io.scalac.mesmer.otelextension.instrumentations.akka.persistence
 
-import scala.reflect.io.Path
-
+import io.scalac.mesmer.core.model.PathTag
 import io.scalac.mesmer.core.model.PersistenceIdTag
 import io.scalac.mesmer.core.tagging.@@
 import io.scalac.mesmer.core.util.Timestamp
@@ -14,6 +13,7 @@ sealed trait PersistenceEvent extends AbstractEvent {
 object PersistenceEvent {
 
   type PersistenceId = String @@ PersistenceIdTag
+  type Path          = String @@ PathTag
 
   sealed trait RecoveryEvent extends PersistenceEvent
 
