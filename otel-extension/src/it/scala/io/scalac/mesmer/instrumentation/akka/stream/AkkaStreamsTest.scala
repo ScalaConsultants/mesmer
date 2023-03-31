@@ -186,12 +186,14 @@ class AkkaStreamsTest
     actors(StreamCount)
 
     forAll(monitor.receiveMessages(StreamCount, 10.seconds)) {
-      inside(_) { case LastStreamStats(_, _, shellInfo) =>
-        val (stages, connectionStats) = shellInfo
-        stages should have size 2
-        val connection = connectionStats.toSeq.loneElement
-        connection.push should be(1L)
-        connection.pull should be(1L)
+      inside(_) {
+        case LastStreamStats(_, _, shellInfo) =>
+          val (stages, connectionStats) = shellInfo
+          stages should have size 2
+          val connection = connectionStats.toSeq.loneElement
+          connection.push should be(1L)
+          connection.pull should be(1L)
+        case StreamInterpreterStats(_, _, _) => ()
       }
     }
   }
