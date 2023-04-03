@@ -1,4 +1,5 @@
-package io.scalac.mesmer.core.util
+package io.scalac.mesmer.otelextension.instrumentations.akka.stream
+
 import akka.actor.ActorRef
 
 import scala.annotation.tailrec

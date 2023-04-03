@@ -16,10 +16,6 @@ import scala.concurrent.duration.FiniteDuration
 import scala.util.Failure
 import scala.util.Success
 
-import io.scalac.mesmer.core.event.Service.streamService
-import io.scalac.mesmer.core.event.StreamEvent
-import io.scalac.mesmer.core.event.StreamEvent.LastStreamStats
-import io.scalac.mesmer.core.event.StreamEvent.StreamInterpreterStats
 import io.scalac.mesmer.core.model.Node
 import io.scalac.mesmer.core.model.StreamInfo
 import io.scalac.mesmer.core.model.Tag._
@@ -29,6 +25,8 @@ import io.scalac.mesmer.core.util.ClassicActorSystemOps.ActorSystemOps
 import io.scalac.mesmer.core.util.Retry
 import io.scalac.mesmer.core.util.TypedActorSystemOps.{ ActorSystemOps => TypedActorSystemOps }
 import io.scalac.mesmer.otelextension.instrumentations.akka.stream.AkkaStreamMonitorExtension.StreamStatsReceived
+import io.scalac.mesmer.otelextension.instrumentations.akka.stream.StreamEvent._
+import io.scalac.mesmer.otelextension.instrumentations.akka.stream.StreamService.streamService
 
 final class AkkaStreamMonitorExtension(
   actorSystem: ActorSystem[_],
@@ -79,8 +77,6 @@ final class AkkaStreamMonitorExtension(
     metrics.setStreamProcessedMessagesTotal(processedMessages)
   }
 
-  private case class StageSnapshot(stage: StageInfo, input: Seq[SnapshotEntry], output: Seq[SnapshotEntry])
-
   private def collectStageSnapshots(streamInfo: StreamInfo): Set[StageSnapshot] =
     streamInfo.shellInfo.collect { case (stageInfo, connections) =>
       stageInfo
@@ -109,42 +105,6 @@ final class AkkaStreamMonitorExtension(
           StageSnapshot(stage, inputSnapshot, outputSnapshot)
         }
     }.flatten
-
-  private def getPerStageOperatorValues(snapshot: Seq[SnapshotEntry]): Map[Attributes, Long] =
-    snapshot
-      .groupBy(_.stage.subStreamName.streamName)
-      .flatMap { case (streamName, entriesPerStream) =>
-        entriesPerStream.groupBy(_.stage.stageName.nameOnly).map { case (stageName, entriesPerStage) =>
-          val attributes = StageAttributes(
-            stageName,
-            streamName,
-            terminal = false,
-            nodeName,
-            None
-          )
-
-          asOtelAttributes(attributes) -> entriesPerStage.size.toLong
-        }
-      }
-
-  private def getPerStageValues(snapshot: Seq[SnapshotEntry]): Map[Attributes, Long] =
-    snapshot.collect { case SnapshotEntry(stageInfo, Some(StageData(value, connectedWith))) =>
-      val attributes = StageAttributes(
-        stageInfo.stageName,
-        stageInfo.subStreamName.streamName,
-        stageInfo.terminal,
-        nodeName,
-        Some(connectedWith)
-      )
-
-      asOtelAttributes(attributes) -> value
-    }.toMap
-
-  private def asOtelAttributes(attributes: StageAttributes): Attributes = {
-    val builder = Attributes.builder()
-    attributes.serialize.foreach { case (k, v) => builder.put(k, v) }
-    builder.build()
-  }
 
   private def computeSnapshotEntries(
     stage: StageInfo,
@@ -180,6 +140,44 @@ final class AkkaStreamMonitorExtension(
       SnapshotEntry(stage, Some(StageData(value, connectedName.name)))
     } else SnapshotEntry(stage, Some(StageData(value, "unknown")))
 
+  private def getPerStageOperatorValues(snapshot: Seq[SnapshotEntry]): Map[Attributes, Long] =
+    snapshot
+      .groupBy(_.stage.subStreamName.streamName)
+      .flatMap { case (streamName, entriesPerStream) =>
+        entriesPerStream.groupBy(_.stage.stageName.nameOnly).map { case (stageName, entriesPerStage) =>
+          val attributes = StageAttributes(
+            stageName,
+            streamName,
+            terminal = false,
+            nodeName,
+            None
+          )
+
+          asOtelAttributes(attributes) -> entriesPerStage.size.toLong
+        }
+      }
+
+  private def asOtelAttributes(attributes: StageAttributes): Attributes = {
+    val builder = Attributes.builder()
+    attributes.serialize.foreach { case (k, v) => builder.put(k, v) }
+    builder.build()
+  }
+
+  private def getPerStageValues(snapshot: Seq[SnapshotEntry]): Map[Attributes, Long] =
+    snapshot.collect { case SnapshotEntry(stageInfo, Some(StageData(value, connectedWith))) =>
+      val attributes = StageAttributes(
+        stageInfo.stageName,
+        stageInfo.subStreamName.streamName,
+        stageInfo.terminal,
+        nodeName,
+        Some(connectedWith)
+      )
+
+      asOtelAttributes(attributes) -> value
+    }.toMap
+
+  private case class StageSnapshot(stage: StageInfo, input: Seq[SnapshotEntry], output: Seq[SnapshotEntry])
+
   actorSystem.systemActorOf(start(), "mesmerStreamMonitor")
 }
 
@@ -187,8 +185,6 @@ object AkkaStreamMonitorExtension {
   private val log           = LoggerFactory.getLogger(classOf[AkkaStreamMonitorExtension])
   private val retryLimit    = 10
   private val retryInterval = 2.seconds
-
-  final case class StreamStatsReceived(actorInterpreterStats: StreamEvent)
 
   def registerExtension(system: akka.actor.ActorSystem): Unit =
     new Thread(new Runnable() {
@@ -206,6 +202,8 @@ object AkkaStreamMonitorExtension {
     }
 
   private def register(system: akka.actor.ActorSystem) = system.toTyped.registerExtension(AkkaStreamMonitorExtensionId)
+
+  final case class StreamStatsReceived(actorInterpreterStats: StreamEvent)
 }
 
 object AkkaStreamMonitorExtensionId extends ExtensionId[AkkaStreamMonitorExtension] {

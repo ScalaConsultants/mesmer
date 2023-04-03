@@ -42,7 +42,7 @@ object InstrumentModuleFactory {
 abstract class InstrumentModuleFactory[M <: Module](val module: M) extends InstrumentationDSL {
   this: M#All[Agent] =>
 
-  protected def instrument(t: Type): TypeInstrumentation = TypeInstrumentation.instrument(t)
+  def instrument(t: Type): TypeInstrumentation = TypeInstrumentation.instrument(t)
 
   def agent: Agent
 

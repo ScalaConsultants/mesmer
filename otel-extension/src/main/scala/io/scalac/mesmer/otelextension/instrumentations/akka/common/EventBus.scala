@@ -1,4 +1,4 @@
-package io.scalac.mesmer.core.event
+package io.scalac.mesmer.otelextension.instrumentations.akka.common
 
 import akka.actor.typed._
 import akka.actor.typed.receptionist.Receptionist

@@ -1,8 +1,6 @@
-package io.scalac.mesmer.core.event
+package io.scalac.mesmer.otelextension.instrumentations.akka.common
 
 import akka.actor.typed.receptionist.ServiceKey
-
-import io.scalac.mesmer.core._
 
 trait AbstractService {
   type ServiceType
@@ -25,11 +23,4 @@ object Service {
   def apply[T](key: ServiceKey[T]): Service[T] = new Service[T] {
     val serviceKey: ServiceKey[T] = key
   }
-
-  implicit val actorService: Service[ActorEvent] = Service(actorServiceKey)
-
-  implicit val persistenceService: Service[PersistenceEvent] = Service(persistenceServiceKey)
-
-  implicit val streamService: Service[StreamEvent] = Service(streamServiceKey)
-
 }

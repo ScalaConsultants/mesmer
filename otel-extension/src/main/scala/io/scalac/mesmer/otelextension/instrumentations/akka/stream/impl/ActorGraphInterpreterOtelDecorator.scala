@@ -8,17 +8,17 @@ import akka.actor.Actor
 import akka.actor.typed.scaladsl.adapter._
 import akka.stream.GraphLogicOtelOps._
 
-import io.scalac.mesmer.core.akka.model.PushMetrics
-import io.scalac.mesmer.core.event.EventBus
-import io.scalac.mesmer.core.event.StreamEvent.LastStreamStats
-import io.scalac.mesmer.core.event.StreamEvent.StreamInterpreterStats
 import io.scalac.mesmer.core.invoke.Lookup
 import io.scalac.mesmer.core.model.ShellInfo
 import io.scalac.mesmer.core.model.Tag.SubStreamName
 import io.scalac.mesmer.core.model.stream.ConnectionStats
 import io.scalac.mesmer.core.model.stream.StageInfo
-import io.scalac.mesmer.core.util.stream.subStreamNameFromActorRef
+import io.scalac.mesmer.otelextension.instrumentations.akka.common.EventBus
 import io.scalac.mesmer.otelextension.instrumentations.akka.stream.AkkaStreamConfig
+import io.scalac.mesmer.otelextension.instrumentations.akka.stream.PushMetrics
+import io.scalac.mesmer.otelextension.instrumentations.akka.stream.StreamEvent._
+import io.scalac.mesmer.otelextension.instrumentations.akka.stream.StreamService.streamService
+import io.scalac.mesmer.otelextension.instrumentations.akka.stream.stream.subStreamNameFromActorRef
 
 object ActorGraphInterpreterOtelDecorator extends Lookup {
 
@@ -48,8 +48,7 @@ object ActorGraphInterpreterOtelDecorator extends Lookup {
 
       val stats = collectStats(currentShells, subStreamName)
 
-      EventBus(system.toTyped)
-        .publishEvent(StreamInterpreterStats(context.self, subStreamName, stats))
+      EventBus(system.toTyped).publishEvent(StreamInterpreterStats(context.self, subStreamName, stats))
     }
   }
 
