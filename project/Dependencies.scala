@@ -33,7 +33,7 @@ object Dependencies {
     "com.typesafe.akka" %% "akka-cluster-sharding-typed" % AkkaVersion
   )
 
-  val akkaPersistance = Seq(
+  val akkaPersistence = Seq(
     "com.typesafe.akka"  %% "akka-persistence-typed" % AkkaVersion,
     "com.lightbend.akka" %% "akka-persistence-jdbc"  % "5.2.0",
     "com.typesafe.akka"  %% "akka-persistence-query" % AkkaVersion

@@ -154,7 +154,7 @@ lazy val exampleAkka = exampleProject(project in file("examples/akka"))
       akka ++
       scalatest.map(_ % "test") ++
       akkaTestkit.map(_ % "test") ++
-      akkaPersistance ++ circe ++ Seq(
+      akkaPersistence ++ circe ++ Seq(
         "de.heikoseeberger"             %% "akka-http-circe"                   % "1.39.2",
         "org.postgresql"                 % "postgresql"                        % PostgresVersion,
         "com.typesafe.slick"            %% "slick"                             % SlickVersion,
