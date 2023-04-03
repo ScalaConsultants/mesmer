@@ -23,6 +23,7 @@ import org.scalatest.concurrent.PatienceConfiguration
 import org.scalatest.time.Millis
 import org.scalatest.time.Seconds
 import org.scalatest.time.Span
+import org.slf4j.LoggerFactory
 import org.testcontainers.shaded.org.apache.commons.io.FileUtils
 
 import scala.concurrent.Await
@@ -40,8 +41,9 @@ import scala.util.Success
 import scala.util.Using
 import scala.util.control.NonFatal
 
-trait ExampleTestHarness extends PatienceConfiguration with EitherValues with TryValues with OptionValues {
+trait E2ETest extends PatienceConfiguration with EitherValues with TryValues with OptionValues {
   this: Suite =>
+  import E2ETest._
 
   private val isCI = sys.env.contains("CI")
 
@@ -98,7 +100,7 @@ trait ExampleTestHarness extends PatienceConfiguration with EitherValues with Tr
     )
   )
 
-  implicit val patience: PatienceConfig = PatienceConfig(
+  implicit override def patienceConfig: PatienceConfig = PatienceConfig(
     timeout = scaled(Span(60, Seconds)),
     interval = scaled(Span(150, Millis))
   )
@@ -179,13 +181,25 @@ trait ExampleTestHarness extends PatienceConfiguration with EitherValues with Tr
         container.stop()
     }
   }
+}
+
+object E2ETest {
 
   class PrometheusApi(container: DockerComposeContainer) {
+
+    private val logger = LoggerFactory.getLogger(getClass)
+
+    val prometheusPort = {
+      val port = container.getServicePort("prometheus", 9090)
+      logger.info(s"Prometheus service bound to http://localhost:$port")
+      port
+    }
+
     def assert(
       query: String,
       block: Json => Unit
     ): Unit = {
-      val urlString = s"http://localhost:${container.getServicePort("prometheus", 9090)}/api/v1/query?query=$query"
+      val urlString = s"http://localhost:$prometheusPort/api/v1/query?query=$query"
       val request = HttpRequest
         .newBuilder()
         .uri(URI.create(urlString))

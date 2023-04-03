@@ -1,38 +1,25 @@
 package io.scalac.mesmer.e2e
 
-import io.circe.Json
-import org.scalatest.EitherValues
-import org.scalatest.concurrent.Eventually
-import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
-class ExampleZioTest extends AnyWordSpec with ExampleTestHarness with Matchers with Eventually with EitherValues {
+class ExampleZioTest extends AnyWordSpec with E2ETest with PrometheusMetrics {
+
+  private val zioMetrics = (Seq(
+    "mesmer_zio_executor_size",
+    "mesmer_zio_executor_capacity",
+    "mesmer_zio_executor_concurrency",
+    "mesmer_zio_executor_worker_count",
+    "mesmer_zio_executor_dequeued_count",
+    "mesmer_zio_executor_enqueued_count",
+    "mesmer_zio_forwarded_jvm_info",
+    "mesmer_zio_forwarded_zio_fiber_started",
+    "mesmer_zio_forwarded_zio_fiber_successes",
+    "mesmer_zio_forwarded_zio_fiber_fork_locations"
+  ) ++ prometheusHistogram("mesmer_zio_forwarded_zio_fiber_lifetimes")).map("promexample_" + _)
 
   "ZIO example" should {
     "produce both runtime and executor metrics" in withExample("exampleZio/run") { prometheusApi =>
-      eventually {
-        prometheusApi.assert(
-          "promexample_mesmer_zio_forwarded_zio_fiber_started",
-          response =>
-            response.hcursor
-              .downField("data")
-              .downField("result")
-              .as[Seq[Json]]
-              .value should not be empty
-        )
-      }
-
-      eventually {
-        prometheusApi.assert(
-          "promexample_mesmer_zio_executor_size",
-          response =>
-            response.hcursor
-              .downField("data")
-              .downField("result")
-              .as[Seq[Json]]
-              .value should not be empty
-        )
-      }
+      zioMetrics.foreach(assertMetricExists(prometheusApi)(_))
     }
   }
 }

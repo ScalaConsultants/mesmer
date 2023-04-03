@@ -206,7 +206,9 @@ lazy val e2eTest = (project in file("e2e-test"))
     name           := "mesmer-e2e-test",
     publish / skip := true,
     libraryDependencies ++= {
-      scalatest.map(_ % "it") ++ akkaTestkit.map(_ % "it") ++ testcontainersScala.map(_ % "it") ++ circe.map(_ % "it")
+      logback.map(_ % "it") ++ scalatest.map(_ % "it") ++ akkaTestkit.map(_ % "it") ++ testcontainersScala
+        .map(_ % "it") ++ circe
+        .map(_ % "it")
     },
     IntegrationTest / parallelExecution := false,
     IntegrationTest / fork              := true
