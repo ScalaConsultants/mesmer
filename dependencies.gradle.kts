@@ -1,15 +1,17 @@
-val akkaHttpVersion = "10.2.9"
-val akkaVersion = "2.6.19"
+val akkaHttpVersion = "10.4.0"
+val akkaVersion = "2.7.0"
 val autoServiceVersion = "1.0.1"
-val byteBuddyVersion = "1.12.13"
-val opentelemetryVersion = "1.13.0"
-val opentelemetryAlphaVersion = "1.13.1-alpha"
-val scalaVersion = "2.13.6"
+val byteBuddyVersion = "1.14.2"
+val flexmarkVersion = "0.64.0"
+val opentelemetryVersion = "1.24.0"
+val opentelemetryAlphaVersion = "1.24.0-alpha"
+val scalaVersion = "2.13.10"
+val scalatestVersion = "3.2.15"
 
-val zioVersion = "2.0.0"
+val zioVersion = "2.0.10"
 
 val zio = mapOf(
-    "zio-core" to "dev.zio:zio_3:$zioVersion"
+    "zio-core" to "dev.zio:zio_2.13:$zioVersion"
 )
 val google = mapOf(
     "google-auto-service" to "com.google.auto.service:auto-service:$autoServiceVersion"
@@ -27,27 +29,39 @@ val akka = mapOf(
     "akka-cluster-sharding-typed" to "com.typesafe.akka:akka-cluster-sharding-typed_2.13:$akkaVersion"
 )
 
+val akkaTestkit = mapOf(
+    "actor-testkit" to "com.typesafe.akka:akka-actor-testkit-typed_2.13:$akkaVersion",
+    "persistence-testkit" to "com.typesafe.akka:akka-persistence-testkit_2.13:$akkaVersion",
+    "stream-testkit" to "com.typesafe.akka:akka-stream-testkit_2.13:$akkaVersion",
+    "http-testkit" to "com.typesafe.akka:akka-http-testkit_2.13:$akkaHttpVersion"
+)
+
 val byteBuddy = mapOf(
     "byte-buddy" to "net.bytebuddy:byte-buddy:$byteBuddyVersion",
     "byte-buddy-agent" to "net.bytebuddy:byte-buddy-agent:$byteBuddyVersion"
 )
 
 val openTelemetry = mapOf(
-    "opentelemetry-api" to "io.opentelemetry:opentelemetry-api:$opentelemetryVersion",
-    "opentelemetry-instrumentation-api" to "io.opentelemetry.instrumentation:opentelemetry-instrumentation-api:$opentelemetryAlphaVersion",
-    "opentelemetry-extension-api" to "io.opentelemetry.javaagent:opentelemetry-javaagent-extension-api:$opentelemetryAlphaVersion",
+    "opentelemetry-instrumentation-api-semconv" to "io.opentelemetry.instrumentation:opentelemetry-instrumentation-api-semconv:$opentelemetryAlphaVersion",
+    "opentelemetry-javaagent-extension-api" to "io.opentelemetry.javaagent:opentelemetry-javaagent-extension-api:$opentelemetryAlphaVersion",
+    "opentelemetry-instrumentation-api" to "io.opentelemetry.instrumentation:opentelemetry-instrumentation-api:$opentelemetryVersion",
     "opentelemetry-javaagent-tooling" to "io.opentelemetry.javaagent:opentelemetry-javaagent-tooling:$opentelemetryAlphaVersion",
     "opentelemetry-muzzle" to "io.opentelemetry.javaagent:opentelemetry-muzzle:$opentelemetryAlphaVersion",
     "opentelemetry-javaagent-bootstrap" to "io.opentelemetry.javaagent:opentelemetry-javaagent-bootstrap:$opentelemetryAlphaVersion",
-    "opentelemetry-instrumentation-api-semconv" to "io.opentelemetry.instrumentation:opentelemetry-instrumentation-api-semconv:$opentelemetryAlphaVersion"
+    "opentelemetry-testing-common" to "io.opentelemetry.javaagent:opentelemetry-testing-common:$opentelemetryAlphaVersion",
 
-)
+    )
 val scala = mapOf(
-    "scala-library" to "org.scala-lang:scala-library:$scalaVersion"
+    "scala-library" to "org.scala-lang:scala-library:$scalaVersion",
+    "scalatest" to "org.scalatest:scalatest_2.13:$scalatestVersion"
+)
+
+val flexmark = mapOf(
+    "flexmark" to "com.vladsch.flexmark:flexmark-all:$flexmarkVersion"
 )
 
 
-extra["dependencies"] = akka + openTelemetry + scala + google + zio + byteBuddy
+extra["dependencies"] = akka + akkaTestkit + openTelemetry + scala + google + zio + byteBuddy + flexmark
 extra["getDependency"] = fun(name: String): String {
     val dependencies: Map<String, String> = extra["dependencies"] as Map<String, String>
     return dependencies[name]!!

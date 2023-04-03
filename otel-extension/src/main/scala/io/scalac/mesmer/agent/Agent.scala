@@ -12,7 +12,7 @@ import net.bytebuddy.utility.JavaModule
 
 import scala.jdk.CollectionConverters.SeqHasAsJava
 
-final case class Agent private (private[mesmer] val instrumentations: Set[AgentInstrumentation]) extends {
+final case class Agent private (private[mesmer] val instrumentations: Set[AgentInstrumentation]) {
 
   def ++(other: Agent): Agent = Agent(instrumentations ++ other.instrumentations)
 
