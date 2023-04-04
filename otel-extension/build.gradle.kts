@@ -3,11 +3,12 @@ plugins {
     idea
     scala
     id("com.github.maiflai.scalatest") version "0.32"
+    id("com.github.johnrengelman.shadow") version "8.1.1"
+    id("io.opentelemetry.instrumentation.muzzle-generation") version "1.24.0-alpha"
 }
 
 apply(from = "../dependencies.gradle.kts")
 val getDependency = extra["getDependency"] as (name: String) -> String
-
 
 sourceSets {
     main {
@@ -27,7 +28,9 @@ dependencies {
     implementation(getDependency("opentelemetry-instrumentation-api-semconv"))
     implementation(getDependency("byte-buddy"))
     implementation(getDependency("byte-buddy-agent"))
-    implementation(getDependency("google-auto-service"))
+    compileOnly(getDependency("google-auto-service"))
+    annotationProcessor(getDependency("google-auto-service"))
+
     implementation(project(":core"))
 
     testRuntimeOnly(getDependency("flexmark"))
