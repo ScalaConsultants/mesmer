@@ -26,7 +26,7 @@ There are three actor attributes grouping options:
 By default the path grouping is disabled. You can change this by launching the Mesmer extension with `-Dio.scalac.mesmer.actor.reporting-default=group` configuration option. This will give all the actors' metrics the attribute `actor_path="/"`.
 
 Alternatively, it is possible to override a single path grouping strategy as following
-```
+```sh
 java -javaagent:path/to/opentelemetry-javaagent.jar \
   -Dotel.javaagent.extensions=path/to/mesmer-otel-extension.jar \
   -Dio.scalac.mesmer.actor.reporting-default=ignore \

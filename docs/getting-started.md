@@ -12,9 +12,9 @@ This guide presents steps for Prometheus and OTEL (native OpenTelemetry protocol
 
 ## Basic setup
 
-1. Download [opentelemetry-javaagent.jar](https://github.com/open-telemetry/opentelemetry-java-instrumentation/releases/download/v1.13.1/opentelemetry-javaagent.jar) from `opentelemetry-java` Releases.
+1. Download [opentelemetry-javaagent.jar](https://github.com/open-telemetry/opentelemetry-java-instrumentation/releases/download/v1.24.0/opentelemetry-javaagent.jar) from `opentelemetry-java` Releases.
 
-2. Download [mesmer-otel-extension.jar](https://github.com/ScalaConsultants/mesmer/releases/download/v0.8.0.RC1/mesmer-otel-extension.jar) from `mesmer` Releases.
+2. Download [mesmer-otel-extension.jar](https://github.com/ScalaConsultants/mesmer/releases/download/v0.9.0/mesmer-otel-extension.jar) from `mesmer` Releases.
 
 3. Run your application with OT Agent `-javaagent` and Mesmer extension `-Dotel.javaagent.extensions` attached.
    ```sh
@@ -39,13 +39,3 @@ This guide presents steps for Prometheus and OTEL (native OpenTelemetry protocol
    ```sh
    curl -i http://localhost:9464
    ```
-
-**Important for v0.8.0.RC1**
-
-At this moment (v0.8.0.RC1) Mesmer is closely bound with Akka. This is something we're working on, but until then there's a specific step that needs to be made in non-Akka applications. The application needs to be run with these additional parameters (that will turn off Akka instrumentation):
-```sh
--Dotel.instrumentation.mesmer-akka-actor.enabled=false
--Dotel.instrumentation.mesmer-akka-http.enabled=false
--Dotel.instrumentation.mesmer-akka-persistence.enabled=false
--Dotel.instrumentation.mesmer-akka-stream.enabled=false
-```

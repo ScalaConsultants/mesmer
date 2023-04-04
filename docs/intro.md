@@ -39,5 +39,5 @@ Initiative that's goal is to create a spec for observable systems and provide to
 
 ## Mesmer
 * [Mesmer Contributor Guide](https://github.com/ScalaConsultants/mesmer/blob/main/CONTRIBUTORS.md)
-* [ScalaC Mesmer Article](https://scalac.io/blog/the-opentelemetry-mesmer-duo-state-of-the-mesmer-project/)
-* [ScalaC - Mesmer homepage](https://scalac.io/mesmer-opentelemetry-extension/)
+* [Scalac Mesmer Article](https://scalac.io/blog/the-opentelemetry-mesmer-duo-state-of-the-mesmer-project/)
+* [Scalac - Mesmer homepage](https://scalac.io/mesmer-opentelemetry-extension/)
