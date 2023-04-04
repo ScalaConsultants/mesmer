@@ -8,6 +8,7 @@ object Dependencies {
   val AkkaVersion           = "2.7.0"
   val ByteBuddyVersion      = "1.14.2"
   val CirceVersion          = "0.14.5"
+  val CirceYamlVersion      = "0.14.2"
 
   val GoogleAutoServiceVersion        = "1.0.1"
   val LogbackVersion                  = "1.4.6"
@@ -17,6 +18,7 @@ object Dependencies {
   val OpentelemetryAlphaMinor0Version = "1.24.0-alpha"
   val PostgresVersion                 = "42.6.0"
   val ScalatestVersion                = "3.2.15"
+  val TestcontainersScalaVersion      = "0.40.14"
   val SlickVersion                    = "3.4.1"
 
   val akka = Seq(
@@ -31,7 +33,7 @@ object Dependencies {
     "com.typesafe.akka" %% "akka-cluster-sharding-typed" % AkkaVersion
   )
 
-  val akkaPersistance = Seq(
+  val akkaPersistence = Seq(
     "com.typesafe.akka"  %% "akka-persistence-typed" % AkkaVersion,
     "com.lightbend.akka" %% "akka-persistence-jdbc"  % "5.2.0",
     "com.typesafe.akka"  %% "akka-persistence-query" % AkkaVersion
@@ -78,4 +80,13 @@ object Dependencies {
   )
 
   val scalatest = Seq("org.scalatest" %% "scalatest" % ScalatestVersion)
+
+  val testcontainersScala = Seq("com.dimafeng" %% "testcontainers-scala" % TestcontainersScalaVersion)
+
+  val circe = Seq(
+    "io.circe" %% "circe-core"    % CirceVersion,
+    "io.circe" %% "circe-generic" % CirceVersion,
+    "io.circe" %% "circe-parser"  % CirceVersion,
+    "io.circe" %% "circe-yaml"    % CirceYamlVersion
+  )
 }

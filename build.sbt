@@ -43,7 +43,7 @@ lazy val all: Project = (project in file("."))
     name           := "mesmer-all",
     publish / skip := true
   )
-  .aggregate(otelExtension, core, testkit, exampleAkka, exampleAkkaStream, exampleZio)
+  .aggregate(otelExtension, core, testkit, exampleAkka, exampleAkkaStream, exampleZio, e2eTest)
 
 lazy val core = (project in file("core"))
   .disablePlugins(sbtassembly.AssemblyPlugin)
@@ -126,37 +126,35 @@ lazy val otelExtension = (project in file("otel-extension"))
   )
   .dependsOn(core % "provided->compile;compile->compile", testkit % "it,test")
 
-def exampleCommonSettings = Seq(
-  publish / skip := true,
-  resolvers += "Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots",
-  run / javaOptions ++= Seq(
-    s"-javaagent:$projectRootDir/opentelemetry-javaagent-$OpentelemetryMinor0Version.jar",
-    s"-Dotel.javaagent.extensions=${(otelExtension / assembly).value.absolutePath}",
-    "-Dotel.javaagent.debug=true"
-  ),
-  libraryDependencies ++= {
-    logback ++ Seq(
-      "io.grpc"             % "grpc-netty-shaded" % "1.54.0",
-      "org.wvlet.airframe" %% "airframe-log"      % AirframeVersion
-    )
-  },
-  run / fork         := true,
-  run / connectInput := true
-)
-
-lazy val exampleAkka = (project in file("examples/akka"))
+def exampleProject(project: Project) = project
   .disablePlugins(sbtassembly.AssemblyPlugin)
-  .settings(exampleCommonSettings)
+  .settings(
+    publish / skip := true,
+    resolvers += "Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots",
+    run / javaOptions ++= Seq(
+      s"-javaagent:$projectRootDir/opentelemetry-javaagent-$OpentelemetryMinor0Version.jar",
+      s"-Dotel.javaagent.extensions=${(otelExtension / assembly).value.absolutePath}",
+      "-Dotel.javaagent.debug=true"
+    ),
+    libraryDependencies ++= {
+      logback ++ Seq(
+        "io.grpc"             % "grpc-netty-shaded" % "1.54.0",
+        "org.wvlet.airframe" %% "airframe-log"      % AirframeVersion
+      )
+    },
+    run / fork         := true,
+    run / connectInput := true
+  )
+  .dependsOn(core, testkit % "test")
+
+lazy val exampleAkka = exampleProject(project in file("examples/akka"))
   .settings(
     name := "mesmer-akka-example",
     libraryDependencies ++= {
       akka ++
       scalatest.map(_ % "test") ++
       akkaTestkit.map(_ % "test") ++
-      akkaPersistance ++ Seq(
-        "io.circe"                      %% "circe-core"                        % CirceVersion,
-        "io.circe"                      %% "circe-generic"                     % CirceVersion,
-        "io.circe"                      %% "circe-parser"                      % CirceVersion,
+      akkaPersistence ++ circe ++ Seq(
         "de.heikoseeberger"             %% "akka-http-circe"                   % "1.39.2",
         "org.postgresql"                 % "postgresql"                        % PostgresVersion,
         "com.typesafe.slick"            %% "slick"                             % SlickVersion,
@@ -172,11 +170,8 @@ lazy val exampleAkka = (project in file("examples/akka"))
       s"-Dotel.metric.export.interval=5000"
     )
   )
-  .dependsOn(core)
 
-lazy val exampleAkkaStream = (project in file("examples/akka-stream"))
-  .disablePlugins(sbtassembly.AssemblyPlugin)
-  .settings(exampleCommonSettings)
+lazy val exampleAkkaStream = exampleProject(project in file("examples/akka-stream"))
   .settings(
     name := "mesmer-akka-stream-example",
     libraryDependencies ++= akka,
@@ -185,11 +180,8 @@ lazy val exampleAkkaStream = (project in file("examples/akka-stream"))
       s"-Dotel.metric.export.interval=5000"
     )
   )
-  .dependsOn(core)
 
-lazy val exampleZio = (project in file("examples/zio"))
-  .disablePlugins(sbtassembly.AssemblyPlugin)
-  .settings(exampleCommonSettings)
+lazy val exampleZio = exampleProject(project in file("examples/zio"))
   .settings(
     name := "mesmer-zio-example",
     libraryDependencies ++= zio,
@@ -198,7 +190,6 @@ lazy val exampleZio = (project in file("examples/zio"))
       s"-Dotel.metric.export.interval=1000"
     )
   )
-  .dependsOn(core)
 
 lazy val docs = project
   .in(file("mesmer-docs")) // important: it must not be docs/
@@ -207,6 +198,21 @@ lazy val docs = project
   )
   .dependsOn(otelExtension)
   .enablePlugins(MdocPlugin, DocusaurusPlugin)
+
+lazy val e2eTest = (project in file("e2e-test"))
+  .configs(IntegrationTest)
+  .settings(
+    Defaults.itSettings,
+    name           := "mesmer-e2e-test",
+    publish / skip := true,
+    libraryDependencies ++= {
+      logback.map(_ % "it") ++ scalatest.map(_ % "it") ++ akkaTestkit.map(_ % "it") ++ testcontainersScala
+        .map(_ % "it") ++ circe
+        .map(_ % "it")
+    },
+    IntegrationTest / parallelExecution := false,
+    IntegrationTest / fork              := true
+  )
 
 lazy val assemblyMergeStrategySettings = assembly / assemblyMergeStrategy := {
   case PathList("META-INF", "services", _ @_*)           => MergeStrategy.concat
