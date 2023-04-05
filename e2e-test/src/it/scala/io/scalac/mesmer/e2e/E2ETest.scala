@@ -96,9 +96,9 @@ trait E2ETest extends PatienceConfiguration with EitherValues with TryValues wit
   private val containerDef = DockerComposeContainer.Def(
     dockerComposeFile,
     exposedServices = Seq(
-      ExposedService("prometheus", 9090)
-    ),
-    tailChildContainers = true
+      ExposedService(PrometheusApi.serviceName, PrometheusApi.servicePort),
+      ExposedService(OpenTelemetryCollectorApi.serviceName, OpenTelemetryCollectorApi.prometheusExporterPort)
+    )
   )
 
   implicit override def patienceConfig: PatienceConfig = PatienceConfig(
@@ -178,20 +178,28 @@ trait E2ETest extends PatienceConfiguration with EitherValues with TryValues wit
 
       try
         sbtProcessFn(() => prometheusApiBlock(new PrometheusApi(container)))
-      finally
+      finally {
+        val collectorApi = new OpenTelemetryCollectorApi(container)
+        collectorApi.logMetrics()
         container.stop()
+      }
     }
   }
 }
 
 object E2ETest {
 
+  object PrometheusApi {
+    val serviceName = "prometheus"
+    val servicePort = 9090
+  }
   class PrometheusApi(container: DockerComposeContainer) {
+    import PrometheusApi._
 
     private val logger = LoggerFactory.getLogger(getClass)
 
-    val prometheusPort = {
-      val port = container.getServicePort("prometheus", 9090)
+    val prometheusBoundPort = {
+      val port = container.getServicePort(serviceName, servicePort)
       logger.info(s"Prometheus service bound to http://localhost:$port")
       port
     }
@@ -200,7 +208,7 @@ object E2ETest {
       query: String,
       block: Json => Unit
     ): Unit = {
-      val urlString = s"http://localhost:$prometheusPort/api/v1/query?query=$query"
+      val urlString = s"http://localhost:$prometheusBoundPort/api/v1/query?query=$query"
       val request = HttpRequest
         .newBuilder()
         .uri(URI.create(urlString))
@@ -214,6 +222,35 @@ object E2ETest {
           ex => sys.error(s"failed parsing response [${response.body()}] to JSON, error $ex"),
           json => block(json)
         )
+    }
+  }
+
+  object OpenTelemetryCollectorApi {
+    val serviceName            = "otel-collector"
+    val prometheusExporterPort = 8889
+  }
+  class OpenTelemetryCollectorApi(container: DockerComposeContainer) {
+    import OpenTelemetryCollectorApi._
+
+    private val logger = LoggerFactory.getLogger(getClass)
+
+    val prometheusExporterBoundPort = {
+      val port = container.getServicePort(serviceName, prometheusExporterPort)
+      logger.info(s"OpenTelemetry Collector service bound to http://localhost:$port")
+      port
+    }
+
+    def logMetrics(): Unit = {
+      val urlString = s"http://localhost:$prometheusExporterBoundPort/metrics"
+      val request = HttpRequest
+        .newBuilder()
+        .uri(URI.create(urlString))
+        .build()
+      val client = HttpClient
+        .newBuilder()
+        .build()
+      val response = client.send(request, BodyHandlers.ofString())
+      logger.info(s"Metrics:\n${response.body()}")
     }
   }
 }
