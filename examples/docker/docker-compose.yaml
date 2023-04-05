@@ -15,7 +15,7 @@ services:
 
   otel-collector:
     container_name: mesmer_example_otel_collector
-    image: otel/opentelemetry-collector-contrib-dev:latest
+    image: otel/opentelemetry-collector-contrib:0.75.0
     command: [--config=/etc/otel-collector-config.yaml, '']
     volumes:
     - ./otel-collector-config.yaml:/etc/otel-collector-config.yaml

@@ -12,7 +12,6 @@ import java.nio.file.Paths
 import com.dimafeng.testcontainers.DockerComposeContainer
 import com.dimafeng.testcontainers.ExposedService
 import io.circe.Json
-import io.circe.parser._
 import io.circe.yaml._
 import io.circe.yaml.syntax._
 import org.scalatest.EitherValues
@@ -55,60 +54,69 @@ trait E2ETest extends PatienceConfiguration with EitherValues with TryValues wit
     "sbt" :: Nil
   }
 
-  private val (projectRoot, dockerComposeFile) = {
+  private val constructDockerComposePath = (projectRoot: File) =>
+    Paths.get(projectRoot.getAbsolutePath, "examples/docker/docker-compose.yaml").toFile
+
+  private val projectRoot = {
     // sbt shell needs `./`, IntelliJ run/debug configurations need `../../`
     val maybeProjectRoots = Set(new File("../"), new File("./"))
-    val constructDockerComposePath = (projectRoot: File) =>
-      Paths.get(projectRoot.getAbsolutePath, "examples/docker/docker-compose.yaml").toFile
-    val projectRoot = maybeProjectRoots
+    maybeProjectRoots
       .find(maybeProjectRoot => constructDockerComposePath(maybeProjectRoot).exists())
       .getOrElse(sys.error("Project root not found"))
-
-    // remove `container_name` attribute from docker-compose services, because testcontainers do not support it,
-    // copy `examples/docker` to a temp directory where we apply the docker-compose transformation
-    val dockerComposeJson = Using(Source.fromFile(constructDockerComposePath(projectRoot))) { source =>
-      parser.parse(source.reader()).value
-    }.success.value.hcursor
-      .downField("services")
-      .withFocus(
-        _.withObject(services =>
-          Json.obj(
-            services.keys.map { serviceKey =>
-              (
-                serviceKey,
-                services(serviceKey).value.mapObject(_.filterKeys(_ != "container_name"))
-              )
-            }.toSeq: _*
-          )
-        )
-      )
-      .top
-      .value
-      .asYaml
-      .spaces2
-    val tmpDockerDirectory = Files.createTempDirectory("mesmer-").toFile
-    FileUtils.copyDirectory(Paths.get(projectRoot.toString, "examples/docker").toFile, tmpDockerDirectory)
-    val tmpDockerCompose = Paths.get(tmpDockerDirectory.getAbsolutePath, "docker-compose.yaml").toFile
-    Files.write(tmpDockerCompose.toPath, dockerComposeJson.getBytes(StandardCharsets.UTF_8))
-    (projectRoot, tmpDockerCompose)
   }
-
-  private val containerDef = DockerComposeContainer.Def(
-    dockerComposeFile,
-    exposedServices = Seq(
-      ExposedService(PrometheusApi.serviceName, PrometheusApi.servicePort),
-      ExposedService(OpenTelemetryCollectorApi.serviceName, OpenTelemetryCollectorApi.prometheusExporterPort)
-    )
-  )
 
   implicit override def patienceConfig: PatienceConfig = PatienceConfig(
     timeout = scaled(Span(60, Seconds)),
     interval = scaled(Span(150, Millis))
   )
 
-  protected def withExample(sbtCommand: String, startTestString: String = "Example started")(
-    prometheusApiBlock: PrometheusApi => Unit
+  protected def withExample(
+    sbtCommand: String,
+    additionalServices: Set[String] = Set.empty,
+    startTestString: String = "Example started"
+  )(
+    collectorApiBlock: OpenTelemetryCollectorApi => Unit
   ): Unit = {
+    val dockerComposeFile = {
+      // remove `container_name` attribute from docker-compose services, because testcontainers do not support it,
+      // copy `examples/docker` to a temp directory where we apply the docker-compose transformation
+      val dockerComposeJson = Using(Source.fromFile(constructDockerComposePath(projectRoot))) { source =>
+        parser.parse(source.reader()).value
+      }.success.value.hcursor
+        .downField("services")
+        .withFocus(
+          _.withObject(services =>
+            Json.obj(
+              services.keys
+                .filter((Set("otel-collector") ++ additionalServices).contains)
+                .map { serviceKey =>
+                  (
+                    serviceKey,
+                    services(serviceKey).value.mapObject(_.filterKeys(_ != "container_name"))
+                  )
+                }
+                .toSeq: _*
+            )
+          )
+        )
+        .top
+        .value
+        .asYaml
+        .spaces2
+      val tmpDockerDirectory = Files.createTempDirectory("mesmer-").toFile
+      FileUtils.copyDirectory(Paths.get(projectRoot.toString, "examples/docker").toFile, tmpDockerDirectory)
+      val tmpDockerCompose = Paths.get(tmpDockerDirectory.getAbsolutePath, "docker-compose.yaml").toFile
+      Files.write(tmpDockerCompose.toPath, dockerComposeJson.getBytes(StandardCharsets.UTF_8))
+      tmpDockerCompose
+    }
+
+    val containerDef = DockerComposeContainer.Def(
+      dockerComposeFile,
+      exposedServices = Seq(
+        ExposedService(OpenTelemetryCollectorApi.serviceName, OpenTelemetryCollectorApi.prometheusExporterPort)
+      )
+    )
+
     val sbtProcessFn = (block: () => Unit) => {
       val processHandlePromise = Promise[Unit]()
       val sbtOptions = List(
@@ -177,53 +185,14 @@ trait E2ETest extends PatienceConfiguration with EitherValues with TryValues wit
       container.start()
 
       try
-        sbtProcessFn(() => prometheusApiBlock(new PrometheusApi(container)))
-      finally {
-        val collectorApi = new OpenTelemetryCollectorApi(container)
-        collectorApi.logMetrics()
+        sbtProcessFn(() => collectorApiBlock(new OpenTelemetryCollectorApi(container)))
+      finally
         container.stop()
-      }
     }
   }
 }
 
 object E2ETest {
-
-  object PrometheusApi {
-    val serviceName = "prometheus"
-    val servicePort = 9090
-  }
-  class PrometheusApi(container: DockerComposeContainer) {
-    import PrometheusApi._
-
-    private val logger = LoggerFactory.getLogger(getClass)
-
-    val prometheusBoundPort = {
-      val port = container.getServicePort(serviceName, servicePort)
-      logger.info(s"Prometheus service bound to http://localhost:$port")
-      port
-    }
-
-    def assert(
-      query: String,
-      block: Json => Unit
-    ): Unit = {
-      val urlString = s"http://localhost:$prometheusBoundPort/api/v1/query?query=$query"
-      val request = HttpRequest
-        .newBuilder()
-        .uri(URI.create(urlString))
-        .build()
-      val client = HttpClient
-        .newBuilder()
-        .build()
-      val response = client.send(request, BodyHandlers.ofString())
-      parse(response.body())
-        .fold(
-          ex => sys.error(s"failed parsing response [${response.body()}] to JSON, error $ex"),
-          json => block(json)
-        )
-    }
-  }
 
   object OpenTelemetryCollectorApi {
     val serviceName            = "otel-collector"
@@ -236,11 +205,13 @@ object E2ETest {
 
     val prometheusExporterBoundPort = {
       val port = container.getServicePort(serviceName, prometheusExporterPort)
-      logger.info(s"OpenTelemetry Collector service bound to http://localhost:$port")
+      logger.info(s"OpenTelemetry Collector service Prometheus exporter bound to http://localhost:$port")
       port
     }
 
-    def logMetrics(): Unit = {
+    def assertMetrics(
+      block: String => Unit
+    ): Unit = {
       val urlString = s"http://localhost:$prometheusExporterBoundPort/metrics"
       val request = HttpRequest
         .newBuilder()
@@ -250,7 +221,7 @@ object E2ETest {
         .newBuilder()
         .build()
       val response = client.send(request, BodyHandlers.ofString())
-      logger.info(s"Metrics:\n${response.body()}")
+      block(response.body())
     }
   }
 }
