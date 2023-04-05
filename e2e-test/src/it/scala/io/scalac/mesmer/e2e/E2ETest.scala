@@ -97,7 +97,8 @@ trait E2ETest extends PatienceConfiguration with EitherValues with TryValues wit
     dockerComposeFile,
     exposedServices = Seq(
       ExposedService("prometheus", 9090)
-    )
+    ),
+    tailChildContainers = true
   )
 
   implicit override def patienceConfig: PatienceConfig = PatienceConfig(
