@@ -9,7 +9,8 @@ import java.util.UUID
 
 import org.scalatest.wordspec.AnyWordSpec
 
-class ExampleAkkaTest extends AnyWordSpec with E2ETest with PrometheusMetrics {
+class ExampleAkkaTest extends AnyWordSpec with E2ETest with PrometheusExporterMetrics {
+  import PrometheusExporterMetrics.Metric._
 
   // Akka example does not produce following metrics:
   // mesmer_akka_actor_failed_messages
@@ -18,27 +19,29 @@ class ExampleAkkaTest extends AnyWordSpec with E2ETest with PrometheusMetrics {
   // mesmer_akka_cluster_unreachable_nodes
   private val akkaMetrics = {
     val actorMetrics = Seq(
-      "mesmer_akka_actor_mailbox_size",
-      "mesmer_akka_actor_stashed_messages",
-      "mesmer_akka_actor_sent_messages",
-      "mesmer_akka_actor_actors_created",
-      "mesmer_akka_actor_actors_terminated"
-    ) ++
-      prometheusHistogram("mesmer_akka_actor_message_processing_time") ++
-      prometheusHistogram("mesmer_akka_actor_mailbox_time")
-    val persistenceMetrics = Seq("mesmer_akka_persistence_snapshot") ++
-      prometheusHistogram("mesmer_akka_persistence_recovery_time") ++
-      prometheusHistogram("mesmer_akka_persistence_event_time")
+      Gauge("mesmer_akka_actor_mailbox_size"),
+      Counter("mesmer_akka_actor_stashed_messages"),
+      Counter("mesmer_akka_actor_sent_messages"),
+      Counter("mesmer_akka_actor_actors_created"),
+      Counter("mesmer_akka_actor_actors_terminated"),
+      Histogram("mesmer_akka_actor_message_processing_time"),
+      Histogram("mesmer_akka_actor_mailbox_time")
+    )
+    val persistenceMetrics = Seq(
+      Counter("mesmer_akka_persistence_snapshot"),
+      Histogram("mesmer_akka_persistence_recovery_time"),
+      Histogram("mesmer_akka_persistence_event_time")
+    )
     val clusterMetrics = Seq(
-      "mesmer_akka_cluster_node_down",
-      "mesmer_akka_cluster_reachable_nodes",
-      "mesmer_akka_cluster_entities_on_node",
-      "mesmer_akka_cluster_shards_per_region",
-      "mesmer_akka_cluster_entities_per_region",
-      "mesmer_akka_cluster_shard_regions_on_node"
+      Counter("mesmer_akka_cluster_node_down"),
+      Gauge("mesmer_akka_cluster_reachable_nodes"),
+      Gauge("mesmer_akka_cluster_entities_on_node"),
+      Gauge("mesmer_akka_cluster_shards_per_region"),
+      Gauge("mesmer_akka_cluster_entities_per_region"),
+      Gauge("mesmer_akka_cluster_shard_regions_on_node")
     )
     actorMetrics ++ persistenceMetrics ++ clusterMetrics
-  }.map("promexample_" + _)
+  }
 
   private def exampleApiRequest(accountId: UUID) = {
     val request = HttpRequest
@@ -53,13 +56,17 @@ class ExampleAkkaTest extends AnyWordSpec with E2ETest with PrometheusMetrics {
   }
 
   "Akka example" should {
-    "produce metrics" in withExample("exampleAkka/run", startTestString = "Starting http server at") { prometheusApi =>
+    "produce metrics" in withExample(
+      "exampleAkka/run",
+      additionalServices = Set("postgres"),
+      startTestString = "Starting http server at"
+    ) { collectorApiBlock =>
       // to produce cluster and persistence metrics
       val accountId = UUID.randomUUID()
       // snapshots are created for every 10 events
       (1 to 10).foreach(_ => exampleApiRequest(accountId))
 
-      akkaMetrics.foreach(assertMetricExists(prometheusApi)(_))
+      assertMetricsExists(collectorApiBlock, "promexample")(akkaMetrics)
     }
   }
 }
