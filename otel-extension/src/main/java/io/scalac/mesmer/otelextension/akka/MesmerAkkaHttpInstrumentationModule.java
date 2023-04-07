@@ -1,7 +1,5 @@
 package io.scalac.mesmer.otelextension.akka;
 
-import static io.scalac.mesmer.utils.Combine.combine;
-
 import com.google.auto.service.AutoService;
 import io.opentelemetry.javaagent.extension.instrumentation.InstrumentationModule;
 import io.opentelemetry.javaagent.extension.instrumentation.TypeInstrumentation;
@@ -44,19 +42,11 @@ public class MesmerAkkaHttpInstrumentationModule extends InstrumentationModule {
   }
 
   @Override
-  public List<String> getAdditionalHelperClassNames() {
-    return combine(
-        MesmerAkkaHelpers.coreHelpers(),
-        List.of(
-            "io.scalac.mesmer.otelextension.instrumentations.akka.http.RouteContext$",
-            "io.scalac.mesmer.otelextension.instrumentations.akka.http.RouteTemplateHolder",
-            "io.scalac.mesmer.otelextension.instrumentations.akka.http.UpdateHttpRouteWrapper$$anonfun$$nestedInanonfun$apply$1$1",
-            "io.scalac.mesmer.otelextension.instrumentations.akka.http.UpdateHttpRouteWrapper",
-            "io.scalac.mesmer.instrumentation.http.impl.RawPathPrefixInterceptor",
-            "io.scalac.mesmer.otelextension.instrumentations.akka.http.RawPathPrefixImplementation$",
-            "io.scalac.mesmer.otelextension.instrumentations.akka.http.RawPathPrefixImplementation",
-            "io.scalac.mesmer.otelextension.instrumentations.akka.http.AkkaHttpConnectionsInstrumentation$",
-            "io.scalac.mesmer.otelextension.instrumentations.akka.http.AkkaHttpConnectionsInstrumentation$HttpConnectionInstruments$",
-            "io.scalac.mesmer.otelextension.instrumentations.akka.http.AkkaHttpConnectionsInstrumentation"));
+  public boolean isHelperClass(String className) {
+    if (className.matches("io.scalac.mesmer.otelextension.instrumentations.akka.http.*")) {
+      return true;
+    } else {
+      return super.isHelperClass(className);
+    }
   }
 }
