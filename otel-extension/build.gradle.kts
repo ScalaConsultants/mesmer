@@ -1,10 +1,12 @@
+import java.nio.file.Files
+
 plugins {
-    java
     idea
     scala
     id("com.github.maiflai.scalatest") version "0.32"
     id("com.github.johnrengelman.shadow") version "8.1.1"
     id("io.opentelemetry.instrumentation.muzzle-generation") version "1.24.0-alpha"
+    id("io.opentelemetry.instrumentation.muzzle-check") version "1.24.0-alpha"
 }
 
 apply(from = "../dependencies.gradle.kts")
@@ -15,6 +17,22 @@ sourceSets {
         scala.setSrcDirs(listOf("src/main/scala", "src/main/java"))
         java.setSrcDirs(emptyList<String>())
     }
+}
+
+tasks.register("createMainrawDirectory") {
+    val directory = file("$buildDir/classes/java/mainraw")
+
+    doLast {
+        Files.createDirectories(directory.toPath())
+    }
+}
+
+tasks.named("byteBuddyJava") {
+    dependsOn("createMainrawDirectory")
+}
+
+tasks.named("byteBuddyScala") {
+    dependsOn("createMainrawDirectory")
 }
 
 dependencies {
@@ -30,9 +48,7 @@ dependencies {
     implementation(getDependency("byte-buddy-agent"))
     compileOnly(getDependency("google-auto-service"))
     annotationProcessor(getDependency("google-auto-service"))
-
     implementation(project(":core"))
-
     testRuntimeOnly(getDependency("flexmark"))
     testImplementation(getDependency("scalatest"))
 

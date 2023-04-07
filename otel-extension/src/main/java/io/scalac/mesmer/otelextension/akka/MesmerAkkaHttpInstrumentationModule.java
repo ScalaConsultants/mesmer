@@ -1,24 +1,17 @@
 package io.scalac.mesmer.otelextension.akka;
 
 import static io.scalac.mesmer.utils.Combine.combine;
-import static java.util.Collections.emptyList;
-import static java.util.Collections.emptyMap;
 
 import com.google.auto.service.AutoService;
 import io.opentelemetry.javaagent.extension.instrumentation.InstrumentationModule;
 import io.opentelemetry.javaagent.extension.instrumentation.TypeInstrumentation;
-import io.opentelemetry.javaagent.tooling.muzzle.InstrumentationModuleMuzzle;
-import io.opentelemetry.javaagent.tooling.muzzle.VirtualFieldMappingsBuilder;
-import io.opentelemetry.javaagent.tooling.muzzle.references.ClassRef;
 import io.scalac.mesmer.otelextension.instrumentations.akka.http.Connections;
 import io.scalac.mesmer.otelextension.instrumentations.akka.http.PathMatching;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Map;
 
 @AutoService(InstrumentationModule.class)
-public class MesmerAkkaHttpInstrumentationModule extends InstrumentationModule
-    implements InstrumentationModuleMuzzle {
+public class MesmerAkkaHttpInstrumentationModule extends InstrumentationModule {
 
   @Override
   public int order() {
@@ -48,22 +41,6 @@ public class MesmerAkkaHttpInstrumentationModule extends InstrumentationModule
         PathMatching.remainingPathMatcher(),
         PathMatching.rawMatcher(),
         Connections.connections());
-  }
-
-  @Override
-  public List<String> getMuzzleHelperClassNames() {
-    return emptyList();
-  }
-
-  @Override
-  public Map<String, ClassRef> getMuzzleReferences() {
-    return emptyMap();
-  }
-
-  @Override
-  public void registerMuzzleVirtualFields(VirtualFieldMappingsBuilder builder) {
-    builder.register("akka.http.scaladsl.server.PathMatcher", "java.lang.String");
-    builder.register("akka.http.scaladsl.server.PathMatcher$Matching", "java.lang.String");
   }
 
   @Override

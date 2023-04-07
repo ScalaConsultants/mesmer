@@ -1,23 +1,16 @@
 package io.scalac.mesmer.otelextension.akka;
 
+import static io.scalac.mesmer.utils.Combine.combine;
+
 import com.google.auto.service.AutoService;
 import io.opentelemetry.javaagent.extension.instrumentation.InstrumentationModule;
 import io.opentelemetry.javaagent.extension.instrumentation.TypeInstrumentation;
-import io.opentelemetry.javaagent.tooling.muzzle.InstrumentationModuleMuzzle;
-import io.opentelemetry.javaagent.tooling.muzzle.VirtualFieldMappingsBuilder;
-import io.opentelemetry.javaagent.tooling.muzzle.references.ClassRef;
 import io.scalac.mesmer.otelextension.instrumentations.akka.stream.AkkaStreamAgents;
-
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
-import java.util.Map;
-
-import static io.scalac.mesmer.utils.Combine.combine;
 
 @AutoService(InstrumentationModule.class)
-public class MesmerAkkaStreamInstrumentationModule extends InstrumentationModule
-    implements InstrumentationModuleMuzzle {
+public class MesmerAkkaStreamInstrumentationModule extends InstrumentationModule {
 
   public MesmerAkkaStreamInstrumentationModule() {
     super("mesmer-akka-stream");
@@ -26,23 +19,6 @@ public class MesmerAkkaStreamInstrumentationModule extends InstrumentationModule
   @Override
   public List<TypeInstrumentation> typeInstrumentations() {
     return AkkaStreamAgents.getAllStreamInstrumentations();
-  }
-
-  @Override
-  public Map<String, ClassRef> getMuzzleReferences() {
-    return Collections.emptyMap();
-  }
-
-  @Override
-  public void registerMuzzleVirtualFields(VirtualFieldMappingsBuilder builder) {
-    builder.register(
-        "akka.stream.impl.fusing.GraphInterpreter$Connection",
-        "io.scalac.mesmer.otelextension.instrumentations.akka.stream.impl.ConnectionCounters");
-  }
-
-  @Override
-  public List<String> getMuzzleHelperClassNames() {
-    return Collections.emptyList();
   }
 
   @Override

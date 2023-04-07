@@ -1,22 +1,14 @@
 package io.scalac.mesmer.otelextension.akka;
 
-import static io.scalac.mesmer.utils.Combine.combine;
-
 import com.google.auto.service.AutoService;
 import io.opentelemetry.javaagent.extension.instrumentation.InstrumentationModule;
 import io.opentelemetry.javaagent.extension.instrumentation.TypeInstrumentation;
-import io.opentelemetry.javaagent.tooling.muzzle.InstrumentationModuleMuzzle;
-import io.opentelemetry.javaagent.tooling.muzzle.VirtualFieldMappingsBuilder;
-import io.opentelemetry.javaagent.tooling.muzzle.references.ClassRef;
 import io.scalac.mesmer.otelextension.instrumentations.akka.actor.AkkaActorAgent;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 
 @AutoService(InstrumentationModule.class)
-public class MesmerAkkaActorInstrumentationModule extends InstrumentationModule
-    implements InstrumentationModuleMuzzle {
+public class MesmerAkkaActorInstrumentationModule extends InstrumentationModule {
   public MesmerAkkaActorInstrumentationModule() {
     super("mesmer-akka-actor");
   }
@@ -44,58 +36,13 @@ public class MesmerAkkaActorInstrumentationModule extends InstrumentationModule
   }
 
   @Override
-  public Map<String, ClassRef> getMuzzleReferences() {
-    return Collections.emptyMap();
-  }
-
-  @Override
-  public void registerMuzzleVirtualFields(VirtualFieldMappingsBuilder builder) {
-    builder
-        .register(
-            "akka.dispatch.Envelope",
-            "io.scalac.mesmer.otelextension.instrumentations.akka.actor.util.EnvelopeContext")
-        .register(
-            "akka.actor.ActorContext",
-            "io.scalac.mesmer.otelextension.instrumentations.akka.actor.impl.otel.ActorCellInstrumentationState")
-        .register(
-            "akka.actor.ActorContext",
-            "io.opentelemetry.javaagent.shaded.io.opentelemetry.api.common.Attributes")
-        .register("akka.actor.ActorSystem", "io.scalac.mesmer.core.actor.ActorRefAttributeFactory")
-        .register(
-            "akka.dispatch.BoundedQueueBasedMessageQueue", "java.util.concurrent.BlockingQueue")
-        .register("akka.dispatch.AbstractBoundedNodeQueue", "java.lang.Boolean");
-  }
-
-  @Override
-  public List<String> getMuzzleHelperClassNames() {
-    return Collections.emptyList();
-  }
-
-  @Override
-  public List<String> getAdditionalHelperClassNames() {
-    return combine(
-        MesmerAkkaHelpers.coreHelpers(),
-        Arrays.asList(
-            "akka.actor.ProxiedQueue",
-            "akka.actor.BoundedQueueProxy",
-            "io.scalac.mesmer.core.actor.ActorRefAttributeFactory",
-            "io.scalac.mesmer.core.actor.ConfiguredAttributeFactory",
-            "io.scalac.mesmer.otelextension.instrumentations.akka.actor.Instruments$$anon$1",
-            "io.scalac.mesmer.otelextension.instrumentations.akka.actor.Instruments",
-            "io.scalac.mesmer.otelextension.instrumentations.akka.actor.Instruments$",
-            "io.scalac.mesmer.otelextension.instrumentations.akka.actor.InstrumentsProvider",
-            "io.scalac.mesmer.otelextension.instrumentations.akka.actor.InstrumentsProvider$",
-            "io.scalac.mesmer.otelextension.instrumentations.akka.actor.util.EnvelopeContext",
-            "io.scalac.mesmer.otelextension.instrumentations.akka.actor.util.EnvelopeContext$",
-            "io.scalac.mesmer.otelextension.instrumentations.akka.actor.impl.otel.ActorCellInstrumentationState",
-            "io.scalac.mesmer.otelextension.instrumentations.akka.actor.extension.ActorLifecycleMonitorExtension",
-            "io.scalac.mesmer.otelextension.instrumentations.akka.actor.extension.ActorLifecycleMonitorExtension$",
-            "io.scalac.mesmer.otelextension.instrumentations.akka.actor.extension.ActorLifecycleMonitorExtensionId$",
-            "io.scalac.mesmer.otelextension.instrumentations.akka.actor.extension.ActorLifecycleMonitorExtension$$anon$1",
-            "io.scalac.mesmer.otelextension.instrumentations.akka.actor.extension.ActorLifecycleEvents",
-            "io.scalac.mesmer.otelextension.instrumentations.akka.actor.extension.ActorLifecycleEvents$ActorCreated",
-            "io.scalac.mesmer.otelextension.instrumentations.akka.actor.extension.ActorLifecycleEvents$ActorTerminated",
-            "io.scalac.mesmer.otelextension.instrumentations.akka.actor.extension.ActorLifecycleMonitor",
-            "io.scalac.mesmer.otelextension.instrumentations.akka.actor.extension.ActorLifecycleMonitor$"));
+  public boolean isHelperClass(String className) {
+    if (className.matches("io.scalac.mesmer.otelextension.instrumentations.akka.actor.*")
+        || className.matches("io.scalac.mesmer.core.*")
+        || className.contains("akka.actor.BoundedQueueProxy")) {
+      return true;
+    } else {
+      return super.isHelperClass(className);
+    }
   }
 }
