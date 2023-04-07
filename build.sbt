@@ -76,6 +76,7 @@ lazy val otelExtension = (project in file("otel-extension"))
     excludeDependencies += "io.opentelemetry.javaagent" % "opentelemetry-javaagent-bootstrap",
     libraryDependencies ++= {
       zio.map(_ % "provided") ++
+      http4s.map(_ % "provided") ++
       openTelemetryExtension.map(_ % "provided") ++
       opentelemetryExtensionApi ++
       openTelemetryMuzzle.map(_ % "provided") ++
@@ -83,7 +84,8 @@ lazy val otelExtension = (project in file("otel-extension"))
       byteBuddy.map(_ % "provided") ++
       akkaTestkit.map(_ % "it,test") ++
       scalatest.map(_ % "it,test") ++
-      openTelemetryTesting.map(_ % "it,test")
+      openTelemetryTesting.map(_ % "it,test") ++
+      http4sClient.map(_ % "it,test")
     },
     assembly / test            := {},
     assembly / assemblyJarName := s"${name.value}-assembly.jar",
