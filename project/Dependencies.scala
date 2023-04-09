@@ -40,7 +40,7 @@ object Dependencies {
   )
 
   val zio = Seq(
-    "dev.zio" %% "zio" % "2.0.10"
+    "dev.zio" %% "zio" % "2.0.11"
   )
 
   val byteBuddy = Seq(
