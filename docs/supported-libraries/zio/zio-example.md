@@ -1,8 +1,8 @@
 ---
-sidebar_position: 5
+sidebar_position: 2
 ---
 
-# ZIO Example
+# Example
 
 ZIO exposes a lot of information about its own and application internals out-of-the-box - like ZIO Executor metrics and JVM metrics. In addition integrated ZIO Metrics DSL allows us to create custom metrics measuring effects of our choice.
 
