@@ -38,8 +38,12 @@ public class MesmerAkkaActorInstrumentationModule extends InstrumentationModule 
   @Override
   public boolean isHelperClass(String className) {
     if (className.matches("io.scalac.mesmer.otelextension.instrumentations.akka.actor.*")
-        || className.matches("io.scalac.mesmer.core.*")
-        || className.contains("akka.actor.BoundedQueueProxy")) {
+        || List.of(
+                "io.scalac.mesmer.core.actor.ActorRefAttributeFactory",
+                "io.scalac.mesmer.core.actor.ConfiguredAttributeFactory",
+                "akka.actor.BoundedQueueProxy")
+            .contains(className)) {
+
       return true;
     } else {
       return super.isHelperClass(className);

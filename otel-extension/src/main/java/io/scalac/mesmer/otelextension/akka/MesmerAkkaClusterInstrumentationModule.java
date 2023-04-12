@@ -20,8 +20,7 @@ public class MesmerAkkaClusterInstrumentationModule extends InstrumentationModul
   @Override
   public boolean isHelperClass(String className) {
     if (className.matches("io.scalac.mesmer.otelextension.instrumentations.akka.cluster.*")
-        || className.matches("io.scalac.mesmer.otelextension.instrumentations.akka.common.*")
-        || className.matches("io.scalac.mesmer.core.*")) {
+        || className.matches("io.scalac.mesmer.otelextension.instrumentations.akka.common.*")) {
       return true;
     } else {
       return super.isHelperClass(className);

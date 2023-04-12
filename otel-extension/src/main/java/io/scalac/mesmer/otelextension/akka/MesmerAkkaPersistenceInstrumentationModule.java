@@ -9,7 +9,7 @@ import java.util.List;
 
 @AutoService(InstrumentationModule.class)
 public class MesmerAkkaPersistenceInstrumentationModule extends InstrumentationModule {
-  //    implements InstrumentationModuleMuzzle {
+
   public MesmerAkkaPersistenceInstrumentationModule() {
     super("mesmer-akka-persistence");
   }
@@ -30,8 +30,7 @@ public class MesmerAkkaPersistenceInstrumentationModule extends InstrumentationM
   public boolean isHelperClass(String className) {
     if (className.matches("io.scalac.mesmer.otelextension.instrumentations.akka.persistence.*")
         || className.matches("io.scalac.mesmer.otelextension.instrumentations.akka.common.*")
-        || className.matches("io.scalac.mesmer.configuration.*")
-        || className.matches("io.scalac.mesmer.core.*")) {
+        || className.matches("io.scalac.mesmer.configuration.*")) {
       return true;
     } else {
       return super.isHelperClass(className);
