@@ -2,14 +2,11 @@ package io.scalac.mesmer.otelextension.instrumentations.http4s.ember.server.advi
 
 import cats.data.Kleisli
 import cats.effect.IO
-import cats.effect.kernel.Outcome
 import io.opentelemetry.api.GlobalOpenTelemetry
 import io.opentelemetry.api.common.Attributes
-import org.http4s.ContextRequest
 import org.http4s.HttpApp
 import org.http4s.Request
 import org.http4s.Response
-import org.http4s.server.middleware.BracketRequestResponse
 
 object ServerHelpersRunAppAdviceHelper {
 
