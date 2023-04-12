@@ -2,11 +2,14 @@ package io.scalac.mesmer.otelextension.instrumentations.http4s.ember.server.advi
 
 import cats.data.Kleisli
 import cats.effect.IO
+import cats.implicits._
 import io.opentelemetry.api.GlobalOpenTelemetry
 import io.opentelemetry.api.common.Attributes
 import org.http4s.HttpApp
 import org.http4s.Request
 import org.http4s.Response
+
+import scala.util.Try
 
 object ServerHelpersRunAppAdviceHelper {
 
@@ -40,16 +43,22 @@ object ServerHelpersRunAppAdviceHelper {
       httpApp
         .asInstanceOf[HttpApp[IO]]
         .run(request)
-        .map { response =>
-          val allAttributes = requestAttributes.toBuilder.putAll(attributesForResponse(response).build()).build()
+        .attemptTap { response =>
+          IO.fromTry(Try {
+            val allAttributes = requestAttributes.toBuilder
+              .putAll(
+                response
+                  .map(attributesForResponse(_).build())
+                  .getOrElse(Attributes.empty())
+              )
+              .build()
 
-          requestsTotal.add(1, allAttributes)
+            requestsTotal.add(1, allAttributes)
 
-          requestDuration.record((System.nanoTime() - startTime) / 1e9d, allAttributes)
+            requestDuration.record((System.nanoTime() - startTime) / 1e9d, allAttributes)
 
-          concurrentRequests.add(-1, requestAttributes)
-
-          response
+            concurrentRequests.add(-1, requestAttributes)
+          })
         }
     }
 }
