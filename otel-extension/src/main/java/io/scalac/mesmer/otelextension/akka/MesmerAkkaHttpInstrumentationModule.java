@@ -43,10 +43,19 @@ public class MesmerAkkaHttpInstrumentationModule extends InstrumentationModule {
 
   @Override
   public boolean isHelperClass(String className) {
-    if (className.matches("io.scalac.mesmer.otelextension.instrumentations.akka.http.*")) {
+    if (className.matches("io.scalac.mesmer.otelextension.instrumentations.akka.http.*")
+        || className.matches("io.scalac.mesmer.instrumentation.http.impl.*")) {
       return true;
     } else {
       return super.isHelperClass(className);
     }
+  }
+
+  @Override
+  public List<String> getAdditionalHelperClassNames() {
+    return List.of(
+        "io.scalac.mesmer.instrumentation.http.impl.RawPathPrefixInterceptor",
+        "io.scalac.mesmer.otelextension.instrumentations.akka.http.RawPathPrefixImplementation",
+        "io.scalac.mesmer.otelextension.instrumentations.akka.http.RawPathPrefixImplementation$");
   }
 }
