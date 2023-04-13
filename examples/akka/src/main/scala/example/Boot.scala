@@ -45,11 +45,9 @@ object Boot extends App with FailFastCirceSupport with JsonCodecs {
       baseConfig
         .withFallback(fallbackConfig)
         .resolve
-
     val systemName = config.getString("app.systemName")
     val host       = config.getString("app.host")
     val port       = config.getInt("app.port")
-
     implicit val system: ActorSystem[Nothing] =
       ActorSystem[Nothing](Behaviors.empty, systemName, config)
 
@@ -60,7 +58,6 @@ object Boot extends App with FailFastCirceSupport with JsonCodecs {
       case Success(value)     => logger.info("Started Akka Management on uri: {}", value)
       case Failure(exception) => logger.error("Couldn't start Akka Management", exception)
     }
-
     val entity = EntityTypeKey[AccountStateActor.Command]("accounts")
 
     val accountsShards = ClusterSharding(system)
@@ -69,16 +66,13 @@ object Boot extends App with FailFastCirceSupport with JsonCodecs {
           java.util.UUID.fromString(entityContext.entityId)
         )
       })
-
     val accountRoutes = new AccountRoutes(accountsShards)
 
     logger.info(s"Starting http server at $host:$port")
     val binding = Http()
       .newServerAt(host, port)
       .bind(accountRoutes.routes)
-
     StdIn.readLine()
-
     binding
       .flatMap(_.unbind())
       .onComplete(_ => system.terminate())

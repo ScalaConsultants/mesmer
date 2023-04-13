@@ -17,6 +17,9 @@ sourceSets {
         scala.setSrcDirs(listOf("src/main/scala", "src/main/java"))
         java.setSrcDirs(emptyList<String>())
     }
+    test {
+        scala.setSrcDirs(listOf("src/test/scala", "src/test/java", "src/it/scala"))
+    }
 }
 
 tasks.register("createMainrawDirectory") {
@@ -37,7 +40,6 @@ tasks.named("byteBuddyScala") {
 
 dependencies {
     implementation(getDependency("scala-library"))
-    implementation(getDependency("scala-library"))
     implementation(getDependency("zio-core"))
     implementation(getDependency("opentelemetry-javaagent-tooling"))
     implementation(getDependency("opentelemetry-javaagent-extension-api"))
@@ -51,5 +53,4 @@ dependencies {
     implementation(project(":core"))
     testRuntimeOnly(getDependency("flexmark"))
     testImplementation(getDependency("scalatest"))
-
 }

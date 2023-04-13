@@ -1,14 +1,22 @@
 plugins {
     idea
     scala
+    application
     id("com.github.maiflai.scalatest") version "0.32"
 }
 
 apply(from = "../../dependencies.gradle.kts")
 val getDependency = extra["getDependency"] as (name: String) -> String
 
+application {
+    mainClass.set("example.Boot")
+    //applicationDefaultJvmArgs = listOf("-javaagent:../../opentelemetry-javaagent-1.24.0.jar", "-Dotel.javaagent.debug=true")
+}
+
+
 dependencies {
     implementation(getDependency("scala-library"))
+    implementation(getDependency("logback"))
     implementation(getDependency("akka-http"))
     implementation(getDependency("akka-http-spray-json"))
     implementation(getDependency("akka-stream"))
