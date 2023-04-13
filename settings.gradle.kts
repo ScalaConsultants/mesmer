@@ -11,3 +11,4 @@ dependencyResolutionManagement {
 include(":testkit")
 include(":core")
 include(":otel-extension")
+include(":examples:akka")
