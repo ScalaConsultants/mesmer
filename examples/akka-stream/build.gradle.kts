@@ -11,8 +11,13 @@ application {
     mainClass.set("example.SimpleStreamExample")
 }
 
+tasks.withType<JavaExec>() {
+    standardInput = System.`in`
+}
+
 dependencies {
     implementation(getDependency("scala-library"))
+    implementation(getDependency("logback"))
     implementation(getDependency("akka-http"))
     implementation(getDependency("akka-http-spray-json"))
     implementation(getDependency("akka-stream"))

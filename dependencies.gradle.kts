@@ -2,6 +2,7 @@ val akkaHttpVersion = "10.4.0"
 val akkaHttpCirceVersion = "1.39.2"
 val akkaManagementVersion = "1.2.0"
 val akkaVersion = "2.7.0"
+val akkaPersistenceJdbcVersion = "5.2.0"
 val autoServiceVersion = "1.0.1"
 val byteBuddyVersion = "1.14.2"
 val circeVersion = "0.14.5"
@@ -26,6 +27,8 @@ extra["dependencies"] = mapOf(
     "akka-stream" to "com.typesafe.akka:akka-stream_2.13:$akkaVersion",
     "akka-cluster-typed" to "com.typesafe.akka:akka-cluster-typed_2.13:$akkaVersion",
     "akka-persistence-typed" to "com.typesafe.akka:akka-persistence-typed_2.13:$akkaVersion",
+    "akka-persistence-jdbc" to "com.lightbend.akka:akka-persistence-jdbc_2.13:$akkaPersistenceJdbcVersion",
+    "akka-persistence-query" to "com.typesafe.akka:akka-persistence-query_2.13:$akkaVersion",
     "akka-actor-typed" to "com.typesafe.akka:akka-actor-typed_2.13:$akkaVersion",
     "akka-actor" to "com.typesafe.akka:akka-actor_2.13:$akkaVersion",
     "akka-management" to "com.lightbend.akka.management:akka-management_2.13:$akkaManagementVersion",

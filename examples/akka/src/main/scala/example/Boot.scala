@@ -77,6 +77,6 @@ object Boot extends App with FailFastCirceSupport with JsonCodecs {
       .flatMap(_.unbind())
       .onComplete(_ => system.terminate())
   }
-
   startUp()
+
 }
