@@ -138,7 +138,7 @@ def exampleProject(project: Project) = project
     ),
     libraryDependencies ++= {
       logback ++ Seq(
-        "io.grpc"             % "grpc-netty-shaded" % "1.54.0",
+        "io.grpc"             % "grpc-netty-shaded" % "1.54.1",
         "org.wvlet.airframe" %% "airframe-log"      % AirframeVersion
       )
     },
