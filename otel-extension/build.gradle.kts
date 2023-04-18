@@ -9,6 +9,16 @@ plugins {
     id("io.opentelemetry.instrumentation.muzzle-check") version "1.24.0-alpha"
 }
 
+val extensionArtifact by configurations.creating {
+    isCanBeConsumed = true
+    isCanBeResolved = false
+}
+
+artifacts {
+    add(extensionArtifact.name, tasks.shadowJar)
+}
+
+
 apply(from = "../dependencies.gradle.kts")
 val getDependency = extra["getDependency"] as (name: String) -> String
 

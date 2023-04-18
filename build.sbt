@@ -145,6 +145,8 @@ def exampleProject(project: Project) = project
     run / fork         := true,
     run / connectInput := true
   )
+
+  // TODO: our examples depend on core!!! That shouldn't be the case!!!
   .dependsOn(core, testkit % "test")
 
 lazy val exampleAkka = exampleProject(project in file("examples/akka"))

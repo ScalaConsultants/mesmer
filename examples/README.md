@@ -16,19 +16,19 @@ This will set up everything needed by the application:
 ## Run the application
 
 ```
-sbt exampleAkka/run
+./gradlew :examples:akka:run
 ```
 
 or (for Akka Streaming example)
 
 ```
-sbt exampleAkkaStream/run
+./gradlew :examples:akka-stream:run:wq
 ```
 
 or (for ZIO 2.0.0 example)
 
 ```
-sbt exampleZio/run
+./gradlew :examples:zio:run
 ```
 
 ## In case you are running the non-streaming example: call the endpoints
