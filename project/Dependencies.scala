@@ -11,7 +11,7 @@ object Dependencies {
   val CirceYamlVersion      = "0.14.2"
 
   val GoogleAutoServiceVersion        = "1.0.1"
-  val LogbackVersion                  = "1.4.6"
+  val LogbackVersion                  = "1.4.7"
   val OpentelemetryVersion            = "1.24.0"
   val OpentelemetryMinor0Version      = "1.24.0"
   val OpentelemetryAlphaVersion       = "1.24.0-alpha"
