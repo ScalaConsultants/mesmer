@@ -9,6 +9,7 @@ object Dependencies {
   val ByteBuddyVersion      = "1.14.2"
   val CirceVersion          = "0.14.5"
   val CirceYamlVersion      = "0.14.2"
+  val Http4sVersion         = "0.23.18"
 
   val GoogleAutoServiceVersion        = "1.0.1"
   val LogbackVersion                  = "1.4.6"
@@ -41,6 +42,15 @@ object Dependencies {
 
   val zio = Seq(
     "dev.zio" %% "zio" % "2.0.10"
+  )
+
+  val http4s = Seq(
+    "org.http4s" %% "http4s-ember-server" % Http4sVersion,
+    "org.http4s" %% "http4s-dsl"          % Http4sVersion
+  )
+
+  val http4sClient = Seq(
+    "org.http4s" %% "http4s-ember-client" % Http4sVersion
   )
 
   val byteBuddy = Seq(
