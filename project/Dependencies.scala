@@ -2,7 +2,7 @@ import sbt._
 
 object Dependencies {
 
-  val AirframeVersion       = "23.3.4"
+  val AirframeVersion       = "23.6.0"
   val AkkaHttpVersion       = "10.4.0"
   val AkkaManagementVersion = "1.2.0"
   val AkkaVersion           = "2.7.0"
