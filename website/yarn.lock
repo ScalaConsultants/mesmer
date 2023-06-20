@@ -2400,9 +2400,7 @@
     tslib "^2.4.0"
 
 "@docusaurus/preset-classic@^2.3.1":
-  version "2.3.1"
-  resolved "https://registry.yarnpkg.com/@docusaurus/preset-classic/-/preset-classic-2.3.1.tgz#f0193f06093eb55cafef66bd1ad9e0d33198bf95"
-  integrity sha512-OQ5W0AHyfdUk0IldwJ3BlnZ1EqoJuu2L2BMhqLbqwNWdkmzmSUvlFLH1Pe7CZSQgB2YUUC/DnmjbPKk/qQD0lQ==
+  version "2.4.0"
   dependencies:
     "@docusaurus/core" "2.3.1"
     "@docusaurus/plugin-content-blog" "2.3.1"
