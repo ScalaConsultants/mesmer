@@ -12,7 +12,7 @@ object Dependencies {
   val Http4sVersion         = "0.23.18"
 
   val GoogleAutoServiceVersion        = "1.0.1"
-  val LogbackVersion                  = "1.4.6"
+  val LogbackVersion                  = "1.4.9"
   val OpentelemetryVersion            = "1.24.0"
   val OpentelemetryMinor0Version      = "1.24.0"
   val OpentelemetryAlphaVersion       = "1.24.0-alpha"
