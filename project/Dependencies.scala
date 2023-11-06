@@ -41,7 +41,7 @@ object Dependencies {
   )
 
   val zio = Seq(
-    "dev.zio" %% "zio" % "2.0.10"
+    "dev.zio" %% "zio" % "2.0.19"
   )
 
   val http4s = Seq(
