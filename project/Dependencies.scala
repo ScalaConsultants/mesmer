@@ -20,7 +20,7 @@ object Dependencies {
   val PostgresVersion                 = "42.6.0"
   val ScalatestVersion                = "3.2.15"
   val TestcontainersScalaVersion      = "0.40.14"
-  val SlickVersion                    = "3.4.1"
+  val SlickVersion                    = "3.5.0"
 
   val akka = Seq(
     "com.typesafe.akka" %% "akka-http"                   % AkkaHttpVersion,
